@@ -13,4 +13,4 @@ SPDX-License-Identifier: MIT
 
 ## Introduction
 
-This is the HMI part of the "Open Source Cinema Production Tools" application
+This is the HMI part of the "Open Source Cinema Production Tools" application.
