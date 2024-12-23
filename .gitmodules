@@ -1,0 +1,3 @@
+[submodule "flutterbrolibs"]
+	path = flutterbrolibs
+	url = git@github.com:borlnov/flutterbrolibs.git
