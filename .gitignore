@@ -47,3 +47,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase
+
+# We don't want to share the firebase.json file because, if you rebuild the app, you will have to
+# create a new project on Firebase.
+firebase.json

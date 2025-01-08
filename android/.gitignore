@@ -17,3 +17,7 @@ key.properties
 **/*.jks
 
 build/
+
+# Firebase, we don't want to share the google-services.json file because, if you rebuild the app,
+# you will have to create a new project on Firebase and download a new google-services.json file.
+google-services.json

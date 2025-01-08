@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2025 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Ignore everything in this directory
+
+*
+!.gitignore
