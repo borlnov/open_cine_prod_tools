@@ -267,7 +267,7 @@ linter:
     tighten_type_of_initializing_formals: true
 
     # Type annotate public APIs.
-    type_annotate_public_apis:  true
+    type_annotate_public_apis: true
 
     # Future results in async function bodies must be awaited or marked unawaited using dart:async.
     unawaited_futures: true
@@ -325,6 +325,5 @@ linter:
 
     # Don't assign to void.
     void_checks: true
-
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

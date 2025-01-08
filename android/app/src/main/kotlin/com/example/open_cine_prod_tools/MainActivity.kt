@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: MIT
 
-package com.example.open_cine_prod_tools
+package com.borlnov.open_cine_prod_tools
 
 import io.flutter.embedding.android.FlutterActivity
 

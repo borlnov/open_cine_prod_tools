@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2025 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# This section contains Firebase configurations for the application.
+firebase:
+  # Contains configuration elements for Firebase Crashlytics.
+  crashlytics:
+    # Indicates if Firebase Crashlytics is enabled or not.
+    enabled: true
+
+    # Contains options about the extra logs that will be sent to Firebase Crashlytics when a crash
+    # happens.
+    includeLastLogs:
+      # Indicates the number of last logs to keep and send to Firebase Crashlytics.
+      logsNb: 10
