@@ -3,10 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_intl/act_intl.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/widgets.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/ui/pages/fatal_error_page.dart';
 
 /// Owns every manager registered in the app and drives their life cycle.
@@ -28,6 +33,15 @@ class OcptGlobalManager extends AbsUiGlobalManager {
   Future<void> registerManagers() async {
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
+    registerManagerAsync<OcptPropertiesManager>(const OcptPropertiesManagerBuilder());
+    registerManagerAsync<LocalesManager>(
+      LocalesManagerBuilder<OcptConfigManager, OcptPropertiesManager>(
+        getSupportedLocales: () => Tr.delegate.supportedLocales,
+      ),
+    );
+    registerManagerAsync<ActThemesManager>(
+      ActThemesBuilder<OcptConfigManager, OcptPropertiesManager>(appThemes: OcptAppTheme.values),
+    );
     registerManagerAsync<OcptRouterManager>(const OcptRouterManagerBuilder());
   }
 

@@ -22,6 +22,9 @@ analyzer:
     # pub workspace; most of its packages aren't even path dependencies of this app, so they must
     # not be analyzed as part of this project.
     - actlibs/**
+    # packages/fountain_kit is a standalone, work-in-progress package that isn't a dependency of
+    # this app yet, so it must not be analyzed as part of this project.
+    - packages/**
 
   errors:
     missing_required_param: error
