@@ -80,9 +80,6 @@ linter:
     # Don't declare multiple variables on a single line.
     avoid_multiple_declarations_per_line: true
 
-    # Don't check for null in custom == operators.
-    avoid_null_checks_in_equality_operators: true
-
     # Avoid positional boolean parameters.
     avoid_positional_boolean_parameters: true
 

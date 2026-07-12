@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2024 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: Apache-2.0
 
 name: Flutter Lint
 on: [pull_request]
@@ -15,6 +15,8 @@ jobs:
           submodules: recursive
       - name: Set up Flutter
         uses: subosito/flutter-action@v1
+        with:
+          flutter-version: 3.41.9
       - run: flutter pub get
       - name: Analyze Dart
         uses: zgosalvez/github-actions-analyze-dart@v2
