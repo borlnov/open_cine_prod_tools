@@ -5,6 +5,10 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "name": "actlibs",
+            "path": "actlibs"
         }
     ],
     "settings": {

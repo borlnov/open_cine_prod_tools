@@ -2,35 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/ui/main_app/main_app_ui.dart';
 
-/// The display name of the application, shown on the home screen.
-const String appName = 'Open Cine Prod Tools';
-
-/// Starts the application.
-void main() {
-  runApp(const MainApp());
-}
-
-/// The root widget of the application.
-///
-/// This is a placeholder shell that will be replaced by the real application
-/// as the production tools are implemented.
-class MainApp extends StatelessWidget {
-  /// Constructs the [MainApp] widget.
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: appName,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        home: const Scaffold(
-          body: Center(
-            child: Text(appName),
-          ),
-        ),
-      );
-}
+/// Starts the application by running it on top of the global manager.
+Future<void> main() async => OcptGlobalManager.instance.runActApp(const MainAppUi());

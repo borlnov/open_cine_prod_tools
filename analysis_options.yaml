@@ -18,6 +18,10 @@ analyzer:
   exclude:
     - build/**
     - lib/generated/**
+    # The actlibs submodule is a separate mono repo with its own analysis_options.yaml and its own
+    # pub workspace; most of its packages aren't even path dependencies of this app, so they must
+    # not be analyzed as part of this project.
+    - actlibs/**
 
   errors:
     missing_required_param: error

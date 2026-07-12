@@ -4,3 +4,10 @@ version = 1
 path = ["macos/**", "windows/**", "android/**", "ios/**", "linux/**", ".metadata"]
 SPDX-FileCopyrightText = "2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+# .gitmodules is a plain git config file: it has no comment syntax reuse recognizes, so its
+# licensing information is declared here instead of inline.
+path = [".gitmodules"]
+SPDX-FileCopyrightText = "2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>"
+SPDX-License-Identifier = "Apache-2.0"

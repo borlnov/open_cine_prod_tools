@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Contains the parameters read by the act_logger_manager package.
+logs:
+  # This defines the log level for the whole logger manager.
+  level: warning
+
+  # Contains the parameters for the console external logger.
+  console:
+    # This defines the minimum log level printed by the console logger.
+    level: error
+
+    # The console logger stays silent in release builds shipped to production.
+    printInRelease: false

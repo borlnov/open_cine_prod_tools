@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Contains the parameters read by the act_logger_manager package.
+logs:
+  # This defines the log level for the whole logger manager. Possible values are:
+  # all, trace, debug, info, warning, error, fatal and off.
+  level: warning
+
+  # Contains the parameters for the console external logger.
+  console:
+    # This defines the minimum log level printed by the console logger. Possible values are the
+    # same as logs.level.
+    level: warning
+
+    # Indicates if the console logger keeps printing logs when the app runs in release mode.
+    printInRelease: false
