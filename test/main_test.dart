@@ -39,13 +39,19 @@ void main() {
     OcptGlobalManager.instance.managers.registerSingleton<OcptProjectsManager>(projectsManager);
   });
 
-  testWidgets('EditorPage shows the placeholder title when no project is open', (
+  testWidgets('EditorPage builds an empty editor when no project is open', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    // The router guard normally prevents reaching the editor without an open project; when it's
+    // pumped directly anyway, the editor still builds, just empty: the source field is shown and
+    // the preview shows its empty hint.
+    expect(find.byType(TextField), findsOneWidget);
 
     final context = tester.element(find.byType(EditorPage));
-    expect(find.text(Tr.of(context).editorPageTitle), findsOneWidget);
+    expect(find.text(Tr.of(context).editorPreviewEmptyHint), findsOneWidget);
   });
 
   testWidgets('SettingsPage builds', (WidgetTester tester) async {

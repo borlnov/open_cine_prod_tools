@@ -14,6 +14,62 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorScenesPanelTitle": "Scenes",
+  "@editorScenesPanelTitle": {
+    "description": "Title of the editor's scene panel",
+    "context": "Displayed at the top of the scene panel, next to the scene count",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorScenesEmptyHint": "Scene headings will appear here as you write.",
+  "@editorScenesEmptyHint": {
+    "description": "Hint shown in the scene panel while the screenplay has no scene yet",
+    "context": "Displayed in the scene panel instead of the scene list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPreviewEmptyHint": "Start writing to see the formatted preview.",
+  "@editorPreviewEmptyHint": {
+    "description": "Hint shown in the preview panel while the screenplay is empty",
+    "context": "Displayed in the preview panel instead of the simulated paper page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSaveTooltip": "Save",
+  "@editorSaveTooltip": {
+    "description": "Tooltip of the toolbar action that saves the screenplay",
+    "context": "Displayed on hover over the save button of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleScenePanelTooltip": "Show or hide the scene panel",
+  "@editorToggleScenePanelTooltip": {
+    "description": "Tooltip of the toolbar action that shows/hides the scene panel",
+    "context": "Displayed on hover over the scene panel toggle of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTogglePreviewTooltip": "Show or hide the preview",
+  "@editorTogglePreviewTooltip": {
+    "description": "Tooltip of the toolbar action that shows/hides the formatted preview",
+    "context": "Displayed on hover over the preview toggle of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorUnsavedChangesTooltip": "Unsaved changes",
+  "@editorUnsavedChangesTooltip": {
+    "description": "Tooltip of the dot marking unsaved changes",
+    "context": "Displayed on hover over the dot shown next to the title in the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSaveError": "The screenplay could not be saved.",
+  "@editorSaveError": {
+    "description": "Error shown when saving the screenplay to the project file failed",
+    "context": "Displayed in a SnackBar on the editor page; the changes stay marked unsaved",
+    "type": "text",
+    "placeholders": {}
+  },
   "settingsPageTitle": "Settings",
   "@settingsPageTitle": {
     "description": "Title shown on the settings page",

@@ -34,3 +34,12 @@ SPDX-License-Identifier = "Apache-2.0"
 path = ["**/*.g.dart"]
 SPDX-FileCopyrightText = "2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+# The Courier Prime TTFs are fetched verbatim from Google Fonts (itself mirroring
+# https://github.com/quoteunquoteapps/CourierPrime), used to typeset the screenplay editor's
+# preview in the traditional screenplay font. Binary font files have no comment syntax reuse
+# recognizes, so their licensing information is declared here instead of inline.
+path = ["assets/fonts/courier_prime/**"]
+SPDX-FileCopyrightText = "2015 The Courier Prime Project Authors (https://github.com/quoteunquoteapps/CourierPrime)"
+SPDX-License-Identifier = "OFL-1.1"

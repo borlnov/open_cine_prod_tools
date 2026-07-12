@@ -251,6 +251,23 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
   }
 
+  /// Loads the page format stored in the [currentProject]'s `project_info` table, or null if no
+  /// project is currently open.
+  ///
+  /// This lives here (rather than in the editor's UI layer) so reading the project database stays
+  /// confined to the managers/services layer.
+  Future<OcptPageFormat?> loadCurrentProjectPageFormat() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.pageFormat;
+  }
+
   /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
   Future<void> closeCurrentProject() async {

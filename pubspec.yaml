@@ -121,6 +121,18 @@ flutter:
   assets:
     - assets/config/
 
+  fonts:
+    - family: CourierPrime
+      fonts:
+        - asset: assets/fonts/courier_prime/CourierPrime-Regular.ttf
+        - asset: assets/fonts/courier_prime/CourierPrime-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/courier_prime/CourierPrime-Italic.ttf
+          style: italic
+        - asset: assets/fonts/courier_prime/CourierPrime-BoldItalic.ttf
+          weight: 700
+          style: italic
+
 flutter_intl:
   enabled: true
   # Sets the name for the generated localization class. Default: S
