@@ -6,16 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
 
-/// The screenplay editor: the raw Fountain source in the center, the collapsible scene panel on
-/// the left, the formatted paper preview on the right, and a thin toolbar above them.
+/// The screenplay editor: either the styled block editor or the raw Fountain source in the
+/// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
+/// the formatted paper preview on the right (raw mode only: the styled mode's own layout already
+/// is the formatted screenplay), and a thin toolbar above them.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class EditorPage extends StatelessWidget {
@@ -31,6 +35,12 @@ class EditorPage extends StatelessWidget {
 class _SaveIntent extends Intent {
   /// Class constructor
   const _SaveIntent();
+}
+
+/// The intent behind the Ctrl+Shift+M / Cmd+Shift+M shortcut: toggle the styled/raw editing mode.
+class _ModeToggleIntent extends Intent {
+  /// Class constructor
+  const _ModeToggleIntent();
 }
 
 /// The content of [EditorPage], separated from it so [EditorPage] only wires the [OcptEditorBloc]
@@ -68,9 +78,6 @@ class _EditorViewState extends State<_EditorView> {
   /// caret actually changes line.
   int _lastReportedLine = 0;
 
-  /// Whether the loaded screenplay text was already applied to [_textController].
-  bool _hasAppliedInitialText = false;
-
   /// The id of the last [OcptEditorJumpRequest] applied, to apply each request exactly once.
   int? _lastAppliedJumpRequestId;
 
@@ -98,10 +105,13 @@ class _EditorViewState extends State<_EditorView> {
     shortcuts: const {
       SingleActivator(LogicalKeyboardKey.keyS, control: true): _SaveIntent(),
       SingleActivator(LogicalKeyboardKey.keyS, meta: true): _SaveIntent(),
+      SingleActivator(LogicalKeyboardKey.keyM, control: true, shift: true): _ModeToggleIntent(),
+      SingleActivator(LogicalKeyboardKey.keyM, meta: true, shift: true): _ModeToggleIntent(),
     },
     child: Actions(
       actions: {
         _SaveIntent: CallbackAction<_SaveIntent>(onInvoke: (intent) => _requestManualSave()),
+        _ModeToggleIntent: CallbackAction<_ModeToggleIntent>(onInvoke: (intent) => _toggleMode()),
       },
       child: Scaffold(
         body: BlocConsumer<OcptEditorBloc, OcptEditorState>(
@@ -111,6 +121,8 @@ class _EditorViewState extends State<_EditorView> {
               return const Center(child: CircularProgressIndicator());
             }
 
+            final isRawMode = state.mode == OcptEditorMode.raw;
+
             return Column(
               children: [
                 OcptEditorToolbar(
@@ -119,6 +131,7 @@ class _EditorViewState extends State<_EditorView> {
                   isSaving: state.isSaving,
                   isScenePanelVisible: state.isScenePanelVisible,
                   isPreviewVisible: state.isPreviewVisible,
+                  mode: state.mode,
                   onSave: _requestManualSave,
                   onToggleScenePanel: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorScenePanelToggledEvent(),
@@ -126,6 +139,7 @@ class _EditorViewState extends State<_EditorView> {
                   onTogglePreview: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorPreviewToggledEvent(),
                   ),
+                  onToggleMode: _toggleMode,
                 ),
                 Expanded(
                   child: Row(
@@ -141,13 +155,25 @@ class _EditorViewState extends State<_EditorView> {
                         ),
                       Expanded(
                         flex: 5,
-                        child: OcptEditorSourceField(
-                          controller: _textController,
-                          scrollController: _editorScrollController,
-                          focusNode: _editorFocusNode,
-                        ),
+                        child: isRawMode
+                            ? OcptEditorSourceField(
+                                controller: _textController,
+                                scrollController: _editorScrollController,
+                                focusNode: _editorFocusNode,
+                              )
+                            : OcptStyledScreenplayEditor(
+                                text: state.text,
+                                pageFormat: state.pageFormat,
+                                onTextChanged: (text) => context.read<OcptEditorBloc>().add(
+                                  OcptEditorTextChangedEvent(text: text),
+                                ),
+                                onCaretLineChanged: (line) => context.read<OcptEditorBloc>().add(
+                                  OcptEditorCaretMovedEvent(line: line),
+                                ),
+                                jumpRequest: state.jumpRequest,
+                              ),
                       ),
-                      if (state.isPreviewVisible)
+                      if (isRawMode && state.isPreviewVisible)
                         Expanded(
                           flex: 6,
                           child: OcptEditorPreview(
@@ -170,6 +196,11 @@ class _EditorViewState extends State<_EditorView> {
   /// Sends the manual save request (toolbar button or Ctrl+S).
   void _requestManualSave() {
     context.read<OcptEditorBloc>().add(const OcptEditorSaveRequestedEvent(isManual: true));
+  }
+
+  /// Sends the mode toggle request (toolbar button or Ctrl+Shift+M).
+  void _toggleMode() {
+    context.read<OcptEditorBloc>().add(const OcptEditorModeToggledEvent());
   }
 
   /// Reports the controller's text and caret line changes to the bloc.
@@ -204,25 +235,37 @@ class _EditorViewState extends State<_EditorView> {
     return "\n".allMatches(text.substring(0, clampedOffset)).length;
   }
 
-  /// Applies bloc-driven effects onto the page: the initial text, scene jump requests, and the
-  /// transient save error SnackBar.
+  /// Applies bloc-driven effects onto the page: keeping the raw text controller in sync with any
+  /// text change that didn't originate from it (the initial load, or an edit made in styled
+  /// mode), scene jump requests, and the transient save error SnackBar.
+  ///
+  /// The styled editor is handed [OcptEditorState.text] directly as a widget property and syncs
+  /// itself (see `OcptStyledScreenplayEditor`); only the raw controller needs this imperative
+  /// nudge, since it's a plain [TextEditingController] rather than something driven by `build`.
   void _onStateChanged(BuildContext context, OcptEditorState state) {
-    if (!state.isLoading && !_hasAppliedInitialText) {
-      _hasAppliedInitialText = true;
+    if (!state.isLoading && state.text != _lastReportedText) {
       _isApplyingProgrammaticChange = true;
       try {
+        final previousSelection = _textController.selection;
         _textController.text = state.text;
-        _textController.selection = const TextSelection.collapsed(offset: 0);
+        _textController.selection = previousSelection.isValid && previousSelection.end <= state.text.length
+            ? previousSelection
+            : const TextSelection.collapsed(offset: 0);
         _lastReportedText = state.text;
       } finally {
         _isApplyingProgrammaticChange = false;
       }
     }
 
-    final jumpRequest = state.jumpRequest;
-    if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
-      _lastAppliedJumpRequestId = jumpRequest.id;
-      _applyJumpRequest(jumpRequest.charOffset);
+    // Scene jumps are only applied to the raw controller while raw mode is actually visible: the
+    // styled editor applies its own jump requests independently, and forcing focus onto the
+    // hidden raw field here would otherwise steal it away from the visible styled editor.
+    if (state.mode == OcptEditorMode.raw) {
+      final jumpRequest = state.jumpRequest;
+      if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
+        _lastAppliedJumpRequestId = jumpRequest.id;
+        _applyJumpRequest(jumpRequest.charOffset);
+      }
     }
 
     if (state.hasSaveError) {

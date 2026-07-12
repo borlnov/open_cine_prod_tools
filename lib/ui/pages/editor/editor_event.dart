@@ -103,6 +103,15 @@ class OcptEditorPreviewToggledEvent extends OcptEditorEvent {
   const OcptEditorPreviewToggledEvent();
 }
 
+/// Toggles the editing mode between the styled block editor and the raw text source.
+///
+/// The new mode is persisted through `OcptPropertiesManager.editorMode`, so it's restored the
+/// next time the editor is opened.
+class OcptEditorModeToggledEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorModeToggledEvent();
+}
+
 /// Dismisses the transient save error currently shown, if any.
 class OcptEditorSaveErrorDismissedEvent extends OcptEditorEvent {
   /// Class constructor

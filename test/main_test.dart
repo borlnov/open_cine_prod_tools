@@ -9,8 +9,11 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
@@ -25,18 +28,29 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 void main() {
-  // EditorPage reads the current project's name from OcptProjectsManager through globalGetIt(),
-  // which requires a global manager instance to exist and an OcptProjectsManager to be registered
-  // in it. We register a manually constructed one (bypassing the app's normal manager wiring, and
-  // its own OcptPropertiesManager dependency, which this test never exercises).
+  // EditorPage reads the current project's name from OcptProjectsManager, and its preferred
+  // editing mode from OcptPropertiesManager, both through globalGetIt(); both need a global
+  // manager instance to exist and be registered in it. We register manually constructed ones
+  // (bypassing the app's normal manager wiring).
+  late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
 
   setUpAll(() async {
     OcptGlobalManager.instance;
 
-    projectsManager = OcptProjectsManager(propertiesManager: OcptPropertiesManager());
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    propertiesManager = OcptPropertiesManager();
+    await propertiesManager.initLifeCycle();
+    // This test's focus is the raw source field rendering an empty screenplay, not the editing
+    // mode: force raw mode so it stays green regardless of the app's default editing mode.
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+
+    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
     await projectsManager.initLifeCycle();
-    OcptGlobalManager.instance.managers.registerSingleton<OcptProjectsManager>(projectsManager);
+
+    OcptGlobalManager.instance.managers
+      ..registerSingleton<OcptPropertiesManager>(propertiesManager)
+      ..registerSingleton<OcptProjectsManager>(projectsManager);
   });
 
   testWidgets('EditorPage builds an empty editor when no project is open', (

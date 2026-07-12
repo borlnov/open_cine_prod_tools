@@ -4,10 +4,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 
 /// The editor's thin, discreet toolbar: the screenplay title (with a dot marking unsaved
-/// changes), then the save action (spinning while a save is in flight) and the scene panel /
-/// preview visibility toggles.
+/// changes), then the save action (spinning while a save is in flight), the styled/raw mode
+/// toggle, and the scene panel / preview visibility toggles.
 class OcptEditorToolbar extends StatelessWidget {
   /// The title shown at the left of the toolbar (the open project's name).
   final String title;
@@ -22,7 +23,13 @@ class OcptEditorToolbar extends StatelessWidget {
   final bool isScenePanelVisible;
 
   /// Whether the preview panel is currently visible.
+  ///
+  /// The preview toggle is only shown in [OcptEditorMode.raw]: the styled mode has no separate
+  /// preview panel, since its own layout already is the formatted screenplay.
   final bool isPreviewVisible;
+
+  /// The current editing mode: the styled block editor or the raw text source.
+  final OcptEditorMode mode;
 
   /// Called when the save action is clicked.
   final VoidCallback onSave;
@@ -33,6 +40,9 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when the preview toggle is clicked.
   final VoidCallback onTogglePreview;
 
+  /// Called when the styled/raw mode toggle is clicked.
+  final VoidCallback onToggleMode;
+
   /// Class constructor
   const OcptEditorToolbar({
     super.key,
@@ -41,9 +51,11 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.isSaving,
     required this.isScenePanelVisible,
     required this.isPreviewVisible,
+    required this.mode,
     required this.onSave,
     required this.onToggleScenePanel,
     required this.onTogglePreview,
+    required this.onToggleMode,
   });
 
   @override
@@ -100,10 +112,21 @@ class OcptEditorToolbar extends StatelessWidget {
               tooltip: tr.editorToggleScenePanelTooltip,
               onPressed: onToggleScenePanel,
             ),
+            if (mode == OcptEditorMode.raw)
+              IconButton(
+                icon: Icon(isPreviewVisible ? Icons.article : Icons.article_outlined, size: 20),
+                tooltip: tr.editorTogglePreviewTooltip,
+                onPressed: onTogglePreview,
+              ),
             IconButton(
-              icon: Icon(isPreviewVisible ? Icons.article : Icons.article_outlined, size: 20),
-              tooltip: tr.editorTogglePreviewTooltip,
-              onPressed: onTogglePreview,
+              icon: Icon(
+                mode == OcptEditorMode.styled ? Icons.style : Icons.code,
+                size: 20,
+              ),
+              tooltip: mode == OcptEditorMode.styled
+                  ? tr.editorSwitchToRawModeTooltip
+                  : tr.editorSwitchToStyledModeTooltip,
+              onPressed: onToggleMode,
             ),
           ],
         ),

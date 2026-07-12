@@ -5,14 +5,17 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
@@ -21,6 +24,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:super_editor/super_editor_test.dart';
+import 'package:super_text_layout/super_text_layout.dart';
 
 /// The sample script every test loads: two scenes (the first heading deliberately lowercase, to
 /// check the preview renders headings uppercase), one dialogue block and some action text.
@@ -49,6 +54,11 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 void main() {
+  // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
+  // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check
+  // at the end of a test; this file's styled-mode tests give the styled editor a selection.
+  BlinkController.indeterminateAnimationsEnabled = false;
+
   // EditorPage builds its OcptEditorBloc internally via `OcptEditorBloc()`, which resolves the
   // projects manager from globalGetIt() by default; a real (but test-controlled) instance is
   // registered in the app's actual GetIt instance once, like the home page test does.
@@ -72,6 +82,11 @@ void main() {
   });
 
   setUp(() async {
+    // Most of the existing tests below exercise the raw mode's own widgets (the source
+    // `TextField`, the paper preview); force that mode here so they keep passing regardless of
+    // the default mode, and let the styled-mode tests further down store their own preference.
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_page_test_");
     final result = await projectsManager.createProject(
       name: "My Movie",
@@ -193,5 +208,86 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(OcptEditorPreview), findsOneWidget);
     expect(find.byType(OcptEditorScenePanel), findsOneWidget);
+  });
+
+  testWidgets(
+    "the mode toggle switches from raw to styled editing (no preview panel) and persists the "
+    "preference, and back",
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      // Starts in raw mode (forced by this file's setUp): the raw source field and its preview
+      // are shown, the styled editor isn't.
+      expect(find.byType(OcptEditorSourceField), findsOneWidget);
+      expect(find.byType(OcptEditorPreview), findsOneWidget);
+      expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+      await tester.pumpAndSettle();
+
+      // Styled mode: the styled editor replaces the raw field, and there is no preview panel
+      // toggle at all (the styled layout already is the formatted screenplay).
+      expect(find.byType(OcptEditorSourceField), findsNothing);
+      expect(find.byType(OcptEditorPreview), findsNothing);
+      expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
+      expect(find.byTooltip(tr.editorTogglePreviewTooltip), findsNothing);
+      expect(await propertiesManager.editorMode.load(), OcptEditorMode.styled);
+
+      await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptEditorSourceField), findsOneWidget);
+      expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
+      expect(await propertiesManager.editorMode.load(), OcptEditorMode.raw);
+    },
+  );
+
+  testWidgets("Ctrl+Shift+M also toggles the editing mode", (tester) async {
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
+
+    // The `Shortcuts`/`Actions` pair only sees key events that reach a focused descendant, so
+    // give the raw source field focus first.
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
+  });
+
+  testWidgets("clicking a scene in the panel moves the styled editor's selection to that scene", (
+    tester,
+  ) async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OcptEditorScenePanel),
+        matching: find.text("EXT. GARDEN - NIGHT"),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final document = SuperEditorInspector.findDocument()!;
+    final expectedLine = "\n".allMatches(_sampleText.substring(0, _sampleText.indexOf("EXT. GARDEN - NIGHT"))).length;
+    final selection = SuperEditorInspector.findDocumentSelection();
+
+    expect(selection, isNotNull);
+    expect(document.getNodeIndexById(selection!.extent.nodeId), expectedLine);
   });
 }

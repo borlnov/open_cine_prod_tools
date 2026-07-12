@@ -8,8 +8,10 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -40,6 +42,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
+  /// The manager used to load and persist the preferred editor mode.
+  final OcptPropertiesManager _propertiesManager;
+
   /// The service used to load and save the screenplay's text.
   final OcptScreenplayService _screenplayService;
 
@@ -64,10 +69,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// them fast and deterministic.
   OcptEditorBloc({
     OcptProjectsManager? projectsManager,
+    OcptPropertiesManager? propertiesManager,
     OcptScreenplayService? screenplayService,
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _screenplayService =
            screenplayService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
@@ -89,10 +96,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorSceneJumpRequestedEvent>(_onSceneJumpRequested);
     on<OcptEditorScenePanelToggledEvent>(_onScenePanelToggled);
     on<OcptEditorPreviewToggledEvent>(_onPreviewToggled);
+    on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
   }
 
-  /// Loads the current project's screenplay text, title and page format, and parses the text.
+  /// Loads the current project's screenplay text, title and page format, and parses the text,
+  /// together with the persisted preferred editor mode.
   ///
   /// The editor route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stays in its
@@ -101,9 +110,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     OcptEditorLoadRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
+
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(isLoading: false, document: _fountainParser.parse("")));
+      emitter(state.copyWith(isLoading: false, document: _fountainParser.parse(""), mode: mode));
       return;
     }
 
@@ -117,6 +128,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       state.copyWith(
         isLoading: false,
         title: project.name,
+        mode: mode,
         text: text,
         document: _fountainParser.parse(text),
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
@@ -228,6 +240,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(state.copyWith(isPreviewVisible: !state.isPreviewVisible));
+  }
+
+  /// Toggles the editing mode between styled and raw, and persists the new mode.
+  Future<void> _onModeToggled(
+    OcptEditorModeToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final newMode = state.mode == OcptEditorMode.styled ? OcptEditorMode.raw : OcptEditorMode.styled;
+    emitter(state.copyWith(mode: newMode));
+    await _propertiesManager.editorMode.store(newMode);
   }
 
   /// Clears the transient save error currently shown, if any.

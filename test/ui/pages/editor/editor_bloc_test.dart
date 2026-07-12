@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -73,6 +74,7 @@ void main() {
   /// Builds a bloc wired to the test project, with debounces short enough to await in a test.
   OcptEditorBloc buildBloc({OcptScreenplayService? screenplayService}) => OcptEditorBloc(
     projectsManager: projectsManager,
+    propertiesManager: propertiesManager,
     screenplayService: screenplayService,
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
@@ -222,6 +224,47 @@ void main() {
     bloc.add(const OcptEditorPreviewToggledEvent());
     final state = await waitForState(bloc, (state) => !state.isPreviewVisible);
     expect(state.isScenePanelVisible, isFalse);
+
+    await bloc.close();
+  });
+
+  test('defaults to styled mode when nothing was ever persisted', () async {
+    await propertiesManager.editorMode.delete();
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.mode, OcptEditorMode.styled);
+
+    await bloc.close();
+  });
+
+  test('loads the persisted editor mode on entry', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.mode, OcptEditorMode.raw);
+
+    await bloc.close();
+  });
+
+  test('toggling the mode flips it and persists the new value', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorModeToggledEvent());
+    final rawState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.raw);
+    expect(rawState.mode, OcptEditorMode.raw);
+    expect(await propertiesManager.editorMode.load(), OcptEditorMode.raw);
+
+    bloc.add(const OcptEditorModeToggledEvent());
+    final styledState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.styled);
+    expect(styledState.mode, OcptEditorMode.styled);
+    expect(await propertiesManager.editorMode.load(), OcptEditorMode.styled);
 
     await bloc.close();
   });

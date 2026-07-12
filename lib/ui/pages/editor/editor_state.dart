@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
@@ -66,6 +67,12 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// Whether the formatted preview panel is shown.
   final bool isPreviewVisible;
 
+  /// The current editing mode: the styled block editor or the raw text source.
+  ///
+  /// Persisted through `OcptPropertiesManager.editorMode`, loaded once on entry and updated on
+  /// every toggle.
+  final OcptEditorMode mode;
+
   /// The page format of the project, driving the preview's layout metrics.
   final OcptPageFormat pageFormat;
 
@@ -91,6 +98,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.currentLine,
     required this.isScenePanelVisible,
     required this.isPreviewVisible,
+    required this.mode,
     required this.pageFormat,
     required this.jumpRequest,
   });
@@ -108,6 +116,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       currentLine = 0,
       isScenePanelVisible = true,
       isPreviewVisible = true,
+      mode = OcptEditorMode.styled,
       pageFormat = OcptPageFormat.usLetter,
       jumpRequest = null;
 
@@ -128,6 +137,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     int? currentLine,
     bool? isScenePanelVisible,
     bool? isPreviewVisible,
+    OcptEditorMode? mode,
     OcptPageFormat? pageFormat,
     OcptEditorJumpRequest? jumpRequest,
   }) => OcptEditorState(
@@ -142,6 +152,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     currentLine: currentLine ?? this.currentLine,
     isScenePanelVisible: isScenePanelVisible ?? this.isScenePanelVisible,
     isPreviewVisible: isPreviewVisible ?? this.isPreviewVisible,
+    mode: mode ?? this.mode,
     pageFormat: pageFormat ?? this.pageFormat,
     jumpRequest: jumpRequest ?? this.jumpRequest,
   );
@@ -161,6 +172,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     currentLine,
     isScenePanelVisible,
     isPreviewVisible,
+    mode,
     pageFormat,
     jumpRequest,
   ];

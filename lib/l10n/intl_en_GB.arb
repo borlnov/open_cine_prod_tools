@@ -56,6 +56,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorSwitchToRawModeTooltip": "Switch to raw text editing",
+  "@editorSwitchToRawModeTooltip": {
+    "description": "Tooltip of the toolbar action that switches from the styled editor to the raw text editor",
+    "context": "Displayed on hover over the mode toggle of the editor toolbar, while in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSwitchToStyledModeTooltip": "Switch to styled editing",
+  "@editorSwitchToStyledModeTooltip": {
+    "description": "Tooltip of the toolbar action that switches from the raw text editor to the styled editor",
+    "context": "Displayed on hover over the mode toggle of the editor toolbar, while in raw mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorUnsavedChangesTooltip": "Unsaved changes",
   "@editorUnsavedChangesTooltip": {
     "description": "Tooltip of the dot marking unsaved changes",
