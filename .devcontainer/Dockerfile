@@ -179,6 +179,11 @@ USER ${USERNAME}
 # ~/.claude.json — in here, so a single browser login persists across rebuilds.
 RUN mkdir -p /home/${USERNAME}/.claude
 
+# Pre-create ~/.pub-cache (owned by the user) for the same volume-ownership reason as ~/.claude
+# above: a named volume (ocpt-pub-cache, see docker-compose.yml) is mounted here so downloaded pub
+# packages survive across `docker compose run` invocations instead of being re-fetched every time.
+RUN mkdir -p /home/${USERNAME}/.pub-cache
+
 # Set default shell
 SHELL ["/bin/bash", "-c"]
 

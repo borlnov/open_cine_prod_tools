@@ -57,9 +57,15 @@ services:
       # absolute in-container paths that a shared host ~/.claude would leak across containers/users. The
       # Dockerfile pre-creates ~/.claude so this volume initialises with user ownership. See README.md.
       - ocpt-claude-config:/home/debian/.claude
+      # Pub package cache in a named volume: without it every fresh `docker compose run` container
+      # starts with an empty ~/.pub-cache and re-downloads all dependencies. The Dockerfile
+      # pre-creates the directory so the volume initialises with user ownership.
+      - ocpt-pub-cache:/home/debian/.pub-cache
     # The image's CMD is just bash; keep the service alive so VS Code can attach into it.
     command: sleep infinity
 
 volumes:
   # Isolated per-container Claude Code config. Persists across rebuilds, shared with nothing.
   ocpt-claude-config:
+  # Pub package cache shared by successive containers of this project (see the mount above).
+  ocpt-pub-cache:
