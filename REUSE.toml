@@ -26,3 +26,11 @@ SPDX-License-Identifier = "Apache-2.0"
 path = ["lib/generated/**"]
 SPDX-FileCopyrightText = "2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+# *.g.dart files are produced by `dart run build_runner build` (drift's DriftDatabase codegen) and
+# are git-ignored (see .gitignore); annotated here so a local build of these files doesn't fail the
+# reuse check before the ignore rule is picked up.
+path = ["**/*.g.dart"]
+SPDX-FileCopyrightText = "2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>"
+SPDX-License-Identifier = "Apache-2.0"

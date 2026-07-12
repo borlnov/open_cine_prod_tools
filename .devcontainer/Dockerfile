@@ -35,6 +35,11 @@ RUN apt-get update && apt-get install -y \
     libglu1-mesa \
     lld \
     binutils \
+    # Native SQLite library: `sqlite3_flutter_libs` bundles it into built app binaries, but
+    # `flutter test` runs as a plain Dart VM process and needs it available on the system for
+    # drift/sqlite3's dart:ffi bindings (package:sqlite3) to dlopen at test time.
+    libsqlite3-0 \
+    libsqlite3-dev \
     # Flutter's Linux desktop build needs clang
     clang \
     # Additional utilities

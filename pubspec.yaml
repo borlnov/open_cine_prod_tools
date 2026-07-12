@@ -31,6 +31,24 @@ dependencies:
   # Code to deal with internationalized/localized messages
   intl: ^0.20.2
 
+  # Persistent, reactive, typed access to a per-project SQLite database
+  drift: ^2.24.0
+
+  # Ships the native sqlite3 library so drift can open databases on every desktop/mobile target
+  sqlite3_flutter_libs: ^0.5.28
+
+  # Used directly to narrowly catch SqliteException when a project file may be corrupted
+  sqlite3: ^2.4.6
+
+  # Builds and joins file system paths in a platform-independent way
+  path: ^1.9.1
+
+  # Resolves the per-platform application documents directory used as the default projects home
+  path_provider: ^2.1.5
+
+  # Generates the stable ids of screenplays, snapshots and scenes
+  uuid: ^4.5.1
+
   act_config_manager:
     path: actlibs/act_config_manager
 
@@ -39,6 +57,12 @@ dependencies:
 
   act_dart_utility:
     path: actlibs/act_dart_utility
+
+  act_dart_value_keeper:
+    path: actlibs/act_dart_value_keeper
+
+  act_file_transfer_manager:
+    path: actlibs/act_file_transfer_manager
 
   act_flutter_utility:
     path: actlibs/act_flutter_utility
@@ -70,6 +94,9 @@ dependencies:
   act_themes_manager:
     path: actlibs/act_themes_manager
 
+  fountain_kit:
+    path: packages/fountain_kit
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,6 +108,12 @@ dev_dependencies:
 
   # Provides InMemorySharedPreferencesAsync, used to back OcptPropertiesManager in tests
   shared_preferences_platform_interface: ^2.4.2
+
+  # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
+  drift_dev: ^2.24.0
+
+  # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
+  build_runner: ^2.4.13
 
 flutter:
   uses-material-design: true

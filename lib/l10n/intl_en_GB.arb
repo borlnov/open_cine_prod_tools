@@ -7,13 +7,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "homePageTitle": "Open Cine Prod Tools",
-  "@homePageTitle": {
-    "description": "Title shown on the home page",
-    "context": "Displayed at the center of the home page, the initial route of the application",
-    "type": "text",
-    "placeholders": {}
-  },
   "editorPageTitle": "Editor",
   "@editorPageTitle": {
     "description": "Title shown on the editor page",
@@ -41,5 +34,157 @@
     "context": "Displayed when the global manager fails to initialize, below the fatal error title",
     "type": "text",
     "placeholders": {}
+  },
+  "homeNewProjectAction": "New project",
+  "@homeNewProjectAction": {
+    "description": "Label of the action that creates a new project",
+    "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeOpenProjectAction": "Open…",
+  "@homeOpenProjectAction": {
+    "description": "Label of the action that opens an existing project from a file picker",
+    "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeEmptyStateTitle": "No projects yet",
+  "@homeEmptyStateTitle": {
+    "description": "Title of the home page's empty state",
+    "context": "Displayed when the recent projects list is empty, instead of the project grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeEmptyStateMessage": "Create a new screenplay project or open an existing one to get started.",
+  "@homeEmptyStateMessage": {
+    "description": "Message of the home page's empty state",
+    "context": "Displayed below the empty state title, when the recent projects list is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeRemoveFromListAction": "Remove from list",
+  "@homeRemoveFromListAction": {
+    "description": "Label of the action that removes a project from the recent projects list",
+    "context": "Displayed in a project card's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMissingFileTooltip": "This project's file can no longer be found",
+  "@homeMissingFileTooltip": {
+    "description": "Tooltip shown on a recent project card whose file is missing",
+    "context": "Displayed on hover/long-press over a greyed-out project card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogTitle": "New project",
+  "@homeNewProjectDialogTitle": {
+    "description": "Title of the dialog asking for the new project's name",
+    "context": "Displayed at the top of the new project name dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogNameLabel": "Project name",
+  "@homeNewProjectDialogNameLabel": {
+    "description": "Label of the text field where the user types the new project's name",
+    "context": "Displayed inside the new project name dialog's text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogNameEmptyError": "Enter a project name",
+  "@homeNewProjectDialogNameEmptyError": {
+    "description": "Validation error shown when the new project name is left empty",
+    "context": "Displayed below the new project name dialog's text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogCancelAction": "Cancel",
+  "@homeNewProjectDialogCancelAction": {
+    "description": "Label of the action that dismisses the new project name dialog",
+    "context": "Displayed on a button in the new project name dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogCreateAction": "Create",
+  "@homeNewProjectDialogCreateAction": {
+    "description": "Label of the action that confirms the new project name dialog",
+    "context": "Displayed on a button in the new project name dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeOpenFileTypeLabel": "Open Cine Prod Tools project",
+  "@homeOpenFileTypeLabel": {
+    "description": "Label of the project file type shown in the native open-file dialog",
+    "context": "Passed to the OS file picker when the user chooses to open a project",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorFileNotFound": "This project file could not be found.",
+  "@homeErrorFileNotFound": {
+    "description": "Error shown when the project file to open doesn't exist any more",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorCorruptedFile": "This project file appears to be corrupted.",
+  "@homeErrorCorruptedFile": {
+    "description": "Error shown when the project file to open isn't a valid project database",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorIoError": "A problem occurred while accessing the project file.",
+  "@homeErrorIoError": {
+    "description": "Error shown when a filesystem or database error occurred creating/opening a project",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorAlreadyOpen": "Another project operation is already in progress.",
+  "@homeErrorAlreadyOpen": {
+    "description": "Error shown when a create/open/close operation is already in progress",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeRelativeTimeJustNow": "Just now",
+  "@homeRelativeTimeJustNow": {
+    "description": "Relative time shown for a project opened less than a minute ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeRelativeTimeMinutesAgo": "{count, plural, one{{count} minute ago} other{{count} minutes ago}}",
+  "@homeRelativeTimeMinutesAgo": {
+    "description": "Relative time shown for a project opened less than an hour ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRelativeTimeHoursAgo": "{count, plural, one{{count} hour ago} other{{count} hours ago}}",
+  "@homeRelativeTimeHoursAgo": {
+    "description": "Relative time shown for a project opened less than a day ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRelativeTimeDaysAgo": "{count, plural, one{{count} day ago} other{{count} days ago}}",
+  "@homeRelativeTimeDaysAgo": {
+    "description": "Relative time shown for a project opened one or more days ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
