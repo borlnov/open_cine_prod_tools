@@ -1,0 +1,45 @@
+{
+  "@@locale": "en_GB",
+  "appTitle": "Open Cine Prod Tools",
+  "@appTitle": {
+    "description": "The application title",
+    "context": "Displayed in the window title bar of the application",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homePageTitle": "Open Cine Prod Tools",
+  "@homePageTitle": {
+    "description": "Title shown on the home page",
+    "context": "Displayed at the center of the home page, the initial route of the application",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageTitle": "Editor",
+  "@editorPageTitle": {
+    "description": "Title shown on the editor page",
+    "context": "Displayed at the center of the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsPageTitle": "Settings",
+  "@settingsPageTitle": {
+    "description": "Title shown on the settings page",
+    "context": "Displayed at the center of the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "fatalErrorTitle": "Something went wrong while starting the app",
+  "@fatalErrorTitle": {
+    "description": "Title of the fatal error page",
+    "context": "Displayed when the global manager fails to initialize, above the raw error details",
+    "type": "text",
+    "placeholders": {}
+  },
+  "fatalErrorMessage": "Please restart the application. If the problem persists, contact support.",
+  "@fatalErrorMessage": {
+    "description": "Message of the fatal error page",
+    "context": "Displayed when the global manager fails to initialize, below the fatal error title",
+    "type": "text",
+    "placeholders": {}
+  }
+}

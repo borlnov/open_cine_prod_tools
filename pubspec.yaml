@@ -16,7 +16,14 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Internationalize Flutter apps
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
+
+  # Code to deal with internationalized/localized messages
+  intl: ^0.20.2
 
   act_config_manager:
     path: actlibs/act_config_manager
@@ -42,14 +49,30 @@ dependencies:
   act_logger_manager:
     path: actlibs/act_logger_manager
 
+  act_router_manager:
+    path: actlibs/act_router_manager
+
+  act_themes_manager:
+    path: actlibs/act_themes_manager
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^5.0.0
 
+  # Used to generate the translation files
+  intl_utils: ^2.8.10
+
 flutter:
   uses-material-design: true
 
   assets:
     - assets/config/
+
+flutter_intl:
+  enabled: true
+  # Sets the name for the generated localization class. Default: S
+  class_name: Tr
+  # Sets the main locale used for generating localization files.
+  main_locale: en_GB

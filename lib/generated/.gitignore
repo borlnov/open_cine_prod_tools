@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Ignore everything in this directory
+
+*
+!.gitignore

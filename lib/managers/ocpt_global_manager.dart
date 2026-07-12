@@ -6,6 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/ui/pages/fatal_error_page.dart';
 
 /// Owns every manager registered in the app and drives their life cycle.
@@ -27,6 +28,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
   Future<void> registerManagers() async {
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
+    registerManagerAsync<OcptRouterManager>(const OcptRouterManagerBuilder());
   }
 
   /// {@macro act_global_manager.MixinUiGlobalManager.buildFatalErrorPage}

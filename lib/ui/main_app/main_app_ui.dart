@@ -2,31 +2,41 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/app_constants.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
-import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 
 /// Builds the root [MaterialApp] shell of the application.
-///
-/// Routing is not wired yet: it arrives once the router manager is added, at
-/// which point the `home` property will be replaced by a `routerConfig`.
 class MainAppUi extends StatelessWidget {
   /// Creates the main app widget.
   const MainAppUi({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: appTitle,
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      useMaterial3: true,
-    ),
-    home: const HomePage(),
-    builder: (context, child) {
-      OcptGlobalManager.instance.initInFirstView(context);
+  Widget build(BuildContext context) {
+    final router = globalGetIt().get<OcptRouterManager>().router;
 
-      return child ?? const SizedBox.shrink();
-    },
-  );
+    return MaterialApp.router(
+      // The app title is the one displayed in the window title bar.
+      onGenerateTitle: (context) => Tr.of(context).appTitle,
+      routerConfig: router,
+      theme: ocpt_theme.ocptTheme.lightThemeData,
+      darkTheme: ocpt_theme.ocptTheme.darkThemeData,
+      localizationsDelegates: const [
+        Tr.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: Tr.delegate.supportedLocales,
+      builder: (context, child) {
+        OcptGlobalManager.instance.initInFirstView(context);
+
+        return child ?? const SizedBox.shrink();
+      },
+    );
+  }
 }

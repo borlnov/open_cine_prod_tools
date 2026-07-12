@@ -1,0 +1,9 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Open Cine Prod Tools",
+  "homePageTitle": "Open Cine Prod Tools",
+  "editorPageTitle": "Éditeur",
+  "settingsPageTitle": "Paramètres",
+  "fatalErrorTitle": "Une erreur est survenue au démarrage de l'application",
+  "fatalErrorMessage": "Veuillez redémarrer l'application. Si le problème persiste, contactez le support."
+}

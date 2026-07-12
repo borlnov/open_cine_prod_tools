@@ -1,0 +1,35 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:act_router_manager/act_router_manager.dart';
+
+/// The application routes
+enum OcptRoute with MixinRoute {
+  /// The home page, the initial route of the application
+  home,
+
+  /// The editor page
+  editor,
+
+  /// The settings page
+  settings;
+
+  /// {@macro act_router_manager.MixinRoute.parent}
+  @override
+  final OcptRoute? parent;
+
+  /// {@macro act_router_manager.MixinRoute.transition}
+  @override
+  final RouteTransition? transition;
+
+  /// {@macro act_router_manager.MixinRoute.screenOrientation}
+  @override
+  final ScreenOrientationOption? screenOrientation;
+
+  /// [OcptRoute] constructor
+  // We ignore the unused parameters as they are required by the MixinRoute but not used in this
+  // project for now.
+  // ignore: unused_element_parameter
+  const OcptRoute({this.parent, this.transition, this.screenOrientation});
+}

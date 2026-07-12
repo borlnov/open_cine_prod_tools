@@ -18,5 +18,7 @@ jobs:
         with:
           flutter-version: 3.41.9
       - run: flutter pub get
+      - name: Generate translations
+        run: dart run intl_utils:generate
       - name: Analyze Dart
         uses: zgosalvez/github-actions-analyze-dart@v2
