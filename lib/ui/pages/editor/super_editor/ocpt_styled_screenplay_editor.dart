@@ -9,13 +9,15 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_super_document.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
 /// syntax, but every line is laid out at its true screenplay position as they type (scene
 /// headings bold at the margin, character cues and dialogue indented at their column, etc.),
-/// through a super_editor document with **one `ParagraphNode` per Fountain source line**.
+/// through a super_editor document with **one `ParagraphNode` per non-blank Fountain source
+/// line** (see `OcptWysiwygCodec`).
 ///
 /// This is the only widget in the app that touches `package:super_editor` directly (together
 /// with the other files of this `super_editor/` directory): every other part of the editor page
@@ -69,6 +71,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The document backing the styled editor, rebuilt from [OcptStyledScreenplayEditor.text] only
   /// on an external change (see [_rebuildEditorFrom]).
   late MutableDocument _document;
+
+  /// The node-index ↔ source-line mapping for the text [_document] currently represents: refreshed
+  /// by [_rebuildEditorFrom] (decode) and by every [_syncAfterEdit] pass (encode), so caret-line
+  /// reporting and scene jumps always resolve against the same text version the mapping was built
+  /// from.
+  late OcptWysiwygLineMapping _mapping;
+
+  /// The number of blank source lines trailing the last node, carried forward from the last
+  /// [OcptWysiwygCodec.decode] across every subsequent [OcptWysiwygCodec.encode] call in this
+  /// session (nothing in the document's node structure tracks it, since it has no node to attach
+  /// to).
+  int _trailingBlankLines = 0;
 
   /// The composer holding the styled editor's selection.
   late MutableDocumentComposer _composer;
@@ -174,11 +188,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _lastSyncedText = text;
     _lastReportedLine = 0;
 
-    _document = OcptFountainSuperDocument.buildDocument(text);
+    final decoded = OcptWysiwygCodec.decode(text);
+    _document = decoded.document;
+    _mapping = decoded.mapping;
+    _trailingBlankLines = decoded.trailingBlankLines;
     _composer = MutableDocumentComposer();
     _editor = Editor(
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
-      requestHandlers: List.from(defaultRequestHandlers),
+      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..add(ocptChangeNodeMetadataRequestHandler),
     );
 
     _document.addListener(_onDocumentChanged);
@@ -200,53 +218,61 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
   }
 
-  /// Rejoins the document into flat text (reporting it upstream if it changed) and re-classifies
-  /// every line, only touching the `blockType` metadata of the lines whose type actually changed.
+  /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes
+  /// [_mapping] for that freshly encoded text, and re-classifies every line plus every note's
+  /// attribution span, only touching the metadata of the nodes that actually need it.
   void _syncAfterEdit() {
     if (!mounted) {
       return;
     }
 
-    final joinedText = OcptFountainSuperDocument.joinText(_document);
-    if (joinedText != _lastSyncedText) {
-      _lastSyncedText = joinedText;
-      widget.onTextChanged(joinedText);
+    final encoded = OcptWysiwygCodec.encode(_document, trailingBlankLines: _trailingBlankLines);
+    _mapping = encoded.mapping;
+    if (encoded.text != _lastSyncedText) {
+      _lastSyncedText = encoded.text;
+      widget.onTextChanged(encoded.text);
     }
 
-    final reclassifyRequests = OcptFountainSuperDocument.reclassifyRequests(_document);
-    if (reclassifyRequests.isNotEmpty) {
-      _editor.execute(reclassifyRequests);
+    final requests = [
+      ...OcptWysiwygCodec.reclassifyRequests(_document),
+      ...OcptWysiwygCodec.noteAttributionRequests(_document),
+    ];
+    if (requests.isNotEmpty) {
+      _editor.execute(requests);
     }
   }
 
   /// Reports the source line the caret moved to, whenever the composer's selection changes to a
-  /// different node (a node's index is always its source line, since the document holds exactly
-  /// one node per line).
+  /// different node, resolved through [_mapping] (a node's index is no longer always its source
+  /// line, now that blank source lines are folded into metadata instead of being their own node).
   void _onSelectionChanged() {
     final nodeId = _composer.selection?.extent.nodeId;
     if (nodeId == null) {
       return;
     }
 
-    final line = _document.getNodeIndexById(nodeId);
-    if (line >= 0 && line != _lastReportedLine) {
+    final nodeIndex = _document.getNodeIndexById(nodeId);
+    if (nodeIndex < 0) {
+      return;
+    }
+
+    final line = _mapping.lineOfNodeIndex(nodeIndex);
+    if (line != _lastReportedLine) {
       _lastReportedLine = line;
       widget.onCaretLineChanged(line);
     }
   }
 
-  /// Moves the styled editor's selection to the start of the source line containing [charOffset],
-  /// focuses the editor, and scrolls the target line's component into view.
+  /// Moves the styled editor's selection to the start of the node containing [charOffset] of
+  /// [_mapping]'s own source text, focuses the editor, and scrolls the target node's component
+  /// into view.
   void _applyJumpRequest(int charOffset) {
     if (!mounted || _document.nodeCount == 0) {
       return;
     }
 
-    final line = OcptFountainSuperDocument.lineIndexForCharOffset(
-      widget.text,
-      charOffset,
-    ).clamp(0, _document.nodeCount - 1);
-    final node = _document.getNodeAt(line);
+    final nodeIndex = _mapping.nodeIndexOfCharOffset(charOffset);
+    final node = _document.getNodeAt(nodeIndex);
     if (node == null) {
       return;
     }

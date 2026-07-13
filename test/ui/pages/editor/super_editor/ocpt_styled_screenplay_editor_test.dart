@@ -80,9 +80,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final document = SuperEditorInspector.findDocument()!;
+      // Blank source lines are folded into node metadata (not their own node), so nodes are
+      // dense: 0 = heading, 1 = action, 2 = character, 3 = dialogue.
       final headingNodeId = document.getNodeAt(0)!.id;
-      final actionNodeId = document.getNodeAt(2)!.id;
-      final characterNodeId = document.getNodeAt(4)!.id;
+      final actionNodeId = document.getNodeAt(1)!.id;
+      final characterNodeId = document.getNodeAt(2)!.id;
 
       expect(SuperEditorInspector.findParagraphStyle(headingNodeId)?.fontWeight, FontWeight.bold);
 
@@ -115,7 +117,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final document = SuperEditorInspector.findDocument()!;
-    final actionNodeId = document.getNodeAt(2)!.id;
+    // Blank source lines are folded into node metadata (not their own node): node 1 is the
+    // action line, at source line 2 (source lines: 0 = heading, 1 = blank, 2 = action).
+    final actionNodeId = document.getNodeAt(1)!.id;
 
     await tester.placeCaretInParagraph(actionNodeId, 0);
 

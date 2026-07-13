@@ -303,11 +303,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final document = SuperEditorInspector.findDocument()!;
-    final expectedLine = "\n".allMatches(_sampleText.substring(0, _sampleText.indexOf("EXT. GARDEN - NIGHT"))).length;
+    // Blank source lines are folded into node metadata rather than being their own node, so a
+    // node's index is the count of non-blank lines before it, not its raw source line number:
+    // "int. kitchen - day", "SARAH", "(to herself)" and "Smells like Sunday." precede
+    // "EXT. GARDEN - NIGHT" in `_sampleText`, making it the 5th node (index 4).
+    const expectedNodeIndex = 4;
     final selection = SuperEditorInspector.findDocumentSelection();
 
     expect(selection, isNotNull);
-    expect(document.getNodeIndexById(selection!.extent.nodeId), expectedLine);
+    expect(document.getNodeIndexById(selection!.extent.nodeId), expectedNodeIndex);
   });
 
   testWidgets('the toolbar back button closes the project and navigates back', (tester) async {
