@@ -35,6 +35,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorBackToProjectsTooltip": "Back to projects",
+  "@editorBackToProjectsTooltip": {
+    "description": "Tooltip of the toolbar action that navigates back to the projects list",
+    "context": "Displayed on hover over the back button of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorSaveTooltip": "Save",
   "@editorSaveTooltip": {
     "description": "Tooltip of the toolbar action that saves the screenplay",

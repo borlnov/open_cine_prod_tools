@@ -5,6 +5,7 @@
   "editorScenesPanelTitle": "Scènes",
   "editorScenesEmptyHint": "Les titres de scène apparaîtront ici au fil de l'écriture.",
   "editorPreviewEmptyHint": "Commencez à écrire pour voir l'aperçu mis en forme.",
+  "editorBackToProjectsTooltip": "Retour aux projets",
   "editorSaveTooltip": "Enregistrer",
   "editorToggleScenePanelTooltip": "Afficher ou masquer le panneau des scènes",
   "editorTogglePreviewTooltip": "Afficher ou masquer l'aperçu",

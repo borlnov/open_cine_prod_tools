@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 
-/// The editor's thin, discreet toolbar: the screenplay title (with a dot marking unsaved
-/// changes), then the save action (spinning while a save is in flight), the styled/raw mode
-/// toggle, and the scene panel / preview visibility toggles.
+/// The editor's thin, discreet toolbar: the back action leading to the projects list, the
+/// screenplay title (with a dot marking unsaved changes), then the save action (spinning while a
+/// save is in flight), the styled/raw mode toggle, and the scene panel / preview visibility
+/// toggles.
 class OcptEditorToolbar extends StatelessWidget {
   /// The title shown at the left of the toolbar (the open project's name).
   final String title;
@@ -31,6 +32,9 @@ class OcptEditorToolbar extends StatelessWidget {
   /// The current editing mode: the styled block editor or the raw text source.
   final OcptEditorMode mode;
 
+  /// Called when the back action is clicked.
+  final VoidCallback onBack;
+
   /// Called when the save action is clicked.
   final VoidCallback onSave;
 
@@ -52,6 +56,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.isScenePanelVisible,
     required this.isPreviewVisible,
     required this.mode,
+    required this.onBack,
     required this.onSave,
     required this.onToggleScenePanel,
     required this.onTogglePreview,
@@ -69,6 +74,11 @@ class OcptEditorToolbar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back, size: 20),
+              tooltip: tr.editorBackToProjectsTooltip,
+              onPressed: onBack,
+            ),
             Flexible(
               child: Text(
                 title,

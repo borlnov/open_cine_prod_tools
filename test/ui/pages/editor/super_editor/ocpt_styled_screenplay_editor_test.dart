@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -156,6 +157,7 @@ void main() {
       final bloc = OcptEditorBloc(
         projectsManager: projectsManager,
         propertiesManager: propertiesManager,
+        routerManager: OcptRouterManager(),
         screenplayService: _RecordingScreenplayService(savedTexts: savedTexts),
         parseDebounce: const Duration(milliseconds: 10),
         autosaveDebounce: const Duration(milliseconds: 30),

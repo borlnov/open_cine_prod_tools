@@ -132,6 +132,9 @@ class _EditorViewState extends State<_EditorView> {
                   isScenePanelVisible: state.isScenePanelVisible,
                   isPreviewVisible: state.isPreviewVisible,
                   mode: state.mode,
+                  onBack: () => context.read<OcptEditorBloc>().add(
+                    const OcptEditorBackRequestedEvent(),
+                  ),
                   onSave: _requestManualSave,
                   onToggleScenePanel: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorScenePanelToggledEvent(),

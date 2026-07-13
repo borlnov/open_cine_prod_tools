@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -35,6 +37,30 @@ class _FailingScreenplayService extends OcptScreenplayService {
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
   }) async => throw StateError("save intentionally failed for the test");
+}
+
+/// A router manager whose [pop] only records that it was called: these bloc tests don't build a
+/// real GoRouter for it to operate on.
+///
+/// [onPop] lets a test await the exact moment [pop] is called, rather than racing on an unrelated
+/// state emitted earlier in the same event handler (the emitted state and the handler's own
+/// completion are not ordered with respect to a stream listener in the test).
+class _RecordingRouterManager extends OcptRouterManager {
+  final _popCompleter = Completer<void>();
+
+  /// Whether [pop] was called.
+  bool get popped => _popCompleter.isCompleted;
+
+  /// Completes the moment [pop] is called.
+  Future<void> get onPop => _popCompleter.future;
+
+  /// Records the call instead of delegating to the (never initialized) GoRouter.
+  @override
+  void pop<Y extends Object?>([Y? result]) {
+    if (!_popCompleter.isCompleted) {
+      _popCompleter.complete();
+    }
+  }
 }
 
 void main() {
@@ -72,9 +98,13 @@ void main() {
   });
 
   /// Builds a bloc wired to the test project, with debounces short enough to await in a test.
-  OcptEditorBloc buildBloc({OcptScreenplayService? screenplayService}) => OcptEditorBloc(
+  OcptEditorBloc buildBloc({
+    OcptScreenplayService? screenplayService,
+    OcptRouterManager? routerManager,
+  }) => OcptEditorBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
+    routerManager: routerManager ?? _RecordingRouterManager(),
     screenplayService: screenplayService,
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
@@ -278,6 +308,38 @@ void main() {
 
     // Close well before the autosave debounce (60 ms) elapses: the close itself must save.
     await bloc.close();
+
+    final project = projectsManager.currentProject!;
+    final storedText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    expect(storedText, editedText);
+  });
+
+  test('going back flushes the pending change, closes the project and pops the router', () async {
+    final routerManager = _RecordingRouterManager();
+    final bloc = buildBloc(routerManager: routerManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    final projectPath = projectsManager.currentProject!.path;
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.isDirty);
+
+    // Go back well before the autosave debounce (60 ms) elapses: the back itself must save.
+    bloc.add(const OcptEditorBackRequestedEvent());
+    await routerManager.onPop.timeout(const Duration(seconds: 5));
+
+    expect(routerManager.popped, isTrue);
+    expect(projectsManager.currentProject, isNull);
+
+    // The close-flush must now be a no-op: the project is already closed, and closing the bloc
+    // must not try to save through the closed database.
+    await bloc.close();
+
+    // Reopen the project file to check the pending change was flushed before it was closed.
+    final reopened = await projectsManager.openProject(filePath: projectPath);
+    expect(reopened.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
     final storedText = await projectsManager.screenplayService.loadScreenplayText(

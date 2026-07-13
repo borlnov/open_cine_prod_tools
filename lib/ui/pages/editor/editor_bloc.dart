@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
@@ -45,6 +46,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// The manager used to load and persist the preferred editor mode.
   final OcptPropertiesManager _propertiesManager;
 
+  /// The router manager used to navigate back to the home page when leaving the editor.
+  final OcptRouterManager _routerManager;
+
   /// The service used to load and save the screenplay's text.
   final OcptScreenplayService _screenplayService;
 
@@ -70,11 +74,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   OcptEditorBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
+    OcptRouterManager? routerManager,
     OcptScreenplayService? screenplayService,
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+       _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _screenplayService =
            screenplayService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
@@ -98,6 +104,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorPreviewToggledEvent>(_onPreviewToggled);
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
+    on<OcptEditorBackRequestedEvent>(_onBackRequested);
   }
 
   /// Loads the current project's screenplay text, title and page format, and parses the text,
@@ -258,6 +265,27 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(state.copyWith(hasSaveError: false));
+  }
+
+  /// Leaves the editor: cancels the pending debounce timers, flushes the unsaved change if there
+  /// is one, closes the current project, and navigates back to the home page.
+  ///
+  /// The project is closed before navigating, so [disposeLifeCycle]'s own close-flush (guarded on
+  /// [OcptProjectsManager.currentProject]) finds no project any more and stays a no-op instead of
+  /// trying to save through the already-closed database.
+  Future<void> _onBackRequested(
+    OcptEditorBackRequestedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    _parseTimer?.cancel();
+    _autosaveTimer?.cancel();
+
+    if (state.isDirty) {
+      await _onSaveRequested(const OcptEditorSaveRequestedEvent(isManual: true), emitter);
+    }
+
+    await _projectsManager.closeCurrentProject();
+    _routerManager.pop();
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

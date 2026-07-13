@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -41,6 +42,19 @@ EXT. GARDEN - NIGHT
 Something moves in the dark.
 """;
 
+/// A router manager whose [pop] only records that it was called: these page tests pump the
+/// editor page directly, without a real GoRouter for it to operate on.
+class _RecordingRouterManager extends OcptRouterManager {
+  /// Whether [pop] was called.
+  bool popped = false;
+
+  /// Records the call instead of delegating to the (never initialized) GoRouter.
+  @override
+  void pop<Y extends Object?>([Y? result]) {
+    popped = true;
+  }
+}
+
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   localizationsDelegates: const [
@@ -64,6 +78,7 @@ void main() {
   // registered in the app's actual GetIt instance once, like the home page test does.
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
+  late _RecordingRouterManager routerManager;
   late Directory tempDir;
 
   setUpAll(() async {
@@ -76,9 +91,12 @@ void main() {
     projectsManager = OcptProjectsManager(propertiesManager: propertiesManager);
     await projectsManager.initLifeCycle();
 
+    routerManager = _RecordingRouterManager();
+
     OcptGlobalManager.instance.managers
       ..registerSingleton<OcptPropertiesManager>(propertiesManager)
-      ..registerSingleton<OcptProjectsManager>(projectsManager);
+      ..registerSingleton<OcptProjectsManager>(projectsManager)
+      ..registerSingleton<OcptRouterManager>(routerManager);
   });
 
   setUp(() async {
@@ -86,6 +104,7 @@ void main() {
     // `TextField`, the paper preview); force that mode here so they keep passing regardless of
     // the default mode, and let the styled-mode tests further down store their own preference.
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    routerManager.popped = false;
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_page_test_");
     final result = await projectsManager.createProject(
@@ -289,5 +308,22 @@ void main() {
 
     expect(selection, isNotNull);
     expect(document.getNodeIndexById(selection!.extent.nodeId), expectedLine);
+  });
+
+  testWidgets('the toolbar back button closes the project and navigates back', (tester) async {
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+
+    final backButton = find.byTooltip(tr.editorBackToProjectsTooltip);
+    expect(backButton, findsOneWidget);
+
+    await tester.tap(backButton);
+    await tester.pumpAndSettle();
+
+    expect(projectsManager.currentProject, isNull);
+    expect(routerManager.popped, isTrue);
   });
 }

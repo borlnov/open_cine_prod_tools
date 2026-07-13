@@ -117,3 +117,12 @@ class OcptEditorSaveErrorDismissedEvent extends OcptEditorEvent {
   /// Class constructor
   const OcptEditorSaveErrorDismissedEvent();
 }
+
+/// Requests leaving the editor and going back to the projects list.
+///
+/// If the screenplay is dirty, the pending change is flushed with a save first; the current
+/// project is then closed and navigation goes back through the router manager.
+class OcptEditorBackRequestedEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorBackRequestedEvent();
+}

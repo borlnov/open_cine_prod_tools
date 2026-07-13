@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
@@ -50,7 +51,8 @@ void main() {
 
     OcptGlobalManager.instance.managers
       ..registerSingleton<OcptPropertiesManager>(propertiesManager)
-      ..registerSingleton<OcptProjectsManager>(projectsManager);
+      ..registerSingleton<OcptProjectsManager>(projectsManager)
+      ..registerSingleton<OcptRouterManager>(OcptRouterManager());
   });
 
   testWidgets('EditorPage builds an empty editor when no project is open', (
