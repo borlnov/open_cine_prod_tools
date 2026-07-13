@@ -6,6 +6,7 @@ library;
 
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
 /// The seed color used to derive the whole light and dark color schemes.
 ///
@@ -54,21 +55,3 @@ final ocptTheme = ActThemeModel<OcptSpecificColors>(
   lightColors: ActThemeColors<OcptSpecificColors>(colorScheme: _lightColorScheme),
   darkColors: ActThemeColors<OcptSpecificColors>(colorScheme: _darkColorScheme),
 );
-
-/// This class is used to define the specific colors of the app that are not defined in the color
-/// scheme.
-///
-/// The app doesn't need any color outside of the standard Material 3 [ColorScheme] yet, so this
-/// class is intentionally empty.
-class OcptSpecificColors extends AbsAppSpecificColors<OcptSpecificColors> {
-  /// Class constructor
-  const OcptSpecificColors();
-
-  /// Implement the copyWith method required by [ThemeExtension]
-  @override
-  ThemeExtension<OcptSpecificColors> copyWith() => const OcptSpecificColors();
-
-  /// Implement the lerp method required by [ThemeExtension]
-  @override
-  ThemeExtension<OcptSpecificColors> lerp(OcptSpecificColors? other, double t) => this;
-}
