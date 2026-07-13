@@ -56,3 +56,6 @@ app.*.map.json
 
 # Per-user overrides (GH_TOKEN, worktree mount mode); see .devcontainer/.env.example.
 .devcontainer/.env
+
+# Generated lock file pinning the devcontainer feature versions; regenerated locally as needed.
+.devcontainer/devcontainer-lock.json
