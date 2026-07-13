@@ -81,21 +81,32 @@ class FountainLineClassifier {
       FountainLineType.blank,
     );
     for (var index = 0; index < lines.length; index++) {
-      types[index] = _classifyLine(lines, index, types);
+      final previousType = index == 0 ? null : types[index - 1];
+      final nextRawLine = index + 1 < lines.length ? lines[index + 1] : null;
+      types[index] = classifyLine(
+        lines[index],
+        previousType: previousType,
+        nextRawLine: nextRawLine,
+      );
     }
     return types;
   }
 
-  /// Determines the [FountainLineType] of `lines[index]`, given the
-  /// already-computed [previousTypes] of every earlier line.
-  FountainLineType _classifyLine(
-    List<String> lines,
-    int index,
-    List<FountainLineType> previousTypes,
-  ) {
-    final rawLine = lines[index];
+  /// Determines the [FountainLineType] of [rawLine] given just enough
+  /// surrounding context to reproduce every context-sensitive rule in
+  /// [classify]: the [FountainLineType] of the line immediately before it
+  /// ([previousType], `null` at the start of the document) and the raw text
+  /// of the line immediately after it ([nextRawLine], `null` at the end of
+  /// the document). No rule in this classifier looks further than one line
+  /// in either direction, so this is enough context to classify any single
+  /// candidate line in isolation, which is what lets a line writer decide,
+  /// line by line, whether a forcing marker is needed.
+  FountainLineType classifyLine(
+    String rawLine, {
+    required FountainLineType? previousType,
+    required String? nextRawLine,
+  }) {
     final trimmed = rawLine.trim();
-    final previousType = index == 0 ? null : previousTypes[index - 1];
 
     if (trimmed.isEmpty) {
       // A line that is empty in `trim()` terms but was not truly empty in
@@ -143,7 +154,7 @@ class FountainLineClassifier {
 
     final precededByBlank =
         previousType == null || previousType == FountainLineType.blank;
-    final followedByBlank = _isBlankOrMissing(lines, index + 1);
+    final followedByBlank = nextRawLine == null || nextRawLine.trim().isEmpty;
 
     if (_sceneHeadingPrefix.hasMatch(trimmed) &&
         precededByBlank &&
@@ -157,7 +168,8 @@ class FountainLineClassifier {
 
     if (_isCharacterCandidate(trimmed) &&
         precededByBlank &&
-        _hasFollowingDialogue(lines, index + 1)) {
+        nextRawLine != null &&
+        nextRawLine.trim().isNotEmpty) {
       return FountainLineType.character;
     }
 
@@ -180,16 +192,6 @@ class FountainLineClassifier {
       type == FountainLineType.character ||
       type == FountainLineType.parenthetical ||
       type == FountainLineType.dialogue;
-
-  /// Whether `lines[index]` is blank (or does not exist, i.e. [index] is
-  /// past the end of the document).
-  bool _isBlankOrMissing(List<String> lines, int index) =>
-      index >= lines.length || lines[index].trim().isEmpty;
-
-  /// Whether `lines[index]` exists and holds non-blank text, i.e. a
-  /// candidate character cue is genuinely followed by dialogue.
-  bool _hasFollowingDialogue(List<String> lines, int index) =>
-      index < lines.length && lines[index].trim().isNotEmpty;
 
   /// Whether [trimmed] looks like an (unforced) character cue: all-caps
   /// text, optionally with a parenthetical extension and/or a trailing `^`

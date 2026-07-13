@@ -280,4 +280,58 @@ void main() {
       expect(_classify(['==']), [FountainLineType.synopsis]);
     });
   });
+
+  group('classifyLine (public, single-line, explicit context)', () {
+    const classifier = FountainLineClassifier();
+
+    test('agrees with classify() given the equivalent explicit context', () {
+      expect(
+        classifier.classifyLine(
+          'INT. KITCHEN - DAY',
+          previousType: null,
+          nextRawLine: null,
+        ),
+        FountainLineType.sceneHeading,
+      );
+      expect(
+        classifier.classifyLine(
+          'SARAH',
+          previousType: FountainLineType.blank,
+          nextRawLine: 'Hello.',
+        ),
+        FountainLineType.character,
+      );
+      expect(
+        classifier.classifyLine(
+          'Hello.',
+          previousType: FountainLineType.character,
+          nextRawLine: null,
+        ),
+        FountainLineType.dialogue,
+      );
+    });
+
+    test('a whitespace-only line inside a dialogue block is a preserved '
+        'dialogue line, not blank, given just the previous type', () {
+      expect(
+        classifier.classifyLine(
+          '  ',
+          previousType: FountainLineType.dialogue,
+          nextRawLine: null,
+        ),
+        FountainLineType.dialogue,
+      );
+    });
+
+    test('a missing next line counts as followed-by-blank', () {
+      expect(
+        classifier.classifyLine(
+          'CUT TO:',
+          previousType: null,
+          nextRawLine: null,
+        ),
+        FountainLineType.transition,
+      );
+    });
+  });
 }
