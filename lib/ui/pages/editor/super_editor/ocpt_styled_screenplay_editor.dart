@@ -9,6 +9,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:super_editor/super_editor.dart';
@@ -150,11 +151,44 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   }
 
   @override
+  void deactivate() {
+    // `deactivate()` runs before `dispose()` for every removal from the tree (including the
+    // conditional-widget swap a mode toggle or the editor route's back navigation triggers), so
+    // flushing here, rather than in `dispose()`, is what guarantees the last <120 ms of edits
+    // (still only sitting in `_document`, not yet reported through `onTextChanged`) survive it:
+    // by the time `dispose()` tears the editor down, there is nothing left to flush.
+    _flushPendingSync();
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _syncTimer?.cancel();
     _disposeEditor();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  /// Runs the encode-and-report half of a pending debounced sync immediately, instead of waiting
+  /// for [_syncTimer] to fire on its own — deliberately skipping the other half, the
+  /// [OcptWysiwygCodec.reclassifyRequests]/[OcptWysiwygCodec.noteAttributionRequests] pass
+  /// [_syncAfterEdit] also runs, which needs to execute requests against [_editor] to apply.
+  ///
+  /// Executing requests against [_editor] from here would be unsafe: [deactivate] (this method's
+  /// only caller) can fire while this exact subtree is itself mid-teardown (a mode toggle or
+  /// route change both remove this widget as part of an ancestor's own rebuild), and executing an
+  /// edit at that point can reach a document-layout component that Flutter has already
+  /// deactivated, crashing with "setState() called during build". None of that matters for a
+  /// flush: the classification/note spans it would have produced are purely cosmetic and get
+  /// recomputed from scratch the next time this text is decoded anyway (mode toggle back, or a
+  /// fresh load); only the actual text edit needs to survive, which encoding alone already
+  /// guarantees.
+  void _flushPendingSync() {
+    if (_syncTimer == null || !_syncTimer!.isActive) {
+      return;
+    }
+    _syncTimer!.cancel();
+    _encodeAndReportIfChanged();
   }
 
   @override
@@ -171,6 +205,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         editor: _editor,
         focusNode: _focusNode,
         documentLayoutKey: _documentLayoutKey,
+        keyboardActions: ocptFountainKeyboardActions,
         stylesheet: OcptFountainEditorStylesheet.build(
           metrics: metrics,
           colorScheme: theme.colorScheme,
@@ -226,12 +261,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    final encoded = OcptWysiwygCodec.encode(_document, trailingBlankLines: _trailingBlankLines);
-    _mapping = encoded.mapping;
-    if (encoded.text != _lastSyncedText) {
-      _lastSyncedText = encoded.text;
-      widget.onTextChanged(encoded.text);
-    }
+    _encodeAndReportIfChanged();
 
     final requests = [
       ...OcptWysiwygCodec.reclassifyRequests(_document),
@@ -239,6 +269,19 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     ];
     if (requests.isNotEmpty) {
       _editor.execute(requests);
+    }
+  }
+
+  /// Encodes [_document] back to text, refreshes [_mapping] for it, and reports the new text
+  /// upstream if it actually changed — the pure, editor-mutation-free half of [_syncAfterEdit],
+  /// reused by [_flushPendingSync] so a flush never has to run [_editor] commands (see its own
+  /// doc comment for why that matters).
+  void _encodeAndReportIfChanged() {
+    final encoded = OcptWysiwygCodec.encode(_document, trailingBlankLines: _trailingBlankLines);
+    _mapping = encoded.mapping;
+    if (encoded.text != _lastSyncedText) {
+      _lastSyncedText = encoded.text;
+      widget.onTextChanged(encoded.text);
     }
   }
 

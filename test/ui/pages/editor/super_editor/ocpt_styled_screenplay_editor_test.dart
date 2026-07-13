@@ -5,8 +5,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -19,10 +21,13 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:super_text_layout/super_text_layout.dart';
 
@@ -54,6 +59,60 @@ class _RecordingScreenplayService extends OcptScreenplayService {
 Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox.expand(child: child)),
 );
+
+/// A bare [OcptStyledScreenplayEditor] pumped with [text] and no bloc behind it: most of the
+/// tests below only care about the live super_editor document a keyboard interaction produces,
+/// not about autosave/dirty tracking (already covered by the bloc-wired group above).
+///
+/// Pass a distinct [key] whenever a single `testWidgets` body calls this more than once with the
+/// same [text] (for example, pumping a fresh instance per case in a loop): otherwise
+/// `_OcptStyledScreenplayEditorState.didUpdateWidget`'s own "only rebuild the document if the text
+/// actually changed" guard sees an unchanged [text] across the identically-shaped widget tree and
+/// keeps reusing the previous call's already-edited live document instead of starting fresh.
+Future<void> _pumpStandaloneEditor(WidgetTester tester, String text, {Key? key}) async {
+  await tester.pumpWidget(
+    _wrap(
+      OcptStyledScreenplayEditor(
+        key: key,
+        text: text,
+        pageFormat: OcptPageFormat.usLetter,
+        onTextChanged: (_) {},
+        onCaretLineChanged: (_) {},
+        jumpRequest: null,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// The node at [index] of [document], freshly re-read: every node-metadata/block-type change
+/// (`ChangeParagraphBlockTypeRequest`, `OcptChangeNodeMetadataRequest`) replaces the node object
+/// in place rather than mutating it, so a [ParagraphNode] reference captured before such a change
+/// goes stale; call this again after every edit instead of reusing an old reference.
+ParagraphNode _nodeAt(Document document, int index) => document.getNodeAt(index)! as ParagraphNode;
+
+/// The [FountainLineType] the node at [index] of [document] is currently classified as.
+FountainLineType _typeAt(Document document, int index) =>
+    OcptFountainLineAttributions.typeOfAttributionValue(_nodeAt(document, index).getMetadataValue("blockType"));
+
+/// Whether the node at [index] of [document] currently carries a manual type lock.
+bool _isLockedAt(Document document, int index) =>
+    _nodeAt(document, index).getMetadataValue(ocptTypeLockedMetadataKey) == true;
+
+/// Sends the hardware key combo for [key] with Ctrl held (Cmd has no equivalent test helper here;
+/// this app targets Linux/Windows first).
+Future<void> _sendCtrl(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+}
+
+/// Sends the hardware key combo for [key] with Shift held.
+Future<void> _sendShift(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+}
 
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
@@ -205,5 +264,232 @@ void main() {
       expect(savedTexts, isNotEmpty);
       expect(savedTexts.last, "EXT. STREET - DAY");
     });
+  });
+
+  group("Tab cycles the caret's block type", () {
+    testWidgets(
+      "Tab advances through the six common types (wrapping) and locks the block; Shift+Tab "
+      "reverses",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "Some action text.");
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+
+        expect(_typeAt(document, 0), FountainLineType.action);
+
+        const forwardCycle = [
+          FountainLineType.character,
+          FountainLineType.parenthetical,
+          FountainLineType.dialogue,
+          FountainLineType.transition,
+          FountainLineType.sceneHeading,
+          FountainLineType.action,
+        ];
+        for (final expectedType in forwardCycle) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pump();
+          expect(_typeAt(document, 0), expectedType);
+          expect(_isLockedAt(document, 0), isTrue);
+        }
+
+        // The forward loop above ends back at `action`; reversing from there steps backward
+        // through the cycle the other way round (wrapping at `sceneHeading` to `transition`).
+        const reverseCycle = [
+          FountainLineType.sceneHeading,
+          FountainLineType.transition,
+          FountainLineType.dialogue,
+          FountainLineType.parenthetical,
+          FountainLineType.character,
+          FountainLineType.action,
+        ];
+        for (final expectedType in reverseCycle) {
+          await _sendShift(tester, LogicalKeyboardKey.tab);
+          await tester.pump();
+          expect(_typeAt(document, 0), expectedType);
+        }
+      },
+    );
+
+    testWidgets("Tab from outside the cycle enters at sceneHeading", (tester) async {
+      await _pumpStandaloneEditor(tester, "~A lyric line");
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(_typeAt(document, 0), FountainLineType.lyrics);
+
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+    });
+
+    testWidgets("Shift+Tab from outside the cycle enters at transition", (tester) async {
+      await _pumpStandaloneEditor(tester, "~A lyric line");
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(_typeAt(document, 0), FountainLineType.lyrics);
+
+      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+      await _sendShift(tester, LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      expect(_typeAt(document, 0), FountainLineType.transition);
+    });
+  });
+
+  group("smart Enter", () {
+    testWidgets("maps each type to its usual screenplay successor", (tester) async {
+      // Nodes, in order: sceneHeading, character, parenthetical, dialogue, transition (blank
+      // source lines are folded into metadata, so these are exactly nodes 0-4).
+      const contextText = "INT. HOUSE - DAY\n\nSARAH\n(quietly)\nHello.\n\nCUT TO:";
+      const cases = [
+        (nodeIndex: 0, nextType: FountainLineType.action, blankLinesBefore: 1),
+        (nodeIndex: 1, nextType: FountainLineType.dialogue, blankLinesBefore: 0),
+        (nodeIndex: 2, nextType: FountainLineType.dialogue, blankLinesBefore: 0),
+        (nodeIndex: 3, nextType: FountainLineType.action, blankLinesBefore: 1),
+        (nodeIndex: 4, nextType: FountainLineType.sceneHeading, blankLinesBefore: 1),
+      ];
+
+      for (final testCase in cases) {
+        await _pumpStandaloneEditor(tester, contextText, key: ValueKey(testCase.nodeIndex));
+
+        final document = SuperEditorInspector.findDocument()!;
+        final node = _nodeAt(document, testCase.nodeIndex);
+        await tester.placeCaretInParagraph(node.id, node.text.toPlainText().length);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+
+        final newNode = _nodeAt(document, testCase.nodeIndex + 1);
+        expect(
+          OcptFountainLineAttributions.typeOfAttributionValue(newNode.getMetadataValue("blockType")),
+          testCase.nextType,
+          reason: "new node after node ${testCase.nodeIndex}",
+        );
+        expect(newNode.getMetadataValue(ocptBlankLinesBeforeMetadataKey), testCase.blankLinesBefore);
+        expect(newNode.getMetadataValue(ocptTypeLockedMetadataKey), isFalse);
+        expect(newNode.text.toPlainText(), isEmpty);
+      }
+    });
+
+    testWidgets("splits mid-text, carrying the remainder into the new node", (tester) async {
+      await _pumpStandaloneEditor(tester, "Some action text here.");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 5);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(_nodeAt(document, 0).text.toPlainText(), "Some ");
+      expect(_nodeAt(document, 1).text.toPlainText(), "action text here.");
+      expect(_typeAt(document, 1), FountainLineType.action);
+    });
+
+    testWidgets("Shift+Enter splits into a node of the same type with no blank line before it", (
+      tester,
+    ) async {
+      await _pumpStandaloneEditor(tester, "First action line.");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final node = _nodeAt(document, 0);
+      await tester.placeCaretInParagraph(node.id, node.text.toPlainText().length);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      final newNode = _nodeAt(document, 1);
+      expect(_typeAt(document, 1), FountainLineType.action);
+      expect(newNode.getMetadataValue(ocptBlankLinesBeforeMetadataKey), 0);
+      expect(newNode.getMetadataValue(ocptTypeLockedMetadataKey), isFalse);
+    });
+  });
+
+  testWidgets(
+    "reclassify skips a locked block; emptying it clears the lock, after which auto-detection "
+    "reclassifies it again",
+    (tester) async {
+      await _pumpStandaloneEditor(tester, "Some plain text.");
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+
+      await tester.placeCaretInParagraph(nodeId, 0);
+      // Lock the block as `transition` (a type auto-detection would never assign to this text)
+      // by cycling forward from `action` four times: character, parenthetical, dialogue,
+      // transition.
+      for (var i = 0; i < 4; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      }
+      await tester.pump();
+      expect(_typeAt(document, 0), FountainLineType.transition);
+      expect(_isLockedAt(document, 0), isTrue);
+
+      // Typing a scene-heading-looking prefix into the locked block must not reclassify it.
+      await tester.placeCaretInParagraph(nodeId, 0);
+      await tester.typeImeText("INT. ");
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(_typeAt(document, 0), FountainLineType.transition);
+      expect(_isLockedAt(document, 0), isTrue);
+
+      // Emptying the block clears the lock...
+      final textLength = _nodeAt(document, 0).text.toPlainText().length;
+      await tester.placeCaretInParagraph(nodeId, textLength);
+      for (var i = 0; i < textLength; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      }
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(_isLockedAt(document, 0), isFalse);
+
+      // ...and auto-detection reclassifies the (now unlocked, empty) block once it's typed again.
+      await tester.typeImeText("INT. HOUSE - DAY");
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+    },
+  );
+
+  testWidgets("Ctrl+B, Ctrl+I and Ctrl+U toggle bold/italic/underline, serialized as **/*/_", (
+    tester,
+  ) async {
+    Future<String> encodedAfterToggling(LogicalKeyboardKey key) async {
+      var lastEncoded = "";
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            // A distinct key per call: same rationale as `_pumpStandaloneEditor`'s doc comment
+            // (identical `text` across calls would otherwise reuse the previous call's document).
+            key: ValueKey(key),
+            text: "Base ",
+            pageFormat: OcptPageFormat.usLetter,
+            onTextChanged: (value) => lastEncoded = value,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final node = _nodeAt(document, 0);
+      await tester.placeCaretInParagraph(node.id, node.text.toPlainText().length);
+
+      await _sendCtrl(tester, key);
+      await tester.typeImeText("styled");
+      await _sendCtrl(tester, key);
+      await tester.typeImeText(" end");
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+
+      return lastEncoded;
+    }
+
+    expect(await encodedAfterToggling(LogicalKeyboardKey.keyB), "Base **styled** end");
+    expect(await encodedAfterToggling(LogicalKeyboardKey.keyI), "Base *styled* end");
+    expect(await encodedAfterToggling(LogicalKeyboardKey.keyU), "Base _styled_ end");
   });
 }

@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -34,6 +35,15 @@ class OcptFountainEditorStylesheet {
   /// annotate.
   static const double _parentheticalOpacity = 0.75;
 
+  /// The number of [ocptBlankLinesBeforeMetadataKey] blank lines above which extra top padding
+  /// stops growing: beyond a few blank lines, one more doesn't need to visually register any
+  /// bigger a gap than the last.
+  static const int _maxBlankLinesForPadding = 3;
+
+  /// The alpha applied to an inline authoring note's (`[[text]]`) color, dimming it relative to
+  /// the surrounding text it's embedded in (a note is authoring scaffolding, never printed).
+  static const double _noteInlineOpacity = 0.55;
+
   /// Builds the stylesheet for typesetting the styled editor at [metrics], colored for
   /// [colorScheme] (so the editing surface follows the app's light/dark theme, unlike the raw
   /// mode's paper preview, which always simulates black-on-white paper).
@@ -48,7 +58,8 @@ class OcptFountainEditorStylesheet {
 
     return Stylesheet(
       documentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      inlineTextStyler: defaultInlineTextStyler,
+      inlineTextStyler: (attributions, existingStyle) =>
+          _inlineTextStyler(attributions, existingStyle, colorScheme),
       rules: [
         // `blank` and `action` both use the action box (left margin, full width) in the base text
         // color; every FountainLineType gets its own explicit rule below (rather than a
@@ -153,7 +164,9 @@ class OcptFountainEditorStylesheet {
 
   /// Builds the `StyleRule` for [type], selecting nodes by the `blockType` attribution
   /// [OcptFountainLineAttributions.attributionOf] gives it, and positioning them at [element]'s
-  /// indent and width (converted to pixels through [layout]).
+  /// indent and width (converted to pixels through [layout]); each node's own
+  /// [ocptBlankLinesBeforeMetadataKey] metadata additionally opens up top padding, visually
+  /// standing in for the blank source lines folded into it.
   static StyleRule _rule(
     FountainLineType type,
     FountainElementLayout element,
@@ -164,11 +177,38 @@ class OcptFountainEditorStylesheet {
   }) => StyleRule(
     BlockSelector(OcptFountainLineAttributions.attributionOf(type).name),
     (document, node) => {
-      Styles.padding: CascadingPadding.only(left: layout.indentOf(element)),
+      Styles.padding: CascadingPadding.only(
+        left: layout.indentOf(element),
+        top: _blankLinesBeforeTopPadding(node, layout),
+      ),
       Styles.maxWidth: layout.widthOf(element),
       Styles.textAlign: textAlign,
       Styles.textStyle: textStyle,
       Styles.opacity: opacity,
     },
   );
+
+  /// The extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank source
+  /// lines, one [OcptEditorPreviewLayout.lineHeight] each, capped at [_maxBlankLinesForPadding].
+  static double _blankLinesBeforeTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) {
+    final blankLinesBefore = node.getMetadataValue(ocptBlankLinesBeforeMetadataKey);
+    final count = blankLinesBefore is int ? blankLinesBefore : 0;
+    return count.clamp(0, _maxBlankLinesForPadding) * layout.lineHeight;
+  }
+
+  /// Wraps `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
+  /// ([_noteInlineOpacity] of [colorScheme]'s `onSurfaceVariant`), read-only authoring scaffolding
+  /// that never prints.
+  static TextStyle _inlineTextStyler(
+    Set<Attribution> attributions,
+    TextStyle existingStyle,
+    ColorScheme colorScheme,
+  ) {
+    final style = defaultInlineTextStyler(attributions, existingStyle);
+    if (!attributions.contains(ocptFountainNoteAttribution)) {
+      return style;
+    }
+
+    return style.copyWith(color: colorScheme.onSurfaceVariant.withValues(alpha: _noteInlineOpacity));
+  }
 }

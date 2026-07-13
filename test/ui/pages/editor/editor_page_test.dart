@@ -314,6 +314,59 @@ void main() {
     expect(document.getNodeIndexById(selection!.extent.nodeId), expectedNodeIndex);
   });
 
+  testWidgets("Ctrl+S saves when the styled editor (not the page's own Shortcuts) has focus", (
+    tester,
+  ) async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final document = SuperEditorInspector.findDocument()!;
+    final firstNodeId = document.getNodeAt(0)!.id;
+    await tester.placeCaretInParagraph(firstNodeId, 0);
+    await tester.typeImeText("X");
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+    expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsOneWidget);
+
+    // super_editor's own `keyboardActions` (Tab cycle, smart Enter, Ctrl+U) match none of
+    // these keys, so the combo falls through, unhandled, all the way to the page-level
+    // `Shortcuts`/`Actions` pair.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsNothing);
+  });
+
+  testWidgets("Ctrl+Shift+M also toggles the editing mode when the styled editor has focus", (
+    tester,
+  ) async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+    expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
+
+    final document = SuperEditorInspector.findDocument()!;
+    final firstNodeId = document.getNodeAt(0)!.id;
+    await tester.placeCaretInParagraph(firstNodeId, 0);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
+    expect(find.byType(OcptEditorSourceField), findsOneWidget);
+  });
+
   testWidgets('the toolbar back button closes the project and navigates back', (tester) async {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
