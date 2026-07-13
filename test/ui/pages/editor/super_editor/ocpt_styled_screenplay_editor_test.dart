@@ -16,11 +16,13 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
@@ -69,7 +71,12 @@ Widget _wrap(Widget child) => MaterialApp(
 /// `_OcptStyledScreenplayEditorState.didUpdateWidget`'s own "only rebuild the document if the text
 /// actually changed" guard sees an unchanged [text] across the identically-shaped widget tree and
 /// keeps reusing the previous call's already-edited live document instead of starting fresh.
-Future<void> _pumpStandaloneEditor(WidgetTester tester, String text, {Key? key}) async {
+Future<void> _pumpStandaloneEditor(
+  WidgetTester tester,
+  String text, {
+  Key? key,
+  OcptStyledEditorController? styledController,
+}) async {
   await tester.pumpWidget(
     _wrap(
       OcptStyledScreenplayEditor(
@@ -79,6 +86,7 @@ Future<void> _pumpStandaloneEditor(WidgetTester tester, String text, {Key? key})
         onTextChanged: (_) {},
         onCaretLineChanged: (_) {},
         jumpRequest: null,
+        styledController: styledController,
       ),
     ),
   );
@@ -491,5 +499,121 @@ void main() {
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyB), "Base **styled** end");
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyI), "Base *styled* end");
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyU), "Base _styled_ end");
+  });
+
+  group("OcptStyledEditorController", () {
+    testWidgets("becomes attached once the editor is pumped", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+      expect(controller.isAttached, isFalse);
+
+      await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
+
+      expect(controller.isAttached, isTrue);
+    });
+
+    testWidgets("currentBlockType follows the caret across nodes of different types", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+      const text = "INT. HOUSE - DAY\n\nSARAH\nHello.";
+
+      await _pumpStandaloneEditor(tester, text, styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final headingNodeId = _nodeAt(document, 0).id;
+      final characterNodeId = _nodeAt(document, 1).id;
+      final dialogueNodeId = _nodeAt(document, 2).id;
+
+      await tester.placeCaretInParagraph(headingNodeId, 0);
+      expect(controller.currentBlockType, FountainLineType.sceneHeading);
+
+      await tester.placeCaretInParagraph(characterNodeId, 0);
+      expect(controller.currentBlockType, FountainLineType.character);
+
+      await tester.placeCaretInParagraph(dialogueNodeId, 0);
+      expect(controller.currentBlockType, FountainLineType.dialogue);
+    });
+
+    testWidgets("setBlockType changes the live document's node blockType and locks it", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+
+      expect(_typeAt(document, 0), FountainLineType.action);
+      expect(_isLockedAt(document, 0), isFalse);
+
+      controller.setBlockType(FountainLineType.character);
+      await tester.pump();
+
+      expect(_typeAt(document, 0), FountainLineType.character);
+      expect(_isLockedAt(document, 0), isTrue);
+      expect(controller.currentBlockType, FountainLineType.character);
+    });
+
+    testWidgets("toggleInlineStyle on a collapsed caret flips activeInlineStyles", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+
+      expect(controller.activeInlineStyles.contains(OcptInlineStyle.bold), isFalse);
+
+      controller.toggleInlineStyle(OcptInlineStyle.bold);
+      await tester.pump();
+      expect(controller.activeInlineStyles.contains(OcptInlineStyle.bold), isTrue);
+
+      controller.toggleInlineStyle(OcptInlineStyle.bold);
+      await tester.pump();
+      expect(controller.activeInlineStyles.contains(OcptInlineStyle.bold), isFalse);
+    });
+
+    testWidgets("toggleInlineStyle on an expanded selection serializes to **/*/_", (tester) async {
+      Future<String> encodedAfterToggling(OcptInlineStyle style) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+        var lastEncoded = "";
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              // A distinct key per call: same rationale as `_pumpStandaloneEditor`'s doc comment.
+              key: ValueKey(style),
+              text: "Base styled end",
+              pageFormat: OcptPageFormat.usLetter,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+              styledController: controller,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        // A double tap selects the whole word under it: "Base styled end" has "styled" starting
+        // at offset 5, so tapping mid-word (offset 7) selects exactly "styled".
+        await tester.doubleTapInParagraph(nodeId, 7);
+
+        controller.toggleInlineStyle(style);
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        return lastEncoded;
+      }
+
+      expect(await encodedAfterToggling(OcptInlineStyle.bold), "Base **styled** end");
+      expect(await encodedAfterToggling(OcptInlineStyle.italic), "Base *styled* end");
+      expect(await encodedAfterToggling(OcptInlineStyle.underline), "Base _styled_ end");
+    });
   });
 }

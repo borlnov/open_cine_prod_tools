@@ -6,10 +6,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:super_editor/super_editor.dart';
@@ -47,6 +51,12 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// The pending caret jump request (from the scene panel), or null if none was ever made.
   final OcptEditorJumpRequest? jumpRequest;
 
+  /// The app-level controller bridging this editor to the toolbar's block-type dropdown and B/I/U
+  /// toggles, or null when this widget is used without one (for example some tests, and any future
+  /// caller that doesn't need toolbar wiring): a null controller simply means the toolbar has
+  /// nothing to attach to, exactly like being in raw mode.
+  final OcptStyledEditorController? styledController;
+
   /// Class constructor
   const OcptStyledScreenplayEditor({
     super.key,
@@ -55,6 +65,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.onTextChanged,
     required this.onCaretLineChanged,
     required this.jumpRequest,
+    this.styledController,
   });
 
   @override
@@ -65,7 +76,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
 /// and `Editor`, keeps their content in sync with [OcptStyledScreenplayEditor.text] in both
 /// directions, and re-classifies every line into its `blockType` metadata after a short debounce
 /// on every edit.
-class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor> {
+class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
+    implements OcptStyledEditorControllerDelegate {
   /// The delay between the last document edit and the classification/text-sync pass.
   static const _syncDebounce = Duration(milliseconds: 120);
 
@@ -120,6 +132,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void initState() {
     super.initState();
     _rebuildEditorFrom(widget.text);
+    widget.styledController?.attach(this);
+    _reportReadStateToController();
     _maybeApplyPendingJumpRequest();
   }
 
@@ -132,6 +146,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         _disposeEditor();
         _rebuildEditorFrom(widget.text);
       });
+      _reportReadStateToController();
+    }
+
+    if (widget.styledController != oldWidget.styledController) {
+      oldWidget.styledController?.detach(this);
+      widget.styledController?.attach(this);
+      _reportReadStateToController();
     }
 
     _maybeApplyPendingJumpRequest();
@@ -163,6 +184,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   @override
   void dispose() {
+    widget.styledController?.detach(this);
     _syncTimer?.cancel();
     _disposeEditor();
     _focusNode.dispose();
@@ -206,6 +228,20 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         focusNode: _focusNode,
         documentLayoutKey: _documentLayoutKey,
         keyboardActions: ocptFountainKeyboardActions,
+        // Both default policies clear the selection the moment this editor loses focus to any
+        // other widget, including a momentary focus steal by the toolbar's block-type dropdown
+        // opening its own overlay route: the focus loss directly clears the selection
+        // (`clearSelectionWhenEditorLosesFocus`), AND separately closes this editor's IME
+        // connection, which clears it a second way (`clearSelectionWhenImeConnectionCloses`).
+        // `applyBlockType`/`applyToggleInlineStyle` need that exact selection to still be there
+        // once the dropdown/toggle's own callback runs, so this editor keeps its selection through
+        // any such round trip instead (the toolbar's own explicit `_focusNode.requestFocus()`
+        // afterwards brings real keyboard focus, and with it a fresh IME connection, straight back
+        // anyway).
+        selectionPolicies: const SuperEditorSelectionPolicies(
+          clearSelectionWhenEditorLosesFocus: false,
+          clearSelectionWhenImeConnectionCloses: false,
+        ),
         stylesheet: OcptFountainEditorStylesheet.build(
           metrics: metrics,
           colorScheme: theme.colorScheme,
@@ -236,6 +272,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _document.addListener(_onDocumentChanged);
     _composer.selectionNotifier.addListener(_onSelectionChanged);
+    _composer.preferences.addListener(_onComposerPreferencesChanged);
   }
 
   /// Stops listening to [_document] and [_composer] and disposes them, before they're replaced or
@@ -243,6 +280,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void _disposeEditor() {
     _document.removeListener(_onDocumentChanged);
     _composer.selectionNotifier.removeListener(_onSelectionChanged);
+    _composer.preferences.removeListener(_onComposerPreferencesChanged);
     _composer.dispose();
     _editor.dispose();
   }
@@ -290,20 +328,117 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// line, now that blank source lines are folded into metadata instead of being their own node).
   void _onSelectionChanged() {
     final nodeId = _composer.selection?.extent.nodeId;
-    if (nodeId == null) {
+    if (nodeId != null) {
+      final nodeIndex = _document.getNodeIndexById(nodeId);
+      if (nodeIndex >= 0) {
+        final line = _mapping.lineOfNodeIndex(nodeIndex);
+        if (line != _lastReportedLine) {
+          _lastReportedLine = line;
+          widget.onCaretLineChanged(line);
+        }
+      }
+    }
+
+    _reportReadStateToController();
+  }
+
+  /// Refreshes [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state) from
+  /// the caret's current node type and active inline styles, called after every attach, every
+  /// document rebuild, every selection change and every composer-preferences change (bold/italic/
+  /// underline toggled for the next typed character while the caret is collapsed).
+  void _reportReadStateToController() {
+    final controller = widget.styledController;
+    if (controller == null) {
       return;
     }
 
-    final nodeIndex = _document.getNodeIndexById(nodeId);
-    if (nodeIndex < 0) {
+    final selection = _composer.selection;
+    final node = selection == null ? null : _document.getNodeById(selection.extent.nodeId);
+    final currentBlockType = node is ParagraphNode
+        ? OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"))
+        : FountainLineType.action;
+
+    controller.updateReadState(
+      currentBlockType: currentBlockType,
+      activeInlineStyles: {
+        for (final style in OcptInlineStyle.values)
+          if (_doesSelectionHaveStyle(style)) style,
+      },
+    );
+  }
+
+  /// Whether [style]'s attribution is active over the current selection: for a collapsed caret,
+  /// the composer's pending style preferences (what the next typed character will carry); for an
+  /// expanded selection, whether every character of it already carries the attribution.
+  ///
+  /// Mirrors the pattern super_editor's own mobile toolbar
+  /// (`KeyboardEditingToolbarOperations._doesSelectionHaveAttributions`) uses for the same check.
+  bool _doesSelectionHaveStyle(OcptInlineStyle style) {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return false;
+    }
+
+    final attribution = OcptInlineStyleAttributions.attributionOf(style);
+    if (selection.isCollapsed) {
+      return _composer.preferences.currentAttributions.contains(attribution);
+    }
+    return _document.doesSelectedTextContainAttributions(selection, {attribution});
+  }
+
+  /// Refreshes the controller's read side whenever the composer's collapsed-caret style
+  /// preferences change (a B/I/U toggle applied via keyboard shortcut or the toolbar, while the
+  /// caret has no selection): [_onSelectionChanged] alone would miss this, since the selection
+  /// itself doesn't move.
+  void _onComposerPreferencesChanged() {
+    _reportReadStateToController();
+  }
+
+  /// Applies a manual block-type change to the current selection's extent node: bails out silently
+  /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
+  /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
+  /// like the Tab-cycle gesture does, then reports the fresh read state and hands focus straight
+  /// back to the editor — the toolbar's dropdown must never keep the keyboard focus it briefly took
+  /// to open.
+  @override
+  void applyBlockType(FountainLineType type) {
+    final selection = _composer.selection;
+    if (selection == null) {
       return;
     }
 
-    final line = _mapping.lineOfNodeIndex(nodeIndex);
-    if (line != _lastReportedLine) {
-      _lastReportedLine = line;
-      widget.onCaretLineChanged(line);
+    final node = _document.getNodeById(selection.extent.nodeId);
+    if (node is! ParagraphNode) {
+      return;
     }
+
+    _editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: type));
+    _reportReadStateToController();
+    _focusNode.requestFocus();
+  }
+
+  /// Toggles [style] on the current selection: the composer's pending style preferences when
+  /// collapsed (so the next typed character carries it), or a `ToggleTextAttributionsRequest` over
+  /// the expanded selection otherwise. Bails out silently if there is no selection. Reports the
+  /// fresh read state and hands focus back to the editor afterwards, same as [applyBlockType].
+  @override
+  void applyToggleInlineStyle(OcptInlineStyle style) {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    final attribution = OcptInlineStyleAttributions.attributionOf(style);
+    if (selection.isCollapsed) {
+      _composer.preferences.toggleStyle(attribution);
+    } else {
+      _editor.execute([
+        ToggleTextAttributionsRequest(documentRange: selection, attributions: {attribution}),
+      ]);
+    }
+
+    _reportReadStateToController();
+    _focusNode.requestFocus();
   }
 
   /// Moves the styled editor's selection to the start of the node containing [charOffset] of

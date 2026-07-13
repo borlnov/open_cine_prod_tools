@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
@@ -64,6 +65,11 @@ class _EditorViewState extends State<_EditorView> {
   /// The controller holding the live source text and selection.
   final TextEditingController _textController = TextEditingController();
 
+  /// The controller bridging the toolbar's block-type dropdown and B/I/U toggles to the live
+  /// styled editor; detached (and the toolbar's format controls hidden) whenever the styled editor
+  /// isn't mounted, i.e. in raw mode.
+  final OcptStyledEditorController _styledEditorController = OcptStyledEditorController();
+
   /// The controller of the editor's vertical scroll, used when jumping to a scene.
   final ScrollController _editorScrollController = ScrollController();
 
@@ -97,6 +103,7 @@ class _EditorViewState extends State<_EditorView> {
     _textController.dispose();
     _editorScrollController.dispose();
     _editorFocusNode.dispose();
+    _styledEditorController.dispose();
     super.dispose();
   }
 
@@ -143,6 +150,7 @@ class _EditorViewState extends State<_EditorView> {
                     const OcptEditorPreviewToggledEvent(),
                   ),
                   onToggleMode: _toggleMode,
+                  styledController: _styledEditorController,
                 ),
                 Expanded(
                   child: Row(
@@ -174,6 +182,7 @@ class _EditorViewState extends State<_EditorView> {
                                   OcptEditorCaretMovedEvent(line: line),
                                 ),
                                 jumpRequest: state.jumpRequest,
+                                styledController: _styledEditorController,
                               ),
                       ),
                       if (isRawMode && state.isPreviewVisible)

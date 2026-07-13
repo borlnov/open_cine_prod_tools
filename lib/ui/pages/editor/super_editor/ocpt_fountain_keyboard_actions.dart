@@ -85,16 +85,26 @@ ExecutionInstruction ocptTabToCycleBlockType({required SuperEditorContext editCo
   final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   final nextType = _ocptCycleType(currentType, reversed: HardwareKeyboard.instance.isShiftPressed);
 
-  editContext.editor.execute([
-    ChangeParagraphBlockTypeRequest(nodeId: node.id, blockType: OcptFountainLineAttributions.attributionOf(nextType)),
-    OcptChangeNodeMetadataRequest(
-      nodeId: node.id,
-      metadata: {ocptTypeLockedMetadataKey: true, ocptHadForcingMarkerMetadataKey: false},
-    ),
-  ]);
+  editContext.editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: nextType));
 
   return ExecutionInstruction.haltExecution;
 }
+
+/// The two-request sequence a manual block-type change always applies: the
+/// `ChangeParagraphBlockTypeRequest` itself, plus locking the block ([ocptTypeLockedMetadataKey])
+/// and clearing any forcing-marker flag ([ocptHadForcingMarkerMetadataKey]), since a manual choice
+/// always overrides whatever forcing marker the line used to have.
+///
+/// Shared by [ocptTabToCycleBlockType] and the toolbar's block-type dropdown
+/// (`OcptStyledEditorControllerDelegate.applyBlockType`): both are the same "manual override"
+/// gesture (Goal 2 of the plan), so both must produce the exact same requests.
+List<EditRequest> ocptManualBlockTypeRequests({required String nodeId, required FountainLineType type}) => [
+  ChangeParagraphBlockTypeRequest(nodeId: nodeId, blockType: OcptFountainLineAttributions.attributionOf(type)),
+  OcptChangeNodeMetadataRequest(
+    nodeId: nodeId,
+    metadata: {ocptTypeLockedMetadataKey: true, ocptHadForcingMarkerMetadataKey: false},
+  ),
+];
 
 /// The next (or, when [reversed], previous) type in [_ocptTabCycleTypes] after [current], wrapping
 /// at both ends; entry from a type outside the cycle goes to [FountainLineType.sceneHeading]

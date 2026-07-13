@@ -91,6 +91,111 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorBlockTypeDropdownTooltip": "Block type",
+  "@editorBlockTypeDropdownTooltip": {
+    "description": "Tooltip of the toolbar's block-type dropdown",
+    "context": "Displayed on hover over the block-type dropdown of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeSceneHeading": "Scene heading",
+  "@editorBlockTypeSceneHeading": {
+    "description": "Label of the scene heading block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeAction": "Action",
+  "@editorBlockTypeAction": {
+    "description": "Label of the action block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeCharacter": "Character",
+  "@editorBlockTypeCharacter": {
+    "description": "Label of the character block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeParenthetical": "Parenthetical",
+  "@editorBlockTypeParenthetical": {
+    "description": "Label of the parenthetical block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeDialogue": "Dialogue",
+  "@editorBlockTypeDialogue": {
+    "description": "Label of the dialogue block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeTransition": "Transition",
+  "@editorBlockTypeTransition": {
+    "description": "Label of the transition block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeCenteredText": "Centered text",
+  "@editorBlockTypeCenteredText": {
+    "description": "Label of the centered text block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeLyrics": "Lyrics",
+  "@editorBlockTypeLyrics": {
+    "description": "Label of the lyrics block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeSection": "Section",
+  "@editorBlockTypeSection": {
+    "description": "Label of the section block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeSynopsis": "Synopsis",
+  "@editorBlockTypeSynopsis": {
+    "description": "Label of the synopsis block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypePageBreak": "Page break",
+  "@editorBlockTypePageBreak": {
+    "description": "Label of the page break block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleBoldTooltip": "Bold (Ctrl+B)",
+  "@editorToggleBoldTooltip": {
+    "description": "Tooltip of the toolbar action that toggles bold on the selection",
+    "context": "Displayed on hover over the bold toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleItalicTooltip": "Italic (Ctrl+I)",
+  "@editorToggleItalicTooltip": {
+    "description": "Tooltip of the toolbar action that toggles italic on the selection",
+    "context": "Displayed on hover over the italic toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleUnderlineTooltip": "Underline (Ctrl+U)",
+  "@editorToggleUnderlineTooltip": {
+    "description": "Tooltip of the toolbar action that toggles underline on the selection",
+    "context": "Displayed on hover over the underline toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "settingsPageTitle": "Settings",
   "@settingsPageTitle": {
     "description": "Title shown on the settings page",

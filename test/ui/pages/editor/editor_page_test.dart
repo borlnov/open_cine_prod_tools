@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -16,7 +17,10 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
@@ -25,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:super_text_layout/super_text_layout.dart';
 
@@ -366,6 +371,61 @@ void main() {
     expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
     expect(find.byType(OcptEditorSourceField), findsOneWidget);
   });
+
+  testWidgets(
+    'the format controls are absent in raw mode and appear once switched to styled mode',
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      // Starts in raw mode (forced by this file's setUp): no format controls at all.
+      expect(find.byType(OcptEditorBlockTypeDropdown), findsNothing);
+      expect(find.byTooltip(tr.editorToggleBoldTooltip), findsNothing);
+      expect(find.byTooltip(tr.editorToggleItalicTooltip), findsNothing);
+      expect(find.byTooltip(tr.editorToggleUnderlineTooltip), findsNothing);
+
+      await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptEditorBlockTypeDropdown), findsOneWidget);
+      expect(find.byTooltip(tr.editorToggleBoldTooltip), findsOneWidget);
+      expect(find.byTooltip(tr.editorToggleItalicTooltip), findsOneWidget);
+      expect(find.byTooltip(tr.editorToggleUnderlineTooltip), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "using the toolbar's dropdown changes the caret's block type in the live styled document",
+    (tester) async {
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final firstNodeId = document.getNodeAt(0)!.id;
+      await tester.placeCaretInParagraph(firstNodeId, 0);
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byType(DropdownButton<FountainLineType>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.editorBlockTypeTransition).last);
+      await tester.pumpAndSettle();
+
+      final node = document.getNodeAt(0)! as ParagraphNode;
+      expect(
+        OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
+        FountainLineType.transition,
+      );
+      expect(node.getMetadataValue(ocptTypeLockedMetadataKey), isTrue);
+    },
+  );
 
   testWidgets('the toolbar back button closes the project and navigates back', (tester) async {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));

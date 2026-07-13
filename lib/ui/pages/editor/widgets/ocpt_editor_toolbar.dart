@@ -5,6 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
 
 /// The editor's thin, discreet toolbar: the back action leading to the projects list, the
 /// screenplay title (with a dot marking unsaved changes), then the save action (spinning while a
@@ -47,6 +50,12 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when the styled/raw mode toggle is clicked.
   final VoidCallback onToggleMode;
 
+  /// The controller bridging this toolbar to the live styled editor's block-type dropdown and
+  /// B/I/U toggles, or null when there is none to wire up. The format controls only render while
+  /// this is non-null AND `OcptStyledEditorController.isAttached` (raw mode leaves it detached),
+  /// which is what makes them disappear outside styled mode.
+  final OcptStyledEditorController? styledController;
+
   /// Class constructor
   const OcptEditorToolbar({
     super.key,
@@ -61,6 +70,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.onToggleScenePanel,
     required this.onTogglePreview,
     required this.onToggleMode,
+    this.styledController,
   });
 
   @override
@@ -99,6 +109,7 @@ class OcptEditorToolbar extends StatelessWidget {
                 ),
               ),
             const Spacer(),
+            if (styledController != null) _OcptFormatControls(controller: styledController!),
             if (isSaving)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
@@ -143,4 +154,65 @@ class OcptEditorToolbar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The toolbar's block-type dropdown and B/I/U toggles, rendered only while [controller] is
+/// attached to a live styled editor (`SizedBox.shrink()` otherwise: raw mode, or the very first
+/// frame before the styled editor attaches).
+///
+/// Wrapped in `Focus(canRequestFocus: false)`, on top of [OcptEditorBlockTypeDropdown]'s own
+/// wrapper, so none of these controls ever steal keyboard focus from the styled editor; the
+/// styled editor's own state explicitly refocuses itself after applying any change these controls
+/// request.
+class _OcptFormatControls extends StatelessWidget {
+  /// The controller read for the current block type / active inline styles, and written to when a
+  /// control is used.
+  final OcptStyledEditorController controller;
+
+  /// Class constructor
+  const _OcptFormatControls({required this.controller});
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: controller,
+    builder: (context, child) {
+      if (!controller.isAttached) {
+        return const SizedBox.shrink();
+      }
+
+      final tr = Tr.of(context);
+      final activeStyles = controller.activeInlineStyles;
+
+      return Focus(
+        canRequestFocus: false,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OcptEditorBlockTypeDropdown(
+              currentType: controller.currentBlockType,
+              onTypeSelected: controller.setBlockType,
+            ),
+            IconButton(
+              icon: const Icon(Icons.format_bold, size: 20),
+              tooltip: tr.editorToggleBoldTooltip,
+              isSelected: activeStyles.contains(OcptInlineStyle.bold),
+              onPressed: () => controller.toggleInlineStyle(OcptInlineStyle.bold),
+            ),
+            IconButton(
+              icon: const Icon(Icons.format_italic, size: 20),
+              tooltip: tr.editorToggleItalicTooltip,
+              isSelected: activeStyles.contains(OcptInlineStyle.italic),
+              onPressed: () => controller.toggleInlineStyle(OcptInlineStyle.italic),
+            ),
+            IconButton(
+              icon: const Icon(Icons.format_underlined, size: 20),
+              tooltip: tr.editorToggleUnderlineTooltip,
+              isSelected: activeStyles.contains(OcptInlineStyle.underline),
+              onPressed: () => controller.toggleInlineStyle(OcptInlineStyle.underline),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
