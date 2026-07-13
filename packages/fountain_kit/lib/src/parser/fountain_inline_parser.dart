@@ -4,6 +4,7 @@
 
 import 'package:fountain_kit/src/models/fountain_inline_span.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
+import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 
 /// One recognized emphasis marker, paired with the [FountainInlineStyle] it
 /// produces.
@@ -37,6 +38,23 @@ class FountainInlineParser {
     _EmphasisMarker('***', FountainInlineStyle.boldItalic),
     _EmphasisMarker('**', FountainInlineStyle.bold),
     _EmphasisMarker('*', FountainInlineStyle.italic),
+    _EmphasisMarker('_', FountainInlineStyle.underline),
+  ];
+
+  /// The markers [parseRuns] tries, in order, when looking for one level of
+  /// nesting inside a span whose outer marker was `_` (underline): `_**x**_`
+  /// → bold+underline, `_*x*_` → italic+underline, `_***x***_` →
+  /// bold+italic+underline.
+  static const List<_EmphasisMarker> _nestedInUnderline = [
+    _EmphasisMarker('***', FountainInlineStyle.boldItalic),
+    _EmphasisMarker('**', FountainInlineStyle.bold),
+    _EmphasisMarker('*', FountainInlineStyle.italic),
+  ];
+
+  /// The marker [parseRuns] tries when looking for one level of nesting
+  /// inside a span whose outer marker was `**` or `*`: `**_x_**` →
+  /// bold+underline, `*_x_*` → italic+underline.
+  static const List<_EmphasisMarker> _nestedInBoldOrItalic = [
     _EmphasisMarker('_', FountainInlineStyle.underline),
   ];
 
@@ -140,6 +158,113 @@ class FountainInlineParser {
 
     flushPlain(text.length);
     return spans;
+  }
+
+  /// Parses [text] into a sequence of [FountainStyledRun]s, resolving one
+  /// level of nesting inside emphasis spans that [parse] leaves as a single
+  /// token with its inner markers still literally in its text.
+  ///
+  /// This builds on [parse] rather than duplicating its scanning logic: it
+  /// calls [parse] to find each top-level span, then, for a span whose style
+  /// is [FountainInlineStyle.bold], [FountainInlineStyle.italic] or
+  /// [FountainInlineStyle.underline], checks whether that span's text is
+  /// itself fully wrapped in one complementary marker (`_**x**_` →
+  /// bold+underline, `_*x*_` → italic+underline, `**_x_**`/`*_x_*` → the
+  /// same pairs the other way around, `_***x***_` → bold+italic+underline).
+  /// [FountainInlineStyle.boldItalic] already covers `***x***` in a single
+  /// token. A note span stays atomic: it never nests, and its
+  /// [FountainStyledRun.text] is re-wrapped with its `[[`/`]]` delimiters
+  /// (kept visible on screen, unlike emphasis markers) rather than stripped.
+  ///
+  /// [parse] itself is unchanged and keeps returning single-style spans, so
+  /// callers that only need [FountainInlineStyle] (the raw-mode preview)
+  /// keep working exactly as before.
+  List<FountainStyledRun> parseRuns(String text) =>
+      parse(text).map(_toStyledRun).toList();
+
+  /// Converts one top-level [FountainInlineSpan] into a [FountainStyledRun],
+  /// resolving one level of nesting as described on [parseRuns].
+  FountainStyledRun _toStyledRun(FountainInlineSpan span) {
+    switch (span.style) {
+      case FountainInlineStyle.plain:
+        return FountainStyledRun(text: span.text);
+      case FountainInlineStyle.note:
+        return FountainStyledRun(text: '[[${span.text}]]', isNote: true);
+      case FountainInlineStyle.boldItalic:
+        return FountainStyledRun(text: span.text, isBold: true, isItalic: true);
+      case FountainInlineStyle.bold:
+        return _resolveNesting(span.text, _nestedInBoldOrItalic, isBold: true);
+      case FountainInlineStyle.italic:
+        return _resolveNesting(
+          span.text,
+          _nestedInBoldOrItalic,
+          isItalic: true,
+        );
+      case FountainInlineStyle.underline:
+        return _resolveNesting(
+          span.text,
+          _nestedInUnderline,
+          isUnderline: true,
+        );
+    }
+  }
+
+  /// Checks whether [text] is fully wrapped in one of [candidates]; if so,
+  /// returns a [FountainStyledRun] combining that nested style with the
+  /// outer style already carried by [isBold]/[isItalic]/[isUnderline],
+  /// otherwise returns a run with only the outer style and [text] as-is.
+  FountainStyledRun _resolveNesting(
+    String text,
+    List<_EmphasisMarker> candidates, {
+    bool isBold = false,
+    bool isItalic = false,
+    bool isUnderline = false,
+  }) {
+    final nested = _matchFullWrap(text, candidates);
+    if (nested == null) {
+      return FountainStyledRun(
+        text: text,
+        isBold: isBold,
+        isItalic: isItalic,
+        isUnderline: isUnderline,
+      );
+    }
+    final (nestedStyle, innerText) = nested;
+    return FountainStyledRun(
+      text: innerText,
+      isBold:
+          isBold ||
+          nestedStyle == FountainInlineStyle.boldItalic ||
+          nestedStyle == FountainInlineStyle.bold,
+      isItalic:
+          isItalic ||
+          nestedStyle == FountainInlineStyle.boldItalic ||
+          nestedStyle == FountainInlineStyle.italic,
+      isUnderline: isUnderline || nestedStyle == FountainInlineStyle.underline,
+    );
+  }
+
+  /// Returns the nested style and inner text if [text] is entirely wrapped
+  /// in one marker from [candidates] (tried longest-first), using the same
+  /// leftmost-closing-marker rule as [parse] itself so the two agree on
+  /// what counts as a matched pair; returns `null` if [text] is not fully
+  /// wrapped by any candidate (for example plain, unmatched, or wrapped by
+  /// only part of the string).
+  (FountainInlineStyle, String)? _matchFullWrap(
+    String text,
+    List<_EmphasisMarker> candidates,
+  ) {
+    for (final marker in candidates) {
+      final token = marker.token;
+      if (text.length < 2 * token.length || !text.startsWith(token)) {
+        continue;
+      }
+      final closeIndex = text.indexOf(token, token.length);
+      if (closeIndex == text.length - token.length) {
+        return (marker.style, text.substring(token.length, closeIndex));
+      }
+    }
+    return null;
   }
 
   /// Returns the first [_EmphasisMarker] whose token starts at [index] in

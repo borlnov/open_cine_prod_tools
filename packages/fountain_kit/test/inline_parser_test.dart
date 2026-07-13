@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/models/fountain_inline_span.dart';
+import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 import 'package:test/test.dart';
 
@@ -166,6 +167,128 @@ void main() {
       expect(span.sourceRange.endLine, 4);
       expect(span.sourceRange.startOffset, 10);
       expect(span.sourceRange.endOffset, 12);
+    });
+  });
+
+  group('parseRuns', () {
+    List<FountainStyledRun> parseRuns(String text) =>
+        const FountainInlineParser().parseRuns(text);
+
+    test('plain text is a single unstyled run', () {
+      expect(parseRuns('Nothing special here.'), [
+        const FountainStyledRun(text: 'Nothing special here.'),
+      ]);
+    });
+
+    test('single asterisks produce an italic run', () {
+      expect(parseRuns('an *italic* word'), [
+        const FountainStyledRun(text: 'an '),
+        const FountainStyledRun(text: 'italic', isItalic: true),
+        const FountainStyledRun(text: ' word'),
+      ]);
+    });
+
+    test('double asterisks produce a bold run', () {
+      expect(parseRuns('a **bold** word'), [
+        const FountainStyledRun(text: 'a '),
+        const FountainStyledRun(text: 'bold', isBold: true),
+        const FountainStyledRun(text: ' word'),
+      ]);
+    });
+
+    test('underscores produce an underline run', () {
+      expect(parseRuns('an _underlined_ word'), [
+        const FountainStyledRun(text: 'an '),
+        const FountainStyledRun(text: 'underlined', isUnderline: true),
+        const FountainStyledRun(text: ' word'),
+      ]);
+    });
+
+    test('triple asterisks produce a bold+italic run', () {
+      expect(parseRuns('a ***bold italic*** word'), [
+        const FountainStyledRun(text: 'a '),
+        const FountainStyledRun(
+          text: 'bold italic',
+          isBold: true,
+          isItalic: true,
+        ),
+        const FountainStyledRun(text: ' word'),
+      ]);
+    });
+
+    test('"_**x**_" nests to bold+underline', () {
+      expect(parseRuns('_**both**_'), [
+        const FountainStyledRun(text: 'both', isBold: true, isUnderline: true),
+      ]);
+    });
+
+    test('"_*x*_" nests to italic+underline', () {
+      expect(parseRuns('_*both*_'), [
+        const FountainStyledRun(
+          text: 'both',
+          isItalic: true,
+          isUnderline: true,
+        ),
+      ]);
+    });
+
+    test('"**_x_**" nests to bold+underline (underline inside bold)', () {
+      expect(parseRuns('**_both_**'), [
+        const FountainStyledRun(text: 'both', isBold: true, isUnderline: true),
+      ]);
+    });
+
+    test('"*_x_*" nests to italic+underline (underline inside italic)', () {
+      expect(parseRuns('*_both_*'), [
+        const FountainStyledRun(
+          text: 'both',
+          isItalic: true,
+          isUnderline: true,
+        ),
+      ]);
+    });
+
+    test('"_***x***_" nests to bold+italic+underline', () {
+      expect(parseRuns('_***all***_'), [
+        const FountainStyledRun(
+          text: 'all',
+          isBold: true,
+          isItalic: true,
+          isUnderline: true,
+        ),
+      ]);
+    });
+
+    test('a non-wrapping inner marker leaves only the outer style', () {
+      // "_a*b" is not a full wrap of "*" inside the underline span's text,
+      // so the run stays plain underline with the literal asterisk kept.
+      expect(parseRuns('_a*b_'), [
+        const FountainStyledRun(text: 'a*b', isUnderline: true),
+      ]);
+    });
+
+    test('"[[note]]" becomes a note run with brackets kept in its text', () {
+      expect(parseRuns('before [[a note]] after'), [
+        const FountainStyledRun(text: 'before '),
+        const FountainStyledRun(text: '[[a note]]', isNote: true),
+        const FountainStyledRun(text: ' after'),
+      ]);
+    });
+
+    test('an empty string yields no runs', () {
+      expect(parseRuns(''), isEmpty);
+    });
+
+    test('the original parse() API is unaffected by parseRuns', () {
+      // parseRuns is additive: parse() keeps returning single-style spans
+      // for callers (the raw-mode preview) that only need
+      // FountainInlineStyle.
+      const parser = FountainInlineParser();
+      expect(parser.parse('a *b* c').map((span) => span.style).toList(), [
+        FountainInlineStyle.plain,
+        FountainInlineStyle.italic,
+        FountainInlineStyle.plain,
+      ]);
     });
   });
 }
