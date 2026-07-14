@@ -21,12 +21,13 @@ final String _longSampleText = List.generate(
 /// Wraps [child] in a [MaterialApp] and a [width]x[height] box (top-left aligned, so the panel's
 /// origin lines up with the test surface's own origin, keeping [WidgetTester.getRect] comparisons
 /// simple), the same constrained-panel setup the real editor page's `Expanded` gives the preview.
-Widget _wrap(Widget child, {required double width, double height = 600}) => MaterialApp(
-  home: Align(
-    alignment: Alignment.topLeft,
-    child: SizedBox(width: width, height: height, child: child),
-  ),
-);
+Widget _wrap(Widget child, {required double width, double height = 600}) =>
+    MaterialApp(
+      home: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(width: width, height: height, child: child),
+      ),
+    );
 
 /// Widens the test surface well past [unscaledPanelWidth], so a `SizedBox`-constrained panel of
 /// that width actually gets it: the default 800x600 test surface would otherwise clamp it first
@@ -40,35 +41,42 @@ void _widenTestSurface(WidgetTester tester, double unscaledPanelWidth) {
 }
 
 void main() {
-  final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+  final layout = OcptEditorPreviewLayout(
+    metrics: FountainLayoutMetrics.usLetter(),
+  );
   // Matches `_OcptEditorPreviewState._pagePadding`: the horizontal padding kept around the page.
   const pagePadding = 16.0;
   final unscaledPanelWidth = layout.pageWidth + pagePadding * 2;
 
-  testWidgets("a panel at least as wide as the page renders it unscaled, fully visible", (
-    tester,
-  ) async {
-    _widenTestSurface(tester, unscaledPanelWidth);
-    final document = const FountainParser().parse(_longSampleText);
+  testWidgets(
+    "a panel at least as wide as the page renders it unscaled, fully visible",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      final document = const FountainParser().parse(_longSampleText);
 
-    await tester.pumpWidget(
-      _wrap(
-        OcptEditorPreview(document: document, pageFormat: OcptPageFormat.usLetter, currentLine: 0),
-        width: unscaledPanelWidth,
-      ),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: 0,
+          ),
+          width: unscaledPanelWidth,
+        ),
+      );
+      await tester.pump();
 
-    // No horizontal scroller is ever built: a wide-enough panel never needed one, and a narrow
-    // panel now scales instead of scrolling.
-    expect(find.byType(SingleChildScrollView), findsNothing);
+      // No horizontal scroller is ever built: a wide-enough panel never needed one, and a narrow
+      // panel now scales instead of scrolling.
+      expect(find.byType(SingleChildScrollView), findsNothing);
 
-    final pageRect = tester.getRect(find.byType(Material));
-    expect(pageRect.width, closeTo(layout.pageWidth, 0.5));
-    // The full page, including its right edge, sits within the panel.
-    expect(pageRect.left, greaterThanOrEqualTo(0));
-    expect(pageRect.right, lessThanOrEqualTo(unscaledPanelWidth));
-  });
+      final pageRect = tester.getRect(find.byType(Material));
+      expect(pageRect.width, closeTo(layout.pageWidth, 0.5));
+      // The full page, including its right edge, sits within the panel.
+      expect(pageRect.left, greaterThanOrEqualTo(0));
+      expect(pageRect.right, lessThanOrEqualTo(unscaledPanelWidth));
+    },
+  );
 
   testWidgets(
     "a panel narrower than the page scales it down instead of cropping it, right margin included",
@@ -79,7 +87,11 @@ void main() {
 
       await tester.pumpWidget(
         _wrap(
-          OcptEditorPreview(document: document, pageFormat: OcptPageFormat.usLetter, currentLine: 0),
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: 0,
+          ),
           width: narrowWidth,
         ),
       );
@@ -108,39 +120,83 @@ void main() {
     },
   );
 
-  testWidgets("caret scroll-sync still scrolls to the current line's block when the page is scaled", (
+  testWidgets("a wrapped action line leaves the page's true right margin visible", (
     tester,
   ) async {
     _widenTestSurface(tester, unscaledPanelWidth);
-    final document = const FountainParser().parse(_longSampleText);
-    final narrowWidth = unscaledPanelWidth / 2;
-
-    await tester.pumpWidget(
-      _wrap(
-        OcptEditorPreview(document: document, pageFormat: OcptPageFormat.usLetter, currentLine: 0),
-        width: narrowWidth,
-      ),
+    // A single action paragraph long enough that it wraps: its wrapped lines fill the action
+    // element's box right up to its full width, so the box's own right edge is a reliable proxy
+    // for "where the rendered content actually reaches" on this line.
+    final document = const FountainParser().parse(
+      "A very long action paragraph describing what happens here, padded out with a lot more "
+      "text so it definitely wraps across multiple lines and fills the full available width of "
+      "its layout box on the simulated paper page, several times over to be sure.",
     );
-    await tester.pump();
 
-    final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
-    expect(scrollable.position.pixels, 0);
-
-    // Move the caret to a scene far down the (intentionally long) document.
-    final targetLine = document.blocks.last.sourceRange.startLine;
     await tester.pumpWidget(
       _wrap(
         OcptEditorPreview(
           document: document,
           pageFormat: OcptPageFormat.usLetter,
-          currentLine: targetLine,
+          currentLine: 0,
         ),
-        width: narrowWidth,
+        width: unscaledPanelWidth,
       ),
     );
-    // The sync is scheduled from a post-frame callback and then animates.
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    expect(scrollable.position.pixels, greaterThan(0));
+    final sheetRect = tester.getRect(find.byType(Material));
+    final contentRect = tester.getRect(find.byType(RichText).first);
+
+    // The action element's box should end 1 inch (`marginRightInches`) short of the sheet's right
+    // edge: `pageWidthInches - marginRightInches - action.leftIndentInches - action.maxWidthInches
+    // == marginRightInches` by construction (see `FountainLayoutMetrics`'s `fullWidthLeftAligned`).
+    final expectedGap =
+        FountainLayoutMetrics.usLetter().marginRightInches *
+        layout.metrics.charsPerInch *
+        layout.glyphWidth;
+    final actualGap = sheetRect.right - contentRect.right;
+    expect(actualGap, closeTo(expectedGap, layout.glyphWidth * 2));
   });
+
+  testWidgets(
+    "caret scroll-sync still scrolls to the current line's block when the page is scaled",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      final document = const FountainParser().parse(_longSampleText);
+      final narrowWidth = unscaledPanelWidth / 2;
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: 0,
+          ),
+          width: narrowWidth,
+        ),
+      );
+      await tester.pump();
+
+      final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(scrollable.position.pixels, 0);
+
+      // Move the caret to a scene far down the (intentionally long) document.
+      final targetLine = document.blocks.last.sourceRange.startLine;
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: targetLine,
+          ),
+          width: narrowWidth,
+        ),
+      );
+      // The sync is scheduled from a post-frame callback and then animates.
+      await tester.pumpAndSettle();
+
+      expect(scrollable.position.pixels, greaterThan(0));
+    },
+  );
 }

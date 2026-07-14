@@ -33,7 +33,11 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   final OcptEditorPreviewLayout layout;
 
   /// Class constructor
-  const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
+  const OcptEditorPreviewBlock({
+    super.key,
+    required this.block,
+    required this.layout,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +69,10 @@ class OcptEditorPreviewBlock extends StatelessWidget {
       ),
       final FountainLyrics lyrics => _element(
         layout.metrics.lyrics,
-        _multilineText(lyrics.lines, _baseStyle.copyWith(fontStyle: FontStyle.italic)),
+        _multilineText(
+          lyrics.lines,
+          _baseStyle.copyWith(fontStyle: FontStyle.italic),
+        ),
       ),
       FountainPageBreak() => Padding(
         padding: EdgeInsets.symmetric(
@@ -79,14 +86,29 @@ class OcptEditorPreviewBlock extends StatelessWidget {
       _ => const SizedBox.shrink(),
     };
 
-    return Padding(padding: EdgeInsets.only(bottom: layout.blockSpacing), child: content);
+    return Padding(
+      padding: EdgeInsets.only(bottom: layout.blockSpacing),
+      child: content,
+    );
   }
 
   /// Positions [text] within [element]'s layout box: indented from the page's left edge and
   /// capped at the element's width.
-  Widget _element(FountainElementLayout element, Widget text) => Padding(
-    padding: EdgeInsets.only(left: layout.indentOf(element)),
-    child: SizedBox(width: layout.widthOf(element), child: text),
+  ///
+  /// The outer [Align] is load-bearing, not decorative: each block sits in the preview's
+  /// `ListView.builder`, which gives every item a *tight* cross-axis (width) constraint equal to
+  /// the page's own width. A bare `SizedBox(width: ...)` cannot narrow a tight constraint — it
+  /// gets silently clamped back up to the incoming width, so the element's `SizedBox` below would
+  /// always render as wide as the whole page, swallowing the box's right margin entirely (left
+  /// margin and top margin stay visible because they come from padding/indent, not from a width
+  /// cap). `Align` loosens the constraint it hands to its child before positioning it, letting the
+  /// `SizedBox` genuinely shrink to [FountainElementLayout.maxWidthColumns].
+  Widget _element(FountainElementLayout element, Widget text) => Align(
+    alignment: Alignment.topLeft,
+    child: Padding(
+      padding: EdgeInsets.only(left: layout.indentOf(element)),
+      child: SizedBox(width: layout.widthOf(element), child: text),
+    ),
   );
 
   /// Renders a full dialogue group: the character cue, then its parentheticals and dialogue
@@ -100,7 +122,10 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _element(layout.metrics.character, _styledText(cueText.toUpperCase(), _baseStyle)),
+        _element(
+          layout.metrics.character,
+          _styledText(cueText.toUpperCase(), _baseStyle),
+        ),
         for (final child in dialogue.children)
           switch (child) {
             final FountainParenthetical parenthetical => _element(
@@ -133,8 +158,11 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   );
 
   /// Renders [text] as one text widget, resolving its inline emphasis.
-  Widget _styledText(String text, TextStyle style) =>
-      Text.rich(TextSpan(children: _inlineSpans(text, style)), style: style, textAlign: _textAlign);
+  Widget _styledText(String text, TextStyle style) => Text.rich(
+    TextSpan(children: _inlineSpans(text, style)),
+    style: style,
+    textAlign: _textAlign,
+  );
 
   /// The horizontal text alignment of [block]'s element.
   TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
@@ -163,8 +191,12 @@ class OcptEditorPreviewBlock extends StatelessWidget {
         TextSpan(
           text: span.text,
           style: switch (span.style) {
-            FountainInlineStyle.italic => style.copyWith(fontStyle: FontStyle.italic),
-            FountainInlineStyle.bold => style.copyWith(fontWeight: FontWeight.bold),
+            FountainInlineStyle.italic => style.copyWith(
+              fontStyle: FontStyle.italic,
+            ),
+            FountainInlineStyle.bold => style.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             FountainInlineStyle.boldItalic => style.copyWith(
               fontWeight: FontWeight.bold,
               fontStyle: FontStyle.italic,
