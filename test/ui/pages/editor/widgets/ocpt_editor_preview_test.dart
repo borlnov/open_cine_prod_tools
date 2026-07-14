@@ -93,9 +93,18 @@ void main() {
       final pageRect = tester.getRect(find.byType(Material));
       expect(pageRect.left, greaterThanOrEqualTo(-0.5));
       expect(pageRect.right, lessThanOrEqualTo(narrowWidth + 0.5));
-      // The page is meaningfully scaled down (not just barely), proving the panel's narrowness
-      // actually drove the shrink rather than coincidental rounding.
-      expect(pageRect.width, lessThan(layout.pageWidth * 0.6));
+      // The page is horizontally centered: the left gutter (background, outside the white sheet)
+      // and the right gutter are equal, so the white page's own left margin renders exactly like
+      // its top margin — as part of the white sheet, not swallowed by the gutter.
+      final rightGutter = narrowWidth - pageRect.right;
+      expect(pageRect.left, closeTo(rightGutter, 0.5));
+      // The page is scaled down by exactly `narrowWidth / unscaledPanelWidth` — not further than
+      // that (a stricter check than "meaningfully smaller": a prior, buggy implementation scaled
+      // the page down by roughly the square of the intended factor, since a `SizedBox` requesting
+      // more width than an ancestor's tight constraint silently got clamped back down before the
+      // scale was even applied, on both axes).
+      final expectedWidth = layout.pageWidth * narrowWidth / unscaledPanelWidth;
+      expect(pageRect.width, closeTo(expectedWidth, 1));
     },
   );
 
