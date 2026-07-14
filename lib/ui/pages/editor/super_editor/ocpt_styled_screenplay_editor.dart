@@ -715,6 +715,11 @@ class _OcptPageSheetsPainter extends CustomPainter {
     final paint = Paint()..color = Colors.white;
 
     canvas.save();
+    // `CustomPaint` does NOT clip its painter to its own bounds. Once the document is scrolled,
+    // `translate` below pulls every sheet up by `scrollOffset`, so the sheets above the viewport
+    // get a negative top and would be painted *outside* this widget — straight over the editor
+    // toolbar sitting above it, which reads exactly like the page scrolling over the toolbar.
+    canvas.clipRect(Offset.zero & size);
     canvas.translate(0, -scrollOffset);
     for (var page = 0; page < pageCount; page++) {
       final top = page * (pageHeight + pageGap);

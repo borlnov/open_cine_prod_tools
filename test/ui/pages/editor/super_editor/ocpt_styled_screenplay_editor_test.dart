@@ -99,15 +99,16 @@ Future<void> _pumpStandaloneEditor(
   await tester.pumpAndSettle();
 }
 
+/// Finds the page-simulation background painter (`_OcptPageSheetsPainter`) by the runtime name of
+/// its painter: it's private to the production file, so it can't be named from here directly.
+Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
+  (widget) => widget is CustomPaint && widget.painter.runtimeType.toString() == "_OcptPageSheetsPainter",
+);
+
 /// Whether the page-simulation background painter (`_OcptPageSheetsPainter`, private to the
 /// production file) is currently mounted: the most that can be asserted on it from outside its own
 /// library without exposing an otherwise-unneeded public type.
-bool _hasPageSheetsPainter() => find
-    .byWidgetPredicate(
-      (widget) => widget is CustomPaint && widget.painter.runtimeType.toString() == "_OcptPageSheetsPainter",
-    )
-    .evaluate()
-    .isNotEmpty;
+bool _hasPageSheetsPainter() => _pageSheetsPainterFinder().evaluate().isNotEmpty;
 
 /// The node at [index] of [document], freshly re-read: every node-metadata/block-type change
 /// (`ChangeParagraphBlockTypeRequest`, `OcptChangeNodeMetadataRequest`) replaces the node object
@@ -324,6 +325,25 @@ void main() {
       await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
 
       expect(_hasPageSheetsPainter(), isFalse);
+    });
+
+    testWidgets("the page sheets are clipped to the editor's own bounds", (tester) async {
+      await _pumpStandaloneEditor(
+        tester,
+        List.generate(80, (index) => "Action line $index.").join("\n\n"),
+        isPageSimulationEnabled: true,
+      );
+
+      // `CustomPaint` does not clip its painter: without an explicit `clipRect`, a scrolled-away
+      // sheet's negative top would paint the white page straight over whatever sits above the
+      // editor — in the real app, the editor toolbar (it reads as the page scrolling over it).
+      // Pinning the clip is what keeps every sheet inside the editor.
+      expect(
+        _pageSheetsPainterFinder(),
+        paints
+          ..clipRect()
+          ..rrect(color: Colors.white),
+      );
     });
 
     testWidgets(
