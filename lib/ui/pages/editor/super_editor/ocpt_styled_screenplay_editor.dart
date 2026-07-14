@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
@@ -113,6 +114,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// The focus node of the styled editor, focused back when applying a scene jump.
   final FocusNode _focusNode = FocusNode();
+
+  /// The IME-delta interceptor that catches a plain Tab keystroke before it can insert a literal
+  /// `\t` character (see `OcptFountainTabInterceptor`'s own doc comment for why this is needed).
+  /// Built once, not on every [build] — `SuperEditorImeInteractorState` compares `imeOverrides` by
+  /// identity across widget updates and re-wires its IME client whenever it changes, so a fresh
+  /// instance every build would needlessly reconnect the IME on every rebuild. Its callback reads
+  /// [_editor]/[_document]/[_composer] at call time through an instance method, rather than closing
+  /// over them as local variables, so it keeps working correctly across [_rebuildEditorFrom]
+  /// reassigning all three (a captured local would keep pointing at the stale, disposed instances).
+  late final OcptFountainTabInterceptor _imeOverrides = OcptFountainTabInterceptor(
+    onTabPressed: _cycleBlockTypeForwardFromTab,
+  );
 
   /// The last text synced with [OcptStyledScreenplayEditor.onTextChanged] (or the text the
   /// document was last (re)built from), used to tell this widget's own edits apart from an
@@ -228,6 +241,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         focusNode: _focusNode,
         documentLayoutKey: _documentLayoutKey,
         keyboardActions: ocptFountainKeyboardActions,
+        imeOverrides: _imeOverrides,
         // Both default policies clear the selection the moment this editor loses focus to any
         // other widget, including a momentary focus steal by the toolbar's block-type dropdown
         // opening its own overlay route: the focus loss directly clears the selection
@@ -439,6 +453,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _reportReadStateToController();
     _focusNode.requestFocus();
+  }
+
+  /// [_imeOverrides]'s callback: applies the same manual block-type cycle a hardware Tab keystroke
+  /// would (`ocptTabToCycleBlockType`), always forward — Shift+Tab never travels through the IME
+  /// delta channel [_imeOverrides] intercepts, only a plain Tab does, so there is no reversed case
+  /// to handle here.
+  void _cycleBlockTypeForwardFromTab() {
+    ocptCycleBlockTypeAtSelection(editor: _editor, document: _document, composer: _composer, reversed: false);
   }
 
   /// Moves the styled editor's selection to the start of the node containing [charOffset] of

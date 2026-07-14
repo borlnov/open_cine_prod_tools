@@ -64,6 +64,14 @@ final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
 /// [FountainLineType.transition] (Shift+Tab). Always locks the block (see
 /// [ocptTypeLockedMetadataKey]) and clears any forcing-marker flag, since this is a manual type
 /// choice.
+///
+/// This is the hardware-`KeyEvent` path: it only ever fires for Shift+Tab and any hardware-sourced
+/// plain Tab. On desktop, `SuperEditor` runs on [TextInputSource.ime], and a *plain* Tab is
+/// normally committed by the platform IME as a text-insertion delta before Flutter ever
+/// synthesizes a hardware event for it — that case is intercepted separately, at the IME boundary,
+/// by `OcptFountainTabInterceptor` (`ocpt_fountain_ime_overrides.dart`), which calls
+/// [ocptCycleBlockTypeAtSelection] directly (always forward, since Shift+Tab never travels through
+/// the IME delta channel).
 ExecutionInstruction ocptTabToCycleBlockType({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
   if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
     return ExecutionInstruction.continueExecution;
@@ -72,22 +80,48 @@ ExecutionInstruction ocptTabToCycleBlockType({required SuperEditorContext editCo
     return ExecutionInstruction.continueExecution;
   }
 
-  final selection = editContext.composer.selection;
+  final handled = ocptCycleBlockTypeAtSelection(
+    editor: editContext.editor,
+    document: editContext.document,
+    composer: editContext.composer,
+    reversed: HardwareKeyboard.instance.isShiftPressed,
+  );
+
+  return handled ? ExecutionInstruction.haltExecution : ExecutionInstruction.continueExecution;
+}
+
+/// The manual block-type cycle itself: resolves the node at [composer]'s selection extent, moves
+/// its stored `blockType` one step through [_ocptTabCycleTypes] ([reversed] or not, wrapping at
+/// both ends, entering at [FountainLineType.sceneHeading]/[FountainLineType.transition] from
+/// outside the cycle), and executes the change through [editor] via [ocptManualBlockTypeRequests]
+/// (locking the block and clearing any forcing-marker flag, since this is always a manual type
+/// choice). Returns whether it actually applied a change — false when there's no selection, or the
+/// selected node isn't a [ParagraphNode].
+///
+/// Shared by [ocptTabToCycleBlockType] (the hardware-`KeyEvent` path) and
+/// `OcptFountainTabInterceptor` (the IME-delta path a plain Tab actually travels through on
+/// desktop): both are the exact same gesture, so neither may duplicate the cycle logic.
+bool ocptCycleBlockTypeAtSelection({
+  required Editor editor,
+  required Document document,
+  required DocumentComposer composer,
+  required bool reversed,
+}) {
+  final selection = composer.selection;
   if (selection == null) {
-    return ExecutionInstruction.continueExecution;
+    return false;
   }
 
-  final node = editContext.document.getNodeById(selection.extent.nodeId);
+  final node = document.getNodeById(selection.extent.nodeId);
   if (node is! ParagraphNode) {
-    return ExecutionInstruction.continueExecution;
+    return false;
   }
 
   final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
-  final nextType = _ocptCycleType(currentType, reversed: HardwareKeyboard.instance.isShiftPressed);
+  final nextType = _ocptCycleType(currentType, reversed: reversed);
 
-  editContext.editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: nextType));
-
-  return ExecutionInstruction.haltExecution;
+  editor.execute(ocptManualBlockTypeRequests(nodeId: node.id, type: nextType));
+  return true;
 }
 
 /// The two-request sequence a manual block-type change always applies: the

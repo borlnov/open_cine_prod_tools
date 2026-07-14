@@ -449,6 +449,76 @@ void main() {
 
       expect(_typeAt(document, 0), FountainLineType.transition);
     });
+
+    testWidgets(
+      "a plain Tab delivered as an IME text-insertion delta (the real desktop bug, not "
+      "reproduced by sendKeyEvent) cycles the block type instead of inserting a literal tab",
+      (tester) async {
+        // On real desktop, `SuperEditor` runs on `TextInputSource.ime`, and an unmodified Tab is
+        // committed by the platform IME as a `TextEditingDeltaInsertion` of `'\t'` before Flutter
+        // ever synthesizes a hardware `KeyEvent` for it — `tester.sendKeyEvent(...)` above
+        // reproduces none of that; only `tester.typeImeText('\t')` (going through the same
+        // `updateEditingValueWithDeltas` path a real platform Tab uses) does. Before the M2 fix
+        // (no `imeOverrides` wired), this test fails: the delta reaches super_editor's own
+        // document IME client unfiltered and inserts a literal tab character instead of cycling.
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "Some action text.",
+              pageFormat: OcptPageFormat.usLetter,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+        expect(_typeAt(document, 0), FountainLineType.action);
+
+        await tester.typeImeText("\t");
+
+        // The type cycled forward and the block got locked, exactly like a hardware Tab would...
+        expect(_typeAt(document, 0), FountainLineType.character);
+        expect(_isLockedAt(document, 0), isTrue);
+        // ...and no literal tab character ever landed in the document's text.
+        expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
+
+        // Let the sync debounce encode the document back to text, and confirm the reported source
+        // text never contains a tab character either — the leading "@" is the Fountain forcing
+        // marker `FountainLineWriter` correctly prepends to a manually-forced character cue whose
+        // text isn't uppercase (unrelated to this bug; it's the same marker a Tab-cycled character
+        // block already produced before this fix, on the hardware-KeyEvent path).
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+        expect(lastEncoded, "@Some action text.");
+        expect(lastEncoded.contains("\t"), isFalse);
+      },
+    );
+
+    testWidgets(
+      "Shift+Tab (a hardware KeyEvent, never delivered through the IME delta channel) still "
+      "reverses the cycle once imeOverrides is wired",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "Some action text.");
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+
+        expect(_typeAt(document, 0), FountainLineType.action);
+
+        await _sendShift(tester, LogicalKeyboardKey.tab);
+        await tester.pump();
+
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(_isLockedAt(document, 0), isTrue);
+      },
+    );
   });
 
   group("smart Enter", () {
