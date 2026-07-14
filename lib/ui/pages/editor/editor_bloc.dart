@@ -109,6 +109,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorScenePanelToggledEvent>(_onScenePanelToggled);
     on<OcptEditorPreviewToggledEvent>(_onPreviewToggled);
     on<OcptEditorModeToggledEvent>(_onModeToggled);
+    on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
     on<OcptEditorExportRequestedEvent>(_onExportRequested);
@@ -127,10 +128,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     Emitter<OcptEditorState> emitter,
   ) async {
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
+    final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(isLoading: false, document: _fountainParser.parse(""), mode: mode));
+      emitter(
+        state.copyWith(
+          isLoading: false,
+          document: _fountainParser.parse(""),
+          mode: mode,
+          isPageSimulationEnabled: isPageSimulationEnabled,
+        ),
+      );
       return;
     }
 
@@ -148,6 +157,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         text: text,
         document: _fountainParser.parse(text),
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
+        isPageSimulationEnabled: isPageSimulationEnabled,
       ),
     );
   }
@@ -285,6 +295,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final newMode = state.mode == OcptEditorMode.styled ? OcptEditorMode.raw : OcptEditorMode.styled;
     emitter(state.copyWith(mode: newMode));
     await _propertiesManager.editorMode.store(newMode);
+  }
+
+  /// Toggles the "Word-like" page simulation, and persists the new value.
+  Future<void> _onPageSimulationToggled(
+    OcptEditorPageSimulationToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final newValue = !state.isPageSimulationEnabled;
+    emitter(state.copyWith(isPageSimulationEnabled: newValue));
+    await _propertiesManager.isPageSimulationEnabled.store(newValue);
   }
 
   /// Clears the transient save error currently shown, if any.

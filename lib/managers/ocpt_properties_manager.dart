@@ -48,6 +48,12 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     castTo: (value) => value.name,
   );
 
+  /// This is the key used to store whether the editor's "Word-like" page simulation is enabled.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`
+  /// (page simulation is on by default).
+  final isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED");
+
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///
   /// The list is kept sorted with the most recently opened project first and capped at

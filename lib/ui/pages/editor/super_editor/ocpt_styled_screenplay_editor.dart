@@ -15,8 +15,10 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
@@ -43,6 +45,10 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// The page format driving the styled editor's layout metrics.
   final OcptPageFormat pageFormat;
 
+  /// Whether the document is rendered as distinct, real-size "Word-like" paper sheets (white,
+  /// black text, even in dark theme) rather than as a fluid, theme-following editing surface.
+  final bool isPageSimulationEnabled;
+
   /// Called with the new full source text whenever the user edits the document.
   final ValueChanged<String> onTextChanged;
 
@@ -63,6 +69,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     super.key,
     required this.text,
     required this.pageFormat,
+    required this.isPageSimulationEnabled,
     required this.onTextChanged,
     required this.onCaretLineChanged,
     required this.jumpRequest,
@@ -141,10 +148,26 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The running debounce timer restarted on every document change.
   Timer? _syncTimer;
 
+  /// The scroll controller handed to `SuperEditor` for its own internal scrolling, owned here (
+  /// rather than left to `SuperEditor`'s own default) so the page-simulation background painter in
+  /// [build] can read its live offset and keep the painted sheets in sync with the actual scroll
+  /// position.
+  final ScrollController _pageScrollController = ScrollController();
+
+  /// The number of simulated pages the document currently spans while
+  /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is on (always 0 while it's off),
+  /// recomputed by [_recomputePageSimulation].
+  int _pageCount = 0;
+
+  /// The themed gap left between two simulated pages, mirroring `OcptEditorPreview`'s and
+  /// `OcptFountainEditorStylesheet`'s own inter-sheet gap.
+  static const double _pageGap = 16;
+
   @override
   void initState() {
     super.initState();
     _rebuildEditorFrom(widget.text);
+    _recomputePageSimulation();
     widget.styledController?.attach(this);
     _reportReadStateToController();
     _maybeApplyPendingJumpRequest();
@@ -158,8 +181,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       setState(() {
         _disposeEditor();
         _rebuildEditorFrom(widget.text);
+        _recomputePageSimulation();
       });
       _reportReadStateToController();
+    } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled ||
+        widget.pageFormat != oldWidget.pageFormat) {
+      setState(_recomputePageSimulation);
     }
 
     if (widget.styledController != oldWidget.styledController) {
@@ -201,6 +228,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _syncTimer?.cancel();
     _disposeEditor();
     _focusNode.dispose();
+    _pageScrollController.dispose();
     super.dispose();
   }
 
@@ -234,31 +262,67 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       OcptPageFormat.a4 => FountainLayoutMetrics.a4(),
     };
 
+    final editor = SuperEditor(
+      editor: _editor,
+      focusNode: _focusNode,
+      documentLayoutKey: _documentLayoutKey,
+      keyboardActions: ocptFountainKeyboardActions,
+      imeOverrides: _imeOverrides,
+      scrollController: _pageScrollController,
+      // Both default policies clear the selection the moment this editor loses focus to any
+      // other widget, including a momentary focus steal by the toolbar's block-type dropdown
+      // opening its own overlay route: the focus loss directly clears the selection
+      // (`clearSelectionWhenEditorLosesFocus`), AND separately closes this editor's IME
+      // connection, which clears it a second way (`clearSelectionWhenImeConnectionCloses`).
+      // `applyBlockType`/`applyToggleInlineStyle` need that exact selection to still be there
+      // once the dropdown/toggle's own callback runs, so this editor keeps its selection through
+      // any such round trip instead (the toolbar's own explicit `_focusNode.requestFocus()`
+      // afterwards brings real keyboard focus, and with it a fresh IME connection, straight back
+      // anyway).
+      selectionPolicies: const SuperEditorSelectionPolicies(
+        clearSelectionWhenEditorLosesFocus: false,
+        clearSelectionWhenImeConnectionCloses: false,
+      ),
+      stylesheet: OcptFountainEditorStylesheet.build(
+        metrics: metrics,
+        colorScheme: theme.colorScheme,
+        isPageSimulationEnabled: widget.isPageSimulationEnabled,
+      ),
+    );
+
+    if (!widget.isPageSimulationEnabled) {
+      return ColoredBox(color: theme.colorScheme.surface, child: editor);
+    }
+
+    // Page simulation: the document is centered at the physical page width, with a themed
+    // backdrop (matching the app's theme) on either side, and a white sheet painted behind it per
+    // simulated page (see `_OcptPageSheetsPainter`); `OcptFountainEditorStylesheet` already
+    // switched to fixed paper colors above, since a theme-derived color could otherwise render
+    // invisible on that white backdrop.
+    final layout = OcptEditorPreviewLayout(metrics: metrics);
     return ColoredBox(
       color: theme.colorScheme.surface,
-      child: SuperEditor(
-        editor: _editor,
-        focusNode: _focusNode,
-        documentLayoutKey: _documentLayoutKey,
-        keyboardActions: ocptFountainKeyboardActions,
-        imeOverrides: _imeOverrides,
-        // Both default policies clear the selection the moment this editor loses focus to any
-        // other widget, including a momentary focus steal by the toolbar's block-type dropdown
-        // opening its own overlay route: the focus loss directly clears the selection
-        // (`clearSelectionWhenEditorLosesFocus`), AND separately closes this editor's IME
-        // connection, which clears it a second way (`clearSelectionWhenImeConnectionCloses`).
-        // `applyBlockType`/`applyToggleInlineStyle` need that exact selection to still be there
-        // once the dropdown/toggle's own callback runs, so this editor keeps its selection through
-        // any such round trip instead (the toolbar's own explicit `_focusNode.requestFocus()`
-        // afterwards brings real keyboard focus, and with it a fresh IME connection, straight back
-        // anyway).
-        selectionPolicies: const SuperEditorSelectionPolicies(
-          clearSelectionWhenEditorLosesFocus: false,
-          clearSelectionWhenImeConnectionCloses: false,
-        ),
-        stylesheet: OcptFountainEditorStylesheet.build(
-          metrics: metrics,
-          colorScheme: theme.colorScheme,
+      child: Center(
+        child: SizedBox(
+          width: layout.pageWidth,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ListenableBuilder(
+                  listenable: _pageScrollController,
+                  builder: (context, child) => CustomPaint(
+                    painter: _OcptPageSheetsPainter(
+                      pageCount: _pageCount,
+                      pageHeight: layout.pageHeight,
+                      pageGap: _pageGap,
+                      scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
+                    ),
+                  ),
+                ),
+              ),
+              editor,
+            ],
+          ),
         ),
       ),
     );
@@ -328,6 +392,57 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     if (requests.isNotEmpty) {
       _editor.execute(requests);
     }
+
+    final previousPageCount = _pageCount;
+    _recomputePageSimulation();
+    if (_pageCount != previousPageCount) {
+      setState(() {});
+    }
+  }
+
+  /// Recomputes which nodes start a fresh simulated page ([ocptStartsNewPageMetadataKey]
+  /// metadata, read by `OcptFountainEditorStylesheet`'s page-boundary spacing) and [_pageCount],
+  /// for the current document, [OcptStyledScreenplayEditor.isPageSimulationEnabled] and
+  /// [OcptStyledScreenplayEditor.pageFormat].
+  ///
+  /// While page simulation is off, this only clears any flag left over from before it was turned
+  /// off (so turning it back on later starts pagination from a clean slate) and resets
+  /// [_pageCount] to 0. Only mutates [_pageCount] and executes editor requests, neither of which
+  /// needs `setState` from [initState]; every other caller wraps this in its own `setState`.
+  void _recomputePageSimulation() {
+    if (!widget.isPageSimulationEnabled) {
+      final clearRequests = <EditRequest>[
+        for (final node in _document)
+          if (node is ParagraphNode && node.getMetadataValue(ocptStartsNewPageMetadataKey) == true)
+            OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptStartsNewPageMetadataKey: false}),
+      ];
+      if (clearRequests.isNotEmpty) {
+        _editor.execute(clearRequests);
+      }
+      _pageCount = 0;
+      return;
+    }
+
+    final metrics = switch (widget.pageFormat) {
+      OcptPageFormat.usLetter => FountainLayoutMetrics.usLetter(),
+      OcptPageFormat.a4 => FountainLayoutMetrics.a4(),
+    };
+    final pagination = computeOcptStyledPagination(document: _document, metrics: metrics);
+
+    final requests = <EditRequest>[
+      for (final node in _document)
+        if (node is ParagraphNode)
+          if (pagination.pageStartNodeIds.contains(node.id) !=
+              (node.getMetadataValue(ocptStartsNewPageMetadataKey) == true))
+            OcptChangeNodeMetadataRequest(
+              nodeId: node.id,
+              metadata: {ocptStartsNewPageMetadataKey: pagination.pageStartNodeIds.contains(node.id)},
+            ),
+    ];
+    if (requests.isNotEmpty) {
+      _editor.execute(requests);
+    }
+    _pageCount = pagination.pageCount;
   }
 
   /// Encodes [_document] back to text, refreshes [_mapping] for it, and reports the new text
@@ -513,4 +628,59 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       );
     }
   }
+}
+
+/// Paints one white, lightly rounded rectangle per simulated page behind the styled editor's
+/// document, one call site in [_OcptStyledScreenplayEditorState.build].
+///
+/// Positioned deterministically from [pageCount]/[pageHeight]/[pageGap] alone — page N starts at
+/// `N * (pageHeight + pageGap)` — and shifted by [scrollOffset] to stay behind the actually
+/// scrolled content. This is an estimate, like the rest of the page-simulation feature: the extra
+/// top padding `OcptFountainEditorStylesheet` opens up above a page-starting node doesn't
+/// necessarily sum to exactly `pageHeight + pageGap`, so a page boundary may drift a little from
+/// the painted sheet as the document grows, which is acceptable since nothing here needs to be
+/// pixel-exact (the PDF exporter is the source of truth for print pagination).
+class _OcptPageSheetsPainter extends CustomPainter {
+  /// Creates an [_OcptPageSheetsPainter].
+  const _OcptPageSheetsPainter({
+    required this.pageCount,
+    required this.pageHeight,
+    required this.pageGap,
+    required this.scrollOffset,
+  });
+
+  /// The number of simulated pages to paint.
+  final int pageCount;
+
+  /// The height of one simulated page, in logical pixels.
+  final double pageHeight;
+
+  /// The themed gap left between two simulated pages, in logical pixels.
+  final double pageGap;
+
+  /// The current scroll offset of the document painted in front of this layer, in logical pixels.
+  final double scrollOffset;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white;
+
+    canvas.save();
+    canvas.translate(0, -scrollOffset);
+    for (var page = 0; page < pageCount; page++) {
+      final top = page * (pageHeight + pageGap);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(0, top, size.width, pageHeight), const Radius.circular(3)),
+        paint,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _OcptPageSheetsPainter oldDelegate) =>
+      oldDelegate.pageCount != pageCount ||
+      oldDelegate.pageHeight != pageHeight ||
+      oldDelegate.pageGap != pageGap ||
+      oldDelegate.scrollOffset != scrollOffset;
 }

@@ -139,6 +139,7 @@ class _EditorViewState extends State<_EditorView> {
                   isSaving: state.isSaving,
                   isScenePanelVisible: state.isScenePanelVisible,
                   isPreviewVisible: state.isPreviewVisible,
+                  isPageSimulationEnabled: state.isPageSimulationEnabled,
                   mode: state.mode,
                   onBack: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorBackRequestedEvent(),
@@ -155,6 +156,9 @@ class _EditorViewState extends State<_EditorView> {
                     const OcptEditorExportRequestedEvent(),
                   ),
                   onImportAndReplace: () => _requestImportAndReplace(context),
+                  onTogglePageSimulation: () => context.read<OcptEditorBloc>().add(
+                    const OcptEditorPageSimulationToggledEvent(),
+                  ),
                   styledController: _styledEditorController,
                 ),
                 Expanded(
@@ -180,6 +184,7 @@ class _EditorViewState extends State<_EditorView> {
                             : OcptStyledScreenplayEditor(
                                 text: state.text,
                                 pageFormat: state.pageFormat,
+                                isPageSimulationEnabled: state.isPageSimulationEnabled,
                                 onTextChanged: (text) => context.read<OcptEditorBloc>().add(
                                   OcptEditorTextChangedEvent(text: text),
                                 ),
@@ -197,6 +202,7 @@ class _EditorViewState extends State<_EditorView> {
                             document: state.document,
                             pageFormat: state.pageFormat,
                             currentLine: state.currentLine,
+                            isPageSimulationEnabled: state.isPageSimulationEnabled,
                           ),
                         ),
                     ],

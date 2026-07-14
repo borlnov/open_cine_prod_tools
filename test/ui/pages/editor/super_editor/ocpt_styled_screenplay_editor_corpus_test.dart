@@ -52,6 +52,7 @@ void main() {
             OcptStyledScreenplayEditor(
               text: text,
               pageFormat: OcptPageFormat.usLetter,
+              isPageSimulationEnabled: false,
               onTextChanged: (_) {},
               onCaretLineChanged: (_) {},
               jumpRequest: null,

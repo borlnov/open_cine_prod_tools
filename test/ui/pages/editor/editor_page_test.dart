@@ -561,5 +561,30 @@ void main() {
 
     expect(find.text(tr.editorExportAction), findsOneWidget);
     expect(find.text(tr.editorImportAndReplaceAction), findsOneWidget);
+    expect(find.text(tr.editorTogglePageSimulationAction), findsOneWidget);
   });
+
+  testWidgets(
+    'toggling page simulation from the ⋮ menu flips it and persists the new value',
+    (tester) async {
+      await propertiesManager.isPageSimulationEnabled.store(true);
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(
+          of: find.text(tr.editorTogglePageSimulationAction),
+          matching: find.byType(CheckedPopupMenuItem<void>),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(await propertiesManager.isPageSimulationEnabled.load(), isFalse);
+    },
+  );
 }

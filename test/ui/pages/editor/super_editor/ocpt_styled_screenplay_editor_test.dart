@@ -79,6 +79,7 @@ Future<void> _pumpStandaloneEditor(
   String text, {
   Key? key,
   OcptStyledEditorController? styledController,
+  bool isPageSimulationEnabled = false,
 }) async {
   await tester.pumpWidget(
     _wrap(
@@ -86,6 +87,7 @@ Future<void> _pumpStandaloneEditor(
         key: key,
         text: text,
         pageFormat: OcptPageFormat.usLetter,
+        isPageSimulationEnabled: isPageSimulationEnabled,
         onTextChanged: (_) {},
         onCaretLineChanged: (_) {},
         jumpRequest: null,
@@ -95,6 +97,16 @@ Future<void> _pumpStandaloneEditor(
   );
   await tester.pumpAndSettle();
 }
+
+/// Whether the page-simulation background painter (`_OcptPageSheetsPainter`, private to the
+/// production file) is currently mounted: the most that can be asserted on it from outside its own
+/// library without exposing an otherwise-unneeded public type.
+bool _hasPageSheetsPainter() => find
+    .byWidgetPredicate(
+      (widget) => widget is CustomPaint && widget.painter.runtimeType.toString() == "_OcptPageSheetsPainter",
+    )
+    .evaluate()
+    .isNotEmpty;
 
 /// The node at [index] of [document], freshly re-read: every node-metadata/block-type change
 /// (`ChangeParagraphBlockTypeRequest`, `OcptChangeNodeMetadataRequest`) replaces the node object
@@ -141,6 +153,7 @@ void main() {
           OcptStyledScreenplayEditor(
             text: text,
             pageFormat: OcptPageFormat.usLetter,
+            isPageSimulationEnabled: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -200,6 +213,7 @@ void main() {
           OcptStyledScreenplayEditor(
             text: text,
             pageFormat: OcptPageFormat.usLetter,
+            isPageSimulationEnabled: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -275,6 +289,7 @@ void main() {
         OcptStyledScreenplayEditor(
           text: text,
           pageFormat: OcptPageFormat.usLetter,
+          isPageSimulationEnabled: false,
           onTextChanged: (_) {},
           onCaretLineChanged: (line) => reportedLine = line,
           jumpRequest: null,
@@ -291,6 +306,70 @@ void main() {
     await tester.placeCaretInParagraph(actionNodeId, 0);
 
     expect(reportedLine, 2);
+  });
+
+  group("page simulation", () {
+    testWidgets("renders a background page-sheets painter when enabled", (tester) async {
+      await _pumpStandaloneEditor(
+        tester,
+        "INT. HOUSE - DAY\n\nSome action text.",
+        isPageSimulationEnabled: true,
+      );
+
+      expect(_hasPageSheetsPainter(), isTrue);
+    });
+
+    testWidgets("renders no background page-sheets painter when disabled", (tester) async {
+      await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
+
+      expect(_hasPageSheetsPainter(), isFalse);
+    });
+
+    testWidgets("toggling it on and off swaps the background painter accordingly", (tester) async {
+      const text = "INT. HOUSE - DAY\n\nSome action text.";
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            key: const ValueKey("editor"),
+            text: text,
+            pageFormat: OcptPageFormat.usLetter,
+            isPageSimulationEnabled: true,
+            onTextChanged: (_) {},
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_hasPageSheetsPainter(), isTrue);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            key: const ValueKey("editor"),
+            text: text,
+            pageFormat: OcptPageFormat.usLetter,
+            isPageSimulationEnabled: false,
+            onTextChanged: (_) {},
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_hasPageSheetsPainter(), isFalse);
+    });
+
+    testWidgets("a document long enough to span multiple pages flags a page-start node", (tester) async {
+      final longText = List.generate(80, (index) => "Action line $index.").join("\n\n");
+
+      await _pumpStandaloneEditor(tester, longText, isPageSimulationEnabled: true);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final hasPageStartNode = document.any((node) => node.getMetadataValue("ocptStartsNewPage") == true);
+      expect(hasPageStartNode, isTrue);
+    });
   });
 
   group("typing in the styled editor, wired to a real (fast) OcptEditorBloc", () {
@@ -349,6 +428,7 @@ void main() {
                   : OcptStyledScreenplayEditor(
                       text: state.text,
                       pageFormat: state.pageFormat,
+                      isPageSimulationEnabled: state.isPageSimulationEnabled,
                       onTextChanged: (text) =>
                           context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
                       onCaretLineChanged: (line) =>
@@ -467,6 +547,7 @@ void main() {
             OcptStyledScreenplayEditor(
               text: "Some action text.",
               pageFormat: OcptPageFormat.usLetter,
+              isPageSimulationEnabled: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -648,6 +729,7 @@ void main() {
             OcptStyledScreenplayEditor(
               text: "",
               pageFormat: OcptPageFormat.usLetter,
+              isPageSimulationEnabled: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -692,6 +774,7 @@ void main() {
                 key: ValueKey(type),
                 text: "",
                 pageFormat: OcptPageFormat.usLetter,
+                isPageSimulationEnabled: false,
                 onTextChanged: (_) {},
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -728,6 +811,7 @@ void main() {
           OcptStyledScreenplayEditor(
             text: "",
             pageFormat: OcptPageFormat.usLetter,
+            isPageSimulationEnabled: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -766,6 +850,7 @@ void main() {
             key: ValueKey(key),
             text: "Base ",
             pageFormat: OcptPageFormat.usLetter,
+            isPageSimulationEnabled: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -900,6 +985,7 @@ void main() {
               key: ValueKey(style),
               text: "Base styled end",
               pageFormat: OcptPageFormat.usLetter,
+              isPageSimulationEnabled: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,

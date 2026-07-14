@@ -31,6 +31,7 @@
   "editorMoreActionsTooltip": "Plus d'actions",
   "editorExportAction": "Exporter…",
   "editorImportAndReplaceAction": "Importer et remplacer…",
+  "editorTogglePageSimulationAction": "Simulation de pages",
   "editorImportFileTypeLabel": "Scénario Fountain",
   "editorImportConfirmTitle": "Remplacer le scénario actuel ?",
   "editorImportConfirmMessage": "Le texte actuel sera remplacé par le fichier importé. Un instantané de celui-ci est conservé dans le projet.",

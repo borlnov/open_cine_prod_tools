@@ -112,6 +112,15 @@ class OcptEditorModeToggledEvent extends OcptEditorEvent {
   const OcptEditorModeToggledEvent();
 }
 
+/// Toggles the "Word-like" page simulation on or off.
+///
+/// The new value is persisted through `OcptPropertiesManager.isPageSimulationEnabled`, so it's
+/// restored the next time the editor is opened.
+class OcptEditorPageSimulationToggledEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorPageSimulationToggledEvent();
+}
+
 /// Dismisses the transient save error currently shown, if any.
 class OcptEditorSaveErrorDismissedEvent extends OcptEditorEvent {
   /// Class constructor

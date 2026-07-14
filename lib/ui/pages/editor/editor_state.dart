@@ -109,6 +109,13 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// The page format of the project, driving the preview's layout metrics.
   final OcptPageFormat pageFormat;
 
+  /// Whether the "Word-like" page simulation (distinct paper sheets, real page size and
+  /// margins) is enabled, in both the raw preview and the styled editor.
+  ///
+  /// Persisted through `OcptPropertiesManager.isPageSimulationEnabled`, loaded once on entry and
+  /// updated on every toggle; on by default.
+  final bool isPageSimulationEnabled;
+
   /// The pending caret jump request, or null if none was ever made.
   ///
   /// The page keeps track of the last [OcptEditorJumpRequest.id] it applied, so this doesn't
@@ -136,6 +143,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.isPreviewVisible,
     required this.mode,
     required this.pageFormat,
+    required this.isPageSimulationEnabled,
     required this.jumpRequest,
     required this.ioNotice,
   });
@@ -155,6 +163,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       isPreviewVisible = true,
       mode = OcptEditorMode.styled,
       pageFormat = OcptPageFormat.usLetter,
+      isPageSimulationEnabled = true,
       jumpRequest = null,
       ioNotice = null;
 
@@ -179,6 +188,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     bool? isPreviewVisible,
     OcptEditorMode? mode,
     OcptPageFormat? pageFormat,
+    bool? isPageSimulationEnabled,
     OcptEditorJumpRequest? jumpRequest,
     OcptEditorIoNotice? ioNotice,
     bool clearIoNotice = false,
@@ -196,6 +206,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     isPreviewVisible: isPreviewVisible ?? this.isPreviewVisible,
     mode: mode ?? this.mode,
     pageFormat: pageFormat ?? this.pageFormat,
+    isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
   );
@@ -217,6 +228,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     isPreviewVisible,
     mode,
     pageFormat,
+    isPageSimulationEnabled,
     jumpRequest,
     ioNotice,
   ];

@@ -33,8 +33,8 @@ Widget _wrap(Widget child, {required double width, double height = 600}) =>
 /// that width actually gets it: the default 800x600 test surface would otherwise clamp it first
 /// (`Align`, this file's `_wrap`'s outermost widget, never offers its child more width than its
 /// own — the test surface's), silently forcing every test into the narrow/scaled branch.
-void _widenTestSurface(WidgetTester tester, double unscaledPanelWidth) {
-  tester.view.physicalSize = Size(unscaledPanelWidth + 200, 900);
+void _widenTestSurface(WidgetTester tester, double unscaledPanelWidth, {double height = 900}) {
+  tester.view.physicalSize = Size(unscaledPanelWidth + 200, height);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -60,6 +60,7 @@ void main() {
             document: document,
             pageFormat: OcptPageFormat.usLetter,
             currentLine: 0,
+            isPageSimulationEnabled: false,
           ),
           width: unscaledPanelWidth,
         ),
@@ -91,6 +92,7 @@ void main() {
             document: document,
             pageFormat: OcptPageFormat.usLetter,
             currentLine: 0,
+            isPageSimulationEnabled: false,
           ),
           width: narrowWidth,
         ),
@@ -139,6 +141,7 @@ void main() {
           document: document,
           pageFormat: OcptPageFormat.usLetter,
           currentLine: 0,
+          isPageSimulationEnabled: false,
         ),
         width: unscaledPanelWidth,
       ),
@@ -172,6 +175,7 @@ void main() {
             document: document,
             pageFormat: OcptPageFormat.usLetter,
             currentLine: 0,
+            isPageSimulationEnabled: false,
           ),
           width: narrowWidth,
         ),
@@ -189,6 +193,7 @@ void main() {
             document: document,
             pageFormat: OcptPageFormat.usLetter,
             currentLine: targetLine,
+            isPageSimulationEnabled: false,
           ),
           width: narrowWidth,
         ),
@@ -197,6 +202,88 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(scrollable.position.pixels, greaterThan(0));
+    },
+  );
+
+  testWidgets(
+    "page simulation renders one white sheet per page for a document long enough to overflow one",
+    (tester) async {
+      // Tall enough that the lazy page list actually builds (and this test can find) the second
+      // sheet, rather than leaving it unbuilt below the fold.
+      final tallPanelHeight = layout.pageHeight * 2 + 200;
+      _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
+      final document = const FountainParser().parse(_longSampleText);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: 0,
+            isPageSimulationEnabled: true,
+          ),
+          width: unscaledPanelWidth,
+          height: tallPanelHeight,
+        ),
+      );
+      await tester.pump();
+
+      final sheetCount = find.byType(Material).evaluate().length;
+      expect(sheetCount, greaterThan(1));
+
+      final firstSheetHeight = tester.getSize(find.byType(Material).first).height;
+      expect(firstSheetHeight, closeTo(layout.pageHeight, 0.5));
+    },
+  );
+
+  testWidgets(
+    "page simulation off keeps a single continuous sheet even for a long document",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      final document = const FountainParser().parse(_longSampleText);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+          ),
+          width: unscaledPanelWidth,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(Material), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "a forced page break starts a fresh sheet even when the content alone would fit one page",
+    (tester) async {
+      final tallPanelHeight = layout.pageHeight * 2 + 200;
+      _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
+      final document = const FountainParser().parse("Some action.\n\n===\n\nMore action.");
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageFormat: OcptPageFormat.usLetter,
+            currentLine: 0,
+            isPageSimulationEnabled: true,
+          ),
+          width: unscaledPanelWidth,
+          height: tallPanelHeight,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(Material), findsNWidgets(2));
+      // The forced page break itself is a structural marker (represented by the fresh sheet), not
+      // printed content: it must never render as its own block on either sheet.
+      expect(find.textContaining("==="), findsNothing);
     },
   );
 }

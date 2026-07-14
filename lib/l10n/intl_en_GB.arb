@@ -217,6 +217,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorTogglePageSimulationAction": "Page simulation",
+  "@editorTogglePageSimulationAction": {
+    "description": "Label of the action that toggles the \"Word-like\" page simulation on or off",
+    "context": "Displayed as a checkable item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorImportFileTypeLabel": "Fountain screenplay",
   "@editorImportFileTypeLabel": {
     "description": "Label of the .fountain file type shown in the native open-file dialog",

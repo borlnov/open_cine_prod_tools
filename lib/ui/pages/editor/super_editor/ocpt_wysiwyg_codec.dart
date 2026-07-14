@@ -11,6 +11,13 @@ import 'package:super_editor/super_editor.dart';
 /// (0 inside a dialogue group, since a real blank line there would break the group).
 const String ocptBlankLinesBeforeMetadataKey = "ocptBlankLinesBefore";
 
+/// The number of [ocptBlankLinesBeforeMetadataKey] blank lines above which extra spacing stops
+/// growing: beyond a few blank lines, one more doesn't need to visually register any bigger a gap
+/// than the last. Shared by `OcptFountainEditorStylesheet` (the padding it actually renders) and
+/// `computeOcptStyledPagination` (the line budget pagination counts against), so the two stay in
+/// sync.
+const int ocptMaxBlankLinesBeforeSpacing = 3;
+
 /// The `ParagraphNode` metadata key holding whether a node's `blockType` was set manually (a
 /// future dropdown/Tab choice) rather than by auto-detection; [OcptWysiwygCodec.reclassifyRequests]
 /// skips a locked node, and clears the lock once the node's text is emptied.

@@ -53,6 +53,14 @@ class OcptEditorPreviewLayout {
   /// The full page width, in logical pixels.
   double get pageWidth => metrics.pageWidthInches * metrics.charsPerInch * glyphWidth;
 
+  /// The full page height, in logical pixels.
+  ///
+  /// Derived from `metrics.charsPerInch` rather than `metrics.linesPerInch`/[lineHeight], for
+  /// consistency with [pageWidth]'s own inch-to-pixel conversion: using the vertical typographic
+  /// pitch instead would give the simulated page a different pixels-per-inch ratio horizontally
+  /// than vertically, visibly distorting its aspect ratio away from the real physical page size.
+  double get pageHeight => metrics.pageHeightInches * metrics.charsPerInch * glyphWidth;
+
   /// The top page margin, in logical pixels.
   double get marginTop => metrics.marginTopInches * metrics.charsPerInch * glyphWidth;
 
@@ -88,10 +96,14 @@ class OcptEditorPreviewLayout {
   /// what the fixed-pitch rendering does for all but pathological inputs; it's used to compute
   /// scroll targets, where being within a line or two is more than enough.
   double estimateBlockHeight(FountainBlock block) =>
-      _estimateBlockLineCount(block) * lineHeight + blockSpacing;
+      estimatedLineCount(block) * lineHeight + blockSpacing;
 
   /// Estimates how many rendered lines [block] spans, wrapping included.
-  int _estimateBlockLineCount(FountainBlock block) => switch (block) {
+  ///
+  /// Used both by [estimateBlockHeight] (scroll-sync offset estimation) and by page-simulation
+  /// pagination, which buckets blocks/nodes into pages by comparing a running sum of this count
+  /// against [FountainLayoutMetrics.linesPerPage].
+  int estimatedLineCount(FountainBlock block) => switch (block) {
     FountainSceneHeading(:final headingText, :final sceneNumber) => wrappedLineCount(
       sceneNumber == null ? headingText : "$sceneNumber. $headingText",
       metrics.sceneHeading.maxWidthColumns,

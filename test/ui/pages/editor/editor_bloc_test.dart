@@ -350,6 +350,47 @@ void main() {
     await bloc.close();
   });
 
+  test('defaults to page simulation enabled when nothing was ever persisted', () async {
+    await propertiesManager.isPageSimulationEnabled.delete();
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.isPageSimulationEnabled, isTrue);
+
+    await bloc.close();
+  });
+
+  test('loads the persisted page simulation flag on entry', () async {
+    await propertiesManager.isPageSimulationEnabled.store(false);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.isPageSimulationEnabled, isFalse);
+
+    await bloc.close();
+  });
+
+  test('toggling page simulation flips it and persists the new value', () async {
+    await propertiesManager.isPageSimulationEnabled.store(true);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorPageSimulationToggledEvent());
+    final disabledState = await waitForState(bloc, (state) => !state.isPageSimulationEnabled);
+    expect(disabledState.isPageSimulationEnabled, isFalse);
+    expect(await propertiesManager.isPageSimulationEnabled.load(), isFalse);
+
+    bloc.add(const OcptEditorPageSimulationToggledEvent());
+    final enabledState = await waitForState(bloc, (state) => state.isPageSimulationEnabled);
+    expect(enabledState.isPageSimulationEnabled, isTrue);
+    expect(await propertiesManager.isPageSimulationEnabled.load(), isTrue);
+
+    await bloc.close();
+  });
+
   test('closing the bloc flushes the pending unsaved change', () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);

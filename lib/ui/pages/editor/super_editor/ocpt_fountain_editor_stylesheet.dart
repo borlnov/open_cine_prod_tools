@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
@@ -35,31 +36,50 @@ class OcptFountainEditorStylesheet {
   /// annotate.
   static const double _parentheticalOpacity = 0.75;
 
-  /// The number of [ocptBlankLinesBeforeMetadataKey] blank lines above which extra top padding
-  /// stops growing: beyond a few blank lines, one more doesn't need to visually register any
-  /// bigger a gap than the last.
-  static const int _maxBlankLinesForPadding = 3;
-
   /// The alpha applied to an inline authoring note's (`[[text]]`) color, dimming it relative to
   /// the surrounding text it's embedded in (a note is authoring scaffolding, never printed).
   static const double _noteInlineOpacity = 0.55;
 
-  /// Builds the stylesheet for typesetting the styled editor at [metrics], colored for
-  /// [colorScheme] (so the editing surface follows the app's light/dark theme, unlike the raw
-  /// mode's paper preview, which always simulates black-on-white paper).
-  static Stylesheet build({required FountainLayoutMetrics metrics, required ColorScheme colorScheme}) {
+  /// The themed gap left between two simulated pages, mirroring `OcptEditorPreview`'s own
+  /// inter-sheet gap: not itself painted here (the styled editor's page backdrop is a separate
+  /// concern, painted behind the document), only reserved as extra top padding on a page-starting
+  /// node so its text doesn't collide with the previous page's bottom margin.
+  static const double _pageGap = 16;
+
+  /// Builds the stylesheet for typesetting the styled editor at [metrics].
+  ///
+  /// When [isPageSimulationEnabled] is off, colors follow [colorScheme] (so the editing surface
+  /// follows the app's light/dark theme). When it's on, every color is a fixed paper color (black
+  /// text, greyed-out scaffolding) instead, regardless of [colorScheme]: the simulated page is
+  /// always white, so a theme-derived color (in particular dark mode's light `onSurface`) would
+  /// otherwise render invisible or near-invisible on it. A page-starting node (flagged by
+  /// [ocptStartsNewPageMetadataKey], set by `computeOcptStyledPagination`) also gets extra top
+  /// padding standing in for the page gap and the previous/next page's margins.
+  static Stylesheet build({
+    required FountainLayoutMetrics metrics,
+    required ColorScheme colorScheme,
+    required bool isPageSimulationEnabled,
+  }) {
     final layout = OcptEditorPreviewLayout(metrics: metrics);
+    final onSurface = isPageSimulationEnabled ? Colors.black : colorScheme.onSurface;
+    final onSurfaceVariant = isPageSimulationEnabled ? Colors.black54 : colorScheme.onSurfaceVariant;
+    final accent = isPageSimulationEnabled ? Colors.black : colorScheme.primary;
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
       fontSize: OcptEditorPreviewLayout.fontSize,
       height: OcptEditorPreviewLayout.lineHeightFactor,
-      color: colorScheme.onSurface,
+      color: onSurface,
     );
 
     return Stylesheet(
+      // Kept at a fixed 8px horizontal inset even while page simulation is on (rather than 0, for
+      // pixel-exact centering within the page-width box `OcptStyledScreenplayEditor` wraps this
+      // editor in): a zero horizontal `documentPadding` was found, empirically, to make
+      // `SuperEditor` occasionally fail to open a live IME connection when the caret is placed by
+      // a simulated tap right at the document's edge — an 8px margin sidesteps it entirely.
       documentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       inlineTextStyler: (attributions, existingStyle) =>
-          _inlineTextStyler(attributions, existingStyle, colorScheme),
+          _inlineTextStyler(attributions, existingStyle, onSurfaceVariant),
       rules: [
         // `blank` and `action` both use the action box (left margin, full width) in the base text
         // color; every FountainLineType gets its own explicit rule below (rather than a
@@ -91,14 +111,14 @@ class OcptFountainEditorStylesheet {
           FountainLineType.character,
           metrics.character,
           layout,
-          textStyle: baseStyle.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+          textStyle: baseStyle.copyWith(color: accent, fontWeight: FontWeight.bold),
         ),
         _rule(
           FountainLineType.parenthetical,
           metrics.parenthetical,
           layout,
           textStyle: baseStyle.copyWith(
-            color: colorScheme.onSurfaceVariant,
+            color: onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
           opacity: _parentheticalOpacity,
@@ -134,7 +154,7 @@ class OcptFountainEditorStylesheet {
           metrics.action,
           layout,
           textStyle: baseStyle.copyWith(
-            color: colorScheme.onSurfaceVariant,
+            color: onSurfaceVariant,
             fontStyle: FontStyle.italic,
             fontWeight: FontWeight.bold,
           ),
@@ -145,7 +165,7 @@ class OcptFountainEditorStylesheet {
           metrics.action,
           layout,
           textStyle: baseStyle.copyWith(
-            color: colorScheme.onSurfaceVariant,
+            color: onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
           opacity: _nonPrintingOpacity,
@@ -154,7 +174,7 @@ class OcptFountainEditorStylesheet {
           FountainLineType.pageBreak,
           metrics.centeredText,
           layout,
-          textStyle: baseStyle.copyWith(color: colorScheme.onSurfaceVariant),
+          textStyle: baseStyle.copyWith(color: onSurfaceVariant),
           textAlign: TextAlign.center,
           opacity: _nonPrintingOpacity,
         ),
@@ -185,7 +205,7 @@ class OcptFountainEditorStylesheet {
     (document, node) => {
       Styles.padding: CascadingPadding.only(
         left: layout.indentOf(element),
-        top: _blankLinesBeforeTopPadding(node, layout),
+        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node, layout),
       ),
       Styles.maxWidth: layout.indentOf(element) + layout.widthOf(element),
       Styles.textAlign: textAlign,
@@ -195,26 +215,38 @@ class OcptFountainEditorStylesheet {
   );
 
   /// The extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank source
-  /// lines, one [OcptEditorPreviewLayout.lineHeight] each, capped at [_maxBlankLinesForPadding].
+  /// lines, one [OcptEditorPreviewLayout.lineHeight] each, capped at
+  /// [ocptMaxBlankLinesBeforeSpacing].
   static double _blankLinesBeforeTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) {
     final blankLinesBefore = node.getMetadataValue(ocptBlankLinesBeforeMetadataKey);
     final count = blankLinesBefore is int ? blankLinesBefore : 0;
-    return count.clamp(0, _maxBlankLinesForPadding) * layout.lineHeight;
+    return count.clamp(0, ocptMaxBlankLinesBeforeSpacing) * layout.lineHeight;
+  }
+
+  /// The extra top padding standing in for the page gap and the previous/next page's margins,
+  /// opened up above a node flagged [ocptStartsNewPageMetadataKey] by `computeOcptStyledPagination`
+  /// (a no-op, like every node not flagged, while page simulation is off: the flag is only ever
+  /// set while it's on).
+  static double _pageBoundaryTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) {
+    if (node.getMetadataValue(ocptStartsNewPageMetadataKey) != true) {
+      return 0;
+    }
+    return layout.marginTop + layout.marginBottom + _pageGap;
   }
 
   /// Wraps `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
-  /// ([_noteInlineOpacity] of [colorScheme]'s `onSurfaceVariant`), read-only authoring scaffolding
-  /// that never prints.
+  /// ([_noteInlineOpacity] of [onSurfaceVariant]), read-only authoring scaffolding that never
+  /// prints.
   static TextStyle _inlineTextStyler(
     Set<Attribution> attributions,
     TextStyle existingStyle,
-    ColorScheme colorScheme,
+    Color onSurfaceVariant,
   ) {
     final style = defaultInlineTextStyler(attributions, existingStyle);
     if (!attributions.contains(ocptFountainNoteAttribution)) {
       return style;
     }
 
-    return style.copyWith(color: colorScheme.onSurfaceVariant.withValues(alpha: _noteInlineOpacity));
+    return style.copyWith(color: onSurfaceVariant.withValues(alpha: _noteInlineOpacity));
   }
 }

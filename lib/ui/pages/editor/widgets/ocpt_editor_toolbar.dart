@@ -32,6 +32,10 @@ class OcptEditorToolbar extends StatelessWidget {
   /// preview panel, since its own layout already is the formatted screenplay.
   final bool isPreviewVisible;
 
+  /// Whether the "Word-like" page simulation is currently enabled, shown as a checked state on
+  /// its overflow menu entry.
+  final bool isPageSimulationEnabled;
+
   /// The current editing mode: the styled block editor or the raw text source.
   final OcptEditorMode mode;
 
@@ -56,6 +60,9 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when "Import and replace…" is chosen from the overflow menu.
   final VoidCallback onImportAndReplace;
 
+  /// Called when "Page simulation" is toggled from the overflow menu.
+  final VoidCallback onTogglePageSimulation;
+
   /// The controller bridging this toolbar to the live styled editor's block-type dropdown and
   /// B/I/U toggles, or null when there is none to wire up. The format controls only render while
   /// this is non-null AND `OcptStyledEditorController.isAttached` (raw mode leaves it detached),
@@ -70,6 +77,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.isSaving,
     required this.isScenePanelVisible,
     required this.isPreviewVisible,
+    required this.isPageSimulationEnabled,
     required this.mode,
     required this.onBack,
     required this.onSave,
@@ -78,6 +86,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.onToggleMode,
     required this.onExport,
     required this.onImportAndReplace,
+    required this.onTogglePageSimulation,
     this.styledController,
   });
 
@@ -165,6 +174,11 @@ class OcptEditorToolbar extends StatelessWidget {
                 PopupMenuItem<void>(
                   onTap: onImportAndReplace,
                   child: Text(tr.editorImportAndReplaceAction),
+                ),
+                CheckedPopupMenuItem<void>(
+                  checked: isPageSimulationEnabled,
+                  onTap: onTogglePageSimulation,
+                  child: Text(tr.editorTogglePageSimulationAction),
                 ),
               ],
             ),
