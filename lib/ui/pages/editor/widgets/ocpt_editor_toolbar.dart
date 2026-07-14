@@ -149,7 +149,7 @@ class OcptEditorToolbar extends StatelessWidget {
               ),
             IconButton(
               icon: Icon(
-                mode == OcptEditorMode.styled ? Icons.style : Icons.code,
+                mode == OcptEditorMode.styled ? Icons.code : Icons.style,
                 size: 20,
               ),
               tooltip: mode == OcptEditorMode.styled
