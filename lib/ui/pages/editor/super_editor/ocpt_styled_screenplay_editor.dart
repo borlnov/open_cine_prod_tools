@@ -299,10 +299,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor.dispose();
   }
 
-  /// Restarts the sync debounce on every document change (a text edit, a line split/merge...).
+  /// Restarts the sync debounce on every document change (a text edit, a line split/merge...), and
+  /// immediately refreshes the toolbar's read state: a metadata-only change like the Tab cycle
+  /// (see `ocptManualBlockTypeRequests`) moves no selection, so without this the dropdown would
+  /// otherwise only catch up 120 ms later, at the next debounced sync.
   void _onDocumentChanged(DocumentChangeLog changeLog) {
     _syncTimer?.cancel();
     _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
+    _reportReadStateToController();
   }
 
   /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes

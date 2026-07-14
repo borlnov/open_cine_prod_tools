@@ -708,6 +708,25 @@ void main() {
       expect(controller.currentBlockType, FountainLineType.dialogue);
     });
 
+    testWidgets("currentBlockType follows a Tab cycle immediately, before the sync debounce", (tester) async {
+      final controller = OcptStyledEditorController();
+      addTearDown(controller.dispose);
+
+      await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+      expect(controller.currentBlockType, FountainLineType.action);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      // A single `pump()`, deliberately short of the 120 ms sync debounce: the dropdown must
+      // already reflect the new type from `_onDocumentChanged` alone, not from the debounced sync.
+      await tester.pump();
+
+      expect(controller.currentBlockType, FountainLineType.character);
+    });
+
     testWidgets("setBlockType changes the live document's node blockType and locks it", (tester) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
