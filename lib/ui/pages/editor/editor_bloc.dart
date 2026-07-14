@@ -8,6 +8,7 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -52,6 +53,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// The service used to load and save the screenplay's text.
   final OcptScreenplayService _screenplayService;
 
+  /// The manager used to export the screenplay to, and import it from, a `.fountain` file.
+  final OcptExportManager _exportManager;
+
   /// The delay between the last edit and the re-parse of the source text.
   final Duration _parseDebounce;
 
@@ -76,6 +80,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
     OcptScreenplayService? screenplayService,
+    OcptExportManager? exportManager,
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
@@ -84,6 +89,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
        _screenplayService =
            screenplayService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _parseDebounce = parseDebounce,
        _autosaveDebounce = autosaveDebounce,
        super(const OcptEditorState.init()) {
@@ -105,6 +111,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
+    on<OcptEditorExportRequestedEvent>(_onExportRequested);
+    on<OcptEditorImportRequestedEvent>(_onImportRequested);
+    on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
   /// Loads the current project's screenplay text, title and page format, and parses the text,
@@ -175,15 +184,34 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
 
   /// Saves the current text to the project database, unless there is nothing dirty to save.
   ///
-  /// If the text is edited again while the save is in flight, the screenplay stays dirty once the
-  /// save completes (the newer text will be picked up by the next autosave). A failed save keeps
-  /// the screenplay dirty and raises the transient save error.
+  /// Delegates to [_saveCurrentText], tagged [OcptSnapshotReason.manual] or
+  /// [OcptSnapshotReason.timer] depending on [OcptEditorSaveRequestedEvent.isManual].
   Future<void> _onSaveRequested(
     OcptEditorSaveRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    if (_projectsManager.currentProject == null || !state.isDirty) {
+      return;
+    }
+
+    await _saveCurrentText(
+      reason: event.isManual ? OcptSnapshotReason.manual : OcptSnapshotReason.timer,
+      emitter: emitter,
+    );
+  }
+
+  /// Saves the current text to the project database, tagged [reason]. Does nothing if no project
+  /// is open.
+  ///
+  /// If the text is edited again while the save is in flight, the screenplay stays dirty once the
+  /// save completes (the newer text will be picked up by the next autosave). A failed save keeps
+  /// the screenplay dirty and raises the transient save error.
+  Future<void> _saveCurrentText({
+    required OcptSnapshotReason reason,
+    required Emitter<OcptEditorState> emitter,
+  }) async {
     final project = _projectsManager.currentProject;
-    if (project == null || !state.isDirty) {
+    if (project == null) {
       return;
     }
 
@@ -196,7 +224,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         database: project.database,
         screenplayId: project.primaryScreenplayId,
         fountainText: textToSave,
-        snapshotReason: event.isManual ? OcptSnapshotReason.manual : OcptSnapshotReason.timer,
+        snapshotReason: reason,
       );
 
       emitter(
@@ -265,6 +293,114 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(state.copyWith(hasSaveError: false));
+  }
+
+  /// Exports the current screenplay to a `.fountain` file.
+  ///
+  /// Saves the current text first (tagged [OcptSnapshotReason.export]) if it's dirty, so the
+  /// exported file matches exactly what the project stores. A cancelled save dialog is a silent
+  /// no-op; a failure raises the transient export-failed notice.
+  Future<void> _onExportRequested(
+    OcptEditorExportRequestedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    _parseTimer?.cancel();
+    _autosaveTimer?.cancel();
+
+    if (state.isDirty) {
+      await _saveCurrentText(reason: OcptSnapshotReason.export, emitter: emitter);
+    }
+
+    try {
+      final path = await _exportManager.exportFountain(
+        fountainText: state.text,
+        projectName: state.title,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the screenplay of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Replaces the current screenplay text with the content of a picked `.fountain` file.
+  ///
+  /// If the editor is dirty, the current text is saved first (tagged
+  /// [OcptSnapshotReason.manual]) so the pre-import snapshot holds the user's latest keystrokes
+  /// rather than a stale database copy; the imported text is then saved, tagged
+  /// [OcptSnapshotReason.import], which snapshots the pre-import text. A cancelled file dialog is
+  /// a silent no-op; a failure raises the transient import-failed notice.
+  Future<void> _onImportRequested(
+    OcptEditorImportRequestedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final imported = await _exportManager.pickAndReadFountain(fileTypeLabel: event.fileTypeLabel);
+    if (imported == null) {
+      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
+      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      if (state.isDirty) {
+        await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
+      }
+
+      await _screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: imported.fountainText,
+        snapshotReason: OcptSnapshotReason.import,
+      );
+
+      _parseTimer?.cancel();
+      _autosaveTimer?.cancel();
+
+      emitter(
+        state.copyWith(
+          text: imported.fountainText,
+          isDirty: false,
+          currentLine: 0,
+          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
+        ),
+      );
+      await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to import a fountain file into the project at "
+          "${project.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importFailed),
+        ),
+      );
+    }
+  }
+
+  /// Clears the transient export/import notice currently shown, if any.
+  Future<void> _onIoNoticeDismissed(
+    OcptEditorIoNoticeDismissedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(state.copyWith(clearIoNotice: true));
   }
 
   /// Leaves the editor: cancels the pending debounce timers, flushes the unsaved change if there

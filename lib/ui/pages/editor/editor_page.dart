@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
@@ -150,6 +151,10 @@ class _EditorViewState extends State<_EditorView> {
                     const OcptEditorPreviewToggledEvent(),
                   ),
                   onToggleMode: _toggleMode,
+                  onExport: () => context.read<OcptEditorBloc>().add(
+                    const OcptEditorExportRequestedEvent(),
+                  ),
+                  onImportAndReplace: () => _requestImportAndReplace(context),
                   styledController: _styledEditorController,
                 ),
                 Expanded(
@@ -213,6 +218,23 @@ class _EditorViewState extends State<_EditorView> {
   /// Sends the mode toggle request (toolbar button or Ctrl+Shift+M).
   void _toggleMode() {
     context.read<OcptEditorBloc>().add(const OcptEditorModeToggledEvent());
+  }
+
+  /// Shows the import confirmation dialog, then dispatches the import request if the user
+  /// confirmed the replacement.
+  Future<void> _requestImportAndReplace(BuildContext context) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final confirmed = await OcptEditorImportConfirmDialog.show(context);
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptEditorImportRequestedEvent(fileTypeLabel: Tr.of(context).editorImportFileTypeLabel),
+    );
   }
 
   /// Reports the controller's text and caret line changes to the bloc.
@@ -286,6 +308,26 @@ class _EditorViewState extends State<_EditorView> {
         ..showSnackBar(SnackBar(content: Text(Tr.of(context).editorSaveError)));
       context.read<OcptEditorBloc>().add(const OcptEditorSaveErrorDismissedEvent());
     }
+
+    final ioNotice = state.ioNotice;
+    if (ioNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+      context.read<OcptEditorBloc>().add(const OcptEditorIoNoticeDismissedEvent());
+    }
+  }
+
+  /// Maps [notice] to its localized, user-facing message.
+  String _ioNoticeMessage(BuildContext context, OcptEditorIoNotice notice) {
+    final tr = Tr.of(context);
+
+    return switch (notice.kind) {
+      OcptEditorIoNoticeKind.exportSucceeded => tr.editorExportSuccessMessage(notice.path ?? ""),
+      OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
+      OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
+      OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
+    };
   }
 
   /// Moves the editor caret to [charOffset], focuses the editor, scrolls the caret's line into

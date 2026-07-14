@@ -4,11 +4,13 @@
 
 import 'dart:io';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -230,6 +232,10 @@ void main() {
         propertiesManager: propertiesManager,
         routerManager: OcptRouterManager(),
         screenplayService: _RecordingScreenplayService(savedTexts: savedTexts),
+        exportManager: OcptExportManager(
+          fileSaverManager: const FileSaverManager(),
+          fileSelectorManager: const FileSelectorManager(),
+        ),
         parseDebounce: const Duration(milliseconds: 10),
         autosaveDebounce: const Duration(milliseconds: 30),
       );

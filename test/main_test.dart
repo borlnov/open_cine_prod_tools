@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -52,7 +54,13 @@ void main() {
     OcptGlobalManager.instance.managers
       ..registerSingleton<OcptPropertiesManager>(propertiesManager)
       ..registerSingleton<OcptProjectsManager>(projectsManager)
-      ..registerSingleton<OcptRouterManager>(OcptRouterManager());
+      ..registerSingleton<OcptRouterManager>(OcptRouterManager())
+      ..registerSingleton<OcptExportManager>(
+        OcptExportManager(
+          fileSaverManager: const FileSaverManager(),
+          fileSelectorManager: const FileSelectorManager(),
+        ),
+      );
   });
 
   testWidgets('EditorPage builds an empty editor when no project is open', (

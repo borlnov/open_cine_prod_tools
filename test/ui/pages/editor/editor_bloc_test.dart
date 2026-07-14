@@ -5,8 +5,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -14,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -63,6 +66,48 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// An export manager whose export/import calls are recorded and stubbed, to exercise the bloc's
+/// export and import-and-replace paths without any real file dialog.
+class _FakeExportManager extends OcptExportManager {
+  /// Class constructor
+  _FakeExportManager({this.exportResult, this.importResult})
+    : super(
+        fileSaverManager: const FileSaverManager(),
+        fileSelectorManager: const FileSelectorManager(),
+      );
+
+  /// The path [exportFountain] returns, or null to simulate a cancelled save dialog.
+  final String? exportResult;
+
+  /// The model [pickAndReadFountain] returns, or null to simulate a cancelled open dialog.
+  final OcptImportedFountainModel? importResult;
+
+  /// The text of the last [exportFountain] call.
+  String? lastExportedText;
+
+  /// The project name of the last [exportFountain] call.
+  String? lastExportedProjectName;
+
+  /// The file type label of the last [pickAndReadFountain] call.
+  String? lastImportFileTypeLabel;
+
+  @override
+  Future<String?> exportFountain({
+    required String fountainText,
+    required String projectName,
+  }) async {
+    lastExportedText = fountainText;
+    lastExportedProjectName = projectName;
+    return exportResult;
+  }
+
+  @override
+  Future<OcptImportedFountainModel?> pickAndReadFountain({required String fileTypeLabel}) async {
+    lastImportFileTypeLabel = fileTypeLabel;
+    return importResult;
+  }
+}
+
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
 
@@ -98,14 +143,20 @@ void main() {
   });
 
   /// Builds a bloc wired to the test project, with debounces short enough to await in a test.
+  ///
+  /// [exportManager] defaults to a [_FakeExportManager] whose export/import calls both cancel
+  /// (return null): every test not exercising the export/import paths gets a bloc that never
+  /// touches a real file dialog.
   OcptEditorBloc buildBloc({
     OcptScreenplayService? screenplayService,
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
   }) => OcptEditorBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     screenplayService: screenplayService,
+    exportManager: exportManager ?? _FakeExportManager(),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
   );
@@ -347,5 +398,102 @@ void main() {
       screenplayId: project.primaryScreenplayId,
     );
     expect(storedText, editedText);
+  });
+
+  test(
+    'exporting a dirty screenplay saves it with the "export" reason and hands the current text '
+    'to the manager',
+    () async {
+      final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie.fountain");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      await waitForState(bloc, (state) => state.isDirty);
+
+      bloc.add(const OcptEditorExportRequestedEvent());
+      final state = await waitForState(
+        bloc,
+        (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.exportSucceeded,
+      );
+
+      expect(state.isDirty, isFalse);
+      expect(state.ioNotice?.path, "/tmp/My Movie.fountain");
+      expect(exportManager.lastExportedText, editedText);
+      expect(exportManager.lastExportedProjectName, "My Movie");
+
+      final snapshots = await readSnapshots();
+      expect(snapshots.last.reason, OcptSnapshotReason.export);
+
+      await bloc.close();
+    },
+  );
+
+  test('a cancelled export dialog raises no notice', () async {
+    final exportManager = _FakeExportManager();
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorExportRequestedEvent());
+    // No state change to wait for on a cancelled dialog: give the handler a beat to run.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test(
+    'importing replaces the text, tags the snapshot "import", leaves isDirty false and '
+    're-parses',
+    () async {
+      const importedText = "INT. OFFICE - DAY\n\nA new script.\n";
+      final exportManager = _FakeExportManager(
+        importResult: const OcptImportedFountainModel(
+          fountainText: importedText,
+          sourceFileName: "draft.fountain",
+        ),
+      );
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+      // The text/dirty/notice change and the re-parse are two separate emissions (the notice
+      // arrives with the first one and survives into the second, since re-parsing only replaces
+      // `document`): wait for the parse to also have landed before asserting on `scenes`.
+      final state = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+      expect(state.text, importedText);
+      expect(state.isDirty, isFalse);
+      expect(state.currentLine, 0);
+      expect(state.ioNotice?.kind, OcptEditorIoNoticeKind.importSucceeded);
+      expect(state.scenes, hasLength(1));
+      expect(state.scenes.single.headingText, "INT. OFFICE - DAY");
+      expect(exportManager.lastImportFileTypeLabel, "Fountain screenplay");
+
+      final snapshots = await readSnapshots();
+      expect(snapshots.last.reason, OcptSnapshotReason.import);
+
+      await bloc.close();
+    },
+  );
+
+  test('a cancelled import dialog changes nothing', () async {
+    final exportManager = _FakeExportManager();
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.isDirty);
+
+    bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+    // No state change to wait for on a cancelled dialog: give the handler a beat to run.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.text, editedText);
+    expect(bloc.state.isDirty, isTrue);
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
   });
 }

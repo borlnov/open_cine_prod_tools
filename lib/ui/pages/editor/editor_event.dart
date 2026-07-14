@@ -126,3 +126,33 @@ class OcptEditorBackRequestedEvent extends OcptEditorEvent {
   /// Class constructor
   const OcptEditorBackRequestedEvent();
 }
+
+/// Requests exporting the current screenplay to a `.fountain` file.
+///
+/// If the screenplay is dirty, it's saved first (tagged `OcptSnapshotReason.export`) so the
+/// exported file matches exactly what the project stores.
+class OcptEditorExportRequestedEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorExportRequestedEvent();
+}
+
+/// Requests replacing the current screenplay text with the content of a picked `.fountain` file.
+///
+/// Dispatched only once the user confirmed the replacement in the import confirmation dialog.
+class OcptEditorImportRequestedEvent extends OcptEditorEvent {
+  /// The label of the file type shown in the open-file dialog, localized by the caller.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptEditorImportRequestedEvent({required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fileTypeLabel];
+}
+
+/// Dismisses the transient export/import notice currently shown, if any.
+class OcptEditorIoNoticeDismissedEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorIoNoticeDismissedEvent();
+}

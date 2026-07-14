@@ -196,6 +196,94 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorMoreActionsTooltip": "More actions",
+  "@editorMoreActionsTooltip": {
+    "description": "Tooltip of the toolbar's overflow menu action",
+    "context": "Displayed on hover over the overflow (⋮) menu button of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportAction": "Export…",
+  "@editorExportAction": {
+    "description": "Label of the action that exports the screenplay to a .fountain file",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportAndReplaceAction": "Import and replace…",
+  "@editorImportAndReplaceAction": {
+    "description": "Label of the action that replaces the screenplay with an imported .fountain file",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportFileTypeLabel": "Fountain screenplay",
+  "@editorImportFileTypeLabel": {
+    "description": "Label of the .fountain file type shown in the native open-file dialog",
+    "context": "Passed to the OS file picker when the user chooses to import and replace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmTitle": "Replace the current screenplay?",
+  "@editorImportConfirmTitle": {
+    "description": "Title of the dialog confirming an import-and-replace",
+    "context": "Displayed at the top of the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmMessage": "The current text will be replaced by the imported file. A snapshot of it is kept in the project.",
+  "@editorImportConfirmMessage": {
+    "description": "Message of the dialog confirming an import-and-replace",
+    "context": "Displayed inside the import confirmation dialog, below its title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmCancelAction": "Cancel",
+  "@editorImportConfirmCancelAction": {
+    "description": "Label of the action that dismisses the import confirmation dialog",
+    "context": "Displayed on a button in the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmReplaceAction": "Replace",
+  "@editorImportConfirmReplaceAction": {
+    "description": "Label of the action that confirms the import confirmation dialog",
+    "context": "Displayed on a button in the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportSuccessMessage": "Exported to {path}",
+  "@editorExportSuccessMessage": {
+    "description": "Message shown when the screenplay was successfully exported to a .fountain file",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "editorExportError": "The screenplay could not be exported.",
+  "@editorExportError": {
+    "description": "Error shown when exporting the screenplay to a .fountain file failed",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportSuccessMessage": "The screenplay was replaced by the imported file.",
+  "@editorImportSuccessMessage": {
+    "description": "Message shown when the screenplay was successfully replaced by an imported file",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportError": "The screenplay could not be imported.",
+  "@editorImportError": {
+    "description": "Error shown when importing a .fountain file to replace the screenplay failed",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
   "settingsPageTitle": "Settings",
   "@settingsPageTitle": {
     "description": "Title shown on the settings page",

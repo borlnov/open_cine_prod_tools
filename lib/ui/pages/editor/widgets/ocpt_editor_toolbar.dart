@@ -50,6 +50,12 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when the styled/raw mode toggle is clicked.
   final VoidCallback onToggleMode;
 
+  /// Called when "Export…" is chosen from the overflow menu.
+  final VoidCallback onExport;
+
+  /// Called when "Import and replace…" is chosen from the overflow menu.
+  final VoidCallback onImportAndReplace;
+
   /// The controller bridging this toolbar to the live styled editor's block-type dropdown and
   /// B/I/U toggles, or null when there is none to wire up. The format controls only render while
   /// this is non-null AND `OcptStyledEditorController.isAttached` (raw mode leaves it detached),
@@ -70,6 +76,8 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.onToggleScenePanel,
     required this.onTogglePreview,
     required this.onToggleMode,
+    required this.onExport,
+    required this.onImportAndReplace,
     this.styledController,
   });
 
@@ -148,6 +156,17 @@ class OcptEditorToolbar extends StatelessWidget {
                   ? tr.editorSwitchToRawModeTooltip
                   : tr.editorSwitchToStyledModeTooltip,
               onPressed: onToggleMode,
+            ),
+            PopupMenuButton<void>(
+              icon: const Icon(Icons.more_vert, size: 20),
+              tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+              itemBuilder: (context) => [
+                PopupMenuItem<void>(onTap: onExport, child: Text(tr.editorExportAction)),
+                PopupMenuItem<void>(
+                  onTap: onImportAndReplace,
+                  child: Text(tr.editorImportAndReplaceAction),
+                ),
+              ],
             ),
           ],
         ),

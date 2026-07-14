@@ -4,12 +4,14 @@
 
 import 'dart:io';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -101,7 +103,13 @@ void main() {
     OcptGlobalManager.instance.managers
       ..registerSingleton<OcptPropertiesManager>(propertiesManager)
       ..registerSingleton<OcptProjectsManager>(projectsManager)
-      ..registerSingleton<OcptRouterManager>(routerManager);
+      ..registerSingleton<OcptRouterManager>(routerManager)
+      ..registerSingleton<OcptExportManager>(
+        OcptExportManager(
+          fileSaverManager: const FileSaverManager(),
+          fileSelectorManager: const FileSelectorManager(),
+        ),
+      );
   });
 
   setUp(() async {
@@ -537,5 +545,21 @@ void main() {
 
     expect(projectsManager.currentProject, isNull);
     expect(routerManager.popped, isTrue);
+  });
+
+  testWidgets('the ⋮ menu opens and shows the export and import-and-replace actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+
+    await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.editorExportAction), findsOneWidget);
+    expect(find.text(tr.editorImportAndReplaceAction), findsOneWidget);
   });
 }

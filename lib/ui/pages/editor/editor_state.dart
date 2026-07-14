@@ -29,6 +29,39 @@ class OcptEditorJumpRequest extends Equatable {
   List<Object?> get props => [charOffset, id];
 }
 
+/// The kind of transient notice `OcptEditorIoNotice` carries, one per export/import outcome.
+enum OcptEditorIoNoticeKind {
+  /// The screenplay was successfully exported to a `.fountain` file.
+  exportSucceeded,
+
+  /// Exporting the screenplay to a `.fountain` file failed.
+  exportFailed,
+
+  /// The screenplay text was successfully replaced by an imported `.fountain` file.
+  importSucceeded,
+
+  /// Importing a `.fountain` file to replace the screenplay text failed.
+  importFailed,
+}
+
+/// A transient notice, produced by `OcptEditorBloc`, reporting the outcome of an export or an
+/// import-and-replace, shown as a SnackBar then dismissed.
+class OcptEditorIoNotice extends Equatable {
+  /// The outcome this notice reports.
+  final OcptEditorIoNoticeKind kind;
+
+  /// The path the screenplay was exported to, only set when [kind] is
+  /// [OcptEditorIoNoticeKind.exportSucceeded].
+  final String? path;
+
+  /// Class constructor
+  const OcptEditorIoNotice({required this.kind, this.path});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [kind, path];
+}
+
 /// The state of `OcptEditorBloc`.
 class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
@@ -82,6 +115,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// need to be cleared once handled.
   final OcptEditorJumpRequest? jumpRequest;
 
+  /// The transient export/import outcome currently shown as a SnackBar, or null if none is.
+  final OcptEditorIoNotice? ioNotice;
+
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
@@ -101,6 +137,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.mode,
     required this.pageFormat,
     required this.jumpRequest,
+    required this.ioNotice,
   });
 
   /// Init class constructor
@@ -118,12 +155,15 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       isPreviewVisible = true,
       mode = OcptEditorMode.styled,
       pageFormat = OcptPageFormat.usLetter,
-      jumpRequest = null;
+      jumpRequest = null,
+      ioNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [document], [lastSavedAt] and [jumpRequest] are only replaced when a new value is given:
-  /// they never go back to null once set, so no clear flag is needed for them.
+  /// they never go back to null once set, so no clear flag is needed for them. [ioNotice] is only
+  /// replaced when a new one is given or [clearIoNotice] is true, exactly like `OcptHomeState`'s
+  /// own `error` field.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -140,6 +180,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     OcptEditorMode? mode,
     OcptPageFormat? pageFormat,
     OcptEditorJumpRequest? jumpRequest,
+    OcptEditorIoNotice? ioNotice,
+    bool clearIoNotice = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -155,6 +197,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     mode: mode ?? this.mode,
     pageFormat: pageFormat ?? this.pageFormat,
     jumpRequest: jumpRequest ?? this.jumpRequest,
+    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
   );
 
   /// Object properties
@@ -175,5 +218,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     mode,
     pageFormat,
     jumpRequest,
+    ioNotice,
   ];
 }
