@@ -167,6 +167,12 @@ class OcptFountainEditorStylesheet {
   /// indent and width (converted to pixels through [layout]); each node's own
   /// [ocptBlankLinesBeforeMetadataKey] metadata additionally opens up top padding, visually
   /// standing in for the blank source lines folded into it.
+  ///
+  /// super_editor sizes a node's component to `Styles.maxWidth` first, then applies
+  /// `Styles.padding` *inside* that box, so the left indent eats into the box rather than
+  /// starting a fresh one: `Styles.maxWidth` must therefore be the indent plus the element's own
+  /// width, so the box's right edge lands where the raw preview's does and the padding-shrunk
+  /// remainder is exactly [OcptEditorPreviewLayout.widthOf].
   static StyleRule _rule(
     FountainLineType type,
     FountainElementLayout element,
@@ -181,7 +187,7 @@ class OcptFountainEditorStylesheet {
         left: layout.indentOf(element),
         top: _blankLinesBeforeTopPadding(node, layout),
       ),
-      Styles.maxWidth: layout.widthOf(element),
+      Styles.maxWidth: layout.indentOf(element) + layout.widthOf(element),
       Styles.textAlign: textAlign,
       Styles.textStyle: textStyle,
       Styles.opacity: opacity,

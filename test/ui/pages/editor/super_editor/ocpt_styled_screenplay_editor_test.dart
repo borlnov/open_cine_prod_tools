@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controll
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -165,6 +166,103 @@ void main() {
       expect(headingOffset.dx, actionOffset.dx);
       // ...while the character cue is indented noticeably further in.
       expect(characterOffset.dx, greaterThan(actionOffset.dx));
+    },
+  );
+
+  testWidgets(
+    "sizes and positions every element type at the raw preview's indent/width, wide enough that "
+    "a long character cue never wraps",
+    (tester) async {
+      // One line per element type. "DETECTIVE JONATHAN" (19 characters) is comfortably narrower
+      // than the character box's correct width (38 columns on US Letter) but would have wrapped
+      // to nearly one letter per line under the pre-fix box, whose usable text width collapsed to
+      // roughly `width - indent` (about 1 column).
+      const text =
+          "INT. HOUSE - DAY\n\n"
+          "Some action text describing the scene in some detail.\n\n"
+          "DETECTIVE JONATHAN\n"
+          "(quietly)\n"
+          "Hello there, how are you doing today my friend?\n\n"
+          "CUT TO:\n\n"
+          ">THE END<";
+
+      // The default test surface (800x600) is narrower than a full-width US Letter box at font
+      // size 13 (indent + width can reach ~975 logical pixels), which would clip every full-width
+      // element's rendered size before it ever reached its styled `maxWidth`: widen the surface,
+      // like the app's own desktop window would be in practice.
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: text,
+            pageFormat: OcptPageFormat.usLetter,
+            onTextChanged: (_) {},
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+      final metrics = layout.metrics;
+
+      // Blank source lines are folded into node metadata (not their own node), so nodes are
+      // dense in source order: heading, action, character, parenthetical, dialogue, transition,
+      // centered text.
+      final elementsByNodeIndex = [
+        metrics.sceneHeading,
+        metrics.action,
+        metrics.character,
+        metrics.parenthetical,
+        metrics.dialogue,
+        metrics.transition,
+        metrics.centeredText,
+      ];
+      final nodeIds = [
+        for (var index = 0; index < elementsByNodeIndex.length; index++) _nodeAt(document, index).id,
+      ];
+      final actionOffset = SuperEditorInspector.findComponentOffset(nodeIds[1], Alignment.topLeft);
+
+      for (var index = 0; index < elementsByNodeIndex.length; index++) {
+        final element = elementsByNodeIndex[index];
+        final nodeId = nodeIds[index];
+
+        // The component's rendered width is `Styles.maxWidth` minus the left padding super_editor
+        // applies inside it: with the fix, that's exactly the element's own text width.
+        final size = SuperEditorInspector.findComponentSize(nodeId);
+        expect(size.width, closeTo(layout.widthOf(element), 1), reason: "width of node $index ($element)");
+
+        // The component's left edge sits at the element's indent, relative to the action box's —
+        // but only for element types whose box is exactly as wide as action's (`indent + width`,
+        // the fixed value the `Styles.maxWidth` fix now sets): the document's internal `Column`
+        // centers each block's box within the widest sibling's, so a narrower box (dialogue,
+        // fixed at 3.5in regardless of page size, unlike the others which stretch to the
+        // printable area's right edge) picks up extra centering offset that has nothing to do
+        // with this fix, and would make a direct indent comparison against action meaningless.
+        final sameBoxWidthAsAction =
+            layout.indentOf(element) + layout.widthOf(element) ==
+            layout.indentOf(metrics.action) + layout.widthOf(metrics.action);
+        if (!sameBoxWidthAsAction) {
+          continue;
+        }
+        final offset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
+        expect(
+          offset.dx - actionOffset.dx,
+          closeTo(layout.indentOf(element) - layout.indentOf(metrics.action), 1),
+          reason: "indent of node $index ($element)",
+        );
+      }
+
+      // The most visible symptom of the bug: the character cue box collapsed to near-zero usable
+      // width, wrapping to one letter per line. `findOffsetOfLineBreak` throws when a text node
+      // renders on a single line, which is what must happen now.
+      expect(() => SuperEditorInspector.findOffsetOfLineBreak(nodeIds[2]), throwsException);
     },
   );
 
