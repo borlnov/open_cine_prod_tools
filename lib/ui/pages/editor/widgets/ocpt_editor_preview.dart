@@ -64,8 +64,9 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   static const double _pagePadding = 16;
 
   /// The themed gap left between two consecutive paper sheets when [OcptEditorPreview
-  /// .isPageSimulationEnabled] is on.
-  static const double _pageGap = 16;
+  /// .isPageSimulationEnabled] is on, shared with the styled editor's own page-sheets painter and
+  /// pagination pass so every page boundary in the app agrees pixel-for-pixel.
+  static const double _pageGap = OcptEditorPreviewLayout.pageGap;
 
   /// The controller of the page's vertical scroll, used by the caret scroll sync.
   final ScrollController _scrollController = ScrollController();

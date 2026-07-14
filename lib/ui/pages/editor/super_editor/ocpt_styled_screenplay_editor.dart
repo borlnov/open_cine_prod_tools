@@ -159,9 +159,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// recomputed by [_recomputePageSimulation].
   int _pageCount = 0;
 
-  /// The themed gap left between two simulated pages, mirroring `OcptEditorPreview`'s and
-  /// `OcptFountainEditorStylesheet`'s own inter-sheet gap.
-  static const double _pageGap = 16;
+  /// The extra bottom padding the stylesheet's `documentPadding` needs so the document's
+  /// scrollable content reaches all the way down to the last simulated page's own bottom margin
+  /// (always 0 while page simulation is off), recomputed by [_recomputePageSimulation].
+  double _trailingBottomPadding = 0;
 
   @override
   void initState() {
@@ -287,6 +288,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         metrics: metrics,
         colorScheme: theme.colorScheme,
         isPageSimulationEnabled: widget.isPageSimulationEnabled,
+        trailingBottomPadding: _trailingBottomPadding,
       ),
     );
 
@@ -299,6 +301,17 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // simulated page (see `_OcptPageSheetsPainter`); `OcptFountainEditorStylesheet` already
     // switched to fixed paper colors above, since a theme-derived color could otherwise render
     // invisible on that white backdrop.
+    //
+    // `editor` itself is only as wide as the page's content area (`pageWidth - marginRight`), left
+    // -aligned within the full `pageWidth` box, rather than centered at `pageWidth` directly: every
+    // "full width" element's `Styles.maxWidth` (see `OcptFountainEditorStylesheet._rule`) already
+    // equals that same content-area width by construction, so super_editor's single-column layout,
+    // which centers each block's box within its own parent, now has nothing left to center against
+    // — the box fills its parent exactly, flush with the page's left edge. Centering `editor` at
+    // the full `pageWidth` instead (a prior version of this code did) left it half a right margin's
+    // width of that centering slack on the left, and half on the right, visibly swallowing the
+    // right margin. The reserved `marginRight`-wide strip on the right stays part of the white
+    // sheet (still `pageWidth` wide, painted by `_OcptPageSheetsPainter`), just with no text.
     final layout = OcptEditorPreviewLayout(metrics: metrics);
     return ColoredBox(
       color: theme.colorScheme.surface,
@@ -314,13 +327,19 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                     painter: _OcptPageSheetsPainter(
                       pageCount: _pageCount,
                       pageHeight: layout.pageHeight,
-                      pageGap: _pageGap,
+                      pageGap: OcptEditorPreviewLayout.pageGap,
                       scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
                     ),
                   ),
                 ),
               ),
-              editor,
+              Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: layout.pageWidth - layout.marginRight,
+                  child: editor,
+                ),
+              ),
             ],
           ),
         ),
@@ -394,32 +413,43 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
 
     final previousPageCount = _pageCount;
+    final previousTrailingBottomPadding = _trailingBottomPadding;
     _recomputePageSimulation();
-    if (_pageCount != previousPageCount) {
+    if (_pageCount != previousPageCount || _trailingBottomPadding != previousTrailingBottomPadding) {
       setState(() {});
     }
   }
 
-  /// Recomputes which nodes start a fresh simulated page ([ocptStartsNewPageMetadataKey]
-  /// metadata, read by `OcptFountainEditorStylesheet`'s page-boundary spacing) and [_pageCount],
-  /// for the current document, [OcptStyledScreenplayEditor.isPageSimulationEnabled] and
-  /// [OcptStyledScreenplayEditor.pageFormat].
+  /// The exact top padding (in logical pixels) [node] currently carries in
+  /// [ocptStartsNewPageMetadataKey] metadata, or 0 if it doesn't start a page.
+  static double _pageStartPaddingOf(ParagraphNode node) {
+    final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);
+    return value is double ? value : 0;
+  }
+
+  /// Recomputes which nodes start a fresh simulated page (their exact top padding stored as
+  /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s
+  /// page-boundary spacing), [_pageCount] and [_trailingBottomPadding], for the current document,
+  /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] and [OcptStyledScreenplayEditor
+  /// .pageFormat].
   ///
-  /// While page simulation is off, this only clears any flag left over from before it was turned
-  /// off (so turning it back on later starts pagination from a clean slate) and resets
-  /// [_pageCount] to 0. Only mutates [_pageCount] and executes editor requests, neither of which
-  /// needs `setState` from [initState]; every other caller wraps this in its own `setState`.
+  /// While page simulation is off, this only clears any padding left over from before it was
+  /// turned off (so turning it back on later starts pagination from a clean slate) and resets
+  /// [_pageCount]/[_trailingBottomPadding] to 0. Only mutates those fields and executes editor
+  /// requests, neither of which needs `setState` from [initState]; every other caller wraps this
+  /// in its own `setState`.
   void _recomputePageSimulation() {
     if (!widget.isPageSimulationEnabled) {
       final clearRequests = <EditRequest>[
         for (final node in _document)
-          if (node is ParagraphNode && node.getMetadataValue(ocptStartsNewPageMetadataKey) == true)
-            OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptStartsNewPageMetadataKey: false}),
+          if (node is ParagraphNode && _pageStartPaddingOf(node) != 0)
+            OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptStartsNewPageMetadataKey: 0.0}),
       ];
       if (clearRequests.isNotEmpty) {
         _editor.execute(clearRequests);
       }
       _pageCount = 0;
+      _trailingBottomPadding = 0;
       return;
     }
 
@@ -432,17 +462,17 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final requests = <EditRequest>[
       for (final node in _document)
         if (node is ParagraphNode)
-          if (pagination.pageStartNodeIds.contains(node.id) !=
-              (node.getMetadataValue(ocptStartsNewPageMetadataKey) == true))
+          if (_pageStartPaddingOf(node) != (pagination.pageStartTopPaddings[node.id] ?? 0.0))
             OcptChangeNodeMetadataRequest(
               nodeId: node.id,
-              metadata: {ocptStartsNewPageMetadataKey: pagination.pageStartNodeIds.contains(node.id)},
+              metadata: {ocptStartsNewPageMetadataKey: pagination.pageStartTopPaddings[node.id] ?? 0.0},
             ),
     ];
     if (requests.isNotEmpty) {
       _editor.execute(requests);
     }
     _pageCount = pagination.pageCount;
+    _trailingBottomPadding = pagination.trailingBottomPadding;
   }
 
   /// Encodes [_document] back to text, refreshes [_mapping] for it, and reports the new text

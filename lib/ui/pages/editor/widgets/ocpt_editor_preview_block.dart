@@ -18,14 +18,6 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The inline parser used to resolve emphasis markers into styled spans.
   static const _inlineParser = FountainInlineParser();
 
-  /// The base text style every preview run derives from: Courier Prime, black on the white page.
-  static const TextStyle _baseStyle = TextStyle(
-    fontFamily: OcptEditorPreviewLayout.fontFamily,
-    fontSize: OcptEditorPreviewLayout.fontSize,
-    height: OcptEditorPreviewLayout.lineHeightFactor,
-    color: Colors.black,
-  );
-
   /// The block to render.
   final FountainBlock block;
 
@@ -38,6 +30,16 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     required this.block,
     required this.layout,
   });
+
+  /// The base text style every preview run derives from: Courier Prime, black on the white page,
+  /// rendered at exactly [layout]'s [OcptEditorPreviewLayout.lineHeight] (not a fixed factor: see
+  /// that getter's own doc comment for why estimate and render must always agree).
+  TextStyle get _baseStyle => TextStyle(
+    fontFamily: OcptEditorPreviewLayout.fontFamily,
+    fontSize: OcptEditorPreviewLayout.fontSize,
+    height: layout.lineHeightFactor,
+    color: Colors.black,
+  );
 
   @override
   Widget build(BuildContext context) {

@@ -367,9 +367,57 @@ void main() {
       await _pumpStandaloneEditor(tester, longText, isPageSimulationEnabled: true);
 
       final document = SuperEditorInspector.findDocument()!;
-      final hasPageStartNode = document.any((node) => node.getMetadataValue("ocptStartsNewPage") == true);
+      // The pagination pass now stores the exact top padding (a positive double), not a boolean
+      // flag, so a page-starting node lands precisely at its sheet's text origin.
+      final hasPageStartNode = document.any((node) {
+        final value = node.getMetadataValue("ocptStartsNewPage");
+        return value is double && value > 0;
+      });
       expect(hasPageStartNode, isTrue);
     });
+
+    testWidgets(
+      "a full-width element's box exactly fills the editor's own width, flush with the page's "
+      "left edge, leaving the true right margin outside it (no leftover super_editor centering "
+      "slack eating half of it)",
+      (tester) async {
+        // The default test surface (800x600) is narrower than the full page-simulation width
+        // (`pageWidth` can reach ~975 logical pixels at US Letter): widen it first, like the
+        // M1 test above and the app's own desktop window would be in practice.
+        tester.view.physicalSize = const Size(1400, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(tester, "Some action text.", isPageSimulationEnabled: true);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+
+        final editorRect = tester.getRect(find.byType(SuperEditor));
+        final componentOffset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
+        final componentSize = SuperEditorInspector.findComponentSize(nodeId);
+
+        // The editor's own box is exactly `pageWidth - marginRight` wide (the fix), left-aligned
+        // (`Alignment.topLeft`) within the full-`pageWidth` container `OcptStyledScreenplayEditor`
+        // wraps it in — so its own left edge IS the page's own left edge, with zero offset.
+        expect(editorRect.width, closeTo(layout.pageWidth - layout.marginRight, 1));
+        final pageLeftEdge = editorRect.left;
+        final pageRightEdge = pageLeftEdge + layout.pageWidth;
+
+        // The action element's text should start `marginLeft` from the page's left edge, and end
+        // `marginRight` short of the page's right edge — same as the raw preview. The tolerance
+        // (10px) comfortably covers the stylesheet's own small, deliberate 8px horizontal
+        // `documentPadding` inset (kept non-zero for IME-connection safety, see
+        // `OcptFountainEditorStylesheet.build`'s own doc comment) while still being far tighter
+        // than the ~39px (`marginRight / 2`) the pre-fix centering bug produced on each side.
+        final leftGap = componentOffset.dx - pageLeftEdge;
+        final rightGap = pageRightEdge - (componentOffset.dx + componentSize.width);
+        expect(leftGap, closeTo(layout.marginLeft, 10));
+        expect(rightGap, closeTo(layout.marginRight, 10));
+      },
+    );
   });
 
   group("typing in the styled editor, wired to a real (fast) OcptEditorBloc", () {

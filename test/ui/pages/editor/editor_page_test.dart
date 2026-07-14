@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -585,6 +586,62 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(await propertiesManager.isPageSimulationEnabled.load(), isFalse);
+    },
+  );
+
+  testWidgets(
+    "scrolling the styled editor with page simulation on does not move the toolbar",
+    (tester) async {
+      // Wide enough for the full page-simulation width (`pageWidth` reaches ~975 logical pixels
+      // at US Letter) and tall enough that the long document below genuinely overflows the
+      // viewport, giving real distance to scroll.
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await propertiesManager.isPageSimulationEnabled.store(true);
+
+      final longText = List.generate(
+        80,
+        (index) => "Action line number $index goes here.",
+      ).join("\n\n");
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: longText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
+
+      // The styled editor's own scrollable (via `_pageScrollController`) must be the only
+      // `Scrollable` in the tree: no ancestor `Scrollable` should exist for a wheel scroll to
+      // leak into and move a sibling widget (the toolbar) instead.
+      expect(find.byType(Scrollable), findsOneWidget);
+      final scrollableState = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(scrollableState.position.pixels, 0);
+
+      final toolbarTopBefore = tester.getTopLeft(find.byType(OcptEditorToolbar));
+      final editorCenter = tester.getCenter(find.byType(SuperEditor));
+
+      final testPointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(testPointer.addPointer(location: editorCenter));
+      await tester.sendEventToBinding(testPointer.scroll(const Offset(0, 400)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // The scroll must have actually happened (otherwise the "toolbar didn't move" assertion
+      // below would be vacuously true).
+      expect(scrollableState.position.pixels, greaterThan(0));
+
+      final toolbarTopAfter = tester.getTopLeft(find.byType(OcptEditorToolbar));
+      expect(toolbarTopAfter, toolbarTopBefore, reason: "toolbar must not move when the editor scrolls");
     },
   );
 }

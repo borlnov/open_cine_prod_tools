@@ -11,7 +11,18 @@ import 'package:fountain_kit/fountain_kit.dart';
 /// the whole mapping reduces to one number: the width of a single Courier Prime glyph at the
 /// preview's font size, measured once per font size with a [TextPainter] and cached in
 /// [_glyphWidthCache]. Every element indent/width is then `columns * glyphWidth`, and the page
-/// itself is `pageWidthInches * charsPerInch * glyphWidth` wide.
+/// itself is `pageWidthInches * pixelsPerInch` wide.
+///
+/// Every measurement — horizontal AND vertical — is derived from that single [pixelsPerInch]
+/// scale: [lineHeight] is `pixelsPerInch / metrics.linesPerInch` rather than an arbitrary
+/// `fontSize` multiple, which is what guarantees the identity
+/// `marginTop + metrics.linesPerPage * lineHeight + marginBottom ≈ pageHeight` (see
+/// `ocpt_editor_preview_layout_test.dart`): a page's simulated sheet is exactly as tall as
+/// `linesPerPage` lines of text plus its margins, so content genuinely fills (rather than
+/// overflows or under-fills) the sheet [pageHeight] describes. A previous version derived
+/// [lineHeight] from `fontSize * 1.4` instead, which didn't agree with the horizontal scale: a
+/// full page of `linesPerPage` lines rendered taller than [pageHeight], visibly overflowing every
+/// simulated sheet.
 ///
 /// Because the font is fixed-pitch, this class can also estimate how many lines a block wraps to
 /// (greedy word wrap at the element's column width), which is what the preview uses to compute
@@ -24,12 +35,14 @@ class OcptEditorPreviewLayout {
   /// The preview's font size, in logical pixels.
   static const double fontSize = 13;
 
-  /// The preview's line height factor, applied to [fontSize] to get [lineHeight].
-  static const double lineHeightFactor = 1.4;
-
   /// The vertical space left between two consecutive blocks: one blank line, like the one that
   /// separates them in the Fountain source.
   static const double blockSpacingFactor = 1;
+
+  /// The themed gap left between two consecutive simulated paper sheets, in logical pixels: the
+  /// raw preview's paginated pages, the styled editor's page-sheets painter and its pagination
+  /// pass all share this one value so their page boundaries agree pixel-for-pixel.
+  static const double pageGap = 16;
 
   /// The measured width of a Courier Prime glyph, cached per font size: the font is fixed-pitch,
   /// so a single glyph ("0") is representative of every column.
@@ -44,28 +57,39 @@ class OcptEditorPreviewLayout {
   /// Class constructor
   OcptEditorPreviewLayout({required this.metrics}) : glyphWidth = _measureGlyphWidth(fontSize);
 
-  /// The height of one text line, in logical pixels.
-  double get lineHeight => fontSize * lineHeightFactor;
+  /// The single pixels-per-inch scale every measurement of this class derives from, horizontally
+  /// AND vertically (see class doc comment for why that matters).
+  double get pixelsPerInch => metrics.charsPerInch * glyphWidth;
+
+  /// The height of one text line, in logical pixels: `pixelsPerInch / metrics.linesPerInch`.
+  double get lineHeight => pixelsPerInch / metrics.linesPerInch;
+
+  /// The line-height factor equivalent to [lineHeight] at [fontSize], for a `TextStyle.height`
+  /// that renders text at exactly [lineHeight] (see `OcptEditorPreviewBlock` and
+  /// `OcptFountainEditorStylesheet`, which both need the actually-rendered line height to match
+  /// this class's own estimate).
+  double get lineHeightFactor => lineHeight / fontSize;
 
   /// The vertical space left between two consecutive blocks, in logical pixels.
   double get blockSpacing => lineHeight * blockSpacingFactor;
 
   /// The full page width, in logical pixels.
-  double get pageWidth => metrics.pageWidthInches * metrics.charsPerInch * glyphWidth;
+  double get pageWidth => metrics.pageWidthInches * pixelsPerInch;
 
   /// The full page height, in logical pixels.
-  ///
-  /// Derived from `metrics.charsPerInch` rather than `metrics.linesPerInch`/[lineHeight], for
-  /// consistency with [pageWidth]'s own inch-to-pixel conversion: using the vertical typographic
-  /// pitch instead would give the simulated page a different pixels-per-inch ratio horizontally
-  /// than vertically, visibly distorting its aspect ratio away from the real physical page size.
-  double get pageHeight => metrics.pageHeightInches * metrics.charsPerInch * glyphWidth;
+  double get pageHeight => metrics.pageHeightInches * pixelsPerInch;
+
+  /// The left page margin, in logical pixels.
+  double get marginLeft => metrics.marginLeftInches * pixelsPerInch;
+
+  /// The right page margin, in logical pixels.
+  double get marginRight => metrics.marginRightInches * pixelsPerInch;
 
   /// The top page margin, in logical pixels.
-  double get marginTop => metrics.marginTopInches * metrics.charsPerInch * glyphWidth;
+  double get marginTop => metrics.marginTopInches * pixelsPerInch;
 
   /// The bottom page margin, in logical pixels.
-  double get marginBottom => metrics.marginBottomInches * metrics.charsPerInch * glyphWidth;
+  double get marginBottom => metrics.marginBottomInches * pixelsPerInch;
 
   /// The distance from the page's left edge to where [element]'s text starts, in logical pixels.
   double indentOf(FountainElementLayout element) => element.leftIndentColumns * glyphWidth;

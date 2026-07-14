@@ -40,11 +40,15 @@ class OcptFountainEditorStylesheet {
   /// the surrounding text it's embedded in (a note is authoring scaffolding, never printed).
   static const double _noteInlineOpacity = 0.55;
 
-  /// The themed gap left between two simulated pages, mirroring `OcptEditorPreview`'s own
-  /// inter-sheet gap: not itself painted here (the styled editor's page backdrop is a separate
-  /// concern, painted behind the document), only reserved as extra top padding on a page-starting
-  /// node so its text doesn't collide with the previous page's bottom margin.
-  static const double _pageGap = 16;
+  /// The fixed horizontal inset kept around the document even while page simulation is on (never
+  /// 0): a zero horizontal `documentPadding` was found, empirically, to make `SuperEditor`
+  /// occasionally fail to open a live IME connection when the caret is placed by a simulated tap
+  /// right at the document's edge — this margin sidesteps it entirely.
+  static const double _horizontalDocumentPaddingInset = 8;
+
+  /// The vertical document padding used while page simulation is off (a small, fixed inset for
+  /// the fluid, theme-following editing surface, top and bottom alike).
+  static const double _fluidVerticalDocumentPaddingInset = 16;
 
   /// Builds the stylesheet for typesetting the styled editor at [metrics].
   ///
@@ -54,11 +58,18 @@ class OcptFountainEditorStylesheet {
   /// always white, so a theme-derived color (in particular dark mode's light `onSurface`) would
   /// otherwise render invisible or near-invisible on it. A page-starting node (flagged by
   /// [ocptStartsNewPageMetadataKey], set by `computeOcptStyledPagination`) also gets extra top
-  /// padding standing in for the page gap and the previous/next page's margins.
+  /// padding — the exact pixel amount `computeOcptStyledPagination` computed for it — standing in
+  /// for the page gap and the previous/next page's margins. When page simulation is on, the
+  /// document's own top/bottom padding is the page's real top margin and (respectively)
+  /// [trailingBottomPadding], so the first page's content starts at its true margin and the last
+  /// page's content region genuinely fills the sheet down to its own bottom margin, exactly like
+  /// every other simulated page (see [OcptStyledPagination.trailingBottomPadding]'s own doc
+  /// comment for how that padding is computed).
   static Stylesheet build({
     required FountainLayoutMetrics metrics,
     required ColorScheme colorScheme,
     required bool isPageSimulationEnabled,
+    double trailingBottomPadding = 0,
   }) {
     final layout = OcptEditorPreviewLayout(metrics: metrics);
     final onSurface = isPageSimulationEnabled ? Colors.black : colorScheme.onSurface;
@@ -67,17 +78,17 @@ class OcptFountainEditorStylesheet {
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
       fontSize: OcptEditorPreviewLayout.fontSize,
-      height: OcptEditorPreviewLayout.lineHeightFactor,
+      height: layout.lineHeightFactor,
       color: onSurface,
     );
 
     return Stylesheet(
-      // Kept at a fixed 8px horizontal inset even while page simulation is on (rather than 0, for
-      // pixel-exact centering within the page-width box `OcptStyledScreenplayEditor` wraps this
-      // editor in): a zero horizontal `documentPadding` was found, empirically, to make
-      // `SuperEditor` occasionally fail to open a live IME connection when the caret is placed by
-      // a simulated tap right at the document's edge — an 8px margin sidesteps it entirely.
-      documentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      documentPadding: EdgeInsets.only(
+        left: _horizontalDocumentPaddingInset,
+        right: _horizontalDocumentPaddingInset,
+        top: isPageSimulationEnabled ? layout.marginTop : _fluidVerticalDocumentPaddingInset,
+        bottom: isPageSimulationEnabled ? trailingBottomPadding : _fluidVerticalDocumentPaddingInset,
+      ),
       inlineTextStyler: (attributions, existingStyle) =>
           _inlineTextStyler(attributions, existingStyle, onSurfaceVariant),
       rules: [
@@ -205,7 +216,7 @@ class OcptFountainEditorStylesheet {
     (document, node) => {
       Styles.padding: CascadingPadding.only(
         left: layout.indentOf(element),
-        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node, layout),
+        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
       ),
       Styles.maxWidth: layout.indentOf(element) + layout.widthOf(element),
       Styles.textAlign: textAlign,
@@ -225,13 +236,12 @@ class OcptFountainEditorStylesheet {
 
   /// The extra top padding standing in for the page gap and the previous/next page's margins,
   /// opened up above a node flagged [ocptStartsNewPageMetadataKey] by `computeOcptStyledPagination`
-  /// (a no-op, like every node not flagged, while page simulation is off: the flag is only ever
-  /// set while it's on).
-  static double _pageBoundaryTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) {
-    if (node.getMetadataValue(ocptStartsNewPageMetadataKey) != true) {
-      return 0;
-    }
-    return layout.marginTop + layout.marginBottom + _pageGap;
+  /// — the exact pixel amount that pass computed for this node so it lands precisely at its
+  /// sheet's text origin, rather than a fixed estimate (0 for a node not flagged, or while page
+  /// simulation is off: the flag is only ever set while it's on).
+  static double _pageBoundaryTopPadding(DocumentNode node) {
+    final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);
+    return value is double ? value : 0;
   }
 
   /// Wraps `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
