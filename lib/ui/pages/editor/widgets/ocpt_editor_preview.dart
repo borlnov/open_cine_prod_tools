@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -16,10 +15,12 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// theme) rendering the parsed screenplay with its true print layout.
 ///
 /// The page is a single continuous sheet (no on-screen pagination) whose width is the physical
-/// page width at the current [pageFormat]'s metrics; it's centered in the panel, and the panel
-/// scrolls horizontally if it's too narrow for the full page. The block list is lazy (RFL38) and
-/// the whole preview sits behind a [RepaintBoundary] (RFL37) so typing in the source editor
-/// doesn't repaint it needlessly.
+/// page width at the current [pageFormat]'s metrics; it's centered in the panel. When the panel is
+/// too narrow for the full page, the whole page is scaled down to fit instead of being cropped by
+/// a horizontal scroll (which would otherwise leave the right margin permanently out of view): the
+/// left AND right margins always stay visible, at the wide panel's own scale or smaller. The block
+/// list is lazy (RFL38) and the whole preview sits behind a [RepaintBoundary] (RFL37) so typing in
+/// the source editor doesn't repaint it needlessly.
 ///
 /// When the editor caret changes line, the preview scrolls so the block containing that line is
 /// visible. Because the list is lazy, an unbuilt block has no render object to `ensureVisible`,
@@ -103,16 +104,37 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
 
     return RepaintBoundary(
       child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: max(constraints.maxWidth, layout.pageWidth + _pagePadding * 2),
-            height: constraints.maxHeight,
-            child: Center(
-              child: SizedBox(width: layout.pageWidth, child: _paperPage(layout)),
+        builder: (context, constraints) {
+          final unscaledWidth = layout.pageWidth + _pagePadding * 2;
+          if (constraints.maxWidth >= unscaledWidth) {
+            return SizedBox(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              child: Center(
+                child: SizedBox(width: layout.pageWidth, child: _paperPage(layout)),
+              ),
+            );
+          }
+
+          // The panel is narrower than the full page: scale the whole page down to fit it, rather
+          // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale` so
+          // its visual, post-transform size exactly fills the panel: `_scrollController`'s
+          // viewport/target math, entirely computed in this unscaled space (see
+          // `_syncScrollToCurrentLine`), stays valid without any adjustment, since `Transform`
+          // never changes the constraints its child is laid out with.
+          final scale = constraints.maxWidth / unscaledWidth;
+          return Transform.scale(
+            alignment: Alignment.topCenter,
+            scale: scale,
+            child: SizedBox(
+              width: unscaledWidth,
+              height: constraints.maxHeight / scale,
+              child: Center(
+                child: SizedBox(width: layout.pageWidth, child: _paperPage(layout)),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
