@@ -270,6 +270,101 @@ void main() {
     },
   );
 
+  testWidgets("an edit made in raw mode survives switching to styled mode", (tester) async {
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final textFieldFinder = find.descendant(
+      of: find.byType(OcptEditorSourceField),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(textFieldFinder, "$_sampleText\nA fresh action line.");
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+    await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+    await tester.pumpAndSettle();
+
+    final document = SuperEditorInspector.findDocument()!;
+    final lastNode = document.getNodeAt(document.nodeCount - 1)! as ParagraphNode;
+    expect(lastNode.text.toPlainText(), "A fresh action line.");
+  });
+
+  testWidgets("an edit made in styled mode survives switching back to raw mode", (tester) async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final document = SuperEditorInspector.findDocument()!;
+    final lastNode = document.getNodeAt(document.nodeCount - 1)! as ParagraphNode;
+    await tester.placeCaretInParagraph(lastNode.id, lastNode.text.toPlainText().length);
+    await tester.typeImeText(" indeed.");
+    // `typeImeText` already settles fully after every character it sends (see the doc comment on
+    // the equivalent call in `ocpt_styled_screenplay_editor_test.dart`), draining the sync/parse/
+    // autosave debounces along the way; this test only cares that the edit survives a mode
+    // switch, not about the flush-on-removal path itself (see the dedicated test below for that).
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+    await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
+    await tester.pumpAndSettle();
+
+    final textField = tester.widget<TextField>(
+      find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+    );
+    expect(textField.controller?.text, contains("Something moves in the dark. indeed."));
+  });
+
+  testWidgets(
+    "an edit made in styled mode survives switching away before its sync debounce clears, "
+    "flushed by deactivate() the same way the editor route's own back navigation would",
+    (tester) async {
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final lastNode = document.getNodeAt(document.nodeCount - 1)! as ParagraphNode;
+      await tester.placeCaretInParagraph(lastNode.id, 0);
+
+      // Tab locks the block's type as a manual override: a genuine document edit, same as typing
+      // text would produce, without needing `typeImeText` (which settles fully after every
+      // character it sends, draining the very debounce this test needs to catch still pending).
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      // A bounded pump shorter than the styled editor's 120 ms sync debounce: long enough to
+      // process the key event, short enough that its `_syncTimer` is still pending. No
+      // `pumpAndSettle` here — it would let the timer fire naturally and hide a missing flush.
+      await tester.pump(const Duration(milliseconds: 20));
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+      // Removing the styled editor from the tree is what runs
+      // `_OcptStyledScreenplayEditorState.deactivate()`; in this page test (no live GoRouter
+      // under `_RecordingRouterManager`) tapping the back button doesn't itself unmount the page,
+      // so the mode toggle is used here to exercise the identical removal path the editor route's
+      // own back navigation also triggers (see that widget's class doc comment).
+      await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
+      // A zero-duration pump first: enough for the mode-toggle bloc event to be processed and the
+      // conditional widget swap to remove the styled editor from the tree — and with it run
+      // `deactivate()` — without advancing the fake clock anywhere near the 120 ms debounce.
+      // `pumpAndSettle` only afterwards, once that removal (and its flush) has already happened.
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final textField = tester.widget<TextField>(
+        find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
+      );
+      // Tab cycled the last node from `action` to `character`: "Something moves in the dark."
+      // isn't all-caps, so it never auto-detects as a character cue and always needs its `@`
+      // forcing marker once locked as one. If `deactivate()` hadn't flushed the still-pending sync
+      // before `dispose()` cancelled its timer (which never fires once cancelled), this edit would
+      // have been lost entirely and the line below would still read unprefixed.
+      expect(textField.controller?.text, contains("@Something moves in the dark."));
+    },
+  );
+
   testWidgets("Ctrl+Shift+M also toggles the editing mode", (tester) async {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
