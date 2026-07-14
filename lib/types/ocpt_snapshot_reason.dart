@@ -18,4 +18,7 @@ enum OcptSnapshotReason {
 
   /// The snapshot was explicitly requested by the user.
   manual,
+
+  /// The snapshot was taken right before an imported `.fountain` file replaced the screenplay.
+  import,
 }
