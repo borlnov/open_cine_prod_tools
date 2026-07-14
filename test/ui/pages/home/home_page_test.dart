@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_empty_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -32,6 +34,18 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   supportedLocales: Tr.delegate.supportedLocales,
   home: child,
 );
+
+/// Pumps [child], localized, on a desktop-sized surface: the default test surface (800x600) is
+/// too narrow for the home page header's three actions side by side, which this app never runs
+/// at in practice (a resizable desktop window, not a fixed small canvas).
+Future<void> _pumpHome(WidgetTester tester, Widget child) async {
+  tester.view.physicalSize = const Size(1400, 900);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await tester.pumpWidget(_wrapWithLocalization(child));
+}
 
 void main() {
   // HomePage builds its OcptHomeBloc internally via `OcptHomeBloc()`, which resolves every
@@ -56,7 +70,13 @@ void main() {
       ..registerSingleton<OcptProjectsManager>(projectsManager)
       ..registerSingleton<OcptRouterManager>(OcptRouterManager())
       ..registerSingleton<FileSaverManager>(const FileSaverManager())
-      ..registerSingleton<FileSelectorManager>(const FileSelectorManager());
+      ..registerSingleton<FileSelectorManager>(const FileSelectorManager())
+      ..registerSingleton<OcptExportManager>(
+        OcptExportManager(
+          fileSaverManager: const FileSaverManager(),
+          fileSelectorManager: const FileSelectorManager(),
+        ),
+      );
   });
 
   setUp(() async {
@@ -69,7 +89,7 @@ void main() {
   });
 
   testWidgets('shows the empty state when there are no recent projects', (tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const HomePage()));
+    await _pumpHome(tester, const HomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptHomeEmptyState), findsOneWidget);
@@ -89,7 +109,7 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(_wrapWithLocalization(const HomePage()));
+    await _pumpHome(tester, const HomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptHomeEmptyState), findsNothing);
@@ -105,7 +125,7 @@ void main() {
       OcptRecentProjectModel(path: missingPath, name: "Missing Movie", lastOpenedAt: DateTime.now()),
     );
 
-    await tester.pumpWidget(_wrapWithLocalization(const HomePage()));
+    await _pumpHome(tester, const HomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptProjectCard), findsOneWidget);
@@ -118,5 +138,33 @@ void main() {
     expect(find.byTooltip(Tr.of(context).homeMissingFileTooltip), findsOneWidget);
     final inkWell = tester.widget<InkWell>(find.byKey(ValueKey(missingPath)));
     expect(inkWell.onTap, isNull);
+  });
+
+  testWidgets('the import-a-screenplay action is shown in the header and the empty state', (
+    tester,
+  ) async {
+    await _pumpHome(tester, const HomePage());
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(HomePage));
+    expect(find.text(Tr.of(context).homeImportScreenplayAction), findsNWidgets(2));
+  });
+
+  testWidgets('tapping the import-a-screenplay action starts the import flow', (tester) async {
+    var tapped = false;
+    await _pumpHome(
+      tester,
+      OcptHomeHeader(
+        onNewProject: () {},
+        onOpenProject: () {},
+        onImportScreenplay: () => tapped = true,
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptHomeHeader));
+    await tester.tap(find.text(Tr.of(context).homeImportScreenplayAction));
+    await tester.pumpAndSettle();
+
+    expect(tapped, isTrue);
   });
 }

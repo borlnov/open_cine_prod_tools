@@ -9,12 +9,16 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
+import 'package:path/path.dart' as p;
 
 /// This is the bloc class for the home page.
 ///
@@ -40,6 +44,9 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
   /// The manager used to show the "Open…" open-file dialog.
   final FileSelectorManager _fileSelectorManager;
 
+  /// The manager used to pick and read a `.fountain` file when importing a screenplay.
+  final OcptExportManager _exportManager;
+
   /// Class constructor
   OcptHomeBloc({
     OcptPropertiesManager? propertiesManager,
@@ -47,11 +54,13 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     OcptRouterManager? routerManager,
     FileSaverManager? fileSaverManager,
     FileSelectorManager? fileSelectorManager,
+    OcptExportManager? exportManager,
   }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _fileSaverManager = fileSaverManager ?? globalGetIt().get<FileSaverManager>(),
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptHomeState.init()) {
     add(const OcptHomeRefreshRequestedEvent());
   }
@@ -65,6 +74,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     on<OcptHomeOpenProjectRequestedEvent>(_onOpenProjectRequested);
     on<OcptHomeRemoveRecentProjectRequestedEvent>(_onRemoveRecentProjectRequested);
     on<OcptHomeErrorDismissedEvent>(_onErrorDismissed);
+    on<OcptHomeImportScreenplayRequestedEvent>(_onImportScreenplayRequested);
   }
 
   /// Reloads the recent projects list and recomputes which of them still exist on disk.
@@ -163,5 +173,71 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     Emitter<OcptHomeState> emitter,
   ) async {
     emitter(state.copyWith(clearError: true));
+  }
+
+  /// Picks a `.fountain` file, creates a new project for it, imports its text, then navigates to
+  /// the editor.
+  ///
+  /// Mirrors [_onCreateProjectRequested] step for step, with two differences: the save-file
+  /// dialog is preceded by an open-file dialog picking the `.fountain` file (its name suggesting
+  /// the new project's file name), and the new project's screenplay is seeded with the picked
+  /// file's text instead of staying empty.
+  Future<void> _onImportScreenplayRequested(
+    OcptHomeImportScreenplayRequestedEvent event,
+    Emitter<OcptHomeState> emitter,
+  ) async {
+    emitter(state.copyWith(isBusy: true, clearError: true));
+
+    final imported = await _exportManager.pickAndReadFountain(
+      fileTypeLabel: event.fountainFileTypeLabel,
+    );
+    if (imported == null) {
+      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
+      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
+      emitter(state.copyWith(isBusy: false));
+      return;
+    }
+
+    final suggestedName = _exportManager.fountainIoService.suggestedProjectName(
+      fountainText: imported.fountainText,
+      sourceFileName: imported.sourceFileName,
+    );
+    final suggestedFileName = "$suggestedName.${OcptProjectsManager.projectFileExtension}";
+    final filePath = await _fileSaverManager.saveFileFromBytes(
+      fileName: suggestedFileName,
+      bytes: Uint8List(0),
+    );
+
+    if (filePath == null) {
+      // The user cancelled the save dialog.
+      emitter(state.copyWith(isBusy: false));
+      return;
+    }
+
+    final projectName = p.basenameWithoutExtension(filePath);
+    final result = await _projectsManager.createProject(name: projectName, filePath: filePath);
+    if (!result.status.isSuccess) {
+      emitter(state.copyWith(isBusy: false, error: result.status));
+      return;
+    }
+
+    try {
+      final project = result.value!;
+      await _projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: imported.fountainText,
+        snapshotReason: OcptSnapshotReason.import,
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to import a fountain file into the project at "
+          "$filePath: $error");
+      emitter(state.copyWith(isBusy: false, error: OcptProjectStatus.ioError));
+      return;
+    }
+
+    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    emitter(state.copyWith(isBusy: false));
+    await _routerManager.push(OcptRoute.editor);
   }
 }

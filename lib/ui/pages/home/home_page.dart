@@ -46,6 +46,7 @@ class _HomeView extends StatelessWidget {
               OcptHomeHeader(
                 onNewProject: () => _requestNewProject(context),
                 onOpenProject: () => _requestOpenProject(context),
+                onImportScreenplay: () => _requestImportScreenplay(context),
               ),
               const SizedBox(height: 24),
               Expanded(
@@ -53,6 +54,7 @@ class _HomeView extends StatelessWidget {
                     ? OcptHomeEmptyState(
                         onNewProject: () => _requestNewProject(context),
                         onOpenProject: () => _requestOpenProject(context),
+                        onImportScreenplay: () => _requestImportScreenplay(context),
                       )
                     : GridView.builder(
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -129,6 +131,15 @@ class _HomeView extends StatelessWidget {
   void _requestOpenProject(BuildContext context) {
     context.read<OcptHomeBloc>().add(
       OcptHomeOpenProjectRequestedEvent(fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel),
+    );
+  }
+
+  /// Dispatches the import-screenplay request that shows the `.fountain` open-file dialog.
+  void _requestImportScreenplay(BuildContext context) {
+    context.read<OcptHomeBloc>().add(
+      OcptHomeImportScreenplayRequestedEvent(
+        fountainFileTypeLabel: Tr.of(context).homeImportFileTypeLabel,
+      ),
     );
   }
 }

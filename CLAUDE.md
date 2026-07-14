@@ -55,7 +55,7 @@ breakdown, and a casting tracker.
 | R1-R3 | Review fixes: `OcptSpecificColors` file, SPDX email, dialogs via router manager | ✅ (`411d9b1`, `4d6835d`, `59e52e1`) |
 | R4 | Review fix: editor toolbar back navigation (flush save → close project → pop) | ✅ (`a788bdf`) |
 | 8b | Styled mode rework: true WYSIWYG editor (hidden Fountain markers, block-type dropdown + Tab cycle + smart Enter, B/I/U, sticky manual types) — milestones M1-M6 in `docs/plans/wysiwyg-styled-editor.md` | ✅ |
-| 9 | `.fountain` import/export (export manager + fountain IO service, home "Import a screenplay…" action, editor `⋮` menu with export / import-and-replace, pre-import snapshot) | ⬜ |
+| 9 | `.fountain` import/export (export manager + fountain IO service, home "Import a screenplay…" action, editor `⋮` menu with export / import-and-replace, pre-import snapshot) | ✅ |
 | 10 | PDF screenplay export (`pdf` package, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title page) | ⬜ |
 | 11 | Settings page (language system/en/fr via act_intl_ui, theme system/light/dark via `ActThemesManager`, about section) | ⬜ |
 | 12 | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation) | ⬜ |
@@ -108,6 +108,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `scenes`), `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
   number → exact heading → relative order). `**/*.g.dart` is git-ignored (documented
   deviation); CI regenerates with build_runner.
+- `OcptExportManager` (`lib/managers/export/`) owns getting a screenplay in and out of the app as
+  a plain `.fountain` file: the native save/open dialogs, and `OcptFountainIoService` (the service
+  it owns, RFL18) for the pure bytes/text conversion and the suggested project/file names. The
+  home page's "Import a screenplay…" action and the editor's `⋮` export / import-and-replace menu
+  both go through it; the screenplay text itself is always written through
+  `OcptScreenplayService.saveScreenplayText`, never by hand.
 - Editor: super_editor styled mode keeps **one `ParagraphNode` per non-blank Fountain source
   line**; a blank source line carries no node of its own, folded into the following node's
   `ocptBlankLinesBefore` metadata instead. Other node metadata: `blockType` (the line's

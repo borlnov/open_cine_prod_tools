@@ -71,3 +71,20 @@ class OcptHomeErrorDismissedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeErrorDismissedEvent();
 }
+
+/// Requests creating a new project seeded with the content of a picked `.fountain` file.
+///
+/// This shows an open-file dialog to pick the `.fountain` file, then a save-file dialog to let
+/// the user pick where to save the new project, creates it, imports the picked file's text into
+/// it, and navigates to the editor.
+class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
+  /// The label of the `.fountain` file type shown in the native open-file dialog.
+  final String fountainFileTypeLabel;
+
+  /// Class constructor
+  const OcptHomeImportScreenplayRequestedEvent({required this.fountainFileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fountainFileTypeLabel];
+}

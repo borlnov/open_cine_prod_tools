@@ -319,6 +319,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeImportScreenplayAction": "Import a screenplay…",
+  "@homeImportScreenplayAction": {
+    "description": "Label of the action that creates a new project from an imported .fountain file",
+    "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeEmptyStateTitle": "No projects yet",
   "@homeEmptyStateTitle": {
     "description": "Title of the home page's empty state",
@@ -386,6 +393,13 @@
   "@homeOpenFileTypeLabel": {
     "description": "Label of the project file type shown in the native open-file dialog",
     "context": "Passed to the OS file picker when the user chooses to open a project",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportFileTypeLabel": "Fountain screenplay",
+  "@homeImportFileTypeLabel": {
+    "description": "Label of the .fountain file type shown in the native open-file dialog",
+    "context": "Passed to the OS file picker when the user chooses to import a screenplay",
     "type": "text",
     "placeholders": {}
   },
