@@ -274,6 +274,65 @@ void main() {
     });
   });
 
+  group("OcptWysiwygCodec.uppercaseRequests", () {
+    test("uppercases a lowercase scene heading, preserving bold spans and length", () {
+      final decoded = OcptWysiwygCodec.decode("int. kitchen - day");
+      expect(_typeAt(decoded.document, 0), FountainLineType.sceneHeading);
+      _addAttribution(decoded.document, 0, boldAttribution, "int. ".length, "int. kitchen".length);
+
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document);
+
+      expect(requests, hasLength(1));
+      final request = requests.single as OcptReplaceNodeTextRequest;
+      expect(request.nodeId, decoded.document.getNodeAt(0)!.id);
+      expect(request.text.toPlainText(), "INT. KITCHEN - DAY");
+      expect(
+        request.text.getAttributionSpansInRange(
+          attributionFilter: (attribution) => attribution == boldAttribution,
+          range: SpanRange(0, request.text.length - 1),
+        ),
+        hasLength(1),
+      );
+    });
+
+    test("uppercases a lowercase character cue and a lowercase transition", () {
+      // Both auto-detection rules require already-uppercase text (that's the whole reason this
+      // feature exists), so the only way a node ends up classified character/transition with
+      // lowercase text is a later edit made after classification already locked in (mirrored here
+      // with `_replaceText`, which — unlike typing through the live editor — never re-triggers
+      // `reclassifyRequests`).
+      final decoded = OcptWysiwygCodec.decode("SARAH\nHello.\n\nCUT TO:");
+      expect(_typeAt(decoded.document, 0), FountainLineType.character);
+      expect(_typeAt(decoded.document, 2), FountainLineType.transition);
+
+      _replaceText(decoded.document, 0, "sarah");
+      _replaceText(decoded.document, 2, "cut to:");
+
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document).cast<OcptReplaceNodeTextRequest>();
+
+      expect(requests, hasLength(2));
+      expect(requests[0].text.toPlainText(), "SARAH");
+      expect(requests[1].text.toPlainText(), "CUT TO:");
+    });
+
+    test("leaves action, dialogue and already-uppercase nodes untouched", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSome action.\n\nSARAH\nhello there.");
+
+      expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
+    });
+
+    test("the saved Fountain text round-trips with the uppercased line", () {
+      final decoded = OcptWysiwygCodec.decode("int. kitchen - day");
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document).cast<OcptReplaceNodeTextRequest>();
+      final node = decoded.document.getNodeAt(0)! as ParagraphNode;
+      decoded.document.replaceNodeById(node.id, node.copyParagraphWith(text: requests.single.text));
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+
+      expect(encoded.text, "INT. KITCHEN - DAY");
+    });
+  });
+
   group("OcptWysiwygCodec.noteAttributionRequests", () {
     test("adds a fountainNote attribution bounding a [[...]] region", () {
       final document = MutableDocument(

@@ -41,6 +41,9 @@ class OcptEditorPreviewBlock extends StatelessWidget {
       final FountainSceneHeading heading => _element(
         layout.metrics.sceneHeading,
         _styledText(
+          // `FountainSceneHeading.headingText` is already uppercased unconditionally by
+          // `FountainBlockBuilder`, regardless of the raw source's casing (unlike the character
+          // cue/transition text below, kept verbatim in their models and uppercased here instead).
           heading.sceneNumber == null
               ? heading.headingText
               : "${heading.sceneNumber}. ${heading.headingText}",

@@ -485,17 +485,20 @@ void main() {
         // The type cycled forward and the block got locked, exactly like a hardware Tab would...
         expect(_typeAt(document, 0), FountainLineType.character);
         expect(_isLockedAt(document, 0), isTrue);
-        // ...and no literal tab character ever landed in the document's text.
-        expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
+        // ...and no literal tab character ever landed in the document's text (`typeImeText` itself
+        // already lets enough real time elapse for the sync debounce, including the auto-uppercase
+        // pass, to fire — hence the now-uppercase text rather than the original casing).
+        expect(_nodeAt(document, 0).text.toPlainText(), "SOME ACTION TEXT.");
 
-        // Let the sync debounce encode the document back to text, and confirm the reported source
-        // text never contains a tab character either — the leading "@" is the Fountain forcing
-        // marker `FountainLineWriter` correctly prepends to a manually-forced character cue whose
-        // text isn't uppercase (unrelated to this bug; it's the same marker a Tab-cycled character
-        // block already produced before this fix, on the hardware-KeyEvent path).
+        // Let any remaining sync debounce encode the document back to text, and confirm the
+        // reported source text never contains a tab character either — the leading "@" is the
+        // Fountain forcing marker `FountainLineWriter` correctly prepends to a manually-forced
+        // character cue whose text isn't followed by a dialogue line (unrelated to this bug; it's
+        // the same marker a Tab-cycled character block already produced before this fix, on the
+        // hardware-KeyEvent path).
         await tester.pump(const Duration(milliseconds: 150));
         await tester.pump();
-        expect(lastEncoded, "@Some action text.");
+        expect(lastEncoded, "@SOME ACTION TEXT.");
         expect(lastEncoded.contains("\t"), isFalse);
       },
     );
@@ -634,6 +637,121 @@ void main() {
       expect(_typeAt(document, 0), FountainLineType.sceneHeading);
     },
   );
+
+  group("auto-uppercase scene headings, character cues and transitions", () {
+    testWidgets(
+      "typing a lowercase scene heading uppercases the stored text as you type, caret offset unchanged",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "",
+              pageFormat: OcptPageFormat.usLetter,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+
+        await tester.typeImeText("int. kitchen - day");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "INT. KITCHEN - DAY");
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(lastEncoded, "INT. KITCHEN - DAY");
+
+        final selection = SuperEditorInspector.findDocumentSelection();
+        final extentOffset = (selection!.extent.nodePosition as TextNodePosition).offset;
+        expect(extentOffset, "int. kitchen - day".length);
+      },
+    );
+
+    testWidgets(
+      "typing lowercase text into a manually-locked character cue or transition uppercases it",
+      (tester) async {
+        // Unlike scene headings, `FountainLineClassifier` only auto-detects a character cue or
+        // transition from already-uppercase text (that asymmetry is the whole reason auto-uppercase
+        // is needed for these two types): the only way such a block ever holds lowercase text in
+        // practice is a manual type choice (dropdown or Tab, both of which lock the block), so that
+        // is what this test drives, through `OcptStyledEditorController.setBlockType`.
+        Future<String> typeIntoLockedBlock(FountainLineType type, String lowercaseText) async {
+          final controller = OcptStyledEditorController();
+          addTearDown(controller.dispose);
+
+          await tester.pumpWidget(
+            _wrap(
+              OcptStyledScreenplayEditor(
+                key: ValueKey(type),
+                text: "",
+                pageFormat: OcptPageFormat.usLetter,
+                onTextChanged: (_) {},
+                onCaretLineChanged: (_) {},
+                jumpRequest: null,
+                styledController: controller,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final document = SuperEditorInspector.findDocument()!;
+          final nodeId = _nodeAt(document, 0).id;
+          await tester.placeCaretInParagraph(nodeId, 0);
+
+          controller.setBlockType(type);
+          await tester.pump();
+
+          await tester.typeImeText(lowercaseText);
+          await tester.pump(const Duration(milliseconds: 150));
+          await tester.pump();
+
+          expect(_typeAt(document, 0), type);
+          return _nodeAt(document, 0).text.toPlainText();
+        }
+
+        expect(await typeIntoLockedBlock(FountainLineType.character, "sarah"), "SARAH");
+        expect(await typeIntoLockedBlock(FountainLineType.transition, "cut to:"), "CUT TO:");
+      },
+    );
+
+    testWidgets("bold/italic/underline spans survive the uppercase conversion", (tester) async {
+      var lastEncoded = "";
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "",
+            pageFormat: OcptPageFormat.usLetter,
+            onTextChanged: (value) => lastEncoded = value,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final nodeId = _nodeAt(document, 0).id;
+      await tester.placeCaretInParagraph(nodeId, 0);
+
+      await tester.typeImeText("int. ");
+      await _sendCtrl(tester, LogicalKeyboardKey.keyB);
+      await tester.typeImeText("kitchen");
+      await _sendCtrl(tester, LogicalKeyboardKey.keyB);
+      await tester.typeImeText(" - day");
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+
+      expect(_nodeAt(document, 0).text.toPlainText(), "INT. KITCHEN - DAY");
+      expect(lastEncoded, "INT. **KITCHEN** - DAY");
+    });
+  });
 
   testWidgets("Ctrl+B, Ctrl+I and Ctrl+U toggle bold/italic/underline, serialized as **/*/_", (
     tester,

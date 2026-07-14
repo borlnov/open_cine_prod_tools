@@ -281,7 +281,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor = Editor(
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
       requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
-        ..add(ocptChangeNodeMetadataRequestHandler),
+        ..add(ocptChangeNodeMetadataRequestHandler)
+        ..add(ocptReplaceNodeTextRequestHandler),
     );
 
     _document.addListener(_onDocumentChanged);
@@ -322,6 +323,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final requests = [
       ...OcptWysiwygCodec.reclassifyRequests(_document),
       ...OcptWysiwygCodec.noteAttributionRequests(_document),
+      ...OcptWysiwygCodec.uppercaseRequests(_document),
     ];
     if (requests.isNotEmpty) {
       _editor.execute(requests);

@@ -412,6 +412,49 @@ class OcptWysiwygCodec {
     return requests;
   }
 
+  /// The [FountainLineType]s Fountain (and Final Draft) auto-detection expects in uppercase, and
+  /// whose *stored* text this app therefore uppercases as the user types, not just its display.
+  static const Set<FountainLineType> _uppercasedTypes = {
+    FountainLineType.sceneHeading,
+    FountainLineType.character,
+    FountainLineType.transition,
+  };
+
+  /// Computes the requests needed to uppercase the text of every node currently classified as one
+  /// of [_uppercasedTypes] whose text isn't already fully uppercase, preserving its attribution
+  /// spans and (since uppercasing is 1:1 for the app's locales, leaving every character's offset
+  /// unchanged) the caret position.
+  static List<EditRequest> uppercaseRequests(Document document) {
+    final requests = <EditRequest>[];
+
+    for (final node in document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+
+      final blockType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      if (!_uppercasedTypes.contains(blockType)) {
+        continue;
+      }
+
+      final plainText = node.text.toPlainText();
+      final upperText = plainText.toUpperCase();
+      if (upperText == plainText) {
+        continue;
+      }
+
+      requests.add(OcptReplaceNodeTextRequest(nodeId: node.id, text: _uppercased(node.text, upperText)));
+    }
+
+    return requests;
+  }
+
+  /// Copies [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
+  /// never changes a string's length for this app's supported locales, so every span's (start, end)
+  /// offset still refers to the same run of characters.
+  static AttributedText _uppercased(AttributedText text, String upperText) =>
+      AttributedText(upperText, text.spans.copy(), text.placeholders);
+
   /// Computes the requests needed to bring every node's [ocptFountainNoteAttribution] spans back
   /// in sync with the `[[...]]` regions currently in its text, adding/removing spans only for a
   /// node whose desired spans actually differ from what it currently carries (so an edit outside

@@ -90,3 +90,66 @@ EditCommand? ocptChangeNodeMetadataRequestHandler(Editor editor, EditRequest req
     request is OcptChangeNodeMetadataRequest
         ? OcptChangeNodeMetadataCommand(nodeId: request.nodeId, metadata: request.metadata)
         : null;
+
+/// [EditRequest] to replace the entire text of the `ParagraphNode` identified by [nodeId] with
+/// [text], leaving its metadata untouched — used by `OcptWysiwygCodec.uppercaseRequests` to rewrite
+/// a node's text in place (its length-preserving 1:1 uppercase conversion keeps the composer's
+/// current selection offsets valid without a separate `ChangeSelectionRequest`).
+@immutable
+class OcptReplaceNodeTextRequest implements EditRequest {
+  /// Creates an [OcptReplaceNodeTextRequest].
+  const OcptReplaceNodeTextRequest({required this.nodeId, required this.text});
+
+  /// The id of the `ParagraphNode` whose text is being replaced.
+  final String nodeId;
+
+  /// The new text for the node.
+  final AttributedText text;
+
+  /// Object equality
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OcptReplaceNodeTextRequest && runtimeType == other.runtimeType && nodeId == other.nodeId && text == other.text;
+
+  /// Object hash code
+  @override
+  int get hashCode => nodeId.hashCode ^ text.hashCode;
+}
+
+/// [EditCommand] applying an [OcptReplaceNodeTextRequest]: replaces the target `ParagraphNode` with
+/// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`, mirroring
+/// [OcptChangeNodeMetadataCommand]'s own pattern.
+class OcptReplaceNodeTextCommand extends EditCommand {
+  /// Creates an [OcptReplaceNodeTextCommand].
+  const OcptReplaceNodeTextCommand({required this.nodeId, required this.text});
+
+  /// The id of the `ParagraphNode` whose text is being replaced.
+  final String nodeId;
+
+  /// The new text for the node.
+  final AttributedText text;
+
+  /// This command's undo/redo behavior: grouped with other undoable edits, matching
+  /// [OcptChangeNodeMetadataCommand].
+  @override
+  HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  /// Applies the text replacement to the document.
+  @override
+  void execute(EditContext context, CommandExecutor executor) {
+    final document = context.document;
+    final existingNode = document.getNodeById(nodeId)! as ParagraphNode;
+    document.replaceNodeById(existingNode.id, existingNode.copyTextNodeWith(text: text));
+
+    executor.logChanges([DocumentEdit(NodeChangeEvent(nodeId))]);
+  }
+}
+
+/// The [EditRequestHandler] for [OcptReplaceNodeTextRequest], appended to the styled editor's
+/// `Editor.requestHandlers` list wherever its `Editor` is constructed (see
+/// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
+EditCommand? ocptReplaceNodeTextRequestHandler(Editor editor, EditRequest request) =>
+    request is OcptReplaceNodeTextRequest
+        ? OcptReplaceNodeTextCommand(nodeId: request.nodeId, text: request.text)
+        : null;
