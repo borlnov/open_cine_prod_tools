@@ -44,7 +44,13 @@ class OcptFountainEditorStylesheet {
   /// 0): a zero horizontal `documentPadding` was found, empirically, to make `SuperEditor`
   /// occasionally fail to open a live IME connection when the caret is placed by a simulated tap
   /// right at the document's edge — this margin sidesteps it entirely.
-  static const double _horizontalDocumentPaddingInset = 8;
+  ///
+  /// It eats into the width available to every block's `Styles.maxWidth`, so a caller sizing the
+  /// editor to an exact content width (`OcptStyledScreenplayEditor`, while page simulation is on)
+  /// must widen its box by this inset on each side and shift it back by one, or every element
+  /// would wrap [horizontalDocumentPaddingInset] pixels early on each side and no longer share the
+  /// raw preview's wrap columns.
+  static const double horizontalDocumentPaddingInset = 8;
 
   /// The vertical document padding used while page simulation is off (a small, fixed inset for
   /// the fluid, theme-following editing surface, top and bottom alike).
@@ -84,8 +90,8 @@ class OcptFountainEditorStylesheet {
 
     return Stylesheet(
       documentPadding: EdgeInsets.only(
-        left: _horizontalDocumentPaddingInset,
-        right: _horizontalDocumentPaddingInset,
+        left: horizontalDocumentPaddingInset,
+        right: horizontalDocumentPaddingInset,
         top: isPageSimulationEnabled ? layout.marginTop : _fluidVerticalDocumentPaddingInset,
         bottom: isPageSimulationEnabled ? trailingBottomPadding : _fluidVerticalDocumentPaddingInset,
       ),

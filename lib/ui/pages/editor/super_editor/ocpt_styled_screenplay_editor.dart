@@ -312,7 +312,16 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // width of that centering slack on the left, and half on the right, visibly swallowing the
     // right margin. The reserved `marginRight`-wide strip on the right stays part of the white
     // sheet (still `pageWidth` wide, painted by `_OcptPageSheetsPainter`), just with no text.
+    //
+    // The editor's box is additionally widened by the stylesheet's horizontal `documentPadding`
+    // inset on each side, and shifted back left by one inset, so that the *content area* left
+    // inside that padding — not the box itself — is what lands flush on the page's left edge and
+    // spans exactly the content width. Without this compensation the inset would eat into the width
+    // available to every block's `Styles.maxWidth`, silently clamping each element one inset
+    // narrower on each side, so the styled editor would wrap its text a couple of columns earlier
+    // than the raw preview typesets the very same line.
     final layout = OcptEditorPreviewLayout(metrics: metrics);
+    const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
     return ColoredBox(
       color: theme.colorScheme.surface,
       child: Center(
@@ -333,11 +342,21 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                   ),
                 ),
               ),
+              // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a `Transform`,
+              // rather than a `Positioned(left: -inset)`: the `Stack` sizes itself to its
+              // non-positioned children, so making every child positioned would leave it sizing to
+              // its incoming constraints instead, handing `SuperEditor` a differently-constrained
+              // viewport — which, in turn, breaks its IME connection (`editor_page_test.dart`'s
+              // "an edit made in styled mode survives switching back to raw mode" catches exactly
+              // that).
               Align(
                 alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: layout.pageWidth - layout.marginRight,
-                  child: editor,
+                child: Transform.translate(
+                  offset: const Offset(-inset, 0),
+                  child: SizedBox(
+                    width: layout.pageWidth - layout.marginRight + inset * 2,
+                    child: editor,
+                  ),
                 ),
               ),
             ],

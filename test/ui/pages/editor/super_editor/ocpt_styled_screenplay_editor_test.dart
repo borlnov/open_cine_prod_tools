@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
@@ -325,6 +326,59 @@ void main() {
       expect(_hasPageSheetsPainter(), isFalse);
     });
 
+    testWidgets(
+      "every element still spans its exact preview width, at its exact preview indent from the "
+      "page's left edge",
+      (tester) async {
+        // Wide enough for a full US Letter page to lay out unclipped at font size 13.
+        tester.view.physicalSize = const Size(1600, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(
+          tester,
+          "INT. HOUSE - DAY\n\nSome action text.\n\nSARAH\nHello there.",
+          isPageSimulationEnabled: true,
+        );
+
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        final metrics = layout.metrics;
+        final document = SuperEditorInspector.findDocument()!;
+
+        // The editor's box is deliberately shifted left by the stylesheet's horizontal
+        // `documentPadding` inset (see `OcptStyledScreenplayEditor.build`), so the page's own left
+        // edge sits exactly one inset to the right of the box's.
+        final pageLeft =
+            tester.getRect(find.byType(SuperEditor)).left +
+            OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+
+        // Blank source lines are folded into metadata, so nodes are dense: heading, action,
+        // character, dialogue.
+        final elementsByNodeIndex = [metrics.sceneHeading, metrics.action, metrics.character];
+
+        for (var index = 0; index < elementsByNodeIndex.length; index++) {
+          final element = elementsByNodeIndex[index];
+          final nodeId = document.getNodeAt(index)!.id;
+
+          // The whole point of the horizontal-inset compensation: page simulation must not shrink
+          // any element's wrap width, nor shift its indent, away from what the raw preview
+          // typesets the very same line at — otherwise the two modes would wrap the same text at
+          // different columns.
+          expect(
+            SuperEditorInspector.findComponentSize(nodeId).width,
+            closeTo(layout.widthOf(element), 0.5),
+            reason: "width of node $index",
+          );
+          expect(
+            SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft).dx - pageLeft,
+            closeTo(layout.indentOf(element), 0.5),
+            reason: "indent of node $index",
+          );
+        }
+      },
+    );
+
     testWidgets("toggling it on and off swaps the background painter accordingly", (tester) async {
       const text = "INT. HOUSE - DAY\n\nSome action text.";
 
@@ -399,23 +453,25 @@ void main() {
         final componentOffset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
         final componentSize = SuperEditorInspector.findComponentSize(nodeId);
 
-        // The editor's own box is exactly `pageWidth - marginRight` wide (the fix), left-aligned
-        // (`Alignment.topLeft`) within the full-`pageWidth` container `OcptStyledScreenplayEditor`
-        // wraps it in — so its own left edge IS the page's own left edge, with zero offset.
-        expect(editorRect.width, closeTo(layout.pageWidth - layout.marginRight, 1));
-        final pageLeftEdge = editorRect.left;
+        // The editor's box spans the page's content area (`pageWidth - marginRight`) widened by the
+        // stylesheet's horizontal `documentPadding` inset on each side, and is shifted left by one
+        // inset — so it's the *content area inside that padding*, not the box itself, that lands
+        // flush on the page's left edge (see `OcptStyledScreenplayEditor.build`). That compensation
+        // is what keeps every element at its exact preview width instead of one inset short per
+        // side.
+        const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+        expect(editorRect.width, closeTo(layout.pageWidth - layout.marginRight + inset * 2, 0.5));
+        final pageLeftEdge = editorRect.left + inset;
         final pageRightEdge = pageLeftEdge + layout.pageWidth;
 
-        // The action element's text should start `marginLeft` from the page's left edge, and end
-        // `marginRight` short of the page's right edge — same as the raw preview. The tolerance
-        // (10px) comfortably covers the stylesheet's own small, deliberate 8px horizontal
-        // `documentPadding` inset (kept non-zero for IME-connection safety, see
-        // `OcptFountainEditorStylesheet.build`'s own doc comment) while still being far tighter
-        // than the ~39px (`marginRight / 2`) the pre-fix centering bug produced on each side.
+        // The action element's text starts exactly `marginLeft` from the page's left edge and ends
+        // exactly `marginRight` short of its right edge — the very same numbers the raw preview
+        // typesets it at. Asserted to the half-pixel: the pre-fix centering bug put ~`marginRight /
+        // 2` of slack on each side, and the uncompensated `documentPadding` inset a further 8px.
         final leftGap = componentOffset.dx - pageLeftEdge;
         final rightGap = pageRightEdge - (componentOffset.dx + componentSize.width);
-        expect(leftGap, closeTo(layout.marginLeft, 10));
-        expect(rightGap, closeTo(layout.marginRight, 10));
+        expect(leftGap, closeTo(layout.marginLeft, 0.5));
+        expect(rightGap, closeTo(layout.marginRight, 0.5));
       },
     );
   });
