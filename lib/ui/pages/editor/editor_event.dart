@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 
 /// The events handled by `OcptEditorBloc`.
 sealed class OcptEditorEvent extends BlocEventForMixin {
@@ -160,6 +161,23 @@ class OcptEditorBackRequestedEvent extends OcptEditorEvent {
 class OcptEditorExportRequestedEvent extends OcptEditorEvent {
   /// Class constructor
   const OcptEditorExportRequestedEvent();
+}
+
+/// Requests exporting the current screenplay to a PDF file.
+///
+/// If the screenplay is dirty, it's saved first (tagged `OcptSnapshotReason.export`) so the
+/// exported PDF matches exactly what the project stores. [options] carries the one-off
+/// format/margins and content toggles picked in the export dialog.
+class OcptEditorExportPdfRequestedEvent extends OcptEditorEvent {
+  /// The options this export runs with.
+  final OcptPdfExportOptions options;
+
+  /// Class constructor
+  const OcptEditorExportPdfRequestedEvent({required this.options});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options];
 }
 
 /// Requests replacing the current screenplay text with the content of a picked `.fountain` file.

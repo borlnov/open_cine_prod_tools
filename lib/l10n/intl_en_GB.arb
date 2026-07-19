@@ -210,6 +210,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorExportPdfAction": "Export to PDF…",
+  "@editorExportPdfAction": {
+    "description": "Label of the action that exports the screenplay to a PDF file",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorImportAndReplaceAction": "Import and replace…",
   "@editorImportAndReplaceAction": {
     "description": "Label of the action that replaces the screenplay with an imported .fountain file",
@@ -385,6 +392,45 @@
   "editorExportError": "The screenplay could not be exported.",
   "@editorExportError": {
     "description": "Error shown when exporting the screenplay to a .fountain file failed",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfDialogTitle": "Export to PDF",
+  "@editorExportPdfDialogTitle": {
+    "description": "Title of the PDF export options dialog",
+    "context": "Displayed at the top of the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfSceneNumbersLabel": "Include scene numbers",
+  "@editorExportPdfSceneNumbersLabel": {
+    "description": "Label of the checkbox toggling scene numbers in the exported PDF",
+    "context": "Displayed inside the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfTitlePageLabel": "Include title page",
+  "@editorExportPdfTitlePageLabel": {
+    "description": "Label of the checkbox toggling the title page in the exported PDF",
+    "context": "Displayed inside the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfSuccessMessage": "Exported to {path}",
+  "@editorExportPdfSuccessMessage": {
+    "description": "Message shown when the screenplay was successfully exported to a PDF file",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "editorExportPdfError": "The screenplay could not be exported to PDF.",
+  "@editorExportPdfError": {
+    "description": "Error shown when exporting the screenplay to a PDF file failed",
     "context": "Displayed in a SnackBar on the editor page",
     "type": "text",
     "placeholders": {}

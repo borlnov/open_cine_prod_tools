@@ -42,6 +42,12 @@ enum OcptEditorIoNoticeKind {
 
   /// Importing a `.fountain` file to replace the screenplay text failed.
   importFailed,
+
+  /// The screenplay was successfully exported to a PDF file.
+  pdfExportSucceeded,
+
+  /// Exporting the screenplay to a PDF file failed.
+  pdfExportFailed,
 }
 
 /// A transient notice, produced by `OcptEditorBloc`, reporting the outcome of an export or an
@@ -51,7 +57,7 @@ class OcptEditorIoNotice extends Equatable {
   final OcptEditorIoNoticeKind kind;
 
   /// The path the screenplay was exported to, only set when [kind] is
-  /// [OcptEditorIoNoticeKind.exportSucceeded].
+  /// [OcptEditorIoNoticeKind.exportSucceeded] or [OcptEditorIoNoticeKind.pdfExportSucceeded].
   final String? path;
 
   /// Class constructor

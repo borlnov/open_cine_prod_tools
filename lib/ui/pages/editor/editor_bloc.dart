@@ -115,6 +115,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
     on<OcptEditorExportRequestedEvent>(_onExportRequested);
+    on<OcptEditorExportPdfRequestedEvent>(_onExportPdfRequested);
     on<OcptEditorImportRequestedEvent>(_onImportRequested);
     on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
@@ -368,6 +369,55 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       emitter(
         state.copyWith(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Exports the current screenplay to a PDF file.
+  ///
+  /// Saves the current text first (tagged [OcptSnapshotReason.export]) if it's dirty, so the
+  /// exported PDF matches exactly what the project stores. The document is re-parsed fresh from
+  /// [OcptEditorState.text] rather than reusing [OcptEditorState.document], since the latter lags
+  /// behind by the parse debounce. A cancelled save dialog is a silent no-op; a failure raises the
+  /// transient PDF-export-failed notice.
+  Future<void> _onExportPdfRequested(
+    OcptEditorExportPdfRequestedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    _parseTimer?.cancel();
+    _autosaveTimer?.cancel();
+
+    if (state.isDirty) {
+      await _saveCurrentText(reason: OcptSnapshotReason.export, emitter: emitter);
+    }
+
+    try {
+      final document = _fountainParser.parse(state.text);
+      final pageSetup = OcptPageSetup(format: event.options.format, margins: event.options.margins);
+      final path = await _exportManager.exportPdf(
+        document: document,
+        pageSetup: pageSetup,
+        projectName: state.title,
+        includeSceneNumbers: event.options.includeSceneNumbers,
+        includeTitlePage: event.options.includeTitlePage,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.pdfExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the screenplay of the project at "
+          "${_projectsManager.currentProject?.path} to PDF: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.pdfExportFailed),
         ),
       );
     }

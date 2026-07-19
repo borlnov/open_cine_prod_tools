@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
@@ -156,6 +157,7 @@ class _EditorViewState extends State<_EditorView> {
                   onExport: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorExportRequestedEvent(),
                   ),
+                  onExportPdf: () => _requestExportPdf(context),
                   onImportAndReplace: () => _requestImportAndReplace(context),
                   onTogglePageSimulation: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorPageSimulationToggledEvent(),
@@ -259,6 +261,21 @@ class _EditorViewState extends State<_EditorView> {
     bloc.add(OcptEditorPageSetupChangedEvent(pageSetup: setup));
   }
 
+  /// Shows the PDF export options dialog, then dispatches the export request if the user applied
+  /// it.
+  Future<void> _requestExportPdf(BuildContext context) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final options = await OcptEditorExportPdfOptionsDialog.show(context, current: bloc.state.pageSetup);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptEditorExportPdfRequestedEvent(options: options));
+  }
+
   /// Reports the controller's text and caret line changes to the bloc.
   void _onTextControllerChanged() {
     if (_isApplyingProgrammaticChange) {
@@ -349,6 +366,10 @@ class _EditorViewState extends State<_EditorView> {
       OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
       OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
       OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
+      OcptEditorIoNoticeKind.pdfExportSucceeded => tr.editorExportPdfSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptEditorIoNoticeKind.pdfExportFailed => tr.editorExportPdfError,
     };
   }
 

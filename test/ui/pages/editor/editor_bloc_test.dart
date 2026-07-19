@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -73,7 +74,7 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// export and import-and-replace paths without any real file dialog.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
-  _FakeExportManager({this.exportResult, this.importResult})
+  _FakeExportManager({this.exportResult, this.importResult, this.exportPdfResult})
     : super(
         fileSaverManager: const FileSaverManager(),
         fileSelectorManager: const FileSelectorManager(),
@@ -85,6 +86,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The model [pickAndReadFountain] returns, or null to simulate a cancelled open dialog.
   final OcptImportedFountainModel? importResult;
 
+  /// The path [exportPdf] returns, or null to simulate a cancelled save dialog.
+  final String? exportPdfResult;
+
   /// The text of the last [exportFountain] call.
   String? lastExportedText;
 
@@ -93,6 +97,21 @@ class _FakeExportManager extends OcptExportManager {
 
   /// The file type label of the last [pickAndReadFountain] call.
   String? lastImportFileTypeLabel;
+
+  /// The document of the last [exportPdf] call.
+  FountainDocument? lastExportedPdfDocument;
+
+  /// The page setup of the last [exportPdf] call.
+  OcptPageSetup? lastExportedPdfPageSetup;
+
+  /// The project name of the last [exportPdf] call.
+  String? lastExportedPdfProjectName;
+
+  /// The "include scene numbers" flag of the last [exportPdf] call.
+  bool? lastExportedPdfIncludeSceneNumbers;
+
+  /// The "include title page" flag of the last [exportPdf] call.
+  bool? lastExportedPdfIncludeTitlePage;
 
   @override
   Future<String?> exportFountain({
@@ -105,10 +124,46 @@ class _FakeExportManager extends OcptExportManager {
   }
 
   @override
+  Future<String?> exportPdf({
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required bool includeTitlePage,
+  }) async {
+    lastExportedPdfDocument = document;
+    lastExportedPdfPageSetup = pageSetup;
+    lastExportedPdfProjectName = projectName;
+    lastExportedPdfIncludeSceneNumbers = includeSceneNumbers;
+    lastExportedPdfIncludeTitlePage = includeTitlePage;
+    return exportPdfResult;
+  }
+
+  @override
   Future<OcptImportedFountainModel?> pickAndReadFountain({required String fileTypeLabel}) async {
     lastImportFileTypeLabel = fileTypeLabel;
     return importResult;
   }
+}
+
+/// An export manager whose [exportPdf] always throws, to exercise the bloc's PDF export failure
+/// path.
+class _ThrowingPdfExportManager extends OcptExportManager {
+  /// Class constructor
+  _ThrowingPdfExportManager()
+    : super(
+        fileSaverManager: const FileSaverManager(),
+        fileSelectorManager: const FileSelectorManager(),
+      );
+
+  @override
+  Future<String?> exportPdf({
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required bool includeTitlePage,
+  }) async => throw StateError("PDF export intentionally failed for the test");
 }
 
 void main() {
@@ -506,6 +561,110 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test(
+    'exporting a dirty screenplay to PDF saves it with the "export" reason and hands the '
+    'manager a document parsed from the current text, the project name, and the pageSetup built '
+    'from the event options',
+    () async {
+      final exportManager = _FakeExportManager(exportPdfResult: "/tmp/My Movie.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final formatBefore = await projectsManager.loadCurrentProjectPageFormat();
+      final marginsBefore = await propertiesManager.pageMargins.load();
+
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      await waitForState(bloc, (state) => state.isDirty);
+
+      // A format/margins deliberately different from `bloc.state.pageSetup`, to prove they're
+      // taken from the event's options rather than the live state.
+      const options = OcptPdfExportOptions(
+        format: OcptPageFormat.a4,
+        margins: FountainPageMargins(
+          leftInches: 2,
+          rightInches: 0.5,
+          topInches: 0.75,
+          bottomInches: 0.75,
+        ),
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
+      bloc.add(const OcptEditorExportPdfRequestedEvent(options: options));
+      final state = await waitForState(
+        bloc,
+        (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.pdfExportSucceeded,
+      );
+
+      expect(state.isDirty, isFalse);
+      expect(state.ioNotice?.path, "/tmp/My Movie.pdf");
+      expect(exportManager.lastExportedPdfProjectName, "My Movie");
+      expect(exportManager.lastExportedPdfDocument?.scenes.single.headingText, "INT. HOUSE - DAY");
+      expect(
+        exportManager.lastExportedPdfPageSetup,
+        OcptPageSetup(format: options.format, margins: options.margins),
+      );
+      expect(exportManager.lastExportedPdfIncludeSceneNumbers, isFalse);
+      expect(exportManager.lastExportedPdfIncludeTitlePage, isFalse);
+
+      final snapshots = await readSnapshots();
+      expect(snapshots.last.reason, OcptSnapshotReason.export);
+
+      // The PDF export's format/options choice is a one-off, export-time setting: it must never
+      // persist the project's page format or the app-wide margins.
+      expect(await projectsManager.loadCurrentProjectPageFormat(), formatBefore);
+      expect(await propertiesManager.pageMargins.load(), marginsBefore);
+
+      await bloc.close();
+    },
+  );
+
+  test('a cancelled PDF export dialog raises no notice', () async {
+    final exportManager = _FakeExportManager();
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptEditorExportPdfRequestedEvent(
+        options: OcptPdfExportOptions(
+          format: OcptPageFormat.usLetter,
+          margins: FountainPageMargins.standard(),
+          includeSceneNumbers: true,
+          includeTitlePage: true,
+        ),
+      ),
+    );
+    // No state change to wait for on a cancelled dialog: give the handler a beat to run.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failed PDF export raises the transient PDF export error', () async {
+    final exportManager = _ThrowingPdfExportManager();
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptEditorExportPdfRequestedEvent(
+        options: OcptPdfExportOptions(
+          format: OcptPageFormat.usLetter,
+          margins: FountainPageMargins.standard(),
+          includeSceneNumbers: true,
+          includeTitlePage: true,
+        ),
+      ),
+    );
+    final failedState = await waitForState(
+      bloc,
+      (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.pdfExportFailed,
+    );
+    expect(failedState.ioNotice?.path, isNull);
 
     await bloc.close();
   });

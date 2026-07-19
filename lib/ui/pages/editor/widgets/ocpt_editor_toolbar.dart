@@ -57,6 +57,9 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when "Export…" is chosen from the overflow menu.
   final VoidCallback onExport;
 
+  /// Called when "Export to PDF…" is chosen from the overflow menu.
+  final VoidCallback onExportPdf;
+
   /// Called when "Import and replace…" is chosen from the overflow menu.
   final VoidCallback onImportAndReplace;
 
@@ -88,6 +91,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.onTogglePreview,
     required this.onToggleMode,
     required this.onExport,
+    required this.onExportPdf,
     required this.onImportAndReplace,
     required this.onTogglePageSimulation,
     required this.onPageSetup,
@@ -175,6 +179,7 @@ class OcptEditorToolbar extends StatelessWidget {
               tooltip: MaterialLocalizations.of(context).showMenuTooltip,
               itemBuilder: (context) => [
                 PopupMenuItem<void>(onTap: onExport, child: Text(tr.editorExportAction)),
+                PopupMenuItem<void>(onTap: onExportPdf, child: Text(tr.editorExportPdfAction)),
                 PopupMenuItem<void>(
                   onTap: onImportAndReplace,
                   child: Text(tr.editorImportAndReplaceAction),
