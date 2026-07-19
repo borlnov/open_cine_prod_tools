@@ -6,8 +6,11 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
 class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
@@ -19,11 +22,11 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
   Iterable<Type> dependsOn() => [LoggerManager, FileSaverManager, FileSelectorManager];
 }
 
-/// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file.
+/// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
+/// or a PDF.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
-/// [fountainIoService], the service this manager owns (RFL18). Step 10 (PDF export) will hang its
-/// PDF method off this same manager.
+/// [fountainIoService] and [pdfExportService], the services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "save as" dialog when exporting.
   final FileSaverManager _fileSaverManager;
@@ -34,11 +37,15 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service converting Fountain files to and from text.
   final OcptFountainIoService fountainIoService;
 
+  /// The service rendering a screenplay PDF.
+  final OcptPdfExportService pdfExportService;
+
   /// Class constructor
   OcptExportManager({FileSaverManager? fileSaverManager, FileSelectorManager? fileSelectorManager})
     : _fileSaverManager = fileSaverManager ?? globalGetIt().get<FileSaverManager>(),
       _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
-      fountainIoService = const OcptFountainIoService();
+      fountainIoService = const OcptFountainIoService(),
+      pdfExportService = OcptPdfExportService();
 
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
   ///
@@ -49,6 +56,32 @@ class OcptExportManager extends AbsWithLifeCycle {
         fileName: fountainIoService.fountainFileName(projectName),
         bytes: fountainIoService.encodeFountainText(fountainText),
       );
+
+  /// Renders [document] into a PDF via [pdfExportService] and shows the native save dialog to
+  /// write it out.
+  ///
+  /// Returns the path of the written file, or null if the user cancelled or the save failed
+  /// (failures are logged; the OS dialog already reported them to the user).
+  Future<String?> exportPdf({
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required bool includeTitlePage,
+  }) async {
+    final bytes = await pdfExportService.generate(
+      document: document,
+      pageSetup: pageSetup,
+      projectName: projectName,
+      includeSceneNumbers: includeSceneNumbers,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _fileSaverManager.saveFileFromBytes(
+      fileName: pdfExportService.pdfFileName(projectName),
+      bytes: bytes,
+    );
+  }
 
   /// Shows the native open dialog, reads the picked `.fountain` file and decodes it.
   ///

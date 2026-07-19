@@ -110,6 +110,9 @@ dependencies:
   # doesn't declare, breaking compilation; dev.50 predates that override.
   super_editor: 0.3.0-dev.50
 
+  # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
+  pdf: ^3.12.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -139,6 +142,7 @@ flutter:
 
   assets:
     - assets/config/
+    - assets/fonts/courier_prime/
     - LICENSES/
     - actlibs/LICENSES/
 
