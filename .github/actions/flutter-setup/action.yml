@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Flutter Setup"
+description: "Set up Flutter with caching enabled and restore cached pub dependencies"
+outputs:
+  flutter-version:
+    description: "Resolved Flutter SDK version (as installed)"
+    value: ${{ steps.flutter-sdk.outputs.flutter-version }}
+
+runs:
+  using: "composite"
+  steps:
+    # -- Flutter SDK (cached) ----------------------------------------------
+    # Project default: update here to change it for all workflows
+    - name: Set up Flutter
+      id: flutter-sdk
+      uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+      with:
+        channel: stable
+        flutter-version: 3.41.9
+        cache: true
+
+    # -- Pub dependencies (cached) -----------------------------------------
+    - name: Get pub cache directory
+      id: pub-cache
+      shell: bash
+      run: |
+        if [[ -n "$PUB_CACHE" ]]; then
+          echo "dir=$PUB_CACHE" >> "$GITHUB_OUTPUT"
+        elif [[ "$RUNNER_OS" == "Windows" ]]; then
+          echo "dir=$LOCALAPPDATA/Pub/Cache" >> "$GITHUB_OUTPUT"
+        else
+          echo "dir=$HOME/.pub-cache" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Cache pub dependencies
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ steps.pub-cache.outputs.dir }}
+        # No branch in the key: GitHub already scopes cache access per branch,
+        # so identical lockfiles share one entry instead of per-branch copies.
+        key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          pub-${{ runner.os }}-

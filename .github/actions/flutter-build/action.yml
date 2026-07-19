@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Flutter Build"
+description: "Cache and build a Flutter app for a given target platform"
+
+inputs:
+  app-directory:
+    description: "Path to the Flutter app directory relative to the repository root"
+    required: false
+    default: "."
+  target-platform:
+    description: "Flutter build target platform (linux or windows)"
+    required: true
+  build-args:
+    description: "Additional arguments passed to flutter build (e.g. --dart-define)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    # -- Build (cached) ----------------------------------------------------
+    # Skipped on release tags so tagged artifacts always come from a clean
+    # build, never from restored incremental state.
+    - name: Cache Flutter build
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ inputs.app-directory }}/build/
+        # No branch in the key: GitHub already scopes cache access per branch,
+        # so identical sources share one entry instead of per-branch copies.
+        key: build-${{ runner.os }}-${{ inputs.target-platform }}-${{ hashFiles(format('{0}/lib/**', inputs.app-directory), format('{0}/pubspec.lock', inputs.app-directory)) }}
+        restore-keys: |
+          build-${{ runner.os }}-${{ inputs.target-platform }}-
+
+    - name: Build Flutter app
+      working-directory: ${{ inputs.app-directory }}
+      shell: bash
+      run: flutter build ${{ inputs.target-platform }} --release ${{ inputs.build-args }}

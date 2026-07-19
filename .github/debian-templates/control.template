@@ -1,0 +1,9 @@
+Package: {{PACKAGE_NAME}}
+Version: {{VERSION}}
+Section: misc
+Priority: optional
+Architecture: {{ARCHITECTURE}}
+Depends: {{DEPENDENCIES}}
+Maintainer: {{MAINTAINER}}
+Description: {{DESCRIPTION_SHORT}}
+ {{DESCRIPTION_LONG}}
