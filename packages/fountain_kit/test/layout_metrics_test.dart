@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
+import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
 import 'package:test/test.dart';
 
 /// Asserts that [value] is within a very small tolerance of [expected],
@@ -137,6 +138,114 @@ void main() {
         FountainLayoutMetrics.usLetter(),
         isNot(equals(FountainLayoutMetrics.a4())),
       );
+    });
+  });
+
+  group('FountainPageMargins', () {
+    test('standard() carries the documented values', () {
+      const margins = FountainPageMargins.standard();
+      _expectClose(margins.leftInches, 1.5);
+      _expectClose(margins.rightInches, 1);
+      _expectClose(margins.topInches, 1);
+      _expectClose(margins.bottomInches, 1);
+    });
+
+    test('copyWith overrides only the given fields', () {
+      const margins = FountainPageMargins.standard();
+      final wider = margins.copyWith(leftInches: 2);
+      _expectClose(wider.leftInches, 2);
+      _expectClose(wider.rightInches, margins.rightInches);
+      _expectClose(wider.topInches, margins.topInches);
+      _expectClose(wider.bottomInches, margins.bottomInches);
+    });
+
+    test('equal margins compare equal', () {
+      expect(
+        const FountainPageMargins.standard(),
+        const FountainPageMargins(
+          leftInches: 1.5,
+          rightInches: 1,
+          topInches: 1,
+          bottomInches: 1,
+        ),
+      );
+    });
+
+    test('different margins are not equal', () {
+      const margins = FountainPageMargins.standard();
+      expect(margins, isNot(equals(margins.copyWith(leftInches: 2))));
+    });
+  });
+
+  group('non-standard margins', () {
+    const margins = FountainPageMargins(
+      leftInches: 2,
+      rightInches: 0.5,
+      topInches: 2,
+      bottomInches: 0.5,
+    );
+    final metrics = FountainLayoutMetrics.usLetter(margins: margins);
+    final standardMetrics = FountainLayoutMetrics.usLetter();
+
+    test('printable width and height reflect the new margins', () {
+      // 8.5 - 2 - 0.5 = 6, 11 - 2 - 0.5 = 8.5
+      _expectClose(metrics.printableWidthInches, 6);
+      _expectClose(metrics.printableHeightInches, 8.5);
+    });
+
+    test('linesPerPage shifts with the new printable height', () {
+      expect(metrics.linesPerPage, 51);
+      expect(metrics.linesPerPage, isNot(equals(standardMetrics.linesPerPage)));
+    });
+
+    test('scene heading, action and transition move with the left margin', () {
+      _expectClose(metrics.sceneHeading.leftIndentInches, 2);
+      _expectClose(metrics.action.leftIndentInches, 2);
+      _expectClose(metrics.transition.leftIndentInches, 2);
+      _expectClose(metrics.sceneHeading.maxWidthInches, 6);
+      _expectClose(metrics.action.maxWidthInches, 6);
+      _expectClose(metrics.transition.maxWidthInches, 6);
+    });
+
+    test('centered text keeps the new printable width', () {
+      _expectClose(metrics.centeredText.maxWidthInches, 6);
+    });
+
+    test(
+      'character, parenthetical and dialogue indents stay fixed from the '
+      'page edge regardless of margins',
+      () {
+        _expectClose(metrics.character.leftIndentInches, 3.7);
+        _expectClose(metrics.parenthetical.leftIndentInches, 3.1);
+        _expectClose(metrics.dialogue.leftIndentInches, 2.5);
+        _expectClose(metrics.dialogue.maxWidthInches, 3.5);
+
+        _expectClose(
+          metrics.character.leftIndentInches,
+          standardMetrics.character.leftIndentInches,
+        );
+        _expectClose(
+          metrics.parenthetical.leftIndentInches,
+          standardMetrics.parenthetical.leftIndentInches,
+        );
+        _expectClose(
+          metrics.dialogue.leftIndentInches,
+          standardMetrics.dialogue.leftIndentInches,
+        );
+        _expectClose(
+          metrics.dialogue.maxWidthInches,
+          standardMetrics.dialogue.maxWidthInches,
+        );
+      },
+    );
+
+    test('a4() also accepts non-standard margins', () {
+      final a4Metrics = FountainLayoutMetrics.a4(margins: margins);
+      _expectClose(a4Metrics.marginLeftInches, 2);
+      _expectClose(a4Metrics.marginRightInches, 0.5);
+      _expectClose(a4Metrics.marginTopInches, 2);
+      _expectClose(a4Metrics.marginBottomInches, 0.5);
+      _expectClose(a4Metrics.character.leftIndentInches, 3.7);
     });
   });
 }

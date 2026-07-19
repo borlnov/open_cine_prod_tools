@@ -4,6 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 
+import 'fountain_page_margins.dart';
+
 /// The horizontal alignment of a printed screenplay element within its
 /// layout box.
 enum FountainLayoutAlignment {
@@ -75,10 +77,11 @@ class FountainElementLayout extends Equatable {
 /// 12-point Courier is a fixed-pitch font that, at the point size used for
 /// screenplays, sets 10 characters per inch horizontally and 6 lines per
 /// inch vertically; every measurement below is derived from those two
-/// constants plus the standard US screenplay page margins (1.5 inches on
-/// the left, to leave room for binding punches; 1 inch on the top, bottom
-/// and right) and the standard element indents measured from the *page's*
-/// left edge (not from the left margin):
+/// constants plus the page's [FountainPageMargins] (which default to the
+/// standard US screenplay margins: 1.5 inches on the left, to leave room for
+/// binding punches; 1 inch on the top, bottom and right) and the standard
+/// element indents measured from the *page's* left edge (not from the left
+/// margin), which stay fixed regardless of the margins:
 ///
 /// * Scene headings and action text start at the left margin and use the
 ///   full printable width.
@@ -119,13 +122,6 @@ class FountainLayoutMetrics extends Equatable {
   /// Millimeters per inch, used to derive [FountainLayoutMetrics.a4]'s page
   /// size from the ISO 216 A4 dimensions (210 mm by 297 mm).
   static const double _millimetersPerInch = 25.4;
-
-  /// The standard US screenplay left margin, in inches: wider than the
-  /// other three margins to leave room for three-hole-punch binding.
-  static const double _standardMarginLeftInches = 1.5;
-
-  /// The standard US screenplay top, bottom and right margin, in inches.
-  static const double _standardMarginInches = 1;
 
   /// 12-point Courier's horizontal pitch: 10 characters per inch.
   static const double _courierCharsPerInch = 10;
@@ -214,13 +210,18 @@ class FountainLayoutMetrics extends Equatable {
   double get printableHeightInches =>
       pageHeightInches - marginTopInches - marginBottomInches;
 
-  /// Builds the standard US Letter (8.5 by 11 inch) preset.
-  factory FountainLayoutMetrics.usLetter() => FountainLayoutMetrics._standard(
+  /// Builds the standard US Letter (8.5 by 11 inch) preset, with [margins]
+  /// defaulting to [FountainPageMargins.standard].
+  factory FountainLayoutMetrics.usLetter({
+    FountainPageMargins margins = const FountainPageMargins.standard(),
+  }) => FountainLayoutMetrics._standard(
     pageWidthInches: 8.5,
     pageHeightInches: 11,
+    margins: margins,
   );
 
-  /// Builds the standard ISO A4 (210 by 297 mm) preset.
+  /// Builds the standard ISO A4 (210 by 297 mm) preset, with [margins]
+  /// defaulting to [FountainPageMargins.standard].
   ///
   /// The page margins and element indents are kept identical, in inches, to
   /// [FountainLayoutMetrics.usLetter]: only A4's narrower/taller page
@@ -228,25 +229,36 @@ class FountainLayoutMetrics extends Equatable {
   /// elements that stretch to the printable area's right edge (scene
   /// heading, action, character, parenthetical, transition, centered text).
   /// Dialogue and lyrics keep their fixed 3.5-inch width either way.
-  factory FountainLayoutMetrics.a4() => FountainLayoutMetrics._standard(
+  factory FountainLayoutMetrics.a4({
+    FountainPageMargins margins = const FountainPageMargins.standard(),
+  }) => FountainLayoutMetrics._standard(
     pageWidthInches: 210 / _millimetersPerInch,
     pageHeightInches: 297 / _millimetersPerInch,
+    margins: margins,
   );
 
   /// Builds a [FountainLayoutMetrics] for a page of [pageWidthInches] by
-  /// [pageHeightInches], using the standard US screenplay margins, element
+  /// [pageHeightInches], typeset with [margins] and the standard element
   /// indents and Courier 12 pitch documented on this class.
   factory FountainLayoutMetrics._standard({
     required double pageWidthInches,
     required double pageHeightInches,
+    required FountainPageMargins margins,
   }) {
-    const marginLeft = _standardMarginLeftInches;
-    const marginRight = _standardMarginInches;
-    const marginTop = _standardMarginInches;
-    const marginBottom = _standardMarginInches;
+    final marginLeft = margins.leftInches;
+    final marginRight = margins.rightInches;
+    final marginTop = margins.topInches;
+    final marginBottom = margins.bottomInches;
     final printableWidth = pageWidthInches - marginLeft - marginRight;
     final printableHeight = pageHeightInches - marginTop - marginBottom;
     final rightEdge = pageWidthInches - marginRight;
+
+    assert(
+      printableWidth > 0 && printableHeight > 0,
+      'Margins must leave a strictly positive printable width and height: '
+      'got ${printableWidth}in by ${printableHeight}in for a '
+      '${pageWidthInches}in by ${pageHeightInches}in page with $margins.',
+    );
 
     FountainElementLayout fullWidthLeftAligned(double leftIndent) =>
         _elementLayout(
