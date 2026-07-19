@@ -5,6 +5,7 @@
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
+import 'package:act_licenses_manager/act_licenses_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/widgets.dart';
@@ -36,6 +37,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
   Future<void> registerManagers() async {
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
+    registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>());
     registerManagerAsync<OcptPropertiesManager>(const OcptPropertiesManagerBuilder());
     registerManagerAsync<LocalesManager>(
       LocalesManagerBuilder<OcptConfigManager, OcptPropertiesManager>(

@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_local_storage_manager/act_local_storage_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 
@@ -24,7 +25,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// This is the properties manager of the app.
 ///
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
-/// brightness, it stores the list of recently opened projects and the preferred editor mode.
+/// brightness, it stores the list of recently opened projects, the preferred editor mode and the
+/// app-wide page margins preference.
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -53,6 +55,33 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`
   /// (page simulation is on by default).
   final isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED");
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.leftInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginLeftKey = "leftInches";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.rightInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginRightKey = "rightInches";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.topInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginTopKey = "topInches";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.bottomInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginBottomKey = "bottomInches";
+
+  /// This is the key used to store the app-wide page margins preference in the local storage.
+  ///
+  /// Margins are a rendering preference shared by every project (unlike the page format, which is
+  /// stored per project in `project_info.pageFormat`). Loading it returns null if nothing has been
+  /// stored yet, which is equivalent to `FountainPageMargins.standard()`, applied at the call site.
+  final pageMargins = SharedPrefsItemWithParser<FountainPageMargins, String>(
+    "PAGE_MARGINS",
+    parser: _parsePageMargins,
+    castTo: _castPageMargins,
+  );
 
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///
@@ -114,4 +143,57 @@ class OcptPropertiesManager extends AbstractPropertiesManager
         "mode, we can't convert it");
     return null;
   }
+
+  /// Parse the [value] stored in the local storage to the app-wide page margins.
+  ///
+  /// Returns null if the [value] isn't a valid JSON object holding the four margins.
+  static FountainPageMargins? _parsePageMargins(String value) {
+    final json = JsonUtility.parseJsonBodyToObj(value, logger: appLogger());
+    if (json == null) {
+      appLogger().w("The page margins stored in the local storage isn't a JSON object, we can't "
+          "convert it");
+      return null;
+    }
+
+    final leftResult = JsonUtility.getOnePrimaryElement<double>(
+      json: json,
+      key: _marginLeftKey,
+      logger: appLogger(),
+    );
+    final rightResult = JsonUtility.getOnePrimaryElement<double>(
+      json: json,
+      key: _marginRightKey,
+      logger: appLogger(),
+    );
+    final topResult = JsonUtility.getOnePrimaryElement<double>(
+      json: json,
+      key: _marginTopKey,
+      logger: appLogger(),
+    );
+    final bottomResult = JsonUtility.getOnePrimaryElement<double>(
+      json: json,
+      key: _marginBottomKey,
+      logger: appLogger(),
+    );
+
+    if (!leftResult.isOk || !rightResult.isOk || !topResult.isOk || !bottomResult.isOk) {
+      appLogger().w("A problem occurred when tried to get the page margins from the given JSON");
+      return null;
+    }
+
+    return FountainPageMargins(
+      leftInches: leftResult.value!,
+      rightInches: rightResult.value!,
+      topInches: topResult.value!,
+      bottomInches: bottomResult.value!,
+    );
+  }
+
+  /// Cast the page margins to the JSON string representation stored in the local storage.
+  static String? _castPageMargins(FountainPageMargins value) => jsonEncode({
+    _marginLeftKey: value.leftInches,
+    _marginRightKey: value.rightInches,
+    _marginTopKey: value.topInches,
+    _marginBottomKey: value.bottomInches,
+  });
 }

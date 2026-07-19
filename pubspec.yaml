@@ -49,6 +49,9 @@ dependencies:
   # Generates the stable ids of screenplays, snapshots and scenes
   uuid: ^4.5.1
 
+  # Opens the GitHub repository link in the system browser
+  url_launcher: ^6.3.2
+
   act_config_manager:
     path: actlibs/act_config_manager
 
@@ -78,6 +81,9 @@ dependencies:
 
   act_intl_ui:
     path: actlibs/act_intl_ui
+
+  act_licenses_manager:
+    path: actlibs/act_licenses_manager
 
   act_life_cycle:
     path: actlibs/act_life_cycle
@@ -133,6 +139,8 @@ flutter:
 
   assets:
     - assets/config/
+    - LICENSES/
+    - actlibs/LICENSES/
 
   fonts:
     - family: CourierPrime

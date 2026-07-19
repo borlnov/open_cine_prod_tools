@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
@@ -108,6 +109,33 @@ void main() {
       await manager.editorMode.store(OcptEditorMode.raw);
 
       expect(await manager.editorMode.load(), OcptEditorMode.raw);
+    });
+  });
+
+  group('OcptPropertiesManager.pageMargins', () {
+    test('is null by default, which means FountainPageMargins.standard() applies', () async {
+      expect(await manager.pageMargins.load(), isNull);
+    });
+
+    test('round trips through the local storage', () async {
+      const margins = FountainPageMargins(
+        leftInches: 2,
+        rightInches: 1.25,
+        topInches: 0.75,
+        bottomInches: 1.5,
+      );
+
+      await manager.pageMargins.store(margins);
+
+      expect(await manager.pageMargins.load(), margins);
+    });
+
+    test('round trips the standard margins', () async {
+      const margins = FountainPageMargins.standard();
+
+      await manager.pageMargins.store(margins);
+
+      expect(await manager.pageMargins.load(), margins);
     });
   });
 }

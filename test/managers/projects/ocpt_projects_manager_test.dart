@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -132,6 +133,31 @@ void main() {
     final result = await manager.openProject(filePath: filePath);
 
     expect(result.status, OcptProjectStatus.corruptedFile);
+    expect(manager.currentProject, isNull);
+  });
+
+  test(
+    'saveCurrentProjectPageFormat writes the format, loadCurrentProjectPageFormat reads it back',
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      final initialFormat = await manager.loadCurrentProjectPageFormat();
+      final otherFormat = initialFormat == OcptPageFormat.usLetter
+          ? OcptPageFormat.a4
+          : OcptPageFormat.usLetter;
+
+      await manager.saveCurrentProjectPageFormat(otherFormat);
+
+      expect(await manager.loadCurrentProjectPageFormat(), otherFormat);
+    },
+  );
+
+  test('saveCurrentProjectPageFormat is a no-op when no project is open', () async {
+    await expectLater(
+      manager.saveCurrentProjectPageFormat(OcptPageFormat.a4),
+      completes,
+    );
     expect(manager.currentProject, isNull);
   });
 }

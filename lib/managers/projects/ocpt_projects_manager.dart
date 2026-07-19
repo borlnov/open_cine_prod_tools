@@ -10,6 +10,7 @@ import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -266,6 +267,22 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         .select(project.database.ocptProjectInfoTable)
         .getSingleOrNull();
     return info?.pageFormat;
+  }
+
+  /// Updates the page format stored in the [currentProject]'s `project_info` table. Does nothing if
+  /// no project is currently open.
+  ///
+  /// This is the first write to `project_info` after the project is created: [createProject] seeds
+  /// it once, and this is the only path that ever changes it afterwards.
+  Future<void> saveCurrentProjectPageFormat(OcptPageFormat format) async {
+    final project = currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
   }
 
   /// Closes the [currentProject], disposing its database handle. Does nothing if no project is

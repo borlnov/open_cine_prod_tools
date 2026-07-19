@@ -16,3 +16,24 @@ logs:
 
     # Indicates if the console logger keeps printing logs when the app runs in release mode.
     printInRelease: false
+
+# Contains the parameters read by the act_licenses_manager package.
+licenses:
+  # The extra elements (app, ACT packages, fonts, ...) and their licenses, on top of the
+  # dependencies Flutter's own license registry already knows about.
+  extraElements:
+    Open Cine Prod Tools:
+      - Apache-2.0
+      - CC0-1.0
+    ACT packages:
+      - LicenseRef-ALLCircuits-ACT-1.1
+      - CC0-1.0
+      - MIT
+      - LicenseRef-DartProjectAuthors
+    Courier Prime:
+      - OFL-1.1
+
+  # The assets folders to look for the license texts, declared as Flutter assets in pubspec.yaml.
+  assetsFolders:
+    - LICENSES
+    - actlibs/LICENSES
