@@ -8,6 +8,7 @@ library;
 
 export 'src/layout/fountain_layout_metrics.dart';
 export 'src/layout/fountain_page_margins.dart';
+export 'src/layout/fountain_script_composer.dart';
 export 'src/models/fountain_block.dart';
 export 'src/models/fountain_document.dart';
 export 'src/models/fountain_inline_span.dart';
