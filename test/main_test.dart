@@ -14,7 +14,6 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -78,8 +77,8 @@ void main() {
     expect(find.text(Tr.of(context).editorPreviewEmptyHint), findsOneWidget);
   });
 
-  testWidgets('SettingsPage builds', (WidgetTester tester) async {
-    await tester.pumpWidget(_wrapWithLocalization(const SettingsPage()));
-    expect(find.byType(SettingsPage), findsOneWidget);
-  });
+  // SettingsPage's own coverage lives in test/ui/pages/settings/settings_page_test.dart: unlike
+  // EditorPage above, its BlocProvider defaults to `OcptSettingsBloc()`, which resolves
+  // OcptGlobalManager.instance.packageInfo - a late field only ever set by the real app boot's
+  // PackageInfo.fromPlatform(), which isn't available in this suite's manager setup.
 }

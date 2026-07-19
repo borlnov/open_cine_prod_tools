@@ -16,11 +16,15 @@ class OcptHomeHeader extends StatelessWidget {
   /// Called when the user taps the "Import a screenplay…" action.
   final VoidCallback onImportScreenplay;
 
+  /// Called when the user taps the settings gear action.
+  final VoidCallback onOpenSettings;
+
   /// Class constructor
   const OcptHomeHeader({
     required this.onNewProject,
     required this.onOpenProject,
     required this.onImportScreenplay,
+    required this.onOpenSettings,
     super.key,
   });
 
@@ -34,6 +38,12 @@ class OcptHomeHeader extends StatelessWidget {
           child: Text(tr.appTitle, style: Theme.of(context).textTheme.headlineSmall),
         ),
         const SizedBox(width: 16),
+        IconButton(
+          onPressed: onOpenSettings,
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: tr.homeSettingsTooltip,
+        ),
+        const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: onImportScreenplay,
           icon: const Icon(Icons.file_download_outlined),

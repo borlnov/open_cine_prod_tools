@@ -158,6 +158,7 @@ void main() {
         onNewProject: () {},
         onOpenProject: () {},
         onImportScreenplay: () => tapped = true,
+        onOpenSettings: () {},
       ),
     );
 

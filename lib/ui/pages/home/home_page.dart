@@ -2,10 +2,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async' show unawaited;
+
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
@@ -47,6 +52,7 @@ class _HomeView extends StatelessWidget {
                 onNewProject: () => _requestNewProject(context),
                 onOpenProject: () => _requestOpenProject(context),
                 onImportScreenplay: () => _requestImportScreenplay(context),
+                onOpenSettings: () => _requestOpenSettings(context),
               ),
               const SizedBox(height: 24),
               Expanded(
@@ -141,5 +147,14 @@ class _HomeView extends StatelessWidget {
         fountainFileTypeLabel: Tr.of(context).homeImportFileTypeLabel,
       ),
     );
+  }
+
+  /// Navigates to the settings page.
+  ///
+  /// Unlike the other actions above, this is a plain page push with no async work or result to
+  /// wait on, so it goes straight through the router manager instead of round-tripping through
+  /// [OcptHomeBloc].
+  void _requestOpenSettings(BuildContext context) {
+    unawaited(globalGetIt().get<OcptRouterManager>().push(OcptRoute.settings));
   }
 }

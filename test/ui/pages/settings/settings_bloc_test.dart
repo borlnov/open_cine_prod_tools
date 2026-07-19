@@ -1,0 +1,183 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:async';
+import 'dart:ui' show Brightness, Locale;
+
+import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_intl/act_intl.dart';
+import 'package:act_intl_ui/act_intl_ui.dart';
+import 'package:act_themes_manager/act_themes_manager.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_state.dart';
+
+/// A locales manager whose current/wanted locale are held in plain fields instead of being
+/// backed by real config/properties managers: this test only exercises
+/// [MixinSetWantedLocaleBloc]'s reaction to [NewLocaleWantedByUserEvent], never the manager's own
+/// persistence or system-locale resolution.
+class _FakeLocalesManager extends LocalesManager {
+  /// Class constructor
+  _FakeLocalesManager()
+    : super(
+        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+      );
+
+  /// The stream backing [currentLocaleStream]; never emits in this fake since no test exercises a
+  /// system-locale change.
+  final _currentLocaleCtrl = StreamController<Locale>.broadcast();
+
+  /// The locale returned by [currentLocale].
+  final Locale _current = const Locale("en", "GB");
+
+  /// The locale returned by [wantedLocale].
+  Locale? _wanted;
+
+  @override
+  Locale get currentLocale => _current;
+
+  @override
+  Stream<Locale> get currentLocaleStream => _currentLocaleCtrl.stream;
+
+  @override
+  Locale? get wantedLocale => _wanted;
+
+  @override
+  set wantedLocale(Locale? newLocale) => _wanted = newLocale;
+
+  /// Closes the stream backing this fake, for tidy test teardown.
+  Future<void> disposeFake() => _currentLocaleCtrl.close();
+}
+
+/// A themes manager whose current theme/brightness are held in plain fields instead of being
+/// backed by real config/properties managers: this test only exercises
+/// [MixinActThemesBloc]'s reaction to [AskToUpdateBrightnessEvent].
+class _FakeActThemesManager extends ActThemesManager {
+  /// Class constructor
+  _FakeActThemesManager()
+    : super(
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+        appThemes: OcptAppTheme.values,
+      );
+
+  /// The stream backing [currentThemeStream]; never emits in this fake since no test exercises a
+  /// theme change (the app has a single theme).
+  final _themeCtrl = StreamController<MixinActThemes>.broadcast();
+
+  /// The stream backing [brightnessStream], fed by [setBrightness].
+  final _brightnessCtrl = StreamController<Brightness?>.broadcast();
+
+  /// The theme returned by [currentTheme].
+  MixinActThemes _theme = OcptAppTheme.standard;
+
+  /// The brightness returned by [brightness].
+  Brightness? _brightness;
+
+  @override
+  MixinActThemes get currentTheme => _theme;
+
+  @override
+  Stream<MixinActThemes> get currentThemeStream => _themeCtrl.stream;
+
+  @override
+  Brightness? get brightness => _brightness;
+
+  @override
+  Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
+
+  @override
+  Future<void> setBrightness({required Brightness? newBrightness}) async {
+    _brightness = newBrightness;
+    _brightnessCtrl.add(newBrightness);
+  }
+
+  @override
+  Future<void> setCurrentTheme({required MixinActThemes newTheme}) async {
+    _theme = newTheme;
+    _themeCtrl.add(newTheme);
+  }
+
+  /// Closes the streams backing this fake, for tidy test teardown.
+  Future<void> disposeFake() async {
+    await _themeCtrl.close();
+    await _brightnessCtrl.close();
+  }
+}
+
+void main() {
+  setUpAll(() {
+    // Makes appLogger() (used by the bloc's mixins) resolvable, like the home bloc test does.
+    OcptGlobalManager.instance;
+  });
+
+  setUp(() async {
+    // MixinSetWantedLocaleBloc/MixinActThemesBloc resolve their manager directly from
+    // globalGetIt() (no constructor injection), so fresh fakes are registered before every test
+    // to keep them isolated from one another.
+    final managers = globalGetIt();
+    if (managers.isRegistered<LocalesManager>()) {
+      await managers.unregister<LocalesManager>();
+    }
+    if (managers.isRegistered<ActThemesManager>()) {
+      await managers.unregister<ActThemesManager>();
+    }
+
+    final locales = _FakeLocalesManager();
+    final themes = _FakeActThemesManager();
+    addTearDown(locales.disposeFake);
+    addTearDown(themes.disposeFake);
+
+    managers.registerSingleton<LocalesManager>(locales);
+    managers.registerSingleton<ActThemesManager>(themes);
+  });
+
+  /// Waits for the first state of [bloc] matching [predicate] (the current one included).
+  Future<OcptSettingsState> waitForState(
+    OcptSettingsBloc bloc,
+    bool Function(OcptSettingsState state) predicate,
+  ) async {
+    if (predicate(bloc.state)) {
+      return bloc.state;
+    }
+
+    return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
+  }
+
+  test("carries the injected app version instead of resolving PackageInfo.fromPlatform()", () async {
+    final bloc = OcptSettingsBloc(appVersion: "9.9.9");
+
+    expect(bloc.state.appVersion, "9.9.9");
+
+    await bloc.close();
+  });
+
+  test("dispatching AskToUpdateBrightnessEvent updates state.brightness", () async {
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+    expect(bloc.state.brightness, isNull);
+
+    bloc.add(const AskToUpdateBrightnessEvent(newBrightness: Brightness.dark));
+    final state = await waitForState(bloc, (state) => state.brightness == Brightness.dark);
+
+    expect(state.brightness, Brightness.dark);
+
+    await bloc.close();
+  });
+
+  test("dispatching NewLocaleWantedByUserEvent updates state.wantedLocale", () async {
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+    expect(bloc.state.wantedLocale, isNull);
+
+    bloc.add(const NewLocaleWantedByUserEvent(wantedLocale: Locale("fr")));
+    final state = await waitForState(bloc, (state) => state.wantedLocale == const Locale("fr"));
+
+    expect(state.wantedLocale, const Locale("fr"));
+
+    await bloc.close();
+  });
+}

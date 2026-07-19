@@ -298,6 +298,94 @@
     "type": "text",
     "placeholders": {}
   },
+  "settingsAppearanceSectionTitle": "Appearance",
+  "@settingsAppearanceSectionTitle": {
+    "description": "Title of the settings page's appearance section",
+    "context": "Displayed at the top of the appearance section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeLabel": "Theme",
+  "@settingsThemeLabel": {
+    "description": "Label of the theme (brightness) dropdown",
+    "context": "Displayed next to the brightness dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeSystemOption": "System",
+  "@settingsThemeSystemOption": {
+    "description": "Label of the option that follows the system brightness",
+    "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeLightOption": "Light",
+  "@settingsThemeLightOption": {
+    "description": "Label of the option that forces the light brightness",
+    "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeDarkOption": "Dark",
+  "@settingsThemeDarkOption": {
+    "description": "Label of the option that forces the dark brightness",
+    "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsLanguageSectionTitle": "Language",
+  "@settingsLanguageSectionTitle": {
+    "description": "Title of the settings page's language section",
+    "context": "Displayed at the top of the language section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsLanguageLabel": "Language",
+  "@settingsLanguageLabel": {
+    "description": "Label of the language dropdown",
+    "context": "Displayed next to the language dropdown in the language section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsLanguageSystemOption": "System",
+  "@settingsLanguageSystemOption": {
+    "description": "Label of the option that follows the system language",
+    "context": "Displayed as an item of the language dropdown in the language section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAboutSectionTitle": "About",
+  "@settingsAboutSectionTitle": {
+    "description": "Title of the settings page's about section",
+    "context": "Displayed at the top of the about section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAboutVersionLabel": "Version {version}",
+  "@settingsAboutVersionLabel": {
+    "description": "Version of the application",
+    "context": "Displayed in the about section of the settings page",
+    "type": "text",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAboutGithubRepositoryAction": "GitHub repository",
+  "@settingsAboutGithubRepositoryAction": {
+    "description": "Label of the action that opens the GitHub repository in the system browser",
+    "context": "Displayed as a row in the about section of the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAboutLicensesAction": "Third-party licenses",
+  "@settingsAboutLicensesAction": {
+    "description": "Label of the action that opens the third-party licenses page",
+    "context": "Displayed as a row in the about section of the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "fatalErrorTitle": "Something went wrong while starting the app",
   "@fatalErrorTitle": {
     "description": "Title of the fatal error page",
@@ -309,6 +397,13 @@
   "@fatalErrorMessage": {
     "description": "Message of the fatal error page",
     "context": "Displayed when the global manager fails to initialize, below the fatal error title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeSettingsTooltip": "Settings",
+  "@homeSettingsTooltip": {
+    "description": "Tooltip of the gear action that opens the settings page",
+    "context": "Displayed on hover over the gear icon of the home page header",
     "type": "text",
     "placeholders": {}
   },

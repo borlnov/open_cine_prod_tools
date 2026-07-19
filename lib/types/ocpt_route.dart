@@ -13,7 +13,10 @@ enum OcptRoute with MixinRoute {
   editor,
 
   /// The settings page
-  settings;
+  settings,
+
+  /// The third-party licenses page
+  licenses;
 
   /// {@macro act_router_manager.MixinRoute.parent}
   @override
