@@ -41,24 +41,27 @@ breakdown, and a casting tracker.
 
 ## Development plan & status
 
-| Step | Content | Status |
-| --- | --- | --- |
-| 0 | Devcontainer (Debian trixie, Flutter 3.41.9, git from source, reuse) | ✅ |
-| 1 | Repo reset (purge legacy code, `flutter create`, Apache-2.0/REUSE) | ✅ |
-| 2 | `actlibs/` submodule + global/config/logger managers | ✅ |
-| 3 | Routing, theming, l10n (en_GB + fr) | ✅ |
-| 4 | Properties manager (recent projects, locale, theme, editor mode) | ✅ |
-| 5 | `packages/fountain_kit` (parser, serializer, layout metrics, tests) | ✅ |
-| 6 | drift database + projects manager + home page | ✅ |
-| 7 | Editor raw mode + side-by-side screenplay preview | ✅ |
-| 8 | Editor styled block mode (super_editor, real page layout) | ✅ |
-| R1-R3 | Review fixes: `OcptSpecificColors` file, SPDX email, dialogs via router manager | ✅ (`411d9b1`, `4d6835d`, `59e52e1`) |
-| R4 | Review fix: editor toolbar back navigation (flush save → close project → pop) | ✅ (`a788bdf`) |
-| 8b | Styled mode rework: true WYSIWYG editor (hidden Fountain markers, block-type dropdown + Tab cycle + smart Enter, B/I/U, sticky manual types) — milestones M1-M6 in `docs/plans/wysiwyg-styled-editor.md` | ✅ |
-| 9 | `.fountain` import/export (export manager + fountain IO service, home "Import a screenplay…" action, editor `⋮` menu with export / import-and-replace, pre-import snapshot) | ✅ |
-| 10 | PDF screenplay export (`pdf` package, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title page) | ⬜ |
-| 11 | Settings page (language system/en/fr via act_intl_ui, theme system/light/dark via `ActThemesManager`, about section) | ⬜ |
-| 12 | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation) | ⬜ |
+| Step  | Content                                                                                                                                                                                                  | Status                              |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 0     | Devcontainer (Debian trixie, Flutter 3.41.9, git from source, reuse)                                                                                                                                     | ✅                                   |
+| 1     | Repo reset (purge legacy code, `flutter create`, Apache-2.0/REUSE)                                                                                                                                       | ✅                                   |
+| 2     | `actlibs/` submodule + global/config/logger managers                                                                                                                                                     | ✅                                   |
+| 3     | Routing, theming, l10n (en_GB + fr)                                                                                                                                                                      | ✅                                   |
+| 4     | Properties manager (recent projects, locale, theme, editor mode)                                                                                                                                         | ✅                                   |
+| 5     | `packages/fountain_kit` (parser, serializer, layout metrics, tests)                                                                                                                                      | ✅                                   |
+| 6     | drift database + projects manager + home page                                                                                                                                                            | ✅                                   |
+| 7     | Editor raw mode + side-by-side screenplay preview                                                                                                                                                        | ✅                                   |
+| 8     | Editor styled block mode (super_editor, real page layout)                                                                                                                                                | ✅                                   |
+| R1-R3 | Review fixes: `OcptSpecificColors` file, SPDX email, dialogs via router manager                                                                                                                          | ✅ (`411d9b1`, `4d6835d`, `59e52e1`) |
+| R4    | Review fix: editor toolbar back navigation (flush save → close project → pop)                                                                                                                            | ✅ (`a788bdf`)                       |
+| 8b    | Styled mode rework: true WYSIWYG editor (hidden Fountain markers, block-type dropdown + Tab cycle + smart Enter, B/I/U, sticky manual types) — milestones M1-M6 in `docs/plans/wysiwyg-styled-editor.md` | ✅                                   |
+| 9     | `.fountain` import/export (export manager + fountain IO service, home "Import a screenplay…" action, editor `⋮` menu with export / import-and-replace, pre-import snapshot)                              | ✅                                   |
+| 9b    | Editor polish & page simulation (styled widths/Tab/dropdown/uppercase, preview fit-to-width, toggle icons, Word-like page mode — milestones M1-M7 in `docs/plans/editor-polish-and-page-simulation.md`)  | ✅                                   |
+| 10    | Settings page (language system/en/fr via act_intl_ui, theme system/light/dark via `ActThemesManager`, page-setup settings (page size + margins), about section)                                          | ✅                                   |
+| 11    | PDF screenplay export (`pdf` package, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title page)          | ⬜                                   |
+| 12    | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation)                                                                     | ⬜                                   |
+| 13    | Editor statistics (page count, character count, last autosave time)                                                                                                                                      | ⬜                                   |
+| 14    | Fountain syntax user guide (raw mode help: tags/elements to create blocks)                                                                                                                               | ⬜                                   |
 
 ## Ways of working
 
@@ -91,7 +94,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
   resolved via `globalGetIt()`.
-- Routes: `enum OcptRoute with MixinRoute { home, editor, settings }` +
+- Routes: `enum OcptRoute with MixinRoute { home, editor, settings, licenses }` +
   `OcptRouterManager extends AbstractRouterManager<OcptRoute>` (go_router underneath).
   **Never use `Navigator` directly** — all navigation, including closing dialogs, goes through
   `globalGetIt().get<OcptRouterManager>()` (`push`, `pop`, `pop<T>(result)`…). The editor
@@ -99,7 +102,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 - Config: `OcptConfigManager` (yaml assets in `assets/config/`), properties persisted through
-  `OcptPropertiesManager` (recent projects capped at 10, locale, theme, editor mode).
+  `OcptPropertiesManager` (recent projects capped at 10, locale, theme, editor mode, page
+  margins).
+- Licenses: `ActLicensesManager` (`actlibs/act_licenses_manager`) is registered via
+  `registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>())` right
+  after `LoggerManager`; `OcptConfigManager` mixes in `MixinLicensesConfig`, sourced from the
+  `licenses:` block of `assets/config/default.yaml`. It feeds Flutter's `LicenseRegistry`,
+  shown through the stock `LicensePage` mounted on `OcptRoute.licenses` (never
+  `showLicensePage()`, which uses `Navigator` directly).
+- Page setup: `OcptPageSetup` (`lib/models/ocpt_page_setup.dart`) pairs the page format (a
+  property of the project, `project_info.pageFormat`, written through
+  `OcptProjectsManager.saveCurrentProjectPageFormat`) with the margins (an app-wide rendering
+  preference, `OcptPropertiesManager.pageMargins`). `OcptPageSetup.toMetrics()` is the single
+  switch-over-format entry point every call site uses to get a `FountainLayoutMetrics`.
 - Theme: `ActThemesManager` with `OcptAppTheme.standard`; theme constants in
   `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/`.
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
