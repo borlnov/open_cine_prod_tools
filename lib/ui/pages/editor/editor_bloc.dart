@@ -118,6 +118,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorExportPdfRequestedEvent>(_onExportPdfRequested);
     on<OcptEditorImportRequestedEvent>(_onImportRequested);
     on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
+    on<OcptEditorTitlePageChangedEvent>(_onTitlePageChanged);
   }
 
   /// Loads the current project's screenplay text, title and page format, and parses the text,
@@ -487,6 +488,63 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(state.copyWith(clearIoNotice: true));
+  }
+
+  /// A placeholder source range for the title-page entries built from a title-page change event's
+  /// fields: [FountainTitlePageWriter] only reads an entry's key and values, never its source
+  /// range, so this stands in without needing a real one.
+  static const _placeholderTitlePageEntryRange = FountainSourceRange(
+    startLine: 0,
+    endLine: 0,
+    startOffset: 0,
+    endOffset: 0,
+  );
+
+  /// Rewrites the screenplay's title-page section from [event]'s six fields, saves the result
+  /// (tagged [OcptSnapshotReason.manual]), and re-parses it.
+  ///
+  /// Reuses [_saveCurrentText] for the save itself, so a failure surfaces through the same
+  /// [OcptEditorState.hasSaveError] path a normal edit's save would.
+  Future<void> _onTitlePageChanged(
+    OcptEditorTitlePageChangedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final entries = _titlePageEntriesFrom(event);
+    final newText = const FountainTitlePageWriter().apply(
+      source: state.text,
+      existingRange: state.document?.titlePage?.sourceRange,
+      entries: entries,
+    );
+    if (newText == state.text) {
+      return;
+    }
+
+    _parseTimer?.cancel();
+    emitter(state.copyWith(text: newText));
+    await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
+    await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
+  }
+
+  /// Builds the title-page entries [event] describes, skipping every field left blank.
+  List<FountainTitlePageEntry> _titlePageEntriesFrom(OcptEditorTitlePageChangedEvent event) {
+    final fields = {
+      'Title': event.title,
+      'Credit': event.credit,
+      'Author': event.author,
+      'Draft date': event.draftDate,
+      'Contact': event.contact,
+      'Source': event.source,
+    };
+
+    return [
+      for (final field in fields.entries)
+        if (field.value.trim().isNotEmpty)
+          FountainTitlePageEntry(
+            key: field.key,
+            values: [field.value.trim()],
+            sourceRange: _placeholderTitlePageEntryRange,
+          ),
+    ];
   }
 
   /// Leaves the editor: cancels the pending debounce timers, flushes the unsaved change if there

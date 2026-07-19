@@ -200,3 +200,42 @@ class OcptEditorIoNoticeDismissedEvent extends OcptEditorEvent {
   /// Class constructor
   const OcptEditorIoNoticeDismissedEvent();
 }
+
+/// Requests updating the screenplay's title-page metadata.
+///
+/// Each field is written into the Fountain source's title-page section (creating one if the
+/// screenplay had none, or dropping it entirely if every field is left blank), then the change is
+/// saved (tagged `OcptSnapshotReason.manual`) and the document is re-parsed.
+class OcptEditorTitlePageChangedEvent extends OcptEditorEvent {
+  /// The new `Title` field value, or an empty string to clear it.
+  final String title;
+
+  /// The new `Credit` field value, or an empty string to clear it.
+  final String credit;
+
+  /// The new `Author` field value, or an empty string to clear it.
+  final String author;
+
+  /// The new `Draft date` field value, or an empty string to clear it.
+  final String draftDate;
+
+  /// The new `Contact` field value, or an empty string to clear it.
+  final String contact;
+
+  /// The new `Source` field value, or an empty string to clear it.
+  final String source;
+
+  /// Class constructor
+  const OcptEditorTitlePageChangedEvent({
+    required this.title,
+    required this.credit,
+    required this.author,
+    required this.draftDate,
+    required this.contact,
+    required this.source,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, title, credit, author, draftDate, contact, source];
+}

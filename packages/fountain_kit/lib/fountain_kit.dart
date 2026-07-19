@@ -22,3 +22,4 @@ export 'src/parser/fountain_parser.dart';
 export 'src/serializer/fountain_inline_serializer.dart';
 export 'src/serializer/fountain_line_writer.dart';
 export 'src/serializer/fountain_serializer.dart';
+export 'src/serializer/fountain_title_page_writer.dart';

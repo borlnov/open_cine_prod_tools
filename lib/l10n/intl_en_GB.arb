@@ -343,6 +343,62 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorTitlePageAction": "Title page…",
+  "@editorTitlePageAction": {
+    "description": "Label of the action that opens the title page dialog",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageDialogTitle": "Title page",
+  "@editorTitlePageDialogTitle": {
+    "description": "Title of the title page dialog",
+    "context": "Displayed at the top of the title page dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageTitleLabel": "Title",
+  "@editorTitlePageTitleLabel": {
+    "description": "Label of the Title field",
+    "context": "Displayed inside the title page dialog, above the Title text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageCreditLabel": "Credit",
+  "@editorTitlePageCreditLabel": {
+    "description": "Label of the Credit field",
+    "context": "Displayed inside the title page dialog, above the Credit text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageAuthorLabel": "Author",
+  "@editorTitlePageAuthorLabel": {
+    "description": "Label of the Author field",
+    "context": "Displayed inside the title page dialog, above the Author text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageDraftDateLabel": "Draft date",
+  "@editorTitlePageDraftDateLabel": {
+    "description": "Label of the Draft date field",
+    "context": "Displayed inside the title page dialog, above the Draft date text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageContactLabel": "Contact",
+  "@editorTitlePageContactLabel": {
+    "description": "Label of the Contact field",
+    "context": "Displayed inside the title page dialog, above the Contact text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageSourceLabel": "Source",
+  "@editorTitlePageSourceLabel": {
+    "description": "Label of the Source field",
+    "context": "Displayed inside the title page dialog, above the Source text field",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorImportFileTypeLabel": "Fountain screenplay",
   "@editorImportFileTypeLabel": {
     "description": "Label of the .fountain file type shown in the native open-file dialog",

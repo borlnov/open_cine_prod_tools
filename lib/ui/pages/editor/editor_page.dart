@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_se
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_title_page_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
@@ -163,6 +164,7 @@ class _EditorViewState extends State<_EditorView> {
                     const OcptEditorPageSimulationToggledEvent(),
                   ),
                   onPageSetup: () => _requestPageSetup(context),
+                  onTitlePage: () => _requestTitlePage(context),
                   styledController: _styledEditorController,
                 ),
                 Expanded(
@@ -274,6 +276,32 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     bloc.add(OcptEditorExportPdfRequestedEvent(options: options));
+  }
+
+  /// Shows the title page dialog, then dispatches the edited fields if the user applied them.
+  Future<void> _requestTitlePage(BuildContext context) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final fields = await OcptEditorTitlePageDialog.show(
+      context,
+      current: bloc.state.document?.titlePage,
+    );
+    if (fields == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptEditorTitlePageChangedEvent(
+        title: fields.title,
+        credit: fields.credit,
+        author: fields.author,
+        draftDate: fields.draftDate,
+        contact: fields.contact,
+        source: fields.source,
+      ),
+    );
   }
 
   /// Reports the controller's text and caret line changes to the bloc.

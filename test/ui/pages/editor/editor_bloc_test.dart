@@ -722,4 +722,109 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    'adding title page fields to a screenplay with none inserts one, saves it "manual", and '
+    're-parses',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+      bloc.add(
+        const OcptEditorTitlePageChangedEvent(
+          title: 'My Screenplay',
+          credit: 'written by',
+          author: 'Jane Doe',
+          draftDate: '',
+          contact: '',
+          source: '',
+        ),
+      );
+
+      final state = await waitForState(bloc, (state) => state.document?.titlePage != null);
+      expect(state.document!.titlePage!.title, 'My Screenplay');
+      expect(state.document!.titlePage!.credit, 'written by');
+      expect(state.document!.titlePage!.authors, ['Jane Doe']);
+      expect(
+        state.text,
+        'Title: My Screenplay\nCredit: written by\nAuthor: Jane Doe\n\n$editedText',
+      );
+      expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
+
+      final project = projectsManager.currentProject!;
+      final storedText = await projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+      );
+      expect(storedText, state.text);
+
+      final snapshots = await readSnapshots();
+      expect(snapshots.last.reason, OcptSnapshotReason.manual);
+
+      await bloc.close();
+    },
+  );
+
+  test("editing an existing title page's fields replaces it, leaving the body unchanged", () async {
+    const initialText = 'Title: Old\nCredit: written by\n\n$editedText';
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: initialText));
+    await waitForState(bloc, (state) => state.document?.titlePage != null);
+
+    bloc.add(
+      const OcptEditorTitlePageChangedEvent(
+        title: 'New Title',
+        credit: 'written by',
+        author: '',
+        draftDate: '',
+        contact: '',
+        source: '',
+      ),
+    );
+
+    final state = await waitForState(
+      bloc,
+      (state) => state.document?.titlePage?.title == 'New Title',
+    );
+    expect(state.text, 'Title: New Title\nCredit: written by\n\n$editedText');
+    expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
+
+    await bloc.close();
+  });
+
+  test(
+    'clearing every field on a screenplay with a title page removes it, leaving only the body',
+    () async {
+      const initialText = 'Title: Old\n\n$editedText';
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: initialText));
+      await waitForState(bloc, (state) => state.document?.titlePage != null);
+
+      bloc.add(
+        const OcptEditorTitlePageChangedEvent(
+          title: '',
+          credit: '',
+          author: '',
+          draftDate: '',
+          contact: '',
+          source: '',
+        ),
+      );
+
+      final state = await waitForState(bloc, (state) => state.document?.titlePage == null);
+      expect(state.text, editedText);
+      expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
+
+      await bloc.close();
+    },
+  );
 }
