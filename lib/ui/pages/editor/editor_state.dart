@@ -5,8 +5,8 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
 /// [charOffset].
@@ -106,8 +106,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// every toggle.
   final OcptEditorMode mode;
 
-  /// The page format of the project, driving the preview's layout metrics.
-  final OcptPageFormat pageFormat;
+  /// The page setup (format and margins) of the project, driving the preview's and the styled
+  /// page editor's layout metrics.
+  final OcptPageSetup pageSetup;
 
   /// Whether the "Word-like" page simulation (distinct paper sheets, real page size and
   /// margins) is enabled, in both the raw preview and the styled editor.
@@ -142,7 +143,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.isScenePanelVisible,
     required this.isPreviewVisible,
     required this.mode,
-    required this.pageFormat,
+    required this.pageSetup,
     required this.isPageSimulationEnabled,
     required this.jumpRequest,
     required this.ioNotice,
@@ -162,7 +163,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       isScenePanelVisible = true,
       isPreviewVisible = true,
       mode = OcptEditorMode.styled,
-      pageFormat = OcptPageFormat.usLetter,
+      pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,
       jumpRequest = null,
       ioNotice = null;
@@ -187,7 +188,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     bool? isScenePanelVisible,
     bool? isPreviewVisible,
     OcptEditorMode? mode,
-    OcptPageFormat? pageFormat,
+    OcptPageSetup? pageSetup,
     bool? isPageSimulationEnabled,
     OcptEditorJumpRequest? jumpRequest,
     OcptEditorIoNotice? ioNotice,
@@ -205,7 +206,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     isScenePanelVisible: isScenePanelVisible ?? this.isScenePanelVisible,
     isPreviewVisible: isPreviewVisible ?? this.isPreviewVisible,
     mode: mode ?? this.mode,
-    pageFormat: pageFormat ?? this.pageFormat,
+    pageSetup: pageSetup ?? this.pageSetup,
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
@@ -227,7 +228,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     isScenePanelVisible,
     isPreviewVisible,
     mode,
-    pageFormat,
+    pageSetup,
     isPageSimulationEnabled,
     jumpRequest,
     ioNotice,

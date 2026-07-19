@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -17,7 +18,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -387,6 +390,29 @@ void main() {
     final enabledState = await waitForState(bloc, (state) => state.isPageSimulationEnabled);
     expect(enabledState.isPageSimulationEnabled, isTrue);
     expect(await propertiesManager.isPageSimulationEnabled.load(), isTrue);
+
+    await bloc.close();
+  });
+
+  test('changing the page setup applies it live and persists format and margins', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    const newSetup = OcptPageSetup(
+      format: OcptPageFormat.a4,
+      margins: FountainPageMargins(
+        leftInches: 2,
+        rightInches: 0.5,
+        topInches: 0.75,
+        bottomInches: 0.75,
+      ),
+    );
+    bloc.add(const OcptEditorPageSetupChangedEvent(pageSetup: newSetup));
+
+    final state = await waitForState(bloc, (state) => state.pageSetup == newSetup);
+    expect(state.pageSetup, newSetup);
+    expect(await projectsManager.loadCurrentProjectPageFormat(), OcptPageFormat.a4);
+    expect(await propertiesManager.pageMargins.load(), newSetup.margins);
 
     await bloc.close();
   });

@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
@@ -159,6 +160,7 @@ class _EditorViewState extends State<_EditorView> {
                   onTogglePageSimulation: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorPageSimulationToggledEvent(),
                   ),
+                  onPageSetup: () => _requestPageSetup(context),
                   styledController: _styledEditorController,
                 ),
                 Expanded(
@@ -183,7 +185,7 @@ class _EditorViewState extends State<_EditorView> {
                               )
                             : OcptStyledScreenplayEditor(
                                 text: state.text,
-                                pageFormat: state.pageFormat,
+                                pageSetup: state.pageSetup,
                                 isPageSimulationEnabled: state.isPageSimulationEnabled,
                                 onTextChanged: (text) => context.read<OcptEditorBloc>().add(
                                   OcptEditorTextChangedEvent(text: text),
@@ -200,7 +202,7 @@ class _EditorViewState extends State<_EditorView> {
                           flex: 6,
                           child: OcptEditorPreview(
                             document: state.document,
-                            pageFormat: state.pageFormat,
+                            pageSetup: state.pageSetup,
                             currentLine: state.currentLine,
                             isPageSimulationEnabled: state.isPageSimulationEnabled,
                           ),
@@ -241,6 +243,20 @@ class _EditorViewState extends State<_EditorView> {
     bloc.add(
       OcptEditorImportRequestedEvent(fileTypeLabel: Tr.of(context).editorImportFileTypeLabel),
     );
+  }
+
+  /// Shows the page setup dialog, then dispatches the new page setup if the user applied it.
+  Future<void> _requestPageSetup(BuildContext context) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final setup = await OcptEditorPageSetupDialog.show(context, current: bloc.state.pageSetup);
+    if (setup == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptEditorPageSetupChangedEvent(pageSetup: setup));
   }
 
   /// Reports the controller's text and caret line changes to the bloc.

@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
@@ -58,7 +58,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: 0,
             isPageSimulationEnabled: false,
           ),
@@ -90,7 +90,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: 0,
             isPageSimulationEnabled: false,
           ),
@@ -139,7 +139,7 @@ void main() {
       _wrap(
         OcptEditorPreview(
           document: document,
-          pageFormat: OcptPageFormat.usLetter,
+          pageSetup: const OcptPageSetup.standard(),
           currentLine: 0,
           isPageSimulationEnabled: false,
         ),
@@ -173,7 +173,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: 0,
             isPageSimulationEnabled: false,
           ),
@@ -191,7 +191,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: targetLine,
             isPageSimulationEnabled: false,
           ),
@@ -218,7 +218,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: 0,
             isPageSimulationEnabled: true,
           ),
@@ -246,7 +246,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: 0,
             isPageSimulationEnabled: false,
           ),
@@ -270,7 +270,7 @@ void main() {
         _wrap(
           OcptEditorPreview(
             document: document,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             currentLine: 0,
             isPageSimulationEnabled: true,
           ),

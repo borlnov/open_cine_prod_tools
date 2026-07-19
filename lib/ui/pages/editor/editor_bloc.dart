@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -110,6 +111,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorPreviewToggledEvent>(_onPreviewToggled);
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
+    on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
     on<OcptEditorExportRequestedEvent>(_onExportRequested);
@@ -148,6 +150,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       screenplayId: project.primaryScreenplayId,
     );
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
+    final margins = await _propertiesManager.pageMargins.load();
 
     emitter(
       state.copyWith(
@@ -156,7 +159,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         mode: mode,
         text: text,
         document: _fountainParser.parse(text),
-        pageFormat: pageFormat ?? OcptPageFormat.usLetter,
+        pageSetup: OcptPageSetup(
+          format: pageFormat ?? OcptPageFormat.usLetter,
+          margins: margins ?? const FountainPageMargins.standard(),
+        ),
         isPageSimulationEnabled: isPageSimulationEnabled,
       ),
     );
@@ -305,6 +311,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final newValue = !state.isPageSimulationEnabled;
     emitter(state.copyWith(isPageSimulationEnabled: newValue));
     await _propertiesManager.isPageSimulationEnabled.store(newValue);
+  }
+
+  /// Persists the new page setup (format per-project, margins app-wide) and applies it live.
+  Future<void> _onPageSetupChanged(
+    OcptEditorPageSetupChangedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectPageFormat(event.pageSetup.format);
+    await _propertiesManager.pageMargins.store(event.pageSetup.margins);
+    emitter(state.copyWith(pageSetup: event.pageSetup));
   }
 
   /// Clears the transient save error currently shown, if any.

@@ -63,6 +63,9 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when "Page simulation" is toggled from the overflow menu.
   final VoidCallback onTogglePageSimulation;
 
+  /// Called when "Page setup…" is chosen from the overflow menu.
+  final VoidCallback onPageSetup;
+
   /// The controller bridging this toolbar to the live styled editor's block-type dropdown and
   /// B/I/U toggles, or null when there is none to wire up. The format controls only render while
   /// this is non-null AND `OcptStyledEditorController.isAttached` (raw mode leaves it detached),
@@ -87,6 +90,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.onExport,
     required this.onImportAndReplace,
     required this.onTogglePageSimulation,
+    required this.onPageSetup,
     this.styledController,
   });
 
@@ -180,6 +184,7 @@ class OcptEditorToolbar extends StatelessWidget {
                   onTap: onTogglePageSimulation,
                   child: Text(tr.editorTogglePageSimulationAction),
                 ),
+                PopupMenuItem<void>(onTap: onPageSetup, child: Text(tr.editorPageSetupAction)),
               ],
             ),
           ],

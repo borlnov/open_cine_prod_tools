@@ -7,7 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// pagination). When it's on, the screenplay is split into distinct paper sheets, one per printed
 /// page (real page height, a themed gap between sheets, forced by a [FountainPageBreak] or by
 /// running out of [FountainLayoutMetrics.linesPerPage]). Either way, the sheet's width is the
-/// physical page width at the current [pageFormat]'s metrics; it's centered in the panel. When the
+/// physical page width at the current [pageSetup]'s metrics; it's centered in the panel. When the
 /// panel is too narrow for the full page, the whole page is scaled down to fit instead of being
 /// cropped by a horizontal scroll (which would otherwise leave the right margin permanently out of
 /// view): the left AND right margins always stay visible, at the wide panel's own scale or smaller.
@@ -34,8 +34,8 @@ class OcptEditorPreview extends StatefulWidget {
   /// The parsed document to render, or null while nothing has been parsed yet.
   final FountainDocument? document;
 
-  /// The page format driving the preview's layout metrics.
-  final OcptPageFormat pageFormat;
+  /// The page setup driving the preview's layout metrics.
+  final OcptPageSetup pageSetup;
 
   /// The 0-based source line the editor caret is currently on, driving the scroll sync.
   final int currentLine;
@@ -48,7 +48,7 @@ class OcptEditorPreview extends StatefulWidget {
   const OcptEditorPreview({
     super.key,
     required this.document,
-    required this.pageFormat,
+    required this.pageSetup,
     required this.currentLine,
     required this.isPageSimulationEnabled,
   });
@@ -228,11 +228,8 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     ),
   );
 
-  /// The layout metrics matching the project's page format.
-  FountainLayoutMetrics get _metrics => switch (widget.pageFormat) {
-    OcptPageFormat.usLetter => FountainLayoutMetrics.usLetter(),
-    OcptPageFormat.a4 => FountainLayoutMetrics.a4(),
-  };
+  /// The layout metrics matching the project's page setup.
+  FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
 
   /// Recomputes [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
   /// flag changed since the last build.

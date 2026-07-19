@@ -6,8 +6,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
@@ -42,8 +42,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// The full Fountain source text to edit.
   final String text;
 
-  /// The page format driving the styled editor's layout metrics.
-  final OcptPageFormat pageFormat;
+  /// The page setup driving the styled editor's layout metrics.
+  final OcptPageSetup pageSetup;
 
   /// Whether the document is rendered as distinct, real-size "Word-like" paper sheets (white,
   /// black text, even in dark theme) rather than as a fluid, theme-following editing surface.
@@ -68,7 +68,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   const OcptStyledScreenplayEditor({
     super.key,
     required this.text,
-    required this.pageFormat,
+    required this.pageSetup,
     required this.isPageSimulationEnabled,
     required this.onTextChanged,
     required this.onCaretLineChanged,
@@ -186,7 +186,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       });
       _reportReadStateToController();
     } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled ||
-        widget.pageFormat != oldWidget.pageFormat) {
+        widget.pageSetup != oldWidget.pageSetup) {
       setState(_recomputePageSimulation);
     }
 
@@ -258,10 +258,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final metrics = switch (widget.pageFormat) {
-      OcptPageFormat.usLetter => FountainLayoutMetrics.usLetter(),
-      OcptPageFormat.a4 => FountainLayoutMetrics.a4(),
-    };
+    final metrics = widget.pageSetup.toMetrics();
 
     final editor = SuperEditor(
       editor: _editor,
@@ -450,7 +447,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s
   /// page-boundary spacing), [_pageCount] and [_trailingBottomPadding], for the current document,
   /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] and [OcptStyledScreenplayEditor
-  /// .pageFormat].
+  /// .pageSetup].
   ///
   /// While page simulation is off, this only clears any padding left over from before it was
   /// turned off (so turning it back on later starts pagination from a clean slate) and resets
@@ -472,10 +469,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    final metrics = switch (widget.pageFormat) {
-      OcptPageFormat.usLetter => FountainLayoutMetrics.usLetter(),
-      OcptPageFormat.a4 => FountainLayoutMetrics.a4(),
-    };
+    final metrics = widget.pageSetup.toMetrics();
     final pagination = computeOcptStyledPagination(document: _document, metrics: metrics);
 
     final requests = <EditRequest>[

@@ -6,7 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:super_text_layout/super_text_layout.dart';
@@ -51,7 +51,7 @@ void main() {
           _wrap(
             OcptStyledScreenplayEditor(
               text: text,
-              pageFormat: OcptPageFormat.usLetter,
+              pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               onTextChanged: (_) {},
               onCaretLineChanged: (_) {},

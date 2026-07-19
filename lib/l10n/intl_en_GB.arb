@@ -224,6 +224,118 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorPageSetupAction": "Page setup…",
+  "@editorPageSetupAction": {
+    "description": "Label of the action that opens the page setup dialog",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupDialogTitle": "Page setup",
+  "@editorPageSetupDialogTitle": {
+    "description": "Title of the page setup dialog",
+    "context": "Displayed at the top of the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupPageSizeLabel": "Page size",
+  "@editorPageSetupPageSizeLabel": {
+    "description": "Label of the page size dropdown",
+    "context": "Displayed inside the page setup dialog, above the page format dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupUsLetterOption": "US Letter",
+  "@editorPageSetupUsLetterOption": {
+    "description": "Label of the US Letter page format option",
+    "context": "Displayed as an entry of the page setup dialog's page size dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupA4Option": "A4",
+  "@editorPageSetupA4Option": {
+    "description": "Label of the A4 page format option",
+    "context": "Displayed as an entry of the page setup dialog's page size dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginsSectionLabel": "Margins (inches)",
+  "@editorPageSetupMarginsSectionLabel": {
+    "description": "Label of the margins section",
+    "context": "Displayed inside the page setup dialog, above the margin fields",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginLeftLabel": "Left",
+  "@editorPageSetupMarginLeftLabel": {
+    "description": "Label of the left margin field",
+    "context": "Displayed inside the page setup dialog, above the left margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginRightLabel": "Right",
+  "@editorPageSetupMarginRightLabel": {
+    "description": "Label of the right margin field",
+    "context": "Displayed inside the page setup dialog, above the right margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginTopLabel": "Top",
+  "@editorPageSetupMarginTopLabel": {
+    "description": "Label of the top margin field",
+    "context": "Displayed inside the page setup dialog, above the top margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginBottomLabel": "Bottom",
+  "@editorPageSetupMarginBottomLabel": {
+    "description": "Label of the bottom margin field",
+    "context": "Displayed inside the page setup dialog, above the bottom margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupResetAction": "Reset to standard margins",
+  "@editorPageSetupResetAction": {
+    "description": "Label of the action that resets the margin fields to the standard margins",
+    "context": "Displayed as a button inside the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupCancelAction": "Cancel",
+  "@editorPageSetupCancelAction": {
+    "description": "Label of the action that dismisses the page setup dialog",
+    "context": "Displayed on a button in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupApplyAction": "Apply",
+  "@editorPageSetupApplyAction": {
+    "description": "Label of the action that confirms the page setup dialog",
+    "context": "Displayed on a button in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginNotANumberError": "Enter a number",
+  "@editorPageSetupMarginNotANumberError": {
+    "description": "Validation error shown when a margin field isn't a valid number",
+    "context": "Displayed below a margin text field in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginNegativeError": "Must not be negative",
+  "@editorPageSetupMarginNegativeError": {
+    "description": "Validation error shown when a margin field is a negative number",
+    "context": "Displayed below a margin text field in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginsTooLargeError": "These margins leave no room to print",
+  "@editorPageSetupMarginsTooLargeError": {
+    "description": "Validation error shown when the margins leave no positive printable area",
+    "context": "Displayed below a margin text field in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorImportFileTypeLabel": "Fountain screenplay",
   "@editorImportFileTypeLabel": {
     "description": "Label of the .fountain file type shown in the native open-file dialog",

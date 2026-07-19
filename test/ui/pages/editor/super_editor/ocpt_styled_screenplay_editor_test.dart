@@ -18,8 +18,8 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -87,7 +87,7 @@ Future<void> _pumpStandaloneEditor(
       OcptStyledScreenplayEditor(
         key: key,
         text: text,
-        pageFormat: OcptPageFormat.usLetter,
+        pageSetup: const OcptPageSetup.standard(),
         isPageSimulationEnabled: isPageSimulationEnabled,
         onTextChanged: (_) {},
         onCaretLineChanged: (_) {},
@@ -154,7 +154,7 @@ void main() {
         _wrap(
           OcptStyledScreenplayEditor(
             text: text,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
@@ -214,7 +214,7 @@ void main() {
         _wrap(
           OcptStyledScreenplayEditor(
             text: text,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
@@ -290,7 +290,7 @@ void main() {
       _wrap(
         OcptStyledScreenplayEditor(
           text: text,
-          pageFormat: OcptPageFormat.usLetter,
+          pageSetup: const OcptPageSetup.standard(),
           isPageSimulationEnabled: false,
           onTextChanged: (_) {},
           onCaretLineChanged: (line) => reportedLine = line,
@@ -407,7 +407,7 @@ void main() {
           OcptStyledScreenplayEditor(
             key: const ValueKey("editor"),
             text: text,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: true,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
@@ -423,7 +423,7 @@ void main() {
           OcptStyledScreenplayEditor(
             key: const ValueKey("editor"),
             text: text,
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
@@ -551,7 +551,7 @@ void main() {
                   ? const SizedBox.shrink()
                   : OcptStyledScreenplayEditor(
                       text: state.text,
-                      pageFormat: state.pageFormat,
+                      pageSetup: state.pageSetup,
                       isPageSimulationEnabled: state.isPageSimulationEnabled,
                       onTextChanged: (text) =>
                           context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
@@ -670,7 +670,7 @@ void main() {
           _wrap(
             OcptStyledScreenplayEditor(
               text: "Some action text.",
-              pageFormat: OcptPageFormat.usLetter,
+              pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
@@ -852,7 +852,7 @@ void main() {
           _wrap(
             OcptStyledScreenplayEditor(
               text: "",
-              pageFormat: OcptPageFormat.usLetter,
+              pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
@@ -897,7 +897,7 @@ void main() {
               OcptStyledScreenplayEditor(
                 key: ValueKey(type),
                 text: "",
-                pageFormat: OcptPageFormat.usLetter,
+                pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: false,
                 onTextChanged: (_) {},
                 onCaretLineChanged: (_) {},
@@ -934,7 +934,7 @@ void main() {
         _wrap(
           OcptStyledScreenplayEditor(
             text: "",
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
@@ -973,7 +973,7 @@ void main() {
             // (identical `text` across calls would otherwise reuse the previous call's document).
             key: ValueKey(key),
             text: "Base ",
-            pageFormat: OcptPageFormat.usLetter,
+            pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
@@ -1108,7 +1108,7 @@ void main() {
               // A distinct key per call: same rationale as `_pumpStandaloneEditor`'s doc comment.
               key: ValueKey(style),
               text: "Base styled end",
-              pageFormat: OcptPageFormat.usLetter,
+              pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},

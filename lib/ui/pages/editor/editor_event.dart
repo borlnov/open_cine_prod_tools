@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 
 /// The events handled by `OcptEditorBloc`.
 sealed class OcptEditorEvent extends BlocEventForMixin {
@@ -119,6 +120,22 @@ class OcptEditorModeToggledEvent extends OcptEditorEvent {
 class OcptEditorPageSimulationToggledEvent extends OcptEditorEvent {
   /// Class constructor
   const OcptEditorPageSimulationToggledEvent();
+}
+
+/// Requests updating the editor's page setup (page size and margins).
+///
+/// [pageSetup] is persisted (format per-project, margins app-wide) and applied live to the
+/// preview and the styled page editor.
+class OcptEditorPageSetupChangedEvent extends OcptEditorEvent {
+  /// The new page setup to apply and persist.
+  final OcptPageSetup pageSetup;
+
+  /// Class constructor
+  const OcptEditorPageSetupChangedEvent({required this.pageSetup});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, pageSetup];
 }
 
 /// Dismisses the transient save error currently shown, if any.
