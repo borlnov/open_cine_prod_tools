@@ -45,6 +45,16 @@ class OcptEditorParseRequestedEvent extends OcptEditorEvent {
   const OcptEditorParseRequestedEvent();
 }
 
+/// Requests recomputing `OcptEditorState.statistics` from the current document and page setup.
+///
+/// This is dispatched by the bloc's own statistics debounce timer, kept separate from the parse
+/// debounce because pagination is too heavy to run on every parse tick while typing continuously;
+/// it isn't meant to be sent by widgets.
+class OcptEditorStatisticsRecomputeRequestedEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorStatisticsRecomputeRequestedEvent();
+}
+
 /// Requests saving the current source text to the project database.
 ///
 /// [isManual] tells whether the save was explicitly requested by the user (toolbar button or

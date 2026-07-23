@@ -132,6 +132,14 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// The transient export/import outcome currently shown as a SnackBar, or null if none is.
   final OcptEditorIoNotice? ioNotice;
 
+  /// The at-a-glance counters (page/scene/character/word/sign counts) shown in the editor's
+  /// status bar, computed from [document] at [pageSetup]'s metrics.
+  ///
+  /// Lags [document] slightly further behind [text] than the parse debounce alone: recomputing it
+  /// paginates the whole screenplay, which is too heavy to run on every parse tick while typing
+  /// continuously (see `OcptEditorBloc`'s own statistics debounce).
+  final FountainScriptStatistics statistics;
+
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
@@ -153,6 +161,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.isPageSimulationEnabled,
     required this.jumpRequest,
     required this.ioNotice,
+    required this.statistics,
   });
 
   /// Init class constructor
@@ -172,14 +181,16 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,
       jumpRequest = null,
-      ioNotice = null;
+      ioNotice = null,
+      statistics = FountainScriptStatistics.empty;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [document], [lastSavedAt] and [jumpRequest] are only replaced when a new value is given:
-  /// they never go back to null once set, so no clear flag is needed for them. [ioNotice] is only
-  /// replaced when a new one is given or [clearIoNotice] is true, exactly like `OcptHomeState`'s
-  /// own `error` field.
+  /// [document], [lastSavedAt], [jumpRequest] and [statistics] are only replaced when a new value
+  /// is given: they never go back to null (or, for [statistics], to
+  /// [FountainScriptStatistics.empty]) once set, so no clear flag is needed for them. [ioNotice]
+  /// is only replaced when a new one is given or [clearIoNotice] is true, exactly like
+  /// `OcptHomeState`'s own `error` field.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -199,6 +210,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     OcptEditorJumpRequest? jumpRequest,
     OcptEditorIoNotice? ioNotice,
     bool clearIoNotice = false,
+    FountainScriptStatistics? statistics,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -216,6 +228,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+    statistics: statistics ?? this.statistics,
   );
 
   /// Object properties
@@ -238,5 +251,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     isPageSimulationEnabled,
     jumpRequest,
     ioNotice,
+    statistics,
   ];
 }

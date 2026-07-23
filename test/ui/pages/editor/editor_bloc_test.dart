@@ -217,6 +217,7 @@ void main() {
     exportManager: exportManager ?? _FakeExportManager(),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
+    statisticsDebounce: const Duration(milliseconds: 30),
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -249,6 +250,27 @@ void main() {
     expect(state.document, isNotNull);
     expect(state.scenes, isEmpty);
     expect(state.isDirty, isFalse);
+    expect(state.statistics, FountainScriptStatistics.empty);
+
+    await bloc.close();
+  });
+
+  test('statistics are populated from the screenplay already on disk once the load completes',
+      () async {
+    final project = projectsManager.currentProject!;
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: editedText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.statistics.sceneCount, 1);
+    expect(state.statistics.pageCount, 1);
+    expect(state.statistics.wordCount, greaterThan(0));
 
     await bloc.close();
   });
@@ -265,6 +287,23 @@ void main() {
 
     final parsedState = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     expect(parsedState.scenes.single.headingText, "INT. HOUSE - DAY");
+
+    await bloc.close();
+  });
+
+  test('statistics recompute, on their own debounce, once the parsed document changes', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.statistics, FountainScriptStatistics.empty);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    // The document already reflects the edit, but the statistics debounce hasn't elapsed yet.
+    expect(bloc.state.statistics, FountainScriptStatistics.empty);
+
+    final state = await waitForState(bloc, (state) => state.statistics.sceneCount == 1);
+    expect(state.statistics.pageCount, 1);
+    expect(state.statistics.wordCount, greaterThan(0));
 
     await bloc.close();
   });
@@ -468,6 +507,30 @@ void main() {
     expect(state.pageSetup, newSetup);
     expect(await projectsManager.loadCurrentProjectPageFormat(), OcptPageFormat.a4);
     expect(await propertiesManager.pageMargins.load(), newSetup.margins);
+
+    await bloc.close();
+  });
+
+  test('changing the page setup recomputes statistics for the new format immediately', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.statistics.sceneCount == 1);
+
+    const newSetup = OcptPageSetup(
+      format: OcptPageFormat.a4,
+      margins: FountainPageMargins(
+        leftInches: 2,
+        rightInches: 0.5,
+        topInches: 0.75,
+        bottomInches: 0.75,
+      ),
+    );
+    bloc.add(const OcptEditorPageSetupChangedEvent(pageSetup: newSetup));
+
+    final state = await waitForState(bloc, (state) => state.pageSetup == newSetup);
+    expect(state.statistics, FountainScriptStatistics.of(state.document!, newSetup.toMetrics()));
 
     await bloc.close();
   });
@@ -684,10 +747,11 @@ void main() {
       await waitForState(bloc, (state) => !state.isLoading);
 
       bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
-      // The text/dirty/notice change and the re-parse are two separate emissions (the notice
-      // arrives with the first one and survives into the second, since re-parsing only replaces
-      // `document`): wait for the parse to also have landed before asserting on `scenes`.
-      final state = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      // The text/dirty/notice change, the re-parse and the statistics recompute are three
+      // separate emissions (the notice arrives with the first one and survives into the next
+      // two, since re-parsing only replaces `document`): wait for the statistics recompute, the
+      // last of the three, to also have landed before asserting on `scenes`/`statistics`.
+      final state = await waitForState(bloc, (state) => state.statistics.sceneCount != 0);
 
       expect(state.text, importedText);
       expect(state.isDirty, isFalse);
@@ -696,6 +760,8 @@ void main() {
       expect(state.scenes, hasLength(1));
       expect(state.scenes.single.headingText, "INT. OFFICE - DAY");
       expect(exportManager.lastImportFileTypeLabel, "Fountain screenplay");
+      expect(state.statistics.sceneCount, 1);
+      expect(state.statistics.pageCount, 1);
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.import);
