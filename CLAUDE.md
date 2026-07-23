@@ -61,7 +61,7 @@ breakdown, and a casting tracker.
 | 11    | CI build & release: `.github/actions/*` + `build.yml` (Linux `.deb` + Windows Inno Setup installer, git-describe versioning, GitHub Release on `v*`), SHA-pinning + least-privilege on existing workflows, `dependabot.yml`, `.github/ci-doc.md` — milestones M1-M4 in `docs/plans/ci-build-linux-windows.md`                    | ✅                                   |
 | 12    | PDF screenplay export (`pdf` package, line-level paginator, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title-page editor splicing the Fountain source) — milestones M1-M4 in `docs/plans/pdf-screenplay-export.md` | ✅                                   |
 | 13    | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation)                                                                     | ✅                                   |
-| 14    | Editor statistics (page count, character count, last autosave time)                                                                                                                                      | ⬜                                   |
+| 14    | Editor statistics (page count, character count, last autosave time)                                                                                                                                      | ✅                                   |
 | 15    | Fountain syntax user guide (raw mode help: tags/elements to create blocks)                                                                                                                               | ⬜                                   |
 
 ## Ways of working
@@ -123,6 +123,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/`.
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
+- `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
+  counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
+  editor's status bar.
 - Persistence: drift schema v1 (`project_info`, `screenplays`, `screenplay_snapshots`,
   `scenes`), `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
   number → exact heading → relative order). `**/*.g.dart` is git-ignored (documented
