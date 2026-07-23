@@ -60,7 +60,7 @@ breakdown, and a casting tracker.
 | 10    | Settings page (language system/en/fr via act_intl_ui, theme system/light/dark via `ActThemesManager`, page-setup settings (page size + margins), about section)                                          | ✅                                   |
 | 11    | CI build & release: `.github/actions/*` + `build.yml` (Linux `.deb` + Windows Inno Setup installer, git-describe versioning, GitHub Release on `v*`), SHA-pinning + least-privilege on existing workflows, `dependabot.yml`, `.github/ci-doc.md` — milestones M1-M4 in `docs/plans/ci-build-linux-windows.md`                    | ✅                                   |
 | 12    | PDF screenplay export (`pdf` package, line-level paginator, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title-page editor splicing the Fountain source) — milestones M1-M4 in `docs/plans/pdf-screenplay-export.md` | ✅                                   |
-| 13    | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation)                                                                     | ⬜                                   |
+| 13    | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation)                                                                     | ✅                                   |
 | 14    | Editor statistics (page count, character count, last autosave time)                                                                                                                                      | ⬜                                   |
 | 15    | Fountain syntax user guide (raw mode help: tags/elements to create blocks)                                                                                                                               | ⬜                                   |
 
@@ -88,6 +88,9 @@ Git commands run on the host, from the repo root. The devcontainer persists the 
 Claude config in named volumes; X11 is forwarded so `flutter run -d linux` can open a window.
 
 ## Architecture
+
+See `docs/adr/` for the rationale behind the structural choices below (drift storage,
+`fountain_kit` as a standalone package, `super_editor`, generated code not committed).
 
 Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed as plain
 `path: actlibs/<pkg>` dependencies):
