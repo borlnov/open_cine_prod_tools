@@ -166,11 +166,13 @@ Everything the two UI surfaces need, with no UI yet.
    `Future<void> saveCurrentProjectPageFormat(OcptPageFormat format)` right next to the existing
    `loadCurrentProjectPageFormat()` (~line 259): same `currentProject == null` guard, then drift's
    update API:
+
    ```dart
    await project.database
        .update(project.database.ocptProjectInfoTable)
        .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
    ```
+
    This is the **first write to `project_info` after creation**. Keep DB access in the manager layer
    (the class doc says so explicitly).
 4. **Licenses manager**:
@@ -181,6 +183,7 @@ Everything the two UI surfaces need, with no UI yet.
      depends on `LoggerManager` + the config manager, so register it after them.
    - `assets/config/default.yaml` gains a `licenses:` block. Read
      `actlibs/act_licenses_manager/README.md` for the exact schema; the shape is:
+
      ```yaml
      licenses:
        extraElements:
@@ -198,6 +201,7 @@ Everything the two UI surfaces need, with no UI yet.
          - LICENSES
          - actlibs/LICENSES
      ```
+
      Cross-check the keys against the actual files in `LICENSES/` (Apache-2.0, CC0-1.0,
      LicenseRef-ALLCircuits-ACT-1.1, OFL-1.1) and `actlibs/LICENSES/` (CC0-1.0,
      LicenseRef-ALLCircuits-ACT-1.1, LicenseRef-DartProjectAuthors, MIT) — a key with no matching
@@ -280,10 +284,10 @@ public `SettingsPage` only wiring the `BlocProvider` and a private `_SettingsVie
 
 **New licenses route**: add `licenses` to `OcptRoute` (`lib/types/ocpt_route.dart`) and a
 `_createLicensesPage` builder in `lib/managers/ocpt_routes_helper.dart` returning
-`RoutePageDetails(widget: LicensePage(applicationName: …, applicationVersion: …, applicationLegalese: …))`.
-The path is derived from the enum name automatically. `ActLicensesManager` has already fed
-`LicenseRegistry` by then, so the page lists the ACT packages, the app and Courier Prime alongside
-the pub dependencies.
+`RoutePageDetails(widget: LicensePage(applicationName: …, applicationVersion: …,
+applicationLegalese: …))`. The path is derived from the enum name automatically.
+`ActLicensesManager` has already fed `LicenseRegistry` by then, so the page lists the ACT
+packages, the app and Courier Prime alongside the pub dependencies.
 
 **Entry point**: a gear `IconButton` in `lib/ui/pages/home/widgets/ocpt_home_header.dart` (new
 `onOpenSettings` callback, placed left of the "Import a screenplay…" button), wired in
