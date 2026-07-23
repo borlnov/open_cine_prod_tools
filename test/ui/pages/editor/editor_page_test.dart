@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -161,6 +162,13 @@ void main() {
     expect(find.byType(OcptEditorPreview), findsOneWidget);
     expect(find.text("INT. KITCHEN - DAY", findRichText: true), findsNWidgets(2));
     expect(find.text("Smells like Sunday.", findRichText: true), findsOneWidget);
+
+    // The status bar reflects the sample's two scenes and one speaking character (SARAH), once
+    // the parse and statistics debounces have both cleared.
+    final tr = Tr.of(tester.element(find.byType(EditorPage)));
+    expect(find.byType(OcptEditorStatusBar), findsOneWidget);
+    expect(find.textContaining(tr.editorStatsScenes(2)), findsOneWidget);
+    expect(find.textContaining(tr.editorStatsCharacters(1)), findsOneWidget);
   });
 
   testWidgets('the preview typesets character and dialogue at their screenplay indents', (

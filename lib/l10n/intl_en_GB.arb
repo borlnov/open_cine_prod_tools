@@ -786,5 +786,78 @@
         "type": "int"
       }
     }
+  },
+  "editorStatsPages": "{count, plural, one{{count} page} other{{count} pages}}",
+  "@editorStatsPages": {
+    "description": "Page count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsScenes": "{count, plural, one{{count} scene} other{{count} scenes}}",
+  "@editorStatsScenes": {
+    "description": "Scene count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsCharacters": "{count, plural, one{{count} character} other{{count} characters}}",
+  "@editorStatsCharacters": {
+    "description": "Speaking-character count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsWords": "{count, plural, one{{count} word} other{{count} words}}",
+  "@editorStatsWords": {
+    "description": "Word count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsSigns": "{count, plural, one{{count} sign} other{{count} signs}}",
+  "@editorStatsSigns": {
+    "description": "Sign (non-whitespace character) count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsSavedRelative": "Saved {time}",
+  "@editorStatsSavedRelative": {
+    "description": "Saved-state segment of the editor's status bar, showing the last save's relative time",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "editorStatsNeverSaved": "Not saved yet",
+  "@editorStatsNeverSaved": {
+    "description": "Saved-state segment of the editor's status bar before the screenplay has ever been saved",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {}
   }
 }

@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_se
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_title_page_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
 
@@ -214,6 +215,7 @@ class _EditorViewState extends State<_EditorView> {
                     ],
                   ),
                 ),
+                OcptEditorStatusBar(statistics: state.statistics, lastSavedAt: state.lastSavedAt),
               ],
             );
           },

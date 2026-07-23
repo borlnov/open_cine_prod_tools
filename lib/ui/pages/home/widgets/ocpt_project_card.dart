@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_home_relative_time.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 
 /// A single project tile in the home page's project grid.
 ///
@@ -97,7 +97,7 @@ class OcptProjectCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    formatHomeRelativeTime(context, entry.project.lastOpenedAt),
+                    formatRelativeTime(context, entry.project.lastOpenedAt),
                     style: Theme.of(
                       context,
                     ).textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),

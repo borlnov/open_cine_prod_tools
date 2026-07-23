@@ -108,5 +108,12 @@
   "homeRelativeTimeJustNow": "À l'instant",
   "homeRelativeTimeMinutesAgo": "{count, plural, one{il y a {count} minute} other{il y a {count} minutes}}",
   "homeRelativeTimeHoursAgo": "{count, plural, one{il y a {count} heure} other{il y a {count} heures}}",
-  "homeRelativeTimeDaysAgo": "{count, plural, one{il y a {count} jour} other{il y a {count} jours}}"
+  "homeRelativeTimeDaysAgo": "{count, plural, one{il y a {count} jour} other{il y a {count} jours}}",
+  "editorStatsPages": "{count, plural, one{{count} page} other{{count} pages}}",
+  "editorStatsScenes": "{count, plural, one{{count} scène} other{{count} scènes}}",
+  "editorStatsCharacters": "{count, plural, one{{count} personnage} other{{count} personnages}}",
+  "editorStatsWords": "{count, plural, one{{count} mot} other{{count} mots}}",
+  "editorStatsSigns": "{count, plural, one{{count} signe} other{{count} signes}}",
+  "editorStatsSavedRelative": "Enregistré {time}",
+  "editorStatsNeverSaved": "Pas encore enregistré"
 }
