@@ -74,7 +74,8 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libsecret-1-dev
 
       - name: Set up Flutter and dependencies
         uses: ./.github/actions/flutter-setup
@@ -103,7 +104,7 @@ jobs:
           description-long: |-
             A Fountain screenplay editor, the first tool in an open-source suite
              covering the film pre-production and production pipeline.
-          dependencies: "libgtk-3-0, libc6"
+          dependencies: "libgtk-3-0, libc6, libsecret-1-0"
           maintainer: "Benoit Rolandeau <borlnov.obsessio@gmail.com>"
 
       - name: Upload Debian package

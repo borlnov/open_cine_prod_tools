@@ -79,7 +79,8 @@ sed -e "s/{{APP_NAME}}/Open Cine Prod Tools/g" \
 chmod +x "${DEB_DIR}/usr/bin/${PACKAGE_NAME}"
 
 sed -e "s/{{PACKAGE_NAME}}/${PACKAGE_NAME}/g" -e "s/{{VERSION}}/${VERSION}/g" \
-    -e "s/{{ARCHITECTURE}}/amd64/g" -e "s/{{DEPENDENCIES}}/libgtk-3-0, libc6/g" \
+    -e "s/{{ARCHITECTURE}}/amd64/g" \
+    -e "s/{{DEPENDENCIES}}/libgtk-3-0, libc6, libsecret-1-0/g" \
     -e "s/{{MAINTAINER}}/Benoit Rolandeau <borlnov.obsessio@gmail.com>/g" \
     -e "s/{{DESCRIPTION_SHORT}}/Open-source production tools for film making/g" \
     -e "s/{{DESCRIPTION_LONG}}/ A Fountain screenplay editor./g" \
