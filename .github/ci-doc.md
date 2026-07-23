@@ -28,8 +28,17 @@ Runs on push to `main`, on pull requests to `main`, on `v*` tags, and on manual 
 
 ### flutter_lint.yml, markdown_lint.yml, reuse_compliance.yml
 
-Pull-request checks: `flutter analyze`, markdown linting, and REUSE compliance. All three pin
-their third-party actions by commit SHA and run with `permissions: contents: read`.
+Pull-request and `main`-push checks: Dart checks, markdown linting, and REUSE compliance. All
+three pin their third-party actions by commit SHA and run with `permissions: contents: read`.
+
+- **flutter_lint.yml** (`Dart Checks`) runs a `checks` job over a `{app, fountain_kit}` matrix,
+  `fail-fast: false`. Each entry gets its dependencies (`flutter pub get` plus the l10n/drift
+  generation chain for `app`, `dart pub get` for `fountain_kit`), then `flutter analyze` /
+  `dart analyze` and `flutter test` / `dart test`, all with `working-directory` set to the
+  matrix entry's path.
+- **markdown_lint.yml** lints `**/*.md` (excluding `actlibs/**`, `build/**`, `.dart_tool/**`,
+  `**/node_modules` and `**/.git`), so it covers `docs/`, `.github/*.md` and
+  `packages/fountain_kit/*.md`, not just the repository root.
 
 ## Structure
 

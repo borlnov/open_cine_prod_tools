@@ -2,8 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-name: Flutter Lint
-on: [pull_request]
+name: Dart Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -13,23 +17,49 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  checks:
+    name: Checks (${{ matrix.package.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { name: app, path: . }
+          - { name: fountain_kit, path: packages/fountain_kit }
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           submodules: recursive
       - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          channel: stable
-          flutter-version: 3.41.9
-      - run: flutter pub get
+        uses: ./.github/actions/flutter-setup
+      - name: Get app dependencies
+        if: matrix.package.path == '.'
+        run: flutter pub get
       - name: Generate translations
+        if: matrix.package.path == '.'
         run: dart run intl_utils:generate
       - name: Generate drift database code
+        if: matrix.package.path == '.'
         run: dart run build_runner build --delete-conflicting-outputs
-      - name: Analyze Dart
-        uses: zgosalvez/github-actions-analyze-dart@759ceb4913689e5457011bef37be51ed25957b76 # v2.0.15
+      - name: Get fountain_kit dependencies
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart pub get
+      - name: Analyze (app)
+        if: matrix.package.path == '.'
+        working-directory: ${{ matrix.package.path }}
+        run: flutter analyze
+      - name: Analyze (fountain_kit)
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart analyze
+      - name: Test (app)
+        if: matrix.package.path == '.'
+        working-directory: ${{ matrix.package.path }}
+        run: flutter test
+      - name: Test (fountain_kit)
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart test
