@@ -901,5 +901,180 @@
     "context": "Displayed in the status bar under the editing area",
     "type": "text",
     "placeholders": {}
+  },
+  "editorSyntaxGuideStructureSectionTitle": "Structure",
+  "@editorSyntaxGuideStructureSectionTitle": {
+    "description": "Header of the syntax guide's structure section (scene elements)",
+    "context": "Displayed above the structure entries of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideOrganisationSectionTitle": "Organisation",
+  "@editorSyntaxGuideOrganisationSectionTitle": {
+    "description": "Header of the syntax guide's organisation section (sections, synopses, notes, boneyard)",
+    "context": "Displayed above the organisation entries of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideFormattingSectionTitle": "Formatting",
+  "@editorSyntaxGuideFormattingSectionTitle": {
+    "description": "Header of the syntax guide's formatting section (inline emphasis)",
+    "context": "Displayed above the formatting entries of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTitlePageSectionTitle": "Title page",
+  "@editorSyntaxGuideTitlePageSectionTitle": {
+    "description": "Header of the syntax guide's title page section",
+    "context": "Displayed above the title page entry of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideDualDialogueTitle": "Dual dialogue",
+  "@editorSyntaxGuideDualDialogueTitle": {
+    "description": "Title of the dual dialogue entry of the syntax guide",
+    "context": "Displayed above the dual dialogue snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideNoteTitle": "Note",
+  "@editorSyntaxGuideNoteTitle": {
+    "description": "Title of the note entry of the syntax guide",
+    "context": "Displayed above the note snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideBoneyardTitle": "Boneyard",
+  "@editorSyntaxGuideBoneyardTitle": {
+    "description": "Title of the boneyard entry of the syntax guide",
+    "context": "Displayed above the boneyard snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideEmphasisTitle": "Emphasis",
+  "@editorSyntaxGuideEmphasisTitle": {
+    "description": "Title of the emphasis entry of the syntax guide",
+    "context": "Displayed above the emphasis snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTitlePageTitle": "Title page",
+  "@editorSyntaxGuideTitlePageTitle": {
+    "description": "Title of the title page entry of the syntax guide",
+    "context": "Displayed above the title page snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSceneHeadingDescription": "A scene heading marks the start of a new scene, usually introduced by INT., EXT. or INT./EXT.; force any other wording with a leading `.` (for example `.KITCHEN - DAY`).",
+  "@editorSyntaxGuideSceneHeadingDescription": {
+    "description": "Description of the scene heading entry of the syntax guide",
+    "context": "Displayed under the scene heading snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideActionDescription": "Action describes what happens on screen; it is the default when no other rule applies, or can be forced with a leading `!`.",
+  "@editorSyntaxGuideActionDescription": {
+    "description": "Description of the action entry of the syntax guide",
+    "context": "Displayed under the action snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideCharacterDescription": "A character cue introduces a line of dialogue and is written in capitals on its own line, immediately followed by dialogue; force a name that would not otherwise be recognised with a leading `@`.",
+  "@editorSyntaxGuideCharacterDescription": {
+    "description": "Description of the character entry of the syntax guide",
+    "context": "Displayed under the character snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideParentheticalDescription": "A parenthetical is a short direction inside a dialogue block, enclosed in parentheses on its own line, right after a character cue or a dialogue line.",
+  "@editorSyntaxGuideParentheticalDescription": {
+    "description": "Description of the parenthetical entry of the syntax guide",
+    "context": "Displayed under the parenthetical snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideDialogueDescription": "Dialogue is any line that follows a character cue, a parenthetical or another dialogue line; it has no forcing marker of its own.",
+  "@editorSyntaxGuideDialogueDescription": {
+    "description": "Description of the dialogue entry of the syntax guide",
+    "context": "Displayed under the dialogue snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideDualDialogueDescription": "Dual dialogue shows two dialogue blocks side by side; add a `^` right after the second character's cue.",
+  "@editorSyntaxGuideDualDialogueDescription": {
+    "description": "Description of the dual dialogue entry of the syntax guide",
+    "context": "Displayed under the dual dialogue snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTransitionDescription": "A transition such as CUT TO: ends the line with TO: in capitals, or is forced with a leading `>` (unless the line also ends with `<`, which produces centered text instead).",
+  "@editorSyntaxGuideTransitionDescription": {
+    "description": "Description of the transition entry of the syntax guide",
+    "context": "Displayed under the transition snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideCenteredTextDescription": "Centered text is enclosed between a leading `>` and a trailing `<`.",
+  "@editorSyntaxGuideCenteredTextDescription": {
+    "description": "Description of the centered text entry of the syntax guide",
+    "context": "Displayed under the centered text snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideLyricsDescription": "A lyrics line is forced with a leading `~`.",
+  "@editorSyntaxGuideLyricsDescription": {
+    "description": "Description of the lyrics entry of the syntax guide",
+    "context": "Displayed under the lyrics snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuidePageBreakDescription": "A page break is a line made up of three or more `=` characters and nothing else.",
+  "@editorSyntaxGuidePageBreakDescription": {
+    "description": "Description of the page break entry of the syntax guide",
+    "context": "Displayed under the page break snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSectionDescription": "A section heading organises the outline, marked with one to six leading `#` characters.",
+  "@editorSyntaxGuideSectionDescription": {
+    "description": "Description of the section entry of the syntax guide",
+    "context": "Displayed under the section snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSynopsisDescription": "A synopsis line summarises a scene or section for the outline, marked with a leading `=`.",
+  "@editorSyntaxGuideSynopsisDescription": {
+    "description": "Description of the synopsis entry of the syntax guide",
+    "context": "Displayed under the synopsis snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideNoteDescription": "A note for the reader is enclosed in `[[` and `]]`; it is stripped out before the surrounding line is classified.",
+  "@editorSyntaxGuideNoteDescription": {
+    "description": "Description of the note entry of the syntax guide",
+    "context": "Displayed under the note snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideBoneyardDescription": "A boneyard comment is excluded from the printed screenplay, enclosed between `/*` and `*/`.",
+  "@editorSyntaxGuideBoneyardDescription": {
+    "description": "Description of the boneyard entry of the syntax guide",
+    "context": "Displayed under the boneyard snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideEmphasisDescription": "Inline text can be emphasised with `*italic*`, `**bold**`, `***bold italic***` or `_underline_`.",
+  "@editorSyntaxGuideEmphasisDescription": {
+    "description": "Description of the emphasis entry of the syntax guide",
+    "context": "Displayed under the emphasis snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTitlePageDescription": "The title page is a block of key: value lines (for example Title: and Author:) at the very start of the document, ended by the first blank line.",
+  "@editorSyntaxGuideTitlePageDescription": {
+    "description": "Description of the title page entry of the syntax guide",
+    "context": "Displayed under the title page snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
   }
 }
