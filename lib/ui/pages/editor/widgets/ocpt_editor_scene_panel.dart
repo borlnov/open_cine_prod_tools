@@ -11,10 +11,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 /// Each entry shows the scene's number (when the heading carries one) and its heading text; the
 /// scene containing the editor caret is highlighted. Clicking an entry asks the editor to move
 /// its caret to that scene's start (via [onSceneSelected]).
+///
+/// Width-agnostic: it fills whatever width its parent gives it (an `OcptEditorDock` in practice),
+/// and no longer owns its own background.
 class OcptEditorScenePanel extends StatelessWidget {
-  /// The panel's fixed width.
-  static const double _width = 240;
-
   /// The scene headings to list, in source order.
   final List<FountainSceneHeading> scenes;
 
@@ -38,55 +38,49 @@ class OcptEditorScenePanel extends StatelessWidget {
     final theme = Theme.of(context);
     final currentSceneIndex = _currentSceneIndex;
 
-    return SizedBox(
-      width: _width,
-      child: ColoredBox(
-        color: theme.colorScheme.surfaceContainerLow,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      Tr.of(context).editorScenesPanelTitle,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ),
-                  Text(
-                    "${scenes.length}",
-                    style: theme.textTheme.labelMedium?.copyWith(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Tr.of(context).editorScenesPanelTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              Text(
+                "${scenes.length}",
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: scenes.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    Tr.of(context).editorScenesEmptyHint,
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: scenes.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        Tr.of(context).editorScenesEmptyHint,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: scenes.length,
-                      itemBuilder: (context, index) => _SceneEntry(
-                        scene: scenes[index],
-                        isCurrent: index == currentSceneIndex,
-                        onTap: () => onSceneSelected(scenes[index].sourceRange.startOffset),
-                      ),
-                    ),
-            ),
-          ],
+                )
+              : ListView.builder(
+                  itemCount: scenes.length,
+                  itemBuilder: (context, index) => _SceneEntry(
+                    scene: scenes[index],
+                    isCurrent: index == currentSceneIndex,
+                    onTap: () => onSceneSelected(scenes[index].sourceRange.startOffset),
+                  ),
+                ),
         ),
-      ),
+      ],
     );
   }
 

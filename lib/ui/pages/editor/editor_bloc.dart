@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 
 /// This is the bloc class for the editor page.
 ///
@@ -127,6 +128,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorSceneJumpRequestedEvent>(_onSceneJumpRequested);
     on<OcptEditorScenePanelToggledEvent>(_onScenePanelToggled);
     on<OcptEditorPreviewToggledEvent>(_onPreviewToggled);
+    on<OcptEditorDockFractionsChangedEvent>(_onDockFractionsChanged);
+    on<OcptEditorDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
     on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
@@ -151,6 +154,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   ) async {
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
     final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
+    final leftDockFraction =
+        await _propertiesManager.editorLeftDockFraction.load() ?? OcptEditorDock.leftDefaultFraction;
+    final rightDockFraction =
+        await _propertiesManager.editorRightDockFraction.load() ?? OcptEditorDock.rightDefaultFraction;
 
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -161,6 +168,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           document: document,
           mode: mode,
           isPageSimulationEnabled: isPageSimulationEnabled,
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
           statistics: _statisticsFor(document, state.pageSetup),
         ),
       );
@@ -188,6 +197,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         document: document,
         pageSetup: pageSetup,
         isPageSimulationEnabled: isPageSimulationEnabled,
+        leftDockFraction: leftDockFraction,
+        rightDockFraction: rightDockFraction,
         statistics: _statisticsFor(document, pageSetup),
       ),
     );
@@ -359,6 +370,41 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(state.copyWith(isPreviewVisible: !state.isPreviewVisible));
+  }
+
+  /// Applies and persists whichever of [OcptEditorDockFractionsChangedEvent.left]/[.right] is
+  /// given, dispatched once per drag gesture rather than per frame (see the event's doc comment).
+  Future<void> _onDockFractionsChanged(
+    OcptEditorDockFractionsChangedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(leftDockFraction: event.left, rightDockFraction: event.right),
+    );
+
+    final left = event.left;
+    if (left != null) {
+      await _propertiesManager.editorLeftDockFraction.store(left);
+    }
+    final right = event.right;
+    if (right != null) {
+      await _propertiesManager.editorRightDockFraction.store(right);
+    }
+  }
+
+  /// Restores both dock fractions to their defaults and persists them ("Reset panel layout").
+  Future<void> _onDockLayoutReset(
+    OcptEditorDockLayoutResetEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        leftDockFraction: OcptEditorDock.leftDefaultFraction,
+        rightDockFraction: OcptEditorDock.rightDefaultFraction,
+      ),
+    );
+    await _propertiesManager.editorLeftDockFraction.store(OcptEditorDock.leftDefaultFraction);
+    await _propertiesManager.editorRightDockFraction.store(OcptEditorDock.rightDefaultFraction);
   }
 
   /// Toggles the editing mode between styled and raw, and persists the new mode.

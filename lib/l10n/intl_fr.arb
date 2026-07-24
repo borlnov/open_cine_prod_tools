@@ -50,6 +50,7 @@
   "editorPageSetupMarginNegativeError": "Ne doit pas être négatif",
   "editorPageSetupMarginsTooLargeError": "Ces marges ne laissent aucune place pour l'impression",
   "editorTitlePageAction": "Page de titre…",
+  "editorResetPanelLayoutAction": "Réinitialiser la disposition des panneaux",
   "editorTitlePageDialogTitle": "Page de titre",
   "editorTitlePageTitleLabel": "Titre",
   "editorTitlePageCreditLabel": "Mention",

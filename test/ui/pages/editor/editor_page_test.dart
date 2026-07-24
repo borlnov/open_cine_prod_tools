@@ -8,6 +8,7 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -19,11 +20,13 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
@@ -249,6 +252,104 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(OcptEditorPreview), findsOneWidget);
     expect(find.byType(OcptEditorScenePanel), findsOneWidget);
+  });
+
+  testWidgets(
+    "dragging the left divider live-resizes the scene panel dock without touching the bloc "
+    "state, and releasing dispatches exactly one event that persists the final fraction",
+    (tester) async {
+      // Wide enough that the centre floor never engages: at the default 800x600 test window, the
+      // right dock is already squeezed down by the floor, which would otherwise silently absorb
+      // the drag's effect on width (see the identical setup in the "scrolling..." test below).
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await propertiesManager.editorLeftDockFraction.delete();
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final dockFinder = find.byType(OcptEditorDock).first;
+      final widthBefore = tester.getSize(dockFinder).width;
+
+      final blocContext = tester.element(find.byType(OcptEditorToolbar));
+      final bloc = blocContext.read<OcptEditorBloc>();
+      final fractionBefore = bloc.state.leftDockFraction;
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(OcptDockDivider).first),
+      );
+      await gesture.moveBy(const Offset(40, 0));
+      await tester.pump();
+
+      // Mid-drag: the panel already grew, but the bloc's own state (and the persisted value)
+      // haven't moved yet — only the live `OcptEditorDockLayoutController` did.
+      final widthDuringDrag = tester.getSize(dockFinder).width;
+      expect(widthDuringDrag, greaterThan(widthBefore));
+      expect(bloc.state.leftDockFraction, fractionBefore);
+      expect(await propertiesManager.editorLeftDockFraction.load(), isNull);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.leftDockFraction, greaterThan(fractionBefore));
+      expect(
+        await propertiesManager.editorLeftDockFraction.load(),
+        closeTo(bloc.state.leftDockFraction, 0.0001),
+      );
+    },
+  );
+
+  testWidgets("dragging the right divider left grows the preview dock", (tester) async {
+    // See the identical setup in the left-divider test above: wide enough that the centre floor
+    // never engages and silently absorbs the drag's effect on width.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final dockFinder = find.byType(OcptEditorDock).last;
+    final widthBefore = tester.getSize(dockFinder).width;
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(OcptDockDivider).last),
+    );
+    await gesture.moveBy(const Offset(-40, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(dockFinder).width, greaterThan(widthBefore));
+  });
+
+  testWidgets('"Reset panel layout" restores both dock fractions to their defaults', (
+    tester,
+  ) async {
+    await propertiesManager.editorLeftDockFraction.store(0.3);
+    await propertiesManager.editorRightDockFraction.store(0.6);
+
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+
+    await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.editorResetPanelLayoutAction));
+    await tester.pumpAndSettle();
+
+    expect(
+      await propertiesManager.editorLeftDockFraction.load(),
+      OcptEditorDock.leftDefaultFraction,
+    );
+    expect(
+      await propertiesManager.editorRightDockFraction.load(),
+      OcptEditorDock.rightDefaultFraction,
+    );
   });
 
   testWidgets(

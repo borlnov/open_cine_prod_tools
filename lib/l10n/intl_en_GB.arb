@@ -350,6 +350,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorResetPanelLayoutAction": "Reset panel layout",
+  "@editorResetPanelLayoutAction": {
+    "description": "Label of the action that restores both dock widths to their defaults",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorTitlePageDialogTitle": "Title page",
   "@editorTitlePageDialogTitle": {
     "description": "Title of the title page dialog",

@@ -115,6 +115,33 @@ class OcptEditorPreviewToggledEvent extends OcptEditorEvent {
   const OcptEditorPreviewToggledEvent();
 }
 
+/// Requests updating the editor's dock width fractions, persisting whichever of [left]/[right] is
+/// given.
+///
+/// Dispatched once per drag gesture, on `onHorizontalDragEnd`, never per frame: the live drag
+/// itself only moves `OcptEditorDockLayoutController`'s in-memory fractions, which is what keeps a
+/// drag from emitting a bloc state (and rebuilding the editing subtrees) on every frame.
+class OcptEditorDockFractionsChangedEvent extends OcptEditorEvent {
+  /// The new left (scenes) dock fraction, or null to leave it unchanged.
+  final double? left;
+
+  /// The new right (preview / syntax) dock fraction, or null to leave it unchanged.
+  final double? right;
+
+  /// Class constructor
+  const OcptEditorDockFractionsChangedEvent({this.left, this.right});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, left, right];
+}
+
+/// Requests restoring both dock fractions to their defaults ("Reset panel layout").
+class OcptEditorDockLayoutResetEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorDockLayoutResetEvent();
+}
+
 /// Toggles the editing mode between the styled block editor and the raw text source.
 ///
 /// The new mode is persisted through `OcptPropertiesManager.editorMode`, so it's restored the

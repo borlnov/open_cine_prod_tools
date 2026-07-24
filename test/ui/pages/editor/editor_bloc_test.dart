@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -484,6 +485,73 @@ void main() {
     final enabledState = await waitForState(bloc, (state) => state.isPageSimulationEnabled);
     expect(enabledState.isPageSimulationEnabled, isTrue);
     expect(await propertiesManager.isPageSimulationEnabled.load(), isTrue);
+
+    await bloc.close();
+  });
+
+  test('defaults to the dock fractions defaults when nothing was ever persisted', () async {
+    await propertiesManager.editorLeftDockFraction.delete();
+    await propertiesManager.editorRightDockFraction.delete();
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.leftDockFraction, OcptEditorDock.leftDefaultFraction);
+    expect(state.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+
+    await bloc.close();
+  });
+
+  test('loads the persisted dock fractions on entry', () async {
+    await propertiesManager.editorLeftDockFraction.store(0.25);
+    await propertiesManager.editorRightDockFraction.store(0.55);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.leftDockFraction, 0.25);
+    expect(state.rightDockFraction, 0.55);
+
+    await bloc.close();
+  });
+
+  test('a dock fractions changed event persists whichever side is given', () async {
+    await propertiesManager.editorLeftDockFraction.delete();
+    await propertiesManager.editorRightDockFraction.delete();
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorDockFractionsChangedEvent(left: 0.3));
+    final leftState = await waitForState(bloc, (state) => state.leftDockFraction == 0.3);
+    expect(leftState.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+    expect(await propertiesManager.editorLeftDockFraction.load(), 0.3);
+    expect(await propertiesManager.editorRightDockFraction.load(), isNull);
+
+    bloc.add(const OcptEditorDockFractionsChangedEvent(right: 0.6));
+    final rightState = await waitForState(bloc, (state) => state.rightDockFraction == 0.6);
+    expect(rightState.leftDockFraction, 0.3);
+    expect(await propertiesManager.editorRightDockFraction.load(), 0.6);
+
+    await bloc.close();
+  });
+
+  test('the dock layout reset event restores and persists both defaults', () async {
+    await propertiesManager.editorLeftDockFraction.store(0.3);
+    await propertiesManager.editorRightDockFraction.store(0.6);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorDockLayoutResetEvent());
+    final state = await waitForState(
+      bloc,
+      (state) => state.leftDockFraction == OcptEditorDock.leftDefaultFraction,
+    );
+
+    expect(state.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+    expect(await propertiesManager.editorLeftDockFraction.load(), OcptEditorDock.leftDefaultFraction);
+    expect(await propertiesManager.editorRightDockFraction.load(), OcptEditorDock.rightDefaultFraction);
 
     await bloc.close();
   });

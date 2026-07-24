@@ -10,8 +10,10 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
@@ -75,6 +77,15 @@ class _EditorViewState extends State<_EditorView> {
   /// isn't mounted, i.e. in raw mode.
   final OcptStyledEditorController _styledEditorController = OcptStyledEditorController();
 
+  /// The live source of truth for the two dock fractions while dragging a divider: notifies the
+  /// dock layout on every drag update without emitting a bloc state per frame (see the
+  /// controller's own doc comment). Initialized with the defaults; synced to the bloc's persisted
+  /// values once the load (or a reset) resolves, in [_onStateChanged].
+  final OcptEditorDockLayoutController _dockLayoutController = OcptEditorDockLayoutController(
+    leftFraction: OcptEditorDock.leftDefaultFraction,
+    rightFraction: OcptEditorDock.rightDefaultFraction,
+  );
+
   /// The controller of the editor's vertical scroll, used when jumping to a scene.
   final ScrollController _editorScrollController = ScrollController();
 
@@ -109,6 +120,7 @@ class _EditorViewState extends State<_EditorView> {
     _editorScrollController.dispose();
     _editorFocusNode.dispose();
     _styledEditorController.dispose();
+    _dockLayoutController.dispose();
     super.dispose();
   }
 
@@ -166,55 +178,12 @@ class _EditorViewState extends State<_EditorView> {
                   ),
                   onPageSetup: () => _requestPageSetup(context),
                   onTitlePage: () => _requestTitlePage(context),
+                  onResetPanelLayout: () => context.read<OcptEditorBloc>().add(
+                    const OcptEditorDockLayoutResetEvent(),
+                  ),
                   styledController: _styledEditorController,
                 ),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (state.isScenePanelVisible)
-                        OcptEditorScenePanel(
-                          scenes: state.scenes,
-                          currentLine: state.currentLine,
-                          onSceneSelected: (charOffset) => context.read<OcptEditorBloc>().add(
-                            OcptEditorSceneJumpRequestedEvent(charOffset: charOffset),
-                          ),
-                        ),
-                      Expanded(
-                        flex: 5,
-                        child: isRawMode
-                            ? OcptEditorSourceField(
-                                controller: _textController,
-                                scrollController: _editorScrollController,
-                                focusNode: _editorFocusNode,
-                              )
-                            : OcptStyledScreenplayEditor(
-                                text: state.text,
-                                pageSetup: state.pageSetup,
-                                isPageSimulationEnabled: state.isPageSimulationEnabled,
-                                onTextChanged: (text) => context.read<OcptEditorBloc>().add(
-                                  OcptEditorTextChangedEvent(text: text),
-                                ),
-                                onCaretLineChanged: (line) => context.read<OcptEditorBloc>().add(
-                                  OcptEditorCaretMovedEvent(line: line),
-                                ),
-                                jumpRequest: state.jumpRequest,
-                                styledController: _styledEditorController,
-                              ),
-                      ),
-                      if (isRawMode && state.isPreviewVisible)
-                        Expanded(
-                          flex: 6,
-                          child: OcptEditorPreview(
-                            document: state.document,
-                            pageSetup: state.pageSetup,
-                            currentLine: state.currentLine,
-                            isPageSimulationEnabled: state.isPageSimulationEnabled,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                Expanded(child: _buildEditingRow(context, state, isRawMode: isRawMode)),
                 OcptEditorStatusBar(statistics: state.statistics, lastSavedAt: state.lastSavedAt),
               ],
             );
@@ -223,6 +192,114 @@ class _EditorViewState extends State<_EditorView> {
       ),
     ),
   );
+
+  /// Builds the panel/editor/preview row: the scene panel and preview docks are resizable
+  /// (dragging their divider) and remember their width between sessions.
+  ///
+  /// The scene panel, editor and preview widgets are built once here, then handed unchanged into
+  /// the [ListenableBuilder] that listens to [_dockLayoutController]: a divider drag only ever
+  /// calls [OcptEditorDockLayoutController.setLeftFraction]/`setRightFraction`, which notifies
+  /// that builder alone. Since it references these exact same widget instances on every rebuild
+  /// (rather than constructing fresh ones), Flutter's `Element.update` short-circuits on their
+  /// identity and only re-lays-out the resolved widths — the editing subtrees underneath never
+  /// rebuild mid-drag, which matters because [OcptStyledScreenplayEditor] and [OcptEditorPreview]
+  /// are too expensive to rebuild on every frame of a drag.
+  Widget _buildEditingRow(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
+    final scenePanelChild = state.isScenePanelVisible
+        ? OcptEditorScenePanel(
+            scenes: state.scenes,
+            currentLine: state.currentLine,
+            onSceneSelected: (charOffset) => context.read<OcptEditorBloc>().add(
+              OcptEditorSceneJumpRequestedEvent(charOffset: charOffset),
+            ),
+          )
+        : null;
+
+    final editorChild = isRawMode
+        ? OcptEditorSourceField(
+            controller: _textController,
+            scrollController: _editorScrollController,
+            focusNode: _editorFocusNode,
+          )
+        : OcptStyledScreenplayEditor(
+            text: state.text,
+            pageSetup: state.pageSetup,
+            isPageSimulationEnabled: state.isPageSimulationEnabled,
+            onTextChanged: (text) => context.read<OcptEditorBloc>().add(
+              OcptEditorTextChangedEvent(text: text),
+            ),
+            onCaretLineChanged: (line) => context.read<OcptEditorBloc>().add(
+              OcptEditorCaretMovedEvent(line: line),
+            ),
+            jumpRequest: state.jumpRequest,
+            styledController: _styledEditorController,
+          );
+
+    final previewChild = isRawMode && state.isPreviewVisible
+        ? OcptEditorPreview(
+            document: state.document,
+            pageSetup: state.pageSetup,
+            currentLine: state.currentLine,
+            isPageSimulationEnabled: state.isPageSimulationEnabled,
+          )
+        : null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final rowWidth = constraints.maxWidth;
+
+        return ListenableBuilder(
+          listenable: _dockLayoutController,
+          builder: (context, child) {
+            final widths = OcptEditorDock.resolveDockWidths(
+              rowWidth: rowWidth,
+              leftFraction: _dockLayoutController.leftFraction,
+              rightFraction: _dockLayoutController.rightFraction,
+              isLeftDockVisible: scenePanelChild != null,
+              isRightDockVisible: previewChild != null,
+            );
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (scenePanelChild != null) ...[
+                  OcptEditorDock(width: widths.left, child: scenePanelChild),
+                  OcptDockDivider(
+                    onDragUpdate: (deltaX) => _dockLayoutController.setLeftFraction(
+                      OcptEditorDock.clampLeftFraction(
+                        _dockLayoutController.leftFraction + deltaX / rowWidth,
+                        rowWidth,
+                      ),
+                    ),
+                    onDragEnd: () => context.read<OcptEditorBloc>().add(
+                      OcptEditorDockFractionsChangedEvent(left: _dockLayoutController.leftFraction),
+                    ),
+                  ),
+                ],
+                Expanded(child: editorChild),
+                if (previewChild != null) ...[
+                  OcptDockDivider(
+                    onDragUpdate: (deltaX) => _dockLayoutController.setRightFraction(
+                      OcptEditorDock.clampRightFraction(
+                        _dockLayoutController.rightFraction - deltaX / rowWidth,
+                        rowWidth,
+                      ),
+                    ),
+                    onDragEnd: () => context.read<OcptEditorBloc>().add(
+                      OcptEditorDockFractionsChangedEvent(
+                        right: _dockLayoutController.rightFraction,
+                      ),
+                    ),
+                  ),
+                  OcptEditorDock(width: widths.right, child: previewChild),
+                ],
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   /// Sends the manual save request (toolbar button or Ctrl+S).
   void _requestManualSave() {
@@ -340,12 +417,20 @@ class _EditorViewState extends State<_EditorView> {
 
   /// Applies bloc-driven effects onto the page: keeping the raw text controller in sync with any
   /// text change that didn't originate from it (the initial load, or an edit made in styled
-  /// mode), scene jump requests, and the transient save error SnackBar.
+  /// mode), scene jump requests, the transient save error SnackBar, and the live dock fractions.
   ///
   /// The styled editor is handed [OcptEditorState.text] directly as a widget property and syncs
   /// itself (see `OcptStyledScreenplayEditor`); only the raw controller needs this imperative
   /// nudge, since it's a plain [TextEditingController] rather than something driven by `build`.
   void _onStateChanged(BuildContext context, OcptEditorState state) {
+    // Pushes the bloc's persisted fractions (the initial load, or "Reset panel layout") onto the
+    // live controller; a no-op once a drag's own end-of-gesture event brings the bloc back in
+    // sync with the value the controller already holds.
+    _dockLayoutController.syncFromPersisted(
+      leftFraction: state.leftDockFraction,
+      rightFraction: state.rightDockFraction,
+    );
+
     if (!state.isLoading && state.text != _lastReportedText) {
       _isApplyingProgrammaticChange = true;
       try {

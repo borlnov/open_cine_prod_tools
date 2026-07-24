@@ -7,6 +7,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
 /// [charOffset].
@@ -106,6 +107,18 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// Whether the formatted preview panel is shown.
   final bool isPreviewVisible;
 
+  /// The left (scenes) dock's width, as a fraction of the editing row's width.
+  ///
+  /// Persisted through `OcptPropertiesManager.editorLeftDockFraction`, loaded once on entry and
+  /// updated (debounced to the end of a drag, never per-frame) on every resize.
+  final double leftDockFraction;
+
+  /// The right (preview / syntax) dock's width, as a fraction of the editing row's width.
+  ///
+  /// Persisted through `OcptPropertiesManager.editorRightDockFraction`, loaded once on entry and
+  /// updated (debounced to the end of a drag, never per-frame) on every resize.
+  final double rightDockFraction;
+
   /// The current editing mode: the styled block editor or the raw text source.
   ///
   /// Persisted through `OcptPropertiesManager.editorMode`, loaded once on entry and updated on
@@ -156,6 +169,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.currentLine,
     required this.isScenePanelVisible,
     required this.isPreviewVisible,
+    required this.leftDockFraction,
+    required this.rightDockFraction,
     required this.mode,
     required this.pageSetup,
     required this.isPageSimulationEnabled,
@@ -177,6 +192,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       currentLine = 0,
       isScenePanelVisible = true,
       isPreviewVisible = true,
+      leftDockFraction = OcptEditorDock.leftDefaultFraction,
+      rightDockFraction = OcptEditorDock.rightDefaultFraction,
       mode = OcptEditorMode.styled,
       pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,
@@ -204,6 +221,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     int? currentLine,
     bool? isScenePanelVisible,
     bool? isPreviewVisible,
+    double? leftDockFraction,
+    double? rightDockFraction,
     OcptEditorMode? mode,
     OcptPageSetup? pageSetup,
     bool? isPageSimulationEnabled,
@@ -223,6 +242,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     currentLine: currentLine ?? this.currentLine,
     isScenePanelVisible: isScenePanelVisible ?? this.isScenePanelVisible,
     isPreviewVisible: isPreviewVisible ?? this.isPreviewVisible,
+    leftDockFraction: leftDockFraction ?? this.leftDockFraction,
+    rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     mode: mode ?? this.mode,
     pageSetup: pageSetup ?? this.pageSetup,
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
@@ -246,6 +267,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     currentLine,
     isScenePanelVisible,
     isPreviewVisible,
+    leftDockFraction,
+    rightDockFraction,
     mode,
     pageSetup,
     isPageSimulationEnabled,
