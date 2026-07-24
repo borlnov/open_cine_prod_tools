@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -391,18 +392,183 @@ void main() {
     await bloc.close();
   });
 
-  test('the scene panel and preview visibility toggles flip their flags', () async {
+  test('the scene panel visibility toggle flips its flag', () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
     expect(bloc.state.isScenePanelVisible, isTrue);
-    expect(bloc.state.isPreviewVisible, isTrue);
 
     bloc.add(const OcptEditorScenePanelToggledEvent());
-    await waitForState(bloc, (state) => !state.isScenePanelVisible);
-
-    bloc.add(const OcptEditorPreviewToggledEvent());
-    final state = await waitForState(bloc, (state) => !state.isPreviewVisible);
+    final state = await waitForState(bloc, (state) => !state.isScenePanelVisible);
     expect(state.isScenePanelVisible, isFalse);
+
+    await bloc.close();
+  });
+
+  test('OcptEditorState.init defaults the right dock to the preview tab', () {
+    const state = OcptEditorState.init();
+
+    expect(state.rightDockTab, OcptEditorRightDockTab.preview);
+    expect(state.autoClosedRightDockTab, isNull);
+  });
+
+  test('loading the editor in raw mode leaves the preview tab active', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.mode, OcptEditorMode.raw);
+    expect(state.rightDockTab, OcptEditorRightDockTab.preview);
+    expect(state.autoClosedRightDockTab, isNull);
+
+    await bloc.close();
+  });
+
+  test(
+    'loading the editor in styled mode closes the preview tab and remembers it, exactly like a '
+    'live mode switch would',
+    () async {
+      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.mode, OcptEditorMode.styled);
+      expect(state.rightDockTab, isNull);
+      expect(state.autoClosedRightDockTab, OcptEditorRightDockTab.preview);
+
+      await bloc.close();
+    },
+  );
+
+  test('selecting a closed tab opens the dock on it', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorRightDockClosedEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax));
+    final state = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(state.rightDockTab, OcptEditorRightDockTab.syntax);
+
+    await bloc.close();
+  });
+
+  test('selecting the currently active tab closes the dock', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.preview));
+    final state = await waitForState(bloc, (state) => state.rightDockTab == null);
+    expect(state.rightDockTab, isNull);
+
+    await bloc.close();
+  });
+
+  test('selecting a different tab than the active one switches the dock to it', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax));
+    final state = await waitForState(
+      bloc,
+      (state) => state.rightDockTab == OcptEditorRightDockTab.syntax,
+    );
+    expect(state.rightDockTab, OcptEditorRightDockTab.syntax);
+
+    await bloc.close();
+  });
+
+  test("the dock's own close button closes it regardless of the active tab", () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax));
+    await waitForState(bloc, (state) => state.rightDockTab == OcptEditorRightDockTab.syntax);
+
+    bloc.add(const OcptEditorRightDockClosedEvent());
+    final state = await waitForState(bloc, (state) => state.rightDockTab == null);
+    expect(state.rightDockTab, isNull);
+
+    await bloc.close();
+  });
+
+  test('switching to styled mode with the preview tab active closes the dock and remembers it, '
+      'switching back to raw restores it', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorModeToggledEvent());
+    final styledState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.styled);
+    expect(styledState.rightDockTab, isNull);
+    expect(styledState.autoClosedRightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorModeToggledEvent());
+    final rawState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.raw);
+    expect(rawState.rightDockTab, OcptEditorRightDockTab.preview);
+    expect(rawState.autoClosedRightDockTab, isNull);
+
+    await bloc.close();
+  });
+
+  test('a dock the user closed explicitly stays closed across mode switches', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    // The user explicitly closes the dock by hand.
+    bloc.add(const OcptEditorRightDockClosedEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+
+    // Switching to styled and back must never reopen it, and must not remember anything either.
+    bloc.add(const OcptEditorModeToggledEvent());
+    final styledState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.styled);
+    expect(styledState.rightDockTab, isNull);
+    expect(styledState.autoClosedRightDockTab, isNull);
+
+    bloc.add(const OcptEditorModeToggledEvent());
+    final rawState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.raw);
+    expect(rawState.rightDockTab, isNull);
+    expect(rawState.autoClosedRightDockTab, isNull);
+
+    await bloc.close();
+  });
+
+  test('selecting a tab clears a previously remembered auto-closed tab', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    // Switch to styled to have the active preview tab remembered.
+    bloc.add(const OcptEditorModeToggledEvent());
+    final styledState = await waitForState(
+      bloc,
+      (state) => state.mode == OcptEditorMode.styled,
+    );
+    expect(styledState.autoClosedRightDockTab, OcptEditorRightDockTab.preview);
+
+    // Opening the syntax tab (an explicit action, valid in styled mode) must clear the memory.
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax));
+    final syntaxState = await waitForState(
+      bloc,
+      (state) => state.rightDockTab == OcptEditorRightDockTab.syntax,
+    );
+    expect(syntaxState.autoClosedRightDockTab, isNull);
+
+    // So switching to raw no longer force-reopens the preview tab.
+    bloc.add(const OcptEditorModeToggledEvent());
+    final rawState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.raw);
+    expect(rawState.rightDockTab, OcptEditorRightDockTab.syntax);
 
     await bloc.close();
   });

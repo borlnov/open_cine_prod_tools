@@ -63,6 +63,41 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorToggleSyntaxGuideTooltip": "Show or hide the syntax guide",
+  "@editorToggleSyntaxGuideTooltip": {
+    "description": "Tooltip of the toolbar action that shows/hides the Fountain syntax guide",
+    "context": "Displayed on hover over the syntax guide toggle of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockPreviewTabLabel": "Preview",
+  "@editorRightDockPreviewTabLabel": {
+    "description": "Label of the preview tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockSyntaxTabLabel": "Syntax",
+  "@editorRightDockSyntaxTabLabel": {
+    "description": "Label of the syntax guide tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockCloseTooltip": "Close panel",
+  "@editorRightDockCloseTooltip": {
+    "description": "Tooltip of the button that closes the editor's right dock",
+    "context": "Displayed on hover over the × button at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuidePlaceholder": "The Fountain syntax guide is coming soon.",
+  "@editorSyntaxGuidePlaceholder": {
+    "description": "Placeholder shown in the syntax guide tab until the real guide is built",
+    "context": "Displayed in the right dock's syntax tab instead of the guide content",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorSwitchToRawModeTooltip": "Switch to raw text editing",
   "@editorSwitchToRawModeTooltip": {
     "description": "Tooltip of the toolbar action that switches from the styled editor to the raw text editor",

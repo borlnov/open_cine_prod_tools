@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_t
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
@@ -255,6 +256,116 @@ void main() {
   });
 
   testWidgets(
+    "the toolbar's preview and syntax buttons show as selected only while their own tab is "
+    "active, and clicking the other tab switches the dock to it",
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      IconButton previewButton() => tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byTooltip(tr.editorTogglePreviewTooltip),
+          matching: find.byType(IconButton),
+        ),
+      );
+      IconButton syntaxButton() => tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byTooltip(tr.editorToggleSyntaxGuideTooltip),
+          matching: find.byType(IconButton),
+        ),
+      );
+
+      // The preview tab is open by default (raw mode, forced by this file's setUp).
+      expect(previewButton().isSelected, isTrue);
+      expect(syntaxButton().isSelected, isFalse);
+      expect(find.byType(OcptEditorPreview), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
+      await tester.pumpAndSettle();
+
+      expect(previewButton().isSelected, isFalse);
+      expect(syntaxButton().isSelected, isTrue);
+      expect(find.byType(OcptEditorPreview), findsNothing);
+      expect(find.text(tr.editorSyntaxGuidePlaceholder), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "clicking the active tab's own toolbar button closes the dock, and the dock's own × does too",
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      expect(find.byType(OcptEditorRightDock), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.editorTogglePreviewTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorRightDock), findsNothing);
+
+      await tester.tap(find.byTooltip(tr.editorTogglePreviewTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorRightDock), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.editorRightDockCloseTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorRightDock), findsNothing);
+    },
+  );
+
+  testWidgets('the syntax guide tab is available in both editing modes', (tester) async {
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
+
+    await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.editorSyntaxGuidePlaceholder), findsOneWidget);
+
+    await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+    await tester.pumpAndSettle();
+
+    // Styled mode still offers the syntax tab (only the preview tab is mode-gated): it stays
+    // open, showing the same placeholder.
+    expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsOneWidget);
+    expect(find.text(tr.editorSyntaxGuidePlaceholder), findsOneWidget);
+  });
+
+  testWidgets(
+    'a dock closed by hand in raw mode stays closed across a raw/styled/raw round trip',
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      expect(find.byType(OcptEditorPreview), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.editorRightDockCloseTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorRightDock), findsNothing);
+
+      await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorRightDock), findsNothing);
+
+      await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
+      await tester.pumpAndSettle();
+      // Explicitly closed, so the mode round trip never reopens it, unlike the default dance.
+      expect(find.byType(OcptEditorRightDock), findsNothing);
+      expect(find.byType(OcptEditorPreview), findsNothing);
+    },
+  );
+
+  testWidgets(
     "dragging the left divider live-resizes the scene panel dock without touching the bloc "
     "state, and releasing dispatches exactly one event that persists the final fraction",
     (tester) async {
@@ -385,6 +496,9 @@ void main() {
       expect(find.byType(OcptEditorSourceField), findsOneWidget);
       expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
       expect(await propertiesManager.editorMode.load(), OcptEditorMode.raw);
+      // The dock re-opens on the preview tab it was auto-closed on: nothing here explicitly
+      // closed it, so the raw/styled dance restores it rather than leaving it closed.
+      expect(find.byType(OcptEditorPreview), findsOneWidget);
     },
   );
 

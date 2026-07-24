@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -127,7 +128,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorCaretMovedEvent>(_onCaretMoved);
     on<OcptEditorSceneJumpRequestedEvent>(_onSceneJumpRequested);
     on<OcptEditorScenePanelToggledEvent>(_onScenePanelToggled);
-    on<OcptEditorPreviewToggledEvent>(_onPreviewToggled);
+    on<OcptEditorRightDockTabSelectedEvent>(_onRightDockTabSelected);
+    on<OcptEditorRightDockClosedEvent>(_onRightDockClosed);
     on<OcptEditorDockFractionsChangedEvent>(_onDockFractionsChanged);
     on<OcptEditorDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptEditorModeToggledEvent>(_onModeToggled);
@@ -159,6 +161,17 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final rightDockFraction =
         await _propertiesManager.editorRightDockFraction.load() ?? OcptEditorDock.rightDefaultFraction;
 
+    // Applies the same raw/styled right-dock transition the mode toggle itself applies (see
+    // `_rightDockTransitionFor`), now that the persisted mode is known: e.g. an editor that was
+    // left in styled mode last session starts with its (session-local, always-preview-by-default)
+    // dock already closed and remembered, rather than briefly showing a preview tab that mode
+    // immediately forbids.
+    final dockTabTransition = _rightDockTransitionFor(
+      newMode: mode,
+      rightDockTab: state.rightDockTab,
+      autoClosedRightDockTab: state.autoClosedRightDockTab,
+    );
+
     final project = _projectsManager.currentProject;
     if (project == null) {
       final document = _fountainParser.parse("");
@@ -170,6 +183,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           isPageSimulationEnabled: isPageSimulationEnabled,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
+          rightDockTab: dockTabTransition.rightDockTab,
+          clearRightDockTab: dockTabTransition.clearRightDockTab,
+          autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
+          clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
           statistics: _statisticsFor(document, state.pageSetup),
         ),
       );
@@ -199,6 +216,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         isPageSimulationEnabled: isPageSimulationEnabled,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
+        rightDockTab: dockTabTransition.rightDockTab,
+        clearRightDockTab: dockTabTransition.clearRightDockTab,
+        autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
+        clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
         statistics: _statisticsFor(document, pageSetup),
       ),
     );
@@ -207,6 +228,53 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
   FountainScriptStatistics _statisticsFor(FountainDocument document, OcptPageSetup pageSetup) =>
       FountainScriptStatistics.of(document, pageSetup.toMetrics());
+
+  /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
+  /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
+  /// [_onLoadRequested] once the persisted mode is known.
+  ///
+  /// - switching to styled while the preview tab is active closes the dock and remembers that tab
+  ///   in [autoClosedRightDockTab] (decision 4: styled mode has no preview tab at all);
+  /// - switching to raw with the dock closed and a tab remembered reopens it on that tab and
+  ///   forgets it;
+  /// - any other combination (the syntax tab active, the dock already closed with nothing
+  ///   remembered, switching to the mode it's already in, …) is left untouched — in particular,
+  ///   this never touches a dock the user closed by hand (which never leaves anything in
+  ///   [autoClosedRightDockTab] to restore, since every explicit close/tab-selection clears it).
+  ({
+    OcptEditorRightDockTab? rightDockTab,
+    bool clearRightDockTab,
+    OcptEditorRightDockTab? autoClosedRightDockTab,
+    bool clearAutoClosedRightDockTab,
+  })
+  _rightDockTransitionFor({
+    required OcptEditorMode newMode,
+    required OcptEditorRightDockTab? rightDockTab,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+  }) {
+    if (newMode == OcptEditorMode.styled && rightDockTab == OcptEditorRightDockTab.preview) {
+      return (
+        rightDockTab: null,
+        clearRightDockTab: true,
+        autoClosedRightDockTab: OcptEditorRightDockTab.preview,
+        clearAutoClosedRightDockTab: false,
+      );
+    }
+    if (newMode == OcptEditorMode.raw && rightDockTab == null && autoClosedRightDockTab != null) {
+      return (
+        rightDockTab: autoClosedRightDockTab,
+        clearRightDockTab: false,
+        autoClosedRightDockTab: null,
+        clearAutoClosedRightDockTab: true,
+      );
+    }
+    return (
+      rightDockTab: rightDockTab,
+      clearRightDockTab: false,
+      autoClosedRightDockTab: autoClosedRightDockTab,
+      clearAutoClosedRightDockTab: false,
+    );
+  }
 
   /// Stores the edited text, marks it dirty, and restarts the parse and autosave debounces.
   Future<void> _onTextChanged(
@@ -364,12 +432,30 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     emitter(state.copyWith(isScenePanelVisible: !state.isScenePanelVisible));
   }
 
-  /// Toggles the preview panel's visibility.
-  Future<void> _onPreviewToggled(
-    OcptEditorPreviewToggledEvent event,
+  /// Selects a tab of the right dock (decision 3's toggle semantics: the already-active tab
+  /// closes the dock, any other tab opens or switches to it), and clears
+  /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
+  Future<void> _onRightDockTabSelected(
+    OcptEditorRightDockTabSelectedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(isPreviewVisible: !state.isPreviewVisible));
+    final isAlreadyActive = state.rightDockTab == event.tab;
+    emitter(
+      state.copyWith(
+        rightDockTab: isAlreadyActive ? null : event.tab,
+        clearRightDockTab: isAlreadyActive,
+        clearAutoClosedRightDockTab: true,
+      ),
+    );
+  }
+
+  /// Closes the right dock via its own × close button, and clears
+  /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
+  Future<void> _onRightDockClosed(
+    OcptEditorRightDockClosedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(state.copyWith(clearRightDockTab: true, clearAutoClosedRightDockTab: true));
   }
 
   /// Applies and persists whichever of [OcptEditorDockFractionsChangedEvent.left]/[.right] is
@@ -407,13 +493,28 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     await _propertiesManager.editorRightDockFraction.store(OcptEditorDock.rightDefaultFraction);
   }
 
-  /// Toggles the editing mode between styled and raw, and persists the new mode.
+  /// Toggles the editing mode between styled and raw, persists the new mode, and applies the
+  /// right dock's raw/styled transition (see [_rightDockTransitionFor]).
   Future<void> _onModeToggled(
     OcptEditorModeToggledEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
     final newMode = state.mode == OcptEditorMode.styled ? OcptEditorMode.raw : OcptEditorMode.styled;
-    emitter(state.copyWith(mode: newMode));
+    final dockTabTransition = _rightDockTransitionFor(
+      newMode: newMode,
+      rightDockTab: state.rightDockTab,
+      autoClosedRightDockTab: state.autoClosedRightDockTab,
+    );
+
+    emitter(
+      state.copyWith(
+        mode: newMode,
+        rightDockTab: dockTabTransition.rightDockTab,
+        clearRightDockTab: dockTabTransition.clearRightDockTab,
+        autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
+        clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
+      ),
+    );
     await _propertiesManager.editorMode.store(newMode);
   }
 

@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 
 /// The events handled by `OcptEditorBloc`.
 sealed class OcptEditorEvent extends BlocEventForMixin {
@@ -109,10 +110,31 @@ class OcptEditorScenePanelToggledEvent extends OcptEditorEvent {
   const OcptEditorScenePanelToggledEvent();
 }
 
-/// Toggles the visibility of the formatted preview panel.
-class OcptEditorPreviewToggledEvent extends OcptEditorEvent {
+/// Selects a tab of the right dock, dispatched by the toolbar's preview/syntax buttons.
+///
+/// Implements decision 3's toggle semantics: if [tab] is already the dock's active tab, the dock
+/// closes; otherwise the dock opens (or switches) to show [tab]. Either way, this is an explicit
+/// user action on the dock, so it also clears `OcptEditorState.autoClosedRightDockTab` — a dock
+/// the user just acted on by hand must never be silently reopened by a later mode switch.
+class OcptEditorRightDockTabSelectedEvent extends OcptEditorEvent {
+  /// The tab the toolbar button pressed represents.
+  final OcptEditorRightDockTab tab;
+
   /// Class constructor
-  const OcptEditorPreviewToggledEvent();
+  const OcptEditorRightDockTabSelectedEvent({required this.tab});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tab];
+}
+
+/// Closes the right dock via its own × close button, whichever tab is currently active.
+///
+/// Just like [OcptEditorRightDockTabSelectedEvent], this is an explicit user action, so it also
+/// clears `OcptEditorState.autoClosedRightDockTab`.
+class OcptEditorRightDockClosedEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorRightDockClosedEvent();
 }
 
 /// Requests updating the editor's dock width fractions, persisting whichever of [left]/[right] is

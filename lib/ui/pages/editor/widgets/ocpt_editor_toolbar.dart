@@ -5,14 +5,15 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
 
 /// The editor's thin, discreet toolbar: the back action leading to the projects list, the
 /// screenplay title (with a dot marking unsaved changes), then the save action (spinning while a
-/// save is in flight), the styled/raw mode toggle, and the scene panel / preview visibility
-/// toggles.
+/// save is in flight), the styled/raw mode toggle, the scene panel visibility toggle, and the
+/// right dock's own preview/syntax tab selectors.
 class OcptEditorToolbar extends StatelessWidget {
   /// The title shown at the left of the toolbar (the open project's name).
   final String title;
@@ -26,11 +27,10 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Whether the scene panel is currently visible.
   final bool isScenePanelVisible;
 
-  /// Whether the preview panel is currently visible.
+  /// The right dock's currently active tab, or null if the dock is closed.
   ///
-  /// The preview toggle is only shown in [OcptEditorMode.raw]: the styled mode has no separate
-  /// preview panel, since its own layout already is the formatted screenplay.
-  final bool isPreviewVisible;
+  /// Drives which of the preview/syntax buttons below shows as selected (lit).
+  final OcptEditorRightDockTab? rightDockTab;
 
   /// Whether the "Word-like" page simulation is currently enabled, shown as a checked state on
   /// its overflow menu entry.
@@ -48,8 +48,11 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when the scene panel toggle is clicked.
   final VoidCallback onToggleScenePanel;
 
-  /// Called when the preview toggle is clicked.
-  final VoidCallback onTogglePreview;
+  /// Called when the preview or the syntax toolbar button is clicked, with the tab it represents.
+  ///
+  /// The toggle semantics (open the dock on that tab, switch to it, or close the dock when it's
+  /// already the active one) are decided by the bloc, not here.
+  final ValueChanged<OcptEditorRightDockTab> onRightDockTabSelected;
 
   /// Called when the styled/raw mode toggle is clicked.
   final VoidCallback onToggleMode;
@@ -88,13 +91,13 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.isDirty,
     required this.isSaving,
     required this.isScenePanelVisible,
-    required this.isPreviewVisible,
+    required this.rightDockTab,
     required this.isPageSimulationEnabled,
     required this.mode,
     required this.onBack,
     required this.onSave,
     required this.onToggleScenePanel,
-    required this.onTogglePreview,
+    required this.onRightDockTabSelected,
     required this.onToggleMode,
     required this.onExport,
     required this.onExportPdf,
@@ -168,10 +171,27 @@ class OcptEditorToolbar extends StatelessWidget {
             ),
             if (mode == OcptEditorMode.raw)
               IconButton(
-                icon: Icon(isPreviewVisible ? Icons.article : Icons.article_outlined, size: 20),
+                icon: Icon(
+                  rightDockTab == OcptEditorRightDockTab.preview
+                      ? Icons.article
+                      : Icons.article_outlined,
+                  size: 20,
+                ),
                 tooltip: tr.editorTogglePreviewTooltip,
-                onPressed: onTogglePreview,
+                isSelected: rightDockTab == OcptEditorRightDockTab.preview,
+                onPressed: () => onRightDockTabSelected(OcptEditorRightDockTab.preview),
               ),
+            IconButton(
+              icon: Icon(
+                rightDockTab == OcptEditorRightDockTab.syntax
+                    ? Icons.help
+                    : Icons.help_outline,
+                size: 20,
+              ),
+              tooltip: tr.editorToggleSyntaxGuideTooltip,
+              isSelected: rightDockTab == OcptEditorRightDockTab.syntax,
+              onPressed: () => onRightDockTabSelected(OcptEditorRightDockTab.syntax),
+            ),
             IconButton(
               icon: Icon(
                 mode == OcptEditorMode.styled ? Icons.code : Icons.style,

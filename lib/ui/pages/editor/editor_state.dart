@@ -7,6 +7,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
@@ -104,8 +105,22 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// Whether the scene panel is shown.
   final bool isScenePanelVisible;
 
-  /// Whether the formatted preview panel is shown.
-  final bool isPreviewVisible;
+  /// The right dock's currently active tab, or null if the dock is closed.
+  ///
+  /// Session-local, like [isScenePanelVisible]: it always starts on [OcptEditorRightDockTab
+  /// .preview] when the editor opens, then only changes through explicit user action (the
+  /// toolbar's tab buttons, or the dock's own close button) or the raw/styled mode-switch
+  /// transition documented on [autoClosedRightDockTab].
+  final OcptEditorRightDockTab? rightDockTab;
+
+  /// The tab a raw → styled mode switch auto-closed while it was the active [rightDockTab],
+  /// restored the next time the mode switches back to raw (and this cleared back to null in the
+  /// process).
+  ///
+  /// Any explicit user action on the dock (selecting a tab from the toolbar, or closing the dock
+  /// by hand) also clears this immediately, so a dock the user closed on purpose never reopens
+  /// behind their back on a later mode switch.
+  final OcptEditorRightDockTab? autoClosedRightDockTab;
 
   /// The left (scenes) dock's width, as a fraction of the editing row's width.
   ///
@@ -168,7 +183,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.hasSaveError,
     required this.currentLine,
     required this.isScenePanelVisible,
-    required this.isPreviewVisible,
+    required this.rightDockTab,
+    required this.autoClosedRightDockTab,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.mode,
@@ -191,7 +207,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       hasSaveError = false,
       currentLine = 0,
       isScenePanelVisible = true,
-      isPreviewVisible = true,
+      rightDockTab = OcptEditorRightDockTab.preview,
+      autoClosedRightDockTab = null,
       leftDockFraction = OcptEditorDock.leftDefaultFraction,
       rightDockFraction = OcptEditorDock.rightDefaultFraction,
       mode = OcptEditorMode.styled,
@@ -207,7 +224,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// is given: they never go back to null (or, for [statistics], to
   /// [FountainScriptStatistics.empty]) once set, so no clear flag is needed for them. [ioNotice]
   /// is only replaced when a new one is given or [clearIoNotice] is true, exactly like
-  /// `OcptHomeState`'s own `error` field.
+  /// `OcptHomeState`'s own `error` field. [rightDockTab] and [autoClosedRightDockTab] follow the
+  /// same idiom as [ioNotice], each with its own clear flag ([clearRightDockTab],
+  /// [clearAutoClosedRightDockTab]): both legitimately go back to null during the editor's
+  /// lifetime (closing the dock, restoring it on a mode switch), so the "never goes back to null"
+  /// shortcut used above doesn't apply to them.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -220,7 +241,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     bool? hasSaveError,
     int? currentLine,
     bool? isScenePanelVisible,
-    bool? isPreviewVisible,
+    OcptEditorRightDockTab? rightDockTab,
+    bool clearRightDockTab = false,
+    OcptEditorRightDockTab? autoClosedRightDockTab,
+    bool clearAutoClosedRightDockTab = false,
     double? leftDockFraction,
     double? rightDockFraction,
     OcptEditorMode? mode,
@@ -241,7 +265,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     hasSaveError: hasSaveError ?? this.hasSaveError,
     currentLine: currentLine ?? this.currentLine,
     isScenePanelVisible: isScenePanelVisible ?? this.isScenePanelVisible,
-    isPreviewVisible: isPreviewVisible ?? this.isPreviewVisible,
+    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    autoClosedRightDockTab: clearAutoClosedRightDockTab
+        ? null
+        : (autoClosedRightDockTab ?? this.autoClosedRightDockTab),
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     mode: mode ?? this.mode,
@@ -266,7 +293,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     hasSaveError,
     currentLine,
     isScenePanelVisible,
-    isPreviewVisible,
+    rightDockTab,
+    autoClosedRightDockTab,
     leftDockFraction,
     rightDockFraction,
     mode,

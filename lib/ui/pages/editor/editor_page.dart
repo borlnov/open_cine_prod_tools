@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
@@ -18,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
@@ -26,8 +28,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
 /// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
-/// the formatted paper preview on the right (raw mode only: the styled mode's own layout already
-/// is the formatted screenplay), and a thin toolbar above them.
+/// the tabbed right dock (formatted preview, raw mode only, and the Fountain syntax guide, both
+/// modes) hosting at most one panel at a time, and a thin toolbar above them.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class EditorPage extends StatelessWidget {
@@ -154,7 +156,7 @@ class _EditorViewState extends State<_EditorView> {
                   isDirty: state.isDirty,
                   isSaving: state.isSaving,
                   isScenePanelVisible: state.isScenePanelVisible,
-                  isPreviewVisible: state.isPreviewVisible,
+                  rightDockTab: state.rightDockTab,
                   isPageSimulationEnabled: state.isPageSimulationEnabled,
                   mode: state.mode,
                   onBack: () => context.read<OcptEditorBloc>().add(
@@ -164,8 +166,8 @@ class _EditorViewState extends State<_EditorView> {
                   onToggleScenePanel: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorScenePanelToggledEvent(),
                   ),
-                  onTogglePreview: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorPreviewToggledEvent(),
+                  onRightDockTabSelected: (tab) => context.read<OcptEditorBloc>().add(
+                    OcptEditorRightDockTabSelectedEvent(tab: tab),
                   ),
                   onToggleMode: _toggleMode,
                   onExport: () => context.read<OcptEditorBloc>().add(
@@ -193,17 +195,18 @@ class _EditorViewState extends State<_EditorView> {
     ),
   );
 
-  /// Builds the panel/editor/preview row: the scene panel and preview docks are resizable
+  /// Builds the panel/editor/right-dock row: the scene panel and right docks are resizable
   /// (dragging their divider) and remember their width between sessions.
   ///
-  /// The scene panel, editor and preview widgets are built once here, then handed unchanged into
-  /// the [ListenableBuilder] that listens to [_dockLayoutController]: a divider drag only ever
-  /// calls [OcptEditorDockLayoutController.setLeftFraction]/`setRightFraction`, which notifies
-  /// that builder alone. Since it references these exact same widget instances on every rebuild
-  /// (rather than constructing fresh ones), Flutter's `Element.update` short-circuits on their
-  /// identity and only re-lays-out the resolved widths — the editing subtrees underneath never
-  /// rebuild mid-drag, which matters because [OcptStyledScreenplayEditor] and [OcptEditorPreview]
-  /// are too expensive to rebuild on every frame of a drag.
+  /// The scene panel, editor and right dock (preview or syntax placeholder, wrapped in
+  /// [OcptEditorRightDock]) widgets are built once here, then handed unchanged into the
+  /// [ListenableBuilder] that listens to [_dockLayoutController]: a divider drag only ever calls
+  /// [OcptEditorDockLayoutController.setLeftFraction]/`setRightFraction`, which notifies that
+  /// builder alone. Since it references these exact same widget instances on every rebuild (rather
+  /// than constructing fresh ones), Flutter's `Element.update` short-circuits on their identity
+  /// and only re-lays-out the resolved widths — the editing subtrees underneath never rebuild
+  /// mid-drag, which matters because [OcptStyledScreenplayEditor] and [OcptEditorPreview] are too
+  /// expensive to rebuild on every frame of a drag.
   Widget _buildEditingRow(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
     final scenePanelChild = state.isScenePanelVisible
         ? OcptEditorScenePanel(
@@ -235,7 +238,7 @@ class _EditorViewState extends State<_EditorView> {
             styledController: _styledEditorController,
           );
 
-    final previewChild = isRawMode && state.isPreviewVisible
+    final previewChild = isRawMode && state.rightDockTab == OcptEditorRightDockTab.preview
         ? OcptEditorPreview(
             document: state.document,
             pageSetup: state.pageSetup,
@@ -243,6 +246,18 @@ class _EditorViewState extends State<_EditorView> {
             isPageSimulationEnabled: state.isPageSimulationEnabled,
           )
         : null;
+
+    final rightDockTab = state.rightDockTab;
+    final rightDockChild = rightDockTab == null
+        ? null
+        : OcptEditorRightDock(
+            activeTab: rightDockTab,
+            isPreviewTabAvailable: isRawMode,
+            previewChild: previewChild,
+            onClose: () => context.read<OcptEditorBloc>().add(
+              const OcptEditorRightDockClosedEvent(),
+            ),
+          );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -256,7 +271,7 @@ class _EditorViewState extends State<_EditorView> {
               leftFraction: _dockLayoutController.leftFraction,
               rightFraction: _dockLayoutController.rightFraction,
               isLeftDockVisible: scenePanelChild != null,
-              isRightDockVisible: previewChild != null,
+              isRightDockVisible: rightDockChild != null,
             );
 
             return Row(
@@ -277,7 +292,7 @@ class _EditorViewState extends State<_EditorView> {
                   ),
                 ],
                 Expanded(child: editorChild),
-                if (previewChild != null) ...[
+                if (rightDockChild != null) ...[
                   OcptDockDivider(
                     onDragUpdate: (deltaX) => _dockLayoutController.setRightFraction(
                       OcptEditorDock.clampRightFraction(
@@ -291,7 +306,7 @@ class _EditorViewState extends State<_EditorView> {
                       ),
                     ),
                   ),
-                  OcptEditorDock(width: widths.right, child: previewChild),
+                  OcptEditorDock(width: widths.right, child: rightDockChild),
                 ],
               ],
             );
