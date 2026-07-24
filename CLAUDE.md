@@ -62,7 +62,7 @@ breakdown, and a casting tracker.
 | 12    | PDF screenplay export (`pdf` package, line-level paginator, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title-page editor splicing the Fountain source) — milestones M1-M4 in `docs/plans/pdf-screenplay-export.md` | ✅                                   |
 | 13    | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation)                                                                     | ✅                                   |
 | 14    | Editor statistics (page count, character count, last autosave time) — milestones M1-M4 in `docs/plans/editor-statistics.md`                                                                              | ✅                                   |
-| 15    | Fountain syntax user guide (raw mode help: tags/elements to create blocks)                                                                                                                               | ⬜                                   |
+| 15    | Editor docks & Fountain syntax guide (resizable/persisted left+right docks, right dock tabbed preview/syntax, read-only syntax guide panel) — milestones M1-M4 in `docs/plans/editor-docks-and-syntax-guide.md` | ✅                                   |
 
 ## Ways of working
 
@@ -155,6 +155,20 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   150 ms, autosave 2 s, styled reclassify 120 ms (flushed synchronously on `deactivate()` so a
   pending edit survives a mode toggle or back navigation). Ctrl+S saves, Ctrl+Shift+M toggles
   mode, both left unclaimed by the styled editor's `keyboardActions` and bubbling to the page.
+- Editor docks: `OcptEditorDock`/`OcptDockDivider` (`lib/ui/pages/editor/widgets/ocpt_editor_dock.dart`)
+  give the scene panel and the right dock draggable-divider resizing with a 320 px centre floor
+  (right dock yields width first); widths are fractions of the editing row, persisted through
+  `OcptPropertiesManager.editorLeftDockFraction`/`editorRightDockFraction`.
+  `OcptEditorDockLayoutController extends ChangeNotifier` holds the live fractions during a drag so
+  it never emits a bloc state per frame; the bloc only sees one `OcptEditorDockFractionsChangedEvent`
+  on `onHorizontalDragEnd`. The right dock (`OcptEditorRightDock`) is tabbed (preview/syntax,
+  `OcptEditorRightDockTab`); the toolbar's buttons are the tab selectors, and switching to styled
+  mode auto-closes an open preview tab and remembers it for the next switch back to raw, unless the
+  user explicitly closed the dock themselves.
+- The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
+  `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
+  `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes; its titles reuse the 11
+  existing `editorBlockType*` ARB keys where a topic already had one.
 
 ## Coding standards
 

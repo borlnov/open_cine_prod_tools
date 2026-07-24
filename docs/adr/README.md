@@ -51,6 +51,7 @@ number is a stable identifier other documents and commits can reference.
 | [0002](0002-fountain-kit-as-a-standalone-dart-package.md) | fountain_kit as a standalone Dart package | Accepted |
 | [0003](0003-super-editor-for-the-styled-editor.md) | super_editor for the styled editor            | Accepted |
 | [0004](0004-generated-code-is-not-committed.md)    | Generated code is not committed               | Accepted |
+| [0005](0005-resizable-editor-docks.md)             | Resizable editor docks                        | Accepted |
 
 ## Candidates
 
