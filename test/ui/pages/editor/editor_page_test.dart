@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_d
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -289,7 +290,7 @@ void main() {
       expect(previewButton().isSelected, isFalse);
       expect(syntaxButton().isSelected, isTrue);
       expect(find.byType(OcptEditorPreview), findsNothing);
-      expect(find.text(tr.editorSyntaxGuidePlaceholder), findsOneWidget);
+      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
     },
   );
 
@@ -327,15 +328,15 @@ void main() {
 
     await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
     await tester.pumpAndSettle();
-    expect(find.text(tr.editorSyntaxGuidePlaceholder), findsOneWidget);
+    expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
 
     await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
     await tester.pumpAndSettle();
 
     // Styled mode still offers the syntax tab (only the preview tab is mode-gated): it stays
-    // open, showing the same placeholder.
+    // open, showing the same guide panel.
     expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsOneWidget);
-    expect(find.text(tr.editorSyntaxGuidePlaceholder), findsOneWidget);
+    expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
   });
 
   testWidgets(

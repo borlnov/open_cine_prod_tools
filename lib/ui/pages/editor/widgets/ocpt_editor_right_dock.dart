@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
 
 /// The chrome of the editor's right dock: a compact tab row naming the tabs available in the
 /// current editing mode (the active one tinted `primary` with a 2 px underline, the others
@@ -82,7 +83,7 @@ class OcptEditorRightDock extends StatelessWidget {
         Expanded(
           child: activeTab == OcptEditorRightDockTab.preview
               ? (previewChild ?? const SizedBox.shrink())
-              : const _OcptSyntaxGuidePlaceholder(),
+              : const OcptEditorSyntaxGuidePanel(),
         ),
       ],
     );
@@ -119,29 +120,6 @@ class _OcptRightDockTabLabel extends StatelessWidget {
             color: isActive ? theme.colorScheme.primary : Colors.transparent,
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The syntax tab's body until the real guide panel lands: a centered hint, exactly like the
-/// preview's own empty-state hint.
-class _OcptSyntaxGuidePlaceholder extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyntaxGuidePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          Tr.of(context).editorSyntaxGuidePlaceholder,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
       ),
     );
   }

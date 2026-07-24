@@ -91,13 +91,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorSyntaxGuidePlaceholder": "The Fountain syntax guide is coming soon.",
-  "@editorSyntaxGuidePlaceholder": {
-    "description": "Placeholder shown in the syntax guide tab until the real guide is built",
-    "context": "Displayed in the right dock's syntax tab instead of the guide content",
-    "type": "text",
-    "placeholders": {}
-  },
   "editorSwitchToRawModeTooltip": "Switch to raw text editing",
   "@editorSwitchToRawModeTooltip": {
     "description": "Tooltip of the toolbar action that switches from the styled editor to the raw text editor",
