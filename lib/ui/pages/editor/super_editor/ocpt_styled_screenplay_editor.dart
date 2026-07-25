@@ -174,6 +174,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void initState() {
     super.initState();
     _rebuildEditorFrom(widget.text);
+    _syncSceneNumbers();
     _recomputePageSimulation();
     widget.styledController?.attach(this);
     _reportReadStateToController();
@@ -190,6 +191,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         _rebuildEditorFrom(widget.text);
         _recomputePageSimulation();
       });
+      _syncSceneNumbers();
       _reportReadStateToController();
     } else if (widget.isPageSimulationEnabled != oldWidget.isPageSimulationEnabled ||
         widget.pageSetup != oldWidget.pageSetup) {
@@ -278,7 +280,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       componentBuilders: widget.areSceneNumbersVisible
           ? [
               OcptSceneNumberGutterComponentBuilder.build(
-                sceneNumbers: computeOcptStyledSceneNumbers(_document),
+                sceneNumbers: _sceneNumbersFromMetadata(),
                 layout: layout,
                 textStyle: TextStyle(
                   fontFamily: OcptEditorPreviewLayout.fontFamily,
@@ -401,6 +403,31 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
   }
 
+  /// The scene number to show next to every scene-heading node currently in [_document], keyed
+  /// by node id, read straight off each node's [ocptSceneNumberMetadataKey] metadata.
+  ///
+  /// By the time this is called (every [build]), that metadata is already correct: it was set by
+  /// [OcptWysiwygCodec.decode] for an explicit tag, or normalized by [_syncSceneNumbers]/
+  /// [_syncAfterEdit]'s own `sceneNumberNormalizationRequests` pass right after every rebuild or
+  /// edit, so this is a plain read, not a fresh computation.
+  Map<String, String> _sceneNumbersFromMetadata() {
+    final numbers = <String, String>{};
+    for (final node in _document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      if (type != FountainLineType.sceneHeading) {
+        continue;
+      }
+      final value = node.getMetadataValue(ocptSceneNumberMetadataKey);
+      if (value is String) {
+        numbers[node.id] = value;
+      }
+    }
+    return numbers;
+  }
+
   /// Builds [_document], [_composer] and [_editor] from [text], and starts listening to document
   /// and selection changes.
   ///
@@ -464,6 +491,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _editor.execute(sceneNumberRequests);
     }
 
+    // Renumbers every scene heading (see `sceneNumberNormalizationRequests`'s own doc comment),
+    // in its own `execute` call so it always runs against the just-absorbed tag above: inserting,
+    // deleting or retyping a heading anywhere can shift every number after it, not just the one
+    // being edited.
+    final normalizationRequests = sceneNumberNormalizationRequests(_document);
+    if (normalizationRequests.isNotEmpty) {
+      _editor.execute(normalizationRequests);
+    }
+
     _encodeAndReportIfChanged();
 
     final requests = [
@@ -481,6 +517,20 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     if (_pageCount != previousPageCount || _trailingBottomPadding != previousTrailingBottomPadding) {
       setState(() {});
     }
+  }
+
+  /// Renumbers every scene heading immediately (not debounced) and reports the corrected text
+  /// upstream if it changed, right after [_rebuildEditorFrom] rebuilds the document from fresh
+  /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
+  /// the moment it's decoded into the styled editor, rather than waiting for the next edit's
+  /// [_syncAfterEdit] debounce to happen to touch a scene heading.
+  void _syncSceneNumbers() {
+    final requests = sceneNumberNormalizationRequests(_document);
+    if (requests.isEmpty) {
+      return;
+    }
+    _editor.execute(requests);
+    _encodeAndReportIfChanged();
   }
 
   /// The exact top padding (in logical pixels) [node] currently carries in

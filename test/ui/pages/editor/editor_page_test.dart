@@ -622,6 +622,14 @@ void main() {
 
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
+    // Mounting the styled editor auto-numbers every scene heading (see `_syncSceneNumbers`),
+    // which reports the corrected text to the bloc and restarts its (real, default-length) parse
+    // debounce; `pumpAndSettle`'s own 100 ms step is shorter than that 150 ms debounce, so without
+    // this extra pump the scene panel below would still be built from the *pre-correction* parse,
+    // one scene heading's `#1#` tag short of the final offsets — exactly the kind of staleness
+    // `OcptEditorBloc.defaultParseDebounce` is long enough to expose here.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
     await tester.tap(
       find.descendant(

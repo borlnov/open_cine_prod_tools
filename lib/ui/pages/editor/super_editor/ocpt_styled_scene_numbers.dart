@@ -6,19 +6,34 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Computes the scene number to display next to every scene-heading node of [document], in
-/// source order: a heading carrying an explicit [ocptSceneNumberMetadataKey] keeps it and does
-/// not consume a computed number; every other heading takes the next integer starting at 1.
+/// Matches a scene number already in the sequential `<integer><optional letters>` shape this
+/// app auto-numbers with (e.g. `"4"` or, for an inserted scene, `"4A"`), capturing the integer
+/// base in group 1 and the letter suffix (possibly empty) in group 2.
+final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
+
+/// Computes the requests needed to bring every scene heading's [ocptSceneNumberMetadataKey]
+/// metadata back to a valid, gapless sequential numbering of [document], in source order —
+/// every heading always ends up with a number, so it always round-trips into the Fountain source
+/// through [OcptWysiwygCodec.encode] (this app has no "hide the numbers from the source" mode).
 ///
-/// Pure and stateless, deliberately independent of whether the styled editor is actually
-/// configured to show these numbers (see `OcptStyledScreenplayEditor.areSceneNumbersVisible`):
-/// callers that don't want them displayed simply don't call this or ignore its result.
-Map<String, String> computeOcptStyledSceneNumbers(Document document) {
-  final numbers = <String, String>{};
-  var nextComputedNumber = 1;
+/// Walks the document keeping the last plain integer consumed so far (starting at 0, i.e. no
+/// scene consumed yet). A heading with no letter suffix is kept as-is when its number is exactly
+/// one past that (it becomes the new "last consumed"); a heading with a letter suffix (e.g. the
+/// `"A"` of `"4A"`) is kept as-is when its base equals that same last-consumed integer, without
+/// advancing it — a deliberate inserted scene right after it, so `"4B"` or plain `"5"` can still
+/// follow it correctly. Every other case — no number yet, or one that does not match what comes
+/// next (out of order, a gap, a duplicate, a hand-typed value that makes no sense in context) —
+/// is corrected to the next plain integer.
+///
+/// Pure and stateless: it only reads [document]'s current metadata and returns the requests a
+/// caller must still execute against a live `Editor` to actually apply them.
+List<EditRequest> sceneNumberNormalizationRequests(Document document) {
+  final requests = <EditRequest>[];
+  var lastConsumed = 0;
 
   for (final node in document) {
     if (node is! ParagraphNode) {
@@ -29,21 +44,36 @@ Map<String, String> computeOcptStyledSceneNumbers(Document document) {
       continue;
     }
 
-    final explicitNumber = node.getMetadataValue(ocptSceneNumberMetadataKey);
-    if (explicitNumber is String && explicitNumber.isNotEmpty) {
-      numbers[node.id] = explicitNumber;
-    } else {
-      numbers[node.id] = "$nextComputedNumber";
-      nextComputedNumber++;
+    final currentNumber = node.getMetadataValue(ocptSceneNumberMetadataKey);
+    final match = currentNumber is String ? _sequentialSceneNumberPattern.firstMatch(currentNumber) : null;
+    final base = match == null ? null : int.parse(match.group(1)!);
+    final hasLetterSuffix = match != null && match.group(2)!.isNotEmpty;
+
+    if (!hasLetterSuffix && base == lastConsumed + 1) {
+      lastConsumed = base!;
+      continue;
     }
+    if (hasLetterSuffix && base == lastConsumed) {
+      continue;
+    }
+
+    final correctedNumber = "${lastConsumed + 1}";
+    if (currentNumber != correctedNumber) {
+      requests.add(
+        OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptSceneNumberMetadataKey: correctedNumber}),
+      );
+    }
+    lastConsumed++;
   }
 
-  return numbers;
+  return requests;
 }
 
 /// A [ComponentBuilder] that draws a scene heading's number (from [sceneNumbers], keyed by node
-/// id, normally built by [computeOcptStyledSceneNumbers]) into the heading's own left gutter,
-/// right-aligned close to the heading text — mirroring where the PDF exporter prints it in the
+/// id — the caller normally builds it by reading every heading's already-normalized
+/// [ocptSceneNumberMetadataKey] metadata straight off the document, see
+/// [sceneNumberNormalizationRequests]) into the heading's own left gutter, right-aligned close to
+/// the heading text — mirroring where the PDF exporter prints it in the
 /// page margin — without changing the heading's own wrap width, since the number is painted
 /// alongside the delegate's component rather than added to its text.
 ///

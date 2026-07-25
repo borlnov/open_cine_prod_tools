@@ -621,10 +621,10 @@ void main() {
       // to a fully-saved screenplay, one incremental save per character.
       await tester.typeImeText("EXT. STREET - DAY");
 
-      expect(bloc.state.text, "EXT. STREET - DAY");
+      expect(bloc.state.text, "EXT. STREET - DAY #1#");
       expect(bloc.state.isDirty, isFalse);
       expect(savedTexts, isNotEmpty);
-      expect(savedTexts.last, "EXT. STREET - DAY");
+      expect(savedTexts.last, "EXT. STREET - DAY #1#");
     });
   });
 
@@ -924,7 +924,7 @@ void main() {
 
         expect(_nodeAt(document, 0).text.toPlainText(), "INT. KITCHEN - DAY");
         expect(_typeAt(document, 0), FountainLineType.sceneHeading);
-        expect(lastEncoded, "INT. KITCHEN - DAY");
+        expect(lastEncoded, "INT. KITCHEN - DAY #1#");
 
         final selection = SuperEditorInspector.findDocumentSelection();
         final extentOffset = (selection!.extent.nodePosition as TextNodePosition).offset;
@@ -1044,7 +1044,7 @@ void main() {
       await tester.pump();
 
       expect(_nodeAt(document, 0).text.toPlainText(), "INT. KITCHEN - DAY");
-      expect(lastEncoded, "INT. **KITCHEN** - DAY");
+      expect(lastEncoded, "INT. **KITCHEN** - DAY #1#");
     });
   });
 
@@ -1092,7 +1092,25 @@ void main() {
 
   group("scene numbers", () {
     testWidgets(
-      "typing a #N# tag at the end of a heading is absorbed into metadata, hidden from the text",
+      "typing a #N# tag that matches its sequential position is absorbed into metadata, hidden from the text",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT");
+
+        final document = SuperEditorInspector.findDocument()!;
+        final secondHeading = _nodeAt(document, 1);
+        await tester.placeCaretInParagraph(secondHeading.id, secondHeading.text.toPlainText().length);
+
+        await tester.typeImeText(" #2#");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_nodeAt(document, 1).text.toPlainText(), "EXT. GARDEN - NIGHT");
+        expect(_sceneNumberAt(document, 1), "2");
+      },
+    );
+
+    testWidgets(
+      "typing a #N# tag that does not fit its position is absorbed then immediately corrected",
       (tester) async {
         await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY");
 
@@ -1105,7 +1123,7 @@ void main() {
         await tester.pump();
 
         expect(_nodeAt(document, 0).text.toPlainText(), "INT. HOUSE - DAY");
-        expect(_sceneNumberAt(document, 0), "4A");
+        expect(_sceneNumberAt(document, 0), "1");
       },
     );
 
@@ -1124,6 +1142,50 @@ void main() {
         areSceneNumbersVisible: true,
       );
       expect(find.text("1"), findsOneWidget);
+    });
+
+    testWidgets("every scene heading is auto-numbered into the source, even with no #N# typed", (
+      tester,
+    ) async {
+      var lastEncoded = "";
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "INT. HOUSE - DAY\n\nAction.\n\nEXT. GARDEN - NIGHT",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            onTextChanged: (text) => lastEncoded = text,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(lastEncoded, "INT. HOUSE - DAY #1#\n\nAction.\n\nEXT. GARDEN - NIGHT #2#");
+    });
+
+    testWidgets("badly-ordered numbers entered in raw mode are corrected once decoded into the styled view", (
+      tester,
+    ) async {
+      var lastEncoded = "";
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            onTextChanged: (text) => lastEncoded = text,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(lastEncoded, "INT. HOUSE - DAY #1#\n\nEXT. GARDEN - NIGHT #2#");
     });
   });
 
@@ -1216,7 +1278,10 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
         await tester.pump();
 
-        expect(lastEncoded, "INT. HOUSE - DAY\n\nSARAH\nHello there.\n\nSome trailing action.\n\nSARAH\nHello there.");
+        expect(
+          lastEncoded,
+          "INT. HOUSE - DAY #1#\n\nSARAH\nHello there.\n\nSome trailing action.\n\nSARAH\nHello there.",
+        );
       },
     );
 
