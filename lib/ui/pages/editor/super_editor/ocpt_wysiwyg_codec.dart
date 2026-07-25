@@ -19,8 +19,11 @@ const String ocptBlankLinesBeforeMetadataKey = "ocptBlankLinesBefore";
 const int ocptMaxBlankLinesBeforeSpacing = 3;
 
 /// The `ParagraphNode` metadata key holding whether a node's `blockType` was set manually (a
-/// future dropdown/Tab choice) rather than by auto-detection; [OcptWysiwygCodec.reclassifyRequests]
-/// skips a locked node, and clears the lock once the node's text is emptied.
+/// dropdown/Tab choice) rather than by auto-detection; [OcptWysiwygCodec.reclassifyRequests]
+/// skips a locked node entirely and never clears the lock on its own, so the manual choice is
+/// sticky for the node's whole lifetime, including while its text is empty. A new node created by
+/// Enter/Shift+Enter starts unlocked, which is what keeps a locked type from leaking into the next
+/// block.
 const String ocptTypeLockedMetadataKey = "ocptTypeLocked";
 
 /// The `ParagraphNode` metadata key holding whether the source line a node was decoded from used
@@ -366,14 +369,12 @@ class OcptWysiwygCodec {
   /// back in sync with a fresh classification of [document]'s current text, given the surrounding
   /// context every other node's current text (and folded blank runs) provides.
   ///
-  /// A node with [ocptTypeLockedMetadataKey] set is left untouched entirely (a future manual
-  /// type choice is sticky). A node whose text is empty carries no classification signal, so its
-  /// `blockType` is left untouched too; instead, if it was locked, an
-  /// [OcptChangeNodeMetadataRequest] clears the lock, since architecturally a manual type choice
-  /// only makes sense while the block still has content. Only a node whose classified
-  /// [FountainLineType] actually changed produces a [ChangeParagraphBlockTypeRequest], which is
-  /// what keeps this pass from touching (and, from the layout's perspective, recreating) every
-  /// node after every edit.
+  /// A node with [ocptTypeLockedMetadataKey] set is left untouched entirely, for its whole
+  /// lifetime (a manual type choice is sticky, even across the node's text being emptied and
+  /// retyped). A node whose text is empty carries no classification signal, so its `blockType` is
+  /// left untouched too. Only a node whose classified [FountainLineType] actually changed produces
+  /// a [ChangeParagraphBlockTypeRequest], which is what keeps this pass from touching (and, from
+  /// the layout's perspective, recreating) every node after every edit.
   static List<EditRequest> reclassifyRequests(Document document) {
     final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
 
@@ -395,11 +396,6 @@ class OcptWysiwygCodec {
       final node = nodes[index];
 
       if (node.text.toPlainText().isEmpty) {
-        if (_readTypeLocked(node)) {
-          requests.add(
-            OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptTypeLockedMetadataKey: false}),
-          );
-        }
         continue;
       }
 

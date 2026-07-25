@@ -326,6 +326,37 @@ void main() {
       expect(_hasPageSheetsPainter(), isFalse);
     });
 
+    testWidgets(
+      "paints exactly one Scrollbar, ancestor of SuperEditor, so the thumb never sits over the "
+      "page",
+      (tester) async {
+        await _pumpStandaloneEditor(
+          tester,
+          "INT. HOUSE - DAY\n\nSome action text.",
+          isPageSimulationEnabled: true,
+        );
+
+        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      "paints exactly one Scrollbar, ancestor of SuperEditor, with page simulation disabled too",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
+
+        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets("the page sheets are clipped to the editor's own bounds", (tester) async {
       await _pumpStandaloneEditor(
         tester,
@@ -532,10 +563,7 @@ void main() {
         propertiesManager: propertiesManager,
         routerManager: OcptRouterManager(),
         screenplayService: _RecordingScreenplayService(savedTexts: savedTexts),
-        exportManager: OcptExportManager(
-          fileSaverManager: const FileSaverManager(),
-          fileSelectorManager: const FileSelectorManager(),
-        ),
+        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
         parseDebounce: const Duration(milliseconds: 10),
         autosaveDebounce: const Duration(milliseconds: 30),
         statisticsDebounce: const Duration(milliseconds: 30),
@@ -798,8 +826,8 @@ void main() {
   });
 
   testWidgets(
-    "reclassify skips a locked block; emptying it clears the lock, after which auto-detection "
-    "reclassifies it again",
+    "reclassify skips a locked block; emptying it keeps the lock and the type sticky for "
+    "whatever is typed next",
     (tester) async {
       await _pumpStandaloneEditor(tester, "Some plain text.");
 
@@ -825,7 +853,8 @@ void main() {
       expect(_typeAt(document, 0), FountainLineType.transition);
       expect(_isLockedAt(document, 0), isTrue);
 
-      // Emptying the block clears the lock...
+      // Emptying the block keeps the lock (the whole point of the fix: a manual choice is always
+      // made on an empty block, and must survive the debounce firing while it is still empty)...
       final textLength = _nodeAt(document, 0).text.toPlainText().length;
       await tester.placeCaretInParagraph(nodeId, textLength);
       for (var i = 0; i < textLength; i++) {
@@ -833,13 +862,16 @@ void main() {
       }
       await tester.pump(const Duration(milliseconds: 150));
       await tester.pump();
-      expect(_isLockedAt(document, 0), isFalse);
+      expect(_isLockedAt(document, 0), isTrue);
+      expect(_typeAt(document, 0), FountainLineType.transition);
 
-      // ...and auto-detection reclassifies the (now unlocked, empty) block once it's typed again.
+      // ...so a scene-heading-looking prefix typed into the still-locked, now-empty block stays a
+      // transition instead of being reclassified.
       await tester.typeImeText("INT. HOUSE - DAY");
       await tester.pump(const Duration(milliseconds: 150));
       await tester.pump();
-      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+      expect(_typeAt(document, 0), FountainLineType.transition);
+      expect(_isLockedAt(document, 0), isTrue);
     },
   );
 
@@ -925,6 +957,39 @@ void main() {
 
         expect(await typeIntoLockedBlock(FountainLineType.character, "sarah"), "SARAH");
         expect(await typeIntoLockedBlock(FountainLineType.transition, "cut to:"), "CUT TO:");
+      },
+    );
+
+    testWidgets(
+      "a character type set on an empty block survives the reclassify debounce firing before any "
+      "text is typed",
+      (tester) async {
+        // Regression test: the debounce used to fire while the block was still empty and clear
+        // `ocptTypeLocked` as a side effect, so the first characters typed afterwards were
+        // reclassified away from character. Unlike the test above, this one explicitly pumps past
+        // `_syncDebounce` (120 ms) right after `setBlockType`, before typing anything.
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await _pumpStandaloneEditor(tester, "", styledController: controller);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+
+        controller.setBlockType(FountainLineType.character);
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_typeAt(document, 0), FountainLineType.character);
+        expect(_isLockedAt(document, 0), isTrue);
+
+        await tester.typeImeText("john");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_typeAt(document, 0), FountainLineType.character);
+        expect(_nodeAt(document, 0).text.toPlainText(), "JOHN");
       },
     );
 

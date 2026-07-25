@@ -289,8 +289,21 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ),
     );
 
+    // Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in
+    // its own implicit `Scrollbar`, painted at the edge of whichever box happens to contain it —
+    // i.e. on top of the white page in the page-simulation branch below. Suppressing it here and
+    // painting a single explicit `Scrollbar` around the whole panel instead (both branches, so the
+    // behaviour is identical with page simulation on or off) keeps the thumb in the panel's gutter.
+    final editorWithoutImplicitScrollbar = ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: editor,
+    );
+
     if (!widget.isPageSimulationEnabled) {
-      return ColoredBox(color: theme.colorScheme.surface, child: editor);
+      return Scrollbar(
+        controller: _pageScrollController,
+        child: ColoredBox(color: theme.colorScheme.surface, child: editorWithoutImplicitScrollbar),
+      );
     }
 
     // Page simulation: the document is centered at the physical page width, with a themed
@@ -319,44 +332,47 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // than the raw preview typesets the very same line.
     final layout = OcptEditorPreviewLayout(metrics: metrics);
     const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
-    return ColoredBox(
-      color: theme.colorScheme.surface,
-      child: Center(
-        child: SizedBox(
-          width: layout.pageWidth,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ListenableBuilder(
-                  listenable: _pageScrollController,
-                  builder: (context, child) => CustomPaint(
-                    painter: _OcptPageSheetsPainter(
-                      pageCount: _pageCount,
-                      pageHeight: layout.pageHeight,
-                      pageGap: OcptEditorPreviewLayout.pageGap,
-                      scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
+    return Scrollbar(
+      controller: _pageScrollController,
+      child: ColoredBox(
+        color: theme.colorScheme.surface,
+        child: Center(
+          child: SizedBox(
+            width: layout.pageWidth,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ListenableBuilder(
+                    listenable: _pageScrollController,
+                    builder: (context, child) => CustomPaint(
+                      painter: _OcptPageSheetsPainter(
+                        pageCount: _pageCount,
+                        pageHeight: layout.pageHeight,
+                        pageGap: OcptEditorPreviewLayout.pageGap,
+                        scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a `Transform`,
-              // rather than a `Positioned(left: -inset)`: the `Stack` sizes itself to its
-              // non-positioned children, so making every child positioned would leave it sizing to
-              // its incoming constraints instead, handing `SuperEditor` a differently-constrained
-              // viewport — which, in turn, breaks its IME connection (`editor_page_test.dart`'s
-              // "an edit made in styled mode survives switching back to raw mode" catches exactly
-              // that).
-              Align(
-                alignment: Alignment.topLeft,
-                child: Transform.translate(
-                  offset: const Offset(-inset, 0),
-                  child: SizedBox(
-                    width: layout.pageWidth - layout.marginRight + inset * 2,
-                    child: editor,
+                // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a `Transform`,
+                // rather than a `Positioned(left: -inset)`: the `Stack` sizes itself to its
+                // non-positioned children, so making every child positioned would leave it sizing to
+                // its incoming constraints instead, handing `SuperEditor` a differently-constrained
+                // viewport — which, in turn, breaks its IME connection (`editor_page_test.dart`'s
+                // "an edit made in styled mode survives switching back to raw mode" catches exactly
+                // that).
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: const Offset(-inset, 0),
+                    child: SizedBox(
+                      width: layout.pageWidth - layout.marginRight + inset * 2,
+                      child: editorWithoutImplicitScrollbar,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

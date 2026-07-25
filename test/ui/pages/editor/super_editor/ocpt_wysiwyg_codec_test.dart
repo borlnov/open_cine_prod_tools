@@ -25,6 +25,10 @@ int _blanksBeforeAt(Document document, int index) {
 bool _hadForcingMarkerAt(Document document, int index) =>
     document.getNodeAt(index)!.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
+/// Reads the node at [index] of [document]'s `ocptTypeLocked` metadata (false if absent).
+bool _typeLockedAt(Document document, int index) =>
+    document.getNodeAt(index)!.getMetadataValue(ocptTypeLockedMetadataKey) == true;
+
 /// Replaces the text of the node at [index] of [document] with [newText], keeping its id and every
 /// other metadata entry, the same way a real edit would change a node's text before the next
 /// reclassification/note-attribution pass.
@@ -207,6 +211,33 @@ void main() {
       final reparsed = OcptWysiwygCodec.decode(encoded.text);
       expect(_typeAt(reparsed.document, 1), FountainLineType.dialogue);
     });
+
+    test(
+      "a locked character node holding JOHN, last in the document, encodes with a forcing marker "
+      "and decodes back to a character node",
+      () {
+        final document = MutableDocument(
+          nodes: [
+            ParagraphNode(
+              id: "n0",
+              text: AttributedText("JOHN"),
+              metadata: {
+                "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.character),
+                ocptBlankLinesBeforeMetadataKey: 0,
+                ocptTypeLockedMetadataKey: true,
+                ocptHadForcingMarkerMetadataKey: false,
+              },
+            ),
+          ],
+        );
+
+        final encoded = OcptWysiwygCodec.encode(document);
+        expect(encoded.text, "@JOHN");
+
+        final reparsed = OcptWysiwygCodec.decode(encoded.text);
+        expect(_typeAt(reparsed.document, 0), FountainLineType.character);
+      },
+    );
   });
 
   group("OcptWysiwygCodec.reclassifyRequests", () {
@@ -236,19 +267,15 @@ void main() {
       expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
     });
 
-    test("an emptied node's lock is cleared but its type is left untouched", () {
+    test("an emptied node keeps its lock and its blockType untouched", () {
       final decoded = OcptWysiwygCodec.decode("Some action");
       _setMetadata(decoded.document, 0, {ocptTypeLockedMetadataKey: true});
       _replaceText(decoded.document, 0, "");
 
       final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document);
 
-      expect(requests, hasLength(1));
-      expect(requests.single, isA<OcptChangeNodeMetadataRequest>());
-      final request = requests.single as OcptChangeNodeMetadataRequest;
-      expect(request.nodeId, decoded.document.getNodeAt(0)!.id);
-      expect(request.metadata, {ocptTypeLockedMetadataKey: false});
-      // The blockType metadata itself is untouched: still action, not reclassified as blank/other.
+      expect(requests, isEmpty);
+      expect(_typeLockedAt(decoded.document, 0), isTrue);
       expect(_typeAt(decoded.document, 0), FountainLineType.action);
     });
 
@@ -257,6 +284,22 @@ void main() {
       _replaceText(decoded.document, 0, "");
 
       expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("a locked character node whose text is emptied keeps its lock and its blockType", () {
+      final decoded = OcptWysiwygCodec.decode("Some action");
+      _setMetadata(decoded.document, 0, {
+        "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.character),
+        ocptTypeLockedMetadataKey: true,
+      });
+      _replaceText(decoded.document, 0, "JOHN");
+      _replaceText(decoded.document, 0, "");
+
+      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document);
+
+      expect(requests, isEmpty);
+      expect(_typeLockedAt(decoded.document, 0), isTrue);
+      expect(_typeAt(decoded.document, 0), FountainLineType.character);
     });
 
     test("inserting a blank line before and after re-classifies a candidate scene heading", () {
