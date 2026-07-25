@@ -43,9 +43,11 @@ truth alongside a stable-UUID scene index. UI languages are English (`en_GB`, ma
   `*_state.dart` / `*_event.dart`.
 - **Theme.** `ActThemesManager` with `OcptAppTheme.standard`; the light and dark `ColorScheme`s are
   built in `lib/constants/ocpt_theme.dart` from the seed `0xFF6C5CE7`, the dark one overriding its
-  neutral surfaces down to near-black. `OcptSpecificColors` (`lib/models/`) is the
-  `ThemeExtension` for colours that do not fit a Material `ColorScheme` — it is **currently empty**,
-  and this step is the first to give it a field.
+  neutral surfaces down to near-black. **Colours are all it defines today**: no `fontFamily`, no
+  text theme, no component theme, so every widget renders with stock Material 3 metrics — M0
+  changes that. `OcptSpecificColors` (`lib/models/`) is the `ThemeExtension` for colours that do
+  not fit a Material `ColorScheme`; it is **currently empty**, and M4 is the first to give it a
+  field.
 - **`packages/fountain_kit`.** Pure-Dart parser / serializer / layout metrics with a round-trip
   guarantee. Keep it free of any Flutter import. Relevant API:
   `FountainDocument` (`titlePage`, `blocks`, `sourceText`, `scenes`), `FountainSceneHeading`
@@ -106,9 +108,11 @@ Comparing the mock-up to the current build, screen by screen:
 
 | Area | Verdict |
 | --- | --- |
-| Home (project grid, header actions, card layout) | Already conformant. Only the per-project poster tint differs (the mock-up shows four different tints, the app paints every card `primaryContainer`). |
-| Settings (appearance / language / about cards) | Already conformant. No work. |
-| Editor toolbar, docks, dividers, status bar, right-dock tabs | Already conformant in *look*. The gap is *ownership*: they belong to the editor, not to a shell. |
+| Colour palette | Already conformant, and for a good reason: the mock-up's hex values were lifted *from* `lib/constants/ocpt_theme.dart`. Nothing to do. |
+| Component styling (typography scale, radii, card borders, button shapes, inputs, scrollbars) | **Not conformant anywhere.** `ocptTheme` only carries two `ColorScheme`s; every widget renders with stock Material 3 metrics, which are rounder and looser than the mock-up. See §5. |
+| Home (project grid, header actions, card layout) | Structurally conformant. Two gaps: the component styling above, and the per-project poster tint (the mock-up shows four different tints, the app paints every card `primaryContainer`). |
+| Settings (appearance / language / about cards) | Structurally conformant. Only the component styling differs. |
+| Editor toolbar, docks, dividers, status bar, right-dock tabs | Conformant in layout. Two gaps: the component styling, and *ownership* — they belong to the editor, not to a shell. |
 | Bottom mode switcher | **Missing entirely.** |
 | Right dock: Inspector and Metadata tabs | **Missing entirely.** |
 | Right dock: History tab | Missing, and **out of scope** (see §3, decision 6). |
@@ -143,9 +147,18 @@ Comparing the mock-up to the current build, screen by screen:
    colours from `Theme.of(context).colorScheme` (or `OcptSpecificColors`), never from the mock-up's
    hex literals. The mock-up's hex values are already the dark `ColorScheme`'s values — verify
    against `lib/constants/ocpt_theme.dart` rather than hard-coding.
-8. **`lib/ui/pages/editor/` does not move on disk.** The screenplay mode keeps living there. A
-   directory rename would touch every import and every test file for no behavioural gain; it can be
-   a separate rename-only commit later if wanted.
+8. **The mock-up's styling becomes a theme, not per-widget code.** Density, radii, borders and the
+   type scale are expressed once as `ThemeData` component themes in `lib/constants/ocpt_theme.dart`,
+   through the extension points `ActThemeModel` already offers. No new widget carries its own
+   `RoundedRectangleBorder`, its own padding constants or its own font sizes when a component theme
+   can say it. This is why M0 comes **before** the shell work: widgets built in M1–M3 inherit the
+   styling instead of being restyled afterwards.
+9. **Restyling touches screens Benoit already validated** (home, settings, dialogs). That is
+   intended — the density *is* the design — but it makes M0's checkpoint a real one, not a
+   formality.
+10. **`lib/ui/pages/editor/` does not move on disk.** The screenplay mode keeps living there. A
+    directory rename would touch every import and every test file for no behavioural gain; it can be
+    a separate rename-only commit later if wanted.
 
 ### Target layout
 
@@ -218,11 +231,91 @@ established.
 
 ---
 
-## 5. Milestones
+## 5. Styling delta: the mock-up vs. stock Material 3
+
+This is the inventory M0 works from. Every row was checked against the running code, not guessed.
+The "app today" column is what stock Material 3 gives, since `ocptTheme` overrides none of it.
+
+| Element | Mock-up | App today (stock M3) |
+| --- | --- | --- |
+| UI type scale | 22 px title, then 13 / 12 / 11 / 10 px | `headlineSmall` 24, `titleMedium` 16, `bodyMedium` 14, `labelSmall` 11 — looser throughout |
+| Card | `surfaceContainerLow`, **1 px `outlineVariant` border**, radius 10, flat | elevation tint, radius 12, **no border** |
+| Filled button | radius 8, 12 px semibold, 9×16 padding | **stadium** (fully rounded), `labelLarge` 14, roomier padding |
+| Outlined button | radius 8, 1 px `outline`, transparent fill | stadium, same border colour |
+| Icon button | 26–30 px square, radius 5–6, `primary` @ 16 % background when selected | 40 px circular |
+| Dropdown / text field | `surfaceContainer` fill, 1 px `outline`, radius 6, dense | underlined, unfilled, roomier |
+| Popup menu | `surfaceContainerHigh`, radius 8, 6 px padding, soft shadow | radius 4, different elevation |
+| Divider | 1 px `outlineVariant`, no surrounding space | 16 px of vertical space by default |
+| Scrollbar | 10 px thumb, radius 6, `outline`, transparent track | platform default |
+| Band heights | toolbar 44, status bar 26, mode switcher 64 | ad-hoc paddings per widget |
+
+Two things this table is **not**: it is not a licence to hard-code hex values (the colour names above
+are `ColorScheme` roles, and that is how they must be written), and it is not exhaustive for light
+mode — the mock-up never shows it, so M0 must sanity-check every component theme in both
+brightnesses.
+
+---
+
+## 6. Milestones
 
 One Sonnet 5 agent per milestone. A checkpoint with Benoit closes each one. The verification gates
 of `CLAUDE.md` (analyze + test at minimum, the full list before finishing the step) must pass
 before every commit.
+
+---
+
+### M0 — The design system
+
+**Goal: the mock-up's density, shapes and type scale become the app's theme.** No structural
+change, no new screen: every existing view is restyled purely by what `ocptTheme` now says. This
+milestone lands first so M1–M3 inherit it.
+
+**Where the code goes.** `ActThemeModel`'s factory already takes `fontFamily`,
+`overrideDefaultTextTheme({required ThemeData baseThemeData})` and
+`overrideDefaultThemeData({required ThemeData baseThemeData})`, applied in that order
+(`actlibs/act_themes_manager/lib/src/models/act_theme_model.dart`). The app currently passes none
+of them. Use them — do **not** build a `ThemeData` by hand alongside the manager, and do not touch
+`actlibs/`.
+
+**Work.**
+
+- `lib/constants/ocpt_theme.dart` gains two private builders passed to `ActThemeModel`:
+  - `_buildTextTheme({required ThemeData baseThemeData})` — the dense scale of §5, derived from
+    `baseThemeData.textTheme` with `copyWith`, never rebuilt from scratch (a hand-written
+    `TextTheme` loses the brightness-correct default colours). Keep the Material slot semantics
+    intact: only sizes, weights and letter spacing change, so existing call sites such as
+    `theme.textTheme.labelSmall` keep meaning what they mean.
+  - `_buildThemeData({required ThemeData baseThemeData})` — the component themes of §5:
+    `cardTheme`, `filledButtonTheme`, `outlinedButtonTheme`, `textButtonTheme`, `iconButtonTheme`,
+    `inputDecorationTheme`, `dropdownMenuTheme`, `popupMenuTheme`, `menuTheme`, `dividerTheme`,
+    `scrollbarTheme`, `tooltipTheme`. Every colour comes from `baseThemeData.colorScheme`, so the
+    same builder serves both brightnesses.
+- The shared numbers (radii 6 / 8 / 10, band heights 44 / 26 / 64, the 16 % selected-state alpha)
+  become documented `const` values in the same file — one source of truth the shell widgets read
+  in M1–M2 instead of re-declaring their own.
+- **Open question for the M0 checkpoint, do not decide alone:** the mock-up sets Roboto as the UI
+  font. Flutter's Material default already resolves to Roboto, but glyph availability differs
+  between Linux and Windows, so rendering is not guaranteed identical on both targets. Either
+  bundle Roboto as an asset (deterministic, but adds ~500 KB, an `OFL-1.1` entry alongside Courier
+  Prime's, and a `pubspec.yaml` fonts block) or pass no `fontFamily` and accept the platform
+  default. Prepare both, measure, and let Benoit pick.
+
+**Verification.** This milestone's real test is visual, and it is broad: run the app
+(`flutter run -d linux`) and walk **every** existing screen in **both** brightnesses — home with
+and without projects, settings, the editor in styled and raw mode, the right dock, and each of the
+six dialogs (new project, page setup, title page, PDF export options, import confirm, and the
+license page). Screenshot the before/after of at least home, settings and the editor for the
+checkpoint. A component theme that looks right in dark and wrong in light is a bug, not a
+trade-off.
+
+**Tests.** Widget tests do not assert pixel values, and should not start now. Add only
+`test/constants/ocpt_theme_test.dart`: both brightnesses build, the extension is present in both,
+the text theme keeps a non-null colour on every slot it overrides, and the component themes read
+their colours from the scheme (assert a couple of identities, e.g. the card's border colour equals
+`outlineVariant`). Every existing test must still pass — if one asserts a size or a shape, the
+theme changed something it should not have.
+
+**Commit.** `feat(theme): apply the studio design system`
 
 ---
 
@@ -459,13 +552,16 @@ checkpoint.
   the project path, so a project keeps its colour across launches and across machines — do **not**
   use `Object.hashCode`, which is not stable across runs; hash the path string explicitly. The
   initial letter's colour must keep a readable contrast on every tint.
-- **Toolbar and status-bar density.** Compare the running app against the mock-up at 1440×900 and
-  correct only what is genuinely off (heights, paddings, icon sizes). Do not repaint anything that
-  already matches; this is a correction pass, not a redesign.
+- **Final comparison against the mock-up.** Run the app at 1440×900 next to the mock-up and correct
+  what is still off. Anything systematic found here belongs in `ocpt_theme.dart` (M0's component
+  themes), not in a widget: a one-off padding added at this stage is a design-system bug being
+  papered over. Do not repaint what already matches — this is a correction pass, not a redesign.
 - **Documentation.**
   - `CLAUDE.md`: add step 16 to the development-plan table; rewrite the *Architecture* bullets that
     this step invalidated — the editor no longer owns the chrome, the route is `workspace`, the
-    dock widgets moved, `OcptSpecificColors` is no longer empty. Leave the rest alone.
+    dock widgets moved, `OcptSpecificColors` is no longer empty, and the *Validated UI design*
+    section must now say that density, shapes and the type scale live in `ocpt_theme.dart`'s
+    component themes rather than in each widget. Leave the rest alone.
   - `docs/adr/`: one new ADR recording *why the workspace shell is a slot widget plus a
     mode-only bloc, rather than a mode-aware god-bloc or an inheritance hierarchy*, and what that
     costs (each future mode owns its own dock persistence). Follow `docs/adr/0000-template.md` and
@@ -480,7 +576,7 @@ different paths spread across the palette.
 
 ---
 
-## 6. Definition of done
+## 7. Definition of done
 
 The step is done when, in the devcontainer, in order:
 
@@ -500,5 +596,6 @@ The step is done when, in the devcontainer, in order:
 - The screenplay mode behaves exactly as before this step: styled/raw toggle, Tab cycling, sticky
   manual types, autosave, import, export, PDF export, page simulation, dock resizing and its
   persistence, Ctrl+S and Ctrl+Shift+M.
-- Both brightnesses look right; nothing hard-codes a mock-up hex value.
+- Both brightnesses look right; nothing hard-codes a mock-up hex value, a radius, a band height or
+  a font size that a component theme could carry.
 - Every new string exists in both ARB files, in both locales.
