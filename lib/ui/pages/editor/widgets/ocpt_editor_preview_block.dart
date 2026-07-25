@@ -53,7 +53,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
           heading.sceneNumber == null
               ? heading.headingText
               : "${heading.sceneNumber}. ${heading.headingText}",
-          _baseStyle.copyWith(fontWeight: FontWeight.bold),
+          _baseTextStyleFor(FountainLineType.sceneHeading, _baseStyle),
         ),
       ),
       final FountainActionBlock action => _element(
@@ -73,7 +73,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
         layout.metrics.lyrics,
         _multilineText(
           lyrics.lines,
-          _baseStyle.copyWith(fontStyle: FontStyle.italic),
+          _baseTextStyleFor(FountainLineType.lyrics, _baseStyle),
         ),
       ),
       FountainPageBreak() => Padding(
@@ -185,10 +185,23 @@ class OcptEditorPreviewBlock extends StatelessWidget {
 
   /// Applies [FountainPrintStyle.of]'s print-time letter case to [text] for a line of [lineType],
   /// upper-casing it when that type's print style says so: the single source of truth this
-  /// preview shares with the PDF exporter for which elements print upper-cased, so the two never
-  /// drift apart on the question.
+  /// preview shares with the PDF exporter and the styled editor's stylesheet for which elements
+  /// print upper-cased, so the three never drift apart on the question.
   static String _printed(String text, FountainLineType lineType) =>
       FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
+
+  /// Applies [FountainPrintStyle.of]'s base weight/slope for [lineType] to [style]: the same
+  /// shared table [_printed] reads its casing rule from, so a switch case above never hardcodes
+  /// its own bold/italic decision for a type the table already has an opinion on (a scene heading
+  /// is always bold, lyrics are always italic, regardless of any inline emphasis their own text
+  /// might additionally carry through [_inlineSpans]).
+  static TextStyle _baseTextStyleFor(FountainLineType lineType, TextStyle style) {
+    final printStyle = FountainPrintStyle.of(lineType);
+    return style.copyWith(
+      fontWeight: printStyle.isBold ? FontWeight.bold : null,
+      fontStyle: printStyle.isItalic ? FontStyle.italic : null,
+    );
+  }
 
   /// Resolves [text]'s inline emphasis markers into styled [TextSpan]s deriving from [style].
   ///
