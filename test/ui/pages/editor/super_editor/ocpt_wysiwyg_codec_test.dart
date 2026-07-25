@@ -323,6 +323,84 @@ void main() {
     });
   });
 
+  group("OcptWysiwygCodec.reclassifyRequests forcing-marker regression", () {
+    // Every case here decodes a source line whose type only exists because of an explicit forcing
+    // marker; the node's display text alone (with the marker already stripped by decode) would
+    // classify as something else entirely (typically action). Before the fix, reclassifyRequests
+    // fed the classifier that bare display text and demoted the node on the very first settle,
+    // which encode then baked into the source as a permanent, sticky forcing marker on the next
+    // decode. A freshly decoded document must be a fixed point of reclassifyRequests: no requests.
+
+    test("a freshly decoded forced scene heading produces no reclassify request", () {
+      final decoded = OcptWysiwygCodec.decode(".SALON - JOUR");
+      expect(_typeAt(decoded.document, 0), FountainLineType.sceneHeading);
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("a freshly decoded section heading produces no reclassify request", () {
+      final decoded = OcptWysiwygCodec.decode("# Act One");
+      expect(_typeAt(decoded.document, 0), FountainLineType.section);
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("a freshly decoded synopsis line produces no reclassify request", () {
+      final decoded = OcptWysiwygCodec.decode("= Something");
+      expect(_typeAt(decoded.document, 0), FountainLineType.synopsis);
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("a freshly decoded lyrics line produces no reclassify request", () {
+      final decoded = OcptWysiwygCodec.decode("~A line");
+      expect(_typeAt(decoded.document, 0), FountainLineType.lyrics);
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("a freshly decoded centered text line produces no reclassify request", () {
+      final decoded = OcptWysiwygCodec.decode("> CENTRED <");
+      expect(_typeAt(decoded.document, 0), FountainLineType.centeredText);
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test(
+      "a freshly decoded forced character cue and the dialogue line that follows it both produce "
+      "no reclassify request (the cascade case)",
+      () {
+        final decoded = OcptWysiwygCodec.decode("@McCLANE\nHello.");
+        expect(_typeAt(decoded.document, 0), FountainLineType.character);
+        expect(_typeAt(decoded.document, 1), FountainLineType.dialogue);
+
+        expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+      },
+    );
+  });
+
+  group("OcptWysiwygCodec.reclassifyRequests corpus fixed point", () {
+    final corpusDirectory = Directory("packages/fountain_kit/test/corpus");
+    final corpusFiles =
+        corpusDirectory.listSync().whereType<File>().where((file) => file.path.endsWith(".fountain")).toList(
+          growable: false,
+        )..sort((a, b) => a.path.compareTo(b.path));
+
+    test("the corpus directory is not empty", () {
+      expect(corpusFiles, isNotEmpty);
+    });
+
+    for (final file in corpusFiles) {
+      final fileName = file.uri.pathSegments.last;
+
+      test("$fileName: a fresh decode is a fixed point of reclassifyRequests", () {
+        final decoded = OcptWysiwygCodec.decode(file.readAsStringSync());
+
+        expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+      });
+    }
+  });
+
   group("OcptWysiwygCodec.decode/encode scene numbers", () {
     test("strips a trailing #N# tag off a scene heading into metadata, hiding it from the display text", () {
       final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");

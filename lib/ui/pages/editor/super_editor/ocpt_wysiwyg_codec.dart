@@ -477,8 +477,28 @@ class OcptWysiwygCodec {
   /// left untouched too. Only a node whose classified [FountainLineType] actually changed produces
   /// a [ChangeParagraphBlockTypeRequest], which is what keeps this pass from touching (and, from
   /// the layout's perspective, recreating) every node after every edit.
+  ///
+  /// **Why a pinned node needs a marker re-emitted before classifying (the whole point of
+  /// [_virtualLineForNode]):** a node's text is its *display* text, i.e. already stripped of
+  /// whatever forcing marker its source line used (see the class doc comment). A type that only
+  /// exists because of a marker — forced scene heading (`.`), forced action (`!`), forced
+  /// character (`@`), transition (`>`), section (`#`), synopsis (`=`), lyrics (`~`), centered text
+  /// (`> <`) — therefore classifies its *bare* display text back to some other, unrelated type
+  /// (typically [FountainLineType.action]): feeding the classifier the stripped text is asking it
+  /// to reconstruct information it was never given. Left uncorrected that wrong classification
+  /// would not just mis-render once: [encode] would bake it into the source as a genuine,
+  /// re-emitted forcing marker (`!SALON - JOUR`), which the very next [decode] reads back as a
+  /// sticky, user-authored choice — a one-time misclassification permanently corrupting the line.
+  /// [_virtualLineForNode] avoids this by re-deriving, for a pinned node only, the exact source
+  /// line its marker would produce, so the classifier is asked the question it can actually
+  /// answer. A side effect worth calling out: a pinned node now always classifies back to its own
+  /// stored type by construction, so it never produces a request of its own — which is the
+  /// correct, self-consistent outcome, not a coincidence of the check below.
   static List<EditRequest> reclassifyRequests(Document document) {
     final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
+    final types = [
+      for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
+    ];
 
     // Reconstruct the virtual line list every node's context depends on: blank runs are real
     // nodes' metadata, not nodes, so they must be reinserted before classifying.
@@ -489,7 +509,7 @@ class OcptWysiwygCodec {
         virtualLines.add("");
       }
       lineIndexOfNode[index] = virtualLines.length;
-      virtualLines.add(nodes[index].text.toPlainText());
+      virtualLines.add(_virtualLineForNode(nodes[index], types[index]));
     }
     final classifiedTypes = _classifier.classify(virtualLines);
 
@@ -723,6 +743,43 @@ class OcptWysiwygCodec {
 
   /// Reads a node's [ocptTypeLockedMetadataKey] metadata, defaulting to false.
   static bool _readTypeLocked(ParagraphNode node) => node.getMetadataValue(ocptTypeLockedMetadataKey) == true;
+
+  /// Whether [node]'s stored `blockType` is pinned by the user rather than up for
+  /// auto-detection, per [reclassifyRequests]'s doc comment: either a manual dropdown/Tab choice
+  /// ([ocptTypeLockedMetadataKey]) or a source line that carried an explicit forcing marker
+  /// ([ocptHadForcingMarkerMetadataKey]) — the *serialized* form of that very same "the user fixed
+  /// this type on purpose" intent, already honoured by [encode] and, until this method existed,
+  /// silently ignored by [reclassifyRequests].
+  static bool _isPinnedNode(ParagraphNode node) => _readTypeLocked(node) || _readHadForcingMarker(node);
+
+  /// The virtual source line [reclassifyRequests] feeds the classifier for [node], currently
+  /// stored as [type]. A pinned node (see [_isPinnedNode]) gets its marker re-emitted through
+  /// [_lineWriter] with `hadForcingMarker: true`, which always prepends the marker regardless of
+  /// what auto-detection alone would decide (`FountainLineWriter`'s own private
+  /// `_writeWithPrefixMarker` helper only skips the marker when auto-detection agrees *and* no
+  /// forcing marker was requested); `previousType`/`nextRawLine` are therefore irrelevant to the
+  /// result and passed as `null`, deliberately. Every other node's virtual line is just its plain
+  /// display text, exactly what auto-detection sees while the user types.
+  ///
+  /// An empty display text always falls back to the plain (empty) text, pinned or not:
+  /// [FountainLineWriter.writeLine] refuses [FountainLineType.blank], which a node's stored type
+  /// never is, but calling it on an empty string would still prepend a lone marker (e.g. `.`) with
+  /// nothing after it, fabricating a virtual "line" made purely of punctuation instead of the
+  /// harmless empty line a genuinely empty node should contribute.
+  static String _virtualLineForNode(ParagraphNode node, FountainLineType type) {
+    final displayText = node.text.toPlainText();
+    if (displayText.isEmpty || !_isPinnedNode(node)) {
+      return displayText;
+    }
+
+    return _lineWriter.writeLine(
+      text: displayText,
+      type: type,
+      hadForcingMarker: true,
+      previousType: null,
+      nextRawLine: null,
+    );
+  }
 
   /// Strips [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
   /// text and whether a marker was actually present. Mirrors, in reverse, every rule
