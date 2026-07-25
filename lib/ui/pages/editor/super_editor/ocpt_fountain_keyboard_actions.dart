@@ -4,6 +4,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
@@ -21,9 +22,9 @@ const List<FountainLineType> _ocptTabCycleTypes = [
 ];
 
 /// The `keyboardActions` list for the styled screenplay editor's `SuperEditor`: this app's own
-/// Tab-cycle, smart-Enter and Ctrl+U handlers first (each halts, so none of the corresponding
-/// default behaviors ever run), then every [defaultImeKeyboardActions] entry except the ones that
-/// would fight this editor's model (see [_ocptExcludedDefaultActions]).
+/// Tab-cycle, smart-Enter, clipboard and Ctrl+U handlers first (each halts, so none of the
+/// corresponding default behaviors ever run), then every [defaultImeKeyboardActions] entry except
+/// the ones that would fight this editor's model (see [_ocptExcludedDefaultActions]).
 ///
 /// Ctrl+B/I are deliberately left to the inherited `cmdBToToggleBold`/`cmdIToToggleItalics`
 /// defaults (still present below): they already toggle the right attribution, whether the
@@ -33,6 +34,9 @@ const List<FountainLineType> _ocptTabCycleTypes = [
 final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
   ocptTabToCycleBlockType,
   ocptEnterToSmartSplit,
+  ocptCopyToFountainClipboard,
+  ocptCutToFountainClipboard,
+  ocptPasteFromFountainClipboard,
   ocptCmdUToToggleUnderline,
   ...defaultImeKeyboardActions.where((action) => !_ocptExcludedDefaultActions.contains(action)),
 ];
@@ -48,6 +52,9 @@ final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
 ///   already owns that decision.
 /// - `shiftEnterToInsertNewlineInBlock`: would insert a literal `\n` inside a node's text, breaking
 ///   the one-node-per-source-line invariant; [ocptEnterToSmartSplit] handles Shift+Enter itself.
+/// - `copyWhenCmdCIsPressed`/`cutWhenCmdXIsPressed`/`pasteWhenCmdVIsPressed`: plain-text clipboard
+///   actions with no notion of block types; [ocptCopyToFountainClipboard]/
+///   [ocptCutToFountainClipboard]/[ocptPasteFromFountainClipboard] replace them.
 final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
   tabToIndentParagraph,
   shiftTabToUnIndentParagraph,
@@ -56,6 +63,9 @@ final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
   enterToUnIndentParagraph,
   backspaceToClearParagraphBlockType,
   shiftEnterToInsertNewlineInBlock,
+  copyWhenCmdCIsPressed,
+  cutWhenCmdXIsPressed,
+  pasteWhenCmdVIsPressed,
 };
 
 /// Tab/Shift+Tab: cycles the current block's stored `blockType` through

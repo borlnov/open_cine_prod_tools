@@ -1067,6 +1067,191 @@ void main() {
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyU), "Base _styled_ end");
   });
 
+  group("copy, cut and paste keep block types", () {
+    // The `flutter/platform` channel's `Clipboard.setData`/`getData` methods have no built-in
+    // mock handler on this SDK: without one, `Clipboard.getData` never completes at all, and
+    // every paste in this group hangs forever instead of failing loudly.
+    String? clipboardText;
+    setUp(() {
+      clipboardText = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (
+        methodCall,
+      ) async {
+        switch (methodCall.method) {
+          case "Clipboard.setData":
+            clipboardText = (methodCall.arguments as Map)["text"] as String?;
+            return null;
+          case "Clipboard.getData":
+            return {"text": clipboardText};
+          default:
+            return null;
+        }
+      });
+    });
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    testWidgets(
+      "copying a character cue and its dialogue, then pasting them on a fresh blank line, "
+      "reproduces both blocks with their types and spacing",
+      (tester) async {
+        var lastEncoded = "";
+        const text = "INT. HOUSE - DAY\n\nSARAH\nHello there.\n\nSome trailing action.";
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: text,
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+        // Nodes: 0 = heading, 1 = character, 2 = dialogue, 3 = trailing action.
+        final characterNode = _nodeAt(document, 1);
+        final dialogueNode = _nodeAt(document, 2);
+        final trailingNode = _nodeAt(document, 3);
+
+        // Placing the caret first is what actually gives the editor keyboard focus (a bare
+        // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
+        await tester.placeCaretInParagraph(characterNode.id, 0);
+        composer.setSelectionWithReason(
+          DocumentSelection(
+            base: DocumentPosition(nodeId: characterNode.id, nodePosition: const TextNodePosition(offset: 0)),
+            extent: DocumentPosition(
+              nodeId: dialogueNode.id,
+              nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyC);
+        await tester.pumpAndSettle();
+
+        // A fresh Enter at the very end of the document opens a new, empty blank line to paste
+        // onto — the common "paste elsewhere" target.
+        await tester.placeCaretInParagraph(trailingNode.id, trailingNode.text.toPlainText().length);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyV);
+        await tester.pumpAndSettle();
+
+        expect(document.nodeCount, 6);
+        expect(_typeAt(document, 4), FountainLineType.character);
+        expect(_nodeAt(document, 4).text.toPlainText(), "SARAH");
+        expect(_typeAt(document, 5), FountainLineType.dialogue);
+        expect(_nodeAt(document, 5).text.toPlainText(), "Hello there.");
+
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(lastEncoded, "INT. HOUSE - DAY\n\nSARAH\nHello there.\n\nSome trailing action.\n\nSARAH\nHello there.");
+      },
+    );
+
+    testWidgets(
+      "pasting a single-node fragment inside existing text inserts it inline without splitting the block",
+      (tester) async {
+        var lastEncoded = "";
+        const text = "Some action text here.";
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: text,
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+        final actionNode = _nodeAt(document, 0);
+
+        // Placing the caret first is what actually gives the editor keyboard focus (a bare
+        // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
+        await tester.placeCaretInParagraph(actionNode.id, 5);
+        composer.setSelectionWithReason(
+          DocumentSelection(
+            base: DocumentPosition(nodeId: actionNode.id, nodePosition: const TextNodePosition(offset: 5)),
+            extent: DocumentPosition(nodeId: actionNode.id, nodePosition: const TextNodePosition(offset: 11)),
+          ),
+        );
+        await tester.pump();
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyC);
+        await tester.pumpAndSettle();
+
+        await tester.placeCaretInParagraph(actionNode.id, 0);
+        await _sendCtrl(tester, LogicalKeyboardKey.keyV);
+        await tester.pumpAndSettle();
+
+        expect(document.nodeCount, 1);
+        expect(_typeAt(document, 0), FountainLineType.action);
+        expect(_nodeAt(document, 0).text.toPlainText(), "actionSome action text here.");
+
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+        expect(lastEncoded, "actionSome action text here.");
+      },
+    );
+
+    testWidgets("cutting a selection removes it from the document and copies its Fountain text to the clipboard", (
+      tester,
+    ) async {
+      const text = "SARAH\nHello there.\n\nSome trailing action.";
+
+      await _pumpStandaloneEditor(tester, text);
+
+      final document = SuperEditorInspector.findDocument()!;
+      final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+      final characterNode = _nodeAt(document, 0);
+      final dialogueNode = _nodeAt(document, 1);
+
+      // Placing the caret first is what actually gives the editor keyboard focus (a bare
+      // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
+      await tester.placeCaretInParagraph(characterNode.id, 0);
+      composer.setSelectionWithReason(
+        DocumentSelection(
+          base: DocumentPosition(nodeId: characterNode.id, nodePosition: const TextNodePosition(offset: 0)),
+          extent: DocumentPosition(
+            nodeId: dialogueNode.id,
+            nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await _sendCtrl(tester, LogicalKeyboardKey.keyX);
+      await tester.pumpAndSettle();
+
+      // super_editor's own `DeleteContentCommand` inserts a fresh empty paragraph in place of a
+      // selection that fully covered every node it touched, so there's somewhere for the caret to
+      // land — the deleted character cue and dialogue become one empty node, not zero.
+      expect(document.nodeCount, 2);
+      expect(_nodeAt(document, 0).text.toPlainText(), isEmpty);
+      expect(_nodeAt(document, 1).text.toPlainText(), "Some trailing action.");
+
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+      expect(clipboardData?.text, "SARAH\nHello there.");
+    });
+  });
+
   group("OcptStyledEditorController", () {
     testWidgets("becomes attached once the editor is pumped", (tester) async {
       final controller = OcptStyledEditorController();

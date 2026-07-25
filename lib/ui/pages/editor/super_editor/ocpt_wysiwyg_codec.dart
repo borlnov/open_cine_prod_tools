@@ -187,34 +187,7 @@ class OcptWysiwygCodec {
   /// same blank-line count.
   static OcptWysiwygDecodeResult decode(String text) {
     final lines = _splitLines(text);
-    final types = _classifier.classify(lines);
-
-    final nodes = <ParagraphNode>[];
-    final blankLinesBeforeByNode = <int>[];
-    var pendingBlanks = 0;
-
-    for (var index = 0; index < lines.length; index++) {
-      if (types[index] == FountainLineType.blank) {
-        pendingBlanks++;
-        continue;
-      }
-
-      final (displayText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
-      nodes.add(
-        ParagraphNode(
-          id: Editor.createNodeId(),
-          text: _attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
-          metadata: {
-            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
-            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
-            ocptTypeLockedMetadataKey: false,
-            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
-          },
-        ),
-      );
-      blankLinesBeforeByNode.add(pendingBlanks);
-      pendingBlanks = 0;
-    }
+    final (nodes, blankLinesBeforeByNode, pendingBlanks) = _decodeLines(lines);
 
     var trailingBlankLines = pendingBlanks;
 
@@ -248,6 +221,55 @@ class OcptWysiwygCodec {
       ),
       trailingBlankLines: trailingBlankLines,
     );
+  }
+
+  /// Decodes [text] into the nodes a paste would insert, with the full metadata set [decode]
+  /// itself gives every node (`blockType`, [ocptBlankLinesBeforeMetadataKey],
+  /// [ocptTypeLockedMetadataKey] always false, [ocptHadForcingMarkerMetadataKey]) — unlike
+  /// [decode], this never synthesizes an empty node for all-blank input, since there is nothing
+  /// useful to paste in that case: the caller sees an empty list instead.
+  static List<ParagraphNode> decodeNodesFromFountain(String text) {
+    final (nodes, _, _) = _decodeLines(_splitLines(text));
+    return nodes;
+  }
+
+  /// The shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
+  /// [lines] into one node per non-blank line (folding blank runs into
+  /// [ocptBlankLinesBeforeMetadataKey] metadata) plus, in call order, the resulting nodes, their
+  /// blank-lines-before counts (same length, same order as the nodes) and the number of blank
+  /// lines still pending after the last non-blank line (the trailing run [decode] alone turns
+  /// into [OcptWysiwygDecodeResult.trailingBlankLines]).
+  static (List<ParagraphNode>, List<int>, int) _decodeLines(List<String> lines) {
+    final types = _classifier.classify(lines);
+
+    final nodes = <ParagraphNode>[];
+    final blankLinesBeforeByNode = <int>[];
+    var pendingBlanks = 0;
+
+    for (var index = 0; index < lines.length; index++) {
+      if (types[index] == FountainLineType.blank) {
+        pendingBlanks++;
+        continue;
+      }
+
+      final (displayText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
+      nodes.add(
+        ParagraphNode(
+          id: Editor.createNodeId(),
+          text: _attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
+          metadata: {
+            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
+            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
+            ocptTypeLockedMetadataKey: false,
+            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
+          },
+        ),
+      );
+      blankLinesBeforeByNode.add(pendingBlanks);
+      pendingBlanks = 0;
+    }
+
+    return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
   /// Encodes [document] back into Fountain source text, the inverse of [decode]: rejoins each
@@ -363,6 +385,64 @@ class OcptWysiwygCodec {
         trailingBlankLines: trailingBlankLines,
       ),
     );
+  }
+
+  /// Encodes just the [selection] span of [document] into Fountain source text, for the
+  /// clipboard: reuses [encode] on a throwaway document holding only the selected nodes (clipping
+  /// the first and last node's text to the selection's own start/end offsets, attributions
+  /// preserved), so a copied fragment stays a faithful, independently round-trippable Fountain
+  /// excerpt — decodable again by [decodeNodesFromFountain] on paste, or by [decode] if pasted
+  /// into another Fountain-aware target. The first node's [ocptBlankLinesBeforeMetadataKey] is
+  /// forced to 0 so a copied fragment never starts with leading blank lines; every other node
+  /// keeps its own metadata untouched, including its blank-lines-before count, so the spacing
+  /// between the copied lines survives.
+  static String encodeSelectionToFountain(Document document, DocumentSelection selection) {
+    final nodes = _clippedSelectionNodes(document, selection);
+    if (nodes.isEmpty) {
+      return "";
+    }
+
+    final adjustedNodes = [
+      nodes.first.copyWithAddedMetadata({ocptBlankLinesBeforeMetadataKey: 0}),
+      ...nodes.skip(1),
+    ];
+    return encode(MutableDocument(nodes: adjustedNodes)).text;
+  }
+
+  /// The [ParagraphNode]s [selection] spans in [document], in document order, with the first and
+  /// last node's text clipped to the selection's own start/end offsets (a selection collapsed to
+  /// a single node clips both ends of that one node). A non-[ParagraphNode] inside the span (none
+  /// exist in this model today, but [Document.getNodesInside]'s contract allows any [DocumentNode]
+  /// type) is skipped rather than crashing, since it carries nothing this codec can serialize.
+  static List<ParagraphNode> _clippedSelectionNodes(Document document, DocumentSelection selection) {
+    final range = selection.normalize(document);
+    final startPosition = range.start.nodePosition;
+    final endPosition = range.end.nodePosition;
+    if (startPosition is! TextNodePosition || endPosition is! TextNodePosition) {
+      return const [];
+    }
+
+    final nodes = document.getNodesInside(range.start, range.end).whereType<ParagraphNode>().toList(growable: false);
+    if (nodes.isEmpty) {
+      return const [];
+    }
+
+    return [
+      for (var index = 0; index < nodes.length; index++)
+        _clipNode(
+          nodes[index],
+          startOffset: range.start.nodeId == nodes[index].id ? startPosition.offset : 0,
+          endOffset: range.end.nodeId == nodes[index].id ? endPosition.offset : null,
+        ),
+    ];
+  }
+
+  /// A copy of [node] whose text is clipped to `[startOffset, endOffset)` (or to the end of the
+  /// text when [endOffset] is null), attributions preserved; every other field, including
+  /// metadata, is left untouched.
+  static ParagraphNode _clipNode(ParagraphNode node, {required int startOffset, int? endOffset}) {
+    final clippedText = endOffset != null ? node.text.copyText(startOffset, endOffset) : node.text.copyText(startOffset);
+    return node.copyParagraphWith(text: clippedText);
   }
 
   /// Computes the requests needed to bring every unlocked, non-empty node's `blockType` metadata

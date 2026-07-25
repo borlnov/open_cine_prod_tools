@@ -493,4 +493,96 @@ void main() {
       expect(encoded.mapping.nodeIndexOfCharOffset(encoded.text.indexOf("SARAH")), 1);
     });
   });
+
+  group("OcptWysiwygCodec.encodeSelectionToFountain / decodeNodesFromFountain", () {
+    /// Builds an expanded [DocumentSelection] spanning the full node at [fromIndex] to the full
+    /// node at [toIndex] of [document] (inclusive), in whichever order [base]/[extent] are asked
+    /// for, so a reversed selection can be exercised too.
+    DocumentSelection selectFullNodes(Document document, {required int fromIndex, required int toIndex}) {
+      final fromNode = document.getNodeAt(fromIndex)! as ParagraphNode;
+      final toNode = document.getNodeAt(toIndex)! as ParagraphNode;
+      return DocumentSelection(
+        base: DocumentPosition(nodeId: fromNode.id, nodePosition: const TextNodePosition(offset: 0)),
+        extent: DocumentPosition(
+          nodeId: toNode.id,
+          nodePosition: TextNodePosition(offset: toNode.text.toPlainText().length),
+        ),
+      );
+    }
+
+    test(
+      "a selection spanning a scene heading, an action line, a character cue and dialogue "
+      "round-trips with types and blank lines intact, but never starts with a leading blank line",
+      () {
+        // The action line originally sits 2 blank lines below the heading; the copied fragment
+        // must start directly with it instead (see encodeSelectionToFountain's doc comment).
+        const source = "INT. HOUSE - DAY\n\n\nSome action.\n\nSARAH\nHello there.";
+        final decoded = OcptWysiwygCodec.decode(source);
+        final document = decoded.document;
+        expect(_blanksBeforeAt(document, 1), 2);
+
+        final selection = selectFullNodes(document, fromIndex: 1, toIndex: 3);
+        final fragmentText = OcptWysiwygCodec.encodeSelectionToFountain(document, selection);
+
+        expect(fragmentText, "Some action.\n\nSARAH\nHello there.");
+
+        final fragmentNodes = OcptWysiwygCodec.decodeNodesFromFountain(fragmentText);
+        expect(fragmentNodes, hasLength(3));
+        expect(
+          OcptFountainLineAttributions.typeOfAttributionValue(fragmentNodes[0].getMetadataValue("blockType")),
+          FountainLineType.action,
+        );
+        expect(
+          OcptFountainLineAttributions.typeOfAttributionValue(fragmentNodes[1].getMetadataValue("blockType")),
+          FountainLineType.character,
+        );
+        expect(
+          OcptFountainLineAttributions.typeOfAttributionValue(fragmentNodes[2].getMetadataValue("blockType")),
+          FountainLineType.dialogue,
+        );
+        expect(fragmentNodes[0].getMetadataValue(ocptBlankLinesBeforeMetadataKey), 0);
+        expect(fragmentNodes[1].getMetadataValue(ocptBlankLinesBeforeMetadataKey), 1);
+        expect(fragmentNodes[2].getMetadataValue(ocptBlankLinesBeforeMetadataKey), 0);
+      },
+    );
+
+    test("a reversed selection (base after extent in document order) encodes the same fragment", () {
+      const source = "SARAH\nHello there.\n\nJOHN\nHi.";
+      final decoded = OcptWysiwygCodec.decode(source);
+      final document = decoded.document;
+
+      final forwardSelection = selectFullNodes(document, fromIndex: 0, toIndex: 3);
+      final reversedSelection = DocumentSelection(base: forwardSelection.extent, extent: forwardSelection.base);
+
+      expect(
+        OcptWysiwygCodec.encodeSelectionToFountain(document, reversedSelection),
+        OcptWysiwygCodec.encodeSelectionToFountain(document, forwardSelection),
+      );
+    });
+
+    test("a partial single-node selection yields just its selected text", () {
+      final decoded = OcptWysiwygCodec.decode("Some action text here.");
+      final node = decoded.document.getNodeAt(0)! as ParagraphNode;
+
+      final selection = DocumentSelection(
+        base: DocumentPosition(nodeId: node.id, nodePosition: const TextNodePosition(offset: 5)),
+        extent: DocumentPosition(nodeId: node.id, nodePosition: const TextNodePosition(offset: 11)),
+      );
+
+      expect(OcptWysiwygCodec.encodeSelectionToFountain(decoded.document, selection), "action");
+    });
+
+    test("decodeNodesFromFountain returns an empty list for all-blank text", () {
+      expect(OcptWysiwygCodec.decodeNodesFromFountain(""), isEmpty);
+      expect(OcptWysiwygCodec.decodeNodesFromFountain("\n\n"), isEmpty);
+    });
+
+    test("decodeNodesFromFountain preserves an explicit forcing marker", () {
+      final fragmentNodes = OcptWysiwygCodec.decodeNodesFromFountain("!Some action.");
+
+      expect(fragmentNodes, hasLength(1));
+      expect(fragmentNodes.single.getMetadataValue(ocptHadForcingMarkerMetadataKey), isTrue);
+      expect(fragmentNodes.single.text.toPlainText(), "Some action.");
+    });
+  });
 }
