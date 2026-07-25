@@ -15,6 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
 - [Table of contents](#table-of-contents)
 - [Introduction](#introduction)
+- [About this project](#about-this-project)
 - [Screenshots](#screenshots)
 - [Features](#features)
 - [Roadmap](#roadmap)
@@ -31,6 +32,12 @@ SPDX-License-Identifier: Apache-2.0
 Open Cine Prod Tools is an open-source suite of film-production tools. The first tool being
 built is a Fountain screenplay editor; more production tools will follow. Projects are stored
 locally, one `.ocpt` file each, and everything stays exportable to human-readable formats.
+
+## About this project
+
+This project is a test for me, it's built through vibe coding with Claude. I want to see if I can
+build a full-featured application without writing a single line of code (but with guidelines and
+linting already written). And if the result at the end is good enough to be used in production.
 
 ## Screenshots
 
@@ -68,13 +75,13 @@ Planned production tools, in priority order:
 
 ## Platforms
 
-| Platform | Status                |
-| -------- | ---------------------- |
-| Linux    | ✅ Active development  |
-| Windows  | ✅ Active development  |
-| Android  | 🚧 Scaffolded          |
-| iOS      | 🚧 Scaffolded          |
-| macOS    | 🚧 Scaffolded          |
+| Platform | Status               |
+| -------- | -------------------- |
+| Linux    | ✅ Active development |
+| Windows  | ✅ Active development |
+| Android  | 🚧 Scaffolded         |
+| iOS      | 🚧 Scaffolded         |
+| macOS    | 🚧 Scaffolded         |
 
 ## Installation
 
@@ -94,10 +101,10 @@ The binaries are unsigned, so Windows SmartScreen will warn on first run.
 ```bash
 git clone --recurse-submodules https://github.com/borlnov/open_cine_prod_tools.git
 cd open_cine_prod_tools
-# Open in the provided devcontainer (Flutter 3.41.9), then:
+# Open in the provided devcontainer (Flutter 3.44.6), then:
 flutter pub get
 dart run intl_utils:generate
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 flutter run -d linux
 ```
 

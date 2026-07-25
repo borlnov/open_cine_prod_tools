@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:super_text_layout/super_text_layout.dart';
 
 /// Wraps [child] with a [MaterialApp] and a bounded, sized surface: `SuperEditor` needs a
 /// constrained size to lay its document out. Mirrors `ocpt_styled_screenplay_editor_test.dart`'s

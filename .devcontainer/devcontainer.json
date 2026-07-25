@@ -83,7 +83,7 @@
     "flutter pub fountain_kit": "[ -f packages/fountain_kit/pubspec.yaml ] && (cd packages/fountain_kit && flutter pub get) || true",
     "act packages pub": "[ -x actlibs/tool/pub_get_all.sh ] && ./actlibs/tool/pub_get_all.sh || true",
     "l10n generate": "[ -f pubspec.yaml ] && grep -q intl_utils pubspec.yaml && dart run intl_utils:generate || true",
-    "build_runner": "[ -f pubspec.yaml ] && grep -q build_runner pubspec.yaml && dart run build_runner build --delete-conflicting-outputs || true"
+    "build_runner": "[ -f pubspec.yaml ] && grep -q build_runner pubspec.yaml && dart run build_runner build || true"
   },
   // Use 'debian' as the default user inside the container
   "remoteUser": "debian",

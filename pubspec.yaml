@@ -104,11 +104,11 @@ dependencies:
     path: packages/fountain_kit
 
   # Document editing toolkit backing the editor's styled block editing mode. Pinned to an exact
-  # version (no caret): its API is still pre-1.0 and moves between dev releases. Held at dev.50
-  # rather than the latest dev.52: starting at dev.51, its IME decorator overrides
-  # `TextInputConnection.updateStyle(TextInputStyle)`, which this repo's pinned Flutter SDK build
-  # doesn't declare, breaking compilation; dev.50 predates that override.
-  super_editor: 0.3.0-dev.50
+  # version (no caret): its API is still pre-1.0 and moves between dev releases. dev.52 is the
+  # first pin that compiles against this repo's Flutter SDK: since 3.44, `TextInputConnection`
+  # declares an abstract `updateStyle(TextInputStyle)` that super_editor's `DocumentImeInputClient`
+  # only overrides from dev.51 onwards, so the earlier dev.50 no longer builds.
+  super_editor: 0.3.0-dev.52
 
   # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
   pdf: ^3.12.0
@@ -131,11 +131,6 @@ dev_dependencies:
   # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
   build_runner: ^2.4.13
 
-  # Only a transitive dependency of super_editor, but its styled editor widget tests disable
-  # BlinkController.indeterminateAnimationsEnabled directly (super_editor 0.3.0-dev.50 doesn't
-  # re-export it yet), so it's declared here too. Pinned to the exact version super_editor
-  # resolves, for the same reason super_editor itself is pinned.
-  super_text_layout: 0.1.21
 
 flutter:
   uses-material-design: true

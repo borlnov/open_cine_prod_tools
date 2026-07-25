@@ -23,8 +23,8 @@ that this project otherwise follows expect generated code to be committed.
 `lib/generated/**` and `**/*.g.dart` are git-ignored (`.gitignore`) rather than committed. This
 is a deliberate deviation from the ACT Flutter guidelines, recorded here rather than left
 unexplained. Every developer checkout and every CI job runs the generation chain
-(`flutter pub get` -> `dart run intl_utils:generate` -> `dart run build_runner build
---delete-conflicting-outputs`) before analyzing, testing or building. Because `reuse` 6.2.0
+(`flutter pub get` -> `dart run intl_utils:generate` -> `dart run build_runner build`)
+before analyzing, testing or building. Because `reuse` 6.2.0
 misdetects some git-ignored directories, `REUSE.toml` carries blanket annotations for
 `lib/generated/**` and `**/*.g.dart` so a local build of these files does not fail `reuse lint`
 before the ignore rule is picked up.

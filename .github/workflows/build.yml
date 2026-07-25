@@ -84,7 +84,7 @@ jobs:
         run: |
           flutter pub get
           dart run intl_utils:generate
-          dart run build_runner build --delete-conflicting-outputs
+          dart run build_runner build
 
       - name: Build for Linux
         uses: ./.github/actions/flutter-build
@@ -145,7 +145,7 @@ jobs:
         run: |
           flutter pub get
           dart run intl_utils:generate
-          dart run build_runner build --delete-conflicting-outputs
+          dart run build_runner build
 
       - name: Build for Windows
         uses: ./.github/actions/flutter-build

@@ -31,10 +31,11 @@ re-emitted on encode even if auto-detection alone would suffice). `OcptWysiwygCo
 `fountain_kit`'s `FountainLineClassifier`/`FountainLineWriter`/`FountainInlineParser`/
 `FountainInlineSerializer`.
 
-`super_editor` is pre-1.0 and pinned to an exact version, `0.3.0-dev.50`, with `super_text_layout
-0.1.21` pinned alongside it for `BlinkController` in tests. Starting at `dev.51`, the package's
-IME decorator overrides `TextInputConnection.updateStyle(TextInputStyle)`, which this repo's
-pinned Flutter SDK build does not declare, breaking compilation; `dev.50` predates that override.
+`super_editor` is pre-1.0 and pinned to an exact version, `0.3.0-dev.52`. Since Flutter 3.44,
+`TextInputConnection` declares an abstract `updateStyle(TextInputStyle)` that the package's IME
+decorator, `DocumentImeInputClient`, only overrides from `dev.51` onwards, so the pin cannot go
+below that. From `dev.52` the package re-exports `BlinkController`, which the styled editor widget
+tests disable, so `super_text_layout` no longer needs a direct dev-dependency of its own.
 Its stylesheets only merge `TextStyle` and padding across matching rules - other properties
 (`maxWidth`, `textAlign`) silently drop if more than one rule matches a block - so every Fountain
 line type gets one mutually exclusive `StyleRule`, with no `BlockSelector.all` baseline rule.

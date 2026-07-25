@@ -104,9 +104,9 @@ FROM base AS flutter
 # WORKSPACE_DIR is NOT set here: it is injected via devcontainer.json containerEnv as
 # ${containerWorkspaceFolder}, so it always tracks the single source of truth (workspaceFolder)
 # instead of being a second copy that can drift.
-# 3.41.9 matches actlibs/tool/.flutter_version, the pinned Flutter version of the ACT packages
+# 3.44.6 matches actlibs/tool/.flutter_version, the pinned Flutter version of the ACT packages
 # this app depends on.
-ARG FLUTTER_VERSION=3.41.9
+ARG FLUTTER_VERSION=3.44.6
 
 ENV FLUTTER_HOME=/home/${USERNAME}/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"

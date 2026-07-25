@@ -43,7 +43,7 @@ breakdown, and a casting tracker.
 
 | Step  | Content                                                                                                                                                                                                  | Status                              |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| 0     | Devcontainer (Debian trixie, Flutter 3.41.9, git from source, reuse)                                                                                                                                     | ✅                                   |
+| 0     | Devcontainer (Debian trixie, Flutter 3.44.6, git from source, reuse)                                                                                                                                     | ✅                                   |
 | 1     | Repo reset (purge legacy code, `flutter create`, Apache-2.0/REUSE)                                                                                                                                       | ✅                                   |
 | 2     | `actlibs/` submodule + global/config/logger managers                                                                                                                                                     | ✅                                   |
 | 3     | Routing, theming, l10n (en_GB + fr)                                                                                                                                                                      | ✅                                   |
@@ -78,7 +78,7 @@ breakdown, and a casting tracker.
 ## Toolchain
 
 The host has **no usable Flutter SDK**. Run ALL Flutter/Dart/reuse commands inside the
-devcontainer (Flutter 3.41.9, the version pinned by `actlibs/tool/.flutter_version`):
+devcontainer (Flutter 3.44.6, the version pinned by `actlibs/tool/.flutter_version`):
 
 ```bash
 cd .devcontainer && docker compose run --rm dev bash -lc 'cd /workspaces/open_cine_prod_tools && <command>'
@@ -219,17 +219,22 @@ minimum before each commit):
 
 1. `flutter pub get`
 2. `dart run intl_utils:generate`
-3. `dart run build_runner build --delete-conflicting-outputs`
+3. `dart run build_runner build`
 4. `flutter analyze` → 0 issues
 5. `flutter test` → all green
 6. `flutter build linux --debug`
 7. `reuse lint` → compliant
-8. `git grep -l 'allcircuits.com' -- ':!actlibs'` → empty
+8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!CLAUDE.md' ':!docs/plans'` → empty
+   (the two extra exclusions are the files that *describe* this gate, which would otherwise
+   always match their own search string)
 
 ## Known pitfalls
 
-- **super_editor is pinned to `0.3.0-dev.50` exactly** — dev.51+ does not compile with
-  Flutter 3.41.9. `super_text_layout` is pinned alongside it for `BlinkController` in tests.
+- **super_editor is pinned to `0.3.0-dev.52` exactly** — dev.50 and below do not compile with
+  Flutter 3.44.6 (`DocumentImeInputClient` misses the now-abstract
+  `TextInputConnection.updateStyle(TextInputStyle)`). dev.52 re-exports `BlinkController`, so
+  tests get it from `package:super_editor/super_editor.dart` with no direct `super_text_layout`
+  dependency.
 - super_editor stylesheets: only TextStyle/padding merge across rules — use one mutually
   exclusive `StyleRule` per Fountain line type (no `BlockSelector.all` baseline), or
   maxWidth/textAlign silently drop.

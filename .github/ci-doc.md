@@ -67,7 +67,7 @@ Inside the devcontainer:
 ```bash
 flutter pub get
 dart run intl_utils:generate
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 flutter build linux --release
 ```
 
@@ -107,12 +107,12 @@ remove it with `sudo apt-get remove open-cine-prod-tools`.
 
 ## Building the Windows installer locally
 
-Requires Windows with Flutter 3.41.9 and Inno Setup (`choco install innosetup`) installed.
+Requires Windows with Flutter 3.44.6 and Inno Setup (`choco install innosetup`) installed.
 
 ```powershell
 flutter pub get
 dart run intl_utils:generate
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 flutter build windows --release
 ```
 

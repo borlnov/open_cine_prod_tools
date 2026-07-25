@@ -35,7 +35,6 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:super_text_layout/super_text_layout.dart';
 
 /// A screenplay service that records every [saveScreenplayText] call instead of touching the
 /// database, so a test can assert a save happened (and with which text) without depending on real

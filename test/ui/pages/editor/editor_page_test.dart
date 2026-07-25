@@ -40,7 +40,6 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:super_text_layout/super_text_layout.dart';
 
 /// The sample script every test loads: two scenes (the first heading deliberately lowercase, to
 /// check the preview renders headings uppercase), one dialogue block and some action text.
