@@ -168,13 +168,24 @@ FountainLineType _ocptCycleType(FountainLineType current, {required bool reverse
 /// (`SplitParagraphRequest(replicateExistingMetadata: false)`, so the new node starts with no
 /// metadata of its own), places the caret at the start of the new node, then classifies it:
 ///
-/// - **Enter** ("smart Enter"): the new node's type follows [_ocptSmartEnterNextType] (the
+/// - **Enter** ("smart Enter"), when the caret sat at the very end of the block's text (so the
+///   new node starts genuinely empty): the new node's type follows [_ocptSmartEnterNextType] (the
 ///   current type's usual successor in a screenplay), unlocked (auto-detection must keep working
 ///   on it) and with `blankLinesBefore` 0 for a dialogue/parenthetical continuation, 1 otherwise
 ///   (matching the blank line Fountain needs to auto-detect most other types).
-/// - **Shift+Enter**: the new node keeps the SAME type as the block it was split from, with
-///   `blankLinesBefore: 0` (a same-block continuation line, e.g. a second action paragraph
-///   without a scene break).
+/// - **Shift+Enter, or Enter anywhere before the end of the text**: the new node keeps the SAME
+///   type as the block it was split from, with `blankLinesBefore: 0` for Shift+Enter (a same-block
+///   continuation line, e.g. a second action paragraph without a scene break) or `1` otherwise. A
+///   non-end Enter split carries the block's own trailing text into the new node — still a
+///   continuation of that same original line, not the start of a fresh one — so it is deliberately
+///   left to the very next (debounced) reclassify pass (`OcptWysiwygCodec.reclassifyRequests`) to
+///   settle on whatever type that trailing text, on its own, actually auto-detects as: forcing the
+///   smart successor on it here instead would risk momentarily storing text under a type it does
+///   not auto-detect as (e.g. a scene heading's `INT./EXT.` prefix staying behind in the original
+///   node leaves a tail with no such prefix), which `FountainLineWriter` can only resolve by
+///   forcing a marker onto it (`!` for `action`) on encode — and, worse, would desynchronize scene
+///   numbering for every heading after it, however briefly, were that momentary state ever read
+///   before the reclassify pass corrects it.
 ///
 /// Both cases clear any forcing-marker flag on the new node: it was never decoded from source
 /// text, so it never "had" one.
@@ -199,7 +210,8 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
 
   final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   final isShiftEnter = HardwareKeyboard.instance.isShiftPressed;
-  final newType = isShiftEnter ? currentType : _ocptSmartEnterNextType(currentType);
+  final splitsAtEnd = splitPosition.offset == node.text.toPlainText().length;
+  final newType = isShiftEnter || !splitsAtEnd ? currentType : _ocptSmartEnterNextType(currentType);
   final blankLinesBefore = isShiftEnter || _ocptIsDialogueGroupMember(newType) ? 0 : 1;
 
   final newNodeId = Editor.createNodeId();

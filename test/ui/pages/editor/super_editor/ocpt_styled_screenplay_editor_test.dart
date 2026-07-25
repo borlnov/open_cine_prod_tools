@@ -842,6 +842,82 @@ void main() {
       expect(newNode.getMetadataValue(ocptBlankLinesBeforeMetadataKey), 0);
       expect(newNode.getMetadataValue(ocptTypeLockedMetadataKey), isFalse);
     });
+
+    testWidgets(
+      "splitting a scene heading before its end lets the next reclassify pass settle the "
+      "carried-over remainder's type instead of forcing a mismatched one onto it",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "INT. HOUSE - DAY",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 4);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "INT.");
+        expect(_nodeAt(document, 1).text.toPlainText(), " HOUSE - DAY");
+        // "HOUSE - DAY" alone has no scene-heading prefix, so it settles as plain action text,
+        // never transiently forcing a "!" or a "." marker onto either fragment.
+        expect(_typeAt(document, 1), FountainLineType.action);
+        expect(_nodeAt(document, 1).getMetadataValue(ocptBlankLinesBeforeMetadataKey), 1);
+        expect(lastEncoded, isNot(contains("!")));
+        expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY");
+      },
+    );
+
+    testWidgets(
+      "splitting one scene heading mid-text leaves every OTHER scene heading's number and text "
+      "untouched",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT\n\nINT. ATTIC - DAY",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 4);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        // Nodes, in order after the split: "INT.", " HOUSE - DAY", "EXT. GARDEN - NIGHT",
+        // "INT. ATTIC - DAY".
+        expect(_nodeAt(document, 2).text.toPlainText(), "EXT. GARDEN - NIGHT");
+        expect(_sceneNumberAt(document, 2), "2");
+        expect(_nodeAt(document, 3).text.toPlainText(), "INT. ATTIC - DAY");
+        expect(_sceneNumberAt(document, 3), "3");
+        expect(lastEncoded, isNot(contains("!")));
+        expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY\n\nEXT. GARDEN - NIGHT #2#\n\nINT. ATTIC - DAY #3#");
+      },
+    );
   });
 
   testWidgets(

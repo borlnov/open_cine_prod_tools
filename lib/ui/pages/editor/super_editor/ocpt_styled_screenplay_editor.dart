@@ -491,17 +491,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _editor.execute(sceneNumberRequests);
     }
 
-    // Renumbers every scene heading (see `sceneNumberNormalizationRequests`'s own doc comment),
-    // in its own `execute` call so it always runs against the just-absorbed tag above: inserting,
-    // deleting or retyping a heading anywhere can shift every number after it, not just the one
-    // being edited.
-    final normalizationRequests = sceneNumberNormalizationRequests(_document);
-    if (normalizationRequests.isNotEmpty) {
-      _editor.execute(normalizationRequests);
-    }
-
-    _encodeAndReportIfChanged();
-
+    // Reclassifies every node's `blockType` (and refreshes note attributions/uppercasing) BEFORE
+    // scene numbers are counted or the text is reported upstream: a node whose type just changed
+    // as a side effect of this same edit (e.g. an Enter split leaving a fragment that no longer
+    // reads as a scene heading) must never be counted as a scene, or reported in the encoded text
+    // as one, even for the single tick before the next debounce would otherwise have caught it.
     final requests = [
       ...OcptWysiwygCodec.reclassifyRequests(_document),
       ...OcptWysiwygCodec.noteAttributionRequests(_document),
@@ -510,6 +504,17 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     if (requests.isNotEmpty) {
       _editor.execute(requests);
     }
+
+    // Renumbers every scene heading (see `sceneNumberNormalizationRequests`'s own doc comment),
+    // in its own `execute` call so it always runs against final, already-reclassified block types:
+    // inserting, deleting or retyping a heading anywhere can shift every number after it, not just
+    // the one being edited.
+    final normalizationRequests = sceneNumberNormalizationRequests(_document);
+    if (normalizationRequests.isNotEmpty) {
+      _editor.execute(normalizationRequests);
+    }
+
+    _encodeAndReportIfChanged();
 
     final previousPageCount = _pageCount;
     final previousTrailingBottomPadding = _trailingBottomPadding;
