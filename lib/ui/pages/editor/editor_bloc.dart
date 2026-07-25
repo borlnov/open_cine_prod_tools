@@ -574,6 +574,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       final path = await _exportManager.exportFountain(
         fountainText: state.text,
         projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -624,6 +625,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         projectName: state.title,
         includeSceneNumbers: event.options.includeSceneNumbers,
         includeTitlePage: event.options.includeTitlePage,
+        fileTypeLabel: event.fileTypeLabel,
       );
       if (path == null) {
         // The user cancelled the save dialog.

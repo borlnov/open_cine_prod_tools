@@ -52,6 +52,10 @@ dependencies:
   # Opens the GitHub repository link in the system browser
   url_launcher: ^6.3.2
 
+  # Shows the native "save as" dialog for exports; promoted from a transitive dependency of
+  # act_file_transfer_manager to a direct one now that the app calls it itself
+  file_selector: ^1.1.0
+
   act_config_manager:
     path: actlibs/act_config_manager
 

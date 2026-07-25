@@ -72,6 +72,8 @@
   "editorExportPdfDialogTitle": "Exporter en PDF",
   "editorExportPdfSceneNumbersLabel": "Inclure les numéros de scène",
   "editorExportPdfTitlePageLabel": "Inclure la page de titre",
+  "editorExportPdfExportAction": "Exporter",
+  "editorExportPdfFileTypeLabel": "Document PDF",
   "editorExportPdfSuccessMessage": "Exporté en PDF vers {path}",
   "editorExportPdfError": "Le scénario n'a pas pu être exporté en PDF.",
   "editorImportSuccessMessage": "Le scénario a été remplacé par le fichier importé.",

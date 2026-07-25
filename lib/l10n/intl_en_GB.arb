@@ -436,8 +436,8 @@
   },
   "editorImportFileTypeLabel": "Fountain screenplay",
   "@editorImportFileTypeLabel": {
-    "description": "Label of the .fountain file type shown in the native open-file dialog",
-    "context": "Passed to the OS file picker when the user chooses to import and replace",
+    "description": "Label of the .fountain file type shown in the native open/save-file dialog",
+    "context": "Passed to the OS file picker when the user imports, or exports to .fountain",
     "type": "text",
     "placeholders": {}
   },
@@ -505,6 +505,20 @@
   "@editorExportPdfTitlePageLabel": {
     "description": "Label of the checkbox toggling the title page in the exported PDF",
     "context": "Displayed inside the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfExportAction": "Export",
+  "@editorExportPdfExportAction": {
+    "description": "Label of the action that confirms the PDF export options dialog",
+    "context": "Displayed on a button in the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfFileTypeLabel": "PDF document",
+  "@editorExportPdfFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports to PDF",
     "type": "text",
     "placeholders": {}
   },

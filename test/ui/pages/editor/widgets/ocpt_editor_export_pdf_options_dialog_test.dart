@@ -72,14 +72,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets("tapping Apply pops the router manager with the format and both checkboxes on", (
+  testWidgets("tapping Export pops the router manager with the format and both checkboxes on", (
     tester,
   ) async {
     await pumpDialog(tester);
     final context = tester.element(find.byType(OcptEditorExportPdfOptionsDialog));
     final tr = Tr.of(context);
 
-    await tester.tap(find.text(tr.editorPageSetupApplyAction));
+    await tester.tap(find.text(tr.editorExportPdfExportAction));
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);
@@ -106,7 +106,7 @@ void main() {
     await tester.tap(find.text(tr.editorPageSetupA4Option).last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(tr.editorPageSetupApplyAction));
+    await tester.tap(find.text(tr.editorExportPdfExportAction));
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);
@@ -126,7 +126,7 @@ void main() {
     await tester.tap(find.widgetWithText(CheckboxListTile, tr.editorExportPdfTitlePageLabel));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(tr.editorPageSetupApplyAction));
+    await tester.tap(find.text(tr.editorExportPdfExportAction));
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);

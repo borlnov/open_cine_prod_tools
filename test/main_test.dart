@@ -55,10 +55,7 @@ void main() {
       ..registerSingleton<OcptProjectsManager>(projectsManager)
       ..registerSingleton<OcptRouterManager>(OcptRouterManager())
       ..registerSingleton<OcptExportManager>(
-        OcptExportManager(
-          fileSaverManager: const FileSaverManager(),
-          fileSelectorManager: const FileSelectorManager(),
-        ),
+        OcptExportManager(fileSelectorManager: const FileSelectorManager()),
       );
   });
 

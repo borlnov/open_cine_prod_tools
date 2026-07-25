@@ -77,10 +77,7 @@ class _RecordingRouterManager extends OcptRouterManager {
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
   _FakeExportManager({this.exportResult, this.importResult, this.exportPdfResult})
-    : super(
-        fileSaverManager: const FileSaverManager(),
-        fileSelectorManager: const FileSelectorManager(),
-      );
+    : super(fileSelectorManager: const FileSelectorManager());
 
   /// The path [exportFountain] returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
@@ -96,6 +93,9 @@ class _FakeExportManager extends OcptExportManager {
 
   /// The project name of the last [exportFountain] call.
   String? lastExportedProjectName;
+
+  /// The file type label of the last [exportFountain] call.
+  String? lastExportedFileTypeLabel;
 
   /// The file type label of the last [pickAndReadFountain] call.
   String? lastImportFileTypeLabel;
@@ -115,13 +115,18 @@ class _FakeExportManager extends OcptExportManager {
   /// The "include title page" flag of the last [exportPdf] call.
   bool? lastExportedPdfIncludeTitlePage;
 
+  /// The file type label of the last [exportPdf] call.
+  String? lastExportedPdfFileTypeLabel;
+
   @override
   Future<String?> exportFountain({
     required String fountainText,
     required String projectName,
+    required String fileTypeLabel,
   }) async {
     lastExportedText = fountainText;
     lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
     return exportResult;
   }
 
@@ -132,12 +137,14 @@ class _FakeExportManager extends OcptExportManager {
     required String projectName,
     required bool includeSceneNumbers,
     required bool includeTitlePage,
+    required String fileTypeLabel,
   }) async {
     lastExportedPdfDocument = document;
     lastExportedPdfPageSetup = pageSetup;
     lastExportedPdfProjectName = projectName;
     lastExportedPdfIncludeSceneNumbers = includeSceneNumbers;
     lastExportedPdfIncludeTitlePage = includeTitlePage;
+    lastExportedPdfFileTypeLabel = fileTypeLabel;
     return exportPdfResult;
   }
 
@@ -152,11 +159,7 @@ class _FakeExportManager extends OcptExportManager {
 /// path.
 class _ThrowingPdfExportManager extends OcptExportManager {
   /// Class constructor
-  _ThrowingPdfExportManager()
-    : super(
-        fileSaverManager: const FileSaverManager(),
-        fileSelectorManager: const FileSelectorManager(),
-      );
+  _ThrowingPdfExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<String?> exportPdf({
@@ -165,6 +168,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
     required String projectName,
     required bool includeSceneNumbers,
     required bool includeTitlePage,
+    required String fileTypeLabel,
   }) async => throw StateError("PDF export intentionally failed for the test");
 }
 
@@ -830,7 +834,7 @@ void main() {
       bloc.add(const OcptEditorTextChangedEvent(text: editedText));
       await waitForState(bloc, (state) => state.isDirty);
 
-      bloc.add(const OcptEditorExportRequestedEvent());
+      bloc.add(const OcptEditorExportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
       final state = await waitForState(
         bloc,
         (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.exportSucceeded,
@@ -840,6 +844,7 @@ void main() {
       expect(state.ioNotice?.path, "/tmp/My Movie.fountain");
       expect(exportManager.lastExportedText, editedText);
       expect(exportManager.lastExportedProjectName, "My Movie");
+      expect(exportManager.lastExportedFileTypeLabel, "Fountain screenplay");
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.export);
@@ -853,7 +858,7 @@ void main() {
     final bloc = buildBloc(exportManager: exportManager);
     await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptEditorExportRequestedEvent());
+    bloc.add(const OcptEditorExportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
     // No state change to wait for on a cancelled dialog: give the handler a beat to run.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
@@ -890,7 +895,12 @@ void main() {
         includeSceneNumbers: false,
         includeTitlePage: false,
       );
-      bloc.add(const OcptEditorExportPdfRequestedEvent(options: options));
+      bloc.add(
+        const OcptEditorExportPdfRequestedEvent(
+          options: options,
+          fileTypeLabel: "PDF document",
+        ),
+      );
       final state = await waitForState(
         bloc,
         (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.pdfExportSucceeded,
@@ -906,6 +916,7 @@ void main() {
       );
       expect(exportManager.lastExportedPdfIncludeSceneNumbers, isFalse);
       expect(exportManager.lastExportedPdfIncludeTitlePage, isFalse);
+      expect(exportManager.lastExportedPdfFileTypeLabel, "PDF document");
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.export);
@@ -932,6 +943,7 @@ void main() {
           includeSceneNumbers: true,
           includeTitlePage: true,
         ),
+        fileTypeLabel: "PDF document",
       ),
     );
     // No state change to wait for on a cancelled dialog: give the handler a beat to run.
@@ -955,6 +967,7 @@ void main() {
           includeSceneNumbers: true,
           includeTitlePage: true,
         ),
+        fileTypeLabel: "PDF document",
       ),
     );
     final failedState = await waitForState(

@@ -171,7 +171,9 @@ class _EditorViewState extends State<_EditorView> {
                   ),
                   onToggleMode: _toggleMode,
                   onExport: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorExportRequestedEvent(),
+                    OcptEditorExportRequestedEvent(
+                      fileTypeLabel: Tr.of(context).editorImportFileTypeLabel,
+                    ),
                   ),
                   onExportPdf: () => _requestExportPdf(context),
                   onImportAndReplace: () => _requestImportAndReplace(context),
@@ -369,7 +371,12 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
 
-    bloc.add(OcptEditorExportPdfRequestedEvent(options: options));
+    bloc.add(
+      OcptEditorExportPdfRequestedEvent(
+        options: options,
+        fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
+      ),
+    );
   }
 
   /// Shows the title page dialog, then dispatches the edited fields if the user applied them.
