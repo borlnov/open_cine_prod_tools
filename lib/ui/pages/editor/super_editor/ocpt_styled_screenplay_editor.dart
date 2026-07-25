@@ -241,26 +241,40 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     super.dispose();
   }
 
-  /// Runs the encode-and-report half of a pending debounced sync immediately, instead of waiting
-  /// for [_syncTimer] to fire on its own — deliberately skipping the other half, the
-  /// [OcptWysiwygCodec.reclassifyRequests]/[OcptWysiwygCodec.noteAttributionRequests] pass
-  /// [_syncAfterEdit] also runs, which needs to execute requests against [_editor] to apply.
+  /// Runs a full pending debounced sync immediately, instead of waiting for [_syncTimer] to fire
+  /// on its own, settling a throwaway copy of the document rather than executing requests against
+  /// the live [_editor].
   ///
   /// Executing requests against [_editor] from here would be unsafe: [deactivate] (this method's
   /// only caller) can fire while this exact subtree is itself mid-teardown (a mode toggle or
   /// route change both remove this widget as part of an ancestor's own rebuild), and executing an
   /// edit at that point can reach a document-layout component that Flutter has already
-  /// deactivated, crashing with "setState() called during build". None of that matters for a
-  /// flush: the classification/note spans it would have produced are purely cosmetic and get
-  /// recomputed from scratch the next time this text is decoded anyway (mode toggle back, or a
-  /// fresh load); only the actual text edit needs to survive, which encoding alone already
-  /// guarantees.
+  /// deactivated, crashing with "setState() called during build". A scratch [MutableDocument]/
+  /// `Editor`, never attached to any widget, carries none of that risk, and settling it before
+  /// encoding matters for more than cosmetics: encoding a node under a stale, not-yet-reclassified
+  /// `blockType` forces `FountainLineWriter` to bake a forcing-marker character into the output
+  /// text for it, and that character comes back on the very next decode as a genuine, sticky,
+  /// user-typed forcing marker — corrupting the node for good, well past this one flush.
   void _flushPendingSync() {
     if (_syncTimer == null || !_syncTimer!.isActive) {
       return;
     }
     _syncTimer!.cancel();
-    _encodeAndReportIfChanged();
+
+    final settledDocument = MutableDocument(nodes: _document.map((node) => node as ParagraphNode).toList());
+    final settledComposer = MutableDocumentComposer();
+    final settledEditor = Editor(
+      editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
+      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..add(ocptChangeNodeMetadataRequestHandler)
+        ..add(ocptReplaceNodeTextRequestHandler),
+    );
+
+    _settleDocument(settledDocument, settledEditor);
+    _encodeAndReportIfChanged(settledDocument);
+
+    settledComposer.dispose();
+    settledEditor.dispose();
   }
 
   @override
@@ -482,38 +496,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       return;
     }
 
-    // Run before every other pass, and in its own `execute` call: a `#N#` tag typed live still
-    // sits in the node's plain text at this point, and both this pass and `uppercaseRequests`
-    // would otherwise compute their replacement text from that same pre-strip snapshot, so
-    // whichever request executed last would silently undo the other's effect on the same node.
-    final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(_document);
-    if (sceneNumberRequests.isNotEmpty) {
-      _editor.execute(sceneNumberRequests);
-    }
-
-    // Reclassifies every node's `blockType` (and refreshes note attributions/uppercasing) BEFORE
-    // scene numbers are counted or the text is reported upstream: a node whose type just changed
-    // as a side effect of this same edit (e.g. an Enter split leaving a fragment that no longer
-    // reads as a scene heading) must never be counted as a scene, or reported in the encoded text
-    // as one, even for the single tick before the next debounce would otherwise have caught it.
-    final requests = [
-      ...OcptWysiwygCodec.reclassifyRequests(_document),
-      ...OcptWysiwygCodec.noteAttributionRequests(_document),
-      ...OcptWysiwygCodec.uppercaseRequests(_document),
-    ];
-    if (requests.isNotEmpty) {
-      _editor.execute(requests);
-    }
-
-    // Renumbers every scene heading (see `sceneNumberNormalizationRequests`'s own doc comment),
-    // in its own `execute` call so it always runs against final, already-reclassified block types:
-    // inserting, deleting or retyping a heading anywhere can shift every number after it, not just
-    // the one being edited.
-    final normalizationRequests = sceneNumberNormalizationRequests(_document);
-    if (normalizationRequests.isNotEmpty) {
-      _editor.execute(normalizationRequests);
-    }
-
+    _settleDocument(_document, _editor);
     _encodeAndReportIfChanged();
 
     final previousPageCount = _pageCount;
@@ -521,6 +504,49 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _recomputePageSimulation();
     if (_pageCount != previousPageCount || _trailingBottomPadding != previousTrailingBottomPadding) {
       setState(() {});
+    }
+  }
+
+  /// Brings every node of [document] (executed through [editor]) to the same settled state
+  /// [_syncAfterEdit] and [_flushPendingSync] both need before their text can be safely encoded:
+  /// live `#N#` tags absorbed, every `blockType` reclassified from current text, note/uppercase
+  /// spans refreshed, and scene numbers renumbered — in that order, each its own `execute` call so
+  /// every later pass only ever sees the previous one's already-settled result.
+  static void _settleDocument(MutableDocument document, Editor editor) {
+    // Run before every other pass, and in its own `execute` call: a `#N#` tag typed live still
+    // sits in the node's plain text at this point, and both this pass and `uppercaseRequests`
+    // would otherwise compute their replacement text from that same pre-strip snapshot, so
+    // whichever request executed last would silently undo the other's effect on the same node.
+    final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(document);
+    if (sceneNumberRequests.isNotEmpty) {
+      editor.execute(sceneNumberRequests);
+    }
+
+    // Reclassifies every node's `blockType` (and refreshes note attributions/uppercasing) BEFORE
+    // scene numbers are counted or the text is reported upstream: a node whose type just changed
+    // as a side effect of this same edit (e.g. an Enter split leaving a fragment that no longer
+    // reads as a scene heading) must never be counted as a scene, or reported in the encoded text
+    // as one, even for the single tick before the next debounce would otherwise have caught it —
+    // and, critically, must never be encoded under its stale type either: `FountainLineWriter`
+    // would then have no choice but to bake a literal forcing-marker character into the output for
+    // a node whose stored type doesn't match its own text, and that character comes back on the
+    // very next decode as a genuine, sticky, user-typed forcing marker.
+    final requests = [
+      ...OcptWysiwygCodec.reclassifyRequests(document),
+      ...OcptWysiwygCodec.noteAttributionRequests(document),
+      ...OcptWysiwygCodec.uppercaseRequests(document),
+    ];
+    if (requests.isNotEmpty) {
+      editor.execute(requests);
+    }
+
+    // Renumbers every scene heading (see `sceneNumberNormalizationRequests`'s own doc comment),
+    // in its own `execute` call so it always runs against final, already-reclassified block types:
+    // inserting, deleting or retyping a heading anywhere can shift every number after it, not just
+    // the one being edited.
+    final normalizationRequests = sceneNumberNormalizationRequests(document);
+    if (normalizationRequests.isNotEmpty) {
+      editor.execute(normalizationRequests);
     }
   }
 
@@ -590,12 +616,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _trailingBottomPadding = pagination.trailingBottomPadding;
   }
 
-  /// Encodes [_document] back to text, refreshes [_mapping] for it, and reports the new text
-  /// upstream if it actually changed — the pure, editor-mutation-free half of [_syncAfterEdit],
-  /// reused by [_flushPendingSync] so a flush never has to run [_editor] commands (see its own
-  /// doc comment for why that matters).
-  void _encodeAndReportIfChanged() {
-    final encoded = OcptWysiwygCodec.encode(_document, trailingBlankLines: _trailingBlankLines);
+  /// Encodes [document] (defaulting to [_document]) back to text, refreshes [_mapping] for it, and
+  /// reports the new text upstream if it actually changed. [_flushPendingSync] passes its own
+  /// throwaway, already-settled document copy instead of the default, so a flush never has to run
+  /// [_editor] commands (see that method's own doc comment for why that matters).
+  void _encodeAndReportIfChanged([Document? document]) {
+    final encoded = OcptWysiwygCodec.encode(document ?? _document, trailingBlankLines: _trailingBlankLines);
     _mapping = encoded.mapping;
     if (encoded.text != _lastSyncedText) {
       _lastSyncedText = encoded.text;

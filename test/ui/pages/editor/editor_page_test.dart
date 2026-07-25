@@ -587,10 +587,11 @@ void main() {
       );
       // Tab cycled the last node from `action` to `character`: "Something moves in the dark."
       // isn't all-caps, so it never auto-detects as a character cue and always needs its `@`
-      // forcing marker once locked as one. If `deactivate()` hadn't flushed the still-pending sync
-      // before `dispose()` cancelled its timer (which never fires once cancelled), this edit would
-      // have been lost entirely and the line below would still read unprefixed.
-      expect(textField.controller?.text, contains("@Something moves in the dark."));
+      // forcing marker once locked as one, and a character cue is always uppercased. If
+      // `deactivate()` hadn't flushed the still-pending sync before `dispose()` cancelled its
+      // timer (which never fires once cancelled), this edit would have been lost entirely and the
+      // line below would still read unprefixed and lowercase.
+      expect(textField.controller?.text, contains("@SOMETHING MOVES IN THE DARK."));
     },
   );
 

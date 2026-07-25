@@ -920,6 +920,52 @@ void main() {
     );
   });
 
+  group("flushing a pending sync on deactivate", () {
+    testWidgets(
+      "a scene heading split mid-text, then removed from the tree before its debounce clears, "
+      "reports the same settled text a normal debounce would have",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "INT. HOUSE - DAY",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 4);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        // A bounded pump shorter than the styled editor's 120 ms sync debounce: long enough to
+        // process the split, short enough that `_syncTimer` is still pending when this widget is
+        // removed from the tree below — the exact race `_flushPendingSync` has to handle.
+        await tester.pump(const Duration(milliseconds: 20));
+
+        // Replacing the whole widget tree removes `OcptStyledScreenplayEditor`, running
+        // `deactivate()` (and, with it, `_flushPendingSync`) without ever letting `_syncTimer`
+        // fire on its own.
+        await tester.pumpWidget(_wrap(const SizedBox()));
+        await tester.pump();
+
+        // Before this fix, flushing skipped reclassification entirely and encoded the split
+        // fragment under its stale `sceneHeading` type, forcing a "." marker onto text that no
+        // longer read as a heading (and, once decoded again, sticking as a permanent forcing
+        // marker misclassified as user intent).
+        expect(lastEncoded, isNot(contains("!")));
+        expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY");
+      },
+    );
+  });
+
   testWidgets(
     "reclassify skips a locked block; emptying it keeps the lock and the type sticky for "
     "whatever is typed next",
