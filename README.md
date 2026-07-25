@@ -1,70 +1,141 @@
 <!--
-SPDX-FileCopyrightText: 2024 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 
-SPDX-License-Identifier: MIT
+SPDX-License-Identifier: Apache-2.0
 -->
 
-# Open Source Cinema Production Tools <!-- omit from toc -->
+# Open Cine Prod Tools <!-- omit from toc -->
+
+[![Build](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/build.yml/badge.svg)](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/build.yml)
+[![Dart Checks](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/flutter_lint.yml/badge.svg)](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/flutter_lint.yml)
+[![REUSE status](https://api.reuse.software/badge/github.com/borlnov/open_cine_prod_tools)](https://api.reuse.software/info/github.com/borlnov/open_cine_prod_tools)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSES/Apache-2.0.txt)
 
 ## Table of contents
 
 - [Table of contents](#table-of-contents)
 - [Introduction](#introduction)
+- [About this project](#about-this-project)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Roadmap](#roadmap)
 - [Platforms](#platforms)
-- [Quick start](#quick-start)
-  - [Firebase](#firebase)
-    - [Introduction](#introduction-1)
-    - [Install firebase tools](#install-firebase-tools)
-    - [Configure the firebase project](#configure-the-firebase-project)
+- [Installation](#installation)
+- [Building from source](#building-from-source)
+- [Repository layout](#repository-layout)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Introduction
 
-This is the HMI part of the "Open Source Cinema Production Tools" application.
+Open Cine Prod Tools is an open-source suite of film-production tools. The first tool being
+built is a Fountain screenplay editor; more production tools will follow. Projects are stored
+locally, one `.ocpt` file each, and everything stays exportable to human-readable formats.
+
+## About this project
+
+This project is a test for me, it's built through vibe coding with Claude. I want to see if I can
+build a full-featured application without writing a single line of code (but with guidelines and
+linting already written). And if the result at the end is good enough to be used in production.
+
+## Screenshots
+
+Screenshots are coming.
+
+<!-- Screenshots will be inserted here. -->
+
+## Features
+
+What the screenplay editor does today:
+
+- A styled WYSIWYG screenplay mode with the real page layout: a block-type dropdown, Tab cycling
+  between screenplay element types, smart Enter, and bold/italic/underline.
+- A raw Fountain mode with a side-by-side, paper-simulated preview.
+- `.fountain` import and export.
+- PDF export with an options dialog, page numbers, and embedded Courier Prime.
+- Page setup: page format and margins.
+- Autosave.
+- English (`en_GB`) and French interfaces.
+- A system-following light/dark theme.
+
+## Roadmap
+
+Planned production tools, in priority order:
+
+- Shot lists (decoupage technique)
+- Scenario coverage per shot
+- Shooting schedule
+- Call sheets
+- Budget
+- Script supervisor reports
+- Storyboard
+- Breakdown
+- Casting tracker
 
 ## Platforms
 
-The application should be available on the following platforms:
+| Platform | Status               |
+| -------- | -------------------- |
+| Linux    | ✅ Active development |
+| Windows  | ✅ Active development |
+| Android  | 🚧 Scaffolded         |
+| iOS      | 🚧 Scaffolded         |
+| macOS    | 🚧 Scaffolded         |
 
-| Platform | Is it planned to work on?                                    | Is it tested?                          |
-| -------- | ------------------------------------------------------------ | -------------------------------------- |
-| Android  | ✅ Yes                                                        | ✅ Yes                                  |
-| iOS      | ✅ Yes (_only in a second time, if I find some testers_)      | ❌ No (_I haven't an iPhone to test_)   |
-| Linux    | ✅ Yes                                                        | ❌ No (_I don't have the time for now_) |
-| macOS    | ✅ Yes (_only in a second time, if I find some testers_)      | ❌ No (_I haven't a mac to test_)       |
-| Web      | ❌ No (_I don't know how to developp on Flutter Web for now_) | ❌ No                                   |
-| Windows  | ✅ Yes                                                        | ✅ Yes                                  |
+## Installation
 
-## Quick start
+Download the `.deb` (Linux) or the installer (Windows) from the
+[GitHub Releases](https://github.com/borlnov/open_cine_prod_tools/releases) page.
 
-### Firebase
-
-#### Introduction
-
-This application uses firebase, so you need to create a firebase project. You can follow the doc
-here: [create a firebase project](https://firebase.google.com/docs/flutter/setup#create-firebase-project).
-
-We don't add the firebase configuration file in the repository because if you want to rebuild the
-application for you, you need to create your own firebase project.
-
-#### Install firebase tools
-
-This application uses firebase, so you need to install the firebase tools:
-
-- `firebase`
-- `flutterfire_cli`
-
-You can follow the doc here:
-[install tools](https://firebase.google.com/docs/flutter/setup?hl=fr&platform=android#install-cli-tools).
-
-#### Configure the firebase project
-
-After having installed the firebase tools and login to your account, you need to configure the
-firebase project.
-
-We export the `firebase_options.dart` file to the `lib/generated` directory, because we don't want
-to add this file in the repository. Therefore, each time you want to configure the project, you have
-to call (_from the root folder of the project_):
+On Linux:
 
 ```bash
-flutterfire configure --out lib/generated/firebase_options.dart
+sudo apt install ./open-cine-prod-tools_<version>_amd64.deb
 ```
+
+The binaries are unsigned, so Windows SmartScreen will warn on first run.
+
+## Building from source
+
+```bash
+git clone --recurse-submodules https://github.com/borlnov/open_cine_prod_tools.git
+cd open_cine_prod_tools
+# Open in the provided devcontainer (Flutter 3.44.6), then:
+flutter pub get
+dart run intl_utils:generate
+dart run build_runner build
+flutter run -d linux
+```
+
+Run the test suites with `flutter test` and, inside `packages/fountain_kit`, `dart test`.
+
+## Repository layout
+
+```text
+lib/                  Application source
+packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
+actlibs/               ACT Flutter packages (git submodule)
+assets/                Config, fonts and other bundled assets
+test/                  Application test suite
+docs/                  Plans and architecture decision records
+.github/               CI workflows and release pipeline
+```
+
+## Documentation
+
+- [Architecture decision records](docs/adr/) - the reasoning behind structural choices.
+- [CI documentation](.github/ci-doc.md) - build, test and release pipeline.
+- [fountain_kit README](packages/fountain_kit/README.md) - the standalone Fountain package.
+
+## Contributing
+
+Everything on GitHub - code, comments, commits, issues, pull requests - is in English, with
+[Conventional Commits](https://www.conventionalcommits.org/) and a subject of 50 characters or
+less. `flutter analyze` and `flutter test` must pass, and every file needs an SPDX header
+(`reuse lint` is enforced in CI).
+
+## License
+
+This project is licensed under Apache-2.0. See the [LICENSES](LICENSES/) directory for the full
+license text and for the bundled third-party licenses, including OFL-1.1 for Courier Prime.

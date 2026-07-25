@@ -1,93 +1,161 @@
-# SPDX-FileCopyrightText: 2024 - 2025 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 #
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: Apache-2.0
 
 name: open_cine_prod_tools
-description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+description: "Open-source production tools for film making."
+publish_to: none
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 0.1.0
 
 environment:
-  sdk: ^3.6.0
-  flutter: "3.27.1"
+  sdk: ^3.11.1
+  flutter: ">=3.29.0"
 
-# The workspace is useful for development of multiple packages at once.
-workspace:
-  - flutterbrolibs/bro_abstract_logger
-  - flutterbrolibs/bro_abstract_manager
-  - flutterbrolibs/bro_config_manager
-  - flutterbrolibs/bro_file_utility
-  - flutterbrolibs/bro_firebase_core
-  - flutterbrolibs/bro_firebase_crashlytics
-  - flutterbrolibs/bro_global_manager
-  - flutterbrolibs/bro_list_utility
-  - flutterbrolibs/bro_logger_manager
-  - flutterbrolibs/bro_platform_utility
-  - flutterbrolibs/bro_types_utility
-  - flutterbrolibs/bro_yaml_utility
-
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  # Internationalize Flutter apps
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
 
-  bro_abstract_logger: ^1.1.0
+  # Help to implement value based equality without explicit override
+  equatable: ^2.0.7
 
-  bro_config_manager: ^1.1.0
+  # Implement the BLoC (Business Logic Component) design pattern
+  flutter_bloc: ^9.1.1
 
-  bro_firebase_core: ^1.0.0
+  # Code to deal with internationalized/localized messages
+  intl: ^0.20.2
 
-  bro_firebase_crashlytics: ^1.0.0
+  # Persistent, reactive, typed access to a per-project SQLite database
+  drift: ^2.24.0
 
-  bro_global_manager: ^1.1.0
+  # Ships the native sqlite3 library so drift can open databases on every desktop/mobile target
+  sqlite3_flutter_libs: ^0.5.28
 
-  bro_logger_manager: ^1.0.0
+  # Used directly to narrowly catch SqliteException when a project file may be corrupted
+  sqlite3: ^2.4.6
+
+  # Builds and joins file system paths in a platform-independent way
+  path: ^1.9.1
+
+  # Resolves the per-platform application documents directory used as the default projects home
+  path_provider: ^2.1.5
+
+  # Generates the stable ids of screenplays, snapshots and scenes
+  uuid: ^4.5.1
+
+  # Opens the GitHub repository link in the system browser
+  url_launcher: ^6.3.2
+
+  act_config_manager:
+    path: actlibs/act_config_manager
+
+  act_dart_result:
+    path: actlibs/act_dart_result
+
+  act_dart_utility:
+    path: actlibs/act_dart_utility
+
+  act_dart_value_keeper:
+    path: actlibs/act_dart_value_keeper
+
+  act_file_transfer_manager:
+    path: actlibs/act_file_transfer_manager
+
+  act_flutter_utility:
+    path: actlibs/act_flutter_utility
+
+  act_foundation:
+    path: actlibs/act_foundation
+
+  act_global_manager:
+    path: actlibs/act_global_manager
+
+  act_intl:
+    path: actlibs/act_intl
+
+  act_intl_ui:
+    path: actlibs/act_intl_ui
+
+  act_licenses_manager:
+    path: actlibs/act_licenses_manager
+
+  act_life_cycle:
+    path: actlibs/act_life_cycle
+
+  act_local_storage_manager:
+    path: actlibs/act_local_storage_manager
+
+  act_logger_manager:
+    path: actlibs/act_logger_manager
+
+  act_router_manager:
+    path: actlibs/act_router_manager
+
+  act_themes_manager:
+    path: actlibs/act_themes_manager
+
+  fountain_kit:
+    path: packages/fountain_kit
+
+  # Document editing toolkit backing the editor's styled block editing mode. Pinned to an exact
+  # version (no caret): its API is still pre-1.0 and moves between dev releases. dev.52 is the
+  # first pin that compiles against this repo's Flutter SDK: since 3.44, `TextInputConnection`
+  # declares an abstract `updateStyle(TextInputStyle)` that super_editor's `DocumentImeInputClient`
+  # only overrides from dev.51 onwards, so the earlier dev.50 no longer builds.
+  super_editor: 0.3.0-dev.52
+
+  # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
+  pdf: ^3.12.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+  # Used to generate the translation files
+  intl_utils: ^2.8.10
 
-# The following section is specific to Flutter packages.
+  # Provides InMemorySharedPreferencesAsync, used to back OcptPropertiesManager in tests
+  shared_preferences_platform_interface: ^2.4.2
+
+  # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
+  drift_dev: ^2.24.0
+
+  # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
+  build_runner: ^2.4.13
+
+
 flutter:
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
 
   assets:
-    - assets/
-    - assets/configs/
+    - assets/config/
+    - assets/fonts/courier_prime/
+    - LICENSES/
+    - actlibs/LICENSES/
+
+  fonts:
+    - family: CourierPrime
+      fonts:
+        - asset: assets/fonts/courier_prime/CourierPrime-Regular.ttf
+        - asset: assets/fonts/courier_prime/CourierPrime-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/courier_prime/CourierPrime-Italic.ttf
+          style: italic
+        - asset: assets/fonts/courier_prime/CourierPrime-BoldItalic.ttf
+          weight: 700
+          style: italic
+
+flutter_intl:
+  enabled: true
+  # Sets the name for the generated localization class. Default: S
+  class_name: Tr
+  # Sets the main locale used for generating localization files.
+  main_locale: en_GB

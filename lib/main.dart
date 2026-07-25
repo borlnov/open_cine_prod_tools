@@ -1,16 +1,9 @@
-// SPDX-FileCopyrightText: 2024 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 //
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/managers/global_manager.dart';
-import 'package:open_cine_prod_tools/ui/main_app/main_app.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/ui/main_app/main_app_ui.dart';
 
-/// The main entry point for the application.
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await GlobalManager.instance.initLifeCycle();
-
-  runApp(const MainApp());
-}
+/// Starts the application by running it on top of the global manager.
+Future<void> main() async => OcptGlobalManager.instance.runActApp(const MainAppUi());

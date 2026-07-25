@@ -1,0 +1,453 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
+import 'package:super_editor/super_editor.dart';
+
+/// Reads the classified [FountainLineType] the node at [index] of [document] currently carries.
+FountainLineType _typeAt(Document document, int index) =>
+    OcptFountainLineAttributions.typeOfAttributionValue(document.getNodeAt(index)!.getMetadataValue("blockType"));
+
+/// Reads the node at [index] of [document]'s `ocptBlankLinesBefore` metadata (0 if absent).
+int _blanksBeforeAt(Document document, int index) {
+  final value = document.getNodeAt(index)!.getMetadataValue(ocptBlankLinesBeforeMetadataKey);
+  return value is int ? value : 0;
+}
+
+/// Reads the node at [index] of [document]'s `ocptHadForcingMarker` metadata (false if absent).
+bool _hadForcingMarkerAt(Document document, int index) =>
+    document.getNodeAt(index)!.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
+
+/// Replaces the text of the node at [index] of [document] with [newText], keeping its id and every
+/// other metadata entry, the same way a real edit would change a node's text before the next
+/// reclassification/note-attribution pass.
+void _replaceText(MutableDocument document, int index, String newText) {
+  final node = document.getNodeAt(index)! as ParagraphNode;
+  document.replaceNodeById(node.id, node.copyParagraphWith(text: AttributedText(newText)));
+}
+
+/// Merges [entries] into the metadata of the node at [index] of [document].
+void _setMetadata(MutableDocument document, int index, Map<String, dynamic> entries) {
+  final node = document.getNodeAt(index)! as ParagraphNode;
+  document.replaceNodeById(node.id, node.copyWithAddedMetadata(entries));
+}
+
+/// Applies [attribution] to every character of the node at [index] of [document]'s text `[start,
+/// end)`, so a note-attribution test can seed a stale span to be corrected.
+void _addAttribution(MutableDocument document, int index, Attribution attribution, int start, int end) {
+  final node = document.getNodeAt(index)! as ParagraphNode;
+  final text = AttributedText(node.text.toPlainText(), node.text.spans.copy());
+  text.addAttribution(attribution, SpanRange(start, end - 1));
+  document.replaceNodeById(node.id, node.copyParagraphWith(text: text));
+}
+
+/// The expected `decode`/`encode` round trip for [fileName], given its [original] source: identity
+/// for every corpus file except for one deliberate, documented normalization (see
+/// `OcptWysiwygCodec.encode`'s doc comment): this model has no metadata slot for a section
+/// heading's original `#`-run length, so every section always re-serializes at level 1, collapsing
+/// `structure.fountain`'s two `## ` sub-sections to `# `.
+String _expectedRoundTrip(String fileName, String original) =>
+    fileName == "structure.fountain" ? original.replaceAll("\n## ", "\n# ") : original;
+
+void main() {
+  group("OcptWysiwygCodec.decode/encode corpus identity", () {
+    final corpusDirectory = Directory("packages/fountain_kit/test/corpus");
+    final corpusFiles =
+        corpusDirectory.listSync().whereType<File>().where((file) => file.path.endsWith(".fountain")).toList(
+          growable: false,
+        )..sort((a, b) => a.path.compareTo(b.path));
+
+    test("the corpus directory is not empty", () {
+      expect(corpusFiles, isNotEmpty);
+    });
+
+    for (final file in corpusFiles) {
+      final fileName = file.uri.pathSegments.last;
+
+      test("$fileName round-trips through decode then encode", () {
+        final source = file.readAsStringSync();
+
+        final decoded = OcptWysiwygCodec.decode(source);
+        final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+
+        expect(encoded.text, _expectedRoundTrip(fileName, source));
+      });
+    }
+  });
+
+  group("OcptWysiwygCodec.decode empty-document edge case", () {
+    test("an empty source text decodes to a single node and round-trips to the same text", () {
+      final decoded = OcptWysiwygCodec.decode("");
+
+      expect(decoded.document.nodeCount, 1);
+      expect((decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "");
+      expect(decoded.trailingBlankLines, 0);
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      expect(encoded.text, "");
+    });
+
+    test("a source made only of blank lines folds all but one into the trailing count", () {
+      final decoded = OcptWysiwygCodec.decode("\n\n");
+
+      expect(decoded.document.nodeCount, 1);
+      expect(decoded.trailingBlankLines, 2);
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      expect(encoded.text, "\n\n");
+    });
+  });
+
+  group("OcptWysiwygCodec.decode blank-run and forcing-marker preservation", () {
+    test("folds a blank run into the following node's ocptBlankLinesBefore metadata", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\n\nSome action.");
+
+      expect(decoded.document.nodeCount, 2);
+      expect(_blanksBeforeAt(decoded.document, 0), 0);
+      expect(_blanksBeforeAt(decoded.document, 1), 2);
+    });
+
+    test("keeps ocptBlankLinesBefore at 0 for lines with no blank run before them", () {
+      final decoded = OcptWysiwygCodec.decode("SARAH\nHello.");
+
+      expect(_blanksBeforeAt(decoded.document, 0), 0);
+      expect(_blanksBeforeAt(decoded.document, 1), 0);
+    });
+
+    test("records a trailing blank run separately from any node", () {
+      final decoded = OcptWysiwygCodec.decode("Some action.\n\n");
+
+      expect(decoded.document.nodeCount, 1);
+      expect(decoded.trailingBlankLines, 2);
+    });
+
+    test("preserves an explicit forcing marker that auto-detection would not have needed", () {
+      // "Some action." on its own would already auto-detect as action, but the source forces it
+      // with "!" anyway; the round trip must keep re-emitting that marker.
+      final decoded = OcptWysiwygCodec.decode("!Some action.");
+
+      expect(_typeAt(decoded.document, 0), FountainLineType.action);
+      expect(_hadForcingMarkerAt(decoded.document, 0), isTrue);
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      expect(encoded.text, "!Some action.");
+    });
+
+    test("does not force a marker for a line that auto-detects without one", () {
+      final decoded = OcptWysiwygCodec.decode("Some action.");
+
+      expect(_hadForcingMarkerAt(decoded.document, 0), isFalse);
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      expect(encoded.text, "Some action.");
+    });
+  });
+
+  group("OcptWysiwygCodec.encode dialogue/parenthetical fallback", () {
+    test(
+      "a dialogue node not following a character serializes as plain text and degrades to action on reparse",
+      () {
+        final document = MutableDocument(
+          nodes: [
+            ParagraphNode(
+              id: "n0",
+              text: AttributedText("Just some words."),
+              metadata: {
+                "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.dialogue),
+                ocptBlankLinesBeforeMetadataKey: 0,
+                ocptTypeLockedMetadataKey: true,
+                ocptHadForcingMarkerMetadataKey: false,
+              },
+            ),
+          ],
+        );
+
+        final encoded = OcptWysiwygCodec.encode(document);
+        expect(encoded.text, "Just some words.");
+
+        final reparsed = OcptWysiwygCodec.decode(encoded.text);
+        expect(_typeAt(reparsed.document, 0), FountainLineType.action);
+      },
+    );
+
+    test("a dialogue node that does follow a character keeps classifying as dialogue on reparse", () {
+      final document = MutableDocument(
+        nodes: [
+          ParagraphNode(
+            id: "n0",
+            text: AttributedText("SARAH"),
+            metadata: {
+              "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.character),
+              ocptBlankLinesBeforeMetadataKey: 0,
+              ocptTypeLockedMetadataKey: false,
+              ocptHadForcingMarkerMetadataKey: false,
+            },
+          ),
+          ParagraphNode(
+            id: "n1",
+            text: AttributedText("Hello there."),
+            metadata: {
+              "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.dialogue),
+              ocptBlankLinesBeforeMetadataKey: 0,
+              ocptTypeLockedMetadataKey: false,
+              ocptHadForcingMarkerMetadataKey: false,
+            },
+          ),
+        ],
+      );
+
+      final encoded = OcptWysiwygCodec.encode(document);
+      final reparsed = OcptWysiwygCodec.decode(encoded.text);
+      expect(_typeAt(reparsed.document, 1), FountainLineType.dialogue);
+    });
+  });
+
+  group("OcptWysiwygCodec.reclassifyRequests", () {
+    test("requests a blockType change when typing turns an action line into a scene heading", () {
+      final decoded = OcptWysiwygCodec.decode("\nSome action\n");
+      expect(_typeAt(decoded.document, 0), FountainLineType.action);
+
+      _replaceText(decoded.document, 0, "INT. HOUSE - DAY");
+      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document).cast<ChangeParagraphBlockTypeRequest>();
+
+      expect(requests, hasLength(1));
+      expect(requests.single.nodeId, decoded.document.getNodeAt(0)!.id);
+      expect(requests.single.blockType, OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading));
+    });
+
+    test("returns no request when no node's classified type actually changed", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nAction.");
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("a locked node is skipped even if its text would classify differently", () {
+      final decoded = OcptWysiwygCodec.decode("Some action");
+      _setMetadata(decoded.document, 0, {ocptTypeLockedMetadataKey: true});
+      _replaceText(decoded.document, 0, "INT. HOUSE - DAY");
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("an emptied node's lock is cleared but its type is left untouched", () {
+      final decoded = OcptWysiwygCodec.decode("Some action");
+      _setMetadata(decoded.document, 0, {ocptTypeLockedMetadataKey: true});
+      _replaceText(decoded.document, 0, "");
+
+      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document);
+
+      expect(requests, hasLength(1));
+      expect(requests.single, isA<OcptChangeNodeMetadataRequest>());
+      final request = requests.single as OcptChangeNodeMetadataRequest;
+      expect(request.nodeId, decoded.document.getNodeAt(0)!.id);
+      expect(request.metadata, {ocptTypeLockedMetadataKey: false});
+      // The blockType metadata itself is untouched: still action, not reclassified as blank/other.
+      expect(_typeAt(decoded.document, 0), FountainLineType.action);
+    });
+
+    test("an emptied, unlocked node produces no request at all", () {
+      final decoded = OcptWysiwygCodec.decode("Some action");
+      _replaceText(decoded.document, 0, "");
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+    });
+
+    test("inserting a blank line before and after re-classifies a candidate scene heading", () {
+      final decoded = OcptWysiwygCodec.decode("Some text\nINT HOUSE DAY\nMore text");
+      expect(_typeAt(decoded.document, 1), FountainLineType.action);
+
+      _setMetadata(decoded.document, 1, {ocptBlankLinesBeforeMetadataKey: 1});
+      _setMetadata(decoded.document, 2, {ocptBlankLinesBeforeMetadataKey: 1});
+
+      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document).cast<ChangeParagraphBlockTypeRequest>();
+
+      expect(requests, hasLength(1));
+      expect(requests.single.nodeId, decoded.document.getNodeAt(1)!.id);
+      expect(requests.single.blockType, OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading));
+    });
+  });
+
+  group("OcptWysiwygCodec.uppercaseRequests", () {
+    test("uppercases a lowercase scene heading, preserving bold spans and length", () {
+      final decoded = OcptWysiwygCodec.decode("int. kitchen - day");
+      expect(_typeAt(decoded.document, 0), FountainLineType.sceneHeading);
+      _addAttribution(decoded.document, 0, boldAttribution, "int. ".length, "int. kitchen".length);
+
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document);
+
+      expect(requests, hasLength(1));
+      final request = requests.single as OcptReplaceNodeTextRequest;
+      expect(request.nodeId, decoded.document.getNodeAt(0)!.id);
+      expect(request.text.toPlainText(), "INT. KITCHEN - DAY");
+      expect(
+        request.text.getAttributionSpansInRange(
+          attributionFilter: (attribution) => attribution == boldAttribution,
+          range: SpanRange(0, request.text.length - 1),
+        ),
+        hasLength(1),
+      );
+    });
+
+    test("uppercases a lowercase character cue and a lowercase transition", () {
+      // Both auto-detection rules require already-uppercase text (that's the whole reason this
+      // feature exists), so the only way a node ends up classified character/transition with
+      // lowercase text is a later edit made after classification already locked in (mirrored here
+      // with `_replaceText`, which — unlike typing through the live editor — never re-triggers
+      // `reclassifyRequests`).
+      final decoded = OcptWysiwygCodec.decode("SARAH\nHello.\n\nCUT TO:");
+      expect(_typeAt(decoded.document, 0), FountainLineType.character);
+      expect(_typeAt(decoded.document, 2), FountainLineType.transition);
+
+      _replaceText(decoded.document, 0, "sarah");
+      _replaceText(decoded.document, 2, "cut to:");
+
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document).cast<OcptReplaceNodeTextRequest>();
+
+      expect(requests, hasLength(2));
+      expect(requests[0].text.toPlainText(), "SARAH");
+      expect(requests[1].text.toPlainText(), "CUT TO:");
+    });
+
+    test("leaves action, dialogue and already-uppercase nodes untouched", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSome action.\n\nSARAH\nhello there.");
+
+      expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
+    });
+
+    test("the saved Fountain text round-trips with the uppercased line", () {
+      final decoded = OcptWysiwygCodec.decode("int. kitchen - day");
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document).cast<OcptReplaceNodeTextRequest>();
+      final node = decoded.document.getNodeAt(0)! as ParagraphNode;
+      decoded.document.replaceNodeById(node.id, node.copyParagraphWith(text: requests.single.text));
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+
+      expect(encoded.text, "INT. KITCHEN - DAY");
+    });
+  });
+
+  group("OcptWysiwygCodec.noteAttributionRequests", () {
+    test("adds a fountainNote attribution bounding a [[...]] region", () {
+      final document = MutableDocument(
+        nodes: [
+          ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after.")),
+        ],
+      );
+
+      final requests = OcptWysiwygCodec.noteAttributionRequests(document);
+
+      expect(requests, hasLength(1));
+      final request = requests.single as AddTextAttributionsRequest;
+      expect(request.attributions, {ocptFountainNoteAttribution});
+      expect((request.documentRange.start.nodePosition as TextNodePosition).offset, "Before ".length);
+      expect(
+        (request.documentRange.end.nodePosition as TextNodePosition).offset,
+        "Before [[a note]]".length,
+      );
+    });
+
+    test("returns no request when the current spans already match", () {
+      final document = MutableDocument(
+        nodes: [
+          ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after.")),
+        ],
+      );
+      _addAttribution(document, 0, ocptFountainNoteAttribution, "Before ".length, "Before [[a note]]".length);
+
+      expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty);
+    });
+
+    test("re-bounds the span when a note's contents change", () {
+      final document = MutableDocument(
+        nodes: [
+          ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after.")),
+        ],
+      );
+      // Seed a stale span reflecting the note's old, shorter contents.
+      _addAttribution(document, 0, ocptFountainNoteAttribution, "Before ".length, "Before [[a]]".length);
+
+      final requests = OcptWysiwygCodec.noteAttributionRequests(document);
+
+      expect(requests, hasLength(2));
+      expect(requests.first, isA<RemoveTextAttributionsRequest>());
+      final addRequest = requests[1] as AddTextAttributionsRequest;
+      expect(
+        (addRequest.documentRange.end.nodePosition as TextNodePosition).offset,
+        "Before [[a note]]".length,
+      );
+    });
+
+    test("produces no requests for a node with no note markup", () {
+      final document = MutableDocument(
+        nodes: [
+          ParagraphNode(id: "n0", text: AttributedText("Just plain text.")),
+        ],
+      );
+
+      expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty);
+    });
+  });
+
+  group("OcptWysiwygLineMapping", () {
+    test("lineOfNodeIndex accounts for every preceding node's blank-lines-before count", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSome action.\n\n\nSARAH\nHello.");
+
+      expect(decoded.mapping.lineOfNodeIndex(0), 0);
+      expect(decoded.mapping.lineOfNodeIndex(1), 2);
+      expect(decoded.mapping.lineOfNodeIndex(2), 5);
+      expect(decoded.mapping.lineOfNodeIndex(3), 6);
+    });
+
+    test("nodeIndexOfCharOffset resolves a real offset to the node owning that line", () {
+      const source = "INT. HOUSE - DAY\n\nSome action.\n\n\nSARAH\nHello.";
+      final decoded = OcptWysiwygCodec.decode(source);
+
+      expect(decoded.mapping.nodeIndexOfCharOffset(0), 0);
+      expect(decoded.mapping.nodeIndexOfCharOffset(source.indexOf("Some action.")), 1);
+      expect(decoded.mapping.nodeIndexOfCharOffset(source.indexOf("SARAH")), 2);
+      expect(decoded.mapping.nodeIndexOfCharOffset(source.indexOf("Hello.")), 3);
+    });
+
+    test("a blank line's offset snaps to the node that follows it", () {
+      const source = "INT. HOUSE - DAY\n\nSome action.";
+      final decoded = OcptWysiwygCodec.decode(source);
+
+      // The offset right after the heading's own newline sits on the blank line between the
+      // heading and the action line.
+      final blankLineOffset = "INT. HOUSE - DAY\n".length;
+      expect(decoded.mapping.nodeIndexOfCharOffset(blankLineOffset), 1);
+    });
+
+    test("clamps an out-of-range offset to the last line's node", () {
+      const source = "line0\nline1";
+      final decoded = OcptWysiwygCodec.decode(source);
+
+      expect(decoded.mapping.nodeIndexOfCharOffset(source.length + 10), 1);
+      expect(decoded.mapping.nodeIndexOfCharOffset(-5), 0);
+    });
+
+    test("a trailing blank run's offset snaps to the last node", () {
+      const source = "Some action.\n\n\n";
+      final decoded = OcptWysiwygCodec.decode(source);
+
+      expect(decoded.mapping.nodeIndexOfCharOffset(source.length), 0);
+    });
+
+    test("encode produces a fresh mapping consistent with its own output text", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSARAH\nHello.");
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+
+      expect(encoded.mapping.lineOfNodeIndex(0), 0);
+      expect(encoded.mapping.lineOfNodeIndex(1), 2);
+      expect(encoded.mapping.lineOfNodeIndex(2), 3);
+      expect(encoded.mapping.nodeIndexOfCharOffset(encoded.text.indexOf("SARAH")), 1);
+    });
+  });
+}

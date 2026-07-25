@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: 2022 - 2024 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
-# SPDX-FileCopyrightText: 2023 Anthony Loiseau <anthony.loiseau@allcircuits.com>
+# SPDX-FileCopyrightText: 2022 - 2024 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+# SPDX-FileCopyrightText: 2023 Anthony Loiseau
 #
 # SPDX-License-Identifier: LicenseRef-ALLCircuits-ACT-1.1
 
@@ -18,6 +18,13 @@ analyzer:
   exclude:
     - build/**
     - lib/generated/**
+    # The actlibs submodule is a separate mono repo with its own analysis_options.yaml and its own
+    # pub workspace; most of its packages aren't even path dependencies of this app, so they must
+    # not be analyzed as part of this project.
+    - actlibs/**
+    # packages/fountain_kit is a path dependency of this app, but it is a standalone package with
+    # its own analysis_options.yaml and its own CI entry, so it must not be analyzed twice here.
+    - packages/**
 
   errors:
     missing_required_param: error
@@ -79,9 +86,6 @@ linter:
 
     # Don't declare multiple variables on a single line.
     avoid_multiple_declarations_per_line: true
-
-    # Don't check for null in custom == operators.
-    avoid_null_checks_in_equality_operators: true
 
     # Avoid positional boolean parameters.
     avoid_positional_boolean_parameters: true
