@@ -63,7 +63,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
       final FountainDialogueGroup dialogue => _dialogueGroup(dialogue),
       final FountainTransition transition => _element(
         layout.metrics.transition,
-        _styledText(transition.text.toUpperCase(), _baseStyle),
+        _styledText(_printed(transition.text, FountainLineType.transition), _baseStyle),
       ),
       final FountainCenteredText centered => _element(
         layout.metrics.centeredText,
@@ -126,7 +126,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
       children: [
         _element(
           layout.metrics.character,
-          _styledText(cueText.toUpperCase(), _baseStyle),
+          _styledText(_printed(cueText, FountainLineType.character), _baseStyle),
         ),
         for (final child in dialogue.children)
           switch (child) {
@@ -182,6 +182,13 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     FountainLyrics() => layout.metrics.lyrics,
     _ => null,
   };
+
+  /// Applies [FountainPrintStyle.of]'s print-time letter case to [text] for a line of [lineType],
+  /// upper-casing it when that type's print style says so: the single source of truth this
+  /// preview shares with the PDF exporter for which elements print upper-cased, so the two never
+  /// drift apart on the question.
+  static String _printed(String text, FountainLineType lineType) =>
+      FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
 
   /// Resolves [text]'s inline emphasis markers into styled [TextSpan]s deriving from [style].
   ///

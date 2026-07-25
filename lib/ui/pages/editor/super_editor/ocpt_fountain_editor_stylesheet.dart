@@ -110,31 +110,41 @@ class OcptFountainEditorStylesheet {
           FountainLineType.blank,
           metrics.action,
           layout,
-          textStyle: baseStyle,
+          textStyle: _baseTextStyle(FountainLineType.blank, baseStyle),
         ),
         _rule(
           FountainLineType.action,
           metrics.action,
           layout,
-          textStyle: baseStyle,
+          textStyle: _baseTextStyle(FountainLineType.action, baseStyle),
         ),
         _rule(
           FountainLineType.sceneHeading,
           metrics.sceneHeading,
           layout,
-          textStyle: baseStyle.copyWith(fontWeight: FontWeight.bold),
+          textStyle: _baseTextStyle(FountainLineType.sceneHeading, baseStyle),
         ),
         _rule(
           FountainLineType.character,
           metrics.character,
           layout,
-          textStyle: baseStyle.copyWith(color: accent, fontWeight: FontWeight.bold),
+          // The bold weight and accent color are a deliberate editor-only affordance calling out
+          // the cue as a live editing target, layered on top of the shared table's base style
+          // (which gives a character cue no base weight of its own — only its upper-casing, a
+          // print-time transform this editor never applies to the source text it displays);
+          // absent from both the raw preview and the PDF.
+          textStyle: _baseTextStyle(FountainLineType.character, baseStyle)
+              .copyWith(color: accent, fontWeight: FontWeight.bold),
         ),
         _rule(
           FountainLineType.parenthetical,
           metrics.parenthetical,
           layout,
-          textStyle: baseStyle.copyWith(
+          // The italic weight, dimmed color and opacity are a deliberate editor-only affordance
+          // marking a parenthetical as visually secondary to the dialogue it annotates, layered on
+          // top of the shared table's base style (plain, for this type); absent from both the raw
+          // preview and the PDF (which print it in plain roman, at full opacity).
+          textStyle: _baseTextStyle(FountainLineType.parenthetical, baseStyle).copyWith(
             color: onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
@@ -144,27 +154,27 @@ class OcptFountainEditorStylesheet {
           FountainLineType.dialogue,
           metrics.dialogue,
           layout,
-          textStyle: baseStyle,
+          textStyle: _baseTextStyle(FountainLineType.dialogue, baseStyle),
         ),
         _rule(
           FountainLineType.transition,
           metrics.transition,
           layout,
-          textStyle: baseStyle,
+          textStyle: _baseTextStyle(FountainLineType.transition, baseStyle),
           textAlign: TextAlign.right,
         ),
         _rule(
           FountainLineType.centeredText,
           metrics.centeredText,
           layout,
-          textStyle: baseStyle,
+          textStyle: _baseTextStyle(FountainLineType.centeredText, baseStyle),
           textAlign: TextAlign.center,
         ),
         _rule(
           FountainLineType.lyrics,
-          metrics.dialogue,
+          metrics.lyrics,
           layout,
-          textStyle: baseStyle.copyWith(fontStyle: FontStyle.italic),
+          textStyle: _baseTextStyle(FountainLineType.lyrics, baseStyle),
         ),
         _rule(
           FountainLineType.section,
@@ -196,6 +206,20 @@ class OcptFountainEditorStylesheet {
           opacity: _nonPrintingOpacity,
         ),
       ],
+    );
+  }
+
+  /// Applies [FountainPrintStyle.of]'s base weight/slope for [type] to [style]: the shared table
+  /// this editor, the raw preview and the PDF exporter all derive a printed element's base
+  /// typesetting from, so a rule below never hardcodes its own bold/italic decision for a type the
+  /// table already has an opinion on. Deliberately leaves [FountainPrintStyle.isUppercase] out of
+  /// it: this editor always displays a node's live source text verbatim, never the print-time
+  /// upper-cased form the other two renderers produce.
+  static TextStyle _baseTextStyle(FountainLineType type, TextStyle style) {
+    final printStyle = FountainPrintStyle.of(type);
+    return style.copyWith(
+      fontWeight: printStyle.isBold ? FontWeight.bold : null,
+      fontStyle: printStyle.isItalic ? FontStyle.italic : null,
     );
   }
 
