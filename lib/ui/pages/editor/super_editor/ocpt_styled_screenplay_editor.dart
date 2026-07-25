@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
@@ -49,6 +50,10 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// black text, even in dark theme) rather than as a fluid, theme-following editing surface.
   final bool isPageSimulationEnabled;
 
+  /// Whether every scene heading shows its scene number (explicit or computed, see
+  /// `computeOcptStyledSceneNumbers`) in its left gutter.
+  final bool areSceneNumbersVisible;
+
   /// Called with the new full source text whenever the user edits the document.
   final ValueChanged<String> onTextChanged;
 
@@ -70,6 +75,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.text,
     required this.pageSetup,
     required this.isPageSimulationEnabled,
+    required this.areSceneNumbersVisible,
     required this.onTextChanged,
     required this.onCaretLineChanged,
     required this.jumpRequest,
@@ -259,6 +265,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final metrics = widget.pageSetup.toMetrics();
+    final layout = OcptEditorPreviewLayout(metrics: metrics);
+    final onSurface = widget.isPageSimulationEnabled ? Colors.black : theme.colorScheme.onSurface;
 
     final editor = SuperEditor(
       editor: _editor,
@@ -267,6 +275,21 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       keyboardActions: ocptFountainKeyboardActions,
       imeOverrides: _imeOverrides,
       scrollController: _pageScrollController,
+      componentBuilders: widget.areSceneNumbersVisible
+          ? [
+              OcptSceneNumberGutterComponentBuilder.build(
+                sceneNumbers: computeOcptStyledSceneNumbers(_document),
+                layout: layout,
+                textStyle: TextStyle(
+                  fontFamily: OcptEditorPreviewLayout.fontFamily,
+                  fontSize: OcptEditorPreviewLayout.fontSize,
+                  height: layout.lineHeightFactor,
+                  color: onSurface,
+                ),
+              ),
+              ...defaultComponentBuilders,
+            ]
+          : null,
       // Both default policies clear the selection the moment this editor loses focus to any
       // other widget, including a momentary focus steal by the toolbar's block-type dropdown
       // opening its own overlay route: the focus loss directly clears the selection
@@ -330,7 +353,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // available to every block's `Styles.maxWidth`, silently clamping each element one inset
     // narrower on each side, so the styled editor would wrap its text a couple of columns earlier
     // than the raw preview typesets the very same line.
-    final layout = OcptEditorPreviewLayout(metrics: metrics);
     const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
     return Scrollbar(
       controller: _pageScrollController,
@@ -431,6 +453,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void _syncAfterEdit() {
     if (!mounted) {
       return;
+    }
+
+    // Run before every other pass, and in its own `execute` call: a `#N#` tag typed live still
+    // sits in the node's plain text at this point, and both this pass and `uppercaseRequests`
+    // would otherwise compute their replacement text from that same pre-strip snapshot, so
+    // whichever request executed last would silently undo the other's effect on the same node.
+    final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(_document);
+    if (sceneNumberRequests.isNotEmpty) {
+      _editor.execute(sceneNumberRequests);
     }
 
     _encodeAndReportIfChanged();

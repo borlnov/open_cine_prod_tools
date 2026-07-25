@@ -31,6 +31,17 @@ const String ocptTypeLockedMetadataKey = "ocptTypeLocked";
 /// auto-detection alone would already yield the same type (byte-stable round trips).
 const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
 
+/// The `ParagraphNode` metadata key holding a scene heading's explicit `#N#` scene number (the
+/// text between the `#` delimiters, e.g. `"4A"` for `#4A#`), or null for a heading with none.
+///
+/// Only ever set on a [FountainLineType.sceneHeading] node. [OcptWysiwygCodec.decode] strips a
+/// trailing `#N#` tag out of the heading's display text into this metadata, and
+/// [OcptWysiwygCodec.encode] re-appends it to the written line, so the tag never shows up as
+/// literal text in the styled editor while still surviving a round trip; a tag typed live is
+/// absorbed the same way by [OcptWysiwygCodec.sceneNumberRequests]. Rendering the number (styled
+/// mode only) is a separate concern, driven by `computeOcptStyledSceneNumbers`.
+const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
+
 /// The attribution marking an inline authoring note (`[[text]]`) for dimmed rendering; unlike
 /// [boldAttribution]/[italicsAttribution]/[underlineAttribution], a note's delimiters stay part of
 /// its node's plain text (see [FountainStyledRun.isNote]), so this attribution is only ever used
@@ -165,6 +176,10 @@ class OcptWysiwygCodec {
   /// normalization [encode] accepts.
   static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
 
+  /// Mirrors `FountainBlockBuilder`'s own (private) scene-number pattern, matching a trailing
+  /// `#N#` tag on a scene heading line (e.g. `#4A#` in `INT. HOUSE #4A#`), captured as group 1.
+  static final RegExp _sceneNumberPattern = RegExp(r'#([A-Za-z0-9.\-]+)#\s*$');
+
   /// Splits [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
   /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
   /// resulting [OcptWysiwygLineMapping] agree with the rest of the editor.
@@ -252,7 +267,10 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      final (displayText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
+      final (strippedText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
+      final (displayText, sceneNumber) = types[index] == FountainLineType.sceneHeading
+          ? _extractSceneNumber(strippedText)
+          : (strippedText, null);
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
@@ -262,6 +280,7 @@ class OcptWysiwygCodec {
             ocptBlankLinesBeforeMetadataKey: pendingBlanks,
             ocptTypeLockedMetadataKey: false,
             ocptHadForcingMarkerMetadataKey: hadForcingMarker,
+            ocptSceneNumberMetadataKey: sceneNumber,
           },
         ),
       );
@@ -314,7 +333,10 @@ class OcptWysiwygCodec {
     final types = [
       for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
     ];
-    final displayTextByNode = [for (final node in nodes) _inlineSerializer.write(_runsFromAttributedText(node.text))];
+    final displayTextByNode = [
+      for (var index = 0; index < nodes.length; index++)
+        _displayTextForEncode(nodes[index], types[index]),
+    ];
     final blankLinesBeforeByNode = [for (final node in nodes) _readBlankLinesBefore(node)];
 
     // Dialogue/parenthetical have no forcing marker at all (`FountainLineWriter` always emits
@@ -495,6 +517,45 @@ class OcptWysiwygCodec {
     return requests;
   }
 
+  /// Computes the requests needed to absorb a trailing `#N#` tag typed live into a scene heading
+  /// node's text: strips it from the node's text (an [OcptReplaceNodeTextRequest]) and stores the
+  /// captured number as [ocptSceneNumberMetadataKey] metadata (an [OcptChangeNodeMetadataRequest]),
+  /// so the tag never lingers as literal, visible text in the styled view.
+  ///
+  /// Only scene-heading nodes are considered. Run this pass, and execute its requests, *before*
+  /// [reclassifyRequests]/[uppercaseRequests] are even computed (see the call site in
+  /// `OcptStyledScreenplayEditor._syncAfterEdit`): otherwise a request from this pass and one from
+  /// [uppercaseRequests], both computed against the same pre-strip text, would each replace the
+  /// node's text wholesale, and whichever executes last would silently undo the other.
+  static List<EditRequest> sceneNumberRequests(Document document) {
+    final requests = <EditRequest>[];
+
+    for (final node in document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      if (type != FountainLineType.sceneHeading) {
+        continue;
+      }
+
+      final plainText = node.text.toPlainText();
+      final match = _sceneNumberPattern.firstMatch(plainText);
+      if (match == null) {
+        continue;
+      }
+
+      final strippedLength = plainText.substring(0, match.start).trimRight().length;
+      requests.add(OcptReplaceNodeTextRequest(nodeId: node.id, text: node.text.copyText(0, strippedLength)));
+      requests.add(
+        OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptSceneNumberMetadataKey: match.group(1)}),
+      );
+    }
+
+    return requests;
+  }
+
   /// The [FountainLineType]s Fountain (and Final Draft) auto-detection expects in uppercase, and
   /// whose *stored* text this app therefore uppercases as the user types, not just its display.
   static const Set<FountainLineType> _uppercasedTypes = {
@@ -640,6 +701,26 @@ class OcptWysiwygCodec {
   /// Reads a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
   static bool _readHadForcingMarker(ParagraphNode node) => node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
+  /// Reads a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
+  static String? _readSceneNumber(ParagraphNode node) {
+    final value = node.getMetadataValue(ocptSceneNumberMetadataKey);
+    return value is String ? value : null;
+  }
+
+  /// The text [encode] hands to [_lineWriter] for [node]: its inline-serialized display text,
+  /// with a scene heading's [ocptSceneNumberMetadataKey] tag re-appended when set. Never appends
+  /// to an empty base text, so an emptied heading still serializes through the empty-node rule
+  /// (a plain blank line) rather than stranding a lone `#N#` tag.
+  static String _displayTextForEncode(ParagraphNode node, FountainLineType type) {
+    final base = _inlineSerializer.write(_runsFromAttributedText(node.text));
+    if (type != FountainLineType.sceneHeading || base.isEmpty) {
+      return base;
+    }
+
+    final sceneNumber = _readSceneNumber(node);
+    return sceneNumber == null ? base : "$base #$sceneNumber#";
+  }
+
   /// Reads a node's [ocptTypeLockedMetadataKey] metadata, defaulting to false.
   static bool _readTypeLocked(ParagraphNode node) => node.getMetadataValue(ocptTypeLockedMetadataKey) == true;
 
@@ -682,6 +763,17 @@ class OcptWysiwygCodec {
       case FountainLineType.parenthetical:
         return (rawLine, false);
     }
+  }
+
+  /// Strips a trailing `#N#` scene-number tag off a scene heading's already forcing-marker-
+  /// stripped [text], returning the text without it (trailing whitespace trimmed) and the
+  /// captured number, or [text] unchanged and null when there is no tag.
+  static (String, String?) _extractSceneNumber(String text) {
+    final match = _sceneNumberPattern.firstMatch(text);
+    if (match == null) {
+      return (text, null);
+    }
+    return (text.substring(0, match.start).trimRight(), match.group(1));
   }
 
   /// Strips the `> ` / ` <` wrapping [FountainLineWriter.writeLine] always emits for

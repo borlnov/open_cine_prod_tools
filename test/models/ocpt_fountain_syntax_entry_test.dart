@@ -23,6 +23,7 @@ void main() {
       const expectedOrder = [
         // structure
         OcptFountainSyntaxTopic.sceneHeading,
+        OcptFountainSyntaxTopic.sceneNumber,
         OcptFountainSyntaxTopic.action,
         OcptFountainSyntaxTopic.character,
         OcptFountainSyntaxTopic.parenthetical,

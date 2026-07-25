@@ -810,6 +810,30 @@ void main() {
   );
 
   testWidgets(
+    'toggling scene numbers from the ⋮ menu flips it and persists the new value',
+    (tester) async {
+      await propertiesManager.styledSceneNumbersVisible.store(true);
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(
+          of: find.text(tr.editorToggleSceneNumbersAction),
+          matching: find.byType(CheckedPopupMenuItem<void>),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(await propertiesManager.styledSceneNumbersVisible.load(), isFalse);
+    },
+  );
+
+  testWidgets(
     "scrolling the styled editor with page simulation on does not move the toolbar",
     (tester) async {
       // Wide enough for the full page-simulation width (`pageWidth` reaches ~975 logical pixels

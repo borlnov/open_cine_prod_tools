@@ -29,6 +29,12 @@ bool _hadForcingMarkerAt(Document document, int index) =>
 bool _typeLockedAt(Document document, int index) =>
     document.getNodeAt(index)!.getMetadataValue(ocptTypeLockedMetadataKey) == true;
 
+/// Reads the node at [index] of [document]'s `ocptSceneNumber` metadata (null if absent).
+String? _sceneNumberAt(Document document, int index) {
+  final value = document.getNodeAt(index)!.getMetadataValue(ocptSceneNumberMetadataKey);
+  return value is String ? value : null;
+}
+
 /// Replaces the text of the node at [index] of [document] with [newText], keeping its id and every
 /// other metadata entry, the same way a real edit would change a node's text before the next
 /// reclassification/note-attribution pass.
@@ -314,6 +320,69 @@ void main() {
       expect(requests, hasLength(1));
       expect(requests.single.nodeId, decoded.document.getNodeAt(1)!.id);
       expect(requests.single.blockType, OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading));
+    });
+  });
+
+  group("OcptWysiwygCodec.decode/encode scene numbers", () {
+    test("strips a trailing #N# tag off a scene heading into metadata, hiding it from the display text", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
+
+      expect((decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "INT. HOUSE - DAY");
+      expect(_sceneNumberAt(decoded.document, 0), "4A");
+    });
+
+    test("a scene heading with no tag has no scene number metadata", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY");
+
+      expect(_sceneNumberAt(decoded.document, 0), isNull);
+    });
+
+    test("re-appends the #N# tag on encode, byte-stable across a round trip", () {
+      const source = "INT. HOUSE - DAY #4A#";
+      final decoded = OcptWysiwygCodec.decode(source);
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      expect(encoded.text, source);
+    });
+
+    test("does not append a tag to an emptied heading, keeping the empty-node rule intact", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
+      _replaceText(decoded.document, 0, "");
+
+      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      expect(encoded.text, "");
+    });
+  });
+
+  group("OcptWysiwygCodec.sceneNumberRequests", () {
+    test("strips a tag typed live into a scene heading's text and stores it as metadata", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY");
+      _replaceText(decoded.document, 0, "INT. HOUSE - DAY #4A#");
+      final nodeId = decoded.document.getNodeAt(0)!.id;
+
+      final requests = OcptWysiwygCodec.sceneNumberRequests(decoded.document);
+      expect(requests, hasLength(2));
+
+      final textRequest = requests[0] as OcptReplaceNodeTextRequest;
+      expect(textRequest.nodeId, nodeId);
+      expect(textRequest.text.toPlainText(), "INT. HOUSE - DAY");
+
+      final metadataRequest = requests[1] as OcptChangeNodeMetadataRequest;
+      expect(metadataRequest.nodeId, nodeId);
+      expect(metadataRequest.metadata[ocptSceneNumberMetadataKey], "4A");
+    });
+
+    test("returns no request for a heading with no tag typed into it", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY");
+
+      expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
+    });
+
+    test("ignores a tag typed into a non-scene-heading node", () {
+      final decoded = OcptWysiwygCodec.decode("Some action");
+      _replaceText(decoded.document, 0, "Some action #4A#");
+
+      expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
     });
   });
 

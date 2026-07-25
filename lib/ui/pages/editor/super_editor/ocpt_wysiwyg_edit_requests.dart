@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// [EditRequest] to merge [metadata] into the app-specific metadata (`ocptBlankLinesBefore`,
-/// `ocptTypeLocked`, `ocptHadForcingMarker`) of the `ParagraphNode` identified by [nodeId], without
-/// touching its `blockType` (already covered by super_editor's own
+/// `ocptTypeLocked`, `ocptHadForcingMarker`, `ocptSceneNumber`) of the `ParagraphNode` identified
+/// by [nodeId], without touching its `blockType` (already covered by super_editor's own
 /// `ChangeParagraphBlockTypeRequest`).
 ///
 /// Modeled directly on super_editor's own `ChangeParagraphBlockTypeRequest`/

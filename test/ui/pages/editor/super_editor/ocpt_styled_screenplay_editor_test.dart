@@ -80,6 +80,7 @@ Future<void> _pumpStandaloneEditor(
   Key? key,
   OcptStyledEditorController? styledController,
   bool isPageSimulationEnabled = false,
+  bool areSceneNumbersVisible = false,
 }) async {
   await tester.pumpWidget(
     _wrap(
@@ -88,6 +89,7 @@ Future<void> _pumpStandaloneEditor(
         text: text,
         pageSetup: const OcptPageSetup.standard(),
         isPageSimulationEnabled: isPageSimulationEnabled,
+        areSceneNumbersVisible: areSceneNumbersVisible,
         onTextChanged: (_) {},
         onCaretLineChanged: (_) {},
         jumpRequest: null,
@@ -123,6 +125,12 @@ FountainLineType _typeAt(Document document, int index) =>
 bool _isLockedAt(Document document, int index) =>
     _nodeAt(document, index).getMetadataValue(ocptTypeLockedMetadataKey) == true;
 
+/// The node at [index] of [document]'s `ocptSceneNumber` metadata, or null if absent.
+String? _sceneNumberAt(Document document, int index) {
+  final value = _nodeAt(document, index).getMetadataValue(ocptSceneNumberMetadataKey);
+  return value is String ? value : null;
+}
+
 /// Sends the hardware key combo for [key] with Ctrl held (Cmd has no equivalent test helper here;
 /// this app targets Linux/Windows first).
 Future<void> _sendCtrl(WidgetTester tester, LogicalKeyboardKey key) async {
@@ -155,6 +163,7 @@ void main() {
             text: text,
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -215,6 +224,7 @@ void main() {
             text: text,
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -291,6 +301,7 @@ void main() {
           text: text,
           pageSetup: const OcptPageSetup.standard(),
           isPageSimulationEnabled: false,
+          areSceneNumbersVisible: false,
           onTextChanged: (_) {},
           onCaretLineChanged: (line) => reportedLine = line,
           jumpRequest: null,
@@ -315,6 +326,7 @@ void main() {
         tester,
         "INT. HOUSE - DAY\n\nSome action text.",
         isPageSimulationEnabled: true,
+        areSceneNumbersVisible: true,
       );
 
       expect(_hasPageSheetsPainter(), isTrue);
@@ -334,6 +346,7 @@ void main() {
           tester,
           "INT. HOUSE - DAY\n\nSome action text.",
           isPageSimulationEnabled: true,
+          areSceneNumbersVisible: true,
         );
 
         expect(find.byType(Scrollbar), findsOneWidget);
@@ -362,6 +375,7 @@ void main() {
         tester,
         List.generate(80, (index) => "Action line $index.").join("\n\n"),
         isPageSimulationEnabled: true,
+        areSceneNumbersVisible: true,
       );
 
       // `CustomPaint` does not clip its painter: without an explicit `clipRect`, a scrolled-away
@@ -390,6 +404,7 @@ void main() {
           tester,
           "INT. HOUSE - DAY\n\nSome action text.\n\nSARAH\nHello there.",
           isPageSimulationEnabled: true,
+          areSceneNumbersVisible: true,
         );
 
         final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
@@ -439,6 +454,7 @@ void main() {
             text: text,
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: true,
+            areSceneNumbersVisible: true,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -455,6 +471,7 @@ void main() {
             text: text,
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
             onTextChanged: (_) {},
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -581,6 +598,7 @@ void main() {
                       text: state.text,
                       pageSetup: state.pageSetup,
                       isPageSimulationEnabled: state.isPageSimulationEnabled,
+                      areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
                       onTextChanged: (text) =>
                           context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
                       onCaretLineChanged: (line) =>
@@ -700,6 +718,7 @@ void main() {
               text: "Some action text.",
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -886,6 +905,7 @@ void main() {
               text: "",
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -931,6 +951,7 @@ void main() {
                 text: "",
                 pageSetup: const OcptPageSetup.standard(),
                 isPageSimulationEnabled: false,
+                areSceneNumbersVisible: false,
                 onTextChanged: (_) {},
                 onCaretLineChanged: (_) {},
                 jumpRequest: null,
@@ -1001,6 +1022,7 @@ void main() {
             text: "",
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1040,6 +1062,7 @@ void main() {
             text: "Base ",
             pageSetup: const OcptPageSetup.standard(),
             isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
             onTextChanged: (value) => lastEncoded = value,
             onCaretLineChanged: (_) {},
             jumpRequest: null,
@@ -1065,6 +1088,43 @@ void main() {
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyB), "Base **styled** end");
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyI), "Base *styled* end");
     expect(await encodedAfterToggling(LogicalKeyboardKey.keyU), "Base _styled_ end");
+  });
+
+  group("scene numbers", () {
+    testWidgets(
+      "typing a #N# tag at the end of a heading is absorbed into metadata, hidden from the text",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY");
+
+        final document = SuperEditorInspector.findDocument()!;
+        final node = _nodeAt(document, 0);
+        await tester.placeCaretInParagraph(node.id, node.text.toPlainText().length);
+
+        await tester.typeImeText(" #4A#");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "INT. HOUSE - DAY");
+        expect(_sceneNumberAt(document, 0), "4A");
+      },
+    );
+
+    testWidgets("the scene-number gutter renders only while areSceneNumbersVisible is true", (
+      tester,
+    ) async {
+      const text = "INT. HOUSE - DAY\n\nAction.";
+
+      await _pumpStandaloneEditor(tester, text);
+      expect(find.text("1"), findsNothing);
+
+      await _pumpStandaloneEditor(
+        tester,
+        text,
+        key: const Key("visible"),
+        areSceneNumbersVisible: true,
+      );
+      expect(find.text("1"), findsOneWidget);
+    });
   });
 
   group("copy, cut and paste keep block types", () {
@@ -1105,6 +1165,7 @@ void main() {
               text: text,
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -1171,6 +1232,7 @@ void main() {
               text: text,
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
@@ -1360,6 +1422,7 @@ void main() {
               text: "Base styled end",
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
               onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
