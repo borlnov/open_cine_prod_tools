@@ -63,6 +63,7 @@ breakdown, and a casting tracker.
 | 13    | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation)                                                                     | ✅                                   |
 | 14    | Editor statistics (page count, character count, last autosave time) — milestones M1-M4 in `docs/plans/editor-statistics.md`                                                                              | ✅                                   |
 | 15    | Editor docks & Fountain syntax guide (resizable/persisted left+right docks, right dock tabbed preview/syntax, read-only syntax guide panel) — milestones M1-M4 in `docs/plans/editor-docks-and-syntax-guide.md` | ✅                                   |
+| 16    | Issue #15 fixes: native save dialogs + "Export" PDF button, sticky character blocks, scroll bar off the page, copy/paste keeping block types, `#N#` scene numbers with a styled display option, PDF bold/italic/underline regression coverage, dark-theme raw preview reading as paper, title page editable in place in styled mode — milestones M1-M8 in `docs/plans/editor-and-export-fixes.md` (title-page follow-up fixes in `docs/plans/styled-title-page-fixes.md` and `styled-title-page-fixes-2.md`) | ✅                                   |
 
 ## Ways of working
 
@@ -120,7 +121,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   preference, `OcptPropertiesManager.pageMargins`). `OcptPageSetup.toMetrics()` is the single
   switch-over-format entry point every call site uses to get a `FountainLayoutMetrics`.
 - Theme: `ActThemesManager` with `OcptAppTheme.standard`; theme constants in
-  `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/`.
+  `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/` — one field,
+  `previewBackdrop` (light keeps `surfaceContainerLow`, dark is white), the raw-mode preview
+  panel's own backdrop painted by `OcptEditorPreview` itself so its white sheet reads as paper in
+  dark theme too, regardless of the surrounding themed docks.
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
@@ -131,18 +135,25 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   number → exact heading → relative order). `**/*.g.dart` is git-ignored (documented
   deviation); CI regenerates with build_runner.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a screenplay in and out of the app as
-  a plain `.fountain` file: the native save/open dialogs, and `OcptFountainIoService` (the service
-  it owns, RFL18) for the pure bytes/text conversion and the suggested project/file names. The
-  home page's "Import a screenplay…" action and the editor's `⋮` export / import-and-replace menu
-  both go through it; the screenplay text itself is always written through
-  `OcptScreenplayService.saveScreenplayText`, never by hand.
+  a plain `.fountain` file or a PDF: the native open dialog, and three services it owns (RFL18) —
+  `OcptFountainIoService` (bytes ↔ text, suggested file names), `OcptPdfExportService` (the PDF
+  renderer) and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`, a **direct**
+  dependency kept in sync with the version `act_file_transfer_manager` already resolves
+  transitively, for the native "save as" dialog both exports go through — no export ever writes
+  to a default location silently). The home page's "Import a screenplay…" action and the editor's
+  `⋮` export / export-to-PDF / import-and-replace menu all go through the manager; the screenplay
+  text itself is always written through `OcptScreenplayService.saveScreenplayText`, never by hand.
 - Editor: super_editor styled mode keeps **one `ParagraphNode` per non-blank Fountain source
   line**; a blank source line carries no node of its own, folded into the following node's
   `ocptBlankLinesBefore` metadata instead. Other node metadata: `blockType` (the line's
   `FountainLineType` as a `NamedAttribution`, stylesheet-only styling), `ocptTypeLocked` (a
-  manual type override — dropdown or Tab — sticky until the block's text is emptied),
+  manual type override — dropdown or Tab — sticky for the node's **whole lifetime**, including
+  while its text is empty: only a new node created by Enter/Shift+Enter starts unlocked),
   `ocptHadForcingMarker` (the source line used an explicit forcing marker, re-emitted on encode
-  even when auto-detection alone would already suffice). `OcptWysiwygCodec`
+  even when auto-detection alone would already suffice), `ocptSceneNumberMetadataKey` (a scene
+  heading's `#N#`, stripped out of the display text on decode and re-appended on encode) and
+  `ocptTitlePageKeyMetadataKey` (which of `ocptTitlePageFieldKeys` a title-page field node is, see
+  below). `OcptWysiwygCodec`
   (`lib/ui/pages/editor/super_editor/`, the only directory besides `fountain_kit` that knows
   about this format) is the Fountain ↔ document (de)serializer, built on `fountain_kit`'s
   `FountainLineClassifier`/`FountainLineWriter`/`FountainInlineParser`/`FountainInlineSerializer`.
@@ -155,6 +166,33 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   150 ms, autosave 2 s, styled reclassify 120 ms (flushed synchronously on `deactivate()` so a
   pending edit survives a mode toggle or back navigation). Ctrl+S saves, Ctrl+Shift+M toggles
   mode, both left unclaimed by the styled editor's `keyboardActions` and bubbling to the page.
+  Ctrl+C/X/V (`ocpt_fountain_clipboard_actions.dart`) replace super_editor's defaults: the
+  clipboard payload is always plain Fountain source text
+  (`OcptWysiwygCodec.encodeSelectionToFountain`/`decodeNodesFromFountain`), so block types and
+  spacing survive a copy/paste round trip inside the app while text to and from outside the app
+  still decodes through ordinary auto-detection.
+- Scene numbers: a heading's `#N#` is a first-class WYSIWYG field
+  (`ocptSceneNumberMetadataKey`), kept in sync with the display text by
+  `OcptWysiwygCodec.sceneNumberRequests` on every reclassify pass. Styled mode can additionally
+  *display* a computed number for every heading that has none of its own
+  (`ocpt_styled_scene_numbers.dart`), gated by `OcptPropertiesManager.styledSceneNumbersVisible`
+  (`⋮` menu, on by default) — display-only, it never writes into the Fountain source, and an
+  explicit `#N#` always wins over a computed number. The raw preview and the PDF are unaffected:
+  they only ever print an explicit number.
+- Title page: the styled editor renders it as an editable first sheet, not a dialog-only flow.
+  `OcptWysiwygCodec` synthesizes one `ParagraphNode` per `ocptTitlePageFieldKeys` entry (`Title`,
+  `Credit`, `Author`, `Draft date`, `Contact`, `Source`, always all six, empty ones included),
+  tagged with the `ocptTitlePageFieldAttribution` `blockType` and `ocptTitlePageKeyMetadataKey`;
+  encoding always goes through `FountainTitlePageWriter.apply`, never a hand-written `Key: value`
+  line, so a title page with no entries at all is dropped. `OcptTitlePageComponentBuilder`
+  (`ocpt_title_page_component_builder.dart`) paints the field layout (large centred title,
+  centred credit/author, bottom-left contact, bottom-right draft date) and each empty field's
+  placeholder hint, and `ocptTitlePageGuardRequestHandler`
+  (`ocpt_title_page_guard_requests.dart`) is the single place that keeps the six field nodes from
+  being merged into the body or deleted as nodes, while still allowing ordinary text editing
+  (typing, Backspace, Delete, replace) inside a field — do not reach for
+  `NodeMetadata.isDeletable`, which blocks both. `computeOcptStyledPagination` always reserves the
+  whole of page 1 for the title page when one is present, matching the PDF exporter.
 - Editor docks: `OcptEditorDock`/`OcptDockDivider` (`lib/ui/pages/editor/widgets/ocpt_editor_dock.dart`)
   give the scene panel and the right dock draggable-divider resizing with a 320 px centre floor
   (right dock yields width first); widths are fractions of the editing row, persisted through
