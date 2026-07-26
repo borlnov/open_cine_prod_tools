@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
@@ -210,59 +211,34 @@ class OcptFountainEditorStylesheet {
     );
   }
 
-  /// The vertical gap opened above the Title field, as a fraction of the simulated page's own
-  /// height, landing it in the upper-middle area the PDF exporter also centers it in.
-  static const double _titlePageTitleTopFraction = 0.32;
-
-  /// The vertical gap opened above the Draft date/Contact/Source group, as a fraction of the
-  /// simulated page's own height (see [_titlePageFieldRule]'s own doc comment for why that group
-  /// renders stacked here, rather than in the PDF's side-by-side row).
-  static const double _titlePageBottomGroupTopFraction = 0.22;
-
   /// Builds the `StyleRule` every title-page field node shares (see
   /// `OcptWysiwygCodec.ocptTitlePageFieldAttribution`): unlike every other rule in this class,
   /// which selects one [FountainLineType] each, this single selector covers all six title-page
-  /// fields and switches on each node's own `OcptWysiwygCodec.ocptTitlePageKeyMetadataKey`
-  /// metadata to decide its alignment and vertical position — a title-page field is never
-  /// classified, forced or paginated the way a Fountain line is, so it has no `FountainElementLayout`
-  /// of its own to key a per-type rule off, the way [_rule] does.
+  /// fields and reads each node's own `OcptWysiwygCodec.ocptTitlePageKeyMetadataKey` metadata
+  /// through [ocptTitlePageFieldLayoutOf] to decide its alignment and vertical position — a
+  /// title-page field is never classified, forced or paginated the way a Fountain line is, so it
+  /// has no `FountainElementLayout` of its own to key a per-type rule off, the way [_rule] does.
   ///
-  /// Position mirrors the PDF exporter's title page (title/credit/authors centered in the
-  /// upper-middle area; draft date right-aligned; contact/source left-aligned) with one
-  /// deliberate adaptation: the PDF pins contact at the bottom-left and draft date at the
-  /// bottom-right of the *same* row, which has no equivalent in this editor's single-column,
-  /// top-to-bottom document flow. Here the three are stacked instead — draft date, then contact,
-  /// then source — each keeping its PDF alignment, separated from the title/credit/author block by
-  /// a generous top gap standing in for the PDF's own bottom-anchoring.
-  static StyleRule _titlePageFieldRule(OcptEditorPreviewLayout layout, TextStyle baseStyle) {
-    final contentLeft = layout.marginLeft;
-    final contentWidth = layout.pageWidth - layout.marginLeft - layout.marginRight;
+  /// The per-field numbers (top gaps, alignment, font scale/weight) live in
+  /// [ocptTitlePageFieldLayoutOf] itself, not here: `computeOcptStyledTitlePageMetrics` needs the
+  /// exact same geometry to estimate the title page's rendered height for pagination, so this rule
+  /// and that estimate share one definition rather than two that could drift apart.
+  static StyleRule _titlePageFieldRule(OcptEditorPreviewLayout layout, TextStyle baseStyle) =>
+      StyleRule(const BlockSelector("fountainTitlePageField"), (document, node) {
+        final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey) as String? ?? "";
+        final fieldLayout = ocptTitlePageFieldLayoutOf(key, layout);
 
-    return StyleRule(const BlockSelector("fountainTitlePageField"), (document, node) {
-      final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
-      final (top, textAlign, textStyle) = switch (key) {
-        "Title" => (
-          layout.pageHeight * _titlePageTitleTopFraction,
-          TextAlign.center,
-          baseStyle.copyWith(fontSize: OcptEditorPreviewLayout.fontSize * 1.6, fontWeight: FontWeight.bold),
-        ),
-        "Credit" => (layout.lineHeight * 2, TextAlign.center, baseStyle),
-        "Author" => (layout.lineHeight, TextAlign.center, baseStyle),
-        "Draft date" => (layout.pageHeight * _titlePageBottomGroupTopFraction, TextAlign.right, baseStyle),
-        "Contact" => (layout.lineHeight, TextAlign.left, baseStyle),
-        "Source" => (layout.lineHeight, TextAlign.left, baseStyle),
-        _ => (0.0, TextAlign.left, baseStyle),
-      };
-
-      return {
-        Styles.padding: CascadingPadding.only(left: contentLeft, top: top),
-        Styles.maxWidth: contentLeft + contentWidth,
-        Styles.textAlign: textAlign,
-        Styles.textStyle: textStyle,
-        Styles.opacity: 1.0,
-      };
-    });
-  }
+        return {
+          Styles.padding: CascadingPadding.only(left: fieldLayout.left, top: fieldLayout.topGap),
+          Styles.maxWidth: fieldLayout.maxWidth,
+          Styles.textAlign: fieldLayout.textAlign,
+          Styles.textStyle: baseStyle.copyWith(
+            fontSize: OcptEditorPreviewLayout.fontSize * fieldLayout.fontScale,
+            fontWeight: fieldLayout.fontWeight,
+          ),
+          Styles.opacity: 1.0,
+        };
+      });
 
   /// Applies [FountainPrintStyle.of]'s base weight/slope for [type] to [style]: the shared table
   /// this editor, the raw preview and the PDF exporter all derive a printed element's base
