@@ -8,7 +8,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
 /// [charOffset].
@@ -217,8 +217,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       isScenePanelVisible = true,
       rightDockTab = OcptEditorRightDockTab.preview,
       autoClosedRightDockTab = null,
-      leftDockFraction = OcptEditorDock.leftDefaultFraction,
-      rightDockFraction = OcptEditorDock.rightDefaultFraction,
+      leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
+      rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       mode = OcptEditorMode.styled,
       pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,

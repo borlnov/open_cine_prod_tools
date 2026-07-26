@@ -4,13 +4,13 @@
 
 import 'package:flutter/material.dart';
 
-/// A side dock of the editor: a panel shown at a resolved pixel [width], with the
+/// A side dock of the workspace shell: a panel shown at a resolved pixel [width], with the
 /// `surfaceContainerLow` background every dock uses.
 ///
 /// This widget only renders the background and sizing; the fraction-to-pixel resolution (with
 /// its minimums, maximums and centre floor) lives in [resolveDockWidths], a pure function so it
 /// can be unit-tested without pumping a widget.
-class OcptEditorDock extends StatelessWidget {
+class OcptWorkspaceDock extends StatelessWidget {
   /// The minimum width, in pixels, the left (scenes) dock can be resized down to.
   static const double leftMinWidth = 180;
 
@@ -31,13 +31,13 @@ class OcptEditorDock extends StatelessWidget {
   /// width.
   static const double rightMaxFraction = 0.65;
 
-  /// The minimum width, in pixels, the centre editing area is always guaranteed: when the row is
+  /// The minimum width, in pixels, the centre area is always guaranteed: when the row is
   /// too narrow to honour both docks' current widths plus this floor, the right dock gives up
   /// width first, then the left one (see [resolveDockWidths]).
   static const double centreMinWidth = 320;
 
-  /// The width of a divider's hit area (see `OcptDockDivider`), reserved out of the row's width
-  /// before splitting the rest between the docks and the centre floor.
+  /// The width of a divider's hit area (see [OcptWorkspaceDockDivider]), reserved out of the row's
+  /// width before splitting the rest between the docks and the centre floor.
   static const double dividerHitWidth = 8;
 
   /// The resolved pixel width this dock is given.
@@ -47,7 +47,7 @@ class OcptEditorDock extends StatelessWidget {
   final Widget child;
 
   /// Class constructor
-  const OcptEditorDock({super.key, required this.width, required this.child});
+  const OcptWorkspaceDock({super.key, required this.width, required this.child});
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -134,15 +134,15 @@ class OcptEditorDock extends StatelessWidget {
   }
 }
 
-/// The draggable divider separating a dock from the centre editing area: an 8 px hit area
-/// ([OcptEditorDock.dividerHitWidth]) drawn as a centred 1 px `outlineVariant` line, tinted
+/// The draggable divider separating a dock from the centre area: an 8 px hit area
+/// ([OcptWorkspaceDock.dividerHitWidth]) drawn as a centred 1 px `outlineVariant` line, tinted
 /// `primary` while hovered or dragged, with a resize cursor on hover.
 ///
 /// Reports raw horizontal drag deltas in pixels through [onDragUpdate]; converting them to a
 /// fraction (and picking their sign for the dock being resized) is the caller's job, since only
 /// the caller knows the current row width and which side the dock it resizes is on.
 /// [onDragEnd] fires once the drag gesture ends, for the caller to persist the final fraction.
-class OcptDockDivider extends StatefulWidget {
+class OcptWorkspaceDockDivider extends StatefulWidget {
   /// Called with the horizontal drag delta, in pixels, on every drag update.
   final ValueChanged<double> onDragUpdate;
 
@@ -150,14 +150,14 @@ class OcptDockDivider extends StatefulWidget {
   final VoidCallback onDragEnd;
 
   /// Class constructor
-  const OcptDockDivider({super.key, required this.onDragUpdate, required this.onDragEnd});
+  const OcptWorkspaceDockDivider({super.key, required this.onDragUpdate, required this.onDragEnd});
 
   @override
-  State<OcptDockDivider> createState() => _OcptDockDividerState();
+  State<OcptWorkspaceDockDivider> createState() => _OcptWorkspaceDockDividerState();
 }
 
-/// The state of [OcptDockDivider]: tracks hover and drag to tint the divider line.
-class _OcptDockDividerState extends State<OcptDockDivider> {
+/// The state of [OcptWorkspaceDockDivider]: tracks hover and drag to tint the divider line.
+class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
   /// Whether the pointer is currently hovering the divider.
   bool _isHovered = false;
 
@@ -182,7 +182,7 @@ class _OcptDockDividerState extends State<OcptDockDivider> {
           widget.onDragEnd();
         },
         child: SizedBox(
-          width: OcptEditorDock.dividerHitWidth,
+          width: OcptWorkspaceDock.dividerHitWidth,
           child: Center(
             child: Container(
               width: 1,

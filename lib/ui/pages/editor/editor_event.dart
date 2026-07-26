@@ -141,8 +141,8 @@ class OcptEditorRightDockClosedEvent extends OcptEditorEvent {
 /// given.
 ///
 /// Dispatched once per drag gesture, on `onHorizontalDragEnd`, never per frame: the live drag
-/// itself only moves `OcptEditorDockLayoutController`'s in-memory fractions, which is what keeps a
-/// drag from emitting a bloc state (and rebuilding the editing subtrees) on every frame.
+/// itself only moves `OcptWorkspaceDockLayoutController`'s in-memory fractions, which is what
+/// keeps a drag from emitting a bloc state (and rebuilding the editing subtrees) on every frame.
 class OcptEditorDockFractionsChangedEvent extends OcptEditorEvent {
   /// The new left (scenes) dock fraction, or null to leave it unchanged.
   final double? left;

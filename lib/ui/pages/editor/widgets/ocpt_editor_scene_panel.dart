@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 /// scene containing the editor caret is highlighted. Clicking an entry asks the editor to move
 /// its caret to that scene's start (via [onSceneSelected]).
 ///
-/// Width-agnostic: it fills whatever width its parent gives it (an `OcptEditorDock` in practice),
-/// and no longer owns its own background.
+/// Width-agnostic: it fills whatever width its parent gives it (an `OcptWorkspaceDock` in
+/// practice), and no longer owns its own background.
 class OcptEditorScenePanel extends StatelessWidget {
   /// The scene headings to list, in source order.
   final List<FountainSceneHeading> scenes;

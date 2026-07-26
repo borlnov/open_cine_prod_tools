@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
 /// This is the bloc class for the editor page.
 ///
@@ -160,9 +160,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final areStyledSceneNumbersVisible =
         await _propertiesManager.styledSceneNumbersVisible.load() ?? true;
     final leftDockFraction =
-        await _propertiesManager.editorLeftDockFraction.load() ?? OcptEditorDock.leftDefaultFraction;
+        await _propertiesManager.editorLeftDockFraction.load() ?? OcptWorkspaceDock.leftDefaultFraction;
     final rightDockFraction =
-        await _propertiesManager.editorRightDockFraction.load() ?? OcptEditorDock.rightDefaultFraction;
+        await _propertiesManager.editorRightDockFraction.load() ?? OcptWorkspaceDock.rightDefaultFraction;
 
     // Applies the same raw/styled right-dock transition the mode toggle itself applies (see
     // `_rightDockTransitionFor`), now that the persisted mode is known: e.g. an editor that was
@@ -490,12 +490,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   ) async {
     emitter(
       state.copyWith(
-        leftDockFraction: OcptEditorDock.leftDefaultFraction,
-        rightDockFraction: OcptEditorDock.rightDefaultFraction,
+        leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
+        rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
-    await _propertiesManager.editorLeftDockFraction.store(OcptEditorDock.leftDefaultFraction);
-    await _propertiesManager.editorRightDockFraction.store(OcptEditorDock.rightDefaultFraction);
+    await _propertiesManager.editorLeftDockFraction.store(OcptWorkspaceDock.leftDefaultFraction);
+    await _propertiesManager.editorRightDockFraction.store(OcptWorkspaceDock.rightDefaultFraction);
   }
 
   /// Toggles the editing mode between styled and raw, persists the new mode, and applies the

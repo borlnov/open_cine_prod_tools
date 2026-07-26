@@ -68,14 +68,14 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// editing row width.
   ///
   /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptEditorDock.leftDefaultFraction`, applied at the call site.
+  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
   final editorLeftDockFraction = SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION");
 
   /// This is the key used to store the right (preview / syntax) dock's width, as a fraction of
   /// the editor's editing row width.
   ///
   /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptEditorDock.rightDefaultFraction`, applied at the call site.
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION");
 
   /// This is the key used to stringify or parse the [FountainPageMargins.leftInches] from/to the

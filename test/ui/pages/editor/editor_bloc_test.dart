@@ -27,7 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -707,8 +707,8 @@ void main() {
     final bloc = buildBloc();
     final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.leftDockFraction, OcptEditorDock.leftDefaultFraction);
-    expect(state.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+    expect(state.leftDockFraction, OcptWorkspaceDock.leftDefaultFraction);
+    expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
 
     await bloc.close();
   });
@@ -735,7 +735,7 @@ void main() {
 
     bloc.add(const OcptEditorDockFractionsChangedEvent(left: 0.3));
     final leftState = await waitForState(bloc, (state) => state.leftDockFraction == 0.3);
-    expect(leftState.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+    expect(leftState.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
     expect(await propertiesManager.editorLeftDockFraction.load(), 0.3);
     expect(await propertiesManager.editorRightDockFraction.load(), isNull);
 
@@ -757,12 +757,12 @@ void main() {
     bloc.add(const OcptEditorDockLayoutResetEvent());
     final state = await waitForState(
       bloc,
-      (state) => state.leftDockFraction == OcptEditorDock.leftDefaultFraction,
+      (state) => state.leftDockFraction == OcptWorkspaceDock.leftDefaultFraction,
     );
 
-    expect(state.rightDockFraction, OcptEditorDock.rightDefaultFraction);
-    expect(await propertiesManager.editorLeftDockFraction.load(), OcptEditorDock.leftDefaultFraction);
-    expect(await propertiesManager.editorRightDockFraction.load(), OcptEditorDock.rightDefaultFraction);
+    expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
+    expect(await propertiesManager.editorLeftDockFraction.load(), OcptWorkspaceDock.leftDefaultFraction);
+    expect(await propertiesManager.editorRightDockFraction.load(), OcptWorkspaceDock.rightDefaultFraction);
 
     await bloc.close();
   });

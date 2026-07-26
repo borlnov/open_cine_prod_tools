@@ -27,15 +27,15 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -158,7 +158,7 @@ void main() {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(OcptEditorToolbar), findsOneWidget);
+    expect(find.byType(OcptWorkspaceToolbar), findsOneWidget);
     expect(find.text("My Movie"), findsOneWidget);
 
     final textField = tester.widget<TextField>(
@@ -176,7 +176,7 @@ void main() {
     // The status bar reflects the sample's two scenes and one speaking character (SARAH), once
     // the parse and statistics debounces have both cleared.
     final tr = Tr.of(tester.element(find.byType(EditorPage)));
-    expect(find.byType(OcptEditorStatusBar), findsOneWidget);
+    expect(find.byType(OcptWorkspaceStatusBar), findsOneWidget);
     expect(find.textContaining(tr.editorStatsScenes(2)), findsOneWidget);
     expect(find.textContaining(tr.editorStatsCharacters(1)), findsOneWidget);
   });
@@ -387,21 +387,21 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
       await tester.pumpAndSettle();
 
-      final dockFinder = find.byType(OcptEditorDock).first;
+      final dockFinder = find.byType(OcptWorkspaceDock).first;
       final widthBefore = tester.getSize(dockFinder).width;
 
-      final blocContext = tester.element(find.byType(OcptEditorToolbar));
+      final blocContext = tester.element(find.byType(OcptWorkspaceToolbar));
       final bloc = blocContext.read<OcptEditorBloc>();
       final fractionBefore = bloc.state.leftDockFraction;
 
       final gesture = await tester.startGesture(
-        tester.getCenter(find.byType(OcptDockDivider).first),
+        tester.getCenter(find.byType(OcptWorkspaceDockDivider).first),
       );
       await gesture.moveBy(const Offset(40, 0));
       await tester.pump();
 
       // Mid-drag: the panel already grew, but the bloc's own state (and the persisted value)
-      // haven't moved yet — only the live `OcptEditorDockLayoutController` did.
+      // haven't moved yet — only the live `OcptWorkspaceDockLayoutController` did.
       final widthDuringDrag = tester.getSize(dockFinder).width;
       expect(widthDuringDrag, greaterThan(widthBefore));
       expect(bloc.state.leftDockFraction, fractionBefore);
@@ -429,11 +429,11 @@ void main() {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
 
-    final dockFinder = find.byType(OcptEditorDock).last;
+    final dockFinder = find.byType(OcptWorkspaceDock).last;
     final widthBefore = tester.getSize(dockFinder).width;
 
     final gesture = await tester.startGesture(
-      tester.getCenter(find.byType(OcptDockDivider).last),
+      tester.getCenter(find.byType(OcptWorkspaceDockDivider).last),
     );
     await gesture.moveBy(const Offset(-40, 0));
     await gesture.up();
@@ -461,11 +461,11 @@ void main() {
 
     expect(
       await propertiesManager.editorLeftDockFraction.load(),
-      OcptEditorDock.leftDefaultFraction,
+      OcptWorkspaceDock.leftDefaultFraction,
     );
     expect(
       await propertiesManager.editorRightDockFraction.load(),
-      OcptEditorDock.rightDefaultFraction,
+      OcptWorkspaceDock.rightDefaultFraction,
     );
   });
 
@@ -889,7 +889,7 @@ void main() {
       final scrollableState = tester.state<ScrollableState>(find.byType(Scrollable));
       expect(scrollableState.position.pixels, 0);
 
-      final toolbarTopBefore = tester.getTopLeft(find.byType(OcptEditorToolbar));
+      final toolbarTopBefore = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
       final editorCenter = tester.getCenter(find.byType(SuperEditor));
 
       final testPointer = TestPointer(1, PointerDeviceKind.mouse);
@@ -902,7 +902,7 @@ void main() {
       // below would be vacuously true).
       expect(scrollableState.position.pixels, greaterThan(0));
 
-      final toolbarTopAfter = tester.getTopLeft(find.byType(OcptEditorToolbar));
+      final toolbarTopAfter = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
       expect(toolbarTopAfter, toolbarTopBefore, reason: "toolbar must not move when the editor scrolls");
     },
   );

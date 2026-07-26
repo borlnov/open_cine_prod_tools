@@ -4,26 +4,28 @@
 
 import 'package:flutter/foundation.dart';
 
-/// The live, per-frame source of truth for the two dock fractions while the editor page is
-/// mounted, owned by `_EditorViewState` exactly like `OcptStyledEditorController`.
+/// The live, per-frame source of truth for the two dock fractions while a mode's view is mounted,
+/// owned by that view's state exactly like `OcptStyledEditorController` is owned by
+/// `_EditorViewState`.
 ///
 /// This exists for a performance reason that must not be undone: dragging a divider must not emit
-/// a bloc state per frame, or every frame would rebuild the styled editor and the preview. Instead
-/// [setLeftFraction]/[setRightFraction] update these live values and notify listeners on every
-/// drag update; the page only dispatches a single bloc event once the drag ends, which is what
-/// actually persists the final value. [syncFromPersisted] pushes the bloc's own persisted values
-/// back onto this controller whenever they change for a reason other than a drag this controller
-/// itself just committed (the initial load, or "Reset panel layout"), following a no-op-if-equal
-/// guard so a drag's own committed value doesn't bounce back and forth with the bloc.
-class OcptEditorDockLayoutController extends ChangeNotifier {
-  /// The live left (scenes) dock fraction.
+/// a bloc state per frame, or every frame would rebuild the mode's own centre content (e.g. the
+/// styled editor and the preview). Instead [setLeftFraction]/[setRightFraction] update these live
+/// values and notify listeners on every drag update; the page only dispatches a single bloc event
+/// once the drag ends, which is what actually persists the final value. [syncFromPersisted] pushes
+/// the bloc's own persisted values back onto this controller whenever they change for a reason
+/// other than a drag this controller itself just committed (the initial load, or "Reset panel
+/// layout"), following a no-op-if-equal guard so a drag's own committed value doesn't bounce back
+/// and forth with the bloc.
+class OcptWorkspaceDockLayoutController extends ChangeNotifier {
+  /// The live left dock fraction.
   double _leftFraction;
 
-  /// The live right (preview / syntax) dock fraction.
+  /// The live right dock fraction.
   double _rightFraction;
 
   /// Class constructor
-  OcptEditorDockLayoutController({required double leftFraction, required double rightFraction})
+  OcptWorkspaceDockLayoutController({required double leftFraction, required double rightFraction})
     : _leftFraction = leftFraction,
       _rightFraction = rightFraction;
 

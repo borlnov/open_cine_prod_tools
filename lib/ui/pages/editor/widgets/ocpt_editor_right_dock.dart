@@ -12,10 +12,11 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_
 /// `onSurfaceVariant`), a trailing × close button, and the active tab's body below.
 ///
 /// The row is purely informational, not itself clickable: switching tabs is done through the
-/// toolbar's own preview/syntax buttons (`OcptEditorToolbar`), which decision 3 of the design
-/// calls the tab selectors. Only the × here acts on the dock, via [onClose]. In styled mode the
-/// preview tab doesn't exist at all (its own layout already is the formatted screenplay), so the
-/// row only ever shows the syntax tab then — it still renders, it just offers no choice.
+/// workspace toolbar's own preview/syntax buttons (`EditorPage`'s own toolbar actions), which
+/// decision 3 of the design calls the tab selectors. Only the × here acts on the dock, via
+/// [onClose]. In styled mode the preview tab doesn't exist at all (its own layout already is the
+/// formatted screenplay), so the row only ever shows the syntax tab then — it still renders, it
+/// just offers no choice.
 class OcptEditorRightDock extends StatelessWidget {
   /// The currently active tab, whose body is shown below the tab row.
   final OcptEditorRightDockTab activeTab;
@@ -51,8 +52,9 @@ class OcptEditorRightDock extends StatelessWidget {
         Row(
           children: [
             // The tab cluster scrolls horizontally rather than overflowing: the dock can be
-            // resized (and squeezed by the centre floor, see `OcptEditorDock.resolveDockWidths`)
-            // down to widths narrower than both tab labels plus the close button combined.
+            // resized (and squeezed by the centre floor, see
+            // `OcptWorkspaceDock.resolveDockWidths`) down to widths narrower than both tab labels
+            // plus the close button combined.
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
