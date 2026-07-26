@@ -8,17 +8,29 @@ import 'package:flutter/material.dart';
 /// This class is used to define the specific colors of the app that are not defined in the color
 /// scheme.
 ///
-/// The app doesn't need any color outside of the standard Material 3 [ColorScheme] yet, so this
-/// class is intentionally empty.
+/// [previewBackdrop] is the only field: the raw-mode preview panel must always read as white paper,
+/// in both themes, which the shared dock background it would otherwise inherit (also used by the
+/// scene panel and the syntax guide, which do stay themed) cannot express.
 class OcptSpecificColors extends AbsAppSpecificColors<OcptSpecificColors> {
+  /// The raw-mode preview panel's own backdrop, painted by `OcptEditorPreview` itself.
+  final Color previewBackdrop;
+
   /// Class constructor
-  const OcptSpecificColors();
+  const OcptSpecificColors({required this.previewBackdrop});
 
   /// Implement the copyWith method required by [ThemeExtension]
   @override
-  ThemeExtension<OcptSpecificColors> copyWith() => const OcptSpecificColors();
+  ThemeExtension<OcptSpecificColors> copyWith({Color? previewBackdrop}) =>
+      OcptSpecificColors(previewBackdrop: previewBackdrop ?? this.previewBackdrop);
 
   /// Implement the lerp method required by [ThemeExtension]
   @override
-  ThemeExtension<OcptSpecificColors> lerp(OcptSpecificColors? other, double t) => this;
+  ThemeExtension<OcptSpecificColors> lerp(OcptSpecificColors? other, double t) {
+    if (other is! OcptSpecificColors) {
+      return this;
+    }
+    return OcptSpecificColors(
+      previewBackdrop: Color.lerp(previewBackdrop, other.previewBackdrop, t) ?? previewBackdrop,
+    );
+  }
 }

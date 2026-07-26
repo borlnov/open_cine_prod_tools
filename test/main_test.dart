@@ -6,6 +6,7 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -17,8 +18,11 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests.
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and
+/// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the raw-mode
+/// preview's backdrop) resolve one, just like the real app always does.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
+  theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

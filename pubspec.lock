@@ -709,7 +709,7 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_test_robots:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: flutter_test_robots
       sha256: "3b00f2081148bde55190997c2772f934ad2f4529cbcfc4ccfa593f8ddc117a28"

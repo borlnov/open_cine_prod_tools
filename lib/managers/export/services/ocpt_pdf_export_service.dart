@@ -343,6 +343,7 @@ class OcptPdfExportService {
 
       if (line.runs.isNotEmpty) {
         final elementLayout = _elementLayoutFor(line.lineType, metrics);
+        final blockStyle = FountainPrintStyle.of(line.lineType);
         children.add(
           pw.Positioned(
             left: line.leftIndentInches * _pointsPerInch,
@@ -351,7 +352,7 @@ class OcptPdfExportService {
               width: elementLayout.maxWidthInches * _pointsPerInch,
               child: pw.RichText(
                 textAlign: _textAlignFor(line.alignment),
-                text: pw.TextSpan(children: _spansFor(line.runs, fonts)),
+                text: pw.TextSpan(children: _spansFor(line.runs, blockStyle, fonts)),
               ),
             ),
           ),
@@ -398,14 +399,21 @@ class OcptPdfExportService {
   }
 
   /// Turns [runs] into the [pw.TextSpan]s of one [FountainScriptLine], each
-  /// carrying the Courier Prime variant matching its bold/italic flags and
-  /// an underline decoration when [FountainStyledRun.isUnderline] is set.
+  /// carrying the Courier Prime variant matching [blockStyle]'s bold/italic
+  /// composed with the run's own bold/italic flags, and an underline
+  /// decoration when [FountainStyledRun.isUnderline] is set.
+  ///
+  /// [blockStyle] and a run's flags compose with a boolean OR on each axis,
+  /// never a replacement: a `**bold**` word inside an italic
+  /// [FountainLineType.lyrics] line resolves to bold-italic, and an
+  /// `*italic*` word inside a bold [FountainLineType.sceneHeading] likewise.
   ///
   /// A note run ([FountainStyledRun.isNote]) is dropped rather than
   /// rendered: `[[...]]` notes are an authoring aid meant for the editor,
   /// not screenplay content that belongs in a printed/exported page.
   List<pw.TextSpan> _spansFor(
     List<FountainStyledRun> runs,
+    FountainPrintStyle blockStyle,
     _CourierPrimeFonts fonts,
   ) => [
     for (final run in runs)
@@ -413,7 +421,10 @@ class OcptPdfExportService {
         pw.TextSpan(
           text: run.text,
           style: pw.TextStyle(
-            font: fonts.variant(bold: run.isBold, italic: run.isItalic),
+            font: fonts.variant(
+              bold: blockStyle.isBold || run.isBold,
+              italic: blockStyle.isItalic || run.isItalic,
+            ),
             fontSize: _bodyFontSizePt,
             decoration: run.isUnderline
                 ? pw.TextDecoration.underline

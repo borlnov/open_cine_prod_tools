@@ -62,6 +62,7 @@ void main() {
 
     final titles = [
       tr.editorBlockTypeSceneHeading,
+      tr.editorSyntaxGuideSceneNumberTitle,
       tr.editorBlockTypeAction,
       tr.editorBlockTypeCharacter,
       tr.editorBlockTypeParenthetical,
@@ -85,6 +86,7 @@ void main() {
 
     final descriptions = [
       tr.editorSyntaxGuideSceneHeadingDescription,
+      tr.editorSyntaxGuideSceneNumberDescription,
       tr.editorSyntaxGuideActionDescription,
       tr.editorSyntaxGuideCharacterDescription,
       tr.editorSyntaxGuideParentheticalDescription,

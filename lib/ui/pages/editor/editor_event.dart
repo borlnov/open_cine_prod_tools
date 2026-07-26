@@ -182,6 +182,15 @@ class OcptEditorPageSimulationToggledEvent extends OcptEditorEvent {
   const OcptEditorPageSimulationToggledEvent();
 }
 
+/// Toggles whether the styled editor shows every scene heading's number in its left gutter.
+///
+/// The new value is persisted through `OcptPropertiesManager.styledSceneNumbersVisible`, so it's
+/// restored the next time the editor is opened.
+class OcptEditorStyledSceneNumbersToggledEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorStyledSceneNumbersToggledEvent();
+}
+
 /// Requests updating the editor's page setup (page size and margins).
 ///
 /// [pageSetup] is persisted (format per-project, margins app-wide) and applied live to the

@@ -659,6 +659,47 @@ void main() {
     await bloc.close();
   });
 
+  test('defaults to styled scene numbers visible when nothing was ever persisted', () async {
+    await propertiesManager.styledSceneNumbersVisible.delete();
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.areStyledSceneNumbersVisible, isTrue);
+
+    await bloc.close();
+  });
+
+  test('loads the persisted styled scene numbers flag on entry', () async {
+    await propertiesManager.styledSceneNumbersVisible.store(false);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.areStyledSceneNumbersVisible, isFalse);
+
+    await bloc.close();
+  });
+
+  test('toggling styled scene numbers flips it and persists the new value', () async {
+    await propertiesManager.styledSceneNumbersVisible.store(true);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorStyledSceneNumbersToggledEvent());
+    final disabledState = await waitForState(bloc, (state) => !state.areStyledSceneNumbersVisible);
+    expect(disabledState.areStyledSceneNumbersVisible, isFalse);
+    expect(await propertiesManager.styledSceneNumbersVisible.load(), isFalse);
+
+    bloc.add(const OcptEditorStyledSceneNumbersToggledEvent());
+    final enabledState = await waitForState(bloc, (state) => state.areStyledSceneNumbersVisible);
+    expect(enabledState.areStyledSceneNumbersVisible, isTrue);
+    expect(await propertiesManager.styledSceneNumbersVisible.load(), isTrue);
+
+    await bloc.close();
+  });
+
   test('defaults to the dock fractions defaults when nothing was ever persisted', () async {
     await propertiesManager.editorLeftDockFraction.delete();
     await propertiesManager.editorRightDockFraction.delete();

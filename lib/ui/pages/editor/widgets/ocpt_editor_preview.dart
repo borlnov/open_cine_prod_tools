@@ -8,22 +8,28 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
 /// The formatted preview: a simulated paper page (white paper, black Courier text, even in dark
 /// theme) rendering the parsed screenplay with its true print layout.
 ///
+/// The panel's own backdrop is painted white in both themes too (see [OcptSpecificColors
+/// .previewBackdrop]), so the whole preview reads as paper, not just the sheet: in dark theme a
+/// themed backdrop behind forced-black text would otherwise be unreadable. Light theme keeps
+/// today's `surfaceContainerLow` value, so it stays byte-identical.
+///
 /// When [isPageSimulationEnabled] is off, the page is a single continuous sheet (no on-screen
 /// pagination). When it's on, the screenplay is split into distinct paper sheets, one per printed
-/// page (real page height, a themed gap between sheets, forced by a [FountainPageBreak] or by
-/// running out of [FountainLayoutMetrics.linesPerPage]). Either way, the sheet's width is the
-/// physical page width at the current [pageSetup]'s metrics; it's centered in the panel. When the
-/// panel is too narrow for the full page, the whole page is scaled down to fit instead of being
-/// cropped by a horizontal scroll (which would otherwise leave the right margin permanently out of
-/// view): the left AND right margins always stay visible, at the wide panel's own scale or smaller.
-/// The block list is lazy (RFL38) and the whole preview sits behind a [RepaintBoundary] (RFL37) so
-/// typing in the source editor doesn't repaint it needlessly.
+/// page (real page height, a gap between sheets, forced by a [FountainPageBreak] or by running out
+/// of [FountainLayoutMetrics.linesPerPage]). Either way, the sheet's width is the physical page
+/// width at the current [pageSetup]'s metrics; it's centered in the panel. When the panel is too
+/// narrow for the full page, the whole page is scaled down to fit instead of being cropped by a
+/// horizontal scroll (which would otherwise leave the right margin permanently out of view): the
+/// left AND right margins always stay visible, at the wide panel's own scale or smaller. The block
+/// list is lazy (RFL38) and the whole preview sits behind a [RepaintBoundary] (RFL37) so typing in
+/// the source editor doesn't repaint it needlessly.
 ///
 /// When the editor caret changes line, the preview scrolls so the block containing that line is
 /// visible. Because the list is lazy, an unbuilt block has no render object to `ensureVisible`,
@@ -110,62 +116,73 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     final layout = OcptEditorPreviewLayout(metrics: _metrics);
     _refreshCaches(layout);
 
+    // Painted by this widget itself, not by `OcptEditorDock` (whose color is shared with the scene
+    // panel and the syntax-guide tab, which stay themed): the preview panel must always read as
+    // white paper, in both themes.
+    final backdropColor = Theme.of(context).extension<OcptSpecificColors>()!.previewBackdrop;
+
     if (_blocks.isEmpty) {
-      return RepaintBoundary(
-        child: Center(
-          child: Text(
-            Tr.of(context).editorPreviewEmptyHint,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+      return ColoredBox(
+        color: backdropColor,
+        child: RepaintBoundary(
+          child: Center(
+            child: Text(
+              Tr.of(context).editorPreviewEmptyHint,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
         ),
       );
     }
 
-    return RepaintBoundary(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final unscaledWidth = layout.pageWidth + _pagePadding * 2;
-          if (constraints.maxWidth >= unscaledWidth) {
-            return SizedBox(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight,
-              child: Center(
-                child: SizedBox(width: layout.pageWidth, child: _content(layout)),
+    return ColoredBox(
+      color: backdropColor,
+      child: RepaintBoundary(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final unscaledWidth = layout.pageWidth + _pagePadding * 2;
+            if (constraints.maxWidth >= unscaledWidth) {
+              return SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: Center(
+                  child: SizedBox(width: layout.pageWidth, child: _content(layout)),
+                ),
+              );
+            }
+
+            // The panel is narrower than the full page: scale the whole page down to fit it, rather
+            // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale` so
+            // the scaled-down viewport exactly fills the panel: `_scrollController`'s viewport/target
+            // math, entirely computed in this unscaled space (see `_syncScrollToCurrentLine`), stays
+            // valid without any adjustment.
+            //
+            // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide `SizedBox`:
+            // this whole subtree already sits under a *tight* incoming width constraint (an
+            // `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight constraint —
+            // it silently clamps back down to `constraints.maxWidth`, one level too late for
+            // `Transform.scale` to notice, which then scales down and anchors against that wrong
+            // (already-narrow) box instead of the true, wider page — visibly displacing the left
+            // margin while the vertical margins (unaffected by this) still line up. `FittedBox`
+            // sidesteps this: it always lays its child out with fully unconstrained constraints, so
+            // the inner `SizedBox` genuinely achieves `unscaledWidth`, and `FittedBox` itself then
+            // measures that real size to compute the correct scale and centering.
+            final scale = constraints.maxWidth / unscaledWidth;
+            return FittedBox(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: unscaledWidth,
+                height: constraints.maxHeight / scale,
+                child: Center(
+                  child: SizedBox(width: layout.pageWidth, child: _content(layout)),
+                ),
               ),
             );
-          }
-
-          // The panel is narrower than the full page: scale the whole page down to fit it, rather
-          // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale` so
-          // the scaled-down viewport exactly fills the panel: `_scrollController`'s viewport/target
-          // math, entirely computed in this unscaled space (see `_syncScrollToCurrentLine`), stays
-          // valid without any adjustment.
-          //
-          // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide `SizedBox`:
-          // this whole subtree already sits under a *tight* incoming width constraint (an `Expanded`
-          // panel gives one), and a plain `SizedBox` cannot exceed a tight constraint — it silently
-          // clamps back down to `constraints.maxWidth`, one level too late for `Transform.scale` to
-          // notice, which then scales down and anchors against that wrong (already-narrow) box
-          // instead of the true, wider page — visibly displacing the left margin while the vertical
-          // margins (unaffected by this) still line up. `FittedBox` sidesteps this: it always lays
-          // its child out with fully unconstrained constraints, so the inner `SizedBox` genuinely
-          // achieves `unscaledWidth`, and `FittedBox` itself then measures that real size to compute
-          // the correct scale and centering.
-          final scale = constraints.maxWidth / unscaledWidth;
-          return FittedBox(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: unscaledWidth,
-              height: constraints.maxHeight / scale,
-              child: Center(
-                child: SizedBox(width: layout.pageWidth, child: _content(layout)),
-              ),
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -191,13 +208,14 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     ),
   );
 
-  /// Distinct paper sheets, one per page in [_pages], separated by a themed gap: the panel's own
-  /// (themed) background shows through the gap, while each sheet stays white regardless of theme.
+  /// Distinct paper sheets, one per page in [_pages], separated by a gap: the preview panel's own
+  /// backdrop (painted by [build], white in both themes) shows through the gap, while each sheet
+  /// stays white regardless of theme.
   ///
-  /// A sheet is a fixed-height white [Material] behind its blocks, laid out in a plain [Column]
-  /// (not lazily: a single page's block count is always small). A block taller than a page is
-  /// simply allowed to render past the sheet's nominal height (no clipping) rather than splitting
-  /// it — true intra-block pagination is the PDF exporter's job later.
+  /// A sheet is a fixed-size white [Material] behind its blocks, laid out in a plain [Column] (not
+  /// lazily: a single page's block count is always small). A block taller than a page is simply
+  /// allowed to render past the sheet's nominal height (no clipping) rather than splitting it —
+  /// true intra-block pagination is the PDF exporter's job later.
   Widget _paginatedPages(OcptEditorPreviewLayout layout) => ListView.builder(
     controller: _scrollController,
     itemCount: _pages.length,
@@ -205,7 +223,12 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       padding: EdgeInsets.only(bottom: index == _pages.length - 1 ? 0 : _pageGap),
       child: Stack(
         children: [
+          // Width is explicit, not left to the `Stack`'s loose constraints: this `Material` has no
+          // child of its own, so a childless `Material` under `StackFit.loose` sizes itself to
+          // `constraints.smallest`, i.e. zero width (only the `SizedBox`'s height is tight). Without
+          // it the sheet collapses to a 0 px-wide sliver and paints nothing.
           SizedBox(
+            width: layout.pageWidth,
             height: layout.pageHeight,
             child: Material(
               color: Colors.white,

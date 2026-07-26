@@ -36,6 +36,10 @@ class OcptEditorToolbar extends StatelessWidget {
   /// its overflow menu entry.
   final bool isPageSimulationEnabled;
 
+  /// Whether the styled editor's scene numbers are currently shown, shown as a checked state on
+  /// its overflow menu entry.
+  final bool areStyledSceneNumbersVisible;
+
   /// The current editing mode: the styled block editor or the raw text source.
   final OcptEditorMode mode;
 
@@ -69,6 +73,9 @@ class OcptEditorToolbar extends StatelessWidget {
   /// Called when "Page simulation" is toggled from the overflow menu.
   final VoidCallback onTogglePageSimulation;
 
+  /// Called when "Scene numbers" is toggled from the overflow menu.
+  final VoidCallback onToggleStyledSceneNumbers;
+
   /// Called when "Page setup…" is chosen from the overflow menu.
   final VoidCallback onPageSetup;
 
@@ -93,6 +100,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.isScenePanelVisible,
     required this.rightDockTab,
     required this.isPageSimulationEnabled,
+    required this.areStyledSceneNumbersVisible,
     required this.mode,
     required this.onBack,
     required this.onSave,
@@ -103,6 +111,7 @@ class OcptEditorToolbar extends StatelessWidget {
     required this.onExportPdf,
     required this.onImportAndReplace,
     required this.onTogglePageSimulation,
+    required this.onToggleStyledSceneNumbers,
     required this.onPageSetup,
     required this.onTitlePage,
     required this.onResetPanelLayout,
@@ -216,6 +225,11 @@ class OcptEditorToolbar extends StatelessWidget {
                   checked: isPageSimulationEnabled,
                   onTap: onTogglePageSimulation,
                   child: Text(tr.editorTogglePageSimulationAction),
+                ),
+                CheckedPopupMenuItem<void>(
+                  checked: areStyledSceneNumbersVisible,
+                  onTap: onToggleStyledSceneNumbers,
+                  child: Text(tr.editorToggleSceneNumbersAction),
                 ),
                 PopupMenuItem<void>(onTap: onPageSetup, child: Text(tr.editorPageSetupAction)),
                 PopupMenuItem<void>(onTap: onTitlePage, child: Text(tr.editorTitlePageAction)),

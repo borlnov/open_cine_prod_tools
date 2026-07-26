@@ -5,7 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
@@ -21,8 +23,12 @@ final String _longSampleText = List.generate(
 /// Wraps [child] in a [MaterialApp] and a [width]x[height] box (top-left aligned, so the panel's
 /// origin lines up with the test surface's own origin, keeping [WidgetTester.getRect] comparisons
 /// simple), the same constrained-panel setup the real editor page's `Expanded` gives the preview.
-Widget _wrap(Widget child, {required double width, double height = 600}) =>
+///
+/// [theme] defaults to [ocptTheme]'s light variant: the preview reads its backdrop color from an
+/// [OcptSpecificColors] theme extension, which only a theme built from [ocptTheme] carries.
+Widget _wrap(Widget child, {required double width, double height = 600, ThemeData? theme}) =>
     MaterialApp(
+      theme: theme ?? ocptTheme.lightThemeData,
       home: Align(
         alignment: Alignment.topLeft,
         child: SizedBox(width: width, height: height, child: child),
@@ -39,6 +45,13 @@ void _widenTestSurface(WidgetTester tester, double unscaledPanelWidth, {double h
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 }
+
+/// The [ColoredBox] [OcptEditorPreview] paints its own panel backdrop with, scoped to its subtree
+/// (the test surface also carries an unrelated, transparent framework [ColoredBox] ancestor).
+final _backdropFinder = find.descendant(
+  of: find.byType(OcptEditorPreview),
+  matching: find.byType(ColoredBox),
+);
 
 void main() {
   final layout = OcptEditorPreviewLayout(
@@ -235,6 +248,83 @@ void main() {
       expect(firstSheetHeight, closeTo(layout.pageHeight, 0.5));
     },
   );
+
+  testWidgets(
+    "a page-simulation sheet is the full page width, not collapsed to a 0-width sliver",
+    (tester) async {
+      final tallPanelHeight = layout.pageHeight * 2 + 200;
+      _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
+      final document = const FountainParser().parse(_longSampleText);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: true,
+          ),
+          width: unscaledPanelWidth,
+          height: tallPanelHeight,
+        ),
+      );
+      await tester.pump();
+
+      final sheetRect = tester.getRect(find.byType(Material).first);
+      expect(sheetRect.width, closeTo(layout.pageWidth, 0.5));
+      expect(sheetRect.height, closeTo(layout.pageHeight, 0.5));
+    },
+  );
+
+  testWidgets(
+    "in dark theme the preview panel's backdrop is white, not the themed dock background",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      final document = const FountainParser().parse(_longSampleText);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+          ),
+          width: unscaledPanelWidth,
+          theme: ocptTheme.darkThemeData,
+        ),
+      );
+      await tester.pump();
+
+      final coloredBox = tester.widget<ColoredBox>(_backdropFinder);
+      expect(coloredBox.color, Colors.white);
+    },
+  );
+
+  testWidgets("in light theme the preview panel's backdrop is unchanged", (tester) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    final document = const FountainParser().parse(_longSampleText);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
+        ),
+        width: unscaledPanelWidth,
+      ),
+    );
+    await tester.pump();
+
+    final coloredBox = tester.widget<ColoredBox>(_backdropFinder);
+    expect(
+      coloredBox.color,
+      ocptTheme.lightThemeData!.extension<OcptSpecificColors>()!.previewBackdrop,
+    );
+    expect(coloredBox.color, ocptTheme.lightThemeData!.colorScheme.surfaceContainerLow);
+  });
 
   testWidgets(
     "page simulation off keeps a single continuous sheet even for a long document",

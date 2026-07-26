@@ -53,6 +53,7 @@ void main() {
               text: text,
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
+              areSceneNumbersVisible: true,
               onTextChanged: (_) {},
               onCaretLineChanged: (_) {},
               jumpRequest: null,

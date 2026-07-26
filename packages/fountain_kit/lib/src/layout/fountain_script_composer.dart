@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
+import 'package:fountain_kit/src/layout/fountain_print_style.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_styled_run.dart';
@@ -198,28 +199,30 @@ class FountainScriptComposer {
           )
           .toList(growable: false);
 
-  /// Wraps [heading]'s text (with its scene number prefixed, exactly as the
-  /// on-screen preview builds it) into the wrapped lines of a
+  /// Wraps [heading]'s text into the wrapped lines of a
   /// [FountainLineType.sceneHeading] element.
+  ///
+  /// The scene number is never prefixed into the printed text here (unlike
+  /// the on-screen preview, which has no margins to draw it in and so keeps
+  /// it inline): [FountainScriptLine.sceneNumber] already carries it
+  /// separately, so a renderer with margins to print in — the PDF exporter
+  /// — places it there instead, and a heading's printed text is never
+  /// duplicated between the two.
   static List<FountainScriptLine> _sceneHeadingLines(
     FountainSceneHeading heading,
     FountainLayoutMetrics metrics,
-  ) {
-    final text = heading.sceneNumber == null
-        ? heading.headingText
-        : '${heading.sceneNumber}. ${heading.headingText}';
-    return _wrapToLines(
-      text,
-      metrics.sceneHeading,
-      FountainLineType.sceneHeading,
-      isSceneHeading: true,
-      sceneNumber: heading.sceneNumber,
-    );
-  }
+  ) => _wrapToLines(
+    heading.headingText,
+    metrics.sceneHeading,
+    FountainLineType.sceneHeading,
+    isSceneHeading: true,
+    sceneNumber: heading.sceneNumber,
+  );
 
   /// Wraps [character]'s cue text (name plus its parenthetical extension,
   /// if any) into the wrapped lines of a [FountainLineType.character]
-  /// element.
+  /// element, upper-cased per [FountainPrintStyle.of]'s print-time rule for
+  /// [FountainLineType.character].
   static List<FountainScriptLine> _characterCueLines(
     FountainCharacter character,
     FountainLayoutMetrics metrics,
@@ -227,7 +230,11 @@ class FountainScriptComposer {
     final text = character.extension == null
         ? character.name
         : '${character.name} (${character.extension})';
-    return _wrapToLines(text, metrics.character, FountainLineType.character);
+    return _wrapToLines(
+      _printed(text, FountainLineType.character),
+      metrics.character,
+      FountainLineType.character,
+    );
   }
 
   /// Wraps a dialogue group's children (parentheticals and dialogue lines,
@@ -276,7 +283,7 @@ class FountainScriptComposer {
       FountainLineType.action,
     ),
     FountainTransition(:final text) => _wrapToLines(
-      text,
+      _printed(text, FountainLineType.transition),
       metrics.transition,
       FountainLineType.transition,
     ),
@@ -293,6 +300,15 @@ class FountainScriptComposer {
     _ => const [],
   };
 
+  /// Applies [FountainPrintStyle.of]'s print-time letter case to [text] for
+  /// a line of [lineType], upper-casing it when that type's print style
+  /// says so. Routed through the shared table (rather than a literal
+  /// `.toUpperCase()` at each call site) so every renderer that prints a
+  /// screenplay element derives the same casing decision from the same
+  /// place.
+  static String _printed(String text, FountainLineType lineType) =>
+      FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
+
   /// Wraps each of [sourceLines] independently at [layout]'s width (a
   /// block like action or lyrics keeps its source line breaks as real line
   /// breaks, rather than reflowing them into one paragraph), concatenating
@@ -301,7 +317,9 @@ class FountainScriptComposer {
     List<String> sourceLines,
     FountainElementLayout layout,
     FountainLineType lineType,
-  ) => [for (final line in sourceLines) ..._wrapToLines(line, layout, lineType)];
+  ) => [
+    for (final line in sourceLines) ..._wrapToLines(line, layout, lineType),
+  ];
 
   /// Wraps [text] at [layout]'s column width into one [FountainScriptLine]
   /// per output line, each carrying [layout]'s indent/alignment, [lineType],
@@ -671,12 +689,20 @@ class _PageBuilder {
   /// split dialogue group continues onto, set at the character's indent
   /// and alignment. The original cue's `extension` is deliberately ignored
   /// here: a continued cue always reads `(CONT'D)`, never the original
-  /// extension.
+  /// extension. Upper-cased, exactly like every other
+  /// [FountainLineType.character] cue.
   static FountainScriptLine _contdCueLine(
     FountainCharacter character,
     FountainLayoutMetrics metrics,
   ) => FountainScriptLine(
-    runs: [FountainStyledRun(text: "${character.name} (CONT'D)")],
+    runs: [
+      FountainStyledRun(
+        text: FountainScriptComposer._printed(
+          "${character.name} (CONT'D)",
+          FountainLineType.character,
+        ),
+      ),
+    ],
     lineType: FountainLineType.character,
     leftIndentInches: metrics.character.leftIndentInches,
     alignment: metrics.character.alignment,

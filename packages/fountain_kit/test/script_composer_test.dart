@@ -544,6 +544,180 @@ void main() {
     );
   });
 
+  group('inline emphasis flags reach the composed runs', () {
+    // The wrapping group above proves a bold run survives a wrap boundary, but every example in
+    // this file up to here only ever exercises bold: nothing asserts that italic, bold-italic or
+    // underline reach a composed run at all, in either an action block or a dialogue line, which
+    // is exactly what a regression here would need to catch.
+    test(
+      'an action line carries independent bold, italic, bold-italic and underline flags',
+      () {
+        final metrics = _metrics(linesPerPage: 20, actionCols: 60);
+        final layout = _composer.compose(
+          document: _document([
+            _action(['plain **bold** and *italic* and ***both*** and _under_ end']),
+          ]),
+          metrics: metrics,
+        );
+
+        final line = layout.pages.single.lines.single;
+        expect(line.plainText, 'plain bold and italic and both and under end');
+
+        final boldRun = line.runs.firstWhere((run) => run.text == 'bold');
+        expect(boldRun.isBold, isTrue);
+        expect(boldRun.isItalic, isFalse);
+        expect(boldRun.isUnderline, isFalse);
+
+        final italicRun = line.runs.firstWhere((run) => run.text == 'italic');
+        expect(italicRun.isItalic, isTrue);
+        expect(italicRun.isBold, isFalse);
+
+        final bothRun = line.runs.firstWhere((run) => run.text == 'both');
+        expect(bothRun.isBold, isTrue);
+        expect(bothRun.isItalic, isTrue);
+
+        final underRun = line.runs.firstWhere((run) => run.text == 'under');
+        expect(underRun.isUnderline, isTrue);
+        expect(underRun.isBold, isFalse);
+        expect(underRun.isItalic, isFalse);
+      },
+    );
+
+    test('a dialogue line carries the same inline emphasis flags as an action line', () {
+      final metrics = _metrics(linesPerPage: 20, dialogueCols: 60);
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('BOB', [_dialogueLine('I am **bold** and _underlined_ today.')]),
+        ]),
+        metrics: metrics,
+      );
+
+      final dialogueLine = layout.pages.single.lines.firstWhere(
+        (line) => line.lineType == FountainLineType.dialogue,
+      );
+
+      final boldRun = dialogueLine.runs.firstWhere((run) => run.text == 'bold');
+      expect(boldRun.isBold, isTrue);
+
+      final underlineRun = dialogueLine.runs.firstWhere((run) => run.text == 'underlined');
+      expect(underlineRun.isUnderline, isTrue);
+    });
+  });
+
+  group('print-time uppercasing', () {
+    test(
+      'a character cue prints upper-cased regardless of source casing',
+      () {
+        final metrics = _metrics(linesPerPage: 20);
+        final layout = _composer.compose(
+          document: _document([
+            _dialogueGroup('bob', [_dialogueLine('Hi there.')]),
+          ]),
+          metrics: metrics,
+        );
+
+        final cueLine = layout.pages.single.lines.firstWhere(
+          (line) => line.lineType == FountainLineType.character,
+        );
+        expect(cueLine.plainText, 'BOB');
+      },
+    );
+
+    test(
+      "a character cue with an extension prints upper-cased, extension "
+      'included',
+      () {
+        final metrics = _metrics(linesPerPage: 20);
+        final layout = _composer.compose(
+          document: _document([
+            _dialogueGroup(
+              'bob',
+              [_dialogueLine('Hi there.')],
+              extension: "cont'd",
+            ),
+          ]),
+          metrics: metrics,
+        );
+
+        final cueLine = layout.pages.single.lines.firstWhere(
+          (line) => line.lineType == FountainLineType.character,
+        );
+        expect(cueLine.plainText, "BOB (CONT'D)");
+      },
+    );
+
+    test(
+      'a forced transition prints upper-cased regardless of source casing',
+      () {
+        final metrics = _metrics(linesPerPage: 20);
+        final layout = _composer.compose(
+          document: _document([_transition('burn to white.')]),
+          metrics: metrics,
+        );
+
+        expect(layout.pages.single.lines.single.plainText, 'BURN TO WHITE.');
+      },
+    );
+
+    test(
+      "a continued NAME (CONT'D) cue prints upper-cased even when the "
+      'original cue was lower-cased',
+      () {
+        final metrics = _metrics(linesPerPage: 5, dialogueCols: 10);
+        final layout = _composer.compose(
+          document: _document([
+            _dialogueGroup('sarah', [
+              _dialogueLine(_words('AAAA', 12)),
+            ]),
+          ]),
+          metrics: metrics,
+        );
+
+        expect(layout.pages, hasLength(2));
+        expect(layout.pages[0].lines.first.plainText, 'SARAH');
+        expect(layout.pages[1].lines.first.plainText, "SARAH (CONT'D)");
+      },
+    );
+  });
+
+  group('scene heading print text', () {
+    test(
+      'an explicitly numbered scene heading prints its heading text alone, '
+      'never prefixed with the number: the number is only ever carried '
+      'separately as FountainScriptLine.sceneNumber',
+      () {
+        final metrics = _metrics(linesPerPage: 20);
+        final layout = _composer.compose(
+          document: _document([
+            _sceneHeading('INT. HOUSE - DAY', sceneNumber: '12'),
+          ]),
+          metrics: metrics,
+        );
+
+        final headingLine = layout.pages.single.lines.single;
+        expect(headingLine.plainText, 'INT. HOUSE - DAY');
+        expect(headingLine.sceneNumber, '12');
+        expect(headingLine.isSceneHeading, isTrue);
+      },
+    );
+
+    test(
+      'an unnumbered scene heading prints its heading text with no scene '
+      'number',
+      () {
+        final metrics = _metrics(linesPerPage: 20);
+        final layout = _composer.compose(
+          document: _document([_sceneHeading('INT. HOUSE - DAY')]),
+          metrics: metrics,
+        );
+
+        final headingLine = layout.pages.single.lines.single;
+        expect(headingLine.plainText, 'INT. HOUSE - DAY');
+        expect(headingLine.sceneNumber, isNull);
+      },
+    );
+  });
+
   group('non-printable blocks', () {
     test(
       'sections, synopses, notes and boneyard comments produce no output '

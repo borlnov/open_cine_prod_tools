@@ -48,10 +48,17 @@ final _darkColorScheme = ColorScheme.fromSeed(
 
 /// This defines the light and dark themes of the app.
 ///
-/// There is no application-specific color that falls outside of the standard Material 3
-/// [ColorScheme], so [OcptSpecificColors] carries no field; it only exists to satisfy the
-/// [ActThemeModel] generic contract.
+/// [OcptSpecificColors.previewBackdrop] is the one application-specific color that falls outside
+/// the standard Material 3 [ColorScheme]: the light value matches [_lightColorScheme]'s own
+/// `surfaceContainerLow` (so light mode stays byte-identical to the shared dock background), while
+/// the dark value is forced to white so the raw-mode preview still reads as paper in dark theme.
 final ocptTheme = ActThemeModel<OcptSpecificColors>(
-  lightColors: ActThemeColors<OcptSpecificColors>(colorScheme: _lightColorScheme),
-  darkColors: ActThemeColors<OcptSpecificColors>(colorScheme: _darkColorScheme),
+  lightColors: ActThemeColors<OcptSpecificColors>(
+    colorScheme: _lightColorScheme,
+    colorExtensions: OcptSpecificColors(previewBackdrop: _lightColorScheme.surfaceContainerLow),
+  ),
+  darkColors: ActThemeColors<OcptSpecificColors>(
+    colorScheme: _darkColorScheme,
+    colorExtensions: const OcptSpecificColors(previewBackdrop: Colors.white),
+  ),
 );
