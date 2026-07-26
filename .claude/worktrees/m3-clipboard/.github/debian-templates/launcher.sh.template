@@ -1,4 +1,0 @@
-#!/bin/bash
-# Launcher script for {{APP_NAME}}
-
-exec /usr/lib/{{PACKAGE_NAME}}/{{EXECUTABLE_NAME}} "$@"
