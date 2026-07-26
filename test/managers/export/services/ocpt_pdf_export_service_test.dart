@@ -229,6 +229,91 @@ void main() {
     });
   });
 
+  group('inline-only emphasis embeds the matching font variant', () {
+    // The group above proves each element's *base* style renders correctly, but every one of
+    // its documents carries no inline emphasis of its own, so it can't tell whether an inline
+    // `**bold**`/`*italic*`/`_underline_` run reaches the PDF at all: a document-wide
+    // `contains('CourierPrime-Bold')` is satisfied by any bold anywhere, including a scene
+    // heading's base weight, which is exactly the gap this closes. Every document here is a
+    // single plain action line (regular base style) with one inline emphasis run, so a positive
+    // match can only come from that run.
+    test('a plain action line with an inline bold run embeds the bold variant', () async {
+      final document = parse('Plain action with **bold** word only.\n');
+
+      final bytes = await service.generate(
+        document: document,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
+
+      expect(_textOf(bytes), contains('CourierPrime-Bold'));
+    });
+
+    test('a plain action line with an inline italic run embeds the italic variant', () async {
+      final document = parse('Plain action with *italic* word only.\n');
+
+      final bytes = await service.generate(
+        document: document,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
+
+      expect(_textOf(bytes), contains('CourierPrime-Italic'));
+    });
+
+    test(
+      'a plain action line with an inline bold-italic run embeds the bold-italic variant',
+      () async {
+        final document = parse('Plain action with ***both*** word only.\n');
+
+        final bytes = await service.generate(
+          document: document,
+          pageSetup: pageSetup,
+          projectName: 'P',
+          includeSceneNumbers: false,
+          includeTitlePage: false,
+        );
+
+        expect(_textOf(bytes), contains('CourierPrime-BoldItalic'));
+      },
+    );
+
+    test(
+      'a plain action line with an inline underline run prints differently from the '
+      'same text unemphasised',
+      () async {
+        // Underline has no font variant of its own (it's a drawn stroke, not a font choice), so
+        // the oracle here is the same content-stream comparison the uppercasing group above uses.
+        // Both documents are underlined/plain for the *whole* line (one run each) rather than
+        // just one word, so the two content streams differ only by the underline's stroke
+        // operators, never by an incidental difference in how many runs the line split into.
+        final underlined = parse('_Plain action with underline word only._\n');
+        final plain = parse('Plain action with underline word only.\n');
+
+        final underlinedBytes = await service.generate(
+          document: underlined,
+          pageSetup: pageSetup,
+          projectName: 'P',
+          includeSceneNumbers: false,
+          includeTitlePage: false,
+        );
+        final plainBytes = await service.generate(
+          document: plain,
+          pageSetup: pageSetup,
+          projectName: 'P',
+          includeSceneNumbers: false,
+          includeTitlePage: false,
+        );
+
+        expect(_contentStreams(underlinedBytes), isNot(_contentStreams(plainBytes)));
+      },
+    );
+  });
+
   group('print-time uppercasing and scene-number placement', () {
     // Both groups below compare the *content streams* of two generated documents rather than
     // reading their text (Courier Prime is embedded as an Identity-H composite font, so a
