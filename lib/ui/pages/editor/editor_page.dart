@@ -158,6 +158,7 @@ class _EditorViewState extends State<_EditorView> {
                   isScenePanelVisible: state.isScenePanelVisible,
                   rightDockTab: state.rightDockTab,
                   isPageSimulationEnabled: state.isPageSimulationEnabled,
+                  areStyledSceneNumbersVisible: state.areStyledSceneNumbersVisible,
                   mode: state.mode,
                   onBack: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorBackRequestedEvent(),
@@ -171,12 +172,17 @@ class _EditorViewState extends State<_EditorView> {
                   ),
                   onToggleMode: _toggleMode,
                   onExport: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorExportRequestedEvent(),
+                    OcptEditorExportRequestedEvent(
+                      fileTypeLabel: Tr.of(context).editorImportFileTypeLabel,
+                    ),
                   ),
                   onExportPdf: () => _requestExportPdf(context),
                   onImportAndReplace: () => _requestImportAndReplace(context),
                   onTogglePageSimulation: () => context.read<OcptEditorBloc>().add(
                     const OcptEditorPageSimulationToggledEvent(),
+                  ),
+                  onToggleStyledSceneNumbers: () => context.read<OcptEditorBloc>().add(
+                    const OcptEditorStyledSceneNumbersToggledEvent(),
                   ),
                   onPageSetup: () => _requestPageSetup(context),
                   onTitlePage: () => _requestTitlePage(context),
@@ -228,6 +234,7 @@ class _EditorViewState extends State<_EditorView> {
             text: state.text,
             pageSetup: state.pageSetup,
             isPageSimulationEnabled: state.isPageSimulationEnabled,
+            areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
             onTextChanged: (text) => context.read<OcptEditorBloc>().add(
               OcptEditorTextChangedEvent(text: text),
             ),
@@ -369,7 +376,12 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
 
-    bloc.add(OcptEditorExportPdfRequestedEvent(options: options));
+    bloc.add(
+      OcptEditorExportPdfRequestedEvent(
+        options: options,
+        fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
+      ),
+    );
   }
 
   /// Shows the title page dialog, then dispatches the edited fields if the user applied them.

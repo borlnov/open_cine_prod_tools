@@ -13,6 +13,10 @@ enum OcptFountainSyntaxTopic {
   /// A scene heading, for example `INT. KITCHEN - DAY`.
   sceneHeading,
 
+  /// A scene heading's explicit scene number, marked with a trailing
+  /// `#N#` tag.
+  sceneNumber,
+
   /// Action/description text, the default when nothing more specific
   /// applies.
   action,

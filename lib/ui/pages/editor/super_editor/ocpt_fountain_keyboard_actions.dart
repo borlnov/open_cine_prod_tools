@@ -4,6 +4,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
@@ -21,9 +22,9 @@ const List<FountainLineType> _ocptTabCycleTypes = [
 ];
 
 /// The `keyboardActions` list for the styled screenplay editor's `SuperEditor`: this app's own
-/// Tab-cycle, smart-Enter and Ctrl+U handlers first (each halts, so none of the corresponding
-/// default behaviors ever run), then every [defaultImeKeyboardActions] entry except the ones that
-/// would fight this editor's model (see [_ocptExcludedDefaultActions]).
+/// Tab-cycle, smart-Enter, clipboard and Ctrl+U handlers first (each halts, so none of the
+/// corresponding default behaviors ever run), then every [defaultImeKeyboardActions] entry except
+/// the ones that would fight this editor's model (see [_ocptExcludedDefaultActions]).
 ///
 /// Ctrl+B/I are deliberately left to the inherited `cmdBToToggleBold`/`cmdIToToggleItalics`
 /// defaults (still present below): they already toggle the right attribution, whether the
@@ -33,6 +34,9 @@ const List<FountainLineType> _ocptTabCycleTypes = [
 final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
   ocptTabToCycleBlockType,
   ocptEnterToSmartSplit,
+  ocptCopyToFountainClipboard,
+  ocptCutToFountainClipboard,
+  ocptPasteFromFountainClipboard,
   ocptCmdUToToggleUnderline,
   ...defaultImeKeyboardActions.where((action) => !_ocptExcludedDefaultActions.contains(action)),
 ];
@@ -48,6 +52,9 @@ final List<SuperEditorKeyboardAction> ocptFountainKeyboardActions = [
 ///   already owns that decision.
 /// - `shiftEnterToInsertNewlineInBlock`: would insert a literal `\n` inside a node's text, breaking
 ///   the one-node-per-source-line invariant; [ocptEnterToSmartSplit] handles Shift+Enter itself.
+/// - `copyWhenCmdCIsPressed`/`cutWhenCmdXIsPressed`/`pasteWhenCmdVIsPressed`: plain-text clipboard
+///   actions with no notion of block types; [ocptCopyToFountainClipboard]/
+///   [ocptCutToFountainClipboard]/[ocptPasteFromFountainClipboard] replace them.
 final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
   tabToIndentParagraph,
   shiftTabToUnIndentParagraph,
@@ -56,6 +63,9 @@ final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
   enterToUnIndentParagraph,
   backspaceToClearParagraphBlockType,
   shiftEnterToInsertNewlineInBlock,
+  copyWhenCmdCIsPressed,
+  cutWhenCmdXIsPressed,
+  pasteWhenCmdVIsPressed,
 };
 
 /// Tab/Shift+Tab: cycles the current block's stored `blockType` through
@@ -113,7 +123,7 @@ bool ocptCycleBlockTypeAtSelection({
   }
 
   final node = document.getNodeById(selection.extent.nodeId);
-  if (node is! ParagraphNode) {
+  if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
     return false;
   }
 
@@ -158,13 +168,24 @@ FountainLineType _ocptCycleType(FountainLineType current, {required bool reverse
 /// (`SplitParagraphRequest(replicateExistingMetadata: false)`, so the new node starts with no
 /// metadata of its own), places the caret at the start of the new node, then classifies it:
 ///
-/// - **Enter** ("smart Enter"): the new node's type follows [_ocptSmartEnterNextType] (the
+/// - **Enter** ("smart Enter"), when the caret sat at the very end of the block's text (so the
+///   new node starts genuinely empty): the new node's type follows [_ocptSmartEnterNextType] (the
 ///   current type's usual successor in a screenplay), unlocked (auto-detection must keep working
 ///   on it) and with `blankLinesBefore` 0 for a dialogue/parenthetical continuation, 1 otherwise
 ///   (matching the blank line Fountain needs to auto-detect most other types).
-/// - **Shift+Enter**: the new node keeps the SAME type as the block it was split from, with
-///   `blankLinesBefore: 0` (a same-block continuation line, e.g. a second action paragraph
-///   without a scene break).
+/// - **Shift+Enter, or Enter anywhere before the end of the text**: the new node keeps the SAME
+///   type as the block it was split from, with `blankLinesBefore: 0` for Shift+Enter (a same-block
+///   continuation line, e.g. a second action paragraph without a scene break) or `1` otherwise. A
+///   non-end Enter split carries the block's own trailing text into the new node — still a
+///   continuation of that same original line, not the start of a fresh one — so it is deliberately
+///   left to the very next (debounced) reclassify pass (`OcptWysiwygCodec.reclassifyRequests`) to
+///   settle on whatever type that trailing text, on its own, actually auto-detects as: forcing the
+///   smart successor on it here instead would risk momentarily storing text under a type it does
+///   not auto-detect as (e.g. a scene heading's `INT./EXT.` prefix staying behind in the original
+///   node leaves a tail with no such prefix), which `FountainLineWriter` can only resolve by
+///   forcing a marker onto it (`!` for `action`) on encode — and, worse, would desynchronize scene
+///   numbering for every heading after it, however briefly, were that momentary state ever read
+///   before the reclassify pass corrects it.
 ///
 /// Both cases clear any forcing-marker flag on the new node: it was never decoded from source
 /// text, so it never "had" one.
@@ -187,9 +208,14 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
     return ExecutionInstruction.continueExecution;
   }
 
+  if (OcptWysiwygCodec.isTitlePageNode(node)) {
+    return _splitTitlePageField(editContext: editContext, node: node, splitPosition: splitPosition);
+  }
+
   final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   final isShiftEnter = HardwareKeyboard.instance.isShiftPressed;
-  final newType = isShiftEnter ? currentType : _ocptSmartEnterNextType(currentType);
+  final splitsAtEnd = splitPosition.offset == node.text.toPlainText().length;
+  final newType = isShiftEnter || !splitsAtEnd ? currentType : _ocptSmartEnterNextType(currentType);
   final blankLinesBefore = isShiftEnter || _ocptIsDialogueGroupMember(newType) ? 0 : 1;
 
   final newNodeId = Editor.createNodeId();
@@ -216,6 +242,41 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
         ocptHadForcingMarkerMetadataKey: false,
       },
     ),
+  ]);
+
+  return ExecutionInstruction.haltExecution;
+}
+
+/// Enter inside a title-page field node ([OcptWysiwygCodec.isTitlePageNode]): splits it at the
+/// caret exactly like [ocptEnterToSmartSplit] would, but the new node always keeps the *same*
+/// [ocptTitlePageKeyMetadataKey] as the node it split from — a title-page field has no "usual
+/// screenplay successor" the way a Fountain line type does, so this is how a multi-line field
+/// (`Author`, `Contact`…) gets an extra line, the same gesture Shift+Enter is for a same-type body
+/// continuation.
+ExecutionInstruction _splitTitlePageField({
+  required SuperEditorContext editContext,
+  required ParagraphNode node,
+  required TextNodePosition splitPosition,
+}) {
+  final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
+  final newNodeId = Editor.createNodeId();
+
+  editContext.editor.execute([
+    SplitParagraphRequest(
+      nodeId: node.id,
+      splitPosition: splitPosition,
+      newNodeId: newNodeId,
+      replicateExistingMetadata: false,
+    ),
+    ChangeSelectionRequest(
+      DocumentSelection.collapsed(
+        position: DocumentPosition(nodeId: newNodeId, nodePosition: const TextNodePosition(offset: 0)),
+      ),
+      SelectionChangeType.insertContent,
+      SelectionReason.userInteraction,
+    ),
+    ChangeParagraphBlockTypeRequest(nodeId: newNodeId, blockType: ocptTitlePageFieldAttribution),
+    OcptChangeNodeMetadataRequest(nodeId: newNodeId, metadata: {ocptTitlePageKeyMetadataKey: key}),
   ]);
 
   return ExecutionInstruction.haltExecution;

@@ -26,7 +26,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 ///
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
-/// app-wide page margins preference and the editor's dock width fractions.
+/// app-wide page margins preference, the editor's dock width fractions and its scene-number
+/// visibility preference.
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -55,6 +56,13 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`
   /// (page simulation is on by default).
   final isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED");
+
+  /// This is the key used to store whether the styled editor shows every scene heading's number
+  /// (explicit or computed) in its left gutter.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true` (scene
+  /// numbers are shown by default).
+  final styledSceneNumbersVisible = SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE");
 
   /// This is the key used to store the left (scenes) dock's width, as a fraction of the editor's
   /// editing row width.

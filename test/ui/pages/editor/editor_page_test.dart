@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -68,8 +69,11 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests.
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and
+/// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the raw-mode
+/// preview's backdrop) resolve one, just like the real app always does.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
+  theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -111,10 +115,7 @@ void main() {
       ..registerSingleton<OcptProjectsManager>(projectsManager)
       ..registerSingleton<OcptRouterManager>(routerManager)
       ..registerSingleton<OcptExportManager>(
-        OcptExportManager(
-          fileSaverManager: const FileSaverManager(),
-          fileSelectorManager: const FileSelectorManager(),
-        ),
+        OcptExportManager(fileSelectorManager: const FileSelectorManager()),
       );
   });
 
@@ -123,6 +124,11 @@ void main() {
     // `TextField`, the paper preview); force that mode here so they keep passing regardless of
     // the default mode, and let the styled-mode tests further down store their own preference.
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    // None of the styled-mode tests below are about the title sheet: page simulation defaults to
+    // on in the real app, which would push a `_sampleText`-sized document's nodes far enough down
+    // the simulated first page that a caret-placing tap could no longer reach them. Force it off
+    // here; the two tests that are actually about page simulation store their own `true`.
+    await propertiesManager.isPageSimulationEnabled.store(false);
     routerManager.popped = false;
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_page_test_");
@@ -590,10 +596,11 @@ void main() {
       );
       // Tab cycled the last node from `action` to `character`: "Something moves in the dark."
       // isn't all-caps, so it never auto-detects as a character cue and always needs its `@`
-      // forcing marker once locked as one. If `deactivate()` hadn't flushed the still-pending sync
-      // before `dispose()` cancelled its timer (which never fires once cancelled), this edit would
-      // have been lost entirely and the line below would still read unprefixed.
-      expect(textField.controller?.text, contains("@Something moves in the dark."));
+      // forcing marker once locked as one, and a character cue is always uppercased. If
+      // `deactivate()` hadn't flushed the still-pending sync before `dispose()` cancelled its
+      // timer (which never fires once cancelled), this edit would have been lost entirely and the
+      // line below would still read unprefixed and lowercase.
+      expect(textField.controller?.text, contains("@SOMETHING MOVES IN THE DARK."));
     },
   );
 
@@ -624,6 +631,14 @@ void main() {
     await propertiesManager.editorMode.store(OcptEditorMode.styled);
 
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+    // Mounting the styled editor auto-numbers every scene heading (see `_syncSceneNumbers`),
+    // which reports the corrected text to the bloc and restarts its (real, default-length) parse
+    // debounce; `pumpAndSettle`'s own 100 ms step is shorter than that 150 ms debounce, so without
+    // this extra pump the scene panel below would still be built from the *pre-correction* parse,
+    // one scene heading's `#1#` tag short of the final offsets — exactly the kind of staleness
+    // `OcptEditorBloc.defaultParseDebounce` is long enough to expose here.
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
 
     await tester.tap(
@@ -809,6 +824,30 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(await propertiesManager.isPageSimulationEnabled.load(), isFalse);
+    },
+  );
+
+  testWidgets(
+    'toggling scene numbers from the ⋮ menu flips it and persists the new value',
+    (tester) async {
+      await propertiesManager.styledSceneNumbersVisible.store(true);
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(
+          of: find.text(tr.editorToggleSceneNumbersAction),
+          matching: find.byType(CheckedPopupMenuItem<void>),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(await propertiesManager.styledSceneNumbersVisible.load(), isFalse);
     },
   );
 

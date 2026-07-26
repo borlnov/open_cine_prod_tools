@@ -19,14 +19,54 @@ const String ocptBlankLinesBeforeMetadataKey = "ocptBlankLinesBefore";
 const int ocptMaxBlankLinesBeforeSpacing = 3;
 
 /// The `ParagraphNode` metadata key holding whether a node's `blockType` was set manually (a
-/// future dropdown/Tab choice) rather than by auto-detection; [OcptWysiwygCodec.reclassifyRequests]
-/// skips a locked node, and clears the lock once the node's text is emptied.
+/// dropdown/Tab choice) rather than by auto-detection; [OcptWysiwygCodec.reclassifyRequests]
+/// skips a locked node entirely and never clears the lock on its own, so the manual choice is
+/// sticky for the node's whole lifetime, including while its text is empty. A new node created by
+/// Enter/Shift+Enter starts unlocked, which is what keeps a locked type from leaking into the next
+/// block.
 const String ocptTypeLockedMetadataKey = "ocptTypeLocked";
 
 /// The `ParagraphNode` metadata key holding whether the source line a node was decoded from used
 /// an explicit forcing marker, so [OcptWysiwygCodec.encode] can re-emit it even when
 /// auto-detection alone would already yield the same type (byte-stable round trips).
 const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
+
+/// The `ParagraphNode` metadata key holding a scene heading's explicit `#N#` scene number (the
+/// text between the `#` delimiters, e.g. `"4A"` for `#4A#`), or null for a heading with none.
+///
+/// Only ever set on a [FountainLineType.sceneHeading] node. [OcptWysiwygCodec.decode] strips a
+/// trailing `#N#` tag out of the heading's display text into this metadata, and
+/// [OcptWysiwygCodec.encode] re-appends it to the written line, so the tag never shows up as
+/// literal text in the styled editor while still surviving a round trip; a tag typed live is
+/// absorbed the same way by [OcptWysiwygCodec.sceneNumberRequests]. Rendering the number (styled
+/// mode only) is a separate concern, driven by `computeOcptStyledSceneNumbers`.
+const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
+
+/// The `ParagraphNode` metadata key holding which title-page field a node represents (one of
+/// [ocptTitlePageFieldKeys]), or absent for an ordinary body line.
+///
+/// Only ever set by [OcptWysiwygCodec.decodeWithTitlePage] (and the keyboard action that keeps a
+/// title-page field's own Enter gesture continuing the same field, `_splitTitlePageField` in
+/// `ocpt_fountain_keyboard_actions.dart`): none of the ordinary Fountain line machinery this class
+/// documents (auto-detection, forcing markers, uppercasing, scene numbers…) ever applies to a node
+/// carrying it, which is what [OcptWysiwygCodec.isTitlePageNode] lets every one of those passes
+/// check for and skip.
+const String ocptTitlePageKeyMetadataKey = "ocptTitlePageKey";
+
+/// The `blockType` attribution shared by every title-page field node, regardless of which field it
+/// represents ([ocptTitlePageKeyMetadataKey] carries that distinction instead): a title-page field
+/// is never classified, never forced, never uppercased, so it needs no per-field attribution the
+/// way every [FountainLineType] gets its own in [OcptFountainLineAttributions] — only a stylesheet
+/// selector to opt into `OcptFountainEditorStylesheet`'s own per-field positioning.
+const NamedAttribution ocptTitlePageFieldAttribution = NamedAttribution("fountainTitlePageField");
+
+/// The six canonical title-page field keys [OcptWysiwygCodec.decodeWithTitlePage] always
+/// synthesizes exactly one node for (more if a field spans several source lines), in the fixed
+/// order they are written to the source and stacked top-to-bottom in the styled editor — matching
+/// the order `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` fields already appear in
+/// (`editor_bloc.dart`'s `_titlePageEntriesFrom`), so editing the same screenplay through either
+/// front-end never reorders the block for no reason.
+const List<String> ocptTitlePageFieldKeys = ["Title", "Credit", "Author", "Draft date", "Contact", "Source"];
 
 /// The attribution marking an inline authoring note (`[[text]]`) for dimmed rendering; unlike
 /// [boldAttribution]/[italicsAttribution]/[underlineAttribution], a note's delimiters stay part of
@@ -38,31 +78,69 @@ const NamedAttribution ocptFountainNoteAttribution = NamedAttribution("fountainN
 /// document and later serialize it back to Fountain text.
 class OcptWysiwygDecodeResult {
   /// Creates an [OcptWysiwygDecodeResult].
-  const OcptWysiwygDecodeResult({required this.document, required this.mapping, required this.trailingBlankLines});
+  const OcptWysiwygDecodeResult({
+    required this.document,
+    required this.mapping,
+    required this.trailingBlankLines,
+    this.titlePageNodeCount = 0,
+    this.titlePagePrefixLength = 0,
+  });
 
-  /// The freshly built document: one `ParagraphNode` per non-blank source line.
+  /// The freshly built document: one `ParagraphNode` per non-blank source line, preceded by
+  /// [titlePageNodeCount] title-page field nodes when [OcptWysiwygCodec.decodeWithTitlePage] built
+  /// this result (always 0 for plain [OcptWysiwygCodec.decode]).
   final MutableDocument document;
 
-  /// The node-index ↔ source-line mapping for the text [document] was decoded from.
+  /// The node-index ↔ source-line mapping for the text [document] was decoded from, scoped to the
+  /// **body** text only: a node index into [mapping] is [document]'s own node index minus
+  /// [titlePageNodeCount], and a source line/char offset is [document]'s own source text minus its
+  /// leading [titlePagePrefixLength] characters (see those fields' own doc comments).
   final OcptWysiwygLineMapping mapping;
 
   /// The number of blank source lines after the last non-blank line: they have nowhere to attach
   /// as [ocptBlankLinesBeforeMetadataKey] metadata on a following node, so a caller that wants
   /// byte-stable round trips must pass this straight back into [OcptWysiwygCodec.encode].
   final int trailingBlankLines;
+
+  /// The number of leading nodes of [document] that are title-page field nodes (see
+  /// [OcptWysiwygCodec.isTitlePageNode]), always 0 for a plain [OcptWysiwygCodec.decode] result. A
+  /// caller
+  /// translating one of [document]'s own node indices into a [mapping] node index must subtract
+  /// this first.
+  final int titlePageNodeCount;
+
+  /// The number of leading characters of the full source text [OcptWysiwygCodec.decodeWithTitlePage]
+  /// was given that the title page (and the blank line separating it from the body) consumed,
+  /// always 0 for a plain [OcptWysiwygCodec.decode] result. A caller translating a character offset
+  /// of the full source text into a [mapping] char offset must subtract this first.
+  final int titlePagePrefixLength;
 }
 
 /// The result of [OcptWysiwygCodec.encode]: the serialized Fountain source text, plus a mapping
 /// freshly built for that exact text (the inverse of [OcptWysiwygDecodeResult]).
 class OcptWysiwygEncodeResult {
   /// Creates an [OcptWysiwygEncodeResult].
-  const OcptWysiwygEncodeResult({required this.text, required this.mapping});
+  const OcptWysiwygEncodeResult({
+    required this.text,
+    required this.mapping,
+    this.titlePageNodeCount = 0,
+    this.titlePagePrefixLength = 0,
+  });
 
   /// The full Fountain source text serialized from the document.
   final String text;
 
-  /// The node-index ↔ source-line mapping for [text].
+  /// The node-index ↔ source-line mapping for [text], scoped to the **body** text only: see
+  /// [OcptWysiwygDecodeResult.mapping]'s own doc comment, which this mirrors exactly.
   final OcptWysiwygLineMapping mapping;
+
+  /// See [OcptWysiwygDecodeResult.titlePageNodeCount]; always 0 for a plain
+  /// [OcptWysiwygCodec.encode] result.
+  final int titlePageNodeCount;
+
+  /// See [OcptWysiwygDecodeResult.titlePagePrefixLength]; always 0 for a plain
+  /// [OcptWysiwygCodec.encode] result.
+  final int titlePagePrefixLength;
 }
 
 /// The node-index ↔ source-line mapping produced by both [OcptWysiwygCodec.decode] and
@@ -162,6 +240,10 @@ class OcptWysiwygCodec {
   /// normalization [encode] accepts.
   static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
 
+  /// Mirrors `FountainBlockBuilder`'s own (private) scene-number pattern, matching a trailing
+  /// `#N#` tag on a scene heading line (e.g. `#4A#` in `INT. HOUSE #4A#`), captured as group 1.
+  static final RegExp _sceneNumberPattern = RegExp(r'#([A-Za-z0-9.\-]+)#\s*$');
+
   /// Splits [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
   /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
   /// resulting [OcptWysiwygLineMapping] agree with the rest of the editor.
@@ -184,34 +266,7 @@ class OcptWysiwygCodec {
   /// same blank-line count.
   static OcptWysiwygDecodeResult decode(String text) {
     final lines = _splitLines(text);
-    final types = _classifier.classify(lines);
-
-    final nodes = <ParagraphNode>[];
-    final blankLinesBeforeByNode = <int>[];
-    var pendingBlanks = 0;
-
-    for (var index = 0; index < lines.length; index++) {
-      if (types[index] == FountainLineType.blank) {
-        pendingBlanks++;
-        continue;
-      }
-
-      final (displayText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
-      nodes.add(
-        ParagraphNode(
-          id: Editor.createNodeId(),
-          text: _attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
-          metadata: {
-            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
-            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
-            ocptTypeLockedMetadataKey: false,
-            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
-          },
-        ),
-      );
-      blankLinesBeforeByNode.add(pendingBlanks);
-      pendingBlanks = 0;
-    }
+    final (nodes, blankLinesBeforeByNode, pendingBlanks) = _decodeLines(lines);
 
     var trailingBlankLines = pendingBlanks;
 
@@ -245,6 +300,98 @@ class OcptWysiwygCodec {
       ),
       trailingBlankLines: trailingBlankLines,
     );
+  }
+
+  /// Decodes [text] exactly like [decode], but additionally recognizes a leading title page (see
+  /// `FountainParser`'s own title-page pre-pass) and prepends one node per
+  /// [ocptTitlePageFieldKeys] field ([isTitlePageNode], carrying [ocptTitlePageKeyMetadataKey])
+  /// ahead of the body nodes [decode] itself would already produce for the remaining text.
+  ///
+  /// Every one of the six canonical fields always gets at least one node, synthesized empty when
+  /// the source has no title page at all (or is simply missing that field): the styled editor's
+  /// title sheet must always be a complete, fillable page, per its own design (see
+  /// `OcptStyledScreenplayEditor`'s class doc comment). A field spanning several source lines
+  /// (an `Author`/`Contact` continuation) gets one node per line instead, in source order, so
+  /// pressing Enter inside one only ever needs to insert a sibling node of the same field (see
+  /// `_splitTitlePageField` in `ocpt_fountain_keyboard_actions.dart`) rather than reformat the
+  /// whole field.
+  ///
+  /// [OcptWysiwygDecodeResult.mapping] stays scoped to the body text alone (built by the plain
+  /// [decode] call this delegates to for it), which is why [OcptWysiwygDecodeResult
+  /// .titlePageNodeCount]/[OcptWysiwygDecodeResult.titlePagePrefixLength] exist: they are what a
+  /// caller needs to translate one of [OcptWysiwygDecodeResult.document]'s own node indices, or a
+  /// char offset into the *full* [text], into that body-scoped mapping's own coordinate space.
+  static OcptWysiwygDecodeResult decodeWithTitlePage(String text) {
+    final titlePage = const FountainParser().parse(text).titlePage;
+    final bodyText = titlePage == null
+        ? text
+        : const FountainTitlePageWriter().apply(source: text, existingRange: titlePage.sourceRange, entries: const []);
+
+    final titlePageNodes = _titlePageNodesFrom(titlePage);
+    final bodyDecoded = decode(bodyText);
+
+    return OcptWysiwygDecodeResult(
+      document: MutableDocument(
+        nodes: [...titlePageNodes, ...bodyDecoded.document.map((node) => node as ParagraphNode)],
+      ),
+      mapping: bodyDecoded.mapping,
+      trailingBlankLines: bodyDecoded.trailingBlankLines,
+      titlePageNodeCount: titlePageNodes.length,
+      titlePagePrefixLength: text.length - bodyText.length,
+    );
+  }
+
+  /// Decodes [text] into the nodes a paste would insert, with the full metadata set [decode]
+  /// itself gives every node (`blockType`, [ocptBlankLinesBeforeMetadataKey],
+  /// [ocptTypeLockedMetadataKey] always false, [ocptHadForcingMarkerMetadataKey]) — unlike
+  /// [decode], this never synthesizes an empty node for all-blank input, since there is nothing
+  /// useful to paste in that case: the caller sees an empty list instead.
+  static List<ParagraphNode> decodeNodesFromFountain(String text) {
+    final (nodes, _, _) = _decodeLines(_splitLines(text));
+    return nodes;
+  }
+
+  /// The shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
+  /// [lines] into one node per non-blank line (folding blank runs into
+  /// [ocptBlankLinesBeforeMetadataKey] metadata) plus, in call order, the resulting nodes, their
+  /// blank-lines-before counts (same length, same order as the nodes) and the number of blank
+  /// lines still pending after the last non-blank line (the trailing run [decode] alone turns
+  /// into [OcptWysiwygDecodeResult.trailingBlankLines]).
+  static (List<ParagraphNode>, List<int>, int) _decodeLines(List<String> lines) {
+    final types = _classifier.classify(lines);
+
+    final nodes = <ParagraphNode>[];
+    final blankLinesBeforeByNode = <int>[];
+    var pendingBlanks = 0;
+
+    for (var index = 0; index < lines.length; index++) {
+      if (types[index] == FountainLineType.blank) {
+        pendingBlanks++;
+        continue;
+      }
+
+      final (strippedText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
+      final (displayText, sceneNumber) = types[index] == FountainLineType.sceneHeading
+          ? _extractSceneNumber(strippedText)
+          : (strippedText, null);
+      nodes.add(
+        ParagraphNode(
+          id: Editor.createNodeId(),
+          text: _attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
+          metadata: {
+            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
+            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
+            ocptTypeLockedMetadataKey: false,
+            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
+            ocptSceneNumberMetadataKey: sceneNumber,
+          },
+        ),
+      );
+      blankLinesBeforeByNode.add(pendingBlanks);
+      pendingBlanks = 0;
+    }
+
+    return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
   /// Encodes [document] back into Fountain source text, the inverse of [decode]: rejoins each
@@ -289,7 +436,10 @@ class OcptWysiwygCodec {
     final types = [
       for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
     ];
-    final displayTextByNode = [for (final node in nodes) _inlineSerializer.write(_runsFromAttributedText(node.text))];
+    final displayTextByNode = [
+      for (var index = 0; index < nodes.length; index++)
+        _displayTextForEncode(nodes[index], types[index]),
+    ];
     final blankLinesBeforeByNode = [for (final node in nodes) _readBlankLinesBefore(node)];
 
     // Dialogue/parenthetical have no forcing marker at all (`FountainLineWriter` always emits
@@ -362,20 +512,235 @@ class OcptWysiwygCodec {
     );
   }
 
+  /// Encodes [document] exactly like [encode], but additionally recognizes [document]'s leading
+  /// title-page field nodes ([isTitlePageNode]) and splices them in as a real Fountain title page
+  /// ahead of the body text [encode] itself produces for the remaining nodes, through
+  /// [FountainTitlePageWriter.apply] — never a hand-written `Key: value` line, so this and
+  /// `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` flow stay two front-ends over the one writer.
+  /// A field with only empty lines (the common case for most of the six: see
+  /// [decodeWithTitlePage]'s synthesis rule) is dropped entirely, exactly like
+  /// [FountainTitlePageWriter.apply] drops a title page with no entries at all.
+  ///
+  /// See [OcptWysiwygEncodeResult.titlePageNodeCount]/[OcptWysiwygEncodeResult
+  /// .titlePagePrefixLength]'s own doc comments for what a caller needs them for.
+  static OcptWysiwygEncodeResult encodeWithTitlePage(Document document, {int trailingBlankLines = 0}) {
+    final allNodes = document.map((node) => node as ParagraphNode).toList(growable: false);
+    final titlePageNodes = <ParagraphNode>[];
+    final bodyNodes = <ParagraphNode>[];
+    for (final node in allNodes) {
+      (isTitlePageNode(node) ? titlePageNodes : bodyNodes).add(node);
+    }
+
+    final bodyEncoded = encode(MutableDocument(nodes: bodyNodes), trailingBlankLines: trailingBlankLines);
+    final titlePageEntries = _titlePageEntriesFromNodes(titlePageNodes);
+    final text = const FountainTitlePageWriter().apply(
+      source: bodyEncoded.text,
+      existingRange: null,
+      entries: titlePageEntries,
+    );
+
+    return OcptWysiwygEncodeResult(
+      text: text,
+      mapping: bodyEncoded.mapping,
+      titlePageNodeCount: titlePageNodes.length,
+      titlePagePrefixLength: text.length - bodyEncoded.text.length,
+    );
+  }
+
+  /// Whether [node] is one of [decodeWithTitlePage]'s synthesized title-page field nodes
+  /// ([ocptTitlePageKeyMetadataKey] set) rather than an ordinary body line: every pass in this
+  /// class that classifies, forces or uppercases a node's text (none of which has any meaning for
+  /// a title-page field) checks this first and skips the node entirely when it's true.
+  static bool isTitlePageNode(ParagraphNode node) => node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String;
+
+  /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per
+  /// `FountainTitlePage.authors`'s own fallback), or null when [titlePage] is null or has no such
+  /// entry.
+  static FountainTitlePageEntry? _titlePageEntryFor(FountainTitlePage? titlePage, String key) {
+    if (titlePage == null) {
+      return null;
+    }
+    return key == "Author" ? (titlePage.entry("Author") ?? titlePage.entry("Authors")) : titlePage.entry(key);
+  }
+
+  /// A placeholder source range for a title-page entry synthesized from live node text rather than
+  /// parsed from source: [FountainTitlePageWriter.apply] only ever reads an entry's key and values,
+  /// never its source range (see `editor_bloc.dart`'s own equivalent placeholder), so standing in
+  /// without a real one is safe.
+  static const _placeholderTitlePageEntryRange = FountainSourceRange(
+    startLine: 0,
+    endLine: 0,
+    startOffset: 0,
+    endOffset: 0,
+  );
+
+  /// Builds the title-page field nodes [decodeWithTitlePage] prepends to the body: one node per
+  /// [ocptTitlePageFieldKeys] field, in that fixed order, one per source line for a field spanning
+  /// several (an empty single node when [titlePage] has none for that key at all).
+  ///
+  /// The sheet is protected against every deletion path — select-all + Delete, a selection dragged
+  /// across the sheet, Backspace merging a field into its neighbour — by
+  /// `ocptTitlePageGuardRequestHandler` (`ocpt_title_page_guard_requests.dart`) alone: a node here
+  /// deliberately does **not** carry `NodeMetadata.isDeletable: false`, which would also forbid
+  /// ordinary text editing (typing, Backspace, Delete) *inside* the field, not just its removal
+  /// (`DeleteSelectionCommand`/`DeleteContentCommand` abort any deletion, however small, contained
+  /// in a single non-deletable node — `multi_node_editing.dart:1428-1449, 798-822` of the pinned
+  /// super_editor release).
+  static List<ParagraphNode> _titlePageNodesFrom(FountainTitlePage? titlePage) {
+    final nodes = <ParagraphNode>[];
+    for (final key in ocptTitlePageFieldKeys) {
+      final entry = _titlePageEntryFor(titlePage, key);
+      final values = entry == null || entry.values.isEmpty ? const [""] : entry.values;
+      for (final value in values) {
+        nodes.add(
+          ParagraphNode(
+            id: Editor.createNodeId(),
+            text: AttributedText(value),
+            metadata: {"blockType": ocptTitlePageFieldAttribution, ocptTitlePageKeyMetadataKey: key},
+          ),
+        );
+      }
+    }
+    return nodes;
+  }
+
+  /// The inverse of [_titlePageNodesFrom]: groups [titlePageNodes] (already in the fixed
+  /// [ocptTitlePageFieldKeys] order, one run of consecutive nodes per field, by construction) back
+  /// into [FountainTitlePageEntry] values, dropping a field whose every line is empty (the common
+  /// case for most fields most of the time) so [FountainTitlePageWriter.apply] never writes a
+  /// stray `Key:` line with nothing after it.
+  static List<FountainTitlePageEntry> _titlePageEntriesFromNodes(List<ParagraphNode> titlePageNodes) {
+    final entries = <FountainTitlePageEntry>[];
+    String? currentKey;
+    var currentValues = <String>[];
+
+    void flush() {
+      final key = currentKey;
+      if (key != null) {
+        final nonEmptyValues = currentValues.where((value) => value.trim().isNotEmpty).toList(growable: false);
+        if (nonEmptyValues.isNotEmpty) {
+          entries.add(
+            FountainTitlePageEntry(key: key, values: nonEmptyValues, sourceRange: _placeholderTitlePageEntryRange),
+          );
+        }
+      }
+      currentKey = null;
+      currentValues = [];
+    }
+
+    for (final node in titlePageNodes) {
+      final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
+      if (key is! String) {
+        continue;
+      }
+      if (key != currentKey) {
+        flush();
+        currentKey = key;
+      }
+      currentValues.add(node.text.toPlainText());
+    }
+    flush();
+
+    return entries;
+  }
+
+  /// Encodes just the [selection] span of [document] into Fountain source text, for the
+  /// clipboard: reuses [encode] on a throwaway document holding only the selected nodes (clipping
+  /// the first and last node's text to the selection's own start/end offsets, attributions
+  /// preserved), so a copied fragment stays a faithful, independently round-trippable Fountain
+  /// excerpt — decodable again by [decodeNodesFromFountain] on paste, or by [decode] if pasted
+  /// into another Fountain-aware target. The first node's [ocptBlankLinesBeforeMetadataKey] is
+  /// forced to 0 so a copied fragment never starts with leading blank lines; every other node
+  /// keeps its own metadata untouched, including its blank-lines-before count, so the spacing
+  /// between the copied lines survives.
+  static String encodeSelectionToFountain(Document document, DocumentSelection selection) {
+    final nodes = _clippedSelectionNodes(document, selection);
+    if (nodes.isEmpty) {
+      return "";
+    }
+
+    final adjustedNodes = [
+      nodes.first.copyWithAddedMetadata({ocptBlankLinesBeforeMetadataKey: 0}),
+      ...nodes.skip(1),
+    ];
+    return encode(MutableDocument(nodes: adjustedNodes)).text;
+  }
+
+  /// The [ParagraphNode]s [selection] spans in [document], in document order, with the first and
+  /// last node's text clipped to the selection's own start/end offsets (a selection collapsed to
+  /// a single node clips both ends of that one node). A non-[ParagraphNode] inside the span (none
+  /// exist in this model today, but [Document.getNodesInside]'s contract allows any [DocumentNode]
+  /// type) is skipped rather than crashing, since it carries nothing this codec can serialize.
+  static List<ParagraphNode> _clippedSelectionNodes(Document document, DocumentSelection selection) {
+    final range = selection.normalize(document);
+    final startPosition = range.start.nodePosition;
+    final endPosition = range.end.nodePosition;
+    if (startPosition is! TextNodePosition || endPosition is! TextNodePosition) {
+      return const [];
+    }
+
+    final nodes = document.getNodesInside(range.start, range.end).whereType<ParagraphNode>().toList(growable: false);
+    if (nodes.isEmpty) {
+      return const [];
+    }
+
+    return [
+      for (var index = 0; index < nodes.length; index++)
+        _clipNode(
+          nodes[index],
+          startOffset: range.start.nodeId == nodes[index].id ? startPosition.offset : 0,
+          endOffset: range.end.nodeId == nodes[index].id ? endPosition.offset : null,
+        ),
+    ];
+  }
+
+  /// A copy of [node] whose text is clipped to `[startOffset, endOffset)` (or to the end of the
+  /// text when [endOffset] is null), attributions preserved; every other field, including
+  /// metadata, is left untouched.
+  static ParagraphNode _clipNode(ParagraphNode node, {required int startOffset, int? endOffset}) {
+    final clippedText = endOffset != null ? node.text.copyText(startOffset, endOffset) : node.text.copyText(startOffset);
+    return node.copyParagraphWith(text: clippedText);
+  }
+
   /// Computes the requests needed to bring every unlocked, non-empty node's `blockType` metadata
   /// back in sync with a fresh classification of [document]'s current text, given the surrounding
   /// context every other node's current text (and folded blank runs) provides.
   ///
-  /// A node with [ocptTypeLockedMetadataKey] set is left untouched entirely (a future manual
-  /// type choice is sticky). A node whose text is empty carries no classification signal, so its
-  /// `blockType` is left untouched too; instead, if it was locked, an
-  /// [OcptChangeNodeMetadataRequest] clears the lock, since architecturally a manual type choice
-  /// only makes sense while the block still has content. Only a node whose classified
-  /// [FountainLineType] actually changed produces a [ChangeParagraphBlockTypeRequest], which is
-  /// what keeps this pass from touching (and, from the layout's perspective, recreating) every
-  /// node after every edit.
+  /// A node with [ocptTypeLockedMetadataKey] set is left untouched entirely, for its whole
+  /// lifetime (a manual type choice is sticky, even across the node's text being emptied and
+  /// retyped). A node whose text is empty carries no classification signal, so its `blockType` is
+  /// left untouched too. Only a node whose classified [FountainLineType] actually changed produces
+  /// a [ChangeParagraphBlockTypeRequest], which is what keeps this pass from touching (and, from
+  /// the layout's perspective, recreating) every node after every edit.
+  ///
+  /// **Why a pinned node needs a marker re-emitted before classifying (the whole point of
+  /// [_virtualLineForNode]):** a node's text is its *display* text, i.e. already stripped of
+  /// whatever forcing marker its source line used (see the class doc comment). A type that only
+  /// exists because of a marker — forced scene heading (`.`), forced action (`!`), forced
+  /// character (`@`), transition (`>`), section (`#`), synopsis (`=`), lyrics (`~`), centered text
+  /// (`> <`) — therefore classifies its *bare* display text back to some other, unrelated type
+  /// (typically [FountainLineType.action]): feeding the classifier the stripped text is asking it
+  /// to reconstruct information it was never given. Left uncorrected that wrong classification
+  /// would not just mis-render once: [encode] would bake it into the source as a genuine,
+  /// re-emitted forcing marker (`!SALON - JOUR`), which the very next [decode] reads back as a
+  /// sticky, user-authored choice — a one-time misclassification permanently corrupting the line.
+  /// [_virtualLineForNode] avoids this by re-deriving, for a pinned node only, the exact source
+  /// line its marker would produce, so the classifier is asked the question it can actually
+  /// answer. A side effect worth calling out: a pinned node now always classifies back to its own
+  /// stored type by construction, so it never produces a request of its own — which is the
+  /// correct, self-consistent outcome, not a coincidence of the check below.
   static List<EditRequest> reclassifyRequests(Document document) {
-    final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
+    // Title-page field nodes are filtered out before building the virtual line list below (not
+    // just skipped when generating a request for them): their text has no place in the body's own
+    // classification context (a real body node's auto-detection must never depend on what a title
+    // field happens to hold).
+    final nodes = document
+        .map((node) => node as ParagraphNode)
+        .where((node) => !isTitlePageNode(node))
+        .toList(growable: false);
+    final types = [
+      for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
+    ];
 
     // Reconstruct the virtual line list every node's context depends on: blank runs are real
     // nodes' metadata, not nodes, so they must be reinserted before classifying.
@@ -386,7 +751,7 @@ class OcptWysiwygCodec {
         virtualLines.add("");
       }
       lineIndexOfNode[index] = virtualLines.length;
-      virtualLines.add(nodes[index].text.toPlainText());
+      virtualLines.add(_virtualLineForNode(nodes[index], types[index]));
     }
     final classifiedTypes = _classifier.classify(virtualLines);
 
@@ -395,11 +760,6 @@ class OcptWysiwygCodec {
       final node = nodes[index];
 
       if (node.text.toPlainText().isEmpty) {
-        if (_readTypeLocked(node)) {
-          requests.add(
-            OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptTypeLockedMetadataKey: false}),
-          );
-        }
         continue;
       }
 
@@ -414,6 +774,45 @@ class OcptWysiwygCodec {
       }
 
       requests.add(ChangeParagraphBlockTypeRequest(nodeId: node.id, blockType: expectedAttribution));
+    }
+
+    return requests;
+  }
+
+  /// Computes the requests needed to absorb a trailing `#N#` tag typed live into a scene heading
+  /// node's text: strips it from the node's text (an [OcptReplaceNodeTextRequest]) and stores the
+  /// captured number as [ocptSceneNumberMetadataKey] metadata (an [OcptChangeNodeMetadataRequest]),
+  /// so the tag never lingers as literal, visible text in the styled view.
+  ///
+  /// Only scene-heading nodes are considered. Run this pass, and execute its requests, *before*
+  /// [reclassifyRequests]/[uppercaseRequests] are even computed (see the call site in
+  /// `OcptStyledScreenplayEditor._syncAfterEdit`): otherwise a request from this pass and one from
+  /// [uppercaseRequests], both computed against the same pre-strip text, would each replace the
+  /// node's text wholesale, and whichever executes last would silently undo the other.
+  static List<EditRequest> sceneNumberRequests(Document document) {
+    final requests = <EditRequest>[];
+
+    for (final node in document) {
+      if (node is! ParagraphNode || isTitlePageNode(node)) {
+        continue;
+      }
+
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      if (type != FountainLineType.sceneHeading) {
+        continue;
+      }
+
+      final plainText = node.text.toPlainText();
+      final match = _sceneNumberPattern.firstMatch(plainText);
+      if (match == null) {
+        continue;
+      }
+
+      final strippedLength = plainText.substring(0, match.start).trimRight().length;
+      requests.add(OcptReplaceNodeTextRequest(nodeId: node.id, text: node.text.copyText(0, strippedLength)));
+      requests.add(
+        OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptSceneNumberMetadataKey: match.group(1)}),
+      );
     }
 
     return requests;
@@ -435,7 +834,7 @@ class OcptWysiwygCodec {
     final requests = <EditRequest>[];
 
     for (final node in document) {
-      if (node is! ParagraphNode) {
+      if (node is! ParagraphNode || isTitlePageNode(node)) {
         continue;
       }
 
@@ -564,8 +963,65 @@ class OcptWysiwygCodec {
   /// Reads a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
   static bool _readHadForcingMarker(ParagraphNode node) => node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
+  /// Reads a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
+  static String? _readSceneNumber(ParagraphNode node) {
+    final value = node.getMetadataValue(ocptSceneNumberMetadataKey);
+    return value is String ? value : null;
+  }
+
+  /// The text [encode] hands to [_lineWriter] for [node]: its inline-serialized display text,
+  /// with a scene heading's [ocptSceneNumberMetadataKey] tag re-appended when set. Never appends
+  /// to an empty base text, so an emptied heading still serializes through the empty-node rule
+  /// (a plain blank line) rather than stranding a lone `#N#` tag.
+  static String _displayTextForEncode(ParagraphNode node, FountainLineType type) {
+    final base = _inlineSerializer.write(_runsFromAttributedText(node.text));
+    if (type != FountainLineType.sceneHeading || base.isEmpty) {
+      return base;
+    }
+
+    final sceneNumber = _readSceneNumber(node);
+    return sceneNumber == null ? base : "$base #$sceneNumber#";
+  }
+
   /// Reads a node's [ocptTypeLockedMetadataKey] metadata, defaulting to false.
   static bool _readTypeLocked(ParagraphNode node) => node.getMetadataValue(ocptTypeLockedMetadataKey) == true;
+
+  /// Whether [node]'s stored `blockType` is pinned by the user rather than up for
+  /// auto-detection, per [reclassifyRequests]'s doc comment: either a manual dropdown/Tab choice
+  /// ([ocptTypeLockedMetadataKey]) or a source line that carried an explicit forcing marker
+  /// ([ocptHadForcingMarkerMetadataKey]) — the *serialized* form of that very same "the user fixed
+  /// this type on purpose" intent, already honoured by [encode] and, until this method existed,
+  /// silently ignored by [reclassifyRequests].
+  static bool _isPinnedNode(ParagraphNode node) => _readTypeLocked(node) || _readHadForcingMarker(node);
+
+  /// The virtual source line [reclassifyRequests] feeds the classifier for [node], currently
+  /// stored as [type]. A pinned node (see [_isPinnedNode]) gets its marker re-emitted through
+  /// [_lineWriter] with `hadForcingMarker: true`, which always prepends the marker regardless of
+  /// what auto-detection alone would decide (`FountainLineWriter`'s own private
+  /// `_writeWithPrefixMarker` helper only skips the marker when auto-detection agrees *and* no
+  /// forcing marker was requested); `previousType`/`nextRawLine` are therefore irrelevant to the
+  /// result and passed as `null`, deliberately. Every other node's virtual line is just its plain
+  /// display text, exactly what auto-detection sees while the user types.
+  ///
+  /// An empty display text always falls back to the plain (empty) text, pinned or not:
+  /// [FountainLineWriter.writeLine] refuses [FountainLineType.blank], which a node's stored type
+  /// never is, but calling it on an empty string would still prepend a lone marker (e.g. `.`) with
+  /// nothing after it, fabricating a virtual "line" made purely of punctuation instead of the
+  /// harmless empty line a genuinely empty node should contribute.
+  static String _virtualLineForNode(ParagraphNode node, FountainLineType type) {
+    final displayText = node.text.toPlainText();
+    if (displayText.isEmpty || !_isPinnedNode(node)) {
+      return displayText;
+    }
+
+    return _lineWriter.writeLine(
+      text: displayText,
+      type: type,
+      hadForcingMarker: true,
+      previousType: null,
+      nextRawLine: null,
+    );
+  }
 
   /// Strips [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
   /// text and whether a marker was actually present. Mirrors, in reverse, every rule
@@ -606,6 +1062,17 @@ class OcptWysiwygCodec {
       case FountainLineType.parenthetical:
         return (rawLine, false);
     }
+  }
+
+  /// Strips a trailing `#N#` scene-number tag off a scene heading's already forcing-marker-
+  /// stripped [text], returning the text without it (trailing whitespace trimmed) and the
+  /// captured number, or [text] unchanged and null when there is no tag.
+  static (String, String?) _extractSceneNumber(String text) {
+    final match = _sceneNumberPattern.firstMatch(text);
+    if (match == null) {
+      return (text, null);
+    }
+    return (text.substring(0, match.start).trimRight(), match.group(1));
   }
 
   /// Strips the `> ` / ` <` wrapping [FountainLineWriter.writeLine] always emits for

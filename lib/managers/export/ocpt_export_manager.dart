@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
@@ -9,6 +12,7 @@ import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 
@@ -19,18 +23,16 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [LoggerManager, FileSaverManager, FileSelectorManager];
+  Iterable<Type> dependsOn() => [LoggerManager, FileSelectorManager];
 }
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
 /// or a PDF.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
-/// [fountainIoService] and [pdfExportService], the services this manager owns (RFL18).
+/// [fountainIoService] and [pdfExportService], and the "save as" location picking to
+/// [saveLocationService] — the services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
-  /// The manager used to show the native "save as" dialog when exporting.
-  final FileSaverManager _fileSaverManager;
-
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
 
@@ -40,34 +42,47 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service rendering a screenplay PDF.
   final OcptPdfExportService pdfExportService;
 
+  /// The service showing the native "save as" dialog and resolving the chosen path.
+  final OcptSaveLocationService saveLocationService;
+
   /// Class constructor
-  OcptExportManager({FileSaverManager? fileSaverManager, FileSelectorManager? fileSelectorManager})
-    : _fileSaverManager = fileSaverManager ?? globalGetIt().get<FileSaverManager>(),
-      _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
-      fountainIoService = const OcptFountainIoService(),
-      pdfExportService = OcptPdfExportService();
+  OcptExportManager({
+    FileSelectorManager? fileSelectorManager,
+    OcptSaveLocationService? saveLocationService,
+  }) : _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
+       fountainIoService = const OcptFountainIoService(),
+       pdfExportService = OcptPdfExportService(),
+       saveLocationService = saveLocationService ?? const OcptSaveLocationService();
 
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
   ///
-  /// Returns the path of the written file, or null if the user cancelled or the save failed
-  /// (failures are logged; the OS dialog already reported them to the user).
-  Future<String?> exportFountain({required String fountainText, required String projectName}) =>
-      _fileSaverManager.saveFileFromBytes(
-        fileName: fountainIoService.fountainFileName(projectName),
-        bytes: fountainIoService.encodeFountainText(fountainText),
-      );
+  /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. Returns
+  /// the path of the written file, or null if the user cancelled or the save failed (failures
+  /// are logged; the OS dialog already reported a cancellation to the user).
+  Future<String?> exportFountain({
+    required String fountainText,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: fountainIoService.fountainFileName(projectName),
+    fileTypeLabel: fileTypeLabel,
+    extensions: [OcptFountainIoService.fountainFileExtension],
+    bytes: fountainIoService.encodeFountainText(fountainText),
+  );
 
   /// Renders [document] into a PDF via [pdfExportService] and shows the native save dialog to
   /// write it out.
   ///
-  /// Returns the path of the written file, or null if the user cancelled or the save failed
-  /// (failures are logged; the OS dialog already reported them to the user).
+  /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. Returns
+  /// the path of the written file, or null if the user cancelled or the save failed (failures
+  /// are logged; the OS dialog already reported a cancellation to the user).
   Future<String?> exportPdf({
     required FountainDocument document,
     required OcptPageSetup pageSetup,
     required String projectName,
     required bool includeSceneNumbers,
     required bool includeTitlePage,
+    required String fileTypeLabel,
   }) async {
     final bytes = await pdfExportService.generate(
       document: document,
@@ -77,10 +92,40 @@ class OcptExportManager extends AbsWithLifeCycle {
       includeTitlePage: includeTitlePage,
     );
 
-    return _fileSaverManager.saveFileFromBytes(
-      fileName: pdfExportService.pdfFileName(projectName),
+    return _writeToPickedLocation(
+      suggestedFileName: pdfExportService.pdfFileName(projectName),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
       bytes: bytes,
     );
+  }
+
+  /// Shows the native save dialog and writes [bytes] to the chosen location.
+  ///
+  /// Returns the written path, or null if the user cancelled the dialog or the write failed
+  /// (logged; treated the same as a cancellation by every caller).
+  Future<String?> _writeToPickedLocation({
+    required String suggestedFileName,
+    required String fileTypeLabel,
+    required List<String> extensions,
+    required Uint8List bytes,
+  }) async {
+    final path = await saveLocationService.pickSaveLocation(
+      suggestedFileName: suggestedFileName,
+      fileTypeLabel: fileTypeLabel,
+      extensions: extensions,
+    );
+    if (path == null) {
+      return null;
+    }
+
+    try {
+      await File(path).writeAsBytes(bytes, flush: true);
+      return path;
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to write the file at: $path, error: $error");
+      return null;
+    }
   }
 
   /// Shows the native open dialog, reads the picked `.fountain` file and decodes it.

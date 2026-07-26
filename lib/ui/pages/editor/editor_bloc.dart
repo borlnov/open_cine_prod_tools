@@ -134,6 +134,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
+    on<OcptEditorStyledSceneNumbersToggledEvent>(_onStyledSceneNumbersToggled);
     on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
@@ -156,6 +157,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   ) async {
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
     final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
+    final areStyledSceneNumbersVisible =
+        await _propertiesManager.styledSceneNumbersVisible.load() ?? true;
     final leftDockFraction =
         await _propertiesManager.editorLeftDockFraction.load() ?? OcptEditorDock.leftDefaultFraction;
     final rightDockFraction =
@@ -181,6 +184,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           document: document,
           mode: mode,
           isPageSimulationEnabled: isPageSimulationEnabled,
+          areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           rightDockTab: dockTabTransition.rightDockTab,
@@ -214,6 +218,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         document: document,
         pageSetup: pageSetup,
         isPageSimulationEnabled: isPageSimulationEnabled,
+        areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         rightDockTab: dockTabTransition.rightDockTab,
@@ -528,6 +533,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     await _propertiesManager.isPageSimulationEnabled.store(newValue);
   }
 
+  /// Toggles whether the styled editor shows scene numbers, and persists the new value.
+  Future<void> _onStyledSceneNumbersToggled(
+    OcptEditorStyledSceneNumbersToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final newValue = !state.areStyledSceneNumbersVisible;
+    emitter(state.copyWith(areStyledSceneNumbersVisible: newValue));
+    await _propertiesManager.styledSceneNumbersVisible.store(newValue);
+  }
+
   /// Persists the new page setup (format per-project, margins app-wide), applies it live, and
   /// recomputes statistics immediately since [FountainScriptStatistics.pageCount] depends on the
   /// page format.
@@ -574,6 +589,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       final path = await _exportManager.exportFountain(
         fountainText: state.text,
         projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -624,6 +640,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         projectName: state.title,
         includeSceneNumbers: event.options.includeSceneNumbers,
         includeTitlePage: event.options.includeTitlePage,
+        fileTypeLabel: event.fileTypeLabel,
       );
       if (path == null) {
         // The user cancelled the save dialog.

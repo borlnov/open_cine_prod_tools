@@ -259,6 +259,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorToggleSceneNumbersAction": "Scene numbers",
+  "@editorToggleSceneNumbersAction": {
+    "description": "Label of the action that toggles the styled editor's scene numbers on or off",
+    "context": "Displayed as a checkable item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorPageSetupAction": "Page setup…",
   "@editorPageSetupAction": {
     "description": "Label of the action that opens the page setup dialog",
@@ -436,8 +443,8 @@
   },
   "editorImportFileTypeLabel": "Fountain screenplay",
   "@editorImportFileTypeLabel": {
-    "description": "Label of the .fountain file type shown in the native open-file dialog",
-    "context": "Passed to the OS file picker when the user chooses to import and replace",
+    "description": "Label of the .fountain file type shown in the native open/save-file dialog",
+    "context": "Passed to the OS file picker when the user imports, or exports to .fountain",
     "type": "text",
     "placeholders": {}
   },
@@ -505,6 +512,20 @@
   "@editorExportPdfTitlePageLabel": {
     "description": "Label of the checkbox toggling the title page in the exported PDF",
     "context": "Displayed inside the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfExportAction": "Export",
+  "@editorExportPdfExportAction": {
+    "description": "Label of the action that confirms the PDF export options dialog",
+    "context": "Displayed on a button in the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfFileTypeLabel": "PDF document",
+  "@editorExportPdfFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports to PDF",
     "type": "text",
     "placeholders": {}
   },
@@ -923,6 +944,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorSyntaxGuideSceneNumberTitle": "Scene number",
+  "@editorSyntaxGuideSceneNumberTitle": {
+    "description": "Title of the scene number entry of the syntax guide",
+    "context": "Displayed above the scene number snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorSyntaxGuideDualDialogueTitle": "Dual dialogue",
   "@editorSyntaxGuideDualDialogueTitle": {
     "description": "Title of the dual dialogue entry of the syntax guide",
@@ -962,6 +990,13 @@
   "@editorSyntaxGuideSceneHeadingDescription": {
     "description": "Description of the scene heading entry of the syntax guide",
     "context": "Displayed under the scene heading snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSceneNumberDescription": "A scene number is an explicit `#N#` tag at the end of a scene heading (for example `#4A#`); the styled editor hides the tag and shows the number in the margin instead, and unnumbered headings can be numbered automatically.",
+  "@editorSyntaxGuideSceneNumberDescription": {
+    "description": "Description of the scene number entry of the syntax guide",
+    "context": "Displayed under the scene number snippet of the syntax guide",
     "type": "text",
     "placeholders": {}
   },

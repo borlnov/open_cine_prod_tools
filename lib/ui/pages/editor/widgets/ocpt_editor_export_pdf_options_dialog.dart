@@ -99,7 +99,7 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
           onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
           child: Text(tr.editorPageSetupCancelAction),
         ),
-        FilledButton(onPressed: _submit, child: Text(tr.editorPageSetupApplyAction)),
+        FilledButton(onPressed: _submit, child: Text(tr.editorExportPdfExportAction)),
       ],
     );
   }

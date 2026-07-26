@@ -72,10 +72,7 @@ void main() {
       ..registerSingleton<FileSaverManager>(const FileSaverManager())
       ..registerSingleton<FileSelectorManager>(const FileSelectorManager())
       ..registerSingleton<OcptExportManager>(
-        OcptExportManager(
-          fileSaverManager: const FileSaverManager(),
-          fileSelectorManager: const FileSelectorManager(),
-        ),
+        OcptExportManager(fileSelectorManager: const FileSelectorManager()),
       );
   });
 

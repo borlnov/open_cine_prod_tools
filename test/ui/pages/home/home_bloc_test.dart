@@ -28,10 +28,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
   _FakeExportManager({this.importResult})
-    : super(
-        fileSaverManager: const FileSaverManager(),
-        fileSelectorManager: const FileSelectorManager(),
-      );
+    : super(fileSelectorManager: const FileSelectorManager());
 
   /// The model [pickAndReadFountain] returns, or null to simulate a cancelled open dialog.
   final OcptImportedFountainModel? importResult;

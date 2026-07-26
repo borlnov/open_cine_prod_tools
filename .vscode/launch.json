@@ -12,19 +12,22 @@
         {
             "name": "open_cine_prod_tools",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "preLaunchTask": "Generate translations"
         },
         {
             "name": "open_cine_prod_tools (profile mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "preLaunchTask": "Generate translations"
         },
         {
             "name": "open_cine_prod_tools (release mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "preLaunchTask": "Generate translations"
         }
     ]
 }

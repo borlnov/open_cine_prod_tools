@@ -4,6 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
@@ -68,6 +69,19 @@ class OcptStyledPagination {
 /// styled editor keeps one `ParagraphNode` per source line with no exceptions, so the break line
 /// itself is what visually leads the new page.
 ///
+/// [document]'s title-page field nodes (`OcptWysiwygCodec.isTitlePageNode`), if any, are skipped
+/// by the per-node flow entirely — they are laid out by `OcptFountainEditorStylesheet`'s own
+/// title-page rule, not by this line-estimation pass — but their real rendered height
+/// (`computeOcptStyledTitlePageMetrics`'s flow height, the exact geometry that rule itself
+/// typesets from) seeds the running Y position before the loop starts, so the padding computed for
+/// the first body node accounts for precisely how much of page 1 the title page actually filled,
+/// not an idealized full or empty page.
+///
+/// Independent of that height, a title page's mere presence still always reserves the whole of
+/// page 1 for it (matching the PDF exporter's title page, which is likewise always its own page):
+/// the first body node is always forced to open page 2, however little of page 1 the title page
+/// actually fills in.
+///
 /// Alongside which nodes start a page, this also tracks an estimated running Y position (in
 /// logical pixels, using the exact same [OcptEditorPreviewLayout.lineHeight] the stylesheet
 /// renders at) through the document's natural flow, so [OcptStyledPagination.pageStartTopPaddings]
@@ -75,7 +89,7 @@ class OcptStyledPagination {
 /// happens to land and where each page boundary actually is — see their own doc comments.
 ///
 /// Pure Dart, independent of any live `SuperEditor` widget, so it can be unit-tested directly
-/// against a `MutableDocument` built by `OcptWysiwygCodec.decode`.
+/// against a `MutableDocument` built by `OcptWysiwygCodec.decode`/`decodeWithTitlePage`.
 OcptStyledPagination computeOcptStyledPagination({
   required Document document,
   required FountainLayoutMetrics metrics,
@@ -83,18 +97,36 @@ OcptStyledPagination computeOcptStyledPagination({
   final layout = OcptEditorPreviewLayout(metrics: metrics);
   final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
 
+  final hasTitlePage = document.any((node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node));
+
   final pageStartNodeIds = <String>{};
   final pageStartTopPaddings = <String, double>{};
-  var pageCount = 0;
-  var pageIndex = 0;
+  // A title page, when present, always occupies page 1 in full: page 0 is already "spent" before
+  // the loop below ever runs, and the body's own flow starts targeting page index 1.
+  var pageCount = hasTitlePage ? 1 : 0;
+  var pageIndex = hasTitlePage ? 1 : 0;
   var currentLines = 0;
   // The document's own top padding, while page simulation is on, is the first page's true top
   // margin (see `OcptFountainEditorStylesheet.build`), so the flow's starting Y already sits
-  // there before the first node's own text.
-  var currentY = layout.marginTop;
+  // there before the first node's own text. The title page's own content (if any) is laid out by
+  // the stylesheet directly and never enters the loop below, but its real rendered height —
+  // `computeOcptStyledTitlePageMetrics`'s flow height, the same geometry the stylesheet itself
+  // typesets from — is added here so the estimate starts exactly where the title page's own flow
+  // actually ends, rather than at `marginTop` as if nothing had been drawn above the body yet
+  // (0 when there is no title page, so this collapses to plain `marginTop` in that case).
+  //
+  // A pathologically long title page (an overlong Contact/Source) could in principle push this
+  // past the first body page's own text origin; the padding clamp a few lines below already
+  // stops that from going negative, so the worst outcome is the body starting with no extra
+  // padding at all rather than pagination throwing.
+  final titlePageFlowHeight = hasTitlePage
+      ? computeOcptStyledTitlePageMetrics(document: document, metrics: metrics).flowHeight
+      : 0.0;
+  var currentY = layout.marginTop + titlePageFlowHeight;
+  var isFirstBodyNode = true;
 
   for (final node in document) {
-    if (node is! ParagraphNode) {
+    if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
       continue;
     }
 
@@ -103,11 +135,19 @@ OcptStyledPagination computeOcptStyledPagination({
     final blankLinesBefore = _blankLinesBeforeOf(node);
     final lines = wrappedLines + blankLinesBefore;
 
+    final forcesPageBreak = isFirstBodyNode && hasTitlePage;
+    isFirstBodyNode = false;
+
     if (pageCount == 0) {
       pageCount = 1;
-    } else if (type == FountainLineType.pageBreak || currentLines + lines > metrics.linesPerPage) {
+    } else if (forcesPageBreak || type == FountainLineType.pageBreak || currentLines + lines > metrics.linesPerPage) {
       pageCount++;
-      pageIndex++;
+      // The forced title-page-to-body break targets `pageIndex`, already 1 from initialization,
+      // rather than incrementing it again: every other trigger below genuinely advances past a
+      // page this same loop already started.
+      if (!forcesPageBreak) {
+        pageIndex++;
+      }
       currentLines = 0;
 
       // The stylesheet separately opens up `blankLinesBefore * lineHeight` of top padding for

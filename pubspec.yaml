@@ -52,6 +52,10 @@ dependencies:
   # Opens the GitHub repository link in the system browser
   url_launcher: ^6.3.2
 
+  # Shows the native "save as" dialog for exports; promoted from a transitive dependency of
+  # act_file_transfer_manager to a direct one now that the app calls it itself
+  file_selector: ^1.1.0
+
   act_config_manager:
     path: actlibs/act_config_manager
 
@@ -124,6 +128,10 @@ dev_dependencies:
 
   # Provides InMemorySharedPreferencesAsync, used to back OcptPropertiesManager in tests
   shared_preferences_platform_interface: ^2.4.2
+
+  # Provides tester.ime.backspace, used to simulate the IME delta channel's own Backspace path
+  # (super_editor's own supereditor_robot.dart only wraps its typeText, not its backspace)
+  flutter_test_robots: ^0.0.24
 
   # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
   drift_dev: ^2.24.0

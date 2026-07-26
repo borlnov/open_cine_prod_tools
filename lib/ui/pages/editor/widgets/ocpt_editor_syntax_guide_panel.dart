@@ -103,6 +103,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
   /// The localized title of [topic], read from [tr].
   String _labelOf(Tr tr, OcptFountainSyntaxTopic topic) => switch (topic) {
     OcptFountainSyntaxTopic.sceneHeading => tr.editorBlockTypeSceneHeading,
+    OcptFountainSyntaxTopic.sceneNumber => tr.editorSyntaxGuideSceneNumberTitle,
     OcptFountainSyntaxTopic.action => tr.editorBlockTypeAction,
     OcptFountainSyntaxTopic.character => tr.editorBlockTypeCharacter,
     OcptFountainSyntaxTopic.parenthetical => tr.editorBlockTypeParenthetical,
@@ -123,6 +124,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
   /// The localized description of [topic], read from [tr].
   String _descriptionOf(Tr tr, OcptFountainSyntaxTopic topic) => switch (topic) {
     OcptFountainSyntaxTopic.sceneHeading => tr.editorSyntaxGuideSceneHeadingDescription,
+    OcptFountainSyntaxTopic.sceneNumber => tr.editorSyntaxGuideSceneNumberDescription,
     OcptFountainSyntaxTopic.action => tr.editorSyntaxGuideActionDescription,
     OcptFountainSyntaxTopic.character => tr.editorSyntaxGuideCharacterDescription,
     OcptFountainSyntaxTopic.parenthetical => tr.editorSyntaxGuideParentheticalDescription,

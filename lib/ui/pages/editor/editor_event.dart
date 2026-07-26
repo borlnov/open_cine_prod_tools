@@ -182,6 +182,15 @@ class OcptEditorPageSimulationToggledEvent extends OcptEditorEvent {
   const OcptEditorPageSimulationToggledEvent();
 }
 
+/// Toggles whether the styled editor shows every scene heading's number in its left gutter.
+///
+/// The new value is persisted through `OcptPropertiesManager.styledSceneNumbersVisible`, so it's
+/// restored the next time the editor is opened.
+class OcptEditorStyledSceneNumbersToggledEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorStyledSceneNumbersToggledEvent();
+}
+
 /// Requests updating the editor's page setup (page size and margins).
 ///
 /// [pageSetup] is persisted (format per-project, margins app-wide) and applied live to the
@@ -218,8 +227,15 @@ class OcptEditorBackRequestedEvent extends OcptEditorEvent {
 /// If the screenplay is dirty, it's saved first (tagged `OcptSnapshotReason.export`) so the
 /// exported file matches exactly what the project stores.
 class OcptEditorExportRequestedEvent extends OcptEditorEvent {
+  /// The label of the file type shown in the native save dialog, localized by the caller.
+  final String fileTypeLabel;
+
   /// Class constructor
-  const OcptEditorExportRequestedEvent();
+  const OcptEditorExportRequestedEvent({required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fileTypeLabel];
 }
 
 /// Requests exporting the current screenplay to a PDF file.
@@ -231,12 +247,15 @@ class OcptEditorExportPdfRequestedEvent extends OcptEditorEvent {
   /// The options this export runs with.
   final OcptPdfExportOptions options;
 
+  /// The label of the file type shown in the native save dialog, localized by the caller.
+  final String fileTypeLabel;
+
   /// Class constructor
-  const OcptEditorExportPdfRequestedEvent({required this.options});
+  const OcptEditorExportPdfRequestedEvent({required this.options, required this.fileTypeLabel});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options];
+  List<Object?> get props => [...super.props, options, fileTypeLabel];
 }
 
 /// Requests replacing the current screenplay text with the content of a picked `.fountain` file.

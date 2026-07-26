@@ -151,6 +151,13 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// updated on every toggle; on by default.
   final bool isPageSimulationEnabled;
 
+  /// Whether the styled editor shows every scene heading's number (explicit or computed) in its
+  /// left gutter.
+  ///
+  /// Persisted through `OcptPropertiesManager.styledSceneNumbersVisible`, loaded once on entry and
+  /// updated on every toggle; on by default.
+  final bool areStyledSceneNumbersVisible;
+
   /// The pending caret jump request, or null if none was ever made.
   ///
   /// The page keeps track of the last [OcptEditorJumpRequest.id] it applied, so this doesn't
@@ -190,6 +197,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.mode,
     required this.pageSetup,
     required this.isPageSimulationEnabled,
+    required this.areStyledSceneNumbersVisible,
     required this.jumpRequest,
     required this.ioNotice,
     required this.statistics,
@@ -214,6 +222,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       mode = OcptEditorMode.styled,
       pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,
+      areStyledSceneNumbersVisible = true,
       jumpRequest = null,
       ioNotice = null,
       statistics = FountainScriptStatistics.empty;
@@ -250,6 +259,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     OcptEditorMode? mode,
     OcptPageSetup? pageSetup,
     bool? isPageSimulationEnabled,
+    bool? areStyledSceneNumbersVisible,
     OcptEditorJumpRequest? jumpRequest,
     OcptEditorIoNotice? ioNotice,
     bool clearIoNotice = false,
@@ -274,6 +284,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     mode: mode ?? this.mode,
     pageSetup: pageSetup ?? this.pageSetup,
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
+    areStyledSceneNumbersVisible: areStyledSceneNumbersVisible ?? this.areStyledSceneNumbersVisible,
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     statistics: statistics ?? this.statistics,
@@ -300,6 +311,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     mode,
     pageSetup,
     isPageSimulationEnabled,
+    areStyledSceneNumbersVisible,
     jumpRequest,
     ioNotice,
     statistics,

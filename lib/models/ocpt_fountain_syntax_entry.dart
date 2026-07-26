@@ -70,6 +70,12 @@ const List<OcptFountainSyntaxEntry> ocptFountainSyntaxEntries = [
     lineType: FountainLineType.sceneHeading,
   ),
   OcptFountainSyntaxEntry(
+    topic: OcptFountainSyntaxTopic.sceneNumber,
+    section: OcptFountainSyntaxSection.structure,
+    snippetLines: ["INT. KITCHEN - DAY #1#"],
+    lineType: FountainLineType.sceneHeading,
+  ),
+  OcptFountainSyntaxEntry(
     topic: OcptFountainSyntaxTopic.action,
     section: OcptFountainSyntaxSection.structure,
     snippetLines: ["She walks in, breathless."],
