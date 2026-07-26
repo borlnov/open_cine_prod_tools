@@ -340,13 +340,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         // including the many tests that pump this widget standalone with no localization set up.
         if (widget.isPageSimulationEnabled)
           OcptTitlePagePlaceholderComponentBuilder(
-            placeholders: _titlePagePlaceholders(context),
-            hintStyleBuilder: (context) => TextStyle(
-              fontFamily: OcptEditorPreviewLayout.fontFamily,
-              fontSize: OcptEditorPreviewLayout.fontSize,
-              height: layout.lineHeightFactor,
+            placeholders: _titlePagePlaceholdersByNodeId(context),
+            hintStyleBuilder: (resolvedStyle) => resolvedStyle.copyWith(
               fontStyle: FontStyle.italic,
-              color: onSurface.withValues(alpha: 0.4),
+              color: resolvedStyle.color?.withValues(alpha: 0.4),
             ),
           ),
         ...defaultComponentBuilders,
@@ -501,6 +498,28 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       "Contact": tr.editorTitlePageContactLabel,
       "Source": tr.editorTitlePageSourceLabel,
     };
+  }
+
+  /// [_titlePagePlaceholders], re-keyed by node id for
+  /// [OcptTitlePagePlaceholderComponentBuilder.placeholders]: that builder's `createComponent` is
+  /// only ever handed a view model, never the node's own [ocptTitlePageKeyMetadataKey] metadata
+  /// (unlike `createViewModel`, which reads [_document] directly), so this resolves each current
+  /// title-page node's label ahead of time, mirroring [_sceneNumbersFromMetadata]'s own node-id
+  /// keying.
+  Map<String, String> _titlePagePlaceholdersByNodeId(BuildContext context) {
+    final labels = _titlePagePlaceholders(context);
+    final placeholders = <String, String>{};
+    for (final node in _document) {
+      if (node is! ParagraphNode) {
+        continue;
+      }
+      final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
+      final label = key is String ? labels[key] : null;
+      if (label != null) {
+        placeholders[node.id] = label;
+      }
+    }
+    return placeholders;
   }
 
   /// Builds [_document], [_composer] and [_editor] from [text], and starts listening to document

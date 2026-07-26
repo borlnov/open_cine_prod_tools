@@ -570,6 +570,62 @@ void main() {
       expect(find.text("Source"), findsOneWidget);
     });
 
+    testWidgets(
+      "an empty title-page field's placeholder sits exactly where the real value would be typeset",
+      (tester) async {
+        // The title fields sit hundreds of pixels down the simulated page: tall enough that the
+        // default 800x600 test surface would leave the lower fields outside the viewport.
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+        // Same "page's content area" reconstruction the page-simulation group above uses: the
+        // editor's own box spans the content area widened by the stylesheet's horizontal
+        // `documentPadding` inset on each side (see `OcptStyledScreenplayEditor.build`).
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+        final editorRect = tester.getRect(find.byType(SuperEditor));
+        final pageLeftEdge = editorRect.left + inset;
+        final pageRightEdge = pageLeftEdge + layout.pageWidth;
+        final contentLeft = pageLeftEdge + layout.marginLeft;
+        final contentRight = pageRightEdge - layout.marginRight;
+        final contentCentreX = (contentLeft + contentRight) / 2;
+
+        // Title/Credit/Author are centred on the content area, exactly like the value that will
+        // replace them (this is the assertion that fails against the pre-fix `TextWithHintComponent`,
+        // whose hint `Text.rich` never receives a `textAlign` and so always sits flush left).
+        for (final label in ["Title", "Credit", "Author"]) {
+          final rect = tester.getRect(find.text(label));
+          expect(rect.center.dx, closeTo(contentCentreX, 1), reason: "$label placeholder");
+        }
+
+        // Draft date is right-aligned, its text ending flush with the content area's right edge.
+        final draftDateRect = tester.getRect(find.text("Draft date"));
+        expect(draftDateRect.right, closeTo(contentRight, 1));
+      },
+    );
+
+    testWidgets(
+      "the Title placeholder is typeset at the Title rule's own font size and weight",
+      (tester) async {
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+        // Fails against the pre-fix `hintStyleBuilder`, which built a fresh `TextStyle` at body
+        // size instead of decorating the Title rule's own resolved style (`fontSize * 1.6`, bold).
+        final titleHint = tester.widget<Text>(find.text("Title"));
+        expect(titleHint.style?.fontSize, OcptEditorPreviewLayout.fontSize * 1.6);
+        expect(titleHint.style?.fontWeight, FontWeight.bold);
+      },
+    );
+
     testWidgets("the title sheet disappears entirely while page simulation is off", (tester) async {
       await _pumpStandaloneEditor(tester, "Some action.");
 
