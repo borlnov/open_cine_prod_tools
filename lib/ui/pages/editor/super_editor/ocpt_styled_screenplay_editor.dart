@@ -246,9 +246,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final jumpRequest = widget.jumpRequest;
     if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
       _lastAppliedJumpRequestId = jumpRequest.id;
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _applyJumpRequest(jumpRequest.charOffset),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _applyJumpRequest(jumpRequest.charOffset));
     }
   }
 
@@ -342,11 +340,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         // including the many tests that pump this widget standalone with no localization set up.
         if (widget.isPageSimulationEnabled)
           OcptTitlePageComponentBuilder(
-            placeholders: _titlePagePlaceholdersByNodeId(context),
-            hintStyleBuilder: (resolvedStyle) => resolvedStyle.copyWith(
-              fontStyle: FontStyle.italic,
-              color: resolvedStyle.color?.withValues(alpha: 0.4),
-            ),
+            placeholders: _titlePagePlaceholders(context),
+            hintStyleBuilder: (resolvedStyle) =>
+                resolvedStyle.copyWith(fontStyle: FontStyle.italic, color: resolvedStyle.color?.withValues(alpha: 0.4)),
             metrics: metrics,
           ),
         ...defaultComponentBuilders,
@@ -502,29 +498,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       "Source": tr.editorTitlePageSourceLabel,
     };
   }
-
-  /// [_titlePagePlaceholders], re-keyed by node id for
-  /// [OcptTitlePageComponentBuilder.placeholders]: that builder's `createComponent` is only ever
-  /// handed a view model, never the node's own [ocptTitlePageKeyMetadataKey] metadata (unlike
-  /// `createViewModel`, which reads [_document] directly), so this resolves each current
-  /// title-page node's label ahead of time, mirroring [_sceneNumbersFromMetadata]'s own node-id
-  /// keying.
-  Map<String, String> _titlePagePlaceholdersByNodeId(BuildContext context) {
-    final labels = _titlePagePlaceholders(context);
-    final placeholders = <String, String>{};
-    for (final node in _document) {
-      if (node is! ParagraphNode) {
-        continue;
-      }
-      final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
-      final label = key is String ? labels[key] : null;
-      if (label != null) {
-        placeholders[node.id] = label;
-      }
-    }
-    return placeholders;
-  }
-
 
   /// Builds [_document], [_composer] and [_editor] from [text], and starts listening to document
   /// and selection changes.
@@ -904,11 +877,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final componentState = component as State;
     if (componentState.mounted) {
       unawaited(
-        Scrollable.ensureVisible(
-          componentState.context,
-          alignment: 0.3,
-          duration: const Duration(milliseconds: 200),
-        ),
+        Scrollable.ensureVisible(componentState.context, alignment: 0.3, duration: const Duration(milliseconds: 200)),
       );
     }
   }

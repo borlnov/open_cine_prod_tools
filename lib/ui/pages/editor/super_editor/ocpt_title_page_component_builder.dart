@@ -60,15 +60,26 @@ import 'package:super_editor/super_editor.dart';
 /// keeps rendering through this same builder rather than jumping to another one), and delegates
 /// every other node to whichever builder comes after it in `SuperEditor.componentBuilders` by
 /// returning null, the same convention every builder in this directory follows.
+///
+/// The claim has to be made independently in **both** [createViewModel] and [createComponent],
+/// checking the node's own [ocptTitlePageFieldAttribution] `blockType` in each: `SuperEditor`'s
+/// layout resolves a node's component by walking `SuperEditor.componentBuilders` in order and
+/// keeping the first non-null `createComponent` result, and that walk hands `createComponent`
+/// whichever view model was actually resolved for the node — which may have been built by a
+/// *different* builder's `createViewModel` (e.g. an ordinary body node's, built by the default
+/// `ParagraphComponentBuilder`). A `createComponent` that accepted every
+/// [ParagraphComponentViewModel] regardless of node type would swallow every other builder's nodes
+/// too (see `OcptSceneNumberGutterComponentBuilder`'s own doc comment for the same fact, and the
+/// bug it and this builder both had before `blockType` was checked here).
 class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// Creates an [OcptTitlePageComponentBuilder].
   OcptTitlePageComponentBuilder({required this.placeholders, required this.hintStyleBuilder, required this.metrics});
 
-  /// The placeholder text to show for an empty title-page field node, keyed by node id (a node
-  /// missing an entry, which should not normally happen, simply never gets a hint): this builder's
-  /// `createComponent` is only ever handed a [SingleColumnLayoutComponentViewModel], never the
-  /// node's own metadata, so the caller resolves each field's label ahead of time, the same way
-  /// `OcptSceneNumberGutterComponentBuilder.sceneNumbers` is keyed by node id.
+  /// The placeholder text to show for an empty field, keyed by [ocptTitlePageFieldKeys] (a key
+  /// missing an entry, which should not normally happen, simply never gets a hint shown for it):
+  /// this builder resolves which node, if any, gets a given field's hint itself (see
+  /// [_placeholderFieldKeyByNodeId]), so the caller only ever needs to say what each *field* is
+  /// called, not which node currently represents it.
   final Map<String, String> placeholders;
 
   /// Decorates a title-page field's own resolved [TextStyle] — read from the delegate's
@@ -89,17 +100,37 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// later, in the same layout pass. Absent for every other title-page node.
   final Map<String, double> _rowShiftByNodeId = {};
 
+  /// The [ocptTitlePageFieldKeys] key of the field [createComponent] should paint a placeholder
+  /// hint for, keyed by node id — present only for a field's **first** node (a field spanning
+  /// several nodes, from an Enter split inside it, would otherwise show the same hint on every one
+  /// of them), refreshed against the live document every time [createViewModel] runs for a
+  /// title-page node, and read back by [createComponent] for that same node moments later, in the
+  /// same layout pass (mirrors [_rowShiftByNodeId]'s own lifetime, see the class-level doc comment
+  /// for why that pattern is safe here). Absent for every node that isn't a field's first.
+  final Map<String, String> _placeholderFieldKeyByNodeId = {};
+
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(Document document, DocumentNode node) {
     if (node is! ParagraphNode || !OcptWysiwygCodec.isTitlePageNode(node)) {
       return null;
     }
 
-    final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
+    final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey) as String;
     if (key == "Contact" || key == "Source") {
       _rowShiftByNodeId[node.id] = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics).rowShift;
     } else {
       _rowShiftByNodeId.remove(node.id);
+    }
+
+    final previous = document.getNodeBeforeById(node.id);
+    final isFirstNodeOfField =
+        previous is! ParagraphNode ||
+        !OcptWysiwygCodec.isTitlePageNode(previous) ||
+        previous.getMetadataValue(ocptTitlePageKeyMetadataKey) != key;
+    if (isFirstNodeOfField) {
+      _placeholderFieldKeyByNodeId[node.id] = key;
+    } else {
+      _placeholderFieldKeyByNodeId.remove(node.id);
     }
 
     return super.createViewModel(document, node);
@@ -110,7 +141,8 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
     SingleColumnDocumentComponentContext componentContext,
     SingleColumnLayoutComponentViewModel componentViewModel,
   ) {
-    if (componentViewModel is! ParagraphComponentViewModel) {
+    if (componentViewModel is! ParagraphComponentViewModel ||
+        componentViewModel.blockType != ocptTitlePageFieldAttribution) {
       return null;
     }
 
@@ -119,7 +151,8 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
       return null;
     }
 
-    final placeholder = placeholders[componentViewModel.nodeId];
+    final fieldKey = _placeholderFieldKeyByNodeId[componentViewModel.nodeId];
+    final placeholder = fieldKey == null ? null : placeholders[fieldKey];
     final Widget content;
     if (placeholder == null || componentViewModel.text.toPlainText().isNotEmpty) {
       content = base;

@@ -78,12 +78,22 @@ List<EditRequest> sceneNumberNormalizationRequests(Document document) {
 /// alongside the delegate's component rather than added to its text.
 ///
 /// Delegates the actual paragraph rendering to [ParagraphComponentBuilder] and only intercepts
-/// scene-heading nodes; every other node falls through (`createViewModel` returns null), letting
-/// the next builder in the `SuperEditor.componentBuilders` list (normally [ParagraphComponentBuilder]
-/// itself, from `defaultComponentBuilders`) handle it. The number is painted with a non-clipping
-/// `Stack`/`Positioned` at a negative left offset, landing inside the node's own `Styles.padding`
-/// left inset (which `SingleColumnLayoutComponent` never clips), exactly the way `Padding` leaves
-/// room for it.
+/// scene-heading nodes; every other node falls through, letting the next builder in the
+/// `SuperEditor.componentBuilders` list (normally [ParagraphComponentBuilder] itself, from
+/// `defaultComponentBuilders`, but possibly a title-page builder in between) handle it. The number
+/// is painted with a non-clipping `Stack`/`Positioned` at a negative left offset, landing inside
+/// the node's own `Styles.padding` left inset (which `SingleColumnLayoutComponent` never clips),
+/// exactly the way `Padding` leaves room for it.
+///
+/// The "only a scene heading" claim has to be made independently in **both** [createViewModel] and
+/// [createComponent], returning null from each for every other node: `SingleColumnDocumentLayout`
+/// resolves a node's component by walking `SuperEditor.componentBuilders` in order and keeping the
+/// first non-null `createComponent` result (`layout_single_column/_layout.dart:1001-1006` of the
+/// pinned super_editor release), and that walk hands `createComponent` whichever view model was
+/// resolved for the node — which may have been built by a *different* builder's `createViewModel`
+/// (e.g. a title-page node's, built by the title-page builder). A `createComponent` that accepted
+/// every [ParagraphComponentViewModel] regardless of node type would therefore swallow every other
+/// builder's nodes too, never letting them run at all.
 class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
   /// Creates an [OcptSceneNumberGutterComponentBuilder]. Prefer
   /// [OcptSceneNumberGutterComponentBuilder.build] over calling this directly: it derives
@@ -148,6 +158,12 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
 
   /// Builds the delegate's normal paragraph component, then, if this node has a scene number to
   /// show, overlays it in the left gutter with a non-clipping `Stack`.
+  ///
+  /// Claims a node — rather than falling through to let the next builder try — only when
+  /// [sceneNumbers] actually has an entry for it: every scene heading is expected to have one (see
+  /// [sceneNumbers]'s own doc comment), so its absence is this builder's only stateless signal, at
+  /// `createComponent` time, that the node isn't one of its own (see the class-level doc comment
+  /// for why `createComponent` cannot simply trust it was only ever handed a heading's view model).
   @override
   Widget? createComponent(
     SingleColumnDocumentComponentContext componentContext,
@@ -156,14 +172,15 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
     if (componentViewModel is! ParagraphComponentViewModel) {
       return null;
     }
-    final base = _delegate.createComponent(componentContext, componentViewModel);
-    if (base == null) {
-      return null;
-    }
 
     final number = sceneNumbers[componentViewModel.nodeId];
     if (number == null) {
-      return base;
+      return null;
+    }
+
+    final base = _delegate.createComponent(componentContext, componentViewModel);
+    if (base == null) {
+      return null;
     }
 
     return Stack(
