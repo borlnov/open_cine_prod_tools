@@ -123,7 +123,7 @@ bool ocptCycleBlockTypeAtSelection({
   }
 
   final node = document.getNodeById(selection.extent.nodeId);
-  if (node is! ParagraphNode) {
+  if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
     return false;
   }
 
@@ -208,6 +208,10 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
     return ExecutionInstruction.continueExecution;
   }
 
+  if (OcptWysiwygCodec.isTitlePageNode(node)) {
+    return _splitTitlePageField(editContext: editContext, node: node, splitPosition: splitPosition);
+  }
+
   final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   final isShiftEnter = HardwareKeyboard.instance.isShiftPressed;
   final splitsAtEnd = splitPosition.offset == node.text.toPlainText().length;
@@ -238,6 +242,41 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
         ocptHadForcingMarkerMetadataKey: false,
       },
     ),
+  ]);
+
+  return ExecutionInstruction.haltExecution;
+}
+
+/// Enter inside a title-page field node ([OcptWysiwygCodec.isTitlePageNode]): splits it at the
+/// caret exactly like [ocptEnterToSmartSplit] would, but the new node always keeps the *same*
+/// [ocptTitlePageKeyMetadataKey] as the node it split from — a title-page field has no "usual
+/// screenplay successor" the way a Fountain line type does, so this is how a multi-line field
+/// (`Author`, `Contact`…) gets an extra line, the same gesture Shift+Enter is for a same-type body
+/// continuation.
+ExecutionInstruction _splitTitlePageField({
+  required SuperEditorContext editContext,
+  required ParagraphNode node,
+  required TextNodePosition splitPosition,
+}) {
+  final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
+  final newNodeId = Editor.createNodeId();
+
+  editContext.editor.execute([
+    SplitParagraphRequest(
+      nodeId: node.id,
+      splitPosition: splitPosition,
+      newNodeId: newNodeId,
+      replicateExistingMetadata: false,
+    ),
+    ChangeSelectionRequest(
+      DocumentSelection.collapsed(
+        position: DocumentPosition(nodeId: newNodeId, nodePosition: const TextNodePosition(offset: 0)),
+      ),
+      SelectionChangeType.insertContent,
+      SelectionReason.userInteraction,
+    ),
+    ChangeParagraphBlockTypeRequest(nodeId: newNodeId, blockType: ocptTitlePageFieldAttribution),
+    OcptChangeNodeMetadataRequest(nodeId: newNodeId, metadata: {ocptTitlePageKeyMetadataKey: key}),
   ]);
 
   return ExecutionInstruction.haltExecution;

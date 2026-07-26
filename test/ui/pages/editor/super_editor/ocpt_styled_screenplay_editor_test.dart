@@ -8,8 +8,10 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -60,8 +62,17 @@ class _RecordingScreenplayService extends OcptScreenplayService {
 }
 
 /// Wraps [child] with a [MaterialApp] and a bounded, sized surface: `SuperEditor` needs a
-/// constrained size to lay its document out.
+/// constrained size to lay its document out. The localization delegates are needed for the
+/// title-page placeholder builder's field labels, which only ever resolve while page simulation
+/// is on (see the "page simulation" group below).
 Widget _wrap(Widget child) => MaterialApp(
+  localizationsDelegates: const [
+    Tr.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(body: SizedBox.expand(child: child)),
 );
 
@@ -110,6 +121,12 @@ Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
 /// production file) is currently mounted: the most that can be asserted on it from outside its own
 /// library without exposing an otherwise-unneeded public type.
 bool _hasPageSheetsPainter() => _pageSheetsPainterFinder().evaluate().isNotEmpty;
+
+/// The number of leading title-page field nodes a page-simulation-on document starts with when
+/// its source text has no title page of its own: all six [ocptTitlePageFieldKeys] then synthesize
+/// as one empty node each (see `OcptWysiwygCodec.decodeWithTitlePage`), ahead of every body node
+/// the "page simulation" test group below otherwise indexes by position.
+const int _titlePageFieldCount = 6;
 
 /// The node at [index] of [document], freshly re-read: every node-metadata/block-type change
 /// (`ChangeParagraphBlockTypeRequest`, `OcptChangeNodeMetadataRequest`) replaces the node object
@@ -419,12 +436,13 @@ void main() {
             OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
 
         // Blank source lines are folded into metadata, so nodes are dense: heading, action,
-        // character, dialogue.
+        // character, dialogue. `titlePageFieldCount` leading nodes come first (page simulation is
+        // on, and this text has no title page of its own, so all six fields synthesize empty).
         final elementsByNodeIndex = [metrics.sceneHeading, metrics.action, metrics.character];
 
         for (var index = 0; index < elementsByNodeIndex.length; index++) {
           final element = elementsByNodeIndex[index];
-          final nodeId = document.getNodeAt(index)!.id;
+          final nodeId = document.getNodeAt(index + _titlePageFieldCount)!.id;
 
           // The whole point of the horizontal-inset compensation: page simulation must not shrink
           // any element's wrap width, nor shift its indent, away from what the raw preview
@@ -513,7 +531,7 @@ void main() {
         await _pumpStandaloneEditor(tester, "Some action text.", isPageSimulationEnabled: true);
 
         final document = SuperEditorInspector.findDocument()!;
-        final nodeId = _nodeAt(document, 0).id;
+        final nodeId = _nodeAt(document, _titlePageFieldCount).id;
         final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
 
         final editorRect = tester.getRect(find.byType(SuperEditor));
@@ -541,6 +559,104 @@ void main() {
         expect(rightGap, closeTo(layout.marginRight, 0.5));
       },
     );
+  });
+
+  group("title page", () {
+    testWidgets("an empty title-page field shows its label as a placeholder hint", (tester) async {
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      expect(find.text("Title"), findsOneWidget);
+      expect(find.text("Credit"), findsOneWidget);
+      expect(find.text("Source"), findsOneWidget);
+    });
+
+    testWidgets("the title sheet disappears entirely while page simulation is off", (tester) async {
+      await _pumpStandaloneEditor(tester, "Some action.");
+
+      expect(find.text("Title"), findsNothing);
+      final document = SuperEditorInspector.findDocument()!;
+      expect(document.nodeCount, 1);
+    });
+
+    testWidgets("typing into the empty Title placeholder writes it into the encoded source", (tester) async {
+      // The title fields sit hundreds of pixels down the simulated page (Title alone opens with a
+      // top gap landing it in the upper-middle area): tall enough that the default 800x600 test
+      // surface would leave it (and every field below it) outside the viewport a tap can reach.
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      String? encodedText;
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "INT. HOUSE - DAY\n\nSome action.",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: false,
+            onTextChanged: (text) => encodedText = text,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final titleNodeId = document.getNodeAt(0)!.id;
+
+      await tester.placeCaretInParagraph(titleNodeId, 0);
+      await tester.typeImeText("My Movie");
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // The scene heading is auto-numbered by default (see the "scene numbers" group below).
+      expect(encodedText, "Title: My Movie\n\nINT. HOUSE - DAY #1#\n\nSome action.");
+      // The placeholder is gone now that the field has real text.
+      expect(find.text("Title"), findsNothing);
+    });
+
+    testWidgets("pressing Enter inside the Author field adds a sibling line, not a body block", (tester) async {
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      String? encodedText;
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: "Some action.",
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: false,
+            onTextChanged: (text) => encodedText = text,
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Title, Credit, Author: indices 0, 1, 2.
+      final authorNodeId = SuperEditorInspector.findDocument()!.getNodeAt(2)!.id;
+      await tester.placeCaretInParagraph(authorNodeId, 0);
+      await tester.typeImeText("Jane Doe");
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      await tester.typeImeText("John Smith");
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(document.nodeCount, 8);
+      expect((document.getNodeAt(2)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Author");
+      expect((document.getNodeAt(3)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Author");
+      expect((document.getNodeAt(2)! as ParagraphNode).text.toPlainText(), "Jane Doe");
+      expect((document.getNodeAt(3)! as ParagraphNode).text.toPlainText(), "John Smith");
+      expect(encodedText, "Author:\n    Jane Doe\n    John Smith\n\nSome action.");
+    });
   });
 
   group("typing in the styled editor, wired to a real (fast) OcptEditorBloc", () {
@@ -575,6 +691,12 @@ void main() {
     });
 
     testWidgets("marks the screenplay dirty and autosaves the typed text", (tester) async {
+      // This test is about typing/dirty/autosave, not about the title sheet: pin page simulation
+      // off explicitly (rather than relying on whatever the app's own current default happens to
+      // be) so the body's only node stays the document's first and only one, on screen from the
+      // very first frame.
+      await propertiesManager.isPageSimulationEnabled.store(false);
+
       final bloc = OcptEditorBloc(
         projectsManager: projectsManager,
         propertiesManager: propertiesManager,

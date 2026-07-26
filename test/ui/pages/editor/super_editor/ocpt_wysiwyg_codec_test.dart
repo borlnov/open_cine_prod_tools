@@ -732,4 +732,138 @@ void main() {
       expect(fragmentNodes.single.text.toPlainText(), "Some action.");
     });
   });
+
+  group("decodeWithTitlePage / encodeWithTitlePage", () {
+    /// The [ocptTitlePageKeyMetadataKey] of the node at [index] of [document], or null if it isn't
+    /// a title-page field node.
+    String? titlePageKeyAt(Document document, int index) {
+      final value = document.getNodeAt(index)!.getMetadataValue(ocptTitlePageKeyMetadataKey);
+      return value is String ? value : null;
+    }
+
+    test("a screenplay with no title page still synthesizes all six fields, empty, in canonical order", () {
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY\n\nSome action.");
+
+      expect(decoded.titlePageNodeCount, 6);
+      expect(decoded.document.nodeCount, 8);
+      expect(
+        [for (var index = 0; index < 6; index++) titlePageKeyAt(decoded.document, index)],
+        ocptTitlePageFieldKeys,
+      );
+      for (var index = 0; index < 6; index++) {
+        expect(decoded.document.getNodeAt(index)!.getMetadataValue("blockType"), ocptTitlePageFieldAttribution);
+        expect((decoded.document.getNodeAt(index)! as ParagraphNode).text.toPlainText(), isEmpty);
+        expect(OcptWysiwygCodec.isTitlePageNode(decoded.document.getNodeAt(index)! as ParagraphNode), isTrue);
+      }
+
+      // The body starts right where a plain `decode` of the same (title-page-free) text would
+      // put it, just shifted by the six title-page nodes.
+      expect(_typeAt(decoded.document, 6), FountainLineType.sceneHeading);
+      expect((decoded.document.getNodeAt(6)! as ParagraphNode).text.toPlainText(), "INT. HOUSE - DAY");
+      expect(_typeAt(decoded.document, 7), FountainLineType.action);
+      expect(OcptWysiwygCodec.isTitlePageNode(decoded.document.getNodeAt(7)! as ParagraphNode), isFalse);
+    });
+
+    test("an existing title page decodes its present fields, absent ones stay empty", () {
+      const source = "Title: My Movie\nCredit: written by\n\nINT. HOUSE - DAY";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+
+      expect((decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "My Movie");
+      expect((decoded.document.getNodeAt(1)! as ParagraphNode).text.toPlainText(), "written by");
+      // Author, Draft date, Contact, Source: absent from the source, still synthesized empty.
+      for (var index = 2; index < 6; index++) {
+        expect((decoded.document.getNodeAt(index)! as ParagraphNode).text.toPlainText(), isEmpty);
+      }
+      expect(decoded.titlePagePrefixLength, source.length - "INT. HOUSE - DAY".length);
+      expect(_typeAt(decoded.document, 6), FountainLineType.sceneHeading);
+    });
+
+    test("Authors: written as continuation lines decodes into one node per line", () {
+      const source = "Authors:\n    Jane Doe\n    John Smith\n\nSome action.";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+
+      // Title, Credit: empty (indices 0-1). Author spans indices 2-3 (two continuation lines).
+      expect(titlePageKeyAt(decoded.document, 2), "Author");
+      expect(titlePageKeyAt(decoded.document, 3), "Author");
+      expect((decoded.document.getNodeAt(2)! as ParagraphNode).text.toPlainText(), "Jane Doe");
+      expect((decoded.document.getNodeAt(3)! as ParagraphNode).text.toPlainText(), "John Smith");
+      // Draft date, Contact, Source (indices 4-6) follow, then the body.
+      expect(titlePageKeyAt(decoded.document, 6), "Source");
+      expect(_typeAt(decoded.document, 7), FountainLineType.action);
+    });
+
+    test("round trip: an untouched decode/encode of a title-page-free screenplay changes nothing", () {
+      const source = "INT. HOUSE - DAY\n\nSome action.\n\nJOHN\nHello.";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
+
+      expect(encoded.text, source);
+      // The document still carries six (all-empty) title-page nodes; only the *rendered* text
+      // omits them, since every field is empty.
+      expect(encoded.titlePageNodeCount, 6);
+    });
+
+    test("filling only the Title field of an untitled screenplay writes just a Title: line", () {
+      const source = "INT. HOUSE - DAY\n\nSome action.";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+      _replaceText(decoded.document, 0, "My Movie");
+
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
+
+      expect(encoded.text, "Title: My Movie\n\n$source");
+    });
+
+    test("Author continuation lines round-trip byte-for-byte", () {
+      const source = "Author:\n    Jane Doe\n    John Smith\n\nSome action.";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
+
+      expect(encoded.text, source);
+    });
+
+    test("emptying every field drops the title page entirely, back to a plain body", () {
+      const source = "Title: My Movie\n\nSome action.";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+      _replaceText(decoded.document, 0, "");
+
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
+
+      expect(encoded.text, "Some action.");
+    });
+
+    test("Author also matches a source written with the singular Author key on encode", () {
+      // `_titlePageEntriesFromNodes` always writes the canonical singular key, regardless of
+      // which of `Author`/`Authors` the source used (mirrors `editor_bloc.dart`'s dialog flow).
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage("Authors: Jane Doe\n\nSome action.");
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
+
+      expect(encoded.text, "Author: Jane Doe\n\nSome action.");
+    });
+
+    test("a locked/uppercased title-page field is never reclassified or uppercased by the body passes", () {
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY\n\nSome action.");
+      _replaceText(decoded.document, 0, "lowercase title");
+
+      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+      expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
+      expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
+    });
+  });
 }

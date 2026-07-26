@@ -124,6 +124,11 @@ void main() {
     // `TextField`, the paper preview); force that mode here so they keep passing regardless of
     // the default mode, and let the styled-mode tests further down store their own preference.
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    // None of the styled-mode tests below are about the title sheet: page simulation defaults to
+    // on in the real app, which would push a `_sampleText`-sized document's nodes far enough down
+    // the simulated first page that a caret-placing tap could no longer reach them. Force it off
+    // here; the two tests that are actually about page simulation store their own `true`.
+    await propertiesManager.isPageSimulationEnabled.store(false);
     routerManager.popped = false;
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_page_test_");

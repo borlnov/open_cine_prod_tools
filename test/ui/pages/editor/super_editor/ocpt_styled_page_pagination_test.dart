@@ -182,6 +182,44 @@ void main() {
       expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
     });
   });
+
+  group("computeOcptStyledPagination with a title page", () {
+    /// Builds a styled editor document from [source] the same way the live editor decodes one
+    /// while page simulation is on: with its leading title-page field nodes.
+    MutableDocument documentWithTitlePageFrom(String source) => OcptWysiwygCodec.decodeWithTitlePage(source).document;
+
+    test("a title page always reserves page 1, whatever little content the body has", () {
+      final document = documentWithTitlePageFrom("Some action.");
+
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+
+      expect(pagination.pageCount, 2);
+      // The body's one and only node is the document's 7th (index 6, after the six title-page
+      // field nodes): it must be flagged as starting a page of its own.
+      final bodyNode = document.getNodeAt(6)!;
+      expect(pagination.pageStartNodeIds, contains(bodyNode.id));
+      expect(pagination.pageStartTopPaddings[bodyNode.id], greaterThan(0));
+    });
+
+    test("a longer body still starts on page 2, then paginates normally from there", () {
+      final document = documentWithTitlePageFrom(_longSource);
+
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+
+      // At least the forced title-to-body break, plus whatever `_longSource` alone would need
+      // (already asserted to be `greaterThan(1)` on its own, title-page-free, above).
+      expect(pagination.pageCount, greaterThan(2));
+    });
+
+    test("a document with no title-page nodes at all behaves exactly as without this feature", () {
+      final document = _documentFrom("Some action.");
+
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+
+      expect(pagination.pageCount, 1);
+      expect(pagination.pageStartNodeIds, isEmpty);
+    });
+  });
 }
 
 /// Mirrors `OcptFountainEditorStylesheet`'s own element choice per [type] (in particular lyrics

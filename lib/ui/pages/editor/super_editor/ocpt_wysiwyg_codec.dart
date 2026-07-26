@@ -42,6 +42,32 @@ const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
 /// mode only) is a separate concern, driven by `computeOcptStyledSceneNumbers`.
 const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
 
+/// The `ParagraphNode` metadata key holding which title-page field a node represents (one of
+/// [ocptTitlePageFieldKeys]), or absent for an ordinary body line.
+///
+/// Only ever set by [OcptWysiwygCodec.decodeWithTitlePage] (and the keyboard action that keeps a
+/// title-page field's own Enter gesture continuing the same field, `_splitTitlePageField` in
+/// `ocpt_fountain_keyboard_actions.dart`): none of the ordinary Fountain line machinery this class
+/// documents (auto-detection, forcing markers, uppercasing, scene numbers…) ever applies to a node
+/// carrying it, which is what [OcptWysiwygCodec.isTitlePageNode] lets every one of those passes
+/// check for and skip.
+const String ocptTitlePageKeyMetadataKey = "ocptTitlePageKey";
+
+/// The `blockType` attribution shared by every title-page field node, regardless of which field it
+/// represents ([ocptTitlePageKeyMetadataKey] carries that distinction instead): a title-page field
+/// is never classified, never forced, never uppercased, so it needs no per-field attribution the
+/// way every [FountainLineType] gets its own in [OcptFountainLineAttributions] — only a stylesheet
+/// selector to opt into `OcptFountainEditorStylesheet`'s own per-field positioning.
+const NamedAttribution ocptTitlePageFieldAttribution = NamedAttribution("fountainTitlePageField");
+
+/// The six canonical title-page field keys [OcptWysiwygCodec.decodeWithTitlePage] always
+/// synthesizes exactly one node for (more if a field spans several source lines), in the fixed
+/// order they are written to the source and stacked top-to-bottom in the styled editor — matching
+/// the order `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` fields already appear in
+/// (`editor_bloc.dart`'s `_titlePageEntriesFrom`), so editing the same screenplay through either
+/// front-end never reorders the block for no reason.
+const List<String> ocptTitlePageFieldKeys = ["Title", "Credit", "Author", "Draft date", "Contact", "Source"];
+
 /// The attribution marking an inline authoring note (`[[text]]`) for dimmed rendering; unlike
 /// [boldAttribution]/[italicsAttribution]/[underlineAttribution], a note's delimiters stay part of
 /// its node's plain text (see [FountainStyledRun.isNote]), so this attribution is only ever used
@@ -52,31 +78,69 @@ const NamedAttribution ocptFountainNoteAttribution = NamedAttribution("fountainN
 /// document and later serialize it back to Fountain text.
 class OcptWysiwygDecodeResult {
   /// Creates an [OcptWysiwygDecodeResult].
-  const OcptWysiwygDecodeResult({required this.document, required this.mapping, required this.trailingBlankLines});
+  const OcptWysiwygDecodeResult({
+    required this.document,
+    required this.mapping,
+    required this.trailingBlankLines,
+    this.titlePageNodeCount = 0,
+    this.titlePagePrefixLength = 0,
+  });
 
-  /// The freshly built document: one `ParagraphNode` per non-blank source line.
+  /// The freshly built document: one `ParagraphNode` per non-blank source line, preceded by
+  /// [titlePageNodeCount] title-page field nodes when [OcptWysiwygCodec.decodeWithTitlePage] built
+  /// this result (always 0 for plain [OcptWysiwygCodec.decode]).
   final MutableDocument document;
 
-  /// The node-index ↔ source-line mapping for the text [document] was decoded from.
+  /// The node-index ↔ source-line mapping for the text [document] was decoded from, scoped to the
+  /// **body** text only: a node index into [mapping] is [document]'s own node index minus
+  /// [titlePageNodeCount], and a source line/char offset is [document]'s own source text minus its
+  /// leading [titlePagePrefixLength] characters (see those fields' own doc comments).
   final OcptWysiwygLineMapping mapping;
 
   /// The number of blank source lines after the last non-blank line: they have nowhere to attach
   /// as [ocptBlankLinesBeforeMetadataKey] metadata on a following node, so a caller that wants
   /// byte-stable round trips must pass this straight back into [OcptWysiwygCodec.encode].
   final int trailingBlankLines;
+
+  /// The number of leading nodes of [document] that are title-page field nodes (see
+  /// [OcptWysiwygCodec.isTitlePageNode]), always 0 for a plain [OcptWysiwygCodec.decode] result. A
+  /// caller
+  /// translating one of [document]'s own node indices into a [mapping] node index must subtract
+  /// this first.
+  final int titlePageNodeCount;
+
+  /// The number of leading characters of the full source text [OcptWysiwygCodec.decodeWithTitlePage]
+  /// was given that the title page (and the blank line separating it from the body) consumed,
+  /// always 0 for a plain [OcptWysiwygCodec.decode] result. A caller translating a character offset
+  /// of the full source text into a [mapping] char offset must subtract this first.
+  final int titlePagePrefixLength;
 }
 
 /// The result of [OcptWysiwygCodec.encode]: the serialized Fountain source text, plus a mapping
 /// freshly built for that exact text (the inverse of [OcptWysiwygDecodeResult]).
 class OcptWysiwygEncodeResult {
   /// Creates an [OcptWysiwygEncodeResult].
-  const OcptWysiwygEncodeResult({required this.text, required this.mapping});
+  const OcptWysiwygEncodeResult({
+    required this.text,
+    required this.mapping,
+    this.titlePageNodeCount = 0,
+    this.titlePagePrefixLength = 0,
+  });
 
   /// The full Fountain source text serialized from the document.
   final String text;
 
-  /// The node-index ↔ source-line mapping for [text].
+  /// The node-index ↔ source-line mapping for [text], scoped to the **body** text only: see
+  /// [OcptWysiwygDecodeResult.mapping]'s own doc comment, which this mirrors exactly.
   final OcptWysiwygLineMapping mapping;
+
+  /// See [OcptWysiwygDecodeResult.titlePageNodeCount]; always 0 for a plain
+  /// [OcptWysiwygCodec.encode] result.
+  final int titlePageNodeCount;
+
+  /// See [OcptWysiwygDecodeResult.titlePagePrefixLength]; always 0 for a plain
+  /// [OcptWysiwygCodec.encode] result.
+  final int titlePagePrefixLength;
 }
 
 /// The node-index ↔ source-line mapping produced by both [OcptWysiwygCodec.decode] and
@@ -235,6 +299,45 @@ class OcptWysiwygCodec {
         trailingBlankLines: trailingBlankLines,
       ),
       trailingBlankLines: trailingBlankLines,
+    );
+  }
+
+  /// Decodes [text] exactly like [decode], but additionally recognizes a leading title page (see
+  /// `FountainParser`'s own title-page pre-pass) and prepends one node per
+  /// [ocptTitlePageFieldKeys] field ([isTitlePageNode], carrying [ocptTitlePageKeyMetadataKey])
+  /// ahead of the body nodes [decode] itself would already produce for the remaining text.
+  ///
+  /// Every one of the six canonical fields always gets at least one node, synthesized empty when
+  /// the source has no title page at all (or is simply missing that field): the styled editor's
+  /// title sheet must always be a complete, fillable page, per its own design (see
+  /// `OcptStyledScreenplayEditor`'s class doc comment). A field spanning several source lines
+  /// (an `Author`/`Contact` continuation) gets one node per line instead, in source order, so
+  /// pressing Enter inside one only ever needs to insert a sibling node of the same field (see
+  /// `_splitTitlePageField` in `ocpt_fountain_keyboard_actions.dart`) rather than reformat the
+  /// whole field.
+  ///
+  /// [OcptWysiwygDecodeResult.mapping] stays scoped to the body text alone (built by the plain
+  /// [decode] call this delegates to for it), which is why [OcptWysiwygDecodeResult
+  /// .titlePageNodeCount]/[OcptWysiwygDecodeResult.titlePagePrefixLength] exist: they are what a
+  /// caller needs to translate one of [OcptWysiwygDecodeResult.document]'s own node indices, or a
+  /// char offset into the *full* [text], into that body-scoped mapping's own coordinate space.
+  static OcptWysiwygDecodeResult decodeWithTitlePage(String text) {
+    final titlePage = const FountainParser().parse(text).titlePage;
+    final bodyText = titlePage == null
+        ? text
+        : const FountainTitlePageWriter().apply(source: text, existingRange: titlePage.sourceRange, entries: const []);
+
+    final titlePageNodes = _titlePageNodesFrom(titlePage);
+    final bodyDecoded = decode(bodyText);
+
+    return OcptWysiwygDecodeResult(
+      document: MutableDocument(
+        nodes: [...titlePageNodes, ...bodyDecoded.document.map((node) => node as ParagraphNode)],
+      ),
+      mapping: bodyDecoded.mapping,
+      trailingBlankLines: bodyDecoded.trailingBlankLines,
+      titlePageNodeCount: titlePageNodes.length,
+      titlePagePrefixLength: text.length - bodyText.length,
     );
   }
 
@@ -409,6 +512,129 @@ class OcptWysiwygCodec {
     );
   }
 
+  /// Encodes [document] exactly like [encode], but additionally recognizes [document]'s leading
+  /// title-page field nodes ([isTitlePageNode]) and splices them in as a real Fountain title page
+  /// ahead of the body text [encode] itself produces for the remaining nodes, through
+  /// [FountainTitlePageWriter.apply] — never a hand-written `Key: value` line, so this and
+  /// `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` flow stay two front-ends over the one writer.
+  /// A field with only empty lines (the common case for most of the six: see
+  /// [decodeWithTitlePage]'s synthesis rule) is dropped entirely, exactly like
+  /// [FountainTitlePageWriter.apply] drops a title page with no entries at all.
+  ///
+  /// See [OcptWysiwygEncodeResult.titlePageNodeCount]/[OcptWysiwygEncodeResult
+  /// .titlePagePrefixLength]'s own doc comments for what a caller needs them for.
+  static OcptWysiwygEncodeResult encodeWithTitlePage(Document document, {int trailingBlankLines = 0}) {
+    final allNodes = document.map((node) => node as ParagraphNode).toList(growable: false);
+    final titlePageNodes = <ParagraphNode>[];
+    final bodyNodes = <ParagraphNode>[];
+    for (final node in allNodes) {
+      (isTitlePageNode(node) ? titlePageNodes : bodyNodes).add(node);
+    }
+
+    final bodyEncoded = encode(MutableDocument(nodes: bodyNodes), trailingBlankLines: trailingBlankLines);
+    final titlePageEntries = _titlePageEntriesFromNodes(titlePageNodes);
+    final text = const FountainTitlePageWriter().apply(
+      source: bodyEncoded.text,
+      existingRange: null,
+      entries: titlePageEntries,
+    );
+
+    return OcptWysiwygEncodeResult(
+      text: text,
+      mapping: bodyEncoded.mapping,
+      titlePageNodeCount: titlePageNodes.length,
+      titlePagePrefixLength: text.length - bodyEncoded.text.length,
+    );
+  }
+
+  /// Whether [node] is one of [decodeWithTitlePage]'s synthesized title-page field nodes
+  /// ([ocptTitlePageKeyMetadataKey] set) rather than an ordinary body line: every pass in this
+  /// class that classifies, forces or uppercases a node's text (none of which has any meaning for
+  /// a title-page field) checks this first and skips the node entirely when it's true.
+  static bool isTitlePageNode(ParagraphNode node) => node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String;
+
+  /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per
+  /// `FountainTitlePage.authors`'s own fallback), or null when [titlePage] is null or has no such
+  /// entry.
+  static FountainTitlePageEntry? _titlePageEntryFor(FountainTitlePage? titlePage, String key) {
+    if (titlePage == null) {
+      return null;
+    }
+    return key == "Author" ? (titlePage.entry("Author") ?? titlePage.entry("Authors")) : titlePage.entry(key);
+  }
+
+  /// A placeholder source range for a title-page entry synthesized from live node text rather than
+  /// parsed from source: [FountainTitlePageWriter.apply] only ever reads an entry's key and values,
+  /// never its source range (see `editor_bloc.dart`'s own equivalent placeholder), so standing in
+  /// without a real one is safe.
+  static const _placeholderTitlePageEntryRange = FountainSourceRange(
+    startLine: 0,
+    endLine: 0,
+    startOffset: 0,
+    endOffset: 0,
+  );
+
+  /// Builds the title-page field nodes [decodeWithTitlePage] prepends to the body: one node per
+  /// [ocptTitlePageFieldKeys] field, in that fixed order, one per source line for a field spanning
+  /// several (an empty single node when [titlePage] has none for that key at all).
+  static List<ParagraphNode> _titlePageNodesFrom(FountainTitlePage? titlePage) {
+    final nodes = <ParagraphNode>[];
+    for (final key in ocptTitlePageFieldKeys) {
+      final entry = _titlePageEntryFor(titlePage, key);
+      final values = entry == null || entry.values.isEmpty ? const [""] : entry.values;
+      for (final value in values) {
+        nodes.add(
+          ParagraphNode(
+            id: Editor.createNodeId(),
+            text: AttributedText(value),
+            metadata: {"blockType": ocptTitlePageFieldAttribution, ocptTitlePageKeyMetadataKey: key},
+          ),
+        );
+      }
+    }
+    return nodes;
+  }
+
+  /// The inverse of [_titlePageNodesFrom]: groups [titlePageNodes] (already in the fixed
+  /// [ocptTitlePageFieldKeys] order, one run of consecutive nodes per field, by construction) back
+  /// into [FountainTitlePageEntry] values, dropping a field whose every line is empty (the common
+  /// case for most fields most of the time) so [FountainTitlePageWriter.apply] never writes a
+  /// stray `Key:` line with nothing after it.
+  static List<FountainTitlePageEntry> _titlePageEntriesFromNodes(List<ParagraphNode> titlePageNodes) {
+    final entries = <FountainTitlePageEntry>[];
+    String? currentKey;
+    var currentValues = <String>[];
+
+    void flush() {
+      final key = currentKey;
+      if (key != null) {
+        final nonEmptyValues = currentValues.where((value) => value.trim().isNotEmpty).toList(growable: false);
+        if (nonEmptyValues.isNotEmpty) {
+          entries.add(
+            FountainTitlePageEntry(key: key, values: nonEmptyValues, sourceRange: _placeholderTitlePageEntryRange),
+          );
+        }
+      }
+      currentKey = null;
+      currentValues = [];
+    }
+
+    for (final node in titlePageNodes) {
+      final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
+      if (key is! String) {
+        continue;
+      }
+      if (key != currentKey) {
+        flush();
+        currentKey = key;
+      }
+      currentValues.add(node.text.toPlainText());
+    }
+    flush();
+
+    return entries;
+  }
+
   /// Encodes just the [selection] span of [document] into Fountain source text, for the
   /// clipboard: reuses [encode] on a throwaway document holding only the selected nodes (clipping
   /// the first and last node's text to the selection's own start/end offsets, attributions
@@ -495,7 +721,14 @@ class OcptWysiwygCodec {
   /// stored type by construction, so it never produces a request of its own — which is the
   /// correct, self-consistent outcome, not a coincidence of the check below.
   static List<EditRequest> reclassifyRequests(Document document) {
-    final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
+    // Title-page field nodes are filtered out before building the virtual line list below (not
+    // just skipped when generating a request for them): their text has no place in the body's own
+    // classification context (a real body node's auto-detection must never depend on what a title
+    // field happens to hold).
+    final nodes = document
+        .map((node) => node as ParagraphNode)
+        .where((node) => !isTitlePageNode(node))
+        .toList(growable: false);
     final types = [
       for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
     ];
@@ -551,7 +784,7 @@ class OcptWysiwygCodec {
     final requests = <EditRequest>[];
 
     for (final node in document) {
-      if (node is! ParagraphNode) {
+      if (node is! ParagraphNode || isTitlePageNode(node)) {
         continue;
       }
 
@@ -592,7 +825,7 @@ class OcptWysiwygCodec {
     final requests = <EditRequest>[];
 
     for (final node in document) {
-      if (node is! ParagraphNode) {
+      if (node is! ParagraphNode || isTitlePageNode(node)) {
         continue;
       }
 
