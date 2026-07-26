@@ -150,5 +150,11 @@
   "editorSyntaxGuideNoteDescription": "Une note à l'intention du lecteur s'encadre de `[[` et `]]` ; elle est retirée avant que la ligne qui l'entoure ne soit classifiée.",
   "editorSyntaxGuideBoneyardDescription": "Un commentaire de coupe est exclu du scénario imprimé, encadré par `/*` et `*/`.",
   "editorSyntaxGuideEmphasisDescription": "Le texte en ligne peut être mis en valeur avec `*italique*`, `**gras**`, `***gras italique***` ou `_souligné_`.",
-  "editorSyntaxGuideTitlePageDescription": "La page de titre est un bloc de lignes clé : valeur (par exemple Title: et Author:) tout au début du document, qui se termine à la première ligne vide."
+  "editorSyntaxGuideTitlePageDescription": "La page de titre est un bloc de lignes clé : valeur (par exemple Title: et Author:) tout au début du document, qui se termine à la première ligne vide.",
+  "workspaceModeScreenplay": "Scénario",
+  "workspaceModeBudget": "Budget",
+  "workspaceModeSchedule": "Planning",
+  "workspaceModeShotList": "Découpage",
+  "workspaceModeComingSoonTooltip": "{modeName} — disponible dans une future version",
+  "workspaceEmptyModeMessage": "{modeName} sera disponible dans une future version."
 }

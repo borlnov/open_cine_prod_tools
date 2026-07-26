@@ -1104,5 +1104,55 @@
     "context": "Displayed under the title page snippet of the syntax guide",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceModeScreenplay": "Screenplay",
+  "@workspaceModeScreenplay": {
+    "description": "Name of the screenplay production mode",
+    "context": "Displayed under its icon in the workspace's bottom mode switcher, and used as its tooltip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeBudget": "Budget",
+  "@workspaceModeBudget": {
+    "description": "Name of the budget production mode",
+    "context": "Displayed under its icon in the workspace's bottom mode switcher, and used as its tooltip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeSchedule": "Schedule",
+  "@workspaceModeSchedule": {
+    "description": "Name of the shooting schedule production mode",
+    "context": "Displayed under its icon in the workspace's bottom mode switcher, and used as its tooltip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeShotList": "Shot list",
+  "@workspaceModeShotList": {
+    "description": "Name of the shot list (découpage technique) production mode",
+    "context": "Displayed under its icon in the workspace's bottom mode switcher, and used as its tooltip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeComingSoonTooltip": "{modeName} — coming in a future version",
+  "@workspaceModeComingSoonTooltip": {
+    "description": "Tooltip of a mode switcher entry that isn't implemented yet",
+    "context": "Shown on hover over the Budget, Schedule or Shot list entries of the mode switcher",
+    "type": "text",
+    "placeholders": {
+      "modeName": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceEmptyModeMessage": "{modeName} is coming in a future version.",
+  "@workspaceEmptyModeMessage": {
+    "description": "Message shown in place of a production mode that isn't implemented yet",
+    "context": "Displayed centred in the workspace's main area for the Budget, Schedule and Shot list modes",
+    "type": "text",
+    "placeholders": {
+      "modeName": {
+        "type": "String"
+      }
+    }
   }
 }
