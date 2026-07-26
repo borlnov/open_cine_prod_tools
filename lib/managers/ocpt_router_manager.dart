@@ -18,9 +18,9 @@ class OcptRouterManagerBuilder extends AbstractRouterBuilder<OcptRouterManager> 
 
 /// Drives the navigation of the application through the [OcptRoute] enum.
 ///
-/// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.editor]: it can only be
-/// reached while [OcptProjectsManager] has a project open, otherwise navigation is redirected to
-/// [OcptRoute.home].
+/// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace]: it can
+/// only be reached while [OcptProjectsManager] has a project open, otherwise navigation is
+/// redirected to [OcptRoute.home].
 class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
   /// {@macro act_router_manager.AbstractRouterManager.createRoutesHelper}
   @override
@@ -29,22 +29,23 @@ class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
 
   /// {@macro act_life_cycle.MixinUiLifeCycle.initAfterManagersAndBeforeViews}
   ///
-  /// This is also where the [OcptRoute.editor] guard is registered: it's called once every
+  /// This is also where the [OcptRoute.workspace] guard is registered: it's called once every
   /// manager (including [OcptProjectsManager]) is ready, which is required for
-  /// [_redirectFromEditorWhenNoProjectIsOpen] to safely query it.
+  /// [_redirectFromWorkspaceWhenNoProjectIsOpen] to safely query it.
   @override
   Future<void> initAfterManagersAndBeforeViews() async {
     await super.initAfterManagersAndBeforeViews();
-    registerRedirect(_redirectFromEditorWhenNoProjectIsOpen);
+    registerRedirect(_redirectFromWorkspaceWhenNoProjectIsOpen);
   }
 
-  /// Redirects [OcptRoute.editor] to [OcptRoute.home] whenever no project is currently open.
-  Future<OcptRoute?> _redirectFromEditorWhenNoProjectIsOpen(
+  /// Redirects [OcptRoute.workspace] to [OcptRoute.home] whenever no project is currently open.
+  Future<OcptRoute?> _redirectFromWorkspaceWhenNoProjectIsOpen(
     BuildContext context,
     OcptRoute route,
     GoRouterState state,
   ) async {
-    if (route == OcptRoute.editor && globalGetIt().get<OcptProjectsManager>().currentProject == null) {
+    if (route == OcptRoute.workspace &&
+        globalGetIt().get<OcptProjectsManager>().currentProject == null) {
       return OcptRoute.home;
     }
 

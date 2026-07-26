@@ -167,7 +167,7 @@ void main() {
       expect(exportManager.lastFileTypeLabel, "Fountain screenplay");
       // The suggested file name comes from the imported file's title page.
       expect(fileSaverManager.lastFileName, "My Movie.ocpt");
-      expect(routerManager.pushedRoute, OcptRoute.editor);
+      expect(routerManager.pushedRoute, OcptRoute.workspace);
 
       final project = projectsManager.currentProject!;
       expect(project.name, "My Movie");

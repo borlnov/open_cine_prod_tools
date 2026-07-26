@@ -9,8 +9,8 @@ enum OcptRoute with MixinRoute {
   /// The home page, the initial route of the application
   home,
 
-  /// The editor page
-  editor,
+  /// The workspace page, hosting whichever production mode is active
+  workspace,
 
   /// The settings page
   settings,
