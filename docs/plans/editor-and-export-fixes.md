@@ -198,7 +198,8 @@ app ever offers the user a location. `act_file_transfer_manager` exposes no "sav
   constraint compatible with it so the resolution does not move.
 - New `lib/managers/export/services/ocpt_save_location_service.dart`:
   `OcptSaveLocationService` with a single method
-  `Future<String?> pickSaveLocation({required String suggestedFileName, required String fileTypeLabel, required List<String> extensions})`,
+  `Future<String?> pickSaveLocation({required String suggestedFileName, required
+  String fileTypeLabel, required List<String> extensions})`,
   wrapping `getSaveLocation(...)` from `package:file_selector/file_selector.dart` and returning the
   chosen path, or `null` when the user cancelled. It must:
   - build one `XTypeGroup(label: fileTypeLabel, extensions: extensions)`;

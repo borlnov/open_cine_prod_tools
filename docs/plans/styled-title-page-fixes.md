@@ -56,7 +56,8 @@ stated here, and only then change behaviour.
 Verified in `~/.pub-cache/hosted/pub.dev/super_editor-0.3.0-dev.52/`:
 
 1. **A component's box is laid out as**
-   `ConstrainedBox(maxWidth: Styles.maxWidth) > SizedBox(width: double.infinity) > Padding(Styles.padding) > component`
+   `ConstrainedBox(maxWidth: Styles.maxWidth) > SizedBox(width: double.infinity) >
+   Padding(Styles.padding) > component`
    (`lib/src/default_editor/layout_single_column/_layout.dart:1004-1015`), inside a
    `Column(crossAxisAlignment: CrossAxisAlignment.center)` (`_layout.dart:736-738`). So a component
    whose `Styles.maxWidth` is **narrower than the document's width is horizontally centred**, while
