@@ -866,14 +866,17 @@ void main() {
       expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
     });
 
-    test("every synthesized title-page node starts marked non-deletable", () {
+    test("every synthesized title-page node starts fully deletable (F6: edited like any other line)", () {
+      // `isDeletable: false` used to also block ordinary in-field editing (Backspace, Delete):
+      // the sheet is protected from deletion by `ocptTitlePageGuardRequestHandler` alone now, so a
+      // title-page node must never carry the flag at all.
       final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
       for (var index = 0; index < 6; index++) {
-        expect(decoded.document.getNodeAt(index)!.isDeletable, isFalse, reason: "node $index");
+        expect(decoded.document.getNodeAt(index)!.isDeletable, isTrue, reason: "node $index");
       }
     });
 
-    test("a metadata merge (OcptChangeNodeMetadataRequest) keeps a title-page node non-deletable", () {
+    test("a metadata merge (OcptChangeNodeMetadataRequest) keeps a title-page node's field key", () {
       final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
       final document = decoded.document;
       final creditNode = document.getNodeAt(1)!;
@@ -887,15 +890,23 @@ void main() {
         OcptChangeNodeMetadataRequest(nodeId: creditNode.id, metadata: {ocptTypeLockedMetadataKey: true}),
       ]);
 
-      expect(document.getNodeById(creditNode.id)!.isDeletable, isFalse);
+      expect(document.getNodeById(creditNode.id)!.getMetadataValue(ocptTitlePageKeyMetadataKey), "Credit");
     });
 
-    test("encodeWithTitlePage ignores the isDeletable flag", () {
+    test("encodeWithTitlePage ignores node metadata that isn't the field key or the text itself", () {
       const source = "Title: My Movie\n\nSome action.";
       final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
 
+      final titleNode = decoded.document.getNodeAt(0)! as ParagraphNode;
+      final withExtraMetadata = MutableDocument(
+        nodes: [
+          titleNode.copyParagraphWith(metadata: {...titleNode.metadata, ocptTypeLockedMetadataKey: true}),
+          ...decoded.document.skip(1),
+        ],
+      );
+
       final encoded = OcptWysiwygCodec.encodeWithTitlePage(
-        decoded.document,
+        withExtraMetadata,
         trailingBlankLines: decoded.trailingBlankLines,
       );
 

@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -862,6 +863,154 @@ void main() {
         },
       );
 
+      testWidgets(
+        "typing into a field then pressing Backspace deletes the last character "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          // The F6 defect itself: `NodeMetadata.isDeletable: false` used to make
+          // `DeleteContentCommand`/`DeleteSelectionCommand` abort *any* deletion inside a single
+          // title-page node, not just the node's own removal — so typed text could never be
+          // shortened, only added to.
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          String? encodedText;
+
+          await tester.pumpWidget(
+            _wrap(
+              OcptStyledScreenplayEditor(
+                text: "Some action.",
+                pageSetup: const OcptPageSetup.standard(),
+                isPageSimulationEnabled: true,
+                areSceneNumbersVisible: sceneNumbersVisible,
+                onTextChanged: (text) => encodedText = text,
+                onCaretLineChanged: (_) {},
+                jumpRequest: null,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Credit: index 1.
+          final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
+          await _placeCaretAtStartOf(tester, creditNodeId);
+          await tester.typeImeText("written by");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          // The caret sits at the end of "written by" (offset 10): a plain hardware Backspace, the
+          // same key `CommonEditorOperations.deleteUpstreamCharacter`-driven path a real desktop
+          // keypress travels through.
+          await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+          await tester.pump(const Duration(milliseconds: 200));
+
+          expect((SuperEditorInspector.findDocument()!.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written b");
+          expect(encodedText, contains("Credit: written b\n"));
+        },
+      );
+
+      testWidgets(
+        "deleting a selection inside a field removes just the selection "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          String? encodedText;
+
+          await tester.pumpWidget(
+            _wrap(
+              OcptStyledScreenplayEditor(
+                text: "Some action.",
+                pageSetup: const OcptPageSetup.standard(),
+                isPageSimulationEnabled: true,
+                areSceneNumbersVisible: sceneNumbersVisible,
+                onTextChanged: (text) => encodedText = text,
+                onCaretLineChanged: (_) {},
+                jumpRequest: null,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Credit: index 1.
+          final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
+          await _placeCaretAtStartOf(tester, creditNodeId);
+          await tester.typeImeText("written by");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          // Extend the selection upstream over the last two characters ("by"), then delete them —
+          // exactly the "typing over/deleting an expanded selection inside a field" case F2's flag
+          // used to also silently block.
+          await _sendShift(tester, LogicalKeyboardKey.arrowLeft);
+          await _sendShift(tester, LogicalKeyboardKey.arrowLeft);
+          await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+          await tester.pump(const Duration(milliseconds: 200));
+
+          expect((SuperEditorInspector.findDocument()!.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written ");
+          expect(encodedText, contains("Credit: written \n"));
+        },
+      );
+
+      testWidgets(
+        "select-all then Delete clears the body but leaves the six title-page fields standing "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          // Taller than most other title-page tests' own 1400x1200: with a title page present, the
+          // still-open pagination defect (fixed separately, not by this change) currently renders the
+          // body's first node around y=2600 instead of its eventual correct position, but this test
+          // never needs to see the body at all — only the surface needs to be wide enough for the
+          // widget tree to lay out without throwing.
+          tester.view.physicalSize = const Size(1400, 2700);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          String? encodedText;
+
+          await tester.pumpWidget(
+            _wrap(
+              OcptStyledScreenplayEditor(
+                text: "INT. HOUSE - DAY\n\nSome action.",
+                pageSetup: const OcptPageSetup.standard(),
+                isPageSimulationEnabled: true,
+                areSceneNumbersVisible: sceneNumbersVisible,
+                onTextChanged: (text) => encodedText = text,
+                onCaretLineChanged: (_) {},
+                jumpRequest: null,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final fieldIds = [
+            for (var index = 0; index < _titlePageFieldCount; index++)
+              SuperEditorInspector.findDocument()!.getNodeAt(index)!.id,
+          ];
+
+          // Ctrl+A only reaches `SuperEditor`'s keyboard handlers once it has focus: place a caret
+          // first, exactly like a real user would before selecting everything.
+          await _placeCaretAtStartOf(tester, fieldIds.first);
+
+          await _sendCtrl(tester, LogicalKeyboardKey.keyA);
+          await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+          await tester.pump(const Duration(milliseconds: 200));
+
+          final document = SuperEditorInspector.findDocument()!;
+          // The two deleted body nodes (heading + action) are replaced by a single fresh empty one:
+          // the six fields are untouched, so the sheet still always has all of them.
+          expect(document.nodeCount, _titlePageFieldCount + 1);
+          for (final fieldId in fieldIds) {
+            expect(document.getNodeById(fieldId), isNotNull, reason: "field node $fieldId");
+          }
+          expect((document.getNodeAt(_titlePageFieldCount)! as ParagraphNode).text.toPlainText(), isEmpty);
+          expect(encodedText, "");
+        },
+      );
+
       testWidgets("the Draft date and Contact placeholders share the same row, split at the page's horizontal centre "
           "(scene numbers: $sceneNumbersVisible)", (tester) async {
         tester.view.physicalSize = const Size(1400, 1200);
@@ -1091,6 +1240,37 @@ void main() {
       expect((document.getNodeAt(5)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Contact");
 
       expect(find.text("Contact"), findsOneWidget);
+    });
+
+    testWidgets("Backspace via the IME delta channel at the start of a field does not merge it into its neighbour", (
+      tester,
+    ) async {
+      // The IME delta channel is a genuinely different code path from `sendKeyEvent`: at offset 0
+      // of a node, `document_delta_editing.dart`'s `delete()` sends a
+      // `DeleteUpstreamAtBeginningOfNodeRequest`, never a `CombineParagraphsRequest` — so this
+      // exercises `ocptTitlePageGuardRequestHandler`'s dedicated rule for that request, not the one
+      // the hardware-Backspace tests above already cover.
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      // Credit: index 1.
+      final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
+      await _placeCaretAtStartOf(tester, creditNodeId);
+      await tester.typeImeText("written by");
+      await tester.pump(const Duration(milliseconds: 200));
+      await _placeCaretAtStartOf(tester, creditNodeId);
+
+      await tester.ime.backspace(getter: imeClientGetter);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+      expect(document.getNodeById(creditNodeId), isNotNull);
+      expect((document.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written by");
     });
   });
 
