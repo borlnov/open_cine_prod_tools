@@ -18,7 +18,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_placeholder_builder.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_component_builder.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
@@ -44,10 +45,10 @@ import 'package:super_editor/super_editor.dart';
 ///
 /// While [isPageSimulationEnabled] is on, the document is preceded by a real, always-complete,
 /// editable title sheet — one node per title-page field (`OcptWysiwygCodec.decodeWithTitlePage`),
-/// empty fields shown as fill-in placeholders (`OcptTitlePagePlaceholderComponentBuilder`), laid
-/// out at page 1 by `computeOcptStyledPagination`. It disappears entirely while page simulation is
-/// off: the fluid, theme-following surface has no notion of a "first page" to put it on, so it
-/// stays exactly what it always was, the body alone.
+/// empty fields shown as fill-in placeholders, Contact and Source shifted onto Draft date's own
+/// row (both `OcptTitlePageComponentBuilder`), laid out at page 1 by `computeOcptStyledPagination`.
+/// It disappears entirely while page simulation is off: the fluid, theme-following surface has no
+/// notion of a "first page" to put it on, so it stays exactly what it always was, the body alone.
 class OcptStyledScreenplayEditor extends StatefulWidget {
   /// The full Fountain source text to edit.
   final String text;
@@ -297,6 +298,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final settledEditor = Editor(
       editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
       requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..insert(0, ocptTitlePageGuardRequestHandler)
         ..add(ocptChangeNodeMetadataRequestHandler)
         ..add(ocptReplaceNodeTextRequestHandler),
     );
@@ -339,12 +341,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         // map would needlessly require a `Tr` in scope for every fluid-mode editor instance,
         // including the many tests that pump this widget standalone with no localization set up.
         if (widget.isPageSimulationEnabled)
-          OcptTitlePagePlaceholderComponentBuilder(
+          OcptTitlePageComponentBuilder(
             placeholders: _titlePagePlaceholdersByNodeId(context),
             hintStyleBuilder: (resolvedStyle) => resolvedStyle.copyWith(
               fontStyle: FontStyle.italic,
               color: resolvedStyle.color?.withValues(alpha: 0.4),
             ),
+            metrics: metrics,
           ),
         ...defaultComponentBuilders,
       ],
@@ -501,9 +504,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   }
 
   /// [_titlePagePlaceholders], re-keyed by node id for
-  /// [OcptTitlePagePlaceholderComponentBuilder.placeholders]: that builder's `createComponent` is
-  /// only ever handed a view model, never the node's own [ocptTitlePageKeyMetadataKey] metadata
-  /// (unlike `createViewModel`, which reads [_document] directly), so this resolves each current
+  /// [OcptTitlePageComponentBuilder.placeholders]: that builder's `createComponent` is only ever
+  /// handed a view model, never the node's own [ocptTitlePageKeyMetadataKey] metadata (unlike
+  /// `createViewModel`, which reads [_document] directly), so this resolves each current
   /// title-page node's label ahead of time, mirroring [_sceneNumbersFromMetadata]'s own node-id
   /// keying.
   Map<String, String> _titlePagePlaceholdersByNodeId(BuildContext context) {
@@ -521,6 +524,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
     return placeholders;
   }
+
 
   /// Builds [_document], [_composer] and [_editor] from [text], and starts listening to document
   /// and selection changes.
@@ -541,6 +545,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor = Editor(
       editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
       requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..insert(0, ocptTitlePageGuardRequestHandler)
         ..add(ocptChangeNodeMetadataRequestHandler)
         ..add(ocptReplaceNodeTextRequestHandler),
     );

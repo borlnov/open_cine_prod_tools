@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2024 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+#
+# SPDX-License-Identifier: LicenseRef-ALLCircuits-ACT-1.1
+
+name: act_abs_peripherals_manager
+description: Contains useful elements for managing peripherals such as BLE,
+  WiFi, location, etc.
+publish_to: none
+
+# This package supports all platforms listed below.
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  act_life_cycle:
+    path: ../act_life_cycle
+
+  act_enable_service_utility:
+    path: ../act_enable_service_utility
+
+  act_permissions_manager:
+    path: ../act_permissions_manager
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0

@@ -1,0 +1,65 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Dart Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks (${{ matrix.package.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { name: app, path: . }
+          - { name: fountain_kit, path: packages/fountain_kit }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          submodules: recursive
+      - name: Set up Flutter
+        uses: ./.github/actions/flutter-setup
+      - name: Get app dependencies
+        if: matrix.package.path == '.'
+        run: flutter pub get
+      - name: Generate translations
+        if: matrix.package.path == '.'
+        run: dart run intl_utils:generate
+      - name: Generate drift database code
+        if: matrix.package.path == '.'
+        run: dart run build_runner build
+      - name: Get fountain_kit dependencies
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart pub get
+      - name: Analyze (app)
+        if: matrix.package.path == '.'
+        working-directory: ${{ matrix.package.path }}
+        run: flutter analyze
+      - name: Analyze (fountain_kit)
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart analyze
+      - name: Test (app)
+        if: matrix.package.path == '.'
+        working-directory: ${{ matrix.package.path }}
+        run: flutter test
+      - name: Test (fountain_kit)
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart test

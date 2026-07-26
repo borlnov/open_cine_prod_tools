@@ -35,6 +35,33 @@ void main() {
       expect(ocptTitlePageFieldLayoutOf("Contact", layout).textAlign, TextAlign.left);
       expect(ocptTitlePageFieldLayoutOf("Source", layout).textAlign, TextAlign.left);
     });
+
+    test("Draft date and Contact split the row half-and-half, Source keeps the full content width", () {
+      final contentWidth = layout.pageWidth - layout.marginLeft - layout.marginRight;
+      final halfWidth = contentWidth / 2;
+
+      final draftDate = ocptTitlePageFieldLayoutOf("Draft date", layout);
+      final contact = ocptTitlePageFieldLayoutOf("Contact", layout);
+      final source = ocptTitlePageFieldLayoutOf("Source", layout);
+
+      // Both keep the same full-row `maxWidth`, and shrink their usable box from opposite sides,
+      // so neither box overlaps the other's half (see `ocptTitlePageFieldLayoutOf`'s own doc
+      // comment for why a narrowed `maxWidth` isn't used instead).
+      expect(draftDate.maxWidth, layout.marginLeft + contentWidth);
+      expect(contact.maxWidth, layout.marginLeft + contentWidth);
+      expect(draftDate.left, closeTo(layout.marginLeft + halfWidth, 0.01));
+      expect(draftDate.right, 0);
+      expect(contact.left, layout.marginLeft);
+      expect(contact.right, closeTo(halfWidth, 0.01));
+      expect(draftDate.maxWidth - draftDate.left - draftDate.right, closeTo(halfWidth, 0.01));
+      expect(contact.maxWidth - contact.left - contact.right, closeTo(halfWidth, 0.01));
+
+      // Contact's own top gap is 0 (the row shift takes its place instead); Source is unaffected,
+      // following underneath at the full content width with its usual one-line gap.
+      expect(contact.topGap, 0);
+      expect(source.right, 0);
+      expect(source.maxWidth - source.left - source.right, closeTo(contentWidth, 0.01));
+    });
   });
 
   group("computeOcptStyledTitlePageMetrics", () {
@@ -44,6 +71,9 @@ void main() {
       // Worked example (see the F3 plan): each field's own top gap (Title and Draft date's own
       // fraction of the sheet height, every other field one or two line heights) plus one line of
       // text at the field's own font scale (only Title differs, at `ocptTitlePageTitleFontScale`).
+      // Contact's own top gap is 0 (F4's row shift takes its place, painted rather than flowed —
+      // see `OcptStyledTitlePageMetrics.flowHeight`'s own doc comment for why that leaves this sum
+      // one `lineHeight` short of the sheet's visual height, on purpose).
       const titleTopFraction = 0.32;
       const bottomGroupTopFraction = 0.22;
       final expected =
@@ -51,7 +81,7 @@ void main() {
           (layout.lineHeight * 2 + layout.lineHeight) + // Credit
           (layout.lineHeight + layout.lineHeight) + // Author
           (layout.pageHeight * bottomGroupTopFraction + layout.lineHeight) + // Draft date
-          (layout.lineHeight + layout.lineHeight) + // Contact
+          (0 + layout.lineHeight) + // Contact
           (layout.lineHeight + layout.lineHeight); // Source
 
       final result = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics);
@@ -96,6 +126,53 @@ void main() {
       final result = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics);
 
       expect(result.flowHeight, 0);
+    });
+
+    test("a one-line Draft date's rowShift is exactly one lineHeight", () {
+      final document = OcptWysiwygCodec.decodeWithTitlePage(
+        "Draft date: 2026-07-26\n\nSome action.",
+      ).document;
+
+      final result = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics);
+
+      expect(result.rowShift, closeTo(layout.lineHeight, 0.01));
+    });
+
+    test("an Enter-split, two-line Draft date doubles rowShift", () {
+      final document = OcptWysiwygCodec.decodeWithTitlePage(
+        "Draft date:\n    First line\n    Second line\n\nSome action.",
+      ).document;
+
+      final result = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics);
+
+      expect(result.rowShift, closeTo(layout.lineHeight * 2, 0.01));
+    });
+
+    test("a document with no Draft date node has a rowShift of 0", () {
+      final document = OcptWysiwygCodec.decode("Some action.").document;
+
+      final result = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics);
+
+      expect(result.rowShift, 0);
+    });
+
+    test("Contact wraps at half the content width, not the full width", () {
+      final contentWidth = layout.pageWidth - layout.marginLeft - layout.marginRight;
+      final halfColumns = (contentWidth / 2 / layout.glyphWidth).floor();
+      // One word filling half the box exactly, plus a short second word: wraps to 2 lines under
+      // the new half-width box, but would still fit on 1 line under the old full-width box.
+      final contact = "${List.generate(halfColumns, (_) => "A").join()} B";
+
+      final document = OcptWysiwygCodec.decodeWithTitlePage("Contact: $contact\n\nSome action.").document;
+
+      final result = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics);
+
+      // Credit + Author + Draft date's own contributions are the same regardless of Contact's
+      // text, so isolate Contact's own line count by comparing against a short Contact.
+      final shortDocument = OcptWysiwygCodec.decodeWithTitlePage("Contact: x\n\nSome action.").document;
+      final shortResult = computeOcptStyledTitlePageMetrics(document: shortDocument, metrics: metrics);
+
+      expect(result.flowHeight - shortResult.flowHeight, closeTo(layout.lineHeight, 0.01));
     });
   });
 }

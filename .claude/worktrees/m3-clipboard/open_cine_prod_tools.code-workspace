@@ -1,0 +1,39 @@
+// SPDX-FileCopyrightText: 2024 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "name": "actlibs",
+            "path": "actlibs"
+        }
+    ],
+    "settings": {
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "dart.lineLength": 100,
+        "editor.rulers": [
+            100
+        ],
+        "markdown.extension.print.imgToBase64": true,
+        "editor.formatOnSave": true
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": []
+    },
+    "extensions": {
+        "recommendations": [
+            "davidanson.vscode-markdownlint",
+            "dart-code.flutter",
+            "dart-code.dart-code",
+            "github.vscode-github-actions",
+            "github.codespaces",
+            "yzhang.markdown-all-in-one",
+            "redhat.vscode-yaml"
+        ]
+    }
+}

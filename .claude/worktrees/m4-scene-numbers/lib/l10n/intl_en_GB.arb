@@ -1,0 +1,1108 @@
+{
+  "@@locale": "en_GB",
+  "appTitle": "Open Cine Prod Tools",
+  "@appTitle": {
+    "description": "The application title",
+    "context": "Displayed in the window title bar of the application",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageTitle": "Editor",
+  "@editorPageTitle": {
+    "description": "Title shown on the editor page",
+    "context": "Displayed at the center of the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorScenesPanelTitle": "Scenes",
+  "@editorScenesPanelTitle": {
+    "description": "Title of the editor's scene panel",
+    "context": "Displayed at the top of the scene panel, next to the scene count",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorScenesEmptyHint": "Scene headings will appear here as you write.",
+  "@editorScenesEmptyHint": {
+    "description": "Hint shown in the scene panel while the screenplay has no scene yet",
+    "context": "Displayed in the scene panel instead of the scene list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPreviewEmptyHint": "Start writing to see the formatted preview.",
+  "@editorPreviewEmptyHint": {
+    "description": "Hint shown in the preview panel while the screenplay is empty",
+    "context": "Displayed in the preview panel instead of the simulated paper page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBackToProjectsTooltip": "Back to projects",
+  "@editorBackToProjectsTooltip": {
+    "description": "Tooltip of the toolbar action that navigates back to the projects list",
+    "context": "Displayed on hover over the back button of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSaveTooltip": "Save",
+  "@editorSaveTooltip": {
+    "description": "Tooltip of the toolbar action that saves the screenplay",
+    "context": "Displayed on hover over the save button of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleScenePanelTooltip": "Show or hide the scene panel",
+  "@editorToggleScenePanelTooltip": {
+    "description": "Tooltip of the toolbar action that shows/hides the scene panel",
+    "context": "Displayed on hover over the scene panel toggle of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTogglePreviewTooltip": "Show or hide the preview",
+  "@editorTogglePreviewTooltip": {
+    "description": "Tooltip of the toolbar action that shows/hides the formatted preview",
+    "context": "Displayed on hover over the preview toggle of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleSyntaxGuideTooltip": "Show or hide the syntax guide",
+  "@editorToggleSyntaxGuideTooltip": {
+    "description": "Tooltip of the toolbar action that shows/hides the Fountain syntax guide",
+    "context": "Displayed on hover over the syntax guide toggle of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockPreviewTabLabel": "Preview",
+  "@editorRightDockPreviewTabLabel": {
+    "description": "Label of the preview tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockSyntaxTabLabel": "Syntax",
+  "@editorRightDockSyntaxTabLabel": {
+    "description": "Label of the syntax guide tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockCloseTooltip": "Close panel",
+  "@editorRightDockCloseTooltip": {
+    "description": "Tooltip of the button that closes the editor's right dock",
+    "context": "Displayed on hover over the × button at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSwitchToRawModeTooltip": "Switch to raw text editing",
+  "@editorSwitchToRawModeTooltip": {
+    "description": "Tooltip of the toolbar action that switches from the styled editor to the raw text editor",
+    "context": "Displayed on hover over the mode toggle of the editor toolbar, while in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSwitchToStyledModeTooltip": "Switch to styled editing",
+  "@editorSwitchToStyledModeTooltip": {
+    "description": "Tooltip of the toolbar action that switches from the raw text editor to the styled editor",
+    "context": "Displayed on hover over the mode toggle of the editor toolbar, while in raw mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorUnsavedChangesTooltip": "Unsaved changes",
+  "@editorUnsavedChangesTooltip": {
+    "description": "Tooltip of the dot marking unsaved changes",
+    "context": "Displayed on hover over the dot shown next to the title in the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSaveError": "The screenplay could not be saved.",
+  "@editorSaveError": {
+    "description": "Error shown when saving the screenplay to the project file failed",
+    "context": "Displayed in a SnackBar on the editor page; the changes stay marked unsaved",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeDropdownTooltip": "Block type",
+  "@editorBlockTypeDropdownTooltip": {
+    "description": "Tooltip of the toolbar's block-type dropdown",
+    "context": "Displayed on hover over the block-type dropdown of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeSceneHeading": "Scene heading",
+  "@editorBlockTypeSceneHeading": {
+    "description": "Label of the scene heading block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeAction": "Action",
+  "@editorBlockTypeAction": {
+    "description": "Label of the action block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeCharacter": "Character",
+  "@editorBlockTypeCharacter": {
+    "description": "Label of the character block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeParenthetical": "Parenthetical",
+  "@editorBlockTypeParenthetical": {
+    "description": "Label of the parenthetical block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeDialogue": "Dialogue",
+  "@editorBlockTypeDialogue": {
+    "description": "Label of the dialogue block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeTransition": "Transition",
+  "@editorBlockTypeTransition": {
+    "description": "Label of the transition block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeCenteredText": "Centered text",
+  "@editorBlockTypeCenteredText": {
+    "description": "Label of the centered text block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeLyrics": "Lyrics",
+  "@editorBlockTypeLyrics": {
+    "description": "Label of the lyrics block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeSection": "Section",
+  "@editorBlockTypeSection": {
+    "description": "Label of the section block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypeSynopsis": "Synopsis",
+  "@editorBlockTypeSynopsis": {
+    "description": "Label of the synopsis block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorBlockTypePageBreak": "Page break",
+  "@editorBlockTypePageBreak": {
+    "description": "Label of the page break block type",
+    "context": "Displayed as an item of the editor toolbar's block-type dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleBoldTooltip": "Bold (Ctrl+B)",
+  "@editorToggleBoldTooltip": {
+    "description": "Tooltip of the toolbar action that toggles bold on the selection",
+    "context": "Displayed on hover over the bold toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleItalicTooltip": "Italic (Ctrl+I)",
+  "@editorToggleItalicTooltip": {
+    "description": "Tooltip of the toolbar action that toggles italic on the selection",
+    "context": "Displayed on hover over the italic toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleUnderlineTooltip": "Underline (Ctrl+U)",
+  "@editorToggleUnderlineTooltip": {
+    "description": "Tooltip of the toolbar action that toggles underline on the selection",
+    "context": "Displayed on hover over the underline toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorMoreActionsTooltip": "More actions",
+  "@editorMoreActionsTooltip": {
+    "description": "Tooltip of the toolbar's overflow menu action",
+    "context": "Displayed on hover over the overflow (⋮) menu button of the editor toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportAction": "Export…",
+  "@editorExportAction": {
+    "description": "Label of the action that exports the screenplay to a .fountain file",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfAction": "Export to PDF…",
+  "@editorExportPdfAction": {
+    "description": "Label of the action that exports the screenplay to a PDF file",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportAndReplaceAction": "Import and replace…",
+  "@editorImportAndReplaceAction": {
+    "description": "Label of the action that replaces the screenplay with an imported .fountain file",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTogglePageSimulationAction": "Page simulation",
+  "@editorTogglePageSimulationAction": {
+    "description": "Label of the action that toggles the \"Word-like\" page simulation on or off",
+    "context": "Displayed as a checkable item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorToggleSceneNumbersAction": "Scene numbers",
+  "@editorToggleSceneNumbersAction": {
+    "description": "Label of the action that toggles the styled editor's scene numbers on or off",
+    "context": "Displayed as a checkable item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupAction": "Page setup…",
+  "@editorPageSetupAction": {
+    "description": "Label of the action that opens the page setup dialog",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupDialogTitle": "Page setup",
+  "@editorPageSetupDialogTitle": {
+    "description": "Title of the page setup dialog",
+    "context": "Displayed at the top of the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupPageSizeLabel": "Page size",
+  "@editorPageSetupPageSizeLabel": {
+    "description": "Label of the page size dropdown",
+    "context": "Displayed inside the page setup dialog, above the page format dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupUsLetterOption": "US Letter",
+  "@editorPageSetupUsLetterOption": {
+    "description": "Label of the US Letter page format option",
+    "context": "Displayed as an entry of the page setup dialog's page size dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupA4Option": "A4",
+  "@editorPageSetupA4Option": {
+    "description": "Label of the A4 page format option",
+    "context": "Displayed as an entry of the page setup dialog's page size dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginsSectionLabel": "Margins (inches)",
+  "@editorPageSetupMarginsSectionLabel": {
+    "description": "Label of the margins section",
+    "context": "Displayed inside the page setup dialog, above the margin fields",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginLeftLabel": "Left",
+  "@editorPageSetupMarginLeftLabel": {
+    "description": "Label of the left margin field",
+    "context": "Displayed inside the page setup dialog, above the left margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginRightLabel": "Right",
+  "@editorPageSetupMarginRightLabel": {
+    "description": "Label of the right margin field",
+    "context": "Displayed inside the page setup dialog, above the right margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginTopLabel": "Top",
+  "@editorPageSetupMarginTopLabel": {
+    "description": "Label of the top margin field",
+    "context": "Displayed inside the page setup dialog, above the top margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginBottomLabel": "Bottom",
+  "@editorPageSetupMarginBottomLabel": {
+    "description": "Label of the bottom margin field",
+    "context": "Displayed inside the page setup dialog, above the bottom margin text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupResetAction": "Reset to standard margins",
+  "@editorPageSetupResetAction": {
+    "description": "Label of the action that resets the margin fields to the standard margins",
+    "context": "Displayed as a button inside the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupCancelAction": "Cancel",
+  "@editorPageSetupCancelAction": {
+    "description": "Label of the action that dismisses the page setup dialog",
+    "context": "Displayed on a button in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupApplyAction": "Apply",
+  "@editorPageSetupApplyAction": {
+    "description": "Label of the action that confirms the page setup dialog",
+    "context": "Displayed on a button in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginNotANumberError": "Enter a number",
+  "@editorPageSetupMarginNotANumberError": {
+    "description": "Validation error shown when a margin field isn't a valid number",
+    "context": "Displayed below a margin text field in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginNegativeError": "Must not be negative",
+  "@editorPageSetupMarginNegativeError": {
+    "description": "Validation error shown when a margin field is a negative number",
+    "context": "Displayed below a margin text field in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorPageSetupMarginsTooLargeError": "These margins leave no room to print",
+  "@editorPageSetupMarginsTooLargeError": {
+    "description": "Validation error shown when the margins leave no positive printable area",
+    "context": "Displayed below a margin text field in the page setup dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageAction": "Title page…",
+  "@editorTitlePageAction": {
+    "description": "Label of the action that opens the title page dialog",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorResetPanelLayoutAction": "Reset panel layout",
+  "@editorResetPanelLayoutAction": {
+    "description": "Label of the action that restores both dock widths to their defaults",
+    "context": "Displayed as an item of the editor toolbar's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageDialogTitle": "Title page",
+  "@editorTitlePageDialogTitle": {
+    "description": "Title of the title page dialog",
+    "context": "Displayed at the top of the title page dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageTitleLabel": "Title",
+  "@editorTitlePageTitleLabel": {
+    "description": "Label of the Title field",
+    "context": "Displayed inside the title page dialog, above the Title text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageCreditLabel": "Credit",
+  "@editorTitlePageCreditLabel": {
+    "description": "Label of the Credit field",
+    "context": "Displayed inside the title page dialog, above the Credit text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageAuthorLabel": "Author",
+  "@editorTitlePageAuthorLabel": {
+    "description": "Label of the Author field",
+    "context": "Displayed inside the title page dialog, above the Author text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageDraftDateLabel": "Draft date",
+  "@editorTitlePageDraftDateLabel": {
+    "description": "Label of the Draft date field",
+    "context": "Displayed inside the title page dialog, above the Draft date text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageContactLabel": "Contact",
+  "@editorTitlePageContactLabel": {
+    "description": "Label of the Contact field",
+    "context": "Displayed inside the title page dialog, above the Contact text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorTitlePageSourceLabel": "Source",
+  "@editorTitlePageSourceLabel": {
+    "description": "Label of the Source field",
+    "context": "Displayed inside the title page dialog, above the Source text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportFileTypeLabel": "Fountain screenplay",
+  "@editorImportFileTypeLabel": {
+    "description": "Label of the .fountain file type shown in the native open/save-file dialog",
+    "context": "Passed to the OS file picker when the user imports, or exports to .fountain",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmTitle": "Replace the current screenplay?",
+  "@editorImportConfirmTitle": {
+    "description": "Title of the dialog confirming an import-and-replace",
+    "context": "Displayed at the top of the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmMessage": "The current text will be replaced by the imported file. A snapshot of it is kept in the project.",
+  "@editorImportConfirmMessage": {
+    "description": "Message of the dialog confirming an import-and-replace",
+    "context": "Displayed inside the import confirmation dialog, below its title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmCancelAction": "Cancel",
+  "@editorImportConfirmCancelAction": {
+    "description": "Label of the action that dismisses the import confirmation dialog",
+    "context": "Displayed on a button in the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportConfirmReplaceAction": "Replace",
+  "@editorImportConfirmReplaceAction": {
+    "description": "Label of the action that confirms the import confirmation dialog",
+    "context": "Displayed on a button in the import confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportSuccessMessage": "Exported to {path}",
+  "@editorExportSuccessMessage": {
+    "description": "Message shown when the screenplay was successfully exported to a .fountain file",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "editorExportError": "The screenplay could not be exported.",
+  "@editorExportError": {
+    "description": "Error shown when exporting the screenplay to a .fountain file failed",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfDialogTitle": "Export to PDF",
+  "@editorExportPdfDialogTitle": {
+    "description": "Title of the PDF export options dialog",
+    "context": "Displayed at the top of the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfSceneNumbersLabel": "Include scene numbers",
+  "@editorExportPdfSceneNumbersLabel": {
+    "description": "Label of the checkbox toggling scene numbers in the exported PDF",
+    "context": "Displayed inside the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfTitlePageLabel": "Include title page",
+  "@editorExportPdfTitlePageLabel": {
+    "description": "Label of the checkbox toggling the title page in the exported PDF",
+    "context": "Displayed inside the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfExportAction": "Export",
+  "@editorExportPdfExportAction": {
+    "description": "Label of the action that confirms the PDF export options dialog",
+    "context": "Displayed on a button in the PDF export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfFileTypeLabel": "PDF document",
+  "@editorExportPdfFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports to PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfSuccessMessage": "Exported to {path}",
+  "@editorExportPdfSuccessMessage": {
+    "description": "Message shown when the screenplay was successfully exported to a PDF file",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "editorExportPdfError": "The screenplay could not be exported to PDF.",
+  "@editorExportPdfError": {
+    "description": "Error shown when exporting the screenplay to a PDF file failed",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportSuccessMessage": "The screenplay was replaced by the imported file.",
+  "@editorImportSuccessMessage": {
+    "description": "Message shown when the screenplay was successfully replaced by an imported file",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorImportError": "The screenplay could not be imported.",
+  "@editorImportError": {
+    "description": "Error shown when importing a .fountain file to replace the screenplay failed",
+    "context": "Displayed in a SnackBar on the editor page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsPageTitle": "Settings",
+  "@settingsPageTitle": {
+    "description": "Title shown on the settings page",
+    "context": "Displayed at the center of the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAppearanceSectionTitle": "Appearance",
+  "@settingsAppearanceSectionTitle": {
+    "description": "Title of the settings page's appearance section",
+    "context": "Displayed at the top of the appearance section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeLabel": "Theme",
+  "@settingsThemeLabel": {
+    "description": "Label of the theme (brightness) dropdown",
+    "context": "Displayed next to the brightness dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeSystemOption": "System",
+  "@settingsThemeSystemOption": {
+    "description": "Label of the option that follows the system brightness",
+    "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeLightOption": "Light",
+  "@settingsThemeLightOption": {
+    "description": "Label of the option that forces the light brightness",
+    "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsThemeDarkOption": "Dark",
+  "@settingsThemeDarkOption": {
+    "description": "Label of the option that forces the dark brightness",
+    "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsLanguageSectionTitle": "Language",
+  "@settingsLanguageSectionTitle": {
+    "description": "Title of the settings page's language section",
+    "context": "Displayed at the top of the language section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsLanguageLabel": "Language",
+  "@settingsLanguageLabel": {
+    "description": "Label of the language dropdown",
+    "context": "Displayed next to the language dropdown in the language section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsLanguageSystemOption": "System",
+  "@settingsLanguageSystemOption": {
+    "description": "Label of the option that follows the system language",
+    "context": "Displayed as an item of the language dropdown in the language section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAboutSectionTitle": "About",
+  "@settingsAboutSectionTitle": {
+    "description": "Title of the settings page's about section",
+    "context": "Displayed at the top of the about section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAboutVersionLabel": "Version {version}",
+  "@settingsAboutVersionLabel": {
+    "description": "Version of the application",
+    "context": "Displayed in the about section of the settings page",
+    "type": "text",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAboutGithubRepositoryAction": "GitHub repository",
+  "@settingsAboutGithubRepositoryAction": {
+    "description": "Label of the action that opens the GitHub repository in the system browser",
+    "context": "Displayed as a row in the about section of the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsAboutLicensesAction": "Third-party licenses",
+  "@settingsAboutLicensesAction": {
+    "description": "Label of the action that opens the third-party licenses page",
+    "context": "Displayed as a row in the about section of the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "fatalErrorTitle": "Something went wrong while starting the app",
+  "@fatalErrorTitle": {
+    "description": "Title of the fatal error page",
+    "context": "Displayed when the global manager fails to initialize, above the raw error details",
+    "type": "text",
+    "placeholders": {}
+  },
+  "fatalErrorMessage": "Please restart the application. If the problem persists, contact support.",
+  "@fatalErrorMessage": {
+    "description": "Message of the fatal error page",
+    "context": "Displayed when the global manager fails to initialize, below the fatal error title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeSettingsTooltip": "Settings",
+  "@homeSettingsTooltip": {
+    "description": "Tooltip of the gear action that opens the settings page",
+    "context": "Displayed on hover over the gear icon of the home page header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectAction": "New project",
+  "@homeNewProjectAction": {
+    "description": "Label of the action that creates a new project",
+    "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeOpenProjectAction": "Open…",
+  "@homeOpenProjectAction": {
+    "description": "Label of the action that opens an existing project from a file picker",
+    "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportScreenplayAction": "Import a screenplay…",
+  "@homeImportScreenplayAction": {
+    "description": "Label of the action that creates a new project from an imported .fountain file",
+    "context": "Displayed on a button in the home page header and in its empty state",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeEmptyStateTitle": "No projects yet",
+  "@homeEmptyStateTitle": {
+    "description": "Title of the home page's empty state",
+    "context": "Displayed when the recent projects list is empty, instead of the project grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeEmptyStateMessage": "Create a new screenplay project or open an existing one to get started.",
+  "@homeEmptyStateMessage": {
+    "description": "Message of the home page's empty state",
+    "context": "Displayed below the empty state title, when the recent projects list is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeRemoveFromListAction": "Remove from list",
+  "@homeRemoveFromListAction": {
+    "description": "Label of the action that removes a project from the recent projects list",
+    "context": "Displayed in a project card's overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeMissingFileTooltip": "This project's file can no longer be found",
+  "@homeMissingFileTooltip": {
+    "description": "Tooltip shown on a recent project card whose file is missing",
+    "context": "Displayed on hover/long-press over a greyed-out project card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogTitle": "New project",
+  "@homeNewProjectDialogTitle": {
+    "description": "Title of the dialog asking for the new project's name",
+    "context": "Displayed at the top of the new project name dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogNameLabel": "Project name",
+  "@homeNewProjectDialogNameLabel": {
+    "description": "Label of the text field where the user types the new project's name",
+    "context": "Displayed inside the new project name dialog's text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogNameEmptyError": "Enter a project name",
+  "@homeNewProjectDialogNameEmptyError": {
+    "description": "Validation error shown when the new project name is left empty",
+    "context": "Displayed below the new project name dialog's text field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogCancelAction": "Cancel",
+  "@homeNewProjectDialogCancelAction": {
+    "description": "Label of the action that dismisses the new project name dialog",
+    "context": "Displayed on a button in the new project name dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeNewProjectDialogCreateAction": "Create",
+  "@homeNewProjectDialogCreateAction": {
+    "description": "Label of the action that confirms the new project name dialog",
+    "context": "Displayed on a button in the new project name dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeOpenFileTypeLabel": "Open Cine Prod Tools project",
+  "@homeOpenFileTypeLabel": {
+    "description": "Label of the project file type shown in the native open-file dialog",
+    "context": "Passed to the OS file picker when the user chooses to open a project",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeImportFileTypeLabel": "Fountain screenplay",
+  "@homeImportFileTypeLabel": {
+    "description": "Label of the .fountain file type shown in the native open-file dialog",
+    "context": "Passed to the OS file picker when the user chooses to import a screenplay",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorFileNotFound": "This project file could not be found.",
+  "@homeErrorFileNotFound": {
+    "description": "Error shown when the project file to open doesn't exist any more",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorCorruptedFile": "This project file appears to be corrupted.",
+  "@homeErrorCorruptedFile": {
+    "description": "Error shown when the project file to open isn't a valid project database",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorIoError": "A problem occurred while accessing the project file.",
+  "@homeErrorIoError": {
+    "description": "Error shown when a filesystem or database error occurred creating/opening a project",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeErrorAlreadyOpen": "Another project operation is already in progress.",
+  "@homeErrorAlreadyOpen": {
+    "description": "Error shown when a create/open/close operation is already in progress",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeRelativeTimeJustNow": "Just now",
+  "@homeRelativeTimeJustNow": {
+    "description": "Relative time shown for a project opened less than a minute ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {}
+  },
+  "homeRelativeTimeMinutesAgo": "{count, plural, one{{count} minute ago} other{{count} minutes ago}}",
+  "@homeRelativeTimeMinutesAgo": {
+    "description": "Relative time shown for a project opened less than an hour ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRelativeTimeHoursAgo": "{count, plural, one{{count} hour ago} other{{count} hours ago}}",
+  "@homeRelativeTimeHoursAgo": {
+    "description": "Relative time shown for a project opened less than a day ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRelativeTimeDaysAgo": "{count, plural, one{{count} day ago} other{{count} days ago}}",
+  "@homeRelativeTimeDaysAgo": {
+    "description": "Relative time shown for a project opened one or more days ago",
+    "context": "Displayed on a project card instead of its last-opened date",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsPages": "{count, plural, one{{count} page} other{{count} pages}}",
+  "@editorStatsPages": {
+    "description": "Page count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsScenes": "{count, plural, one{{count} scene} other{{count} scenes}}",
+  "@editorStatsScenes": {
+    "description": "Scene count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsCharacters": "{count, plural, one{{count} character} other{{count} characters}}",
+  "@editorStatsCharacters": {
+    "description": "Speaking-character count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsWords": "{count, plural, one{{count} word} other{{count} words}}",
+  "@editorStatsWords": {
+    "description": "Word count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsSigns": "{count, plural, one{{count} sign} other{{count} signs}}",
+  "@editorStatsSigns": {
+    "description": "Sign (non-whitespace character) count segment of the editor's status bar",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorStatsSavedRelative": "Saved {time}",
+  "@editorStatsSavedRelative": {
+    "description": "Saved-state segment of the editor's status bar, showing the last save's relative time",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "editorStatsNeverSaved": "Not saved yet",
+  "@editorStatsNeverSaved": {
+    "description": "Saved-state segment of the editor's status bar before the screenplay has ever been saved",
+    "context": "Displayed in the status bar under the editing area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideStructureSectionTitle": "Structure",
+  "@editorSyntaxGuideStructureSectionTitle": {
+    "description": "Header of the syntax guide's structure section (scene elements)",
+    "context": "Displayed above the structure entries of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideOrganisationSectionTitle": "Organisation",
+  "@editorSyntaxGuideOrganisationSectionTitle": {
+    "description": "Header of the syntax guide's organisation section (sections, synopses, notes, boneyard)",
+    "context": "Displayed above the organisation entries of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideFormattingSectionTitle": "Formatting",
+  "@editorSyntaxGuideFormattingSectionTitle": {
+    "description": "Header of the syntax guide's formatting section (inline emphasis)",
+    "context": "Displayed above the formatting entries of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTitlePageSectionTitle": "Title page",
+  "@editorSyntaxGuideTitlePageSectionTitle": {
+    "description": "Header of the syntax guide's title page section",
+    "context": "Displayed above the title page entry of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSceneNumberTitle": "Scene number",
+  "@editorSyntaxGuideSceneNumberTitle": {
+    "description": "Title of the scene number entry of the syntax guide",
+    "context": "Displayed above the scene number snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideDualDialogueTitle": "Dual dialogue",
+  "@editorSyntaxGuideDualDialogueTitle": {
+    "description": "Title of the dual dialogue entry of the syntax guide",
+    "context": "Displayed above the dual dialogue snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideNoteTitle": "Note",
+  "@editorSyntaxGuideNoteTitle": {
+    "description": "Title of the note entry of the syntax guide",
+    "context": "Displayed above the note snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideBoneyardTitle": "Boneyard",
+  "@editorSyntaxGuideBoneyardTitle": {
+    "description": "Title of the boneyard entry of the syntax guide",
+    "context": "Displayed above the boneyard snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideEmphasisTitle": "Emphasis",
+  "@editorSyntaxGuideEmphasisTitle": {
+    "description": "Title of the emphasis entry of the syntax guide",
+    "context": "Displayed above the emphasis snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTitlePageTitle": "Title page",
+  "@editorSyntaxGuideTitlePageTitle": {
+    "description": "Title of the title page entry of the syntax guide",
+    "context": "Displayed above the title page snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSceneHeadingDescription": "A scene heading marks the start of a new scene, usually introduced by INT., EXT. or INT./EXT.; force any other wording with a leading `.` (for example `.KITCHEN - DAY`).",
+  "@editorSyntaxGuideSceneHeadingDescription": {
+    "description": "Description of the scene heading entry of the syntax guide",
+    "context": "Displayed under the scene heading snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSceneNumberDescription": "A scene number is an explicit `#N#` tag at the end of a scene heading (for example `#4A#`); the styled editor hides the tag and shows the number in the margin instead, and unnumbered headings can be numbered automatically.",
+  "@editorSyntaxGuideSceneNumberDescription": {
+    "description": "Description of the scene number entry of the syntax guide",
+    "context": "Displayed under the scene number snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideActionDescription": "Action describes what happens on screen; it is the default when no other rule applies, or can be forced with a leading `!`.",
+  "@editorSyntaxGuideActionDescription": {
+    "description": "Description of the action entry of the syntax guide",
+    "context": "Displayed under the action snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideCharacterDescription": "A character cue introduces a line of dialogue and is written in capitals on its own line, immediately followed by dialogue; force a name that would not otherwise be recognised with a leading `@`.",
+  "@editorSyntaxGuideCharacterDescription": {
+    "description": "Description of the character entry of the syntax guide",
+    "context": "Displayed under the character snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideParentheticalDescription": "A parenthetical is a short direction inside a dialogue block, enclosed in parentheses on its own line, right after a character cue or a dialogue line.",
+  "@editorSyntaxGuideParentheticalDescription": {
+    "description": "Description of the parenthetical entry of the syntax guide",
+    "context": "Displayed under the parenthetical snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideDialogueDescription": "Dialogue is any line that follows a character cue, a parenthetical or another dialogue line; it has no forcing marker of its own.",
+  "@editorSyntaxGuideDialogueDescription": {
+    "description": "Description of the dialogue entry of the syntax guide",
+    "context": "Displayed under the dialogue snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideDualDialogueDescription": "Dual dialogue shows two dialogue blocks side by side; add a `^` right after the second character's cue.",
+  "@editorSyntaxGuideDualDialogueDescription": {
+    "description": "Description of the dual dialogue entry of the syntax guide",
+    "context": "Displayed under the dual dialogue snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTransitionDescription": "A transition such as CUT TO: ends the line with TO: in capitals, or is forced with a leading `>` (unless the line also ends with `<`, which produces centered text instead).",
+  "@editorSyntaxGuideTransitionDescription": {
+    "description": "Description of the transition entry of the syntax guide",
+    "context": "Displayed under the transition snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideCenteredTextDescription": "Centered text is enclosed between a leading `>` and a trailing `<`.",
+  "@editorSyntaxGuideCenteredTextDescription": {
+    "description": "Description of the centered text entry of the syntax guide",
+    "context": "Displayed under the centered text snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideLyricsDescription": "A lyrics line is forced with a leading `~`.",
+  "@editorSyntaxGuideLyricsDescription": {
+    "description": "Description of the lyrics entry of the syntax guide",
+    "context": "Displayed under the lyrics snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuidePageBreakDescription": "A page break is a line made up of three or more `=` characters and nothing else.",
+  "@editorSyntaxGuidePageBreakDescription": {
+    "description": "Description of the page break entry of the syntax guide",
+    "context": "Displayed under the page break snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSectionDescription": "A section heading organises the outline, marked with one to six leading `#` characters.",
+  "@editorSyntaxGuideSectionDescription": {
+    "description": "Description of the section entry of the syntax guide",
+    "context": "Displayed under the section snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideSynopsisDescription": "A synopsis line summarises a scene or section for the outline, marked with a leading `=`.",
+  "@editorSyntaxGuideSynopsisDescription": {
+    "description": "Description of the synopsis entry of the syntax guide",
+    "context": "Displayed under the synopsis snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideNoteDescription": "A note for the reader is enclosed in `[[` and `]]`; it is stripped out before the surrounding line is classified.",
+  "@editorSyntaxGuideNoteDescription": {
+    "description": "Description of the note entry of the syntax guide",
+    "context": "Displayed under the note snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideBoneyardDescription": "A boneyard comment is excluded from the printed screenplay, enclosed between `/*` and `*/`.",
+  "@editorSyntaxGuideBoneyardDescription": {
+    "description": "Description of the boneyard entry of the syntax guide",
+    "context": "Displayed under the boneyard snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideEmphasisDescription": "Inline text can be emphasised with `*italic*`, `**bold**`, `***bold italic***` or `_underline_`.",
+  "@editorSyntaxGuideEmphasisDescription": {
+    "description": "Description of the emphasis entry of the syntax guide",
+    "context": "Displayed under the emphasis snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorSyntaxGuideTitlePageDescription": "The title page is a block of key: value lines (for example Title: and Author:) at the very start of the document, ended by the first blank line.",
+  "@editorSyntaxGuideTitlePageDescription": {
+    "description": "Description of the title page entry of the syntax guide",
+    "context": "Displayed under the title page snippet of the syntax guide",
+    "type": "text",
+    "placeholders": {}
+  }
+}

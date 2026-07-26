@@ -1,0 +1,184 @@
+// SPDX-FileCopyrightText: 2023 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+// SPDX-FileCopyrightText: 2023 Nicolas Butet <nicolas.butet@allcircuits.com>
+//
+// SPDX-License-Identifier: LicenseRef-ALLCircuits-ACT-1.1
+
+import 'dart:typed_data' show Uint16List, Uint8List;
+
+import 'package:act_dart_utility/src/utilities/bool_utility.dart';
+import 'package:act_dart_utility/src/utilities/byte_utility.dart';
+import 'package:act_foundation/act_foundation.dart';
+
+/// This class provides a set of [String] helpers, not provided by Dart.
+///
+/// It especially contains:
+/// - various static constants you might need, such as email validation regexp
+/// - parsing methods
+/// - sanitization methods such as MAC address sanitization and word capitalization
+/// - test methods such as email validity verification
+sealed class StringUtility {
+  /// MAC address bytes separator
+  static const macAddressSeparator = ":";
+
+  /// Email address validation regexp
+  ///
+  /// Voluntary accepts a larger scope for simplicity reasons since an accurate regexp would be very
+  /// complex. If we want to be accurate one day, we may want to use a dedicated package instead.
+  ///
+  /// Currently checks that string has one and only one @ sign, without any spaces.
+  /// Note that untrimmed email addresses are rejected.
+  ///
+  /// See also [isValidEmail].
+  static final emailAddressRegexp = RegExp(r'^[^@ ]+@[^@ ]+$');
+
+  /// IPV4 validation regexp
+  ///
+  /// See also [isValidIpv4].
+  static final ipv4Regexp = RegExp(r'^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)(\.(?!$)|$)){4}$');
+
+  /// Sanitize a MAC address
+  ///
+  /// Returns a properly formated MAC address (such as "00:01:20:0A:BB:CC")
+  /// given a maybe poorly formated MAC address (such as "0:1:20:a:bb:CC")
+  static String formatMacAddress({required String macAddress}) =>
+      macAddress.split(macAddressSeparator).map((e) => e.padLeft(2, '0')).join(macAddressSeparator);
+
+  /// {@template act_dart_utility.StringUtility.toCapitalized}
+  /// Format String with first letter capital and the rest in lowercase
+  ///
+  /// For instance:
+  ///
+  /// - "hello world" will be formatted to "Hello world"
+  /// - "HELLO WORLD" will be formatted to "Hello world"
+  /// {@endtemplate}
+  static String toCapitalized({required String string}) =>
+      string.isNotEmpty ? string[0].toUpperCase() + string.substring(1).toLowerCase() : "";
+
+  /// {@template act_dart_utility.StringUtility.toTitleCase}
+  /// Format String with first letter capital for each word
+  ///
+  /// For instance:
+  ///
+  /// - "hello world" will be formatted to "Hello World"
+  /// - "HELLO WORLD" will be formatted to "Hello World"
+  /// {@endtemplate}
+  static String toTitleCase({required String string}) =>
+      string.split(" ").map((word) => toCapitalized(string: word)).join(" ");
+
+  /// {@template act_dart_utility.StringUtility.isValidEmail}
+  /// Check if given string represents a valid email address
+  ///
+  /// See [emailAddressRegexp] for acceptance criteria
+  /// {@endtemplate}
+  static bool isValidEmail(String string) => emailAddressRegexp.hasMatch(string);
+
+  /// Check if given string represents a valid ipv4 address
+  ///
+  /// See [ipv4Regexp] for acceptance criteria
+  static bool isValidIpv4(String string) => ipv4Regexp.hasMatch(string);
+
+  /// Useful method to parse a string value to the wanted type
+  ///
+  /// The method returns null if the parsing has failed or if the value given is null
+  ///
+  /// The supported types are: `double`, `int`, `String` and `bool`.
+  ///
+  /// If the type given isn't supported, an [ActUnsupportedTypeError] will be thrown.
+  static T? parseStrValue<T>(String? value) {
+    if (value == null) {
+      return null;
+    }
+
+    dynamic castedValue;
+
+    switch (T) {
+      case const (double):
+        castedValue = double.tryParse(value);
+        break;
+      case const (int):
+        castedValue = int.tryParse(value);
+        break;
+      case const (String):
+        castedValue = value;
+        break;
+      case const (bool):
+        castedValue = BoolUtility.tryParse(value);
+        break;
+      default:
+        throw ActUnsupportedTypeError<T>();
+    }
+
+    return castedValue as T?;
+  }
+
+  /// Useful method to cast a value to a string
+  ///
+  /// Returns a record with:
+  /// - isOk: true if the cast succeeded, false otherwise
+  /// - value: the string value if the cast succeeded, null otherwise
+  ///
+  /// The supported types are: `double`, `int`, `String` and `bool`.
+  static ({bool isOk, String? value}) castToString<T>(T? value) {
+    if (value == null) {
+      // Nothing more to do than return a null element
+      return (isOk: true, value: null);
+    }
+
+    String? valueStr;
+    switch (T) {
+      case const (bool):
+        valueStr = (value as bool).toString();
+        break;
+      case const (int):
+        valueStr = (value as int).toString();
+        break;
+      case const (double):
+        valueStr = (value as double).toString();
+        break;
+      case const (String):
+        valueStr = value as String;
+        break;
+      default:
+        // The type isn't supported
+        valueStr = null;
+        break;
+    }
+
+    if (valueStr == null) {
+      // A problem occurred
+      return (isOk: false, value: null);
+    }
+
+    return (isOk: true, value: valueStr);
+  }
+
+  /// {@template act_dart_utility.StringUtility.splitWithoutEmpty}
+  /// Split a string with a [pattern] and remove all the empty elements
+  ///
+  /// For instance, splitting "a,,b,c" with "," will return ["a", "b", "c"]
+  /// while the normal split would return ["a", "", "b", "c"]
+  /// {@endtemplate}
+  static List<String> splitWithoutEmpty(String value, Pattern pattern) {
+    final elements = value.split(pattern);
+    elements.removeWhere((element) => element.isEmpty);
+    return elements;
+  }
+
+  /// {@template act_dart_utility.StringUtility.fromAsciiToHex}
+  /// Convert an ASCII string to a HEX string
+  ///
+  /// The method doesn't test the validity of the ASCII string.
+  /// {@endtemplate}
+  static String fromAsciiToHex(String ascii) {
+    final bytes = Uint8List.fromList(ascii.codeUnits);
+    return ByteUtility.toHex(bytes);
+  }
+
+  /// {@template act_dart_utility.StringUtility.fromUtf16ToHex}
+  /// Convert an UTF-16 string to a HEX string
+  /// {@endtemplate}
+  static String fromUtf16ToHex(String utf16Str) {
+    final bytes = Uint16List.fromList(utf16Str.codeUnits);
+    return ByteUtility.fromUint16ToHex(bytes);
+  }
+}

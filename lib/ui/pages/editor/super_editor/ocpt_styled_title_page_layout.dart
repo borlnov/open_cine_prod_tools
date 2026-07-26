@@ -32,6 +32,7 @@ class OcptTitlePageFieldLayout {
   const OcptTitlePageFieldLayout({
     required this.topGap,
     required this.left,
+    this.right = 0,
     required this.maxWidth,
     required this.textAlign,
     required this.fontScale,
@@ -45,8 +46,14 @@ class OcptTitlePageFieldLayout {
   /// The field's left padding, in logical pixels (`Styles.padding.left`).
   final double left;
 
-  /// The field's wrap width, in logical pixels (`Styles.maxWidth`) — inclusive of [left], exactly
-  /// like every other element rule in `OcptFountainEditorStylesheet` (see
+  /// The field's right padding, in logical pixels (`Styles.padding.right`), non-zero only for
+  /// Draft date and Contact: they split the same row half-and-half (see
+  /// [ocptTitlePageFieldLayoutOf]'s own doc comment), so each one's box must stop short of the
+  /// other's half rather than spanning the full [maxWidth] the way every other field does.
+  final double right;
+
+  /// The field's wrap width, in logical pixels (`Styles.maxWidth`) — inclusive of [left] and
+  /// [right], exactly like every other element rule in `OcptFountainEditorStylesheet` (see
   /// `OcptFountainEditorStylesheet._rule`'s own doc comment for why).
   final double maxWidth;
 
@@ -64,18 +71,28 @@ class OcptTitlePageFieldLayout {
 
 /// Returns [key]'s typesetting at [layout], mirroring the PDF exporter's own title page
 /// (title/credit/authors centered in the upper-middle area; draft date right-aligned;
-/// contact/source left-aligned) with one deliberate adaptation: the PDF pins contact at the
-/// bottom-left and draft date at the bottom-right of the *same* row, which has no equivalent in the
-/// editor's single-column, top-to-bottom document flow. Here the three are stacked instead — draft
-/// date, then contact, then source — each keeping its PDF alignment, separated from the
-/// title/credit/author block by a generous top gap standing in for the PDF's own bottom-anchoring.
+/// contact/source left-aligned), including its bottom row: the PDF pins contact at the
+/// bottom-left and draft date at the bottom-right of the *same* row (a `Row(mainAxisAlignment:
+/// spaceBetween)`), and this editor reproduces that literally — Draft date owns the row's top gap
+/// and right half, Contact owns the left half with no top gap of its own (the shift
+/// `computeOcptStyledTitlePageMetrics`'s `rowShift` describes takes its place; the title-page
+/// component builder is what actually moves Contact, and Source below it, onto that row's height),
+/// and Source follows underneath at the full content width, exactly as before. Splitting
+/// horizontally through `left`/`right` padding rather than a narrowed `maxWidth` is deliberate
+/// (`OcptFountainEditorStylesheet`'s own fact about `Styles.maxWidth` centering a narrower box):
+/// Draft date and Contact both keep [OcptTitlePageFieldLayout.maxWidth] at the full row width and
+/// instead have their usable box shrunk from opposite sides, which is what keeps their two halves
+/// from overlapping (and swallowing each other's taps — see the component builder's own doc
+/// comment).
 ///
 /// [key] not matching any of [ocptTitlePageFieldKeys] (never expected — every title-page node's key
 /// comes from that same list) falls back to a plain, full-width, left-aligned line with no extra
 /// top gap.
 OcptTitlePageFieldLayout ocptTitlePageFieldLayoutOf(String key, OcptEditorPreviewLayout layout) {
   final left = layout.marginLeft;
-  final maxWidth = left + (layout.pageWidth - layout.marginLeft - layout.marginRight);
+  final contentWidth = layout.pageWidth - layout.marginLeft - layout.marginRight;
+  final maxWidth = left + contentWidth;
+  final halfWidth = contentWidth / 2;
 
   return switch (key) {
     "Title" => OcptTitlePageFieldLayout(
@@ -104,15 +121,16 @@ OcptTitlePageFieldLayout ocptTitlePageFieldLayoutOf(String key, OcptEditorPrevie
     ),
     "Draft date" => OcptTitlePageFieldLayout(
       topGap: layout.pageHeight * _titlePageBottomGroupTopFraction,
-      left: left,
+      left: left + halfWidth,
       maxWidth: maxWidth,
       textAlign: TextAlign.right,
       fontScale: 1,
       fontWeight: null,
     ),
     "Contact" => OcptTitlePageFieldLayout(
-      topGap: layout.lineHeight,
+      topGap: 0,
       left: left,
+      right: halfWidth,
       maxWidth: maxWidth,
       textAlign: TextAlign.left,
       fontScale: 1,
@@ -138,17 +156,29 @@ OcptTitlePageFieldLayout ocptTitlePageFieldLayoutOf(String key, OcptEditorPrevie
 }
 
 /// The result of [computeOcptStyledTitlePageMetrics]: the vertical flow height a document's
-/// title-page field nodes occupy.
+/// title-page field nodes occupy, and the Draft date/Contact row's own shift amount.
 class OcptStyledTitlePageMetrics {
   /// Creates an [OcptStyledTitlePageMetrics].
-  const OcptStyledTitlePageMetrics({required this.flowHeight});
+  const OcptStyledTitlePageMetrics({required this.flowHeight, required this.rowShift});
 
   /// The total vertical flow height, in logical pixels, the document's title-page field nodes
   /// occupy when rendered by `OcptFountainEditorStylesheet`'s title-page rule:
   /// `Σ (topGap(field) + wrappedLines(node) × lineHeight × fontScale)`, the top gap counted only
   /// once per field (on its first node), summed over every title-page node in document order. 0
   /// for a document with no title-page nodes.
+  ///
+  /// Unaffected by the title-page component builder's own Draft date/Contact transform: that
+  /// transform only repaints where a node's content sits, it never changes the `Column`'s own
+  /// per-node row height, so pagination keeps reading this exact sum (see the class-level doc
+  /// comment of the component builder for why the transform is paint-only).
   final double flowHeight;
+
+  /// The vertical distance the title-page component builder shifts the Contact and Source nodes
+  /// up by, in logical pixels: the height Draft date's own node(s) occupy —
+  /// `Σ wrappedLines × lineHeight` over the document's Draft date nodes only, normally one
+  /// `lineHeight` but correctly larger for a wrapped or Enter-split Draft date. 0 for a document
+  /// with no Draft date node.
+  final double rowShift;
 }
 
 /// Computes [document]'s title-page flow height at [metrics] — the real vertical space
@@ -164,9 +194,9 @@ OcptStyledTitlePageMetrics computeOcptStyledTitlePageMetrics({
   required FountainLayoutMetrics metrics,
 }) {
   final layout = OcptEditorPreviewLayout(metrics: metrics);
-  final contentWidth = layout.pageWidth - layout.marginLeft - layout.marginRight;
 
   var flowHeight = 0.0;
+  var rowShift = 0.0;
   String? previousKey;
 
   for (final node in document) {
@@ -182,11 +212,19 @@ OcptStyledTitlePageMetrics computeOcptStyledTitlePageMetrics({
       previousKey = key;
     }
 
+    // The field's own usable width (its box minus the left/right padding split lands Draft date
+    // and Contact half of the full content width — see [ocptTitlePageFieldLayoutOf]'s own doc
+    // comment; every other field's `right` is 0, so this is the full content width for them).
+    final fieldWidth = fieldLayout.maxWidth - fieldLayout.left - fieldLayout.right;
     final columnWidth = layout.glyphWidth * fieldLayout.fontScale;
-    final maxColumns = (contentWidth / columnWidth).floor();
+    final maxColumns = (fieldWidth / columnWidth).floor();
     final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(node.text.toPlainText(), maxColumns);
-    flowHeight += wrappedLines * layout.lineHeight * fieldLayout.fontScale;
+    final lineContribution = wrappedLines * layout.lineHeight * fieldLayout.fontScale;
+    flowHeight += lineContribution;
+    if (key == "Draft date") {
+      rowShift += lineContribution;
+    }
   }
 
-  return OcptStyledTitlePageMetrics(flowHeight: flowHeight);
+  return OcptStyledTitlePageMetrics(flowHeight: flowHeight, rowShift: rowShift);
 }

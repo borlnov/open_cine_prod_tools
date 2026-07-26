@@ -713,6 +713,290 @@ void main() {
       expect((document.getNodeAt(3)! as ParagraphNode).text.toPlainText(), "John Smith");
       expect(encodedText, "Author:\n    Jane Doe\n    John Smith\n\nSome action.");
     });
+
+    /// Places the caret at the start of the node with [nodeId] and asserts it actually landed
+    /// there, so a silently-failed tap (for example a field sitting outside the test surface's
+    /// viewport, see the other title-page tests' own `tester.view.physicalSize` overrides) can
+    /// never be mistaken for the Backspace guard doing its job — every test below would otherwise
+    /// still pass even if the caret, and with it the whole gesture, never actually reached the
+    /// target field.
+    Future<void> placeCaretAtStartOf(WidgetTester tester, String nodeId) async {
+      await tester.placeCaretInParagraph(nodeId, 0);
+      final selection = SuperEditorInspector.findDocumentSelection();
+      expect(selection, isNotNull, reason: "caret placement in node $nodeId failed");
+      expect(selection!.extent.nodeId, nodeId);
+      expect((selection.extent.nodePosition as TextNodePosition).offset, 0);
+    }
+
+    testWidgets("Backspace at the start of an empty field never deletes it", (tester) async {
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+      // Credit: index 1.
+      final creditNodeId = document.getNodeAt(1)!.id;
+
+      await placeCaretAtStartOf(tester, creditNodeId);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+      expect(document.getNodeById(creditNodeId), isNotNull);
+    });
+
+    testWidgets("Backspace at the start of a filled field never deletes it", (tester) async {
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      final document = SuperEditorInspector.findDocument()!;
+      // Credit: index 1.
+      final creditNodeId = document.getNodeAt(1)!.id;
+      await placeCaretAtStartOf(tester, creditNodeId);
+      await tester.typeImeText("written by");
+      await tester.pump(const Duration(milliseconds: 200));
+
+      await placeCaretAtStartOf(tester, creditNodeId);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+      expect((document.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written by");
+    });
+
+    testWidgets("Backspace at the start of the first body line never merges it into Source", (tester) async {
+      // Taller than the other title-page tests' own 1400x1200: with a title page present, the
+      // still-open pagination defect (fixed separately, not by this change) currently renders the
+      // body's first node around y=2600 instead of its eventual correct position, so the surface
+      // needs enough headroom to reach it regardless of whether that fix has landed.
+      tester.view.physicalSize = const Size(1400, 2700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      final document = SuperEditorInspector.findDocument()!;
+      // Source: index 5. The body's only line: index 6.
+      final sourceNodeId = document.getNodeAt(5)!.id;
+      final bodyNodeId = document.getNodeAt(6)!.id;
+
+      await placeCaretAtStartOf(tester, bodyNodeId);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+      expect(document.getNodeById(sourceNodeId), isNotNull);
+      expect((document.getNodeById(bodyNodeId)! as ParagraphNode).text.toPlainText(), "Some action.");
+    });
+
+    testWidgets("Backspace can still remove an extra line added to a multi-line field", (tester) async {
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      // Title, Credit, Author: indices 0, 1, 2.
+      final authorNodeId = SuperEditorInspector.findDocument()!.getNodeAt(2)!.id;
+      await placeCaretAtStartOf(tester, authorNodeId);
+      await tester.typeImeText("Jane Doe");
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      await tester.typeImeText("John Smith");
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final document = SuperEditorInspector.findDocument()!;
+      expect(document.nodeCount, _titlePageFieldCount + 2);
+      final secondAuthorLineId = document.getNodeAt(3)!.id;
+
+      await placeCaretAtStartOf(tester, secondAuthorLineId);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(document.nodeCount, _titlePageFieldCount + 1);
+      expect((document.getNodeAt(2)! as ParagraphNode).text.toPlainText(), "Jane DoeJohn Smith");
+      expect((document.getNodeAt(2)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Author");
+    });
+
+    testWidgets(
+      "the Draft date and Contact placeholders share the same row, split at the page's horizontal centre",
+      (tester) async {
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+        // Same "page's content area" reconstruction the earlier placeholder-alignment test uses.
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+        final editorRect = tester.getRect(find.byType(SuperEditor));
+        final pageLeftEdge = editorRect.left + inset;
+        final pageRightEdge = pageLeftEdge + layout.pageWidth;
+        final contentLeft = pageLeftEdge + layout.marginLeft;
+        final contentRight = pageRightEdge - layout.marginRight;
+        final contentCentreX = (contentLeft + contentRight) / 2;
+
+        final draftDateRect = tester.getRect(find.text("Draft date"));
+        final contactRect = tester.getRect(find.text("Contact"));
+
+        // Same row (Contact's own top gap is 0; the shift takes its place), split at the centre:
+        // Contact stops at or before it, Draft date starts at or after it.
+        expect(draftDateRect.top, closeTo(contactRect.top, 1));
+        expect(contactRect.right, lessThanOrEqualTo(contentCentreX + 1));
+        expect(draftDateRect.left, greaterThanOrEqualTo(contentCentreX - 1));
+      },
+    );
+
+    testWidgets("a filled Draft date and Contact still share the same row", (tester) async {
+      tester.view.physicalSize = const Size(1400, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+      // Draft date, Contact: indices 3, 4.
+      final document = SuperEditorInspector.findDocument()!;
+      final draftDateNodeId = document.getNodeAt(3)!.id;
+      final contactNodeId = document.getNodeAt(4)!.id;
+
+      await placeCaretAtStartOf(tester, draftDateNodeId);
+      await tester.typeImeText("2026-07-26");
+      await tester.pump(const Duration(milliseconds: 200));
+
+      await placeCaretAtStartOf(tester, contactNodeId);
+      await tester.typeImeText("Jane Doe");
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // A filled node's own text no longer renders through a plain `Text` widget this builder
+      // controls (unlike the empty placeholder), so the component's own box — read straight off
+      // its `RenderBox`, the same way `SuperEditorInspector` and the document layout's own hit
+      // testing both do — is what stands in for "where the field visually sits" here.
+      final draftDateOffset = SuperEditorInspector.findComponentOffset(draftDateNodeId, Alignment.topRight);
+      final contactOffset = SuperEditorInspector.findComponentOffset(contactNodeId, Alignment.topLeft);
+      final contactSize = SuperEditorInspector.findComponentSize(contactNodeId);
+
+      expect(draftDateOffset.dy, closeTo(contactOffset.dy, 1));
+      expect(contactOffset.dx + contactSize.width, lessThanOrEqualTo(draftDateOffset.dx + 1));
+    });
+
+    testWidgets(
+      "tapping the Draft date and Contact fields routes the caret to the right node, not the other",
+      (tester) async {
+        // The risky assertion: it proves the paint-time shift `OcptTitlePageComponentBuilder`
+        // applies to Contact/Source does not also move where a tap is hit-tested to, since both
+        // are derived from the exact same (transformed) component `RenderBox` (see that builder's
+        // own doc comment). A regression here would make one field swallow the other's clicks.
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final draftDateNodeId = document.getNodeAt(3)!.id;
+        final contactNodeId = document.getNodeAt(4)!.id;
+
+        await placeCaretAtStartOf(tester, draftDateNodeId);
+        await placeCaretAtStartOf(tester, contactNodeId);
+      },
+    );
+
+    testWidgets(
+      "a multi-line Contact still stacks under the row, and Source follows with no leftover gap",
+      (tester) async {
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+
+        // Contact: index 4.
+        final contactNodeId = SuperEditorInspector.findDocument()!.getNodeAt(4)!.id;
+        await placeCaretAtStartOf(tester, contactNodeId);
+        await tester.typeImeText("123 Reel Street");
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+        await tester.typeImeText("Second line");
+        await tester.pump(const Duration(milliseconds: 200));
+
+        final document = SuperEditorInspector.findDocument()!;
+        expect(document.nodeCount, _titlePageFieldCount + 2);
+        // Title, Credit, Author, Draft date, Contact (first line): indices 0-4. Contact's second
+        // line and Source follow at 5 and 6.
+        final firstLineId = document.getNodeAt(4)!.id;
+        final secondLineId = document.getNodeAt(5)!.id;
+        final sourceNodeId = document.getNodeAt(6)!.id;
+
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        final firstLineTop = SuperEditorInspector.findComponentOffset(firstLineId, Alignment.topLeft).dy;
+        final secondLineOffset = SuperEditorInspector.findComponentOffset(secondLineId, Alignment.topLeft);
+        final secondLineHeight = SuperEditorInspector.findComponentSize(secondLineId).height;
+        // The two Contact lines stack with no gap between them, exactly one lineHeight apart.
+        expect(secondLineOffset.dy - firstLineTop, closeTo(layout.lineHeight, 1));
+
+        // Source keeps its usual one-line gap below the last Contact line, unaffected by the
+        // shift: both nodes are painted with the exact same `rowShift` translation, so their
+        // relative spacing is exactly what it was before this node ever needed shifting.
+        final sourceTop = SuperEditorInspector.findComponentOffset(sourceNodeId, Alignment.topLeft).dy;
+        expect(sourceTop - (secondLineOffset.dy + secondLineHeight), closeTo(layout.lineHeight, 1));
+      },
+    );
+
+    testWidgets(
+      "the shared Draft date/Contact row is purely visual: the encoded source is unaffected",
+      (tester) async {
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        String? encodedText;
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "Some action.",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: true,
+              areSceneNumbersVisible: false,
+              onTextChanged: (text) => encodedText = text,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final document = SuperEditorInspector.findDocument()!;
+        final draftDateNodeId = document.getNodeAt(3)!.id;
+        final contactNodeId = document.getNodeAt(4)!.id;
+
+        await tester.placeCaretInParagraph(draftDateNodeId, 0);
+        await tester.typeImeText("2026-07-26");
+        await tester.pump(const Duration(milliseconds: 200));
+
+        await tester.placeCaretInParagraph(contactNodeId, 0);
+        await tester.typeImeText("jane@example.com");
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(encodedText, "Draft date: 2026-07-26\nContact: jane@example.com\n\nSome action.");
+      },
+    );
   });
 
   group("typing in the styled editor, wired to a real (fast) OcptEditorBloc", () {

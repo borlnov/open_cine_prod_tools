@@ -865,5 +865,41 @@ void main() {
       expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
       expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
     });
+
+    test("every synthesized title-page node starts marked non-deletable", () {
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
+      for (var index = 0; index < 6; index++) {
+        expect(decoded.document.getNodeAt(index)!.isDeletable, isFalse, reason: "node $index");
+      }
+    });
+
+    test("a metadata merge (OcptChangeNodeMetadataRequest) keeps a title-page node non-deletable", () {
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
+      final document = decoded.document;
+      final creditNode = document.getNodeAt(1)!;
+      final editor = Editor(
+        editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+          ..add(ocptChangeNodeMetadataRequestHandler),
+      );
+
+      editor.execute([
+        OcptChangeNodeMetadataRequest(nodeId: creditNode.id, metadata: {ocptTypeLockedMetadataKey: true}),
+      ]);
+
+      expect(document.getNodeById(creditNode.id)!.isDeletable, isFalse);
+    });
+
+    test("encodeWithTitlePage ignores the isDeletable flag", () {
+      const source = "Title: My Movie\n\nSome action.";
+      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
+
+      expect(encoded.text, source);
+    });
   });
 }

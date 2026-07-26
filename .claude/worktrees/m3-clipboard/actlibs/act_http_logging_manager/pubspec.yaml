@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2025 Benoit Rolandeau <benoit.rolandeau@allcircuits.com>
+#
+# SPDX-License-Identifier: LicenseRef-ALLCircuits-ACT-1.1
+
+name: act_http_logging_manager
+description: This package contains the HTTP logging manager
+publish_to: none
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  equatable: ^2.0.7
+
+  act_foundation:
+    path: ../act_foundation
+
+  # Default global manager
+  act_global_manager:
+    path: ../act_global_manager
+
+  # Flutter AC Technologies dependencies
+  act_life_cycle:
+    path: ../act_life_cycle
+
+  # Logger manager
+  act_logger_manager:
+    path: ../act_logger_manager
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

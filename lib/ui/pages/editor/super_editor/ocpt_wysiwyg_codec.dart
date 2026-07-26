@@ -577,6 +577,14 @@ class OcptWysiwygCodec {
   /// Builds the title-page field nodes [decodeWithTitlePage] prepends to the body: one node per
   /// [ocptTitlePageFieldKeys] field, in that fixed order, one per source line for a field spanning
   /// several (an empty single node when [titlePage] has none for that key at all).
+  ///
+  /// Every node is marked `NodeMetadata.isDeletable: false`, which protects the sheet from the
+  /// *multi-node* deletion paths (select-all + Delete, a selection dragged across the sheet) —
+  /// `DeleteSelectionCommand`/`DeleteNodeCommand` honour the flag
+  /// (`multi_node_editing.dart:1431, 1454` of the pinned super_editor release). Backspace merging a
+  /// field into its neighbour is a *different* path (`CombineParagraphsRequest`, which ignores
+  /// `isDeletable`) guarded separately by `ocptTitlePageGuardRequestHandler`
+  /// (`ocpt_title_page_guard_requests.dart`); both guards are needed together.
   static List<ParagraphNode> _titlePageNodesFrom(FountainTitlePage? titlePage) {
     final nodes = <ParagraphNode>[];
     for (final key in ocptTitlePageFieldKeys) {
@@ -587,7 +595,11 @@ class OcptWysiwygCodec {
           ParagraphNode(
             id: Editor.createNodeId(),
             text: AttributedText(value),
-            metadata: {"blockType": ocptTitlePageFieldAttribution, ocptTitlePageKeyMetadataKey: key},
+            metadata: {
+              "blockType": ocptTitlePageFieldAttribution,
+              ocptTitlePageKeyMetadataKey: key,
+              NodeMetadata.isDeletable: false,
+            },
           ),
         );
       }

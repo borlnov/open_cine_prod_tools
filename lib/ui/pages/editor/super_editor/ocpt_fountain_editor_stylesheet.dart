@@ -229,7 +229,11 @@ class OcptFountainEditorStylesheet {
         final fieldLayout = ocptTitlePageFieldLayoutOf(key, layout);
 
         return {
-          Styles.padding: CascadingPadding.only(left: fieldLayout.left, top: fieldLayout.topGap),
+          Styles.padding: CascadingPadding.only(
+            left: fieldLayout.left,
+            right: fieldLayout.right,
+            top: fieldLayout.topGap,
+          ),
           Styles.maxWidth: fieldLayout.maxWidth,
           Styles.textAlign: fieldLayout.textAlign,
           Styles.textStyle: baseStyle.copyWith(

@@ -276,7 +276,10 @@ ExecutionInstruction _splitTitlePageField({
       SelectionReason.userInteraction,
     ),
     ChangeParagraphBlockTypeRequest(nodeId: newNodeId, blockType: ocptTitlePageFieldAttribution),
-    OcptChangeNodeMetadataRequest(nodeId: newNodeId, metadata: {ocptTitlePageKeyMetadataKey: key}),
+    OcptChangeNodeMetadataRequest(
+      nodeId: newNodeId,
+      metadata: {ocptTitlePageKeyMetadataKey: key, NodeMetadata.isDeletable: false},
+    ),
   ]);
 
   return ExecutionInstruction.haltExecution;
