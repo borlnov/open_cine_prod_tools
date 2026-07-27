@@ -16,6 +16,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_inspector_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
@@ -30,8 +32,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
 /// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
-/// the tabbed right dock (formatted preview, raw mode only, and the Fountain syntax guide, both
-/// modes) hosting at most one panel at a time, and a thin toolbar above them.
+/// the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
+/// inspector and the read-only metadata panel, all three in both modes) hosting at most one panel
+/// at a time, and a thin toolbar above them.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class EditorPage extends StatelessWidget {
@@ -334,8 +337,9 @@ class _EditorViewState extends State<_EditorView> {
           styledController: _styledEditorController,
         );
 
-  /// Builds the tabbed right dock (formatted preview, raw mode only, and the Fountain syntax
-  /// guide), the shell's `rightPanel`, or null while the dock is closed.
+  /// Builds the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide,
+  /// the scene inspector and the read-only metadata panel, all three in both modes), the shell's
+  /// `rightPanel`, or null while the dock is closed.
   Widget? _buildRightDock(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
     final rightDockTab = state.rightDockTab;
     if (rightDockTab == null) {
@@ -351,10 +355,25 @@ class _EditorViewState extends State<_EditorView> {
           )
         : null;
 
+    final currentSceneIndex = state.currentSceneIndex;
+
     return OcptEditorRightDock(
       activeTab: rightDockTab,
       isPreviewTabAvailable: isRawMode,
       previewChild: previewChild,
+      inspectorChild: OcptEditorInspectorPanel(
+        scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
+        sceneOrdinal: currentSceneIndex == null ? null : currentSceneIndex + 1,
+        statistics: state.sceneStatistics,
+      ),
+      metadataChild: OcptEditorMetadataPanel(
+        titlePage: state.document?.titlePage,
+        statistics: state.statistics,
+        onEditTitlePage: () => _requestTitlePage(context),
+      ),
+      onTabSelected: (tab) => context.read<OcptEditorBloc>().add(
+        OcptEditorRightDockTabSelectedEvent(tab: tab),
+      ),
       onClose: () => context.read<OcptEditorBloc>().add(const OcptEditorRightDockClosedEvent()),
     );
   }

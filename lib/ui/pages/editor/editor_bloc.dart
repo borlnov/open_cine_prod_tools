@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
 /// This is the bloc class for the editor page.
 ///
@@ -32,6 +33,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// path, only tagged [OcptSnapshotReason.manual] instead of [OcptSnapshotReason.timer].
 /// `OcptEditorState.statistics` is recomputed on its own debounce, restarted on every parse tick,
 /// since pagination is too heavy to run on every one of those.
+/// `OcptEditorState.sceneStatistics` composes the whole document too, but only to read off one
+/// scene's slice of it, so it is recomputed directly on the parse tick (never on every keystroke,
+/// since typing only reaches it through that debounce) plus whenever the caret lands on a
+/// different scene (a comparatively rare event, unlike typing).
 ///
 /// When the bloc closes (the user leaves the page), any pending unsaved change is flushed with a
 /// best-effort save: the debounce timers are cancelled and the save runs directly against the
@@ -192,6 +197,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
           clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
           statistics: _statisticsFor(document, state.pageSetup),
+          clearSceneStatistics: true,
         ),
       );
       return;
@@ -207,6 +213,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final pageSetup = OcptPageSetup(
       format: pageFormat ?? OcptPageFormat.usLetter,
       margins: margins ?? const FountainPageMargins.standard(),
+    );
+    final sceneStats = _sceneStatisticsFor(
+      document,
+      pageSetup,
+      currentSceneIndexFor(document.scenes, state.currentLine),
     );
 
     emitter(
@@ -226,6 +237,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
         clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
         statistics: _statisticsFor(document, pageSetup),
+        sceneStatistics: sceneStats,
+        clearSceneStatistics: sceneStats == null,
       ),
     );
   }
@@ -233,6 +246,15 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
   FountainScriptStatistics _statisticsFor(FountainDocument document, OcptPageSetup pageSetup) =>
       FountainScriptStatistics.of(document, pageSetup.toMetrics());
+
+  /// Computes the statistics of the scene at [sceneIndex] in [document] laid out at [pageSetup]'s
+  /// metrics, or null if [sceneIndex] is null (the caret precedes every scene, or [document] has
+  /// no scenes at all).
+  FountainSceneStatistics? _sceneStatisticsFor(
+    FountainDocument document,
+    OcptPageSetup pageSetup,
+    int? sceneIndex,
+  ) => sceneIndex == null ? null : FountainSceneStatistics.of(document, pageSetup.toMetrics(), sceneIndex);
 
   /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
@@ -303,12 +325,27 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     });
   }
 
-  /// Re-parses the current text into a fresh document, then (re)starts the statistics debounce.
+  /// Re-parses the current text into a fresh document, recomputes the current scene's statistics
+  /// right away (cheap relative to [_scheduleStatisticsRecompute]'s script-wide pagination, and
+  /// tied to this same 150 ms parse debounce rather than typing itself), then (re)starts the
+  /// script-wide statistics debounce.
   Future<void> _onParseRequested(
     OcptEditorParseRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(document: _fountainParser.parse(state.text)));
+    final document = _fountainParser.parse(state.text);
+    final sceneStats = _sceneStatisticsFor(
+      document,
+      state.pageSetup,
+      currentSceneIndexFor(document.scenes, state.currentLine),
+    );
+    emitter(
+      state.copyWith(
+        document: document,
+        sceneStatistics: sceneStats,
+        clearSceneStatistics: sceneStats == null,
+      ),
+    );
     _scheduleStatisticsRecompute();
   }
 
@@ -347,7 +384,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     required Emitter<OcptEditorState> emitter,
   }) {
     _statisticsTimer?.cancel();
-    emitter(state.copyWith(statistics: _statisticsFor(document, pageSetup)));
+    final sceneStats = _sceneStatisticsFor(
+      document,
+      pageSetup,
+      currentSceneIndexFor(document.scenes, state.currentLine),
+    );
+    emitter(
+      state.copyWith(
+        statistics: _statisticsFor(document, pageSetup),
+        sceneStatistics: sceneStats,
+        clearSceneStatistics: sceneStats == null,
+      ),
+    );
   }
 
   /// Saves the current text to the project database, unless there is nothing dirty to save.
@@ -409,12 +457,25 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     }
   }
 
-  /// Records the source line the caret moved to.
+  /// Records the source line the caret moved to, and, if that actually lands the caret on a
+  /// different scene, recomputes that scene's statistics right away rather than waiting for the
+  /// next parse tick — moving the caret is far rarer than typing a character, so this stays well
+  /// clear of the "never per keystroke" cost [OcptEditorState.sceneStatistics] documents.
   Future<void> _onCaretMoved(
     OcptEditorCaretMovedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    final previousSceneIndex = state.currentSceneIndex;
     emitter(state.copyWith(currentLine: event.line));
+
+    final document = state.document;
+    final newSceneIndex = state.currentSceneIndex;
+    if (document != null && newSceneIndex != previousSceneIndex) {
+      final sceneStats = _sceneStatisticsFor(document, state.pageSetup, newSceneIndex);
+      emitter(
+        state.copyWith(sceneStatistics: sceneStats, clearSceneStatistics: sceneStats == null),
+      );
+    }
   }
 
   /// Emits a fresh jump request for the page to move the caret to the clicked scene's start.

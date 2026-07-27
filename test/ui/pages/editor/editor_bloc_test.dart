@@ -174,6 +174,10 @@ class _ThrowingPdfExportManager extends OcptExportManager {
 
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
+  // Scene headings start at line 0 and line 4; the two scenes are deliberately given different
+  // word counts (6 and 7) so a test can tell "the first scene's stats" and "the second scene's
+  // stats" apart just by comparing counts.
+  const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two here.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -310,6 +314,101 @@ void main() {
     final state = await waitForState(bloc, (state) => state.statistics.sceneCount == 1);
     expect(state.statistics.pageCount, 1);
     expect(state.statistics.wordCount, greaterThan(0));
+
+    await bloc.close();
+  });
+
+  test('currentSceneIndex tracks the caret across scenes, live, no debounce wait needed', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+    await waitForState(bloc, (state) => state.scenes.length == 2);
+    expect(bloc.state.currentSceneIndex, 0);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 6));
+    final secondSceneState = await waitForState(bloc, (state) => state.currentSceneIndex == 1);
+    expect(secondSceneState.currentLine, 6);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 2));
+    final firstSceneState = await waitForState(bloc, (state) => state.currentSceneIndex == 0);
+    expect(firstSceneState.currentLine, 2);
+
+    await bloc.close();
+  });
+
+  test(
+    'currentSceneIndex is null while the caret precedes every scene, or nothing is parsed yet',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.currentSceneIndex, isNull);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: "\n\n$twoSceneText"));
+      await waitForState(bloc, (state) => state.scenes.length == 2);
+      // The caret is still on line 0, which now precedes the first scene heading (pushed to
+      // line 2 by the two leading blank lines).
+      expect(bloc.state.currentSceneIndex, isNull);
+
+      await bloc.close();
+    },
+  );
+
+  test('sceneStatistics is recomputed on the parse debounce, for the scene under the caret',
+      () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.sceneStatistics, isNull);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+    // The document already reflects the edit once this resolves, but that alone must not have
+    // populated the scene statistics synchronously (they piggyback on the same parse tick, not a
+    // separate, earlier one).
+    final parsedState = await waitForState(bloc, (state) => state.scenes.length == 2);
+    expect(parsedState.sceneStatistics, isNotNull);
+    expect(parsedState.sceneStatistics!.wordCount, greaterThan(0));
+
+    await bloc.close();
+  });
+
+  test(
+    'sceneStatistics is recomputed immediately when the caret crosses into a different scene',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+      await waitForState(bloc, (state) => state.scenes.length == 2);
+      final firstSceneWords = bloc.state.sceneStatistics!.wordCount;
+
+      bloc.add(const OcptEditorCaretMovedEvent(line: 6));
+      final secondSceneState = await waitForState(
+        bloc,
+        (state) => state.currentSceneIndex == 1 && state.sceneStatistics!.wordCount != firstSceneWords,
+      );
+      // "EXT. GARDEN - NIGHT" (4) + "Action two here." (3).
+      expect(secondSceneState.sceneStatistics!.wordCount, 4 + 3);
+
+      await bloc.close();
+    },
+  );
+
+  test('sceneStatistics goes back to null once the caret moves back before every scene', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: "\n\n$twoSceneText"));
+    await waitForState(bloc, (state) => state.scenes.length == 2);
+    // The caret (still on line 0) precedes the first heading, now pushed to line 2.
+    expect(bloc.state.sceneStatistics, isNull);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 2));
+    final withinFirstScene = await waitForState(bloc, (state) => state.sceneStatistics != null);
+    expect(withinFirstScene.currentSceneIndex, 0);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 0));
+    final beforeEveryScene = await waitForState(bloc, (state) => state.sceneStatistics == null);
+    expect(beforeEveryScene.currentSceneIndex, isNull);
 
     await bloc.close();
   });

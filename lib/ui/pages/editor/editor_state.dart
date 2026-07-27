@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
 /// [charOffset].
@@ -175,8 +176,22 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// continuously (see `OcptEditorBloc`'s own statistics debounce).
   final FountainScriptStatistics statistics;
 
+  /// The [FountainSceneStatistics] of the scene at [currentSceneIndex], or null while nothing is
+  /// parsed yet or the caret precedes every scene.
+  ///
+  /// Unlike [currentSceneIndex] itself, this doesn't recompute on every caret move: composing the
+  /// whole document to derive [FountainSceneStatistics.pageEighths] is the same "too heavy for
+  /// every frame" cost [statistics] already documents, so `OcptEditorBloc` only recomputes this on
+  /// its own 150 ms parse debounce, or when a caret move actually lands on a different scene.
+  final FountainSceneStatistics? sceneStatistics;
+
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
+
+  /// The index, in [scenes], of the scene containing [currentLine], or null while nothing is
+  /// parsed yet or the caret precedes every scene. Cheap to derive live from state already
+  /// tracked, unlike [sceneStatistics].
+  int? get currentSceneIndex => currentSceneIndexFor(scenes, currentLine);
 
   /// Class constructor
   const OcptEditorState({
@@ -201,6 +216,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.jumpRequest,
     required this.ioNotice,
     required this.statistics,
+    required this.sceneStatistics,
   });
 
   /// Init class constructor
@@ -225,7 +241,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       areStyledSceneNumbersVisible = true,
       jumpRequest = null,
       ioNotice = null,
-      statistics = FountainScriptStatistics.empty;
+      statistics = FountainScriptStatistics.empty,
+      sceneStatistics = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -233,10 +250,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// is given: they never go back to null (or, for [statistics], to
   /// [FountainScriptStatistics.empty]) once set, so no clear flag is needed for them. [ioNotice]
   /// is only replaced when a new one is given or [clearIoNotice] is true, exactly like
-  /// `OcptHomeState`'s own `error` field. [rightDockTab] and [autoClosedRightDockTab] follow the
-  /// same idiom as [ioNotice], each with its own clear flag ([clearRightDockTab],
-  /// [clearAutoClosedRightDockTab]): both legitimately go back to null during the editor's
-  /// lifetime (closing the dock, restoring it on a mode switch), so the "never goes back to null"
+  /// `OcptHomeState`'s own `error` field. [rightDockTab], [autoClosedRightDockTab] and
+  /// [sceneStatistics] follow the same idiom as [ioNotice], each with its own clear flag
+  /// ([clearRightDockTab], [clearAutoClosedRightDockTab], [clearSceneStatistics]): all three
+  /// legitimately go back to null during the editor's lifetime (closing the dock, restoring it on
+  /// a mode switch, the caret moving back before every scene), so the "never goes back to null"
   /// shortcut used above doesn't apply to them.
   @override
   OcptEditorState copyWith({
@@ -264,6 +282,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     OcptEditorIoNotice? ioNotice,
     bool clearIoNotice = false,
     FountainScriptStatistics? statistics,
+    FountainSceneStatistics? sceneStatistics,
+    bool clearSceneStatistics = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -288,6 +308,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     jumpRequest: jumpRequest ?? this.jumpRequest,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     statistics: statistics ?? this.statistics,
+    sceneStatistics: clearSceneStatistics ? null : (sceneStatistics ?? this.sceneStatistics),
   );
 
   /// Object properties
@@ -315,5 +336,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     jumpRequest,
     ioNotice,
     statistics,
+    sceneStatistics,
   ];
 }

@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
 /// The collapsible left panel listing the screenplay's scenes.
 ///
@@ -36,7 +37,7 @@ class OcptEditorScenePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentSceneIndex = _currentSceneIndex;
+    final currentIndex = currentSceneIndexFor(scenes, currentLine);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,28 +76,13 @@ class OcptEditorScenePanel extends StatelessWidget {
                   itemCount: scenes.length,
                   itemBuilder: (context, index) => _SceneEntry(
                     scene: scenes[index],
-                    isCurrent: index == currentSceneIndex,
+                    isCurrent: index == currentIndex,
                     onTap: () => onSceneSelected(scenes[index].sourceRange.startOffset),
                   ),
                 ),
         ),
       ],
     );
-  }
-
-  /// The index, in [scenes], of the scene containing [currentLine] (the last scene starting at
-  /// or before it), or null if the caret precedes every scene.
-  int? get _currentSceneIndex {
-    int? candidate;
-    for (var index = 0; index < scenes.length; index++) {
-      if (scenes[index].sourceRange.startLine <= currentLine) {
-        candidate = index;
-      } else {
-        break;
-      }
-    }
-
-    return candidate;
   }
 }
 

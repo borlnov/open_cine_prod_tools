@@ -84,10 +84,145 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorRightDockInspectorTabLabel": "Inspector",
+  "@editorRightDockInspectorTabLabel": {
+    "description": "Label of the scene inspector tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorRightDockMetadataTabLabel": "Metadata",
+  "@editorRightDockMetadataTabLabel": {
+    "description": "Label of the metadata tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorRightDockCloseTooltip": "Close panel",
   "@editorRightDockCloseTooltip": {
     "description": "Tooltip of the button that closes the editor's right dock",
     "context": "Displayed on hover over the × button at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorEmptyHint": "Place the caret inside a scene to see its details.",
+  "@editorInspectorEmptyHint": {
+    "description": "Hint shown in the inspector tab while the caret precedes every scene",
+    "context": "Displayed in the right dock's inspector tab instead of the scene fields",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorSceneTitle": "Scene {number}",
+  "@editorInspectorSceneTitle": {
+    "description": "Title of the inspector tab, naming the scene under the caret by its position in the script",
+    "context": "Displayed at the top of the right dock's inspector tab",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "editorInspectorNumberLabel": "Scene number",
+  "@editorInspectorNumberLabel": {
+    "description": "Label of the inspector tab's explicit scene number field",
+    "context": "Displayed above the scene number value in the right dock's inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorHeadingLabel": "Location / time",
+  "@editorInspectorHeadingLabel": {
+    "description": "Label of the inspector tab's scene heading field",
+    "context": "Displayed above the scene heading value in the right dock's inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorCharactersLabel": "Characters",
+  "@editorInspectorCharactersLabel": {
+    "description": "Label of the inspector tab's speaking-characters field",
+    "context": "Displayed above the speaking-characters value in the right dock's inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorDurationLabel": "Duration (est.)",
+  "@editorInspectorDurationLabel": {
+    "description": "Label of the inspector tab's estimated duration field",
+    "context": "Displayed above the estimated duration value in the right dock's inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorDurationEstimate": "{count, plural, one{~{count} minute} other{~{count} minutes}}",
+  "@editorInspectorDurationEstimate": {
+    "description": "Estimated screen duration of a scene, on the one-page-per-minute industry rule",
+    "context": "Value of the inspector tab's estimated duration field",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorInspectorLengthLabel": "Length",
+  "@editorInspectorLengthLabel": {
+    "description": "Label of the inspector tab's page-length field",
+    "context": "Displayed above the page-length value in the right dock's inspector tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorInspectorPageEstimateWhole": "{count, plural, one{{count} page} other{{count} pages}}",
+  "@editorInspectorPageEstimateWhole": {
+    "description": "A scene's length when it is a whole number of pages, no eighths remainder",
+    "context": "Value of the inspector tab's page-length field",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorInspectorPageEstimateEighthsOnly": "{eighths}/8 page",
+  "@editorInspectorPageEstimateEighthsOnly": {
+    "description": "A scene's length when it is under one page, expressed in eighths",
+    "context": "Value of the inspector tab's page-length field",
+    "type": "text",
+    "placeholders": {
+      "eighths": {
+        "type": "int"
+      }
+    }
+  },
+  "editorInspectorPageEstimateMixed": "{whole} {eighths}/8 pages",
+  "@editorInspectorPageEstimateMixed": {
+    "description": "A scene's length as a mixed number of whole pages and an eighths remainder",
+    "context": "Value of the inspector tab's page-length field",
+    "type": "text",
+    "placeholders": {
+      "whole": {
+        "type": "int"
+      },
+      "eighths": {
+        "type": "int"
+      }
+    }
+  },
+  "editorMetadataTitlePageSectionTitle": "Title page",
+  "@editorMetadataTitlePageSectionTitle": {
+    "description": "Section header of the metadata tab's title-page fields",
+    "context": "Displayed at the top of the right dock's metadata tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorMetadataStatisticsSectionTitle": "Script statistics",
+  "@editorMetadataStatisticsSectionTitle": {
+    "description": "Section header of the metadata tab's script-wide statistics",
+    "context": "Displayed above the statistics in the right dock's metadata tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorMetadataEditTitlePageButtonLabel": "Edit…",
+  "@editorMetadataEditTitlePageButtonLabel": {
+    "description": "Label of the button that opens the title-page dialog from the metadata tab",
+    "context": "Displayed at the bottom of the right dock's metadata tab",
     "type": "text",
     "placeholders": {}
   },
