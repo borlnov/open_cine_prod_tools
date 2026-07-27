@@ -90,6 +90,103 @@ void main() {
     expect(find.byType(PopupMenuButton<void>), findsOneWidget);
   });
 
+  testWidgets("a dock toggle is rendered only for the side that wired a callback", (tester) async {
+    var leftToggleCount = 0;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          isLeftDockOpen: true,
+          onToggleLeftDock: () => leftToggleCount++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.byTooltip(tr.workspaceToggleRightDockTooltip), findsNothing);
+
+    final leftToggle = find.byTooltip(tr.workspaceToggleLeftDockTooltip);
+    expect(leftToggle, findsOneWidget);
+    // The open dock's toggle reads as selected, so the icon-button theme paints its accent wash.
+    final toggleButton = tester.widget<IconButton>(
+      find.ancestor(of: leftToggle, matching: find.byType(IconButton)),
+    );
+    expect(toggleButton.isSelected, isTrue);
+
+    await tester.tap(leftToggle);
+    await tester.pumpAndSettle();
+
+    expect(leftToggleCount, 1);
+  });
+
+  testWidgets("the save control swaps for a spinner while a save is in flight", (tester) async {
+    var saveCount = 0;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: true,
+          onBack: () {},
+          centre: const Text("centre"),
+          onSave: () => saveCount++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.byTooltip(tr.editorSaveTooltip), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.tap(find.byTooltip(tr.editorSaveTooltip));
+    await tester.pumpAndSettle();
+    expect(saveCount, 1);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: true,
+          onBack: () {},
+          centre: const Text("centre"),
+          onSave: () => saveCount++,
+          isSaving: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets("a mode that wires none of the chrome slots renders none of them", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          modeLabel: "Production budget",
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.text("Production budget"), findsOneWidget);
+    expect(find.byTooltip(tr.workspaceToggleLeftDockTooltip), findsNothing);
+    expect(find.byTooltip(tr.workspaceToggleRightDockTooltip), findsNothing);
+    expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);
+  });
+
   testWidgets(
     "the onDockFractionsChanged callback fires exactly once per completed drag gesture",
     (tester) async {

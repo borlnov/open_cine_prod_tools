@@ -171,6 +171,12 @@
   "workspaceModeBudget": "Budget",
   "workspaceModeSchedule": "Planning",
   "workspaceModeShotList": "Découpage",
+  "workspaceModeLabelScreenplay": "Éditeur de scénario",
+  "workspaceModeLabelBudget": "Budget de production",
+  "workspaceModeLabelSchedule": "Plan de tournage",
+  "workspaceModeLabelShotList": "Découpage technique",
+  "workspaceToggleLeftDockTooltip": "Afficher ou masquer le panneau de gauche",
+  "workspaceToggleRightDockTooltip": "Afficher ou masquer le panneau de droite",
   "workspaceModeComingSoonTooltip": "{modeName} — disponible dans une future version",
   "workspaceEmptyModeMessage": "{modeName} sera disponible dans une future version."
 }

@@ -1268,6 +1268,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "workspaceModeLabelScreenplay": "Screenplay editor",
+  "@workspaceModeLabelScreenplay": {
+    "description": "Full name of the screenplay production mode",
+    "context": "Displayed muted in the workspace toolbar, naming the active mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelBudget": "Production budget",
+  "@workspaceModeLabelBudget": {
+    "description": "Full name of the budget production mode",
+    "context": "Displayed muted in the workspace toolbar, naming the active mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelSchedule": "Shooting schedule",
+  "@workspaceModeLabelSchedule": {
+    "description": "Full name of the shooting schedule production mode",
+    "context": "Displayed muted in the workspace toolbar, naming the active mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelShotList": "Shot list",
+  "@workspaceModeLabelShotList": {
+    "description": "Full name of the shot list (découpage technique) production mode",
+    "context": "Displayed muted in the workspace toolbar, naming the active mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceToggleLeftDockTooltip": "Show or hide the left panel",
+  "@workspaceToggleLeftDockTooltip": {
+    "description": "Tooltip of the workspace toolbar's left dock toggle",
+    "context": "Shown on hover over the left dock toggle of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceToggleRightDockTooltip": "Show or hide the right panel",
+  "@workspaceToggleRightDockTooltip": {
+    "description": "Tooltip of the workspace toolbar's right dock toggle",
+    "context": "Shown on hover over the right dock toggle of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
   "workspaceModeComingSoonTooltip": "{modeName} — coming in a future version",
   "@workspaceModeComingSoonTooltip": {
     "description": "Tooltip of a mode switcher entry that isn't implemented yet",

@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
@@ -12,9 +14,16 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_t
 ///
 /// A mode contributes its own [toolbarActions]/[overflowEntries] (mode-specific controls) and its
 /// [leftPanel]/[centre]/[rightPanel]/[statusBar] content; this widget only assembles the layout
-/// and the dock-resizing mechanics shared by every mode. It knows nothing about any specific mode
-/// (the screenplay editor included) beyond the moved [OcptWorkspaceDock]/[OcptWorkspaceDockDivider]
-/// /[OcptWorkspaceDockLayoutController] primitives.
+/// and the dock-resizing mechanics shared by every mode.
+///
+/// The controls every mode ends its toolbar with are built here rather than handed in, so their
+/// order is the shell's guarantee and no mode can break it: the [modeLabel], the dock toggles
+/// ([onToggleLeftDock]/[onToggleRightDock]), then the save control ([onSave]) — each rendered only
+/// when the mode wired it, so a mode with no dock or nothing to save simply shows fewer of them.
+///
+/// This widget knows nothing about any specific mode (the screenplay editor included) beyond the
+/// moved [OcptWorkspaceDock]/[OcptWorkspaceDockDivider]/[OcptWorkspaceDockLayoutController]
+/// primitives.
 ///
 /// The docks row reuses the drag-doesn't-rebuild-the-centre pattern the screenplay editor
 /// pioneered: [leftPanel], [centre] and [rightPanel] are built once by the caller and handed in as
@@ -37,8 +46,33 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// The active mode's own toolbar controls, right-aligned before the overflow menu.
   final List<Widget> toolbarActions;
 
+  /// The active mode's name, shown muted in the toolbar between the mode's own [toolbarActions]
+  /// and the chrome the shell builds itself, or null to show no label.
+  final String? modeLabel;
+
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
+
+  /// Whether the left dock is open, driving its toolbar toggle's selected state.
+  final bool isLeftDockOpen;
+
+  /// Called when the toolbar's left dock toggle is clicked, or null when the mode has no left dock
+  /// to toggle — no toggle is rendered at all then.
+  final VoidCallback? onToggleLeftDock;
+
+  /// Whether the right dock is open, driving its toolbar toggle's selected state.
+  final bool isRightDockOpen;
+
+  /// Called when the toolbar's right dock toggle is clicked, or null when the mode has no right
+  /// dock to toggle — no toggle is rendered at all then.
+  final VoidCallback? onToggleRightDock;
+
+  /// Called when the toolbar's save action is clicked, or null when the mode has nothing to save —
+  /// no save control is rendered at all then.
+  final VoidCallback? onSave;
+
+  /// Whether a save is in flight: the save control then shows a spinner in place of its button.
+  final bool isSaving;
 
   /// The left dock's content, or null when the mode has no left dock (no divider is shown either).
   final Widget? leftPanel;
@@ -71,7 +105,14 @@ class OcptWorkspaceShell extends StatelessWidget {
     required this.isDirty,
     required this.onBack,
     this.toolbarActions = const [],
+    this.modeLabel,
     this.overflowEntries = const [],
+    this.isLeftDockOpen = false,
+    this.onToggleLeftDock,
+    this.isRightDockOpen = false,
+    this.onToggleRightDock,
+    this.onSave,
+    this.isSaving = false,
     this.leftPanel,
     this.rightPanel,
     required this.centre,
@@ -91,12 +132,74 @@ class OcptWorkspaceShell extends StatelessWidget {
         isDirty: isDirty,
         onBack: onBack,
         actions: toolbarActions,
+        modeLabel: modeLabel,
+        dockToggles: _buildDockToggles(context),
+        saveAction: _buildSaveAction(context),
         overflowEntries: overflowEntries,
       ),
       Expanded(child: _buildDocksRow()),
       if (statusBar != null) statusBar!,
     ],
   );
+
+  /// Builds the toolbar's dock toggles, left one first, skipping whichever side the mode gave no
+  /// callback for.
+  ///
+  /// Both wear the same sidebar glyph, the right one mirrored, so the pair reads as one control
+  /// per side of the workspace; the `iconButtonTheme` paints the open one with its accent wash.
+  List<Widget> _buildDockToggles(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return [
+      if (onToggleLeftDock != null)
+        IconButton(
+          icon: Icon(isLeftDockOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 20),
+          tooltip: tr.workspaceToggleLeftDockTooltip,
+          isSelected: isLeftDockOpen,
+          style: OcptWorkspaceToolbar.chromeButtonStyle,
+          onPressed: onToggleLeftDock,
+        ),
+      if (onToggleRightDock != null)
+        IconButton(
+          icon: Transform.flip(
+            flipX: true,
+            child: Icon(
+              isRightDockOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined,
+              size: 20,
+            ),
+          ),
+          tooltip: tr.workspaceToggleRightDockTooltip,
+          isSelected: isRightDockOpen,
+          style: OcptWorkspaceToolbar.chromeButtonStyle,
+          onPressed: onToggleRightDock,
+        ),
+    ];
+  }
+
+  /// Builds the toolbar's save control — the button, or the same-sized spinner while [isSaving] —
+  /// or null when the mode has nothing to save.
+  Widget? _buildSaveAction(BuildContext context) {
+    final onSave = this.onSave;
+    if (onSave == null) {
+      return null;
+    }
+
+    if (isSaving) {
+      return const SizedBox.square(
+        dimension: ocptToolbarChromeButtonSize,
+        child: Center(
+          child: SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      );
+    }
+
+    return IconButton(
+      icon: const Icon(Icons.save_outlined, size: 20),
+      tooltip: Tr.of(context).editorSaveTooltip,
+      style: OcptWorkspaceToolbar.chromeButtonStyle,
+      onPressed: onSave,
+    );
+  }
 
   /// Builds the left dock / centre / right dock row, wiring the dividers to
   /// [dockLayoutController] and reporting drag ends through [onDockFractionsChanged].
@@ -150,10 +253,8 @@ class OcptWorkspaceShell extends StatelessWidget {
                         rowWidth,
                       ),
                     ),
-                    onDragEnd: () => onDockFractionsChanged?.call((
-                      left: null,
-                      right: controller.rightFraction,
-                    )),
+                    onDragEnd: () =>
+                        onDockFractionsChanged?.call((left: null, right: controller.rightFraction)),
                   ),
                   OcptWorkspaceDock(width: widths.right, child: rightPanel!),
                 ],

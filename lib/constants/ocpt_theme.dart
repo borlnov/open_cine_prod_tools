@@ -83,6 +83,11 @@ const double ocptRadiusLarge = 10;
 /// The height of the shell's top toolbar band.
 const double ocptToolbarHeight = 44;
 
+/// The size of the toolbar's chrome buttons (the dock toggles, save and the `⋮` overflow), a
+/// notch above the 28 px minimum the `iconButtonTheme` gives a mode's own controls, so the chrome
+/// group reads as slightly weightier than whatever the active mode puts before it.
+const double ocptToolbarChromeButtonSize = 30;
+
 /// The height of the shell's bottom status bar band.
 const double ocptStatusBarHeight = 26;
 

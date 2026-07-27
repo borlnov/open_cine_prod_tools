@@ -26,6 +26,7 @@ class OcptBudgetMode extends StatelessWidget {
       title: projectName,
       isDirty: false,
       onBack: () => unawaited(_closeProjectAndPop()),
+      modeLabel: tr.workspaceModeLabelBudget,
       centre: OcptWorkspaceEmptyMode(
         icon: Icons.payments_outlined,
         message: tr.workspaceEmptyModeMessage(tr.workspaceModeBudget),

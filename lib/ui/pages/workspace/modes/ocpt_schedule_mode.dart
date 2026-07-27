@@ -26,6 +26,7 @@ class OcptScheduleMode extends StatelessWidget {
       title: projectName,
       isDirty: false,
       onBack: () => unawaited(_closeProjectAndPop()),
+      modeLabel: tr.workspaceModeLabelSchedule,
       centre: OcptWorkspaceEmptyMode(
         icon: Icons.calendar_month_outlined,
         message: tr.workspaceEmptyModeMessage(tr.workspaceModeSchedule),

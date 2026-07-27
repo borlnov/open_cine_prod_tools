@@ -55,6 +55,17 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
 
+  /// The style every chrome button of the toolbar wears: [ocptToolbarChromeButtonSize] square,
+  /// with no padding of its own around the glyph.
+  ///
+  /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
+  /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
+  /// else (shape, the selected wash, colors) is left to the `iconButtonTheme`.
+  static final ButtonStyle chromeButtonStyle = IconButton.styleFrom(
+    minimumSize: const Size.square(ocptToolbarChromeButtonSize),
+    padding: EdgeInsets.zero,
+  );
+
   /// Class constructor
   const OcptWorkspaceToolbar({
     super.key,
@@ -112,6 +123,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                       PopupMenuButton<void>(
                         icon: const Icon(Icons.more_vert, size: 20),
                         tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+                        style: chromeButtonStyle,
                         itemBuilder: (context) => overflowEntries,
                       ),
                   ],

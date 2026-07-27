@@ -27,6 +27,7 @@ class OcptShotListMode extends StatelessWidget {
       title: projectName,
       isDirty: false,
       onBack: () => unawaited(_closeProjectAndPop()),
+      modeLabel: tr.workspaceModeLabelShotList,
       centre: OcptWorkspaceEmptyMode(
         icon: Icons.movie_filter_outlined,
         message: tr.workspaceEmptyModeMessage(tr.workspaceModeShotList),
