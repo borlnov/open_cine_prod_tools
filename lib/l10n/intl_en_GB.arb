@@ -49,13 +49,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorToggleScenePanelTooltip": "Show or hide the scene panel",
-  "@editorToggleScenePanelTooltip": {
-    "description": "Tooltip of the toolbar action that shows/hides the scene panel",
-    "context": "Displayed on hover over the scene panel toggle of the editor toolbar",
-    "type": "text",
-    "placeholders": {}
-  },
   "editorTogglePreviewTooltip": "Show or hide the preview",
   "@editorTogglePreviewTooltip": {
     "description": "Tooltip of the toolbar action that shows/hides the formatted preview",

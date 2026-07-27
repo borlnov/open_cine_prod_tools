@@ -109,12 +109,17 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                     const Spacer(),
                     ...actions,
                     if (modeLabel != null)
-                      Text(
-                        modeLabel!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      // Flexible like the title, so a window too narrow for a mode's whole
+                      // toolbar ellipsizes the two labels rather than overflowing the row: every
+                      // control around them is a fixed-size button that can't give any width up.
+                      Flexible(
+                        child: Text(
+                          modeLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ...dockToggles,

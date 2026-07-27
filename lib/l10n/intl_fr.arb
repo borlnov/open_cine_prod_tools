@@ -7,7 +7,6 @@
   "editorPreviewEmptyHint": "Commencez à écrire pour voir l'aperçu mis en forme.",
   "editorBackToProjectsTooltip": "Retour aux projets",
   "editorSaveTooltip": "Enregistrer",
-  "editorToggleScenePanelTooltip": "Afficher ou masquer le panneau des scènes",
   "editorTogglePreviewTooltip": "Afficher ou masquer l'aperçu",
   "editorToggleSyntaxGuideTooltip": "Afficher ou masquer le guide de syntaxe",
   "editorRightDockPreviewTabLabel": "Aperçu",

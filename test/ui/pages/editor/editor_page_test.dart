@@ -176,6 +176,13 @@ void main() {
     // The status bar reflects the sample's two scenes and one speaking character (SARAH), once
     // the parse and statistics debounces have both cleared.
     final tr = Tr.of(tester.element(find.byType(EditorPage)));
+    // The toolbar names the active mode, and carries the shell's own chrome: both dock toggles
+    // and the save action.
+    expect(find.text(tr.workspaceModeLabelScreenplay), findsOneWidget);
+    expect(find.byTooltip(tr.workspaceToggleLeftDockTooltip), findsOneWidget);
+    expect(find.byTooltip(tr.workspaceToggleRightDockTooltip), findsOneWidget);
+    expect(find.byTooltip(tr.editorSaveTooltip), findsOneWidget);
+
     expect(find.byType(OcptWorkspaceStatusBar), findsOneWidget);
     expect(find.textContaining(tr.editorStatsScenes(2)), findsOneWidget);
     expect(find.textContaining(tr.editorStatsCharacters(1)), findsOneWidget);
@@ -249,13 +256,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(OcptEditorPreview), findsNothing);
 
-    await tester.tap(find.byTooltip(tr.editorToggleScenePanelTooltip));
+    await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
     await tester.pumpAndSettle();
     expect(find.byType(OcptEditorScenePanel), findsNothing);
 
     // Toggling again brings both back.
     await tester.tap(find.byTooltip(tr.editorTogglePreviewTooltip));
-    await tester.tap(find.byTooltip(tr.editorToggleScenePanelTooltip));
+    await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
     await tester.pumpAndSettle();
     expect(find.byType(OcptEditorPreview), findsOneWidget);
     expect(find.byType(OcptEditorScenePanel), findsOneWidget);
@@ -324,24 +331,82 @@ void main() {
     },
   );
 
-  testWidgets('the syntax guide tab is available in both editing modes', (tester) async {
+  testWidgets(
+    'the syntax guide panel stays available in styled mode, without its toolbar button',
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+      await tester.pumpAndSettle();
+      // Mounting the styled editor auto-numbers every scene heading, which reports the corrected
+      // text to the bloc and restarts its 150 ms parse debounce — longer than `pumpAndSettle`'s
+      // own 100 ms step, so it needs this extra pump to be let go of before the test ends.
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      // Styled mode still offers the syntax tab (only the preview tab is mode-gated): the dock
+      // stays open on the same guide panel, reachable from the dock's own tab row alone — the
+      // toolbar carries no tab shortcut at all in that mode.
+      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+      expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsNothing);
+      expect(find.byTooltip(tr.editorTogglePreviewTooltip), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "the toolbar's right dock toggle closes the dock and reopens it on the tab it showed",
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorRightDock), findsNothing);
+
+      await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+    },
+  );
+
+  testWidgets("the toolbar's dock toggles read as selected only while their dock is open", (
+    tester,
+  ) async {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(EditorPage));
     final tr = Tr.of(context);
 
-    await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
-    await tester.pumpAndSettle();
-    expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+    IconButton toggleOf(String tooltip) => tester.widget<IconButton>(
+      find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(IconButton)),
+    );
 
-    await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+    // Both docks are open when the editor opens (scene panel visible, preview tab active).
+    expect(toggleOf(tr.workspaceToggleLeftDockTooltip).isSelected, isTrue);
+    expect(toggleOf(tr.workspaceToggleRightDockTooltip).isSelected, isTrue);
+
+    await tester.tap(find.byTooltip(tr.workspaceToggleLeftDockTooltip));
+    await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
     await tester.pumpAndSettle();
 
-    // Styled mode still offers the syntax tab (only the preview tab is mode-gated): it stays
-    // open, showing the same guide panel.
-    expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsOneWidget);
-    expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+    expect(toggleOf(tr.workspaceToggleLeftDockTooltip).isSelected, isFalse);
+    expect(toggleOf(tr.workspaceToggleRightDockTooltip).isSelected, isFalse);
   });
 
   testWidgets(

@@ -134,6 +134,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorSceneJumpRequestedEvent>(_onSceneJumpRequested);
     on<OcptEditorScenePanelToggledEvent>(_onScenePanelToggled);
     on<OcptEditorRightDockTabSelectedEvent>(_onRightDockTabSelected);
+    on<OcptEditorRightDockToggledEvent>(_onRightDockToggled);
     on<OcptEditorRightDockClosedEvent>(_onRightDockClosed);
     on<OcptEditorDockFractionsChangedEvent>(_onDockFractionsChanged);
     on<OcptEditorDockLayoutResetEvent>(_onDockLayoutReset);
@@ -499,7 +500,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   }
 
   /// Selects a tab of the right dock (decision 3's toggle semantics: the already-active tab
-  /// closes the dock, any other tab opens or switches to it), and clears
+  /// closes the dock, any other tab opens or switches to it), records it as
+  /// [OcptEditorState.lastRightDockTab] (even when it just closed the dock: that's still the tab
+  /// the toolbar's toggle must bring back), and clears
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   Future<void> _onRightDockTabSelected(
     OcptEditorRightDockTabSelectedEvent event,
@@ -510,6 +513,37 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
         clearRightDockTab: isAlreadyActive,
+        lastRightDockTab: event.tab,
+        clearAutoClosedRightDockTab: true,
+      ),
+    );
+  }
+
+  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// on [OcptEditorState.lastRightDockTab], and clears
+  /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
+  ///
+  /// Reopening applies the styled mode's own rule on the remembered tab: that mode has no preview
+  /// tab at all (the same rule [_rightDockTransitionFor] enforces on a mode switch), so a
+  /// remembered preview tab falls back to the syntax guide there rather than reopening a dock with
+  /// nothing to show. The memory itself is left untouched, so going back to raw mode still brings
+  /// the preview back.
+  Future<void> _onRightDockToggled(
+    OcptEditorRightDockToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    if (state.rightDockTab != null) {
+      emitter(state.copyWith(clearRightDockTab: true, clearAutoClosedRightDockTab: true));
+      return;
+    }
+
+    final isPreviewForbidden =
+        state.mode == OcptEditorMode.styled &&
+        state.lastRightDockTab == OcptEditorRightDockTab.preview;
+
+    emitter(
+      state.copyWith(
+        rightDockTab: isPreviewForbidden ? OcptEditorRightDockTab.syntax : state.lastRightDockTab,
         clearAutoClosedRightDockTab: true,
       ),
     );

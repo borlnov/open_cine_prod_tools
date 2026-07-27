@@ -603,6 +603,68 @@ void main() {
     await bloc.close();
   });
 
+  test("the toolbar's toggle closes an open dock and reopens it on the last tab used", () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.metadata));
+    await waitForState(bloc, (state) => state.rightDockTab == OcptEditorRightDockTab.metadata);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final closedState = await waitForState(bloc, (state) => state.rightDockTab == null);
+    expect(closedState.lastRightDockTab, OcptEditorRightDockTab.metadata);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final reopenedState = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(reopenedState.rightDockTab, OcptEditorRightDockTab.metadata);
+
+    await bloc.close();
+  });
+
+  test("the toolbar's toggle reopens a dock the dock's own × closed, on the same tab", () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockClosedEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final state = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    await bloc.close();
+  });
+
+  test('reopening the right dock in styled mode never lands on the preview tab', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+    final bloc = buildBloc();
+    final loadedState = await waitForState(bloc, (state) => !state.isLoading);
+
+    // Styled mode auto-closed the (default) preview tab on load, and it stays the remembered one.
+    expect(loadedState.rightDockTab, isNull);
+    expect(loadedState.lastRightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final styledState = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(styledState.rightDockTab, OcptEditorRightDockTab.syntax);
+    // The memory itself is untouched, so the preview comes back once raw mode does.
+    expect(styledState.lastRightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+    bloc.add(const OcptEditorModeToggledEvent());
+    await waitForState(bloc, (state) => state.mode == OcptEditorMode.raw);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final rawState = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(rawState.rightDockTab, OcptEditorRightDockTab.preview);
+
+    await bloc.close();
+  });
+
   test('switching to styled mode with the preview tab active closes the dock and remembers it, '
       'switching back to raw restores it', () async {
     await propertiesManager.editorMode.store(OcptEditorMode.raw);

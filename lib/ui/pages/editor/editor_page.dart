@@ -161,7 +161,18 @@ class _EditorViewState extends State<_EditorView> {
                 const OcptEditorBackRequestedEvent(),
               ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
+              modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
               overflowEntries: _buildOverflowEntries(context, state),
+              isLeftDockOpen: state.isScenePanelVisible,
+              onToggleLeftDock: () => context.read<OcptEditorBloc>().add(
+                const OcptEditorScenePanelToggledEvent(),
+              ),
+              isRightDockOpen: state.rightDockTab != null,
+              onToggleRightDock: () => context.read<OcptEditorBloc>().add(
+                const OcptEditorRightDockToggledEvent(),
+              ),
+              onSave: _requestManualSave,
+              isSaving: state.isSaving,
               leftPanel: _buildScenePanel(context, state),
               rightPanel: _buildRightDock(context, state, isRawMode: isRawMode),
               centre: _buildCentre(context, state, isRawMode: isRawMode),
@@ -177,11 +188,14 @@ class _EditorViewState extends State<_EditorView> {
     ),
   );
 
-  /// Builds the screenplay's own toolbar controls, right-aligned before the shell's overflow menu:
-  /// the block-type/format controls (rendered only while attached to a live styled editor), the
-  /// save action (a spinner while a save is in flight), the scene panel visibility toggle, the
-  /// right dock's preview tab selector (raw mode only) and syntax tab selector, and the styled/raw
-  /// mode toggle.
+  /// Builds the screenplay's own toolbar controls, right-aligned before the chrome the shell
+  /// builds itself (the mode label, the dock toggles, the save action and the overflow menu): the
+  /// block-type/format controls (rendered only while attached to a live styled editor), the right
+  /// dock's preview and syntax tab selectors, and the styled/raw mode toggle.
+  ///
+  /// Both tab selectors are raw-mode only: the styled mode has no preview tab at all, and its own
+  /// layout leaves the syntax guide reachable through the dock's tab row alone, which keeps the
+  /// toolbar from carrying a shortcut to a tab the mode barely uses.
   List<Widget> _buildToolbarActions(
     BuildContext context,
     OcptEditorState state, {
@@ -191,32 +205,7 @@ class _EditorViewState extends State<_EditorView> {
 
     return [
       OcptEditorFormatControls(controller: _styledEditorController),
-      if (state.isSaving)
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        )
-      else
-        IconButton(
-          icon: const Icon(Icons.save_outlined, size: 20),
-          tooltip: tr.editorSaveTooltip,
-          onPressed: _requestManualSave,
-        ),
-      IconButton(
-        icon: Icon(
-          state.isScenePanelVisible ? Icons.view_sidebar : Icons.view_sidebar_outlined,
-          size: 20,
-        ),
-        tooltip: tr.editorToggleScenePanelTooltip,
-        onPressed: () => context.read<OcptEditorBloc>().add(
-          const OcptEditorScenePanelToggledEvent(),
-        ),
-      ),
-      if (isRawMode)
+      if (isRawMode) ...[
         IconButton(
           icon: Icon(
             state.rightDockTab == OcptEditorRightDockTab.preview
@@ -230,17 +219,18 @@ class _EditorViewState extends State<_EditorView> {
             const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.preview),
           ),
         ),
-      IconButton(
-        icon: Icon(
-          state.rightDockTab == OcptEditorRightDockTab.syntax ? Icons.help : Icons.help_outline,
-          size: 20,
+        IconButton(
+          icon: Icon(
+            state.rightDockTab == OcptEditorRightDockTab.syntax ? Icons.help : Icons.help_outline,
+            size: 20,
+          ),
+          tooltip: tr.editorToggleSyntaxGuideTooltip,
+          isSelected: state.rightDockTab == OcptEditorRightDockTab.syntax,
+          onPressed: () => context.read<OcptEditorBloc>().add(
+            const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax),
+          ),
         ),
-        tooltip: tr.editorToggleSyntaxGuideTooltip,
-        isSelected: state.rightDockTab == OcptEditorRightDockTab.syntax,
-        onPressed: () => context.read<OcptEditorBloc>().add(
-          const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax),
-        ),
-      ),
+      ],
       IconButton(
         icon: Icon(state.mode == OcptEditorMode.styled ? Icons.code : Icons.style, size: 20),
         tooltip: state.mode == OcptEditorMode.styled

@@ -6,11 +6,12 @@
 ///
 /// Exactly one of these is active at a time, or none while the dock is closed; see
 /// `OcptEditorState.rightDockTab`. [preview] and [syntax] are also reachable from the workspace
-/// toolbar's own buttons, which double as their selector: clicking the button of an inactive (or
-/// closed) tab opens the dock on it, clicking the button of the tab already active closes the
-/// dock. [inspector] and [metadata] have no toolbar button (the toolbar already carries two
-/// tab-opening buttons and does not grow more): the dock's own tab row is their only selector, and
-/// selecting them never closes the dock the way the toolbar buttons' own tab does.
+/// toolbar's own buttons — in the raw editing mode only — which double as their selector: clicking
+/// the button of an inactive (or closed) tab opens the dock on it, clicking the button of the tab
+/// already active closes the dock. [inspector] and [metadata] have no toolbar button (the toolbar
+/// already carries two tab-opening buttons and does not grow more), and neither tab has one in the
+/// styled mode: the dock's own tab row is then their only selector, alongside the toolbar's dock
+/// toggle reopening the dock on whichever tab it last showed.
 enum OcptEditorRightDockTab {
   /// The formatted screenplay preview, only offered in the raw editing mode: the styled mode's
   /// own layout already is the formatted screenplay.

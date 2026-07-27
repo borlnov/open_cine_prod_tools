@@ -114,6 +114,16 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// transition documented on [autoClosedRightDockTab].
   final OcptEditorRightDockTab? rightDockTab;
 
+  /// The tab the right dock last showed, kept even while the dock is closed so the toolbar's own
+  /// right dock toggle can reopen it where the user left it.
+  ///
+  /// Unlike [rightDockTab], this never goes back to null: it starts on
+  /// [OcptEditorRightDockTab.preview] and then follows every tab the user selects, whether that
+  /// selection opened the dock, switched it or closed it. Reopening the dock still applies the
+  /// styled mode's own rule on top of it (that mode has no preview tab at all), see
+  /// `OcptEditorBloc`'s right dock toggle handler.
+  final OcptEditorRightDockTab lastRightDockTab;
+
   /// The tab a raw → styled mode switch auto-closed while it was the active [rightDockTab],
   /// restored the next time the mode switches back to raw (and this cleared back to null in the
   /// process).
@@ -206,6 +216,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.currentLine,
     required this.isScenePanelVisible,
     required this.rightDockTab,
+    required this.lastRightDockTab,
     required this.autoClosedRightDockTab,
     required this.leftDockFraction,
     required this.rightDockFraction,
@@ -232,6 +243,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       currentLine = 0,
       isScenePanelVisible = true,
       rightDockTab = OcptEditorRightDockTab.preview,
+      lastRightDockTab = OcptEditorRightDockTab.preview,
       autoClosedRightDockTab = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
@@ -270,6 +282,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     bool? isScenePanelVisible,
     OcptEditorRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
+    OcptEditorRightDockTab? lastRightDockTab,
     OcptEditorRightDockTab? autoClosedRightDockTab,
     bool clearAutoClosedRightDockTab = false,
     double? leftDockFraction,
@@ -296,6 +309,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     currentLine: currentLine ?? this.currentLine,
     isScenePanelVisible: isScenePanelVisible ?? this.isScenePanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     autoClosedRightDockTab: clearAutoClosedRightDockTab
         ? null
         : (autoClosedRightDockTab ?? this.autoClosedRightDockTab),
@@ -326,6 +340,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     currentLine,
     isScenePanelVisible,
     rightDockTab,
+    lastRightDockTab,
     autoClosedRightDockTab,
     leftDockFraction,
     rightDockFraction,
