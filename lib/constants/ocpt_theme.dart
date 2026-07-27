@@ -204,6 +204,11 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         ),
         minimumSize: const WidgetStatePropertyAll(Size(28, 28)),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        // The stock 48 px touch target would otherwise silently win over the 28 px minimum above,
+        // making every icon button taller than the [ocptToolbarHeight] band it sits in and a row
+        // of them far wider than a desktop toolbar has room for. This is a mouse-first desktop
+        // app, so the button *is* its own target.
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
