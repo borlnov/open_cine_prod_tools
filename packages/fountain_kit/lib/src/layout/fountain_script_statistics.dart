@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
+import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
@@ -74,9 +75,9 @@ class FountainScriptStatistics extends Equatable {
     var words = 0;
     var signs = 0;
     for (final block in document.blocks) {
-      for (final text in _printableTexts(block)) {
-        words += _wordCount(text);
-        signs += _signCount(text);
+      for (final text in printableTextsOf(block)) {
+        words += wordCountOf(text);
+        signs += signCountOf(text);
       }
     }
 
@@ -98,78 +99,11 @@ class FountainScriptStatistics extends Equatable {
     final names = <String>{};
     for (final block in document.blocks) {
       if (block case FountainDialogueGroup(:final character)) {
-        names.add(_normalizeCharacterName(character.name));
+        names.add(normalizeCharacterName(character.name));
       }
     }
     return names.length;
   }
-
-  /// Trims [name], collapses runs of internal whitespace to a single space,
-  /// and upper-cases it, so two spellings of the same role are recognized
-  /// as one.
-  static String _normalizeCharacterName(String name) =>
-      name.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
-
-  /// Yields the rendered text of [block] — the same text
-  /// [FountainScriptComposer] would print, parentheses and scene numbers
-  /// included — and (for a dialogue group) of every child it introduces, if
-  /// [block] is part of the printed screenplay; yields nothing for a
-  /// section, synopsis, note, boneyard comment or page break, mirroring the
-  /// filter `FountainScriptComposer._printableBlocks` applies before
-  /// pagination (replicated rather than shared, since that filter is
-  /// private to its own file).
-  static Iterable<String> _printableTexts(FountainBlock block) sync* {
-    switch (block) {
-      case FountainSceneHeading(:final headingText, :final sceneNumber):
-        yield sceneNumber == null ? headingText : '$sceneNumber. $headingText';
-      case FountainActionBlock(:final lines):
-        yield* lines;
-      case FountainDialogueGroup(:final character, :final children):
-        yield _characterCueText(character);
-        for (final child in children) {
-          yield* _printableTexts(child);
-        }
-      case FountainParenthetical(:final text):
-        yield '($text)';
-      case FountainDialogueLine(:final text):
-        yield text;
-      case FountainTransition(:final text):
-        yield text;
-      case FountainLyrics(:final lines):
-        yield* lines;
-      case FountainCenteredText(:final text):
-        yield text;
-      case FountainCharacter():
-        // Never a top-level or directly-nested block: only reached through
-        // FountainDialogueGroup.character above.
-        break;
-      case FountainSection():
-      case FountainSynopsis():
-      case FountainNoteBlock():
-      case FountainBoneyard():
-      case FountainPageBreak():
-        break;
-    }
-  }
-
-  /// The full character cue text: the name, followed by its parenthetical
-  /// extension if any, exactly as it is printed.
-  static String _characterCueText(FountainCharacter character) =>
-      character.extension == null
-      ? character.name
-      : '${character.name} (${character.extension})';
-
-  /// Splits [text] on runs of whitespace and counts the resulting words; an
-  /// empty or all-whitespace [text] counts as zero.
-  static int _wordCount(String text) {
-    final trimmed = text.trim();
-    return trimmed.isEmpty ? 0 : trimmed.split(RegExp(r'\s+')).length;
-  }
-
-  /// Counts the non-whitespace characters of [text] — what a writer means
-  /// by "signs": every printed glyph, spaces excluded.
-  static int _signCount(String text) =>
-      text.replaceAll(RegExp(r'\s'), '').length;
 
   @override
   List<Object?> get props => [

@@ -7,9 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 
 /// Helper class mapping every [OcptRoute] to the page it displays
 class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
@@ -17,7 +17,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
   OcptRoutesHelper({required super.initialRoute, required super.logsHelper})
     : super(values: OcptRoute.values, debugLogDiagnostics: true) {
     onPage(OcptRoute.home, _createHomePage);
-    onPage(OcptRoute.editor, _createEditorPage);
+    onPage(OcptRoute.workspace, _createWorkspacePage);
     onPage(OcptRoute.settings, _createSettingsPage);
     onPage(OcptRoute.licenses, _createLicensesPage);
   }
@@ -26,9 +26,9 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
   RoutePageDetails _createHomePage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: HomePage());
 
-  /// Callback to create the [EditorPage]
-  RoutePageDetails _createEditorPage(BuildContext context, GoRouterState state) =>
-      const RoutePageDetails(widget: EditorPage());
+  /// Callback to create the [WorkspacePage]
+  RoutePageDetails _createWorkspacePage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: WorkspacePage());
 
   /// Callback to create the [SettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>

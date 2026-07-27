@@ -110,12 +110,15 @@ class OcptEditorScenePanelToggledEvent extends OcptEditorEvent {
   const OcptEditorScenePanelToggledEvent();
 }
 
-/// Selects a tab of the right dock, dispatched by the toolbar's preview/syntax buttons.
+/// Selects a tab of the right dock, dispatched by the toolbar's preview/syntax buttons and by the
+/// dock's own tab row.
 ///
 /// Implements decision 3's toggle semantics: if [tab] is already the dock's active tab, the dock
-/// closes; otherwise the dock opens (or switches) to show [tab]. Either way, this is an explicit
-/// user action on the dock, so it also clears `OcptEditorState.autoClosedRightDockTab` — a dock
-/// the user just acted on by hand must never be silently reopened by a later mode switch.
+/// closes; otherwise the dock opens (or switches) to show [tab]. Either way, [tab] becomes
+/// `OcptEditorState.lastRightDockTab`, the tab [OcptEditorRightDockToggledEvent] reopens the dock
+/// on. This is also an explicit user action on the dock, so it clears
+/// `OcptEditorState.autoClosedRightDockTab` — a dock the user just acted on by hand must never be
+/// silently reopened by a later mode switch.
 class OcptEditorRightDockTabSelectedEvent extends OcptEditorEvent {
   /// The tab the toolbar button pressed represents.
   final OcptEditorRightDockTab tab;
@@ -126,6 +129,17 @@ class OcptEditorRightDockTabSelectedEvent extends OcptEditorEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, tab];
+}
+
+/// Toggles the right dock as a whole, dispatched by the workspace toolbar's right dock toggle.
+///
+/// An open dock closes, whichever tab it shows; a closed one reopens on
+/// `OcptEditorState.lastRightDockTab`, so the dock always comes back where the user left it.
+/// Just like [OcptEditorRightDockTabSelectedEvent], this is an explicit user action, so it also
+/// clears `OcptEditorState.autoClosedRightDockTab`.
+class OcptEditorRightDockToggledEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorRightDockToggledEvent();
 }
 
 /// Closes the right dock via its own × close button, whichever tab is currently active.
@@ -141,8 +155,8 @@ class OcptEditorRightDockClosedEvent extends OcptEditorEvent {
 /// given.
 ///
 /// Dispatched once per drag gesture, on `onHorizontalDragEnd`, never per frame: the live drag
-/// itself only moves `OcptEditorDockLayoutController`'s in-memory fractions, which is what keeps a
-/// drag from emitting a bloc state (and rebuilding the editing subtrees) on every frame.
+/// itself only moves `OcptWorkspaceDockLayoutController`'s in-memory fractions, which is what
+/// keeps a drag from emitting a bloc state (and rebuilding the editing subtrees) on every frame.
 class OcptEditorDockFractionsChangedEvent extends OcptEditorEvent {
   /// The new left (scenes) dock fraction, or null to leave it unchanged.
   final double? left;

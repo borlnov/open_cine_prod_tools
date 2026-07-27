@@ -26,7 +26,7 @@ import 'package:path/path.dart' as p;
 /// whose file has gone missing since), and orchestrates the "New project"/"Open…"/card-tap/
 /// remove-from-list actions: showing the relevant native dialogs through [FileSaverManager] and
 /// [FileSelectorManager], delegating the actual create/open work to [OcptProjectsManager], and
-/// navigating to the editor through [OcptRouterManager] (RFL31: navigation only via the router
+/// navigating to the workspace through [OcptRouterManager] (RFL31: navigation only via the router
 /// manager) once it succeeds.
 class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
   /// The properties manager used to read/update the recent projects list.
@@ -118,7 +118,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _routerManager.push(OcptRoute.editor);
+    await _routerManager.push(OcptRoute.workspace);
   }
 
   /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
@@ -155,7 +155,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _routerManager.push(OcptRoute.editor);
+    await _routerManager.push(OcptRoute.workspace);
   }
 
   /// Removes a recent project from the list and refreshes it.
@@ -238,6 +238,6 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _routerManager.push(OcptRoute.editor);
+    await _routerManager.push(OcptRoute.workspace);
   }
 }

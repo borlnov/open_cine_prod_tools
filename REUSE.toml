@@ -43,3 +43,13 @@ SPDX-License-Identifier = "Apache-2.0"
 path = ["assets/fonts/courier_prime/**"]
 SPDX-FileCopyrightText = "2015 The Courier Prime Project Authors (https://github.com/quoteunquoteapps/CourierPrime)"
 SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+# The Roboto TTFs are static per-weight instances fetched verbatim from Google Fonts (itself
+# mirroring https://github.com/googlefonts/roboto-classic), used as the studio design system's UI
+# typeface so it renders identically on Linux and Windows regardless of which system fonts are
+# installed. Binary font files have no comment syntax reuse recognizes, so their licensing
+# information is declared here instead of inline.
+path = ["assets/fonts/roboto/**"]
+SPDX-FileCopyrightText = "2011 The Roboto Project Authors (https://github.com/googlefonts/roboto-classic)"
+SPDX-License-Identifier = "OFL-1.1"

@@ -146,6 +146,7 @@ flutter:
   assets:
     - assets/config/
     - assets/fonts/courier_prime/
+    - assets/fonts/roboto/
     - LICENSES/
     - actlibs/LICENSES/
 
@@ -158,6 +159,20 @@ flutter:
         - asset: assets/fonts/courier_prime/CourierPrime-Italic.ttf
           style: italic
         - asset: assets/fonts/courier_prime/CourierPrime-BoldItalic.ttf
+          weight: 700
+          style: italic
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/roboto/Roboto-Regular.ttf
+        - asset: assets/fonts/roboto/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto/Roboto-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/roboto/Roboto-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/roboto/Roboto-Italic.ttf
+          style: italic
+        - asset: assets/fonts/roboto/Roboto-BoldItalic.ttf
           weight: 700
           style: italic
 

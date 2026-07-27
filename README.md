@@ -47,8 +47,11 @@ Screenshots are coming.
 
 ## Features
 
-What the screenplay editor does today:
+What the app does today:
 
+- A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
+  bottom mode switcher for the production tools: the screenplay editor is fully featured; budget,
+  schedule and shot list are shown as "coming soon" placeholders (see [Roadmap](#roadmap)).
 - A styled WYSIWYG screenplay mode with the real page layout: a block-type dropdown, Tab cycling
   between screenplay element types, smart Enter, and bold/italic/underline.
 - A raw Fountain mode with a side-by-side, paper-simulated preview.

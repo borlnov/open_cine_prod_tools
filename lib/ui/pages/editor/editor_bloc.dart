@@ -20,7 +20,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
 /// This is the bloc class for the editor page.
 ///
@@ -32,6 +33,10 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.da
 /// path, only tagged [OcptSnapshotReason.manual] instead of [OcptSnapshotReason.timer].
 /// `OcptEditorState.statistics` is recomputed on its own debounce, restarted on every parse tick,
 /// since pagination is too heavy to run on every one of those.
+/// `OcptEditorState.sceneStatistics` composes the whole document too, but only to read off one
+/// scene's slice of it, so it is recomputed directly on the parse tick (never on every keystroke,
+/// since typing only reaches it through that debounce) plus whenever the caret lands on a
+/// different scene (a comparatively rare event, unlike typing).
 ///
 /// When the bloc closes (the user leaves the page), any pending unsaved change is flushed with a
 /// best-effort save: the debounce timers are cancelled and the save runs directly against the
@@ -129,6 +134,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorSceneJumpRequestedEvent>(_onSceneJumpRequested);
     on<OcptEditorScenePanelToggledEvent>(_onScenePanelToggled);
     on<OcptEditorRightDockTabSelectedEvent>(_onRightDockTabSelected);
+    on<OcptEditorRightDockToggledEvent>(_onRightDockToggled);
     on<OcptEditorRightDockClosedEvent>(_onRightDockClosed);
     on<OcptEditorDockFractionsChangedEvent>(_onDockFractionsChanged);
     on<OcptEditorDockLayoutResetEvent>(_onDockLayoutReset);
@@ -160,9 +166,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final areStyledSceneNumbersVisible =
         await _propertiesManager.styledSceneNumbersVisible.load() ?? true;
     final leftDockFraction =
-        await _propertiesManager.editorLeftDockFraction.load() ?? OcptEditorDock.leftDefaultFraction;
+        await _propertiesManager.editorLeftDockFraction.load() ?? OcptWorkspaceDock.leftDefaultFraction;
     final rightDockFraction =
-        await _propertiesManager.editorRightDockFraction.load() ?? OcptEditorDock.rightDefaultFraction;
+        await _propertiesManager.editorRightDockFraction.load() ?? OcptWorkspaceDock.rightDefaultFraction;
 
     // Applies the same raw/styled right-dock transition the mode toggle itself applies (see
     // `_rightDockTransitionFor`), now that the persisted mode is known: e.g. an editor that was
@@ -192,6 +198,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
           clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
           statistics: _statisticsFor(document, state.pageSetup),
+          clearSceneStatistics: true,
         ),
       );
       return;
@@ -207,6 +214,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final pageSetup = OcptPageSetup(
       format: pageFormat ?? OcptPageFormat.usLetter,
       margins: margins ?? const FountainPageMargins.standard(),
+    );
+    final sceneStats = _sceneStatisticsFor(
+      document,
+      pageSetup,
+      currentSceneIndexFor(document.scenes, state.currentLine),
     );
 
     emitter(
@@ -226,6 +238,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
         clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
         statistics: _statisticsFor(document, pageSetup),
+        sceneStatistics: sceneStats,
+        clearSceneStatistics: sceneStats == null,
       ),
     );
   }
@@ -233,6 +247,15 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
   FountainScriptStatistics _statisticsFor(FountainDocument document, OcptPageSetup pageSetup) =>
       FountainScriptStatistics.of(document, pageSetup.toMetrics());
+
+  /// Computes the statistics of the scene at [sceneIndex] in [document] laid out at [pageSetup]'s
+  /// metrics, or null if [sceneIndex] is null (the caret precedes every scene, or [document] has
+  /// no scenes at all).
+  FountainSceneStatistics? _sceneStatisticsFor(
+    FountainDocument document,
+    OcptPageSetup pageSetup,
+    int? sceneIndex,
+  ) => sceneIndex == null ? null : FountainSceneStatistics.of(document, pageSetup.toMetrics(), sceneIndex);
 
   /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
@@ -303,12 +326,27 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     });
   }
 
-  /// Re-parses the current text into a fresh document, then (re)starts the statistics debounce.
+  /// Re-parses the current text into a fresh document, recomputes the current scene's statistics
+  /// right away (cheap relative to [_scheduleStatisticsRecompute]'s script-wide pagination, and
+  /// tied to this same 150 ms parse debounce rather than typing itself), then (re)starts the
+  /// script-wide statistics debounce.
   Future<void> _onParseRequested(
     OcptEditorParseRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(document: _fountainParser.parse(state.text)));
+    final document = _fountainParser.parse(state.text);
+    final sceneStats = _sceneStatisticsFor(
+      document,
+      state.pageSetup,
+      currentSceneIndexFor(document.scenes, state.currentLine),
+    );
+    emitter(
+      state.copyWith(
+        document: document,
+        sceneStatistics: sceneStats,
+        clearSceneStatistics: sceneStats == null,
+      ),
+    );
     _scheduleStatisticsRecompute();
   }
 
@@ -347,7 +385,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     required Emitter<OcptEditorState> emitter,
   }) {
     _statisticsTimer?.cancel();
-    emitter(state.copyWith(statistics: _statisticsFor(document, pageSetup)));
+    final sceneStats = _sceneStatisticsFor(
+      document,
+      pageSetup,
+      currentSceneIndexFor(document.scenes, state.currentLine),
+    );
+    emitter(
+      state.copyWith(
+        statistics: _statisticsFor(document, pageSetup),
+        sceneStatistics: sceneStats,
+        clearSceneStatistics: sceneStats == null,
+      ),
+    );
   }
 
   /// Saves the current text to the project database, unless there is nothing dirty to save.
@@ -409,12 +458,25 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     }
   }
 
-  /// Records the source line the caret moved to.
+  /// Records the source line the caret moved to, and, if that actually lands the caret on a
+  /// different scene, recomputes that scene's statistics right away rather than waiting for the
+  /// next parse tick — moving the caret is far rarer than typing a character, so this stays well
+  /// clear of the "never per keystroke" cost [OcptEditorState.sceneStatistics] documents.
   Future<void> _onCaretMoved(
     OcptEditorCaretMovedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    final previousSceneIndex = state.currentSceneIndex;
     emitter(state.copyWith(currentLine: event.line));
+
+    final document = state.document;
+    final newSceneIndex = state.currentSceneIndex;
+    if (document != null && newSceneIndex != previousSceneIndex) {
+      final sceneStats = _sceneStatisticsFor(document, state.pageSetup, newSceneIndex);
+      emitter(
+        state.copyWith(sceneStatistics: sceneStats, clearSceneStatistics: sceneStats == null),
+      );
+    }
   }
 
   /// Emits a fresh jump request for the page to move the caret to the clicked scene's start.
@@ -438,7 +500,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   }
 
   /// Selects a tab of the right dock (decision 3's toggle semantics: the already-active tab
-  /// closes the dock, any other tab opens or switches to it), and clears
+  /// closes the dock, any other tab opens or switches to it), records it as
+  /// [OcptEditorState.lastRightDockTab] (even when it just closed the dock: that's still the tab
+  /// the toolbar's toggle must bring back), and clears
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   Future<void> _onRightDockTabSelected(
     OcptEditorRightDockTabSelectedEvent event,
@@ -449,6 +513,37 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
         clearRightDockTab: isAlreadyActive,
+        lastRightDockTab: event.tab,
+        clearAutoClosedRightDockTab: true,
+      ),
+    );
+  }
+
+  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// on [OcptEditorState.lastRightDockTab], and clears
+  /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
+  ///
+  /// Reopening applies the styled mode's own rule on the remembered tab: that mode has no preview
+  /// tab at all (the same rule [_rightDockTransitionFor] enforces on a mode switch), so a
+  /// remembered preview tab falls back to the syntax guide there rather than reopening a dock with
+  /// nothing to show. The memory itself is left untouched, so going back to raw mode still brings
+  /// the preview back.
+  Future<void> _onRightDockToggled(
+    OcptEditorRightDockToggledEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    if (state.rightDockTab != null) {
+      emitter(state.copyWith(clearRightDockTab: true, clearAutoClosedRightDockTab: true));
+      return;
+    }
+
+    final isPreviewForbidden =
+        state.mode == OcptEditorMode.styled &&
+        state.lastRightDockTab == OcptEditorRightDockTab.preview;
+
+    emitter(
+      state.copyWith(
+        rightDockTab: isPreviewForbidden ? OcptEditorRightDockTab.syntax : state.lastRightDockTab,
         clearAutoClosedRightDockTab: true,
       ),
     );
@@ -490,12 +585,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   ) async {
     emitter(
       state.copyWith(
-        leftDockFraction: OcptEditorDock.leftDefaultFraction,
-        rightDockFraction: OcptEditorDock.rightDefaultFraction,
+        leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
+        rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
-    await _propertiesManager.editorLeftDockFraction.store(OcptEditorDock.leftDefaultFraction);
-    await _propertiesManager.editorRightDockFraction.store(OcptEditorDock.rightDefaultFraction);
+    await _propertiesManager.editorLeftDockFraction.store(OcptWorkspaceDock.leftDefaultFraction);
+    await _propertiesManager.editorRightDockFraction.store(OcptWorkspaceDock.rightDefaultFraction);
   }
 
   /// Toggles the editing mode between styled and raw, persists the new mode, and applies the

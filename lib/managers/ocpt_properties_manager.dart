@@ -12,6 +12,7 @@ import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 
 /// The maximum number of projects kept in [OcptPropertiesManager.recentProjects].
 const _maxRecentProjects = 10;
@@ -26,8 +27,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 ///
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
-/// app-wide page margins preference, the editor's dock width fractions and its scene-number
-/// visibility preference.
+/// app-wide page margins preference, the editor's dock width fractions, its scene-number
+/// visibility preference, and the last used workspace mode.
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -51,6 +52,16 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     castTo: (value) => value.name,
   );
 
+  /// This is the key used to store the last used workspace mode in the local storage.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptWorkspaceMode.screenplay].
+  final workspaceMode = SharedPrefsItemWithParser<OcptWorkspaceMode, String>(
+    "WORKSPACE_MODE",
+    parser: _parseWorkspaceMode,
+    castTo: (value) => value.name,
+  );
+
   /// This is the key used to store whether the editor's "Word-like" page simulation is enabled.
   ///
   /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`
@@ -68,14 +79,14 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// editing row width.
   ///
   /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptEditorDock.leftDefaultFraction`, applied at the call site.
+  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
   final editorLeftDockFraction = SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION");
 
   /// This is the key used to store the right (preview / syntax) dock's width, as a fraction of
   /// the editor's editing row width.
   ///
   /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptEditorDock.rightDefaultFraction`, applied at the call site.
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION");
 
   /// This is the key used to stringify or parse the [FountainPageMargins.leftInches] from/to the
@@ -163,6 +174,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
     appLogger().w("The editor mode stored in the local storage: $value, isn't a known editor "
         "mode, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptWorkspaceMode].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptWorkspaceMode] values.
+  static OcptWorkspaceMode? _parseWorkspaceMode(String value) {
+    for (final mode in OcptWorkspaceMode.values) {
+      if (mode.name == value) {
+        return mode;
+      }
+    }
+
+    appLogger().w("The workspace mode stored in the local storage: $value, isn't a known "
+        "workspace mode, we can't convert it");
     return null;
   }
 

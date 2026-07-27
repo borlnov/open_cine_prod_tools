@@ -52,6 +52,7 @@ number is a stable identifier other documents and commits can reference.
 | [0003](0003-super-editor-for-the-styled-editor.md) | super_editor for the styled editor            | Accepted |
 | [0004](0004-generated-code-is-not-committed.md)    | Generated code is not committed               | Accepted |
 | [0005](0005-resizable-editor-docks.md)             | Resizable editor docks                        | Accepted |
+| [0006](0006-workspace-shell-as-a-slot-widget.md)   | Workspace shell as a slot widget              | Accepted |
 
 ## Candidates
 

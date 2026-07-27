@@ -27,7 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -174,6 +174,10 @@ class _ThrowingPdfExportManager extends OcptExportManager {
 
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
+  // Scene headings start at line 0 and line 4; the two scenes are deliberately given different
+  // word counts (6 and 7) so a test can tell "the first scene's stats" and "the second scene's
+  // stats" apart just by comparing counts.
+  const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two here.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -310,6 +314,101 @@ void main() {
     final state = await waitForState(bloc, (state) => state.statistics.sceneCount == 1);
     expect(state.statistics.pageCount, 1);
     expect(state.statistics.wordCount, greaterThan(0));
+
+    await bloc.close();
+  });
+
+  test('currentSceneIndex tracks the caret across scenes, live, no debounce wait needed', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+    await waitForState(bloc, (state) => state.scenes.length == 2);
+    expect(bloc.state.currentSceneIndex, 0);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 6));
+    final secondSceneState = await waitForState(bloc, (state) => state.currentSceneIndex == 1);
+    expect(secondSceneState.currentLine, 6);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 2));
+    final firstSceneState = await waitForState(bloc, (state) => state.currentSceneIndex == 0);
+    expect(firstSceneState.currentLine, 2);
+
+    await bloc.close();
+  });
+
+  test(
+    'currentSceneIndex is null while the caret precedes every scene, or nothing is parsed yet',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.currentSceneIndex, isNull);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: "\n\n$twoSceneText"));
+      await waitForState(bloc, (state) => state.scenes.length == 2);
+      // The caret is still on line 0, which now precedes the first scene heading (pushed to
+      // line 2 by the two leading blank lines).
+      expect(bloc.state.currentSceneIndex, isNull);
+
+      await bloc.close();
+    },
+  );
+
+  test('sceneStatistics is recomputed on the parse debounce, for the scene under the caret',
+      () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.sceneStatistics, isNull);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+    // The document already reflects the edit once this resolves, but that alone must not have
+    // populated the scene statistics synchronously (they piggyback on the same parse tick, not a
+    // separate, earlier one).
+    final parsedState = await waitForState(bloc, (state) => state.scenes.length == 2);
+    expect(parsedState.sceneStatistics, isNotNull);
+    expect(parsedState.sceneStatistics!.wordCount, greaterThan(0));
+
+    await bloc.close();
+  });
+
+  test(
+    'sceneStatistics is recomputed immediately when the caret crosses into a different scene',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+      await waitForState(bloc, (state) => state.scenes.length == 2);
+      final firstSceneWords = bloc.state.sceneStatistics!.wordCount;
+
+      bloc.add(const OcptEditorCaretMovedEvent(line: 6));
+      final secondSceneState = await waitForState(
+        bloc,
+        (state) => state.currentSceneIndex == 1 && state.sceneStatistics!.wordCount != firstSceneWords,
+      );
+      // "EXT. GARDEN - NIGHT" (4) + "Action two here." (3).
+      expect(secondSceneState.sceneStatistics!.wordCount, 4 + 3);
+
+      await bloc.close();
+    },
+  );
+
+  test('sceneStatistics goes back to null once the caret moves back before every scene', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: "\n\n$twoSceneText"));
+    await waitForState(bloc, (state) => state.scenes.length == 2);
+    // The caret (still on line 0) precedes the first heading, now pushed to line 2.
+    expect(bloc.state.sceneStatistics, isNull);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 2));
+    final withinFirstScene = await waitForState(bloc, (state) => state.sceneStatistics != null);
+    expect(withinFirstScene.currentSceneIndex, 0);
+
+    bloc.add(const OcptEditorCaretMovedEvent(line: 0));
+    final beforeEveryScene = await waitForState(bloc, (state) => state.sceneStatistics == null);
+    expect(beforeEveryScene.currentSceneIndex, isNull);
 
     await bloc.close();
   });
@@ -500,6 +599,68 @@ void main() {
     bloc.add(const OcptEditorRightDockClosedEvent());
     final state = await waitForState(bloc, (state) => state.rightDockTab == null);
     expect(state.rightDockTab, isNull);
+
+    await bloc.close();
+  });
+
+  test("the toolbar's toggle closes an open dock and reopens it on the last tab used", () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.metadata));
+    await waitForState(bloc, (state) => state.rightDockTab == OcptEditorRightDockTab.metadata);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final closedState = await waitForState(bloc, (state) => state.rightDockTab == null);
+    expect(closedState.lastRightDockTab, OcptEditorRightDockTab.metadata);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final reopenedState = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(reopenedState.rightDockTab, OcptEditorRightDockTab.metadata);
+
+    await bloc.close();
+  });
+
+  test("the toolbar's toggle reopens a dock the dock's own × closed, on the same tab", () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockClosedEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final state = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    await bloc.close();
+  });
+
+  test('reopening the right dock in styled mode never lands on the preview tab', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+    final bloc = buildBloc();
+    final loadedState = await waitForState(bloc, (state) => !state.isLoading);
+
+    // Styled mode auto-closed the (default) preview tab on load, and it stays the remembered one.
+    expect(loadedState.rightDockTab, isNull);
+    expect(loadedState.lastRightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final styledState = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(styledState.rightDockTab, OcptEditorRightDockTab.syntax);
+    // The memory itself is untouched, so the preview comes back once raw mode does.
+    expect(styledState.lastRightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+    bloc.add(const OcptEditorModeToggledEvent());
+    await waitForState(bloc, (state) => state.mode == OcptEditorMode.raw);
+
+    bloc.add(const OcptEditorRightDockToggledEvent());
+    final rawState = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(rawState.rightDockTab, OcptEditorRightDockTab.preview);
 
     await bloc.close();
   });
@@ -707,8 +868,8 @@ void main() {
     final bloc = buildBloc();
     final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.leftDockFraction, OcptEditorDock.leftDefaultFraction);
-    expect(state.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+    expect(state.leftDockFraction, OcptWorkspaceDock.leftDefaultFraction);
+    expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
 
     await bloc.close();
   });
@@ -735,7 +896,7 @@ void main() {
 
     bloc.add(const OcptEditorDockFractionsChangedEvent(left: 0.3));
     final leftState = await waitForState(bloc, (state) => state.leftDockFraction == 0.3);
-    expect(leftState.rightDockFraction, OcptEditorDock.rightDefaultFraction);
+    expect(leftState.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
     expect(await propertiesManager.editorLeftDockFraction.load(), 0.3);
     expect(await propertiesManager.editorRightDockFraction.load(), isNull);
 
@@ -757,12 +918,12 @@ void main() {
     bloc.add(const OcptEditorDockLayoutResetEvent());
     final state = await waitForState(
       bloc,
-      (state) => state.leftDockFraction == OcptEditorDock.leftDefaultFraction,
+      (state) => state.leftDockFraction == OcptWorkspaceDock.leftDefaultFraction,
     );
 
-    expect(state.rightDockFraction, OcptEditorDock.rightDefaultFraction);
-    expect(await propertiesManager.editorLeftDockFraction.load(), OcptEditorDock.leftDefaultFraction);
-    expect(await propertiesManager.editorRightDockFraction.load(), OcptEditorDock.rightDefaultFraction);
+    expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
+    expect(await propertiesManager.editorLeftDockFraction.load(), OcptWorkspaceDock.leftDefaultFraction);
+    expect(await propertiesManager.editorRightDockFraction.load(), OcptWorkspaceDock.rightDefaultFraction);
 
     await bloc.close();
   });

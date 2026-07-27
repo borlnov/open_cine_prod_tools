@@ -116,9 +116,9 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     final layout = OcptEditorPreviewLayout(metrics: _metrics);
     _refreshCaches(layout);
 
-    // Painted by this widget itself, not by `OcptEditorDock` (whose color is shared with the scene
-    // panel and the syntax-guide tab, which stay themed): the preview panel must always read as
-    // white paper, in both themes.
+    // Painted by this widget itself, not by `OcptWorkspaceDock` (whose color is shared with the
+    // scene panel and the syntax-guide tab, which stay themed): the preview panel must always read
+    // as white paper, in both themes.
     final backdropColor = Theme.of(context).extension<OcptSpecificColors>()!.previewBackdrop;
 
     if (_blocks.isEmpty) {

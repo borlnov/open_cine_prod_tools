@@ -11,25 +11,30 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_inspector_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_saved_time_segment.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_title_page_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_toolbar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
 /// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
-/// the tabbed right dock (formatted preview, raw mode only, and the Fountain syntax guide, both
-/// modes) hosting at most one panel at a time, and a thin toolbar above them.
+/// the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
+/// inspector and the read-only metadata panel, all three in both modes) hosting at most one panel
+/// at a time, and a thin toolbar above them.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class EditorPage extends StatelessWidget {
@@ -83,9 +88,9 @@ class _EditorViewState extends State<_EditorView> {
   /// dock layout on every drag update without emitting a bloc state per frame (see the
   /// controller's own doc comment). Initialized with the defaults; synced to the bloc's persisted
   /// values once the load (or a reset) resolves, in [_onStateChanged].
-  final OcptEditorDockLayoutController _dockLayoutController = OcptEditorDockLayoutController(
-    leftFraction: OcptEditorDock.leftDefaultFraction,
-    rightFraction: OcptEditorDock.rightDefaultFraction,
+  final OcptWorkspaceDockLayoutController _dockLayoutController = OcptWorkspaceDockLayoutController(
+    leftFraction: OcptWorkspaceDock.leftDefaultFraction,
+    rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
   /// The controller of the editor's vertical scroll, used when jumping to a scene.
@@ -149,51 +154,33 @@ class _EditorViewState extends State<_EditorView> {
 
             final isRawMode = state.mode == OcptEditorMode.raw;
 
-            return Column(
-              children: [
-                OcptEditorToolbar(
-                  title: state.title,
-                  isDirty: state.isDirty,
-                  isSaving: state.isSaving,
-                  isScenePanelVisible: state.isScenePanelVisible,
-                  rightDockTab: state.rightDockTab,
-                  isPageSimulationEnabled: state.isPageSimulationEnabled,
-                  areStyledSceneNumbersVisible: state.areStyledSceneNumbersVisible,
-                  mode: state.mode,
-                  onBack: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorBackRequestedEvent(),
-                  ),
-                  onSave: _requestManualSave,
-                  onToggleScenePanel: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorScenePanelToggledEvent(),
-                  ),
-                  onRightDockTabSelected: (tab) => context.read<OcptEditorBloc>().add(
-                    OcptEditorRightDockTabSelectedEvent(tab: tab),
-                  ),
-                  onToggleMode: _toggleMode,
-                  onExport: () => context.read<OcptEditorBloc>().add(
-                    OcptEditorExportRequestedEvent(
-                      fileTypeLabel: Tr.of(context).editorImportFileTypeLabel,
-                    ),
-                  ),
-                  onExportPdf: () => _requestExportPdf(context),
-                  onImportAndReplace: () => _requestImportAndReplace(context),
-                  onTogglePageSimulation: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorPageSimulationToggledEvent(),
-                  ),
-                  onToggleStyledSceneNumbers: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorStyledSceneNumbersToggledEvent(),
-                  ),
-                  onPageSetup: () => _requestPageSetup(context),
-                  onTitlePage: () => _requestTitlePage(context),
-                  onResetPanelLayout: () => context.read<OcptEditorBloc>().add(
-                    const OcptEditorDockLayoutResetEvent(),
-                  ),
-                  styledController: _styledEditorController,
-                ),
-                Expanded(child: _buildEditingRow(context, state, isRawMode: isRawMode)),
-                OcptEditorStatusBar(statistics: state.statistics, lastSavedAt: state.lastSavedAt),
-              ],
+            return OcptWorkspaceShell(
+              title: state.title,
+              isDirty: state.isDirty,
+              onBack: () => context.read<OcptEditorBloc>().add(
+                const OcptEditorBackRequestedEvent(),
+              ),
+              toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
+              modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
+              overflowEntries: _buildOverflowEntries(context, state),
+              isLeftDockOpen: state.isScenePanelVisible,
+              onToggleLeftDock: () => context.read<OcptEditorBloc>().add(
+                const OcptEditorScenePanelToggledEvent(),
+              ),
+              isRightDockOpen: state.rightDockTab != null,
+              onToggleRightDock: () => context.read<OcptEditorBloc>().add(
+                const OcptEditorRightDockToggledEvent(),
+              ),
+              onSave: _requestManualSave,
+              isSaving: state.isSaving,
+              leftPanel: _buildScenePanel(context, state),
+              rightPanel: _buildRightDock(context, state, isRawMode: isRawMode),
+              centre: _buildCentre(context, state, isRawMode: isRawMode),
+              statusBar: _buildStatusBar(context, state),
+              dockLayoutController: _dockLayoutController,
+              onDockFractionsChanged: (fractions) => context.read<OcptEditorBloc>().add(
+                OcptEditorDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+              ),
             );
           },
         ),
@@ -201,51 +188,155 @@ class _EditorViewState extends State<_EditorView> {
     ),
   );
 
-  /// Builds the panel/editor/right-dock row: the scene panel and right docks are resizable
-  /// (dragging their divider) and remember their width between sessions.
+  /// Builds the screenplay's own toolbar controls, right-aligned before the chrome the shell
+  /// builds itself (the mode label, the dock toggles, the save action and the overflow menu): the
+  /// block-type/format controls (rendered only while attached to a live styled editor), the right
+  /// dock's preview and syntax tab selectors, and the styled/raw mode toggle.
   ///
-  /// The scene panel, editor and right dock (preview or syntax placeholder, wrapped in
-  /// [OcptEditorRightDock]) widgets are built once here, then handed unchanged into the
-  /// [ListenableBuilder] that listens to [_dockLayoutController]: a divider drag only ever calls
-  /// [OcptEditorDockLayoutController.setLeftFraction]/`setRightFraction`, which notifies that
-  /// builder alone. Since it references these exact same widget instances on every rebuild (rather
-  /// than constructing fresh ones), Flutter's `Element.update` short-circuits on their identity
-  /// and only re-lays-out the resolved widths — the editing subtrees underneath never rebuild
-  /// mid-drag, which matters because [OcptStyledScreenplayEditor] and [OcptEditorPreview] are too
-  /// expensive to rebuild on every frame of a drag.
-  Widget _buildEditingRow(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
-    final scenePanelChild = state.isScenePanelVisible
-        ? OcptEditorScenePanel(
-            scenes: state.scenes,
-            currentLine: state.currentLine,
-            onSceneSelected: (charOffset) => context.read<OcptEditorBloc>().add(
-              OcptEditorSceneJumpRequestedEvent(charOffset: charOffset),
-            ),
-          )
-        : null;
+  /// Both tab selectors are raw-mode only: the styled mode has no preview tab at all, and its own
+  /// layout leaves the syntax guide reachable through the dock's tab row alone, which keeps the
+  /// toolbar from carrying a shortcut to a tab the mode barely uses.
+  List<Widget> _buildToolbarActions(
+    BuildContext context,
+    OcptEditorState state, {
+    required bool isRawMode,
+  }) {
+    final tr = Tr.of(context);
 
-    final editorChild = isRawMode
-        ? OcptEditorSourceField(
-            controller: _textController,
-            scrollController: _editorScrollController,
-            focusNode: _editorFocusNode,
-          )
-        : OcptStyledScreenplayEditor(
-            text: state.text,
-            pageSetup: state.pageSetup,
-            isPageSimulationEnabled: state.isPageSimulationEnabled,
-            areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
-            onTextChanged: (text) => context.read<OcptEditorBloc>().add(
-              OcptEditorTextChangedEvent(text: text),
-            ),
-            onCaretLineChanged: (line) => context.read<OcptEditorBloc>().add(
-              OcptEditorCaretMovedEvent(line: line),
-            ),
-            jumpRequest: state.jumpRequest,
-            styledController: _styledEditorController,
-          );
+    return [
+      OcptEditorFormatControls(controller: _styledEditorController),
+      if (isRawMode) ...[
+        IconButton(
+          icon: Icon(
+            state.rightDockTab == OcptEditorRightDockTab.preview
+                ? Icons.article
+                : Icons.article_outlined,
+            size: 20,
+          ),
+          tooltip: tr.editorTogglePreviewTooltip,
+          isSelected: state.rightDockTab == OcptEditorRightDockTab.preview,
+          onPressed: () => context.read<OcptEditorBloc>().add(
+            const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.preview),
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            state.rightDockTab == OcptEditorRightDockTab.syntax ? Icons.help : Icons.help_outline,
+            size: 20,
+          ),
+          tooltip: tr.editorToggleSyntaxGuideTooltip,
+          isSelected: state.rightDockTab == OcptEditorRightDockTab.syntax,
+          onPressed: () => context.read<OcptEditorBloc>().add(
+            const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax),
+          ),
+        ),
+      ],
+      IconButton(
+        icon: Icon(state.mode == OcptEditorMode.styled ? Icons.code : Icons.style, size: 20),
+        tooltip: state.mode == OcptEditorMode.styled
+            ? tr.editorSwitchToRawModeTooltip
+            : tr.editorSwitchToStyledModeTooltip,
+        onPressed: _toggleMode,
+      ),
+    ];
+  }
 
-    final previewChild = isRawMode && state.rightDockTab == OcptEditorRightDockTab.preview
+  /// Builds the screenplay's `⋮` overflow menu entries: export, export to PDF, import and
+  /// replace, the page-simulation and scene-numbers toggles, page setup, title page, and resetting
+  /// the panel layout.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptEditorState state) {
+    final tr = Tr.of(context);
+
+    return [
+      PopupMenuItem<void>(
+        onTap: () => context.read<OcptEditorBloc>().add(
+          OcptEditorExportRequestedEvent(fileTypeLabel: tr.editorImportFileTypeLabel),
+        ),
+        child: Text(tr.editorExportAction),
+      ),
+      PopupMenuItem<void>(
+        onTap: () => _requestExportPdf(context),
+        child: Text(tr.editorExportPdfAction),
+      ),
+      PopupMenuItem<void>(
+        onTap: () => _requestImportAndReplace(context),
+        child: Text(tr.editorImportAndReplaceAction),
+      ),
+      CheckedPopupMenuItem<void>(
+        checked: state.isPageSimulationEnabled,
+        onTap: () => context.read<OcptEditorBloc>().add(
+          const OcptEditorPageSimulationToggledEvent(),
+        ),
+        child: Text(tr.editorTogglePageSimulationAction),
+      ),
+      CheckedPopupMenuItem<void>(
+        checked: state.areStyledSceneNumbersVisible,
+        onTap: () => context.read<OcptEditorBloc>().add(
+          const OcptEditorStyledSceneNumbersToggledEvent(),
+        ),
+        child: Text(tr.editorToggleSceneNumbersAction),
+      ),
+      PopupMenuItem<void>(
+        onTap: () => _requestPageSetup(context),
+        child: Text(tr.editorPageSetupAction),
+      ),
+      PopupMenuItem<void>(
+        onTap: () => _requestTitlePage(context),
+        child: Text(tr.editorTitlePageAction),
+      ),
+      PopupMenuItem<void>(
+        onTap: () => context.read<OcptEditorBloc>().add(
+          const OcptEditorDockLayoutResetEvent(),
+        ),
+        child: Text(tr.editorResetPanelLayoutAction),
+      ),
+    ];
+  }
+
+  /// Builds the scene panel, the shell's `leftPanel`, or null while it's hidden.
+  Widget? _buildScenePanel(BuildContext context, OcptEditorState state) => state.isScenePanelVisible
+      ? OcptEditorScenePanel(
+          scenes: state.scenes,
+          currentLine: state.currentLine,
+          onSceneSelected: (charOffset) => context.read<OcptEditorBloc>().add(
+            OcptEditorSceneJumpRequestedEvent(charOffset: charOffset),
+          ),
+        )
+      : null;
+
+  /// Builds the editor itself (raw source field or styled block editor), the shell's `centre`.
+  Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) =>
+      isRawMode
+      ? OcptEditorSourceField(
+          controller: _textController,
+          scrollController: _editorScrollController,
+          focusNode: _editorFocusNode,
+        )
+      : OcptStyledScreenplayEditor(
+          text: state.text,
+          pageSetup: state.pageSetup,
+          isPageSimulationEnabled: state.isPageSimulationEnabled,
+          areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
+          onTextChanged: (text) => context.read<OcptEditorBloc>().add(
+            OcptEditorTextChangedEvent(text: text),
+          ),
+          onCaretLineChanged: (line) => context.read<OcptEditorBloc>().add(
+            OcptEditorCaretMovedEvent(line: line),
+          ),
+          jumpRequest: state.jumpRequest,
+          styledController: _styledEditorController,
+        );
+
+  /// Builds the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide,
+  /// the scene inspector and the read-only metadata panel, all three in both modes), the shell's
+  /// `rightPanel`, or null while the dock is closed.
+  Widget? _buildRightDock(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
+    final rightDockTab = state.rightDockTab;
+    if (rightDockTab == null) {
+      return null;
+    }
+
+    final previewChild = isRawMode && rightDockTab == OcptEditorRightDockTab.preview
         ? OcptEditorPreview(
             document: state.document,
             pageSetup: state.pageSetup,
@@ -254,72 +345,47 @@ class _EditorViewState extends State<_EditorView> {
           )
         : null;
 
-    final rightDockTab = state.rightDockTab;
-    final rightDockChild = rightDockTab == null
-        ? null
-        : OcptEditorRightDock(
-            activeTab: rightDockTab,
-            isPreviewTabAvailable: isRawMode,
-            previewChild: previewChild,
-            onClose: () => context.read<OcptEditorBloc>().add(
-              const OcptEditorRightDockClosedEvent(),
-            ),
-          );
+    final currentSceneIndex = state.currentSceneIndex;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final rowWidth = constraints.maxWidth;
+    return OcptEditorRightDock(
+      activeTab: rightDockTab,
+      isPreviewTabAvailable: isRawMode,
+      previewChild: previewChild,
+      inspectorChild: OcptEditorInspectorPanel(
+        scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
+        sceneOrdinal: currentSceneIndex == null ? null : currentSceneIndex + 1,
+        statistics: state.sceneStatistics,
+      ),
+      metadataChild: OcptEditorMetadataPanel(
+        titlePage: state.document?.titlePage,
+        statistics: state.statistics,
+        onEditTitlePage: () => _requestTitlePage(context),
+      ),
+      onTabSelected: (tab) => context.read<OcptEditorBloc>().add(
+        OcptEditorRightDockTabSelectedEvent(tab: tab),
+      ),
+      onClose: () => context.read<OcptEditorBloc>().add(const OcptEditorRightDockClosedEvent()),
+    );
+  }
 
-        return ListenableBuilder(
-          listenable: _dockLayoutController,
-          builder: (context, child) {
-            final widths = OcptEditorDock.resolveDockWidths(
-              rowWidth: rowWidth,
-              leftFraction: _dockLayoutController.leftFraction,
-              rightFraction: _dockLayoutController.rightFraction,
-              isLeftDockVisible: scenePanelChild != null,
-              isRightDockVisible: rightDockChild != null,
-            );
+  /// Builds the shell's `statusBar`: the screenplay's own ordered counters (pages, scenes,
+  /// characters, words, signs — the first three never dropped) plus the self-refreshing
+  /// last-saved segment.
+  Widget _buildStatusBar(BuildContext context, OcptEditorState state) {
+    final tr = Tr.of(context);
+    final statistics = state.statistics;
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (scenePanelChild != null) ...[
-                  OcptEditorDock(width: widths.left, child: scenePanelChild),
-                  OcptDockDivider(
-                    onDragUpdate: (deltaX) => _dockLayoutController.setLeftFraction(
-                      OcptEditorDock.clampLeftFraction(
-                        _dockLayoutController.leftFraction + deltaX / rowWidth,
-                        rowWidth,
-                      ),
-                    ),
-                    onDragEnd: () => context.read<OcptEditorBloc>().add(
-                      OcptEditorDockFractionsChangedEvent(left: _dockLayoutController.leftFraction),
-                    ),
-                  ),
-                ],
-                Expanded(child: editorChild),
-                if (rightDockChild != null) ...[
-                  OcptDockDivider(
-                    onDragUpdate: (deltaX) => _dockLayoutController.setRightFraction(
-                      OcptEditorDock.clampRightFraction(
-                        _dockLayoutController.rightFraction - deltaX / rowWidth,
-                        rowWidth,
-                      ),
-                    ),
-                    onDragEnd: () => context.read<OcptEditorBloc>().add(
-                      OcptEditorDockFractionsChangedEvent(
-                        right: _dockLayoutController.rightFraction,
-                      ),
-                    ),
-                  ),
-                  OcptEditorDock(width: widths.right, child: rightDockChild),
-                ],
-              ],
-            );
-          },
-        );
-      },
+    return OcptWorkspaceStatusBar(
+      counters: [
+        tr.editorStatsPages(statistics.pageCount),
+        tr.editorStatsScenes(statistics.sceneCount),
+        tr.editorStatsCharacters(statistics.speakingCharacterCount),
+        tr.editorStatsWords(statistics.wordCount),
+        tr.editorStatsSigns(statistics.signCount),
+      ],
+      nonDroppableCount: 3,
+      trailingText: OcptEditorSavedTimeSegment.textFor(context, state.lastSavedAt),
+      trailing: OcptEditorSavedTimeSegment(lastSavedAt: state.lastSavedAt),
     );
   }
 
