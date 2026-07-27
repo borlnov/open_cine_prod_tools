@@ -1,0 +1,137 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
+
+/// Wraps [child] with the localization delegates so the toolbar's [Tr.of] tooltip lookups resolve.
+Widget _wrapInApp(Widget child) => MaterialApp(
+  localizationsDelegates: const [
+    Tr.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: Tr.delegate.supportedLocales,
+  home: Scaffold(body: child),
+);
+
+void main() {
+  testWidgets("the back action fires onBack when clicked", (tester) async {
+    var backCount = 0;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () => backCount++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceToolbar)));
+    await tester.tap(find.byTooltip(tr.editorBackToProjectsTooltip));
+    await tester.pumpAndSettle();
+
+    expect(backCount, 1);
+  });
+
+  testWidgets("the dirty marker is shown only while there are unsaved changes", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceToolbar)));
+    expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsNothing);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsOneWidget);
+  });
+
+  testWidgets("the mode label is rendered only when one is given", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Screenplay editor"), findsNothing);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          modeLabel: "Screenplay editor",
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Screenplay editor"), findsOneWidget);
+  });
+
+  testWidgets("the trailing controls follow the mode actions in the shell's own order", (
+    tester,
+  ) async {
+    // A wide surface, so the placeholders standing in for the real (compact) controls all fit on
+    // the one row this test is about.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          actions: const [Text("action")],
+          modeLabel: "Screenplay editor",
+          dockToggles: const [Text("left dock"), Text("right dock")],
+          saveAction: const Text("save"),
+          overflowEntries: const [PopupMenuItem<void>(child: Text("Entry"))],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    /// The horizontal offset of the widget [finder] resolves to, in the toolbar's own row.
+    double leftOf(Finder finder) => tester.getTopLeft(finder).dx;
+
+    expect(leftOf(find.text("action")), lessThan(leftOf(find.text("Screenplay editor"))));
+    expect(leftOf(find.text("Screenplay editor")), lessThan(leftOf(find.text("left dock"))));
+    expect(leftOf(find.text("left dock")), lessThan(leftOf(find.text("right dock"))));
+    expect(leftOf(find.text("right dock")), lessThan(leftOf(find.text("save"))));
+    expect(leftOf(find.text("save")), lessThan(leftOf(find.byType(PopupMenuButton<void>))));
+  });
+
+  testWidgets("an empty overflowEntries list renders no ⋮ button", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PopupMenuButton<void>), findsNothing);
+  });
+}
