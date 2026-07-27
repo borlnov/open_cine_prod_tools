@@ -73,6 +73,7 @@ breakdown, and a casting tracker.
 | 15    | Editor docks & Fountain syntax guide (resizable/persisted left+right docks, right dock tabbed preview/syntax, read-only syntax guide panel) — milestones M1-M4 in `docs/plans/editor-docks-and-syntax-guide.md` | ✅                                   |
 | 16    | Issue #15 fixes: native save dialogs + "Export" PDF button, sticky character blocks, scroll bar off the page, copy/paste keeping block types, `#N#` scene numbers with a styled display option, PDF bold/italic/underline regression coverage, dark-theme raw preview reading as paper, title page editable in place in styled mode — milestones M1-M8 in `docs/plans/editor-and-export-fixes.md` (title-page follow-up fixes in `docs/plans/styled-title-page-fixes.md` and `styled-title-page-fixes-2.md`) | ✅                                   |
 | 17    | Workspace shell refactor: studio design system (density/shapes/type scale as component themes), the shell extracted from the editor (`OcptWorkspaceShell`/toolbar/status bar/docks), four production modes behind a bottom mode switcher (screenplay implemented, budget/schedule/shot list as empty states, last mode persisted), inspector and metadata right-dock tabs, project poster tints — milestones M0-M4 in `docs/plans/workspace-shell-refactor.md` | ✅                                   |
+| 18    | Workspace toolbar alignment on the mock-up: accent-filled back badge, filled dirty dot, muted mode label, the dock toggles / save / `⋮` owned and ordered by the shell, a right-dock toggle reopening the last tab used, raw-only tab shortcuts — milestones M1-M4 in `docs/plans/workspace-toolbar-alignment.md` | ✅                                   |
 
 ## Ways of working
 
@@ -121,7 +122,13 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   schedule, shotList }` is persisted through `OcptPropertiesManager.workspaceMode` (modelled on
   `editorMode`) so opening a project restores the last mode used. `OcptWorkspaceShell` is a
   stateless slot widget (title, toolbar actions, overflow entries, left panel, right panel,
-  centre, status bar, dock controller) built by whichever mode is active; the screenplay mode is
+  centre, status bar, dock controller) built by whichever mode is active. The end of the toolbar
+  is the shell's own chrome rather than a mode's actions, so its order can't drift from one mode
+  to the next: the mode label, the two dock toggles
+  (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
+  (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
+  mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's
+  own `toolbarActions` sit before that group. The screenplay mode is
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
   before this refactor), the other three are stateless `OcptBudgetMode`/`OcptScheduleMode`/
   `OcptShotListMode` widgets rendering a shared empty state — no bloc, no data, "coming in a
@@ -230,10 +237,14 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptEditorDockFractionsChangedEvent` on `onHorizontalDragEnd`. The right dock
   (`OcptEditorRightDock`, still under `lib/ui/pages/editor/widgets/`) is tabbed
   (`OcptEditorRightDockTab { preview, syntax, inspector, metadata }`); its tab row is itself
-  clickable (`onTabSelected`), while the toolbar's preview/syntax buttons additionally *open* a
-  closed dock on their tab (inspector/metadata have no toolbar button, the tab row is their only
-  selector). Switching to styled mode auto-closes an open preview tab and remembers it for the
-  next switch back to raw, unless the user explicitly closed the dock themselves.
+  clickable (`onTabSelected`), while the toolbar's preview/syntax buttons — **raw mode only**, the
+  styled mode reaches every tab through the tab row alone — additionally *open* a closed dock on
+  their tab (inspector/metadata have no toolbar button in either mode). The shell's own right-dock
+  toggle closes the dock whichever tab it shows, and reopens it on `lastRightDockTab` (the last
+  tab explicitly selected, never null, `preview` by default), falling back to `syntax` when that
+  tab is `preview` and the styled mode is active. Switching to styled mode auto-closes an open
+  preview tab and remembers it (`autoClosedRightDockTab`, a separate memory) for the next switch
+  back to raw, unless the user explicitly closed the dock themselves.
 - Right dock content: `OcptEditorInspectorPanel` shows the scene under the caret (heading, speaking
   characters, estimated duration, page-eighths) from `FountainSceneStatistics.of` (`fountain_kit`,
   the scene-scoped sibling of `FountainScriptStatistics`, exposing `pageEighths` — never a minutes
@@ -243,7 +254,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   are recomputed on the editor's existing 150 ms parse debounce, never per keystroke.
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
-  `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes; its titles reuse the 11
+  `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes (the *panel* is
+  mode-agnostic; only the toolbar shortcut opening it is raw-mode only); its titles reuse the 11
   existing `editorBlockType*` ARB keys where a topic already had one.
 
 ## Coding standards
