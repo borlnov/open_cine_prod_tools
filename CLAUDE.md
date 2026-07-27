@@ -28,11 +28,19 @@ breakdown, and a casting tracker.
 
 ### Validated UI design (do not deviate without asking Benoit)
 
-- Theme follows the system, **through the ACT themes manager** (`ActThemesManager`).
+- Theme follows the system, **through the ACT themes manager** (`ActThemesManager`). Density,
+  shapes and the UI type scale live once in `lib/constants/ocpt_theme.dart`'s component themes
+  (card, buttons, icon buttons, inputs, menus, divider, scrollbar, tooltip) and its dense
+  `TextTheme`, not in each widget — a new screen inherits the studio look for free and must not
+  redeclare its own radius, padding or font size where a component theme already says it.
 - Visual style: "creative studio" (DaVinci Resolve / Frame.io spirit) — near-black neutral
   surfaces, one vivid blue-violet accent (`0xFF6C5CE7`), calm in light mode.
-- Home: grid of project cards (poster-ready), New / Open actions on top.
-- Editor: centered text zone, collapsible scene-list side panel (left), discreet toolbar.
+- Workspace: a persistent shell (top toolbar, resizable side docks, status bar) around whichever
+  production mode is active, chosen through a bottom mode switcher (Resolve's page bar is the
+  reference) — see the Architecture section below.
+- Home: grid of project cards (poster-ready, each tinted from a small per-project palette), New /
+  Open actions on top.
+- Screenplay mode: centered text zone, collapsible scene-list side panel (left), discreet toolbar.
   Default mode: styled block editor (super_editor) with the real screenplay layout. Alternate
   mode: raw Fountain text with a side-by-side paper-simulated preview (white page even in dark
   theme). Courier Prime everywhere (source, preview, PDF).
@@ -64,6 +72,7 @@ breakdown, and a casting tracker.
 | 14    | Editor statistics (page count, character count, last autosave time) — milestones M1-M4 in `docs/plans/editor-statistics.md`                                                                              | ✅                                   |
 | 15    | Editor docks & Fountain syntax guide (resizable/persisted left+right docks, right dock tabbed preview/syntax, read-only syntax guide panel) — milestones M1-M4 in `docs/plans/editor-docks-and-syntax-guide.md` | ✅                                   |
 | 16    | Issue #15 fixes: native save dialogs + "Export" PDF button, sticky character blocks, scroll bar off the page, copy/paste keeping block types, `#N#` scene numbers with a styled display option, PDF bold/italic/underline regression coverage, dark-theme raw preview reading as paper, title page editable in place in styled mode — milestones M1-M8 in `docs/plans/editor-and-export-fixes.md` (title-page follow-up fixes in `docs/plans/styled-title-page-fixes.md` and `styled-title-page-fixes-2.md`) | ✅                                   |
+| 17    | Workspace shell refactor: studio design system (density/shapes/type scale as component themes), the shell extracted from the editor (`OcptWorkspaceShell`/toolbar/status bar/docks), four production modes behind a bottom mode switcher (screenplay implemented, budget/schedule/shot list as empty states, last mode persisted), inspector and metadata right-dock tabs, project poster tints — milestones M0-M4 in `docs/plans/workspace-shell-refactor.md` | ✅                                   |
 
 ## Ways of working
 
@@ -99,13 +108,29 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
   resolved via `globalGetIt()`.
-- Routes: `enum OcptRoute with MixinRoute { home, editor, settings, licenses }` +
+- Routes: `enum OcptRoute with MixinRoute { home, workspace, settings, licenses }` +
   `OcptRouterManager extends AbstractRouterManager<OcptRoute>` (go_router underneath).
   **Never use `Navigator` directly** — all navigation, including closing dialogs, goes through
-  `globalGetIt().get<OcptRouterManager>()` (`push`, `pop`, `pop<T>(result)`…). The editor
+  `globalGetIt().get<OcptRouterManager>()` (`push`, `pop`, `pop<T>(result)`…). The workspace
   route is guarded: it redirects to home when no project is open.
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
+- Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
+  only state is `{ OcptWorkspaceMode mode, bool isLoading }` — it owns *which* production mode is
+  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, budget,
+  schedule, shotList }` is persisted through `OcptPropertiesManager.workspaceMode` (modelled on
+  `editorMode`) so opening a project restores the last mode used. `OcptWorkspaceShell` is a
+  stateless slot widget (title, toolbar actions, overflow entries, left panel, right panel,
+  centre, status bar, dock controller) built by whichever mode is active; the screenplay mode is
+  `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
+  before this refactor), the other three are stateless `OcptBudgetMode`/`OcptScheduleMode`/
+  `OcptShotListMode` widgets rendering a shared empty state — no bloc, no data, "coming in a
+  future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
+  `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
+  primitives every mode's shell reuses; `OcptWorkspaceModeSwitcher` is the bottom band that
+  selects the mode (all four entries always selectable, unimplemented ones only discreetly
+  marked). See `docs/adr/` for why this is a slot widget plus a mode-only bloc rather than a
+  mode-aware god-bloc.
 - Config: `OcptConfigManager` (yaml assets in `assets/config/`), properties persisted through
   `OcptPropertiesManager` (recent projects capped at 10, locale, theme, editor mode, page
   margins).
@@ -121,10 +146,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   preference, `OcptPropertiesManager.pageMargins`). `OcptPageSetup.toMetrics()` is the single
   switch-over-format entry point every call site uses to get a `FountainLayoutMetrics`.
 - Theme: `ActThemesManager` with `OcptAppTheme.standard`; theme constants in
-  `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/` — one field,
+  `lib/constants/ocpt_theme.dart`, `OcptSpecificColors` in `lib/models/` — two fields:
   `previewBackdrop` (light keeps `surfaceContainerLow`, dark is white), the raw-mode preview
   panel's own backdrop painted by `OcptEditorPreview` itself so its white sheet reads as paper in
-  dark theme too, regardless of the surrounding themed docks.
+  dark theme too, regardless of the surrounding themed docks; and `projectPosterTints`, the small
+  per-brightness colour family `OcptProjectCard` indexes into by a stable hash of the project
+  path, so a project keeps the same poster tint across launches and machines.
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
@@ -193,16 +220,27 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   (typing, Backspace, Delete, replace) inside a field — do not reach for
   `NodeMetadata.isDeletable`, which blocks both. `computeOcptStyledPagination` always reserves the
   whole of page 1 for the title page when one is present, matching the PDF exporter.
-- Editor docks: `OcptEditorDock`/`OcptDockDivider` (`lib/ui/pages/editor/widgets/ocpt_editor_dock.dart`)
-  give the scene panel and the right dock draggable-divider resizing with a 320 px centre floor
-  (right dock yields width first); widths are fractions of the editing row, persisted through
+- Editor docks: `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`
+  (`lib/ui/pages/workspace/widgets/ocpt_workspace_dock.dart`) give the scene panel and the right
+  dock draggable-divider resizing with a 320 px centre floor (right dock yields width first);
+  widths are fractions of the editing row, persisted through
   `OcptPropertiesManager.editorLeftDockFraction`/`editorRightDockFraction`.
-  `OcptEditorDockLayoutController extends ChangeNotifier` holds the live fractions during a drag so
-  it never emits a bloc state per frame; the bloc only sees one `OcptEditorDockFractionsChangedEvent`
-  on `onHorizontalDragEnd`. The right dock (`OcptEditorRightDock`) is tabbed (preview/syntax,
-  `OcptEditorRightDockTab`); the toolbar's buttons are the tab selectors, and switching to styled
-  mode auto-closes an open preview tab and remembers it for the next switch back to raw, unless the
-  user explicitly closed the dock themselves.
+  `OcptWorkspaceDockLayoutController extends ChangeNotifier` holds the live fractions during a
+  drag so it never emits a bloc state per frame; the bloc only sees one
+  `OcptEditorDockFractionsChangedEvent` on `onHorizontalDragEnd`. The right dock
+  (`OcptEditorRightDock`, still under `lib/ui/pages/editor/widgets/`) is tabbed
+  (`OcptEditorRightDockTab { preview, syntax, inspector, metadata }`); its tab row is itself
+  clickable (`onTabSelected`), while the toolbar's preview/syntax buttons additionally *open* a
+  closed dock on their tab (inspector/metadata have no toolbar button, the tab row is their only
+  selector). Switching to styled mode auto-closes an open preview tab and remembers it for the
+  next switch back to raw, unless the user explicitly closed the dock themselves.
+- Right dock content: `OcptEditorInspectorPanel` shows the scene under the caret (heading, speaking
+  characters, estimated duration, page-eighths) from `FountainSceneStatistics.of` (`fountain_kit`,
+  the scene-scoped sibling of `FountainScriptStatistics`, exposing `pageEighths` — never a minutes
+  field, duration is derived at the call site on the one-page-per-minute convention).
+  `OcptEditorMetadataPanel` shows the title-page fields and the script-wide statistics, read-only,
+  with an "Edit…" button opening the existing title-page dialog through `OcptRouterManager`. Both
+  are recomputed on the editor's existing 150 ms parse debounce, never per keystroke.
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
   `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes; its titles reuse the 11
