@@ -46,6 +46,27 @@ final _darkColorScheme = ColorScheme.fromSeed(
   outlineVariant: const Color(0xFF29282E),
 );
 
+/// The project poster tint family for dark theme: violet, blue, pink, green and amber, vivid
+/// enough to read as distinct posters against the dark scheme's near-black card background.
+/// `OcptProjectCard` indexes into this list by a stable hash of the project path.
+const _darkProjectPosterTints = <Color>[
+  Color(0xFF8B7FF0),
+  Color(0xFF5B8DEF),
+  Color(0xFFE0629B),
+  Color(0xFF4CAF7D),
+  Color(0xFFE0A73E),
+];
+
+/// The light-theme counterpart of [_darkProjectPosterTints]: the same five hues, lightened and
+/// desaturated so they stay calm against the light scheme's near-white card background.
+const _lightProjectPosterTints = <Color>[
+  Color(0xFFC9C0F5),
+  Color(0xFFBFD4F5),
+  Color(0xFFF2C7DB),
+  Color(0xFFC3E3D1),
+  Color(0xFFF2DDB0),
+];
+
 /// The small corner radius: dropdowns/text fields, the scrollbar thumb and icon buttons.
 ///
 /// Single source of truth for the shell widgets built in later milestones, which read this
@@ -290,10 +311,12 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
 
 /// This defines the light and dark themes of the app.
 ///
-/// [OcptSpecificColors.previewBackdrop] is the one application-specific color that falls outside
-/// the standard Material 3 [ColorScheme]: the light value matches [_lightColorScheme]'s own
-/// `surfaceContainerLow` (so light mode stays byte-identical to the shared dock background), while
-/// the dark value is forced to white so the raw-mode preview still reads as paper in dark theme.
+/// [OcptSpecificColors] carries the two application-specific colors that fall outside the
+/// standard Material 3 [ColorScheme]: `previewBackdrop` (the light value matches
+/// [_lightColorScheme]'s own `surfaceContainerLow`, so light mode stays byte-identical to the
+/// shared dock background, while the dark value is forced to white so the raw-mode preview still
+/// reads as paper in dark theme) and `projectPosterTints` ([_lightProjectPosterTints] /
+/// [_darkProjectPosterTints]).
 ///
 /// [_buildTextTheme] and [_buildThemeData] carry the studio design system's density, shapes and
 /// type scale; both read every color from the [ThemeData] they are handed, so the same pair of
@@ -305,11 +328,17 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
 final ocptTheme = ActThemeModel<OcptSpecificColors>(
   lightColors: ActThemeColors<OcptSpecificColors>(
     colorScheme: _lightColorScheme,
-    colorExtensions: OcptSpecificColors(previewBackdrop: _lightColorScheme.surfaceContainerLow),
+    colorExtensions: OcptSpecificColors(
+      previewBackdrop: _lightColorScheme.surfaceContainerLow,
+      projectPosterTints: _lightProjectPosterTints,
+    ),
   ),
   darkColors: ActThemeColors<OcptSpecificColors>(
     colorScheme: _darkColorScheme,
-    colorExtensions: const OcptSpecificColors(previewBackdrop: Colors.white),
+    colorExtensions: const OcptSpecificColors(
+      previewBackdrop: Colors.white,
+      projectPosterTints: _darkProjectPosterTints,
+    ),
   ),
   fontFamily: 'Roboto',
   overrideDefaultTextTheme: _buildTextTheme,

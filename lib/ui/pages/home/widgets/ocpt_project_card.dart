@@ -4,13 +4,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
 
 /// A single project tile in the home page's project grid.
 ///
 /// Shows a poster-like tinted area with the project's initial letter (a placeholder ahead of real
-/// thumbnails), the project name, its file path, and how long ago it was last opened. When
+/// thumbnails), the project name, its file path, and how long ago it was last opened. The tint
+/// comes from [OcptSpecificColors.projectPosterTints], indexed by [_stablePathHash] of the
+/// project's path so a project keeps the same colour across launches and machines. When
 /// [OcptHomeRecentProjectEntry.exists] is false, the whole card is greyed out, tapping it is
 /// disabled, and a tooltip explains why; it can still be removed from the list through the
 /// overflow menu.
@@ -33,6 +36,12 @@ class OcptProjectCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final exists = entry.exists;
 
+    final posterTints = Theme.of(context).extension<OcptSpecificColors>()!.projectPosterTints;
+    final posterTint = posterTints[_stablePathHash(entry.project.path) % posterTints.length];
+    final onPosterTint = ThemeData.estimateBrightnessForColor(posterTint) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+
     final card = Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -46,12 +55,12 @@ class OcptProjectCard extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: ColoredBox(
-                      color: colorScheme.primaryContainer,
+                      color: posterTint,
                       child: Center(
                         child: Text(
                           entry.project.name.isEmpty ? "?" : entry.project.name[0].toUpperCase(),
                           style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
+                            color: onPosterTint,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -119,4 +128,15 @@ class OcptProjectCard extends StatelessWidget {
       child: Opacity(opacity: 0.5, child: card),
     );
   }
+}
+
+/// Hashes [path] into a non-negative integer that is stable across app runs, Dart versions and
+/// machines, unlike [Object.hashCode] (used here to pick a poster tint that must stay the same
+/// for a given project everywhere).
+int _stablePathHash(String path) {
+  var hash = 5381;
+  for (final unit in path.codeUnits) {
+    hash = ((hash << 5) + hash + unit) & 0x7fffffff;
+  }
+  return hash;
 }
