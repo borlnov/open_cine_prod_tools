@@ -1,0 +1,615 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+
+/// The digest [OcptShotCoverageService] is expected to compute for [text].
+String _digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
+
+void main() {
+  const coverageService = OcptShotCoverageService();
+  const shotListService = OcptShotListService();
+  const sceneIndexService = OcptSceneIndexService();
+  const screenplayService = OcptScreenplayService(
+    sceneIndexService: sceneIndexService,
+    shotListService: shotListService,
+    shotCoverageService: coverageService,
+  );
+  const screenplayId = "screenplay-1";
+
+  late OcptProjectDatabase database;
+
+  setUp(() async {
+    database = OcptProjectDatabase.memory();
+    await database
+        .into(database.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: "Draft",
+            updatedAt: DateTime.now(),
+          ),
+        );
+  });
+
+  tearDown(() async {
+    await database.close();
+  });
+
+  Future<OcptShotRow> readShot(String shotId) => (database.select(
+    database.ocptShotsTable,
+  )..where((row) => row.id.equals(shotId))).getSingle();
+
+  Future<OcptShotCoverageRow> readSingleRange() =>
+      database.select(database.ocptShotCoveragesTable).getSingle();
+
+  Future<List<OcptSceneRow>> readScenes() => (database.select(
+    database.ocptScenesTable,
+  )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
+
+  group("addRange", () {
+    test("computes and stores the digest of the covered text", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+
+      final rangeId = await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: 22,
+        endOffset: 25,
+        coveredText: "one",
+        blockBoundaries: const [0, 40],
+      );
+
+      final range = await readSingleRange();
+      expect(range.id, rangeId);
+      expect(range.coveredTextDigest, _digestOf("one"));
+    });
+
+    test("rejects a range that spans more than one block", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+
+      expect(
+        () => coverageService.addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: 3,
+          endOffset: 8,
+          coveredText: "irrelevant",
+          // Two blocks: [0, 5) and [5, 10).
+          blockBoundaries: const [0, 5, 10],
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  test(
+    "a coverage range survives a scene that moves because a scene above it grew: "
+    "no digest change, no needsCheck",
+    () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final streetScene = (await readScenes()).firstWhere(
+        (row) => row.heading == "EXT. STREET - NIGHT",
+      );
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: streetScene.id,
+      );
+
+      final sceneTextBefore = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(streetScene.charStart, streetScene.charEnd);
+      final wordOffset = sceneTextBefore.indexOf("two");
+
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: streetScene.id,
+        startOffset: wordOffset,
+        endOffset: wordOffset + "two".length,
+        coveredText: "two",
+        blockBoundaries: [0, sceneTextBefore.length],
+      );
+      final rangeBefore = await readSingleRange();
+
+      // Scene 1 grows; scene 2's own text is untouched.
+      const newText = '''
+INT. HOUSE - DAY
+
+Action one, with a lot more happening in this scene now.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''';
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: newText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await coverageService.refreshStaleness(
+        database: database,
+        screenplayId: screenplayId,
+        currentFountainText: newText,
+      );
+
+      final rangeAfter = await readSingleRange();
+      expect(rangeAfter.startOffset, rangeBefore.startOffset);
+      expect(rangeAfter.endOffset, rangeBefore.endOffset);
+      expect(rangeAfter.coveredTextDigest, rangeBefore.coveredTextDigest);
+
+      final shot = await readShot(shotId);
+      expect(shot.needsCheck, isFalse);
+      expect(shot.checkReason, isNull);
+    },
+  );
+
+  test("an edit inside the covered range flags the owning shot", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final streetScene = (await readScenes()).firstWhere(
+      (row) => row.heading == "EXT. STREET - NIGHT",
+    );
+    final shotId = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: streetScene.id,
+    );
+
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+        .substring(streetScene.charStart, streetScene.charEnd);
+    final wordOffset = sceneText.indexOf("two");
+
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: streetScene.id,
+      startOffset: wordOffset,
+      endOffset: wordOffset + "two".length,
+      coveredText: "two",
+      blockBoundaries: [0, sceneText.length],
+    );
+
+    // "two" becomes "TWO": the covered word itself changed.
+    const newText = '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action TWO three.
+''';
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: newText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    await coverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: newText,
+    );
+
+    final shot = await readShot(shotId);
+    expect(shot.needsCheck, isTrue);
+    expect(shot.checkReason, OcptShotCheckReason.coveredTextChanged);
+  });
+
+  test("saving is enough to flag a stale shot: the save pass runs the check itself", () async {
+    // The other staleness tests call refreshStaleness explicitly, which would still pass if the
+    // save pass had never been wired to it. This one never calls it: saving is the only trigger,
+    // exactly as it is in the running app.
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action one two.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final scene = (await readScenes()).single;
+    final shotId = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: scene.id,
+    );
+
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+        .substring(scene.charStart, scene.charEnd);
+    final wordOffset = sceneText.indexOf("one");
+
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: scene.id,
+      startOffset: wordOffset,
+      endOffset: wordOffset + "one".length,
+      coveredText: "one",
+      blockBoundaries: [0, sceneText.length],
+    );
+
+    expect((await readShot(shotId)).needsCheck, isFalse);
+
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action ONE two.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final shot = await readShot(shotId);
+    expect(shot.needsCheck, isTrue);
+    expect(shot.checkReason, OcptShotCheckReason.coveredTextChanged);
+  });
+
+  test("an edit after the covered range, still inside the same scene, stays quiet", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final streetScene = (await readScenes()).firstWhere(
+      (row) => row.heading == "EXT. STREET - NIGHT",
+    );
+    final shotId = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: streetScene.id,
+    );
+
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+        .substring(streetScene.charStart, streetScene.charEnd);
+    // Cover the *first* word of the action line, so an edit further along the same line/scene
+    // doesn't shift this range's offsets at all.
+    final wordOffset = sceneText.indexOf("Action", sceneText.indexOf("STREET"));
+
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: streetScene.id,
+      startOffset: wordOffset,
+      endOffset: wordOffset + "Action".length,
+      coveredText: "Action",
+      blockBoundaries: [0, sceneText.length],
+    );
+
+    // Only "three" (after the covered word) changes.
+    const newText = '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action two four.
+''';
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: newText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    await coverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: newText,
+    );
+
+    final shot = await readShot(shotId);
+    expect(shot.needsCheck, isFalse);
+    expect(shot.checkReason, isNull);
+  });
+
+  test("a range that no longer fits its scene is clamped and flagged as out of bounds", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action two three four.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final streetScene = (await readScenes()).firstWhere(
+      (row) => row.heading == "EXT. STREET - NIGHT",
+    );
+    final shotId = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: streetScene.id,
+    );
+
+    final sceneTextBefore = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
+        .substring(streetScene.charStart, streetScene.charEnd);
+    final wordOffset = sceneTextBefore.indexOf("four");
+    final rangeEnd = wordOffset + "four".length;
+
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: streetScene.id,
+      startOffset: wordOffset,
+      endOffset: rangeEnd,
+      coveredText: "four",
+      blockBoundaries: [0, sceneTextBefore.length],
+    );
+
+    // The scene shrinks: "four" (and its trailing content) is gone, so the stored range no longer
+    // fits inside the scene's new, shorter bounds.
+    const newText = '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action two.
+''';
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: newText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    await coverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: newText,
+    );
+
+    final newStreetScene = (await readScenes()).firstWhere(
+      (row) => row.heading == "EXT. STREET - NIGHT",
+    );
+    final rangeAfter = await readSingleRange();
+    expect(rangeAfter.endOffset, newStreetScene.charEnd - newStreetScene.charStart);
+    expect(rangeAfter.endOffset, lessThan(rangeEnd));
+
+    final shot = await readShot(shotId);
+    expect(shot.needsCheck, isTrue);
+    expect(shot.checkReason, OcptShotCheckReason.coverageOutOfBounds);
+  });
+
+  test("markAsChecked re-stamps digests so a second refreshStaleness stays quiet", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final streetScene = (await readScenes()).firstWhere(
+      (row) => row.heading == "EXT. STREET - NIGHT",
+    );
+    final shotId = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: streetScene.id,
+    );
+
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+        .substring(streetScene.charStart, streetScene.charEnd);
+    final wordOffset = sceneText.indexOf("two");
+
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: streetScene.id,
+      startOffset: wordOffset,
+      endOffset: wordOffset + "two".length,
+      coveredText: "two",
+      blockBoundaries: [0, sceneText.length],
+    );
+
+    const editedText = '''
+INT. HOUSE - DAY
+
+Action.
+
+EXT. STREET - NIGHT
+
+Action TWO three.
+''';
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: editedText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    await coverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: editedText,
+    );
+    expect((await readShot(shotId)).needsCheck, isTrue);
+
+    await coverageService.markAsChecked(
+      database: database,
+      shotId: shotId,
+      currentFountainText: editedText,
+    );
+
+    final checkedShot = await readShot(shotId);
+    expect(checkedShot.needsCheck, isFalse);
+    expect(checkedShot.checkReason, isNull);
+
+    final restampedRange = await readSingleRange();
+    expect(restampedRange.coveredTextDigest, _digestOf("TWO"));
+
+    // A second refreshStaleness against the same text must stay quiet.
+    await coverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: editedText,
+    );
+    final shotAfterSecondRefresh = await readShot(shotId);
+    expect(shotAfterSecondRefresh.needsCheck, isFalse);
+  });
+
+  test("shotIdsCoveringRange returns the other shots overlapping a scene range", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final scene = (await readScenes()).single;
+    final shotA = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: scene.id,
+    );
+    final shotB = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: scene.id,
+    );
+
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+        .substring(scene.charStart, scene.charEnd);
+    final oneOffset = sceneText.indexOf("one");
+    final twoOffset = sceneText.indexOf("two");
+
+    // Shot A covers "one two", shot B covers just "two": they overlap on "two".
+    await coverageService.addRange(
+      database: database,
+      shotId: shotA,
+      sceneId: scene.id,
+      startOffset: oneOffset,
+      endOffset: twoOffset + "two".length,
+      coveredText: "one two",
+      blockBoundaries: [0, sceneText.length],
+    );
+    await coverageService.addRange(
+      database: database,
+      shotId: shotB,
+      sceneId: scene.id,
+      startOffset: twoOffset,
+      endOffset: twoOffset + "two".length,
+      coveredText: "two",
+      blockBoundaries: [0, sceneText.length],
+    );
+
+    final overlappingWithB = await coverageService.shotIdsCoveringRange(
+      database: database,
+      sceneId: scene.id,
+      startOffset: twoOffset,
+      endOffset: twoOffset + "two".length,
+      excludingShotId: shotB,
+    );
+
+    expect(overlappingWithB, [shotA]);
+  });
+}

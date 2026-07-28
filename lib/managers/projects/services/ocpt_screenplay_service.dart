@@ -5,6 +5,8 @@
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:uuid/uuid.dart';
@@ -34,9 +36,20 @@ class OcptScreenplayService {
   /// The service used to reconcile the scene index after every save.
   final OcptSceneIndexService _sceneIndexService;
 
+  /// The service used to detach a screenplay's shots from any scene the save is about to remove.
+  final OcptShotListService _shotListService;
+
+  /// The service used to re-check the shots' scenario coverage against the text just saved.
+  final OcptShotCoverageService _shotCoverageService;
+
   /// Class constructor
-  const OcptScreenplayService({required OcptSceneIndexService sceneIndexService})
-    : _sceneIndexService = sceneIndexService;
+  const OcptScreenplayService({
+    required OcptSceneIndexService sceneIndexService,
+    required OcptShotListService shotListService,
+    required OcptShotCoverageService shotCoverageService,
+  }) : _sceneIndexService = sceneIndexService,
+       _shotListService = shotListService,
+       _shotCoverageService = shotCoverageService;
 
   /// Loads the current Fountain text of the screenplay [screenplayId] in [database].
   Future<String> loadScreenplayText({
@@ -73,8 +86,16 @@ class OcptScreenplayService {
   /// Saves [fountainText] as the new text of the screenplay [screenplayId] in [database].
   ///
   /// This snapshots the text as it was before the overwrite (tagged [snapshotReason]), updates
-  /// the screenplay's text and `updatedAt`, reconciles its scene index from the new text, and
-  /// prunes old snapshots, all within a single transaction.
+  /// the screenplay's text and `updatedAt`, reconciles its scene index from the new text — passing
+  /// `OcptShotListService.detachShotsFromDeletedScenes` as `onScenesDeleted`, so a scene removed by
+  /// this save orphans its shots rather than silently dropping them — re-checks the shots' scenario
+  /// coverage against the text just saved, and prunes old snapshots, all within a single
+  /// transaction.
+  ///
+  /// The coverage re-check deliberately happens here, on save, and never on the editor's parse
+  /// debounce: staleness is what raises a shot's `needsCheck` flag, and a director does not want a
+  /// shot flagged mid-keystroke. It runs after the reconciliation so it reads the scenes'
+  /// `charStart`/`charEnd` as the new text has just redefined them.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   Future<void> saveScreenplayText({
@@ -110,6 +131,16 @@ class OcptScreenplayService {
         database: database,
         screenplayId: screenplayId,
         document: document,
+        onScenesDeleted: (scenesAboutToBeDeleted) => _shotListService.detachShotsFromDeletedScenes(
+          database: database,
+          scenesAboutToBeDeleted: scenesAboutToBeDeleted,
+        ),
+      );
+
+      await _shotCoverageService.refreshStaleness(
+        database: database,
+        screenplayId: screenplayId,
+        currentFountainText: fountainText,
       );
 
       await _pruneSnapshots(database: database, screenplayId: screenplayId);

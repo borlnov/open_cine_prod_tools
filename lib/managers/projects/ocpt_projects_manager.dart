@@ -14,6 +14,8 @@ import 'package:drift/drift.dart' show Value;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
@@ -39,11 +41,11 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 ///
 /// Every Open Cine Prod Tools project is a single `.ocpt` SQLite file (an [OcptProjectDatabase]);
 /// only one such file can be open at a time, exposed through [currentProject] and
-/// [currentProjectStream]. Everything specific to reading/writing a screenplay's text or its
-/// scene index is delegated to [screenplayService] and [sceneIndexService], the two services this
-/// manager owns and wires together (RFL18): this manager itself is only responsible for the
-/// lifecycle of the project file (create/open/close) and for keeping the properties manager's
-/// recent-projects list in sync.
+/// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
+/// index or its shot list is delegated to [screenplayService], [sceneIndexService],
+/// [shotListService] and [shotCoverageService], the four services this manager owns and wires
+/// together (RFL18): this manager itself is only responsible for the lifecycle of the project file
+/// (create/open/close) and for keeping the properties manager's recent-projects list in sync.
 class OcptProjectsManager extends AbsWithLifeCycle {
   /// The name of the folder created inside the platform's documents directory to hold projects
   /// created/saved without the user picking a different location.
@@ -68,6 +70,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The service used to reconcile a screenplay's scene index.
   final OcptSceneIndexService sceneIndexService;
 
+  /// The service used for CRUD over a screenplay's shot list.
+  final OcptShotListService shotListService;
+
+  /// The service used to add/remove/check a shot's scenario coverage ranges.
+  final OcptShotCoverageService shotCoverageService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -82,8 +90,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   OcptProjectsManager({OcptPropertiesManager? propertiesManager})
     : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
       sceneIndexService = const OcptSceneIndexService(),
+      shotListService = const OcptShotListService(),
+      shotCoverageService = const OcptShotCoverageService(),
       screenplayService = const OcptScreenplayService(
         sceneIndexService: OcptSceneIndexService(),
+        shotListService: OcptShotListService(),
+        shotCoverageService: OcptShotCoverageService(),
       );
 
   /// The project currently open, or null if none is.
