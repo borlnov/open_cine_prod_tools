@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
-import 'package:fountain_kit/src/models/fountain_block.dart';
+import 'package:fountain_kit/src/layout/fountain_speaking_characters.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 
 /// The at-a-glance counters a writer wants while editing a screenplay: how
@@ -50,12 +50,9 @@ class FountainScriptStatistics extends Equatable {
   /// `document.scenes.length`.
   final int sceneCount;
 
-  /// The number of distinct speaking roles: every [FountainCharacter.name]
-  /// introducing a [FountainDialogueGroup], normalized (trimmed, internal
-  /// whitespace collapsed, upper-cased) and deduplicated, so the same role
-  /// cued with and without a parenthetical extension (`(V.O.)`, `(CONT'D)`,
-  /// …) — already excluded from [FountainCharacter.name] itself — counts
-  /// once. A dual-dialogue pair contributes both of its cues.
+  /// The number of distinct speaking roles: `speakingCharactersOf(
+  /// document.blocks).length`, see [speakingCharactersOf] for how a role is
+  /// normalized and deduplicated.
   final int speakingCharacterCount;
 
   /// The number of words across the document's printable content: each
@@ -87,22 +84,10 @@ class FountainScriptStatistics extends Equatable {
           .pages
           .length,
       sceneCount: document.scenes.length,
-      speakingCharacterCount: _speakingCharacterCount(document),
+      speakingCharacterCount: speakingCharactersOf(document.blocks).length,
       wordCount: words,
       signCount: signs,
     );
-  }
-
-  /// The number of distinct normalized character names introducing a
-  /// [FountainDialogueGroup] anywhere in [document].
-  static int _speakingCharacterCount(FountainDocument document) {
-    final names = <String>{};
-    for (final block in document.blocks) {
-      if (block case FountainDialogueGroup(:final character)) {
-        names.add(normalizeCharacterName(character.name));
-      }
-    }
-    return names.length;
   }
 
   @override
