@@ -13,8 +13,11 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
@@ -56,6 +59,8 @@ class _FailingShotListService extends OcptShotListService {
 
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
+  const dialogueText = "INT. HOUSE - DAY\n\nAction one.\n\nLÉA\nHello there.\n\n"
+      "EXT. GARDEN - NIGHT\n\nAction two.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -114,15 +119,18 @@ void main() {
     );
   }
 
-  /// Builds a bloc wired to the test project.
+  /// Builds a bloc wired to the test project. [fieldEditDebounce] defaults to a short duration so
+  /// tests exercising the field-edit debounce don't have to wait out the real 2 s one.
   OcptShotListBloc buildBloc({
     OcptRouterManager? routerManager,
     OcptShotListService? shotListService,
+    Duration fieldEditDebounce = const Duration(milliseconds: 30),
   }) => OcptShotListBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     shotListService: shotListService,
+    fieldEditDebounce: fieldEditDebounce,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -403,6 +411,185 @@ void main() {
     await routerManager.onPop.timeout(const Duration(seconds: 5));
 
     expect(projectsManager.currentProject, isNull);
+
+    await bloc.close();
+  });
+
+  test('loads the screenplay speaking characters and the field suggestion lists', () async {
+    await writeScreenplay(dialogueText);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.speakingCharacters, ["LÉA"]);
+    expect(state.suggestions.shotSizes, isEmpty);
+    expect(state.suggestions.sounds, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('a typed field edit is visible as a pending value and writes once after the debounce',
+      () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "W",
+      ),
+    );
+    var state = await waitForState(
+      bloc,
+      (state) => state.pendingFieldEdits[(shotId, OcptShotListEditableField.shotSize)] == "W",
+    );
+    // Not written yet: still the field's default empty value.
+    expect(state.selectedShot!.shotSize, isEmpty);
+
+    // A second keystroke before the debounce elapses restarts it rather than firing twice: only
+    // the last value typed is ever written.
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Wide",
+      ),
+    );
+    state = await waitForState(
+      bloc,
+      (state) => state.pendingFieldEdits[(shotId, OcptShotListEditableField.shotSize)] == "Wide",
+    );
+    expect(state.selectedShot!.shotSize, isEmpty);
+
+    state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Wide");
+    expect(state.pendingFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('selecting another shot flushes a pending field edit immediately', () async {
+    await writeScreenplay(twoSceneText);
+
+    // A debounce long enough that the assertions below could only pass through the flush the
+    // selection change performs, never through the debounce elapsing on its own.
+    final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 5));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final firstShotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: firstShotId,
+        field: OcptShotListEditableField.notes,
+        rawValue: "Handheld",
+      ),
+    );
+    await waitForState(
+      bloc,
+      (state) =>
+          state.pendingFieldEdits[(firstShotId, OcptShotListEditableField.notes)] == "Handheld",
+    );
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    state = await waitForState(bloc, (state) => state.totalShotCount == 2);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    expect(state.snapshot!.shotsById[firstShotId]!.notes, "Handheld");
+
+    await bloc.close();
+  });
+
+  test('flushPendingFieldEdits writes a pending edit directly, without touching state', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 5));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.sound,
+        rawValue: "Wind noise",
+      ),
+    );
+    await waitForState(
+      bloc,
+      (state) => state.pendingFieldEdits[(shotId, OcptShotListEditableField.sound)] == "Wind noise",
+    );
+
+    await bloc.flushPendingFieldEdits();
+
+    // This flush never touches the bloc's own state...
+    expect(bloc.state.pendingFieldEdits, isNotEmpty);
+    // ...but the database already has the write.
+    final reloaded = await projectsManager.shotListService.loadShotList(
+      database: projectsManager.currentProject!.database,
+      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+    );
+    expect(reloaded.shotsById[shotId]!.sound, "Wind noise");
+
+    await bloc.close();
+  });
+
+  test('status, a difficulty axis and a character toggle each write immediately', () async {
+    await writeScreenplay(dialogueText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(OcptShotListShotStatusChangedEvent(shotId: shotId, status: OcptShotStatus.shot));
+    state = await waitForState(bloc, (state) => state.selectedShot!.status == OcptShotStatus.shot);
+
+    bloc.add(
+      OcptShotListShotDifficultyChangedEvent(
+        shotId: shotId,
+        axis: OcptShotDifficultyAxis.sound,
+        value: 4,
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.selectedShot!.difficultySound == 4);
+
+    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: "LÉA"));
+    state = await waitForState(bloc, (state) => state.selectedShot!.characters.contains("LÉA"));
+
+    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: "LÉA"));
+    state = await waitForState(bloc, (state) => state.selectedShot!.characters.isEmpty);
+
+    await bloc.close();
+  });
+
+  test('deleting the selected shot removes it and clears the selection', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+    final sequenceId = state.selectedSequenceId;
+
+    bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: shotId));
+    state = await waitForState(bloc, (state) => state.totalShotCount == 0);
+
+    expect(state.selectedShotId, isNull);
+    expect(state.selectedSequenceId, sequenceId);
 
     await bloc.close();
   });

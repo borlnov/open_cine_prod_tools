@@ -3,8 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
 /// The events handled by `OcptShotListBloc`.
 sealed class OcptShotListEvent extends BlocEventForMixin {
@@ -149,9 +152,127 @@ class OcptShotListWriteErrorDismissedEvent extends OcptShotListEvent {
 
 /// Requests leaving the workspace and going back to the projects list.
 ///
-/// The shot list has nothing to flush (every edit is written as it is made), so this only closes
-/// the current project and navigates back through the router manager.
+/// Flushes any pending field edit before closing the current project, so navigating back right
+/// after typing never loses it.
 class OcptShotListBackRequestedEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListBackRequestedEvent();
+}
+
+/// Records the raw text just typed into [field] of shot [shotId], dispatched by the inspector on
+/// every keystroke.
+///
+/// The typed value becomes visible immediately as a pending edit in
+/// `OcptShotListState.pendingFieldEdits`, and (re)starts the field-edit autosave debounce that
+/// eventually writes it, unless something flushes it sooner (selecting another shot or sequence,
+/// leaving the workspace, or the mode itself leaving the widget tree).
+class OcptShotListShotFieldChangedEvent extends OcptShotListEvent {
+  /// The id of the shot whose field was edited.
+  final String shotId;
+
+  /// The field edited.
+  final OcptShotListEditableField field;
+
+  /// The raw text now sitting in the field, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListShotFieldChangedEvent({
+    required this.shotId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, field, rawValue];
+}
+
+/// Fired by the field-edit debounce timer `OcptShotListShotFieldChangedEvent` (re)starts, once it
+/// elapses with no further edit. Not meant to be dispatched by a widget directly.
+class OcptShotListFieldEditFlushRequestedEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFieldEditFlushRequestedEvent();
+}
+
+/// Sets the shooting status of shot [shotId], dispatched by the inspector header's status pill.
+///
+/// Written immediately: picking a status from a menu is a single discrete action, not typing, so
+/// it never goes through the field-edit debounce.
+class OcptShotListShotStatusChangedEvent extends OcptShotListEvent {
+  /// The id of the shot whose status changed.
+  final String shotId;
+
+  /// The status picked.
+  final OcptShotStatus status;
+
+  /// Class constructor
+  const OcptShotListShotStatusChangedEvent({required this.shotId, required this.status});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, status];
+}
+
+/// Sets one difficulty axis of shot [shotId] to [value] (0-5), dispatched by the inspector's
+/// difficulty dots.
+///
+/// Written immediately: clicking a dot is a single discrete action, not typing, so it never goes
+/// through the field-edit debounce.
+class OcptShotListShotDifficultyChangedEvent extends OcptShotListEvent {
+  /// The id of the shot whose difficulty changed.
+  final String shotId;
+
+  /// The axis changed.
+  final OcptShotDifficultyAxis axis;
+
+  /// The new value of [axis], 0-5.
+  final int value;
+
+  /// Class constructor
+  const OcptShotListShotDifficultyChangedEvent({
+    required this.shotId,
+    required this.axis,
+    required this.value,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, axis, value];
+}
+
+/// Attaches [characterName] to shot [shotId] if it isn't already attached, detaches it otherwise,
+/// dispatched by the inspector's character chips.
+///
+/// Written immediately: toggling a chip is a single discrete action, not typing, so it never goes
+/// through the field-edit debounce.
+class OcptShotListShotCharacterToggledEvent extends OcptShotListEvent {
+  /// The id of the shot whose character list changed.
+  final String shotId;
+
+  /// The character toggled, not necessarily normalised yet (the bloc normalises it the same way
+  /// `OcptShotListService.attachCharacter` does before comparing or writing it).
+  final String characterName;
+
+  /// Class constructor
+  const OcptShotListShotCharacterToggledEvent({required this.shotId, required this.characterName});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, characterName];
+}
+
+/// Requests deleting shot [shotId], dispatched once the inspector's own confirmation dialog has
+/// already confirmed it. Renumbers the remaining shots of its group and clears the selection if
+/// [shotId] was the selected shot (the sequence stays selected).
+class OcptShotListShotDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the shot to delete.
+  final String shotId;
+
+  /// Class constructor
+  const OcptShotListShotDeletionRequestedEvent({required this.shotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId];
 }

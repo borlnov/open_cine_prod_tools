@@ -4,17 +4,21 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
 /// The state of `OcptShotListBloc`.
 ///
-/// Unlike the screenplay editor's own state, this one carries no dirty/saving pair: the shot list
-/// is authored field by field rather than as one document, and every write goes straight to the
-/// project database, so there is never an unsaved shot list to flush.
+/// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: most
+/// of a shot's fields (status, a difficulty axis, a character chip) write straight to the project
+/// database the moment they change. [pendingFieldEdits] is the exception — the inspector's typed
+/// free-text fields go through a 2 s autosave debounce of their own, so a field can be "dirty" in
+/// that narrow sense while nothing else in this state is.
 class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// Whether the shot list is still being loaded from the project database.
   final bool isLoading;
@@ -71,6 +75,25 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// dismissed.
   final bool hasWriteError;
 
+  /// The screenplay's speaking characters, normalised through `fountain_kit`'s
+  /// `normalizeCharacterName` and in first-appearance order, as parsed once on entry. The
+  /// inspector's character chips combine these with the selected shot's own `OcptShot.characters`
+  /// (which can include a name no longer among these, see `OcptShotCharacterChips`).
+  final List<String> speakingCharacters;
+
+  /// The project-wide suggestion lists the inspector's free-text fields with suggestions read
+  /// from, reloaded after every field-edit flush.
+  final OcptShotFieldSuggestions suggestions;
+
+  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the shot id
+  /// and the field, holding the raw text last typed for it.
+  ///
+  /// What a field shows takes this map's entry over the shot's own stored value whenever one is
+  /// present, so typing is never overwritten by a reload triggered by an unrelated write (another
+  /// field's own flush, a status change on a different shot). An entry is removed the moment its
+  /// write lands, whether through the debounce elapsing or an explicit flush.
+  final Map<(String, OcptShotListEditableField), String> pendingFieldEdits;
+
   /// Every sequence of [snapshot], in display order (empty while nothing is loaded).
   List<OcptShotSequence> get sequences => snapshot?.sequences ?? const [];
 
@@ -115,6 +138,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     required this.rightDockFraction,
     required this.visibleColumns,
     required this.hasWriteError,
+    required this.speakingCharacters,
+    required this.suggestions,
+    required this.pendingFieldEdits,
   });
 
   /// Init class constructor
@@ -130,7 +156,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       visibleColumns = OcptShotListColumn.defaultVisibleColumns,
-      hasWriteError = false;
+      hasWriteError = false,
+      speakingCharacters = const [],
+      suggestions = const OcptShotFieldSuggestions.empty(),
+      pendingFieldEdits = const {};
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -155,6 +184,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     double? rightDockFraction,
     Set<OcptShotListColumn>? visibleColumns,
     bool? hasWriteError,
+    List<String>? speakingCharacters,
+    OcptShotFieldSuggestions? suggestions,
+    Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -170,6 +202,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     visibleColumns: visibleColumns ?? this.visibleColumns,
     hasWriteError: hasWriteError ?? this.hasWriteError,
+    speakingCharacters: speakingCharacters ?? this.speakingCharacters,
+    suggestions: suggestions ?? this.suggestions,
+    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
   );
 
   /// Object properties
@@ -188,5 +223,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     rightDockFraction,
     visibleColumns,
     hasWriteError,
+    speakingCharacters,
+    suggestions,
+    pendingFieldEdits,
   ];
 }
