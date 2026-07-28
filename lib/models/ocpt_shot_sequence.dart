@@ -22,6 +22,14 @@ sealed class OcptShotSequence extends Equatable {
   /// Class constructor
   const OcptShotSequence({required this.shots});
 
+  /// The identifier a view selects this sequence by: the scene's own id for an
+  /// [OcptSceneShotSequence], [OcptOrphanShotSequence.sequenceId] for the orphan group.
+  ///
+  /// The shot list mode holds a selection across reloads of the whole snapshot, so it cannot key
+  /// it on a position in `OcptShotListSnapshot.sequences` (adding a scene above shifts every one
+  /// below it); this is the stable key it uses instead.
+  String get id;
+
   /// The number of shots in this sequence.
   int get shotCount => shots.length;
 
@@ -63,6 +71,11 @@ class OcptSceneShotSequence extends OcptShotSequence {
     required super.shots,
   });
 
+  /// The scene's own id: a scene is never listed twice in a snapshot, so it already identifies
+  /// the sequence built from it.
+  @override
+  String get id => sceneId;
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() => "OcptSceneShotSequence(sceneId: $sceneId, heading: $heading)";
@@ -82,8 +95,19 @@ class OcptSceneShotSequence extends OcptShotSequence {
 /// this sequence's shots, ordered by [OcptShot.position], already read grouped by
 /// [OcptShot.orphanedHeading] without this class needing to do any grouping of its own.
 class OcptOrphanShotSequence extends OcptShotSequence {
+  /// The [OcptShotSequence.id] of the orphan group.
+  ///
+  /// Deliberately not a UUID, so it can never collide with the scene id an
+  /// [OcptSceneShotSequence] identifies itself by, and reads as what it is in a debugger.
+  static const sequenceId = "orphans";
+
   /// Class constructor
   const OcptOrphanShotSequence({required super.shots});
+
+  /// The constant [sequenceId]: there is exactly one orphan group per snapshot, so it needs no
+  /// identifier of its own beyond a sentinel telling it apart from every scene.
+  @override
+  String get id => sequenceId;
 
   /// Object string representation, useful for debugging and logging.
   @override
