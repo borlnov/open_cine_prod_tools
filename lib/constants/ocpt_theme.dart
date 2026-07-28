@@ -67,6 +67,28 @@ const _lightProjectPosterTints = <Color>[
   Color(0xFFF2DDB0),
 ];
 
+/// The shot list's "already shot" green for dark theme: the same hue as the green poster tint of
+/// [_darkProjectPosterTints], so the two colour families read as one palette.
+const _darkShotStatusShot = Color(0xFF4CAF7D);
+
+/// The shot list's "retake"/needs-attention amber for dark theme, matching the mock-up's own
+/// warning colour.
+const _darkShotStatusRetake = Color(0xFFFFB27F);
+
+/// The light-theme counterpart of [_darkShotStatusShot]: the same hue, darkened so it still
+/// carries against a near-white surface.
+const _lightShotStatusShot = Color(0xFF2E7D52);
+
+/// The light-theme counterpart of [_darkShotStatusRetake]: the same hue, darkened so it still
+/// carries against a near-white surface.
+const _lightShotStatusRetake = Color(0xFFB4601C);
+
+/// The fixed-pitch font family bundled with the app (see `pubspec.yaml`), used everywhere the
+/// screenplay itself is typeset — the raw source, the preview, the styled editor, the PDF — and
+/// for the shot codes the shot list derives from it, so a code reads as belonging to the
+/// screenplay rather than to the surrounding UI.
+const String ocptMonospaceFontFamily = "CourierPrime";
+
 /// The small corner radius: dropdowns/text fields, the scrollbar thumb and icon buttons.
 ///
 /// Single source of truth for the shell widgets built in later milestones, which read this
@@ -321,12 +343,13 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
 
 /// This defines the light and dark themes of the app.
 ///
-/// [OcptSpecificColors] carries the two application-specific colors that fall outside the
-/// standard Material 3 [ColorScheme]: `previewBackdrop` (the light value matches
-/// [_lightColorScheme]'s own `surfaceContainerLow`, so light mode stays byte-identical to the
-/// shared dock background, while the dark value is forced to white so the raw-mode preview still
-/// reads as paper in dark theme) and `projectPosterTints` ([_lightProjectPosterTints] /
-/// [_darkProjectPosterTints]).
+/// [OcptSpecificColors] carries the application-specific colors that fall outside the standard
+/// Material 3 [ColorScheme]: `previewBackdrop` (the light value matches [_lightColorScheme]'s own
+/// `surfaceContainerLow`, so light mode stays byte-identical to the shared dock background, while
+/// the dark value is forced to white so the raw-mode preview still reads as paper in dark theme),
+/// `projectPosterTints` ([_lightProjectPosterTints] / [_darkProjectPosterTints]) and the shot
+/// list's two status colors ([_lightShotStatusShot] / [_darkShotStatusShot] and
+/// [_lightShotStatusRetake] / [_darkShotStatusRetake]).
 ///
 /// [_buildTextTheme] and [_buildThemeData] carry the studio design system's density, shapes and
 /// type scale; both read every color from the [ThemeData] they are handed, so the same pair of
@@ -341,6 +364,8 @@ final ocptTheme = ActThemeModel<OcptSpecificColors>(
     colorExtensions: OcptSpecificColors(
       previewBackdrop: _lightColorScheme.surfaceContainerLow,
       projectPosterTints: _lightProjectPosterTints,
+      shotStatusShot: _lightShotStatusShot,
+      shotStatusRetake: _lightShotStatusRetake,
     ),
   ),
   darkColors: ActThemeColors<OcptSpecificColors>(
@@ -348,6 +373,8 @@ final ocptTheme = ActThemeModel<OcptSpecificColors>(
     colorExtensions: const OcptSpecificColors(
       previewBackdrop: Colors.white,
       projectPosterTints: _darkProjectPosterTints,
+      shotStatusShot: _darkShotStatusShot,
+      shotStatusRetake: _darkShotStatusRetake,
     ),
   ),
   fontFamily: 'Roboto',

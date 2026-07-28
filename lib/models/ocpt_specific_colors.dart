@@ -15,6 +15,12 @@ import 'package:flutter/material.dart';
 /// [projectPosterTints]: the home page's project cards pick a poster tint from this list by a
 /// stable hash of the project path, so a project keeps the same colour across launches and
 /// machines; a `ColorScheme` role would give every card the same colour instead.
+///
+/// [shotStatusShot] and [shotStatusRetake]: the shot list's two "not neutral" statuses. Material
+/// 3 has no green and no amber role — `primary` is the app's one accent and `error` is reserved
+/// for real errors — yet a shot list is read at a glance on set precisely by those two colours.
+/// The third status (`OcptShotStatus.toShoot`) needs nothing here: it is the neutral one and
+/// reads through `onSurfaceVariant`.
 class OcptSpecificColors extends AbsAppSpecificColors<OcptSpecificColors> {
   /// The raw-mode preview panel's own backdrop, painted by `OcptEditorPreview` itself.
   final Color previewBackdrop;
@@ -22,17 +28,36 @@ class OcptSpecificColors extends AbsAppSpecificColors<OcptSpecificColors> {
   /// The project poster tint family, indexed by a stable hash of `OcptRecentProjectModel.path`.
   final List<Color> projectPosterTints;
 
+  /// The green marking a shot already filmed and accepted.
+  final Color shotStatusShot;
+
+  /// The amber marking a shot that must be filmed again.
+  ///
+  /// Doubles as the shot list's "needs attention" accent everywhere else it appears — the ⚠ of a
+  /// shot needing checking, and a difficulty at or above its warning threshold — exactly as the
+  /// mock-up uses one and the same amber for all three.
+  final Color shotStatusRetake;
+
   /// Class constructor
-  const OcptSpecificColors({required this.previewBackdrop, required this.projectPosterTints});
+  const OcptSpecificColors({
+    required this.previewBackdrop,
+    required this.projectPosterTints,
+    required this.shotStatusShot,
+    required this.shotStatusRetake,
+  });
 
   /// Implement the copyWith method required by [ThemeExtension]
   @override
   ThemeExtension<OcptSpecificColors> copyWith({
     Color? previewBackdrop,
     List<Color>? projectPosterTints,
+    Color? shotStatusShot,
+    Color? shotStatusRetake,
   }) => OcptSpecificColors(
     previewBackdrop: previewBackdrop ?? this.previewBackdrop,
     projectPosterTints: projectPosterTints ?? this.projectPosterTints,
+    shotStatusShot: shotStatusShot ?? this.shotStatusShot,
+    shotStatusRetake: shotStatusRetake ?? this.shotStatusRetake,
   );
 
   /// Implement the lerp method required by [ThemeExtension]
@@ -44,6 +69,9 @@ class OcptSpecificColors extends AbsAppSpecificColors<OcptSpecificColors> {
     return OcptSpecificColors(
       previewBackdrop: Color.lerp(previewBackdrop, other.previewBackdrop, t) ?? previewBackdrop,
       projectPosterTints: _lerpColorList(projectPosterTints, other.projectPosterTints, t),
+      shotStatusShot: Color.lerp(shotStatusShot, other.shotStatusShot, t) ?? shotStatusShot,
+      shotStatusRetake:
+          Color.lerp(shotStatusRetake, other.shotStatusRetake, t) ?? shotStatusRetake,
     );
   }
 }
