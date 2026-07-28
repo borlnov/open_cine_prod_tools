@@ -9,6 +9,12 @@ library;
 export 'src/layout/fountain_layout_metrics.dart';
 export 'src/layout/fountain_page_margins.dart';
 export 'src/layout/fountain_print_style.dart';
+// Only `normalizeCharacterName` is exported from this file: the app's shot-list character
+// normalisation must match the one `FountainSceneStatistics.speakingCharacters` already uses, so
+// a shot's character name and a screenplay's speaking character compare equal byte-for-byte. The
+// file's other helpers (`printableTextsOf`, `characterCueTextOf`, `wordCountOf`, `signCountOf`)
+// stay internal, shared only between the two statistics classes.
+export 'src/layout/fountain_printable_text.dart' show normalizeCharacterName;
 export 'src/layout/fountain_scene_statistics.dart';
 export 'src/layout/fountain_script_composer.dart';
 export 'src/layout/fountain_script_statistics.dart';
