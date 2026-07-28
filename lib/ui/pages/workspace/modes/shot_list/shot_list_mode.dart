@@ -2,17 +2,24 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_delete_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_sequence_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
@@ -54,6 +61,19 @@ class _ShotListViewState extends State<_ShotListView> {
     leftFraction: OcptWorkspaceDock.leftDefaultFraction,
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
+
+  @override
+  void deactivate() {
+    // `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
+    // this whole subtree out, and so does the workspace's own back navigation), so flushing here
+    // — rather than in `dispose()`, or waiting out the field-edit debounce — is what guarantees
+    // the last couple of seconds of typing in an inspector field survive it: by the time
+    // `dispose()` runs (and the `BlocProvider` above this widget closes the bloc along with it),
+    // there may be nothing left to flush into. See `OcptStyledScreenplayEditor.deactivate()` for
+    // the screenplay editor's own instance of the same reasoning.
+    unawaited(context.read<OcptShotListBloc>().flushPendingFieldEdits());
+    super.deactivate();
+  }
 
   @override
   void dispose() {
@@ -186,28 +206,54 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Builds the tabbed right dock, the shell's `rightPanel`, or null while the dock is closed.
-  ///
-  /// Both bodies are still placeholders: the shot inspector and the shot list metadata panel are
-  /// built in their own right in a later version.
   Widget? _buildRightDock(BuildContext context, OcptShotListState state) {
     final rightDockTab = state.rightDockTab;
     if (rightDockTab == null) {
       return null;
     }
 
-    final tr = Tr.of(context);
+    final selectedShot = state.selectedShot;
+    final selectedSequence = state.selectedSequence;
+    final sequenceDisplayNumber = _sequenceDisplayNumberFor(selectedSequence);
+    final sequenceHeading = _sequenceHeadingFor(selectedSequence, selectedShot);
 
     return OcptShotListRightDock(
       activeTab: rightDockTab,
-      inspectorChild: OcptWorkspaceEmptyMode(
-        icon: Icons.tune_outlined,
-        message: state.selectedShot == null
-            ? tr.shotListNoShotSelectedHint
-            : tr.shotListInspectorPlaceholderHint,
+      inspectorChild: OcptShotInspectorPanel(
+        shot: selectedShot,
+        sequenceHeading: sequenceHeading,
+        sequenceDisplayNumber: sequenceDisplayNumber,
+        speakingCharacters: state.speakingCharacters,
+        suggestions: state.suggestions,
+        fieldValueOf: (field) => _fieldValueOf(state, selectedShot, field),
+        onStatusChanged: (status) => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListShotStatusChangedEvent(shotId: id, status: status),
+        ),
+        onDifficultyChanged: (axis, value) => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListShotDifficultyChangedEvent(shotId: id, axis: axis, value: value),
+        ),
+        onCharacterToggled: (name) => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListShotCharacterToggledEvent(shotId: id, characterName: name),
+        ),
+        onFieldChanged: (field, value) => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListShotFieldChangedEvent(shotId: id, field: field, rawValue: value),
+        ),
+        onDeleteRequested: selectedShot == null
+            ? null
+            : () => _handleDeleteRequested(context, selectedShot),
       ),
-      metadataChild: OcptWorkspaceEmptyMode(
-        icon: Icons.info_outline,
-        message: tr.shotListMetadataPlaceholderHint,
+      metadataChild: OcptShotMetadataPanel(
+        shot: selectedShot,
+        sequenceDisplayNumber: sequenceDisplayNumber,
+        sequenceHeading: sequenceHeading,
       ),
       onTabSelected: (tab) => context.read<OcptShotListBloc>().add(
         OcptShotListRightDockTabSelectedEvent(tab: tab),
@@ -215,6 +261,82 @@ class _ShotListViewState extends State<_ShotListView> {
       onClose: () =>
           context.read<OcptShotListBloc>().add(const OcptShotListRightDockClosedEvent()),
     );
+  }
+
+  /// The display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
+  /// placeholder for the orphan group or for no sequence at all.
+  String _sequenceDisplayNumberFor(OcptShotSequence? sequence) => switch (sequence) {
+    OcptSceneShotSequence() => sequence.displaySceneNumber,
+    OcptOrphanShotSequence() || null => ocptShotListEmptyValue,
+  };
+
+  /// The heading shown for [sequence]: a real scene's own heading, or [shot]'s
+  /// `OcptShot.orphanedHeading` while [sequence] is the orphan group.
+  String _sequenceHeadingFor(OcptShotSequence? sequence, OcptShot? shot) => switch (sequence) {
+    OcptSceneShotSequence() => sequence.heading,
+    OcptOrphanShotSequence() => shot?.orphanedHeading ?? ocptShotListEmptyValue,
+    null => ocptShotListEmptyValue,
+  };
+
+  /// [shot]'s current value for [field], for the inspector's editable fields: a pending edit
+  /// still sitting in the bloc's debounce takes priority over the shot's own stored value, so
+  /// typing is never overwritten by an unrelated reload. Formatted for an editable field (an
+  /// empty string for a missing value, never [ocptShotListEmptyValue], which is the table and
+  /// read-only fields' own placeholder).
+  String _fieldValueOf(OcptShotListState state, OcptShot? shot, OcptShotListEditableField field) {
+    if (shot == null) {
+      return "";
+    }
+
+    final pending = state.pendingFieldEdits[(shot.id, field)];
+    if (pending != null) {
+      return pending;
+    }
+
+    return switch (field) {
+      OcptShotListEditableField.shotSize => shot.shotSize,
+      OcptShotListEditableField.framing => shot.framing,
+      OcptShotListEditableField.cameraMove => shot.cameraMove,
+      OcptShotListEditableField.lens => shot.lens,
+      OcptShotListEditableField.recordingFormat => shot.recordingFormat,
+      OcptShotListEditableField.shootingDay => shot.shootingDay ?? "",
+      OcptShotListEditableField.estimatedDuration => shot.estimatedDurationMs == null
+          ? ""
+          : ocptFormatShotDuration(shot.estimatedDurationMs),
+      OcptShotListEditableField.plannedTakes => shot.plannedTakes?.toString() ?? "",
+      OcptShotListEditableField.sound => shot.sound,
+      OcptShotListEditableField.notes => shot.notes,
+      OcptShotListEditableField.locationNotes => shot.locationNotes,
+    };
+  }
+
+  /// Dispatches the event [buildEvent] builds from [shot]'s id, or does nothing while [shot] is
+  /// null: every inspector callback that acts on "the selected shot" goes through this, so none
+  /// of them has to force-unwrap it.
+  void _dispatchIfShotSelected(
+    BuildContext context,
+    OcptShot? shot,
+    OcptShotListEvent Function(String shotId) buildEvent,
+  ) {
+    if (shot == null) {
+      return;
+    }
+    context.read<OcptShotListBloc>().add(buildEvent(shot.id));
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the deletion request if the user
+  /// confirmed it.
+  Future<void> _handleDeleteRequested(BuildContext context, OcptShot shot) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final confirmed = await OcptShotDeleteConfirmDialog.show(context, shotCode: shot.code);
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: shot.id));
   }
 
   /// Applies bloc-driven effects onto the page: the live dock fractions, and the transient write

@@ -1575,17 +1575,145 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListInspectorPlaceholderHint": "Shot details are coming in a future version.",
-  "@shotListInspectorPlaceholderHint": {
-    "description": "Placeholder shown in the shot inspector while it isn't implemented yet",
-    "context": "Displayed in the right dock of the shot list mode",
+  "shotListInspectorHeaderTitle": "Shot {code}",
+  "@shotListInspectorHeaderTitle": {
+    "description": "Header of the shot inspector, naming the selected shot",
+    "context": "Displayed at the top of the inspector tab of the shot list's right dock",
+    "type": "text",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListInspectorCharactersSectionTitle": "Characters in shot",
+  "@shotListInspectorCharactersSectionTitle": {
+    "description": "Title of the inspector's characters section",
+    "context": "Displayed above the character chips of the shot inspector",
     "type": "text",
     "placeholders": {}
   },
-  "shotListMetadataPlaceholderHint": "Shot list metadata is coming in a future version.",
-  "@shotListMetadataPlaceholderHint": {
-    "description": "Placeholder shown in the metadata tab while it isn't implemented yet",
-    "context": "Displayed in the right dock of the shot list mode",
+  "shotListInspectorImageSectionTitle": "Image",
+  "@shotListInspectorImageSectionTitle": {
+    "description": "Title of the inspector's image section (shot size, framing, camera move, lens, format)",
+    "context": "Displayed above the image fields of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorDifficultySectionTitle": "Difficulty — avg. {value}",
+  "@shotListInspectorDifficultySectionTitle": {
+    "description": "Title of the inspector's difficulty section, naming the shot's average difficulty",
+    "context": "Displayed above the difficulty rows of the shot inspector",
+    "type": "text",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListInspectorProductionSectionTitle": "Production",
+  "@shotListInspectorProductionSectionTitle": {
+    "description": "Title of the inspector's production section (shooting day, duration, takes, sound, sequence)",
+    "context": "Displayed above the production fields of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorNotesSectionTitle": "Director's notes",
+  "@shotListInspectorNotesSectionTitle": {
+    "description": "Title of the inspector's director's notes section",
+    "context": "Displayed above the notes field of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorLocationSectionTitle": "Location scouting",
+  "@shotListInspectorLocationSectionTitle": {
+    "description": "Title of the inspector's location scouting section",
+    "context": "Displayed above the location scouting field of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorSequenceLabel": "Sequence",
+  "@shotListInspectorSequenceLabel": {
+    "description": "Label of the read-only sequence field",
+    "context": "Displayed in the shot inspector's production section and in the metadata tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorEstimatedDurationLabel": "Estimated duration",
+  "@shotListInspectorEstimatedDurationLabel": {
+    "description": "Label of the estimated duration field",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorPlannedTakesLabel": "Planned takes",
+  "@shotListInspectorPlannedTakesLabel": {
+    "description": "Label of the planned takes field",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDifficultyAxisActing": "Acting",
+  "@shotListDifficultyAxisActing": {
+    "description": "Label of the acting difficulty axis",
+    "context": "Displayed in the shot inspector's difficulty section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCharactersEmptyHint": "No speaking characters yet.",
+  "@shotListCharactersEmptyHint": {
+    "description": "Hint shown in place of the character chips when the screenplay has no speaking character",
+    "context": "Displayed in the shot inspector's characters section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCharacterRemovedLabel": "{name} (removed)",
+  "@shotListCharacterRemovedLabel": {
+    "description": "Label of a character chip for a character no longer speaking in the screenplay",
+    "context": "Displayed in the shot inspector's characters section",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListDeleteShotAction": "Delete shot",
+  "@shotListDeleteShotAction": {
+    "description": "Action deleting the selected shot",
+    "context": "Displayed at the bottom of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteConfirmTitle": "Delete this shot?",
+  "@shotListDeleteConfirmTitle": {
+    "description": "Title of the shot deletion confirmation dialog",
+    "context": "Displayed after clicking \"Delete shot\" in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteConfirmMessage": "Shot {code} will be permanently deleted.",
+  "@shotListDeleteConfirmMessage": {
+    "description": "Message of the shot deletion confirmation dialog, naming the shot",
+    "context": "Displayed after clicking \"Delete shot\" in the shot inspector",
+    "type": "text",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListDeleteConfirmCancelAction": "Cancel",
+  "@shotListDeleteConfirmCancelAction": {
+    "description": "Action cancelling the shot deletion",
+    "context": "Displayed in the shot deletion confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteConfirmDeleteAction": "Delete",
+  "@shotListDeleteConfirmDeleteAction": {
+    "description": "Action confirming the shot deletion",
+    "context": "Displayed in the shot deletion confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
