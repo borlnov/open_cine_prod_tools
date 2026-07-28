@@ -88,3 +88,38 @@ String ocptFormatShotDuration(int? milliseconds) {
 /// something readable.
 String ocptShotFieldOrDash(String? value) =>
     value == null || value.trim().isEmpty ? ocptShotListEmptyValue : value;
+
+/// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].
+///
+/// A blank [input], or exactly [ocptShotListEmptyValue] (what [ocptFormatShotDuration] itself
+/// renders for a null duration, so the two stay round-trippable), means "no estimate" and parses
+/// to null. `m:ss` parses to milliseconds. A bare non-negative integer is read as a number of
+/// seconds. Anything else throws a [FormatException]: the shot inspector's own choice, on
+/// catching it, is to leave the shot's stored duration untouched rather than write anything.
+int? ocptParseShotDuration(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty || trimmed == ocptShotListEmptyValue) {
+    return null;
+  }
+
+  final colonIndex = trimmed.indexOf(":");
+  if (colonIndex == -1) {
+    final seconds = int.tryParse(trimmed);
+    if (seconds == null || seconds < 0) {
+      throw FormatException("Not a valid shot duration", input);
+    }
+    return seconds * Duration.millisecondsPerSecond;
+  }
+
+  final minutes = int.tryParse(trimmed.substring(0, colonIndex));
+  final seconds = int.tryParse(trimmed.substring(colonIndex + 1));
+  if (minutes == null ||
+      seconds == null ||
+      minutes < 0 ||
+      seconds < 0 ||
+      seconds >= Duration.secondsPerMinute) {
+    throw FormatException("Not a valid shot duration", input);
+  }
+
+  return (minutes * Duration.secondsPerMinute + seconds) * Duration.millisecondsPerSecond;
+}
