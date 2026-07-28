@@ -195,7 +195,7 @@ These were settled with Benoit before this plan was written. They are not open q
 
 ### 4.1 Overview
 
-```
+```text
 lib/models/database/tables/     ocpt_shots_table.dart
                                 ocpt_shot_characters_table.dart
                                 ocpt_shot_coverages_table.dart
