@@ -4,13 +4,17 @@
 
 import 'package:flutter/material.dart';
 
-/// The shared empty state for a production mode not implemented yet: its icon in `outline`, one
-/// centred, localized line, no actions. Reuses `OcptHomeEmptyState`'s proportions.
+/// The workspace's shared empty state: an icon in `outline`, one centred, localized line, no
+/// actions. Reuses `OcptHomeEmptyState`'s proportions.
+///
+/// Used both for a production mode not implemented yet, filling its whole centre area, and for
+/// any area of an implemented mode with nothing to show yet (a panel awaiting a selection).
 class OcptWorkspaceEmptyMode extends StatelessWidget {
-  /// The mode's icon, matching the one shown for it in the mode switcher.
+  /// The icon summarising what the empty area would hold; for a whole mode, the one shown for it
+  /// in the mode switcher.
   final IconData icon;
 
-  /// The localized "coming in a future version" message for this mode.
+  /// The localized line explaining why the area is empty.
   final String message;
 
   /// Class constructor

@@ -16,10 +16,11 @@ enum OcptWorkspaceMode {
   /// The shooting schedule. Not implemented yet: selecting it shows an empty state.
   schedule,
 
-  /// The shot list (découpage technique). Not implemented yet: selecting it shows an empty state.
+  /// The shot list (découpage technique), the second mode to get real content.
   shotList;
 
   /// Whether this mode has real content today, rather than the shared "coming in a future
   /// version" empty state.
-  bool get isImplemented => this == OcptWorkspaceMode.screenplay;
+  bool get isImplemented =>
+      this == OcptWorkspaceMode.screenplay || this == OcptWorkspaceMode.shotList;
 }

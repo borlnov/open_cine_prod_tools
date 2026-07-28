@@ -1324,5 +1324,283 @@
         "type": "String"
       }
     }
+  },
+  "shotListSequencesPanelTitle": "Sequences",
+  "@shotListSequencesPanelTitle": {
+    "description": "Title of the shot list's left dock",
+    "context": "Displayed above the sequence tree of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListSequencesEmptyHint": "Sequences will appear here as the screenplay grows.",
+  "@shotListSequencesEmptyHint": {
+    "description": "Hint shown in the shot list's left dock when the screenplay has no scene yet",
+    "context": "Displayed in place of the sequence tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListShotsCount": "{count, plural, one{{count} shot} other{{count} shots}}",
+  "@shotListShotsCount": {
+    "description": "Shot count of a sequence, and of the whole shot list",
+    "context": "Displayed in the shot list's left dock and in its centre sequence header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListAverageDifficulty": "avg. difficulty {value}",
+  "@shotListAverageDifficulty": {
+    "description": "Average difficulty segment of a sequence summary",
+    "context": "Displayed in the shot list's left dock and in its centre sequence header",
+    "type": "text",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListLeftToShoot": "{count, plural, one{{count} left to shoot} other{{count} left to shoot}}",
+  "@shotListLeftToShoot": {
+    "description": "Number of shots of a sequence not filmed yet",
+    "context": "Displayed in the shot list's centre sequence header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListSequenceHeader": "Sequence {number} — {heading}",
+  "@shotListSequenceHeader": {
+    "description": "Header naming the sequence the shot table lists",
+    "context": "Displayed above the shot table of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      },
+      "heading": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListOrphanSequenceTitle": "Orphaned shots",
+  "@shotListOrphanSequenceTitle": {
+    "description": "Name of the group holding the shots whose scene was removed from the screenplay",
+    "context": "Displayed as the last entry of the shot list's left dock, and as its centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListAddShotAction": "+ Shot",
+  "@shotListAddShotAction": {
+    "description": "Action creating a shot at the end of the selected sequence",
+    "context": "Displayed in the footer of the shot list's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckTooltip": "This shot needs checking",
+  "@shotListNeedsCheckTooltip": {
+    "description": "Tooltip of the warning marker of a shot that needs checking",
+    "context": "Shown on hover over the warning marker in the shot list's left dock and table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListShotsEmptyHint": "This sequence has no shot yet.",
+  "@shotListShotsEmptyHint": {
+    "description": "Hint shown in place of the shot table when the selected sequence has no shot",
+    "context": "Displayed in the centre of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNoSequenceSelectedHint": "Select a sequence to see its shots.",
+  "@shotListNoSequenceSelectedHint": {
+    "description": "Hint shown in place of the shot table when no sequence is selected",
+    "context": "Displayed in the centre of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnsMenuAction": "Columns",
+  "@shotListColumnsMenuAction": {
+    "description": "Label of the menu showing or hiding the optional columns of the shot table",
+    "context": "Displayed as a button above the shot table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnShot": "Shot",
+  "@shotListColumnShot": {
+    "description": "Header of the shot code column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnCharacters": "Characters",
+  "@shotListColumnCharacters": {
+    "description": "Header of the characters column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnSet": "Set",
+  "@shotListColumnSet": {
+    "description": "Header of the set column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnShotSize": "Shot size",
+  "@shotListColumnShotSize": {
+    "description": "Header of the shot size column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnFraming": "Framing & composition",
+  "@shotListColumnFraming": {
+    "description": "Header of the framing and composition column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnCameraMove": "Camera move",
+  "@shotListColumnCameraMove": {
+    "description": "Header of the camera move column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnLens": "Lens",
+  "@shotListColumnLens": {
+    "description": "Header of the lens column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnFormat": "Format",
+  "@shotListColumnFormat": {
+    "description": "Header of the recording format column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnDuration": "Duration",
+  "@shotListColumnDuration": {
+    "description": "Header of the estimated duration column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnTakes": "Takes",
+  "@shotListColumnTakes": {
+    "description": "Header of the planned takes column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnSound": "Sound",
+  "@shotListColumnSound": {
+    "description": "Header of the sound column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnDifficulty": "Diff.",
+  "@shotListColumnDifficulty": {
+    "description": "Header of the average difficulty column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnShootingDay": "Shooting day",
+  "@shotListColumnShootingDay": {
+    "description": "Header of the shooting day column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnStatus": "Status",
+  "@shotListColumnStatus": {
+    "description": "Header of the shooting status column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatusToShoot": "To shoot",
+  "@shotListStatusToShoot": {
+    "description": "Name of the shooting status of a shot not filmed yet",
+    "context": "Displayed in the shot table's status column and in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatusShot": "Shot",
+  "@shotListStatusShot": {
+    "description": "Name of the shooting status of a shot already filmed and accepted",
+    "context": "Displayed in the shot table's status column and in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatusRetake": "Retake",
+  "@shotListStatusRetake": {
+    "description": "Name of the shooting status of a shot that must be filmed again",
+    "context": "Displayed in the shot table's status column and in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockInspectorTabLabel": "Inspector",
+  "@shotListRightDockInspectorTabLabel": {
+    "description": "Name of the shot inspector tab of the shot list's right dock",
+    "context": "Displayed in the tab row of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockMetadataTabLabel": "Metadata",
+  "@shotListRightDockMetadataTabLabel": {
+    "description": "Name of the metadata tab of the shot list's right dock",
+    "context": "Displayed in the tab row of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockCloseTooltip": "Close the panel",
+  "@shotListRightDockCloseTooltip": {
+    "description": "Tooltip of the close button of the shot list's right dock",
+    "context": "Shown on hover over the close button of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNoShotSelectedHint": "Select a shot to see its details.",
+  "@shotListNoShotSelectedHint": {
+    "description": "Hint shown in the shot inspector when no shot is selected",
+    "context": "Displayed in the right dock of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorPlaceholderHint": "Shot details are coming in a future version.",
+  "@shotListInspectorPlaceholderHint": {
+    "description": "Placeholder shown in the shot inspector while it isn't implemented yet",
+    "context": "Displayed in the right dock of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListMetadataPlaceholderHint": "Shot list metadata is coming in a future version.",
+  "@shotListMetadataPlaceholderHint": {
+    "description": "Placeholder shown in the metadata tab while it isn't implemented yet",
+    "context": "Displayed in the right dock of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListResetPanelLayoutAction": "Reset panel layout",
+  "@shotListResetPanelLayoutAction": {
+    "description": "Action restoring the shot list's dock widths to their defaults",
+    "context": "Displayed in the overflow menu of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListWriteError": "The change could not be saved.",
+  "@shotListWriteError": {
+    "description": "Error shown when a shot list change couldn't be written to the project",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
   }
 }
