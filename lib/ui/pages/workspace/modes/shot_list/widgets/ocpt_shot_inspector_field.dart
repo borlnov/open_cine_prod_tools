@@ -11,8 +11,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 /// stay independent of one another.
 ///
 /// A single-line field with a non-empty [suggestions] list shows an autocomplete overlay that
-/// filters as the user types (decision 6 of the shot list plan): a convenience over the project's
-/// own vocabulary, never a closed list — typing a brand-new value always stays possible. Built on
+/// filters as the user types: a convenience over the project's own vocabulary, never a closed
+/// list — typing a brand-new value always stays possible. Built on
 /// [RawAutocomplete] with an explicit [TextEditingController]/[FocusNode] of this widget's own
 /// (rather than letting [RawAutocomplete] create its own internal ones, which would fight the
 /// caret on every rebuild), so keeps the caret and the autocomplete overlay perfectly in step with
@@ -39,8 +39,7 @@ class OcptShotInspectorField extends StatefulWidget {
   final String value;
 
   /// The project-wide suggestions to filter as the user types, or null/empty for a field with
-  /// none (decision 6 of the shot list plan restricts these to the free-text fields the service
-  /// has a `distinct` query for).
+  /// none: only the free-text fields the service has a `distinct` query for ever get one.
   final List<String>? suggestions;
 
   /// Whether this field spans several lines (Director's notes, Location scouting) instead of

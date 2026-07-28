@@ -4,10 +4,14 @@
 
 import 'package:equatable/equatable.dart';
 
-/// The project-wide suggestion lists the shot inspector's free-text fields with suggestions offer
-/// (decision 6 of the shot list plan): every distinct, non-empty value already entered for that
-/// field elsewhere in the project, sorted alphabetically, exactly as
-/// `OcptShotListService.distinctShotSizes` and its five siblings return them.
+/// The project-wide suggestion lists the shot inspector's free-text fields with suggestions
+/// offer: every distinct, non-empty value already entered for that field elsewhere in the project,
+/// sorted alphabetically, exactly as `OcptShotListService.distinctShotSizes` and its five siblings
+/// return them.
+///
+/// These fields stay free text rather than becoming enums: the shot-list vocabulary varies too
+/// much from one crew to the next to close it, so the project's own past entries are offered as a
+/// convenience and a brand-new value is always accepted.
 ///
 /// Shooting day and the two multi-line fields (director's notes, location scouting) have no
 /// suggestion list of their own: the service has no `distinct` query for shooting day, and a

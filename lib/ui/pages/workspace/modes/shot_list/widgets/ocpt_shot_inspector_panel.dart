@@ -23,10 +23,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// [fieldValueOf] from the bloc's own pending-edit map so a field shows what was just typed while
 /// its 2 s autosave debounce is still running.
 ///
-/// This milestone leaves scenario coverage out of the panel entirely (a later milestone's own
-/// section, between the characters chips and the Image section per the plan), and shows nothing
-/// about a shot needing checking (also a later milestone, the table's own ⚠ gutter is untouched
-/// meanwhile).
+/// Scenario coverage is not part of this panel yet: it comes in a future version, as its own
+/// section between the character chips and the Image section. Nothing here says anything about a
+/// shot needing checking either — that callout comes with the coverage it reports on, and the
+/// table's own ⚠ gutter is what signals it meanwhile.
 class OcptShotInspectorPanel extends StatelessWidget {
   /// The selected shot, or null while none is (the empty state).
   final OcptShot? shot;

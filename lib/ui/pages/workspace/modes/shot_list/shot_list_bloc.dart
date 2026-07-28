@@ -195,8 +195,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     return speakingCharactersOf(document.blocks);
   }
 
-  /// Reads every free-text field's project-wide suggestion list (decision 6 of the shot list
-  /// plan).
+  /// Reads every free-text field's project-wide suggestion list.
   Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) async {
     final database = project.database;
     final screenplayId = project.primaryScreenplayId;

@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The shot inspector's "Characters in shot" chips: one toggleable chip per speaking role of the
 /// whole screenplay, plus any character attached to this shot that no longer speaks anywhere in
-/// it (decision 4 of the shot list plan).
+/// it.
 ///
 /// [speakingCharacters] and [attachedCharacters] are both already normalised through
 /// `fountain_kit`'s `normalizeCharacterName`, so they compare equal byte-for-byte: an attached
@@ -16,8 +16,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 /// toggleable off) until it is untoggled. Toggling a chip writes immediately — there is no typing
 /// debounce for this.
 ///
-/// This milestone only lets a chip be toggled, never authored: there is no "add a character not
-/// in the screenplay" input for a silent role or an extra, left to a later milestone.
+/// A chip can only be toggled, never authored: attaching a silent role or an extra the screenplay
+/// never cues has no input of its own yet, and comes in a future version.
 class OcptShotCharacterChips extends StatelessWidget {
   /// Every speaking role of the whole screenplay, normalised, in first-appearance order.
   final List<String> speakingCharacters;
