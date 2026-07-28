@@ -162,7 +162,7 @@ All nine were settled with Benoit before this plan was finalised. They are not o
 
 ### 4.1 Overview
 
-```
+```text
 lib/models/database/tables/     ocpt_project_versions_table.dart
 lib/models/database/            ocpt_project_database.dart          (schema v3 + migration)
                                 ocpt_project_info_table.dart        (+ currentVersionId)
@@ -207,7 +207,7 @@ shot-list section — the payload format is versioned precisely so that this is 
 `OcptProjectVersionCodec` (`lib/managers/projects/services/`) is the **only** place that knows the
 payload's shape. It encodes to and decodes from a plain JSON object:
 
-```
+```text
 {
   "payloadFormat": 1,
   "screenplays":      [ { id, title, fountainText, updatedAt }, … ],
