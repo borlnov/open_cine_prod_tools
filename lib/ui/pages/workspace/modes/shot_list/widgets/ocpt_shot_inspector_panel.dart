@@ -145,6 +145,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           label: tr.shotListColumnFraming,
           value: fieldValueOf(OcptShotListEditableField.framing),
           suggestions: suggestions.framings,
+          multiline: true,
           onChanged: (value) => onFieldChanged(OcptShotListEditableField.framing, value),
         ),
         OcptShotInspectorField(
@@ -152,6 +153,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           label: tr.shotListColumnCameraMove,
           value: fieldValueOf(OcptShotListEditableField.cameraMove),
           suggestions: suggestions.cameraMoves,
+          multiline: true,
           onChanged: (value) => onFieldChanged(OcptShotListEditableField.cameraMove, value),
         ),
         OcptShotInspectorField(
@@ -212,6 +214,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           label: tr.shotListColumnSound,
           value: fieldValueOf(OcptShotListEditableField.sound),
           suggestions: suggestions.sounds,
+          multiline: true,
           onChanged: (value) => onFieldChanged(OcptShotListEditableField.sound, value),
         ),
         OcptShotInspectorReadOnlyField(

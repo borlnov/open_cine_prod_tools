@@ -163,11 +163,12 @@ Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector show
   `Also covered by 1/2 · 1/4` under the block. A block whose text changed since the coverage was
   recorded gets a `modified` badge. Footer: `N words covered of M · P range(s)`, plus a
   `Clear all` action and a one-line hint describing the current interaction state.
-- **Image** — Shot size, Framing & composition, Camera move, Lens, Format.
+- **Image** — Shot size, Framing & composition, Camera move, Lens, Format. Framing & composition
+  and Camera move are written as several lines, like the director's notes are.
 - **Difficulty — avg. 1,8** — four labelled bars (Set, Camera move, Acting, Sound) on 0-5, the bar
   warning-coloured at ≥ 3 and error-coloured at ≥ 4.
-- **Production** — Estimated duration, Sound, Sequence. No shooting day and no planned takes: see
-  decision 10.
+- **Production** — Estimated duration, Sound (several lines too), Sequence. No shooting day and no
+  planned takes: see decision 10.
 - **Director's notes** — free multi-line text.
 - **Location scouting** — a free multi-line list of labels (see §3.5).
 
@@ -191,6 +192,7 @@ These were settled with Benoit before this plan was written. They are not open q
 | 8 | **Location scouting is a plain multi-line text field** for now, a deliberate placeholder for the future locations module rather than a modelled relation. |
 | 9 | **XLSX export is in scope**, as the last milestone. PDF export of the shot list is not. |
 | 10 | **Everything a shot's scheduling decides stays out of this mode.** The status, the shooting day and the planned takes are read-only here — the status pill is a read-out, the other two are absent from the inspector and only read out by the metadata tab. They keep their columns (the table can show them, the XLSX export writes them) and become editable in the shooting schedule mode, which is what owns them. |
+| 11 | **The fields written as a sentence are multi-line**, as tall as the director's notes: Framing & composition, Camera move and Sound. They keep their project-wide suggestions all the same. |
 
 ---
 

@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
@@ -147,6 +148,30 @@ void main() {
     expect(find.text("ESTIMATED DURATION"), findsOneWidget);
     expect(find.text("SHOOTING DAY"), findsNothing);
     expect(find.text("PLANNED TAKES"), findsNothing);
+  });
+
+  testWidgets("the fields written as a sentence are as tall as the director's notes",
+      (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
+
+    /// The text field of the inspector field labelled [label].
+    TextField fieldOf(String label) => tester.widget<TextField>(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(label),
+          matching: find.byType(OcptShotInspectorField),
+        ),
+        matching: find.byType(TextField),
+      ),
+    );
+
+    for (final label in const ["FRAMING & COMPOSITION", "CAMERA MOVE", "SOUND"]) {
+      expect(fieldOf(label).minLines, greaterThan(1), reason: label);
+      expect(fieldOf(label).maxLines, isNull, reason: label);
+    }
+
+    expect(fieldOf("SHOT SIZE").maxLines, 1);
   });
 
   testWidgets("clicking a difficulty dot reports the axis and value", (tester) async {

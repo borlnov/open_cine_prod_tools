@@ -5,14 +5,20 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 
+/// The number of lines a [OcptShotInspectorField.multiline] field is tall before it grows with
+/// what is typed into it.
+const int _multilineMinLines = 4;
+
 /// One editable field row of the shot inspector: an uppercase, `onSurfaceVariant` label over a
 /// themed text field, following the same visual idiom as the screenplay editor's own read-only
 /// dock fields (a rounded, filled box) without being the same widget — the two production modes
 /// stay independent of one another.
 ///
-/// A single-line field with a non-empty [suggestions] list shows an autocomplete overlay that
+/// A field with a non-empty [suggestions] list shows an autocomplete overlay that
 /// filters as the user types: a convenience over the project's own vocabulary, never a closed
-/// list — typing a brand-new value always stays possible. Built on
+/// list — typing a brand-new value always stays possible. A [multiline] field keeps its
+/// suggestions, since the fields written as several lines (Framing & composition, Camera move,
+/// Sound) are exactly the ones whose first words are worth reusing across a project. Built on
 /// [RawAutocomplete] with an explicit [TextEditingController]/[FocusNode] of this widget's own
 /// (rather than letting [RawAutocomplete] create its own internal ones, which would fight the
 /// caret on every rebuild), so keeps the caret and the autocomplete overlay perfectly in step with
@@ -42,8 +48,8 @@ class OcptShotInspectorField extends StatefulWidget {
   /// none: only the free-text fields the service has a `distinct` query for ever get one.
   final List<String>? suggestions;
 
-  /// Whether this field spans several lines (Director's notes, Location scouting) instead of
-  /// being a single line.
+  /// Whether this field is written as several lines (Framing & composition, Camera move, Sound,
+  /// Director's notes, Location scouting) instead of being a single line.
   final bool multiline;
 
   /// Called with the field's raw text on every keystroke, and when a suggestion is picked.
@@ -123,8 +129,8 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
   /// through [RawAutocomplete] otherwise.
   Widget _buildField(BuildContext context) {
     final suggestions = widget.suggestions;
-    if (widget.multiline || suggestions == null || suggestions.isEmpty) {
-      return _plainField();
+    if (suggestions == null || suggestions.isEmpty) {
+      return _textField(_controller, _focusNode);
     }
 
     return RawAutocomplete<String>(
@@ -138,13 +144,8 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
         return suggestions.where((option) => option.toLowerCase().contains(query));
       },
       onSelected: widget.onChanged,
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextField(
-        controller: controller,
-        focusNode: focusNode,
-        onChanged: widget.onChanged,
-        style: Theme.of(context).textTheme.bodySmall,
-        decoration: const InputDecoration(isDense: true),
-      ),
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
+          _textField(controller, focusNode),
       optionsViewBuilder: (context, onSelected, options) => _OcptShotInspectorFieldOptions(
         options: options,
         onSelected: onSelected,
@@ -152,14 +153,19 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
     );
   }
 
-  /// The plain, suggestion-less field: multi-line fields never offer suggestions in the first
-  /// place, see [OcptShotInspectorField.suggestions]'s own doc comment.
-  Widget _plainField() => TextField(
-    controller: _controller,
-    focusNode: _focusNode,
+  /// The text field itself, given the controller and focus node to bind it to: this widget's own
+  /// ones when there is nothing to suggest, the very same ones handed back by [RawAutocomplete]
+  /// otherwise (it is given them, see the class doc comment).
+  ///
+  /// A [OcptShotInspectorField.multiline] field grows from [_multilineMinLines] lines upwards
+  /// instead of scrolling a single line sideways, which is what makes the fields written as a
+  /// sentence readable in a dock this narrow.
+  Widget _textField(TextEditingController controller, FocusNode focusNode) => TextField(
+    controller: controller,
+    focusNode: focusNode,
     onChanged: widget.onChanged,
     maxLines: widget.multiline ? null : 1,
-    minLines: widget.multiline ? 4 : 1,
+    minLines: widget.multiline ? _multilineMinLines : 1,
     style: Theme.of(context).textTheme.bodySmall,
     decoration: const InputDecoration(isDense: true),
   );
