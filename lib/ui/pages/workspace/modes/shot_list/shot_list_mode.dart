@@ -216,6 +216,10 @@ class _ShotListViewState extends State<_ShotListView> {
     final selectedSequence = state.selectedSequence;
     final sequenceDisplayNumber = _sequenceDisplayNumberFor(selectedSequence);
     final sequenceHeading = _sequenceHeadingFor(selectedSequence, selectedShot);
+    final coverageLayout = state.buildSelectedCoverageLayout();
+    final staleCoverageRangeIds = coverageLayout == null
+        ? const <String>{}
+        : state.staleCoverageRangeIdsOfSelectedShot(coverageLayout);
 
     return OcptShotListRightDock(
       activeTab: rightDockTab,
@@ -225,6 +229,10 @@ class _ShotListViewState extends State<_ShotListView> {
         sequenceDisplayNumber: sequenceDisplayNumber,
         speakingCharacters: state.speakingCharacters,
         suggestions: state.suggestions,
+        coverageLayout: coverageLayout,
+        otherShotsCoverageRanges: state.otherShotsCoverageOfSelectedScene(),
+        staleCoverageRangeIds: staleCoverageRangeIds,
+        pendingCoverageAnchor: state.pendingCoverageAnchor,
         fieldValueOf: (field) => _fieldValueOf(state, selectedShot, field),
         onDifficultyChanged: (axis, value) => _dispatchIfShotSelected(
           context,
@@ -240,6 +248,27 @@ class _ShotListViewState extends State<_ShotListView> {
           context,
           selectedShot,
           (id) => OcptShotListShotFieldChangedEvent(shotId: id, field: field, rawValue: value),
+        ),
+        onCoverageWordTapped: (blockStartOffset, wordStartOffset, wordEndOffset) =>
+            _dispatchIfShotSelected(
+              context,
+              selectedShot,
+              (id) => OcptShotListCoverageWordClickedEvent(
+                shotId: id,
+                blockStartOffset: blockStartOffset,
+                wordStartOffset: wordStartOffset,
+                wordEndOffset: wordEndOffset,
+              ),
+            ),
+        onCoverageClearAll: () => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListCoverageClearRequestedEvent(shotId: id),
+        ),
+        onMarkAsChecked: () => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListShotMarkedAsCheckedEvent(shotId: id),
         ),
         onDeleteRequested: selectedShot == null
             ? null

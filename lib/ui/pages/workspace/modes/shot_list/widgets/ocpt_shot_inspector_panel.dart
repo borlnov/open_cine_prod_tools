@@ -6,10 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_character_chips.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
@@ -27,10 +31,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// Production section has no shooting day and no planned takes. The metadata tab still reads those
 /// two out, once they exist.
 ///
-/// Scenario coverage is not part of this panel yet: it comes in a future version, as its own
-/// section between the character chips and the Image section. Nothing here says anything about a
-/// shot needing checking either — that callout comes with the coverage it reports on, and the
-/// table's own ⚠ gutter is what signals it meanwhile.
+/// A shot needing checking shows a `Needs checking` callout right under the header, before the
+/// character chips: the localised [OcptShotCheckReason], and a `Mark as checked` button
+/// ([onMarkAsChecked]). Scenario coverage is its own section, [OcptShotCoverageEditor], between
+/// the character chips and the Image section — see that widget's own doc comment for the click
+/// interaction it renders.
 class OcptShotInspectorPanel extends StatelessWidget {
   /// The selected shot, or null while none is (the empty state).
   final OcptShot? shot;
@@ -50,6 +55,22 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// The project-wide suggestion lists for the fields that have one.
   final OcptShotFieldSuggestions suggestions;
 
+  /// [shot]'s scene, laid out into the scenario coverage editor's blocks and words, or null for
+  /// an orphaned shot (its scene's text is gone). Ignored while [shot] is null.
+  final OcptShotCoverageLayout? coverageLayout;
+
+  /// Every other shot's coverage ranges of [coverageLayout]'s scene, keyed by that shot's code.
+  /// Ignored while [shot] is null.
+  final Map<String, List<OcptShotCoverageRange>> otherShotsCoverageRanges;
+
+  /// The ids of [shot]'s own coverage ranges currently disagreeing with the scene's text. Ignored
+  /// while [shot] is null.
+  final Set<String> staleCoverageRangeIds;
+
+  /// The first word clicked of a scenario coverage range currently being drawn, or null while
+  /// none is. Ignored while [shot] is null.
+  final OcptShotCoverageAnchor? pendingCoverageAnchor;
+
   /// [shot]'s current value for the given `field`: a pending edit still in the bloc's debounce,
   /// or the shot's own stored value, formatted for an editable field (an empty string for a
   /// missing value, never [ocptShotListEmptyValue]).
@@ -64,6 +85,16 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// Called with a field's raw text on every keystroke.
   final void Function(OcptShotListEditableField field, String rawValue) onFieldChanged;
 
+  /// Called with a clicked coverage word's own block start offset and its own start/end offsets.
+  final void Function(int blockStartOffset, int wordStartOffset, int wordEndOffset)
+  onCoverageWordTapped;
+
+  /// Called when the coverage editor's `Clear all` action is clicked.
+  final VoidCallback onCoverageClearAll;
+
+  /// Called when the `Needs checking` callout's `Mark as checked` button is clicked.
+  final VoidCallback onMarkAsChecked;
+
   /// Called when the "Delete shot" action is clicked, or null while it should be disabled (no
   /// shot selected).
   final VoidCallback? onDeleteRequested;
@@ -76,10 +107,17 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.sequenceDisplayNumber,
     required this.speakingCharacters,
     required this.suggestions,
+    required this.coverageLayout,
+    required this.otherShotsCoverageRanges,
+    required this.staleCoverageRangeIds,
+    required this.pendingCoverageAnchor,
     required this.fieldValueOf,
     required this.onDifficultyChanged,
     required this.onCharacterToggled,
     required this.onFieldChanged,
+    required this.onCoverageWordTapped,
+    required this.onCoverageClearAll,
+    required this.onMarkAsChecked,
     required this.onDeleteRequested,
   });
 
@@ -122,12 +160,30 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
+        if (shot.needsCheck && shot.checkReason != null) ...[
+          _OcptShotNeedsCheckCallout(reason: shot.checkReason!, onMarkAsChecked: onMarkAsChecked),
+          const SizedBox(height: 16),
+        ],
+
         _sectionTitle(context, tr.shotListInspectorCharactersSectionTitle),
         const SizedBox(height: 8),
         OcptShotCharacterChips(
           speakingCharacters: speakingCharacters,
           attachedCharacters: shot.characters,
           onToggled: onCharacterToggled,
+        ),
+        const SizedBox(height: 16),
+
+        _sectionTitle(context, tr.shotListInspectorCoverageSectionTitle),
+        const SizedBox(height: 8),
+        OcptShotCoverageEditor(
+          layout: coverageLayout,
+          ownRanges: shot.coverageRanges,
+          otherShotsRanges: otherShotsCoverageRanges,
+          staleRangeIds: staleCoverageRangeIds,
+          pendingAnchor: pendingCoverageAnchor,
+          onWordTapped: onCoverageWordTapped,
+          onClearAll: onCoverageClearAll,
         ),
         const SizedBox(height: 16),
 
@@ -265,4 +321,66 @@ class OcptShotInspectorPanel extends StatelessWidget {
       context,
     ).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
   );
+}
+
+/// The `Needs checking` callout shown at the top of [OcptShotInspectorPanel] whenever the selected
+/// shot's `OcptShot.needsCheck` is set: [reason], localised, and a `Mark as checked` button.
+/// Tinted with [ocptShotListWarningColor], the colour this mode marks everything needing
+/// attention with.
+class _OcptShotNeedsCheckCallout extends StatelessWidget {
+  /// Why the shot needs checking.
+  final OcptShotCheckReason reason;
+
+  /// Called when the `Mark as checked` button is clicked.
+  final VoidCallback onMarkAsChecked;
+
+  /// Class constructor
+  const _OcptShotNeedsCheckCallout({required this.reason, required this.onMarkAsChecked});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final color = ocptShotListWarningColor(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_reasonLabel(tr), style: theme.textTheme.bodySmall?.copyWith(color: color)),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: onMarkAsChecked,
+                    style: TextButton.styleFrom(foregroundColor: color),
+                    child: Text(tr.shotListNeedsCheckMarkAsCheckedAction),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The localised label of [reason].
+  String _reasonLabel(Tr tr) => switch (reason) {
+    OcptShotCheckReason.coveredTextChanged => tr.shotListNeedsCheckReasonCoveredTextChanged,
+    OcptShotCheckReason.coverageOutOfBounds => tr.shotListNeedsCheckReasonCoverageOutOfBounds,
+    OcptShotCheckReason.sceneDeleted => tr.shotListNeedsCheckReasonSceneDeleted,
+  };
 }

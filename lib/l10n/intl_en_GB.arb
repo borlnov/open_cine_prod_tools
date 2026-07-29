@@ -1407,6 +1407,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListNeedsCheckReasonCoveredTextChanged": "The screenplay text one of this shot's coverage ranges covers has changed.",
+  "@shotListNeedsCheckReasonCoveredTextChanged": {
+    "description": "Reason a shot needs checking: the covered text changed since the range was recorded",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckReasonCoverageOutOfBounds": "One of this shot's coverage ranges no longer fits inside its scene and was clamped.",
+  "@shotListNeedsCheckReasonCoverageOutOfBounds": {
+    "description": "Reason a shot needs checking: a coverage range no longer fits inside its scene",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckReasonSceneDeleted": "This shot's scene was removed from the screenplay.",
+  "@shotListNeedsCheckReasonSceneDeleted": {
+    "description": "Reason a shot needs checking: its scene was deleted from the screenplay",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckMarkAsCheckedAction": "Mark as checked",
+  "@shotListNeedsCheckMarkAsCheckedAction": {
+    "description": "Action clearing a shot's needs-checking flag",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListShotsEmptyHint": "This sequence has no shot yet.",
   "@shotListShotsEmptyHint": {
     "description": "Hint shown in place of the shot table when the selected sequence has no shot",

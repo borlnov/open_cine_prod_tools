@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -44,6 +45,8 @@ OcptShot _buildShot({
   int difficultyCamera = 1,
   int difficultyActing = 1,
   int difficultySound = 1,
+  bool needsCheck = false,
+  OcptShotCheckReason? checkReason,
 }) => OcptShot(
   id: id,
   screenplayId: "screenplay",
@@ -66,8 +69,8 @@ OcptShot _buildShot({
   difficultySound: difficultySound,
   notes: "",
   locationNotes: "",
-  needsCheck: false,
-  checkReason: null,
+  needsCheck: needsCheck,
+  checkReason: checkReason,
   characters: characters,
   coverageRanges: const [],
   code: code,
@@ -83,6 +86,7 @@ Widget _buildPanel({
   void Function(OcptShotDifficultyAxis axis, int value)? onDifficultyChanged,
   ValueChanged<String>? onCharacterToggled,
   void Function(OcptShotListEditableField field, String rawValue)? onFieldChanged,
+  VoidCallback? onMarkAsChecked,
   VoidCallback? onDeleteRequested,
 }) => OcptShotInspectorPanel(
   shot: shot,
@@ -90,10 +94,17 @@ Widget _buildPanel({
   sequenceDisplayNumber: "1",
   speakingCharacters: speakingCharacters,
   suggestions: const OcptShotFieldSuggestions.empty(),
+  coverageLayout: null,
+  otherShotsCoverageRanges: const {},
+  staleCoverageRangeIds: const {},
+  pendingCoverageAnchor: null,
   fieldValueOf: (field) => "",
   onDifficultyChanged: onDifficultyChanged ?? (_, __) {},
   onCharacterToggled: onCharacterToggled ?? (_) {},
   onFieldChanged: onFieldChanged ?? (_, __) {},
+  onCoverageWordTapped: (_, __, ___) {},
+  onCoverageClearAll: () {},
+  onMarkAsChecked: onMarkAsChecked ?? () {},
   onDeleteRequested: onDeleteRequested,
 );
 
@@ -227,5 +238,86 @@ void main() {
     );
 
     expect(find.text("CLARA (removed)"), findsOneWidget);
+  });
+
+  testWidgets("the Needs checking callout is absent when the shot doesn't need checking",
+      (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
+
+    expect(find.text("Mark as checked"), findsNothing);
+  });
+
+  testWidgets("the Needs checking callout shows the covered-text-changed reason", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(
+            needsCheck: true,
+            checkReason: OcptShotCheckReason.coveredTextChanged,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text("The screenplay text one of this shot's coverage ranges covers has changed."),
+      findsOneWidget,
+    );
+    expect(find.text("Mark as checked"), findsOneWidget);
+  });
+
+  testWidgets("the Needs checking callout shows the coverage-out-of-bounds reason", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(
+            needsCheck: true,
+            checkReason: OcptShotCheckReason.coverageOutOfBounds,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text(
+        "One of this shot's coverage ranges no longer fits inside its scene and was clamped.",
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets("the Needs checking callout shows the scene-deleted reason", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(needsCheck: true, checkReason: OcptShotCheckReason.sceneDeleted),
+        ),
+      ),
+    );
+
+    expect(find.text("This shot's scene was removed from the screenplay."), findsOneWidget);
+  });
+
+  testWidgets("clicking Mark as checked reports it", (tester) async {
+    await _useTallSurface(tester);
+    var markedAsChecked = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(needsCheck: true, checkReason: OcptShotCheckReason.sceneDeleted),
+          onMarkAsChecked: () => markedAsChecked = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text("Mark as checked"));
+    await tester.pump();
+
+    expect(markedAsChecked, isTrue);
   });
 }
