@@ -7,7 +7,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
 /// The events handled by `OcptShotListBloc`.
 sealed class OcptShotListEvent extends BlocEventForMixin {
@@ -193,25 +192,6 @@ class OcptShotListShotFieldChangedEvent extends OcptShotListEvent {
 class OcptShotListFieldEditFlushRequestedEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListFieldEditFlushRequestedEvent();
-}
-
-/// Sets the shooting status of shot [shotId], dispatched by the inspector header's status pill.
-///
-/// Written immediately: picking a status from a menu is a single discrete action, not typing, so
-/// it never goes through the field-edit debounce.
-class OcptShotListShotStatusChangedEvent extends OcptShotListEvent {
-  /// The id of the shot whose status changed.
-  final String shotId;
-
-  /// The status picked.
-  final OcptShotStatus status;
-
-  /// Class constructor
-  const OcptShotListShotStatusChangedEvent({required this.shotId, required this.status});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, shotId, status];
 }
 
 /// Sets one difficulty axis of shot [shotId] to [value] (0-5), dispatched by the inspector's

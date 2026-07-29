@@ -148,7 +148,8 @@ Top to bottom:
 
 Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector shows, in order:
 
-- `Shot 1/3` in Courier Prime with a status pill next to it, and the sequence heading under it.
+- `Shot 1/3` in Courier Prime with a read-only status pill next to it (decision 10), and the
+  sequence heading under it.
 - A **`Needs checking`** callout when the shot is stale: the reason, and a `Mark as checked`
   button.
 - **Characters in shot** — chips, click to toggle. A character removed from the screenplay but
@@ -165,7 +166,8 @@ Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector show
 - **Image** — Shot size, Framing & composition, Camera move, Lens, Format.
 - **Difficulty — avg. 1,8** — four labelled bars (Set, Camera move, Acting, Sound) on 0-5, the bar
   warning-coloured at ≥ 3 and error-coloured at ≥ 4.
-- **Production** — Shooting day, Estimated duration, Planned takes, Sound, Sequence.
+- **Production** — Estimated duration, Sound, Sequence. No shooting day and no planned takes: see
+  decision 10.
 - **Director's notes** — free multi-line text.
 - **Location scouting** — a free multi-line list of labels (see §3.5).
 
@@ -188,6 +190,7 @@ These were settled with Benoit before this plan was written. They are not open q
 | 7 | **The mock-up's `Versions` tab is out of scope.** Project versioning (read-only preview, fork, restore, its `canEdit` flag threaded through every mode) is its own future step. Nothing in this step should anticipate it beyond not making it harder. |
 | 8 | **Location scouting is a plain multi-line text field** for now, a deliberate placeholder for the future locations module rather than a modelled relation. |
 | 9 | **XLSX export is in scope**, as the last milestone. PDF export of the shot list is not. |
+| 10 | **Everything a shot's scheduling decides stays out of this mode.** The status, the shooting day and the planned takes are read-only here — the status pill is a read-out, the other two are absent from the inspector and only read out by the metadata tab. They keep their columns (the table can show them, the XLSX export writes them) and become editable in the shooting schedule mode, which is what owns them. |
 
 ---
 
@@ -424,7 +427,7 @@ Report at the checkpoint whether `OcptWorkspaceShell` needed any change — it s
 
 `OcptShotListRightDock`, `OcptShotInspectorPanel`, `OcptShotDifficultyBars`, every field editable
 with the 2 s debounce and the `deactivate()` flush, the free-text suggestions, the character chips,
-the status pill, the metadata tab. Coverage is still absent from the panel.
+the read-only status pill, the metadata tab. Coverage is still absent from the panel.
 
 ### M4 — Scenario coverage
 

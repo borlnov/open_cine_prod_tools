@@ -110,7 +110,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListShotFieldChangedEvent>(_onShotFieldChanged);
     on<OcptShotListFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
-    on<OcptShotListShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptShotListShotDifficultyChangedEvent>(_onShotDifficultyChanged);
     on<OcptShotListShotCharacterToggledEvent>(_onShotCharacterToggled);
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
@@ -580,9 +579,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   }
 
   /// Writes a single field edit through `OcptShotListService.updateShot`.
-  /// [OcptShotListEditableField.estimatedDuration] and [OcptShotListEditableField.plannedTakes]
-  /// are parsed first; an entry whose raw text doesn't parse is silently skipped, leaving
-  /// whatever the database already holds untouched, rather than failing the whole flush.
+  /// [OcptShotListEditableField.estimatedDuration] is parsed first; an entry whose raw text
+  /// doesn't parse is silently skipped, leaving whatever the database already holds untouched,
+  /// rather than failing the whole flush.
   Future<void> _writeField({
     required OcptProjectDatabase database,
     required String shotId,
@@ -616,13 +615,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           shotId: shotId,
           recordingFormat: Value(rawValue),
         );
-      case OcptShotListEditableField.shootingDay:
-        final trimmed = rawValue.trim();
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          shootingDay: Value(trimmed.isEmpty ? null : trimmed),
-        );
       case OcptShotListEditableField.sound:
         await _shotListService.updateShot(
           database: database,
@@ -651,16 +643,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           shotId: shotId,
           estimatedDurationMs: Value(parsed.value),
         );
-      case OcptShotListEditableField.plannedTakes:
-        final parsed = _tryParsePlannedTakes(rawValue);
-        if (!parsed.isValid) {
-          return;
-        }
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          plannedTakes: Value(parsed.value),
-        );
     }
   }
 
@@ -672,46 +654,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       return (isValid: true, value: ocptParseShotDuration(raw));
     } on FormatException {
       return (isValid: false, value: null);
-    }
-  }
-
-  /// Attempts to parse [raw] as a shot's planned take count: blank means null, a non-negative
-  /// integer means itself, anything else is rejected.
-  ({bool isValid, int? value}) _tryParsePlannedTakes(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) {
-      return (isValid: true, value: null);
-    }
-
-    final parsed = int.tryParse(trimmed);
-    if (parsed == null || parsed < 0) {
-      return (isValid: false, value: null);
-    }
-
-    return (isValid: true, value: parsed);
-  }
-
-  /// Sets the shooting status of shot `event.shotId`, written immediately.
-  Future<void> _onShotStatusChanged(
-    OcptShotListShotStatusChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _shotListService.updateShot(
-        database: project.database,
-        shotId: event.shotId,
-        status: Value(event.status),
-      );
-      emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to change the status of shot ${event.shotId} "
-          "of the project at ${project.path}: $error");
-      emitter(state.copyWith(hasWriteError: true));
     }
   }
 

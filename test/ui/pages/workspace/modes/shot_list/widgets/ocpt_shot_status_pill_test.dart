@@ -23,50 +23,19 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 
 void main() {
   testWidgets("shows the current status label", (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptShotStatusPill(status: OcptShotStatus.retake, onStatusSelected: (_) {}),
-      ),
-    );
+    await tester.pumpWidget(_wrapInApp(const OcptShotStatusPill(status: OcptShotStatus.retake)));
 
     expect(find.text("Retake"), findsOneWidget);
   });
 
-  testWidgets("opening the menu lists every status, the active one ticked", (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptShotStatusPill(status: OcptShotStatus.shot, onStatusSelected: (_) {}),
-      ),
-    );
+  testWidgets("is a read-out: tapping it opens nothing", (tester) async {
+    await tester.pumpWidget(_wrapInApp(const OcptShotStatusPill(status: OcptShotStatus.shot)));
 
     await tester.tap(find.text("Shot"));
     await tester.pumpAndSettle();
 
-    expect(find.text("To shoot"), findsOneWidget);
-    // "Shot" now appears twice: the pill itself and its menu entry.
-    expect(find.text("Shot"), findsNWidgets(2));
-    expect(find.text("Retake"), findsOneWidget);
-    expect(find.byIcon(Icons.check), findsOneWidget);
-  });
-
-  testWidgets("picking a status from the menu reports it", (tester) async {
-    OcptShotStatus? reported;
-
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptShotStatusPill(
-          status: OcptShotStatus.toShoot,
-          onStatusSelected: (status) => reported = status,
-        ),
-      ),
-    );
-
-    await tester.tap(find.text("To shoot"));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text("Retake"));
-    await tester.pumpAndSettle();
-
-    expect(reported, OcptShotStatus.retake);
+    expect(find.text("Shot"), findsOneWidget);
+    expect(find.text("To shoot"), findsNothing);
+    expect(find.text("Retake"), findsNothing);
   });
 }

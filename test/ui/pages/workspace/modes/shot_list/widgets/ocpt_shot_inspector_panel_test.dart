@@ -79,7 +79,6 @@ OcptShot _buildShot({
 Widget _buildPanel({
   OcptShot? shot,
   List<String> speakingCharacters = const ["LÉA"],
-  ValueChanged<OcptShotStatus>? onStatusChanged,
   void Function(OcptShotDifficultyAxis axis, int value)? onDifficultyChanged,
   ValueChanged<String>? onCharacterToggled,
   void Function(OcptShotListEditableField field, String rawValue)? onFieldChanged,
@@ -91,7 +90,6 @@ Widget _buildPanel({
   speakingCharacters: speakingCharacters,
   suggestions: const OcptShotFieldSuggestions.empty(),
   fieldValueOf: (field) => "",
-  onStatusChanged: onStatusChanged ?? (_) {},
   onDifficultyChanged: onDifficultyChanged ?? (_, __) {},
   onCharacterToggled: onCharacterToggled ?? (_) {},
   onFieldChanged: onFieldChanged ?? (_, __) {},
@@ -130,21 +128,25 @@ void main() {
     expect(toggled, ["LÉA"]);
   });
 
-  testWidgets("picking a status from the pill's menu reports it", (tester) async {
-    OcptShotStatus? reported;
-
-    await tester.pumpWidget(
-      _wrapInApp(
-        _buildPanel(shot: _buildShot(), onStatusChanged: (status) => reported = status),
-      ),
-    );
+  testWidgets("the status pill is a read-out, not a control", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
 
     await tester.tap(find.text("To shoot"));
     await tester.pumpAndSettle();
-    await tester.tap(find.text("Shot"));
-    await tester.pumpAndSettle();
 
-    expect(reported, OcptShotStatus.shot);
+    expect(find.text("To shoot"), findsOneWidget);
+    expect(find.text("Shot"), findsNothing);
+    expect(find.text("Retake"), findsNothing);
+  });
+
+  testWidgets("the production section leaves the scheduling fields out", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
+
+    expect(find.text("ESTIMATED DURATION"), findsOneWidget);
+    expect(find.text("SHOOTING DAY"), findsNothing);
+    expect(find.text("PLANNED TAKES"), findsNothing);
   });
 
   testWidgets("clicking a difficulty dot reports the axis and value", (tester) async {

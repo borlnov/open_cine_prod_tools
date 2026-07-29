@@ -226,11 +226,6 @@ class _ShotListViewState extends State<_ShotListView> {
         speakingCharacters: state.speakingCharacters,
         suggestions: state.suggestions,
         fieldValueOf: (field) => _fieldValueOf(state, selectedShot, field),
-        onStatusChanged: (status) => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListShotStatusChangedEvent(shotId: id, status: status),
-        ),
         onDifficultyChanged: (axis, value) => _dispatchIfShotSelected(
           context,
           selectedShot,
@@ -299,11 +294,9 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListEditableField.cameraMove => shot.cameraMove,
       OcptShotListEditableField.lens => shot.lens,
       OcptShotListEditableField.recordingFormat => shot.recordingFormat,
-      OcptShotListEditableField.shootingDay => shot.shootingDay ?? "",
       OcptShotListEditableField.estimatedDuration => shot.estimatedDurationMs == null
           ? ""
           : ocptFormatShotDuration(shot.estimatedDurationMs),
-      OcptShotListEditableField.plannedTakes => shot.plannedTakes?.toString() ?? "",
       OcptShotListEditableField.sound => shot.sound,
       OcptShotListEditableField.notes => shot.notes,
       OcptShotListEditableField.locationNotes => shot.locationNotes,

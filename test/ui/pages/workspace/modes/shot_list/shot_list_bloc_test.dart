@@ -17,7 +17,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
@@ -543,7 +542,7 @@ void main() {
     await bloc.close();
   });
 
-  test('status, a difficulty axis and a character toggle each write immediately', () async {
+  test('a difficulty axis and a character toggle each write immediately', () async {
     await writeScreenplay(dialogueText);
 
     final bloc = buildBloc();
@@ -552,9 +551,6 @@ void main() {
     bloc.add(const OcptShotListShotCreationRequestedEvent());
     var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
     final shotId = state.selectedShotId!;
-
-    bloc.add(OcptShotListShotStatusChangedEvent(shotId: shotId, status: OcptShotStatus.shot));
-    state = await waitForState(bloc, (state) => state.selectedShot!.status == OcptShotStatus.shot);
 
     bloc.add(
       OcptShotListShotDifficultyChangedEvent(

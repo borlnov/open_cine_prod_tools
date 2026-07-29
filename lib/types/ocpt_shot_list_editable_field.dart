@@ -4,15 +4,17 @@
 
 /// One of the shot inspector's typed fields, whose edits go through the shot list bloc's 2 s
 /// autosave debounce (`OcptShotListState.pendingFieldEdits`) rather than being written
-/// immediately like a status change, a difficulty dot or a character chip, which are each a
-/// single discrete action rather than typing.
+/// immediately like a difficulty dot or a character chip, which are each a single discrete action
+/// rather than typing.
+///
+/// Only the fields the shot list itself owns are listed: a shot's `shootingDay`, `plannedTakes`
+/// and status are scheduling data, edited from the shooting schedule mode rather than here.
 ///
 /// Every case maps onto one `OcptShotListService.updateShot` argument of the same name, except
-/// [estimatedDuration] and [plannedTakes], which are parsed from their typed text before being
-/// written rather than stored verbatim: [estimatedDuration] through `ocptParseShotDuration`
-/// (`lib/ui/utils/ocpt_shot_list_labels.dart`) into `estimatedDurationMs`, [plannedTakes] as a
-/// plain non-negative integer into `plannedTakes`. Either one being unparseable rejects the edit
-/// (the shot list bloc leaves the stored value untouched) rather than writing anything.
+/// [estimatedDuration], which is parsed from its typed text through `ocptParseShotDuration`
+/// (`lib/ui/utils/ocpt_shot_list_labels.dart`) into `estimatedDurationMs` rather than being stored
+/// verbatim. It being unparseable rejects the edit (the shot list bloc leaves the stored value
+/// untouched) rather than writing anything.
 enum OcptShotListEditableField {
   /// Maps to `updateShot`'s `shotSize`.
   shotSize,
@@ -29,17 +31,9 @@ enum OcptShotListEditableField {
   /// Maps to `updateShot`'s `recordingFormat`.
   recordingFormat,
 
-  /// Maps to `updateShot`'s `shootingDay`; a blank typed value is stored as null rather than an
-  /// empty string.
-  shootingDay,
-
   /// Maps to `updateShot`'s `estimatedDurationMs`, parsed from `m:ss` (or a bare seconds count)
   /// through `ocptParseShotDuration`.
   estimatedDuration,
-
-  /// Maps to `updateShot`'s `plannedTakes`, parsed as a non-negative integer (a blank typed value
-  /// is stored as null).
-  plannedTakes,
 
   /// Maps to `updateShot`'s `sound`.
   sound,

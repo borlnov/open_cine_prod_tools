@@ -9,7 +9,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_character_chips.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
@@ -22,6 +21,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// list mode is the only caller, wiring every callback to `OcptShotListBloc` events and computing
 /// [fieldValueOf] from the bloc's own pending-edit map so a field shows what was just typed while
 /// its 2 s autosave debounce is still running.
+///
+/// Everything a shot's *scheduling* decides is deliberately absent, because the shooting schedule
+/// mode is what will own it: the header's status pill is a read-out rather than a control, and the
+/// Production section has no shooting day and no planned takes. The metadata tab still reads those
+/// two out, once they exist.
 ///
 /// Scenario coverage is not part of this panel yet: it comes in a future version, as its own
 /// section between the character chips and the Image section. Nothing here says anything about a
@@ -51,9 +55,6 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// missing value, never [ocptShotListEmptyValue]).
   final String Function(OcptShotListEditableField field) fieldValueOf;
 
-  /// Called when a status is picked from the header's status pill.
-  final ValueChanged<OcptShotStatus> onStatusChanged;
-
   /// Called when a difficulty dot is clicked.
   final void Function(OcptShotDifficultyAxis axis, int value) onDifficultyChanged;
 
@@ -76,7 +77,6 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.speakingCharacters,
     required this.suggestions,
     required this.fieldValueOf,
-    required this.onStatusChanged,
     required this.onDifficultyChanged,
     required this.onCharacterToggled,
     required this.onFieldChanged,
@@ -112,7 +112,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            OcptShotStatusPill(status: shot.status, onStatusSelected: onStatusChanged),
+            OcptShotStatusPill(status: shot.status),
           ],
         ),
         const SizedBox(height: 2),
@@ -203,21 +203,9 @@ class OcptShotInspectorPanel extends StatelessWidget {
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
-          label: tr.shotListColumnShootingDay,
-          value: fieldValueOf(OcptShotListEditableField.shootingDay),
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.shootingDay, value),
-        ),
-        OcptShotInspectorField(
-          shotId: shot.id,
           label: tr.shotListInspectorEstimatedDurationLabel,
           value: fieldValueOf(OcptShotListEditableField.estimatedDuration),
           onChanged: (value) => onFieldChanged(OcptShotListEditableField.estimatedDuration, value),
-        ),
-        OcptShotInspectorField(
-          shotId: shot.id,
-          label: tr.shotListInspectorPlannedTakesLabel,
-          value: fieldValueOf(OcptShotListEditableField.plannedTakes),
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.plannedTakes, value),
         ),
         OcptShotInspectorField(
           shotId: shot.id,
