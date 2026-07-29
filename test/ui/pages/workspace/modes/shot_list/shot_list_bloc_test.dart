@@ -72,7 +72,7 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
     required String sceneId,
     required int startOffset,
     required int endOffset,
-    required String coveredText,
+    required String sceneText,
   }) async => throw StateError("coverage write intentionally failed for the test");
 }
 
@@ -774,6 +774,47 @@ void main() {
     // The range genuinely runs through both blocks, blank line included.
     expect(layout.blocksSpannedBy(range), [headingBlock, actionBlock]);
     expect(state.pendingCoverageAnchor, isNull);
+
+    await bloc.close();
+  });
+
+  test("a range drawn next to an existing one merges with it", () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final heading = layout.blocks.firstWhere((block) => block.text == "INT. HOUSE - DAY");
+
+    Future<void> drawWord(OcptShotCoverageWord word) async {
+      final rangeCountBefore = state.selectedShot!.coverageRanges.length;
+      for (var click = 0; click < 2; click++) {
+        bloc.add(
+          OcptShotListCoverageWordClickedEvent(
+            shotId: shotId,
+            wordStartOffset: word.startOffset,
+            wordEndOffset: word.endOffset,
+          ),
+        );
+      }
+      state = await waitForState(
+        bloc,
+        (state) =>
+            state.pendingCoverageAnchor == null &&
+            state.selectedShot!.coverageRanges.length != rangeCountBefore - 1,
+      );
+    }
+
+    // Two one-word ranges, drawn separately on two words a single space apart.
+    await drawWord(heading.words[0]);
+    await drawWord(heading.words[1]);
+
+    final range = state.selectedShot!.coverageRanges.single;
+    expect(layout.sceneText.substring(range.startOffset, range.endOffset), "INT. HOUSE");
 
     await bloc.close();
   });

@@ -417,7 +417,7 @@ John walks in.
       sceneId: scene.id,
       startOffset: range.startOffset,
       endOffset: range.endOffset,
-      coveredText: sceneText.substring(range.startOffset, range.endOffset),
+      sceneText: sceneText,
     );
   });
 }

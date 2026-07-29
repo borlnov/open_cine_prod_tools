@@ -900,7 +900,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         sceneId: layout.sceneId,
         startOffset: range.startOffset,
         endOffset: range.endOffset,
-        coveredText: layout.sceneText.substring(range.startOffset, range.endOffset),
+        sceneText: layout.sceneText,
       ),
     );
   }

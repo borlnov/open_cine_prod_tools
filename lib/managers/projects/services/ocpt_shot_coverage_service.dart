@@ -38,16 +38,28 @@ class OcptShotCoverageService {
   const OcptShotCoverageService();
 
   /// Adds a coverage range covering the scene-relative `[startOffset, endOffset)` of scene
-  /// [sceneId] to shot [shotId], with its digest computed from [coveredText] (the exact substring
-  /// the range currently covers), and returns the freshly generated id of the new range.
+  /// [sceneId] to shot [shotId], **merged with every range of that shot it joins**, and returns
+  /// the id of the range that ends up holding it.
   ///
+  /// [sceneText] is scene [sceneId]'s own current text, the string the offsets are relative to: it
+  /// is what the covered substrings — and so the digests — are read from, and what tells whether
+  /// what sits between two ranges is worth keeping them apart.
+  ///
+  /// **Merging.** Two ranges of the same shot join when they overlap, when they touch, or when the
+  /// only thing between them is whitespace: the sheet a range is drawn on paints each word's
+  /// trailing whitespace along with it, so two ranges a single space apart already read as one
+  /// continuous highlight, and storing them as two would only be a difference the user cannot see.
+  /// Merging repeats until nothing else joins, so a range bridging two existing ones absorbs both.
+  /// The surviving range is a **new** row covering the whole span, its digest stamped from that
+  /// span's current text; the rows it absorbed are deleted, ids included — nothing outside this
+  /// table references a range by id, so no caller can be left holding a stale one.
   Future<String> addRange({
     required OcptProjectDatabase database,
     required String shotId,
     required String sceneId,
     required int startOffset,
     required int endOffset,
-    required String coveredText,
+    required String sceneText,
   }) async {
     if (startOffset < 0 || endOffset <= startOffset) {
       throw ArgumentError(
@@ -55,21 +67,91 @@ class OcptShotCoverageService {
         "(startOffset: $startOffset, endOffset: $endOffset)",
       );
     }
+
     final id = const Uuid().v4();
-    await database
-        .into(database.ocptShotCoveragesTable)
-        .insert(
-          OcptShotCoveragesTableCompanion.insert(
-            id: id,
-            shotId: shotId,
-            sceneId: sceneId,
-            startOffset: startOffset,
-            endOffset: endOffset,
-            coveredTextDigest: digestOf(coveredText),
-          ),
-        );
+
+    await database.transaction(() async {
+      final existing =
+          await (database.select(database.ocptShotCoveragesTable)..where(
+                (table) => table.shotId.equals(shotId) & table.sceneId.equals(sceneId),
+              ))
+              .get();
+
+      var mergedStart = startOffset;
+      var mergedEnd = endOffset;
+      final absorbedIds = <String>[];
+
+      // Repeated until nothing else joins: absorbing one range widens the span, which can bring a
+      // further range within reach of it.
+      var hasMerged = true;
+      while (hasMerged) {
+        hasMerged = false;
+        for (final range in existing) {
+          if (absorbedIds.contains(range.id)) {
+            continue;
+          }
+          if (!_joins(
+            firstStart: mergedStart,
+            firstEnd: mergedEnd,
+            secondStart: range.startOffset,
+            secondEnd: range.endOffset,
+            sceneText: sceneText,
+          )) {
+            continue;
+          }
+
+          mergedStart = range.startOffset < mergedStart ? range.startOffset : mergedStart;
+          mergedEnd = range.endOffset > mergedEnd ? range.endOffset : mergedEnd;
+          absorbedIds.add(range.id);
+          hasMerged = true;
+        }
+      }
+
+      if (absorbedIds.isNotEmpty) {
+        await (database.delete(
+          database.ocptShotCoveragesTable,
+        )..where((table) => table.id.isIn(absorbedIds))).go();
+      }
+
+      final clampedEnd = mergedEnd > sceneText.length ? sceneText.length : mergedEnd;
+      await database
+          .into(database.ocptShotCoveragesTable)
+          .insert(
+            OcptShotCoveragesTableCompanion.insert(
+              id: id,
+              shotId: shotId,
+              sceneId: sceneId,
+              startOffset: mergedStart,
+              endOffset: mergedEnd,
+              coveredTextDigest: digestOf(sceneText.substring(mergedStart, clampedEnd)),
+            ),
+          );
+    });
 
     return id;
+  }
+
+  /// Whether two scene-relative ranges join: they overlap, they touch end to end, or the only
+  /// thing [sceneText] holds between them is whitespace. See [addRange] for why whitespace alone
+  /// is not worth keeping two ranges apart over.
+  static bool _joins({
+    required int firstStart,
+    required int firstEnd,
+    required int secondStart,
+    required int secondEnd,
+    required String sceneText,
+  }) {
+    if (firstStart < secondEnd && secondStart < firstEnd) {
+      return true;
+    }
+
+    final gapStart = firstEnd < secondStart ? firstEnd : secondEnd;
+    final gapEnd = firstEnd < secondStart ? secondStart : firstStart;
+    if (gapStart < 0 || gapEnd > sceneText.length || gapStart > gapEnd) {
+      return false;
+    }
+
+    return sceneText.substring(gapStart, gapEnd).trim().isEmpty;
   }
 
   /// Removes the single coverage range [rangeId].

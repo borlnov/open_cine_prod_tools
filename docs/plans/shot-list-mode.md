@@ -348,6 +348,14 @@ lands, so a range legitimately runs from an action paragraph into the dialogue b
 constrains it beyond being non-empty and staying inside its own scene, which is what its offsets
 are relative to. The inspector labels such a range with every block type it runs through.
 
+**Ranges of one shot merge as soon as they join.** `addRange` absorbs every range of the same shot
+and scene that overlaps the new one, touches it, or is separated from it by whitespace alone —
+repeatedly, so a range bridging two existing ones absorbs both — and stores the whole span as a
+single row, digest restamped. Whitespace counts as joined because the sheet paints each word's
+trailing whitespace with it: two ranges one space apart already read as one continuous highlight,
+so keeping them as two rows would be a distinction the user cannot see. Two different shots, or two
+different scenes, never merge.
+
 ### 4.5 Services
 
 - **`OcptShotListService`** — CRUD over shots and their characters; loads the whole

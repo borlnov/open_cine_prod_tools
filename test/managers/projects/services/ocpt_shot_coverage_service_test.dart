@@ -79,13 +79,18 @@ Action one.
         sceneId: scene.id,
       );
 
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final wordOffset = sceneText.indexOf("one");
+
       final rangeId = await coverageService.addRange(
         database: database,
         shotId: shotId,
         sceneId: scene.id,
-        startOffset: 22,
-        endOffset: 25,
-        coveredText: "one",
+        startOffset: wordOffset,
+        endOffset: wordOffset + "one".length,
+        sceneText: sceneText,
       );
 
       final range = await readSingleRange();
@@ -124,7 +129,7 @@ Action one.
         sceneId: scene.id,
         startOffset: startOffset,
         endOffset: endOffset,
-        coveredText: sceneText.substring(startOffset, endOffset),
+        sceneText: sceneText,
       );
 
       final range = await (database.select(
@@ -134,6 +139,247 @@ Action one.
       expect(range.startOffset, startOffset);
       expect(range.endOffset, endOffset);
       expect(range.coveredTextDigest, _digestOf(sceneText.substring(startOffset, endOffset)));
+    });
+
+    test("merges a range into the one it overlaps, keeping a single row", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final oneOffset = sceneText.indexOf("one");
+      final twoOffset = sceneText.indexOf("two");
+      final threeEnd = sceneText.indexOf("three.") + "three.".length;
+
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: oneOffset,
+        endOffset: twoOffset + "two".length,
+        sceneText: sceneText,
+      );
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: twoOffset,
+        endOffset: threeEnd,
+        sceneText: sceneText,
+      );
+
+      final range = await readSingleRange();
+      expect(range.startOffset, oneOffset);
+      expect(range.endOffset, threeEnd);
+      expect(range.coveredTextDigest, _digestOf(sceneText.substring(oneOffset, threeEnd)));
+    });
+
+    test("merges two ranges a single space apart: they already read as one highlight", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final oneOffset = sceneText.indexOf("one");
+      final twoOffset = sceneText.indexOf("two");
+
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: oneOffset,
+        endOffset: oneOffset + "one".length,
+        sceneText: sceneText,
+      );
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: twoOffset,
+        endOffset: twoOffset + "two".length,
+        sceneText: sceneText,
+      );
+
+      final range = await readSingleRange();
+      expect(sceneText.substring(range.startOffset, range.endOffset), "one two");
+    });
+
+    test("a range bridging two existing ones absorbs both", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three four.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final oneOffset = sceneText.indexOf("one");
+      final twoOffset = sceneText.indexOf("two");
+      final fourEnd = sceneText.indexOf("four.") + "four.".length;
+
+      // "one", then "four.", far enough apart to stay two rows: real words sit between them.
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: oneOffset,
+        endOffset: oneOffset + "one".length,
+        sceneText: sceneText,
+      );
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: sceneText.indexOf("four."),
+        endOffset: fourEnd,
+        sceneText: sceneText,
+      );
+      expect(await database.select(database.ocptShotCoveragesTable).get(), hasLength(2));
+
+      // The bridge covers "two three", joining both of them at once.
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: twoOffset,
+        endOffset: sceneText.indexOf("three") + "three".length,
+        sceneText: sceneText,
+      );
+
+      final range = await readSingleRange();
+      expect(sceneText.substring(range.startOffset, range.endOffset), "one two three four.");
+    });
+
+    test("leaves apart two ranges with real text between them", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final oneOffset = sceneText.indexOf("one");
+      final threeOffset = sceneText.indexOf("three.");
+
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: oneOffset,
+        endOffset: oneOffset + "one".length,
+        sceneText: sceneText,
+      );
+      await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: threeOffset,
+        endOffset: threeOffset + "three.".length,
+        sceneText: sceneText,
+      );
+
+      expect(await database.select(database.ocptShotCoveragesTable).get(), hasLength(2));
+    });
+
+    test("never merges across two shots, nor across two scenes", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one two.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotA = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final shotB = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final oneOffset = sceneText.indexOf("one");
+      final twoOffset = sceneText.indexOf("two");
+
+      await coverageService.addRange(
+        database: database,
+        shotId: shotA,
+        sceneId: scene.id,
+        startOffset: oneOffset,
+        endOffset: oneOffset + "one".length,
+        sceneText: sceneText,
+      );
+      await coverageService.addRange(
+        database: database,
+        shotId: shotB,
+        sceneId: scene.id,
+        startOffset: twoOffset,
+        endOffset: twoOffset + "two".length,
+        sceneText: sceneText,
+      );
+
+      final ranges = await database.select(database.ocptShotCoveragesTable).get();
+      expect(ranges, hasLength(2));
+      expect(ranges.map((range) => range.shotId), containsAll([shotA, shotB]));
     });
 
     test("still rejects an empty or negative range", () async {
@@ -161,7 +407,7 @@ Action one.
           sceneId: scene.id,
           startOffset: 5,
           endOffset: 5,
-          coveredText: "",
+          sceneText: "never read: the guard rejects the range first",
         ),
         throwsArgumentError,
       );
@@ -207,7 +453,7 @@ Action two three.
         sceneId: streetScene.id,
         startOffset: wordOffset,
         endOffset: wordOffset + "two".length,
-        coveredText: "two",
+        sceneText: sceneTextBefore,
       );
       final rangeBefore = await readSingleRange();
 
@@ -280,7 +526,7 @@ Action two three.
       sceneId: streetScene.id,
       startOffset: wordOffset,
       endOffset: wordOffset + "two".length,
-      coveredText: "two",
+      sceneText: sceneText,
     );
 
     // "two" becomes "TWO": the covered word itself changed.
@@ -342,7 +588,7 @@ Action one two.
       sceneId: scene.id,
       startOffset: wordOffset,
       endOffset: wordOffset + "one".length,
-      coveredText: "one",
+      sceneText: sceneText,
     );
 
     expect((await readShot(shotId)).needsCheck, isFalse);
@@ -400,7 +646,7 @@ Action two three.
       sceneId: streetScene.id,
       startOffset: wordOffset,
       endOffset: wordOffset + "Action".length,
-      coveredText: "Action",
+      sceneText: sceneText,
     );
 
     // Only "three" (after the covered word) changes.
@@ -467,7 +713,7 @@ Action two three four.
       sceneId: streetScene.id,
       startOffset: wordOffset,
       endOffset: rangeEnd,
-      coveredText: "four",
+      sceneText: sceneTextBefore,
     );
 
     // The scene shrinks: "four" (and its trailing content) is gone, so the stored range no longer
@@ -540,7 +786,7 @@ Action two three.
       sceneId: streetScene.id,
       startOffset: wordOffset,
       endOffset: wordOffset + "two".length,
-      coveredText: "two",
+      sceneText: sceneText,
     );
 
     const editedText = '''
@@ -624,7 +870,7 @@ Action one two three.
       sceneId: scene.id,
       startOffset: oneOffset,
       endOffset: twoOffset + "two".length,
-      coveredText: "one two",
+      sceneText: sceneText,
     );
     await coverageService.addRange(
       database: database,
@@ -632,7 +878,7 @@ Action one two three.
       sceneId: scene.id,
       startOffset: twoOffset,
       endOffset: twoOffset + "two".length,
-      coveredText: "two",
+      sceneText: sceneText,
     );
 
     final overlappingWithB = await coverageService.shotIdsCoveringRange(
