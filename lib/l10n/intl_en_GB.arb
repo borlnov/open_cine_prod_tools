@@ -1593,6 +1593,84 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListInspectorCoverageSectionTitle": "Scenario coverage",
+  "@shotListInspectorCoverageSectionTitle": {
+    "description": "Title of the inspector's scenario coverage section",
+    "context": "Displayed above the scenario coverage editor of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageOrphanHint": "This shot's scene is gone: there is nothing left to cover.",
+  "@shotListCoverageOrphanHint": {
+    "description": "Hint shown in place of the coverage editor for an orphaned shot",
+    "context": "Displayed in the shot inspector's scenario coverage section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageModifiedBadge": "Modified",
+  "@shotListCoverageModifiedBadge": {
+    "description": "Badge on a coverage block whose text changed since it was recorded",
+    "context": "Displayed next to a block's label in the scenario coverage editor",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageAlsoCoveredBy": "Also covered by {codes}",
+  "@shotListCoverageAlsoCoveredBy": {
+    "description": "The other shots' codes covering the same coverage block",
+    "context": "Displayed under a block of the scenario coverage editor",
+    "type": "text",
+    "placeholders": {
+      "codes": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListCoverageWordsCovered": "{covered, plural, one{{covered} word covered of {total}} other{{covered} words covered of {total}}}",
+  "@shotListCoverageWordsCovered": {
+    "description": "Number of a scene's words covered by the shot, out of its total word count",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {
+      "covered": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListCoverageRangesCount": "{count, plural, one{{count} range} other{{count} ranges}}",
+  "@shotListCoverageRangesCount": {
+    "description": "Number of scenario coverage ranges the shot has recorded",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListCoverageClearAllAction": "Clear all",
+  "@shotListCoverageClearAllAction": {
+    "description": "Action removing every scenario coverage range of the shot",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageHintNoAnchor": "Click a word to start a range; click a covered word to remove it.",
+  "@shotListCoverageHintNoAnchor": {
+    "description": "Interaction hint shown while no coverage range is being drawn",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageHintPendingAnchor": "Click another word of the same block to close the range.",
+  "@shotListCoverageHintPendingAnchor": {
+    "description": "Interaction hint shown while a coverage range's first word is already clicked",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListInspectorImageSectionTitle": "Image",
   "@shotListInspectorImageSectionTitle": {
     "description": "Title of the inspector's image section (shot size, framing, camera move, lens, format)",
