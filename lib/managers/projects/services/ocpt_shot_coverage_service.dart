@@ -7,14 +7,16 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:uuid/uuid.dart';
 
 /// Adds, removes and clears a shot's scenario coverage ranges, and keeps them honest against the
 /// screenplay's actual text.
 ///
-/// **Digest.** `coveredTextDigest` columns store the SHA-256 (hex) of the exact substring a range
-/// covered when it was last recorded or confirmed, computed over its UTF-8 bytes.
+/// **Digest.** `coveredTextDigest` columns store [digestOf] a range's exact covered substring: the
+/// SHA-256 (hex) of that substring's UTF-8 bytes, computed when the range is recorded or
+/// confirmed.
 ///
 /// **A range never spans a block boundary.** The interaction this backs only ever closes a range
 /// within a single Fountain block (a click starts it, a second click in the *same* block closes
@@ -79,7 +81,7 @@ class OcptShotCoverageService {
             sceneId: sceneId,
             startOffset: startOffset,
             endOffset: endOffset,
-            coveredTextDigest: _digestOf(coveredText),
+            coveredTextDigest: digestOf(coveredText),
           ),
         );
 
@@ -188,7 +190,7 @@ class OcptShotCoverageService {
         final absoluteStart = scene.charStart + start;
         final absoluteEnd = scene.charStart + end;
         final currentSubstring = currentFountainText.substring(absoluteStart, absoluteEnd);
-        if (_digestOf(currentSubstring) != range.coveredTextDigest) {
+        if (digestOf(currentSubstring) != range.coveredTextDigest) {
           _upgradeReason(reasonByShotId, range.shotId, OcptShotCheckReason.coveredTextChanged);
         }
       }
@@ -228,7 +230,7 @@ class OcptShotCoverageService {
         await (database.update(
           database.ocptShotCoveragesTable,
         )..where((table) => table.id.equals(range.id))).write(
-          OcptShotCoveragesTableCompanion(coveredTextDigest: Value(_digestOf(substring))),
+          OcptShotCoveragesTableCompanion(coveredTextDigest: Value(digestOf(substring))),
         );
       }
 
@@ -300,5 +302,24 @@ class OcptShotCoverageService {
   }
 
   /// The hex SHA-256 digest of [text]'s UTF-8 bytes.
-  static String _digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
+  static String digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
+
+  /// Whether [range] disagrees with [sceneText] (its owning scene's current, already-sliced
+  /// text): either it no longer fits inside `[0, sceneText.length)` at all, or the substring it
+  /// covers no longer digests to [OcptShotCoverageRange.coveredTextDigest].
+  ///
+  /// This is the same rule [refreshStaleness] applies to every range of a screenplay at save
+  /// time, expressed instead over a single, already-loaded scene text with no database at all: a
+  /// caller that only has the scene's text in hand (the shot inspector, working off the layout it
+  /// already loaded) can use this to decide staleness range by range, rather than reading back the
+  /// coarser, shot-wide [OcptShotCoverageRange.isStale] that mirrors the owning shot's whole
+  /// `needsCheck` flag (see `OcptShotListService.loadShotList`'s doc comment for why that one is
+  /// deliberately coarse).
+  static bool isRangeStale({required OcptShotCoverageRange range, required String sceneText}) {
+    if (range.startOffset < 0 || range.endOffset > sceneText.length) {
+      return true;
+    }
+    final coveredSubstring = sceneText.substring(range.startOffset, range.endOffset);
+    return digestOf(coveredSubstring) != range.coveredTextDigest;
+  }
 }

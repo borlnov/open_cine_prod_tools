@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
@@ -611,5 +612,65 @@ Action one two three.
     );
 
     expect(overlappingWithB, [shotA]);
+  });
+
+  group("digestOf", () {
+    test("returns the SHA-256 hex digest of the text's UTF-8 bytes", () {
+      expect(OcptShotCoverageService.digestOf("hello"), _digestOf("hello"));
+    });
+
+    test("differs for different text", () {
+      expect(
+        OcptShotCoverageService.digestOf("hello"),
+        isNot(OcptShotCoverageService.digestOf("Hello")),
+      );
+    });
+  });
+
+  group("isRangeStale", () {
+    const sceneText = "Action one two three.";
+
+    /// Builds an [OcptShotCoverageRange] covering `sceneText[start:end]`, with its digest already
+    /// stamped from that substring, as it would be right after [OcptShotCoverageService.addRange].
+    OcptShotCoverageRange buildRange(int start, int end) => OcptShotCoverageRange(
+      id: "range",
+      sceneId: "scene-1",
+      startOffset: start,
+      endOffset: end,
+      coveredTextDigest: OcptShotCoverageService.digestOf(sceneText.substring(start, end)),
+      isStale: false,
+    );
+
+    test("is false when the covered substring hasn't changed", () {
+      final start = sceneText.indexOf("two");
+      final range = buildRange(start, start + "two".length);
+
+      expect(OcptShotCoverageService.isRangeStale(range: range, sceneText: sceneText), isFalse);
+    });
+
+    test("is true when a character inside the range changed", () {
+      final start = sceneText.indexOf("two");
+      final range = buildRange(start, start + "two".length);
+      const editedText = "Action one TWO three.";
+
+      expect(OcptShotCoverageService.isRangeStale(range: range, sceneText: editedText), isTrue);
+    });
+
+    test("is false when the change is outside the range", () {
+      final start = sceneText.indexOf("two");
+      final range = buildRange(start, start + "two".length);
+      // "three" (after the covered range) changes; the prefix up to and including "two" is
+      // untouched, so the range's own offsets still point at the same unchanged substring.
+      const editedText = "Action one two FOUR.";
+
+      expect(OcptShotCoverageService.isRangeStale(range: range, sceneText: editedText), isFalse);
+    });
+
+    test("is true when the range no longer fits inside the text", () {
+      final range = buildRange(sceneText.length - 3, sceneText.length);
+      const shorterText = "Action one";
+
+      expect(OcptShotCoverageService.isRangeStale(range: range, sceneText: shorterText), isTrue);
+    });
   });
 }
