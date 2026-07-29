@@ -259,6 +259,27 @@ class OcptShotCoverageLayout extends Equatable {
     return null;
   }
 
+  /// The exact text [range] covers in [sceneText]: what the inspector quotes for a range it lists
+  /// read-only, rather than re-rendering the whole scene around it.
+  ///
+  /// The offsets are clamped to [sceneText]'s own bounds first: a range recorded before an edit
+  /// shrank its scene can momentarily reach past the end of the text it was anchored in, and a
+  /// quoted extract is not worth throwing a `RangeError` over — that disagreement is what
+  /// `OcptShotCoverageService.isRangeStale` reports, and what the `modified` badge shown next to
+  /// this very extract already says.
+  String coveredTextOf(OcptShotCoverageRange range) {
+    final start = range.startOffset.clamp(0, sceneText.length);
+    final end = range.endOffset.clamp(start, sceneText.length);
+    return sceneText.substring(start, end);
+  }
+
+  /// [ranges] (ignoring every range not of [sceneId]) in the order they appear in the scene's
+  /// text: the order the inspector lists a shot's covered extracts in, which is the order they
+  /// read in rather than the order they happened to be recorded in.
+  List<OcptShotCoverageRange> rangesInReadingOrder(Iterable<OcptShotCoverageRange> ranges) =>
+      _rangesOfThisScene(ranges).toList()
+        ..sort((a, b) => a.startOffset.compareTo(b.startOffset));
+
   /// Filters [ranges] down to the ones belonging to this layout's own [sceneId], dropping ranges
   /// of any other scene a shot's whole range list may also carry.
   Iterable<OcptShotCoverageRange> _rangesOfThisScene(Iterable<OcptShotCoverageRange> ranges) =>

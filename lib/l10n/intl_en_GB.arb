@@ -1678,6 +1678,51 @@
       }
     }
   },
+  "shotListCoverageSelectAction": "Select\u2026",
+  "@shotListCoverageSelectAction": {
+    "description": "Label of the button opening the dialog a shot's scenario coverage is selected in",
+    "context": "Shown in the shot inspector's scenario coverage section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageEmptyHint": "No screenplay text covered yet.",
+  "@shotListCoverageEmptyHint": {
+    "description": "Hint shown in the scenario coverage section of a shot covering nothing yet",
+    "context": "Shown in the shot inspector's scenario coverage section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageExtract": "\u00ab {text} \u00bb",
+  "@shotListCoverageExtract": {
+    "description": "One covered extract of the screenplay, quoted in the shot inspector",
+    "context": "Shown in the shot inspector's scenario coverage section, one per coverage range",
+    "type": "text",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "pushes the door open, hesitates"
+      }
+    }
+  },
+  "shotListCoverageDialogTitle": "Coverage \u2014 Shot {code}",
+  "@shotListCoverageDialogTitle": {
+    "description": "Title of the dialog a shot's scenario coverage is selected in",
+    "context": "Shown at the top of the scenario coverage dialog",
+    "type": "text",
+    "placeholders": {
+      "code": {
+        "type": "String",
+        "example": "1/3"
+      }
+    }
+  },
+  "shotListCoverageDialogCloseAction": "Close",
+  "@shotListCoverageDialogCloseAction": {
+    "description": "Label of the button closing the scenario coverage dialog",
+    "context": "Shown at the bottom of the scenario coverage dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListCoverageClearAllAction": "Clear all",
   "@shotListCoverageClearAllAction": {
     "description": "Action removing every scenario coverage range of the shot",

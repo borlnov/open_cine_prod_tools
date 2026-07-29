@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_character_chips.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_editor.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_summary.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
@@ -33,9 +33,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 ///
 /// A shot needing checking shows a `Needs checking` callout right under the header, before the
 /// character chips: the localised [OcptShotCheckReason], and a `Mark as checked` button
-/// ([onMarkAsChecked]). Scenario coverage is its own section, [OcptShotCoverageEditor], between
-/// the character chips and the Image section — see that widget's own doc comment for the click
-/// interaction it renders.
+/// ([onMarkAsChecked]). Scenario coverage is its own section, [OcptShotCoverageSummary], between
+/// the character chips and the Image section: a read-only list of the extracts the shot covers,
+/// the selecting itself happening in the dialog [onSelectCoverageRequested] opens.
 class OcptShotInspectorPanel extends StatelessWidget {
   /// The selected shot, or null while none is (the empty state).
   final OcptShot? shot;
@@ -67,10 +67,6 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// while [shot] is null.
   final Set<String> staleCoverageRangeIds;
 
-  /// The first word clicked of a scenario coverage range currently being drawn, or null while
-  /// none is. Ignored while [shot] is null.
-  final OcptShotCoverageAnchor? pendingCoverageAnchor;
-
   /// [shot]'s current value for the given `field`: a pending edit still in the bloc's debounce,
   /// or the shot's own stored value, formatted for an editable field (an empty string for a
   /// missing value, never [ocptShotListEmptyValue]).
@@ -85,9 +81,9 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// Called with a field's raw text on every keystroke.
   final void Function(OcptShotListEditableField field, String rawValue) onFieldChanged;
 
-  /// Called with a clicked coverage word's own block start offset and its own start/end offsets.
-  final void Function(int blockStartOffset, int wordStartOffset, int wordEndOffset)
-  onCoverageWordTapped;
+  /// Called when the coverage section's `Select…` button is clicked, to open the dialog a shot's
+  /// coverage is selected in.
+  final VoidCallback onSelectCoverageRequested;
 
   /// Called when the coverage editor's `Clear all` action is clicked.
   final VoidCallback onCoverageClearAll;
@@ -110,12 +106,11 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.coverageLayout,
     required this.otherShotsCoverageRanges,
     required this.staleCoverageRangeIds,
-    required this.pendingCoverageAnchor,
     required this.fieldValueOf,
     required this.onDifficultyChanged,
     required this.onCharacterToggled,
     required this.onFieldChanged,
-    required this.onCoverageWordTapped,
+    required this.onSelectCoverageRequested,
     required this.onCoverageClearAll,
     required this.onMarkAsChecked,
     required this.onDeleteRequested,
@@ -176,13 +171,12 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
         _sectionTitle(context, tr.shotListInspectorCoverageSectionTitle),
         const SizedBox(height: 8),
-        OcptShotCoverageEditor(
+        OcptShotCoverageSummary(
           layout: coverageLayout,
           ownRanges: shot.coverageRanges,
           otherShotsRanges: otherShotsCoverageRanges,
           staleRangeIds: staleCoverageRangeIds,
-          pendingAnchor: pendingCoverageAnchor,
-          onWordTapped: onCoverageWordTapped,
+          onSelectRequested: onSelectCoverageRequested,
           onClearAll: onCoverageClearAll,
         ),
         const SizedBox(height: 16),

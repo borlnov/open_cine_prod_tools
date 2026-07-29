@@ -16,10 +16,12 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -176,6 +178,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     }
 
     final screenplayText = await _loadScreenplayText(project);
+    final pageSetup = await _loadPageSetup();
     final snapshot = await _loadSnapshot(project);
     final speakingCharacters = _speakingCharactersOf(screenplayText);
     final suggestions = await _loadSuggestions(project);
@@ -185,6 +188,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         isLoading: false,
         title: project.name,
         snapshot: snapshot,
+        pageSetup: pageSetup,
         screenplayText: screenplayText,
         selectedSequenceId: snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id,
         clearSelectedSequenceId: snapshot.sequences.isEmpty,
@@ -215,6 +219,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         database: project.database,
         screenplayId: project.primaryScreenplayId,
       );
+
+  /// Reads the page setup the screenplay is typeset with: the open project's own page format,
+  /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc
+  /// pairs them. The scenario coverage dialog's simulated paper sheet is laid out with it.
+  Future<OcptPageSetup> _loadPageSetup() async => OcptPageSetup(
+    format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+    margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+  );
 
   /// Parses [screenplayText] and delegates to `fountain_kit`'s `speakingCharactersOf`, whose
   /// normalisation matches `shot_characters.characterName`'s own (both go through

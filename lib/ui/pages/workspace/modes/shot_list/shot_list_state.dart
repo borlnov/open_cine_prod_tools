@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -32,6 +33,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// The whole shot list as last read from the project database, or null while nothing has been
   /// loaded yet.
   final OcptShotListSnapshot? snapshot;
+
+  /// The page setup the screenplay is typeset with, as last loaded by the bloc.
+  ///
+  /// The shot list itself never prints anything; this is what the scenario coverage dialog's
+  /// simulated paper sheet is laid out with, so the sequence it shows reads exactly like the same
+  /// text does in the screenplay mode's own preview (`OcptPageSetup.toMetrics` being the single
+  /// entry point both go through).
+  final OcptPageSetup pageSetup;
 
   /// The screenplay's Fountain text, as last loaded by the bloc.
   ///
@@ -224,6 +233,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     required this.isLoading,
     required this.title,
     required this.snapshot,
+    required this.pageSetup,
     required this.screenplayText,
     required this.selectedSequenceId,
     required this.selectedShotId,
@@ -245,6 +255,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     : isLoading = true,
       title = "",
       snapshot = null,
+      pageSetup = const OcptPageSetup.standard(),
       screenplayText = "",
       selectedSequenceId = null,
       selectedShotId = null,
@@ -272,6 +283,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     bool? isLoading,
     String? title,
     OcptShotListSnapshot? snapshot,
+    OcptPageSetup? pageSetup,
     String? screenplayText,
     String? selectedSequenceId,
     bool clearSelectedSequenceId = false,
@@ -294,6 +306,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
     snapshot: snapshot ?? this.snapshot,
+    pageSetup: pageSetup ?? this.pageSetup,
     screenplayText: screenplayText ?? this.screenplayText,
     selectedSequenceId: clearSelectedSequenceId
         ? null
@@ -321,6 +334,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     isLoading,
     title,
     snapshot,
+    pageSetup,
     screenplayText,
     selectedSequenceId,
     selectedShotId,

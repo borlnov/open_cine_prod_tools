@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
@@ -232,7 +233,6 @@ class _ShotListViewState extends State<_ShotListView> {
         coverageLayout: coverageLayout,
         otherShotsCoverageRanges: state.otherShotsCoverageOfSelectedScene(),
         staleCoverageRangeIds: staleCoverageRangeIds,
-        pendingCoverageAnchor: state.pendingCoverageAnchor,
         fieldValueOf: (field) => _fieldValueOf(state, selectedShot, field),
         onDifficultyChanged: (axis, value) => _dispatchIfShotSelected(
           context,
@@ -249,17 +249,7 @@ class _ShotListViewState extends State<_ShotListView> {
           selectedShot,
           (id) => OcptShotListShotFieldChangedEvent(shotId: id, field: field, rawValue: value),
         ),
-        onCoverageWordTapped: (blockStartOffset, wordStartOffset, wordEndOffset) =>
-            _dispatchIfShotSelected(
-              context,
-              selectedShot,
-              (id) => OcptShotListCoverageWordClickedEvent(
-                shotId: id,
-                blockStartOffset: blockStartOffset,
-                wordStartOffset: wordStartOffset,
-                wordEndOffset: wordEndOffset,
-              ),
-            ),
+        onSelectCoverageRequested: () => _handleCoverageSelectionRequested(context),
         onCoverageClearAll: () => _dispatchIfShotSelected(
           context,
           selectedShot,
@@ -344,6 +334,55 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
     context.read<OcptShotListBloc>().add(buildEvent(shot.id));
+  }
+
+  /// Opens the dialog a shot's scenario coverage is selected in, keeping it in step with the bloc
+  /// for as long as it is open.
+  ///
+  /// The dialog is built inside a `BlocBuilder` of its own, on the bloc explicitly handed down
+  /// rather than read from the dialog's context: a dialog is mounted in the navigator's own
+  /// subtree, above this mode, so it inherits nothing from it. That builder is what makes a range
+  /// appear the moment it is recorded, since every click writes through the same bloc events the
+  /// inspector uses. It renders nothing at all in the two states where there is nothing to select
+  /// in — no shot selected any more, or a shot whose sequence disappeared from the screenplay —
+  /// which can only happen if the selection changes underneath an open dialog.
+  Future<void> _handleCoverageSelectionRequested(BuildContext context) {
+    final bloc = context.read<OcptShotListBloc>();
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => BlocProvider.value(
+        value: bloc,
+        child: BlocBuilder<OcptShotListBloc, OcptShotListState>(
+          builder: (context, state) {
+            final shot = state.selectedShot;
+            final layout = state.buildSelectedCoverageLayout();
+            if (shot == null || layout == null) {
+              return const SizedBox.shrink();
+            }
+
+            return OcptShotCoverageDialog(
+              shotCode: shot.code,
+              sequenceHeading: _sequenceHeadingFor(state.selectedSequence, shot),
+              layout: layout,
+              pageSetup: state.pageSetup,
+              ownRanges: shot.coverageRanges,
+              otherShotsRanges: state.otherShotsCoverageOfSelectedScene(),
+              pendingAnchor: state.pendingCoverageAnchor,
+              onWordTapped: (blockStartOffset, wordStartOffset, wordEndOffset) => bloc.add(
+                OcptShotListCoverageWordClickedEvent(
+                  shotId: shot.id,
+                  blockStartOffset: blockStartOffset,
+                  wordStartOffset: wordStartOffset,
+                  wordEndOffset: wordEndOffset,
+                ),
+              ),
+              onClearAll: () => bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shot.id)),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   /// Shows the delete confirmation dialog, then dispatches the deletion request if the user

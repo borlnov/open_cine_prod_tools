@@ -155,14 +155,13 @@ Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector show
 - **Characters in shot** — chips, click to toggle. A character removed from the screenplay but
   still attached shows struck through in the error colour with a `(removed)` suffix, and stays
   listed until it is untoggled.
-- **Scenario coverage** — the heart of the panel, see §4.4 for the model. The scene's text is shown
-  block by block (each block labelled with its Fountain line type), the words clickable. Clicking
-  a word starts a range, clicking a second word in the **same block** closes it, clicking an
-  existing range removes it. Words covered by *this* shot get a strong accent background; words
-  covered by *another* shot get a faint wash and an accent underline, with
-  `Also covered by 1/2 · 1/4` under the block. A block whose text changed since the coverage was
-  recorded gets a `modified` badge. Footer: `N words covered of M · P range(s)`, plus a
-  `Clear all` action and a one-line hint describing the current interaction state.
+- **Scenario coverage** — the heart of the panel, see §4.4 for the model. In the dock it is
+  **read-only**: a `Select…` button, then one entry per range in the order they read in the
+  sequence — the block's Fountain line type, the covered extract quoted, a `modified` badge when
+  the text changed since it was recorded, and `Also covered by 1/2 · 1/4` when other shots cover
+  the same extract. Footer: `N words covered of M · P range(s)` and a `Clear all` action.
+  The selecting itself happens in the dialog `Select…` opens (see §3.3.1): the dock is too narrow
+  to click words in comfortably, and a shot's coverage is read far more often than authored.
 - **Image** — Shot size, Framing & composition, Camera move, Lens, Format. Framing & composition
   and Camera move are written as several lines, like the director's notes are.
 - **Difficulty — avg. 1,8** — four labelled bars (Set, Camera move, Acting, Sound) on 0-5, the bar
@@ -171,6 +170,23 @@ Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector show
   planned takes: see decision 10.
 - **Director's notes** — free multi-line text.
 - **Location scouting** — a free multi-line list of labels (see §3.5).
+
+### 3.3.1 The scenario coverage dialog
+
+The sequence typeset on a **simulated paper sheet** — white page, Courier Prime, the true
+screenplay indents/widths/alignments of the project's own page setup, exactly as the screenplay
+mode's raw preview renders the same text (`OcptEditorPreviewLayout` is shared between the two).
+
+Every word is a click target whose box carries the whitespace that follows it plus a little
+vertical padding, so the whole band around a word is clickable rather than its glyphs alone, and a
+recorded range reads as **one continuous highlight** rather than a row of word-sized patches. The
+interaction is unchanged: a click starts a range, a second click in the **same block** closes it
+(clicking the same word twice records a one-word range), a click in another block moves the start,
+and a click on already-covered text removes the range covering it. The first clicked word is
+painted in the accent itself while the range is open, so what the next click will close is never in
+doubt. Another shot's coverage stays a faint wash, with `Also covered by 1/2 · 1/4` under the
+block. Footer: the same counters, the `Clear all` action, and a one-line hint describing the
+current interaction state.
 
 ### 3.4 Status bar
 
@@ -359,7 +375,8 @@ Widgets, all under `modes/shot_list/widgets/`:
 | `OcptShotListRemovedCharacterBanner` | the alert of §3.2.1 |
 | `OcptShotListRightDock` | the tab row + body, modelled on `OcptEditorRightDock` |
 | `OcptShotInspectorPanel` | §3.3, minus the coverage block |
-| `OcptShotCoverageEditor` | the coverage interaction |
+| `OcptShotCoverageSummary` | the inspector's read-only list of covered extracts |
+| `OcptShotCoverageDialog` | the paper sheet the coverage is selected on, §3.3.1 |
 | `OcptShotDifficultyBars` | the four bars |
 | `OcptShotListStatusBar` | §3.4 |
 
@@ -433,9 +450,10 @@ the read-only status pill, the metadata tab. Coverage is still absent from the p
 
 ### M4 — Scenario coverage
 
-`OcptShotCoverageEditor`: block rendering, word ranges, the three-state click interaction, the
-"also covered by" wash, the `modified` badges, the counters, `Clear all`, the `Needs checking`
-callout and `Mark as checked`, the ⚠ in the table gutter and the left dock.
+`OcptShotCoverageSummary` and `OcptShotCoverageDialog`: the read-only extract list, the paper
+sheet, word ranges, the three-state click interaction, the "also covered by" wash, the `modified`
+badges, the counters, `Clear all`, the `Needs checking` callout and `Mark as checked`, the ⚠ in the
+table gutter and the left dock.
 
 This is the milestone with the most interaction surface. Test the offset ↔ word-index conversion
 directly, at the service and model level, rather than only through the widget.
