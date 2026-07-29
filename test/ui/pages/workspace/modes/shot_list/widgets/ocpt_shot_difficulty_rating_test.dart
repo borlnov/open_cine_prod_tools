@@ -44,4 +44,23 @@ void main() {
 
     expect(reported, 3);
   });
+
+  testWidgets("the whole square around a dot is clickable, not just the dot itself",
+      (tester) async {
+    int? reported;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptShotDifficultyRating(label: "Sound", value: 0, onChanged: (value) => reported = value),
+      ),
+    );
+
+    // A point inside the second dot's square but well outside the circle drawn in it: the top left
+    // corner, two pixels in.
+    final square = tester.getRect(find.byType(InkWell).at(1));
+    await tester.tapAt(square.topLeft + const Offset(2, 2));
+    await tester.pump();
+
+    expect(reported, 1);
+  });
 }

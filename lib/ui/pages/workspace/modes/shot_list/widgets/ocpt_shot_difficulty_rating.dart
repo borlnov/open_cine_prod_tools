@@ -10,14 +10,16 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 const int _dotCount = 6;
 
 /// The diameter of one rating dot.
-const double _dotSize = 12;
+const double _dotSize = 18;
 
-/// The horizontal space between two dots.
-const double _dotGap = 4;
+/// The side of the square hit target a dot sits centred in: the whole square is what reacts to a
+/// click, so a dot never asks for a precise aim, and two neighbouring squares touching is what
+/// spaces the dots apart.
+const double _dotHitSize = 28;
 
 /// One difficulty axis of the shot inspector: a label, a row of [_dotCount] clickable dots filled
 /// up to [value] (dot *n* filled means the axis is at least *n*), and the numeric value at the
-/// end of the row. Clicking the *n*-th dot sets the axis to *n*.
+/// end of the row. Clicking anywhere in the *n*-th dot's square sets the axis to *n*.
 ///
 /// Deliberately not a bar (the reference mock-up's own rendering): dots read better at this
 /// density and make every one of the six discrete values individually clickable. The filled dots
@@ -52,25 +54,30 @@ class OcptShotDifficultyRating extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          SizedBox(
-            width: 96,
+          // The dots are what must never be squeezed, so the label is the part that gives way
+          // when the dock is dragged narrow.
+          Expanded(
             child: Text(
               label,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           for (var dot = 0; dot < _dotCount; dot++)
-            Padding(
-              padding: const EdgeInsets.only(right: _dotGap),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () => onChanged(dot),
-                child: Container(
-                  width: _dotSize,
-                  height: _dotSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: dot <= value ? color : theme.colorScheme.outlineVariant,
+            InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => onChanged(dot),
+              child: SizedBox(
+                width: _dotHitSize,
+                height: _dotHitSize,
+                child: Center(
+                  child: Container(
+                    width: _dotSize,
+                    height: _dotSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: dot <= value ? color : theme.colorScheme.outlineVariant,
+                    ),
                   ),
                 ),
               ),
