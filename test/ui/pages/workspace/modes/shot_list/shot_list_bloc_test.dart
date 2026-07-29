@@ -10,9 +10,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -54,6 +57,24 @@ class _FailingShotListService extends OcptShotListService {
     required String screenplayId,
     required String sceneId,
   }) async => throw StateError("shot creation intentionally failed for the test");
+}
+
+/// A shot coverage service whose [addRange] always fails, to exercise the bloc's coverage write
+/// error path.
+class _FailingShotCoverageService extends OcptShotCoverageService {
+  /// Class constructor
+  const _FailingShotCoverageService();
+
+  @override
+  Future<String> addRange({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required String sceneId,
+    required int startOffset,
+    required int endOffset,
+    required String coveredText,
+    required List<int> blockBoundaries,
+  }) async => throw StateError("coverage write intentionally failed for the test");
 }
 
 void main() {
@@ -123,12 +144,14 @@ void main() {
   OcptShotListBloc buildBloc({
     OcptRouterManager? routerManager,
     OcptShotListService? shotListService,
+    OcptShotCoverageService? shotCoverageService,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
   }) => OcptShotListBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     shotListService: shotListService,
+    shotCoverageService: shotCoverageService,
     fieldEditDebounce: fieldEditDebounce,
   );
 
@@ -142,6 +165,38 @@ void main() {
     }
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
+  }
+
+  /// Dispatches the two word clicks that draw a scenario coverage range across every word of
+  /// [block] on shot [shotId] (first word opens the anchor, last word closes it), waiting for the
+  /// anchor to land after the first click and for the range to land after the second.
+  Future<void> drawCoverageRange(
+    OcptShotListBloc bloc, {
+    required String shotId,
+    required OcptShotCoverageBlock block,
+  }) async {
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: block.startOffset,
+        wordStartOffset: block.words.first.startOffset,
+        wordEndOffset: block.words.first.endOffset,
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
+
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: block.startOffset,
+        wordStartOffset: block.words.last.startOffset,
+        wordEndOffset: block.words.last.endOffset,
+      ),
+    );
+    await waitForState(
+      bloc,
+      (state) => state.snapshot!.shotsById[shotId]!.coverageRanges.isNotEmpty,
+    );
   }
 
   test('loads the screenplay scenes as sequences and selects the first one', () async {
@@ -586,6 +641,290 @@ void main() {
 
     expect(state.selectedShotId, isNull);
     expect(state.selectedSequenceId, sequenceId);
+
+    await bloc.close();
+  });
+
+  test('the screenplay text is loaded into the state', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.screenplayText, twoSceneText);
+
+    await bloc.close();
+  });
+
+  test('a first coverage click sets the pending anchor and writes nothing', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    final firstWord = actionBlock.words.first;
+
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: actionBlock.startOffset,
+        wordStartOffset: firstWord.startOffset,
+        wordEndOffset: firstWord.endOffset,
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
+
+    expect(state.pendingCoverageAnchor!.blockStartOffset, actionBlock.startOffset);
+    expect(state.pendingCoverageAnchor!.wordStartOffset, firstWord.startOffset);
+    expect(state.selectedShot!.coverageRanges, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('a second click in the same block writes a range covering both words', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+
+    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
+    state = bloc.state;
+
+    expect(state.pendingCoverageAnchor, isNull);
+    final range = state.selectedShot!.coverageRanges.single;
+    expect(range.sceneId, layout.sceneId);
+    expect(range.startOffset, actionBlock.words.first.startOffset);
+    expect(range.endOffset, actionBlock.words.last.endOffset);
+
+    await bloc.close();
+  });
+
+  test('a click on a covered word with no anchor removes that range', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+
+    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
+
+    final firstWord = actionBlock.words.first;
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: actionBlock.startOffset,
+        wordStartOffset: firstWord.startOffset,
+        wordEndOffset: firstWord.endOffset,
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.selectedShot!.coverageRanges.isEmpty);
+    expect(state.pendingCoverageAnchor, isNull);
+
+    await bloc.close();
+  });
+
+  test('a click in another block moves the anchor instead of writing', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    final headingBlock = layout.blocks.firstWhere((block) => block.text == "INT. HOUSE - DAY");
+
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: actionBlock.startOffset,
+        wordStartOffset: actionBlock.words.first.startOffset,
+        wordEndOffset: actionBlock.words.first.endOffset,
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
+
+    final headingWord = headingBlock.words.first;
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: headingBlock.startOffset,
+        wordStartOffset: headingWord.startOffset,
+        wordEndOffset: headingWord.endOffset,
+      ),
+    );
+    state = await waitForState(
+      bloc,
+      (state) => state.pendingCoverageAnchor?.blockStartOffset == headingBlock.startOffset,
+    );
+
+    expect(state.pendingCoverageAnchor!.wordStartOffset, headingWord.startOffset);
+    expect(state.selectedShot!.coverageRanges, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("clearing coverage drops only the cleared shot's ranges", () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotAId = state.selectedShotId!;
+    var layout = state.buildSelectedCoverageLayout()!;
+    var actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    await drawCoverageRange(bloc, shotId: shotAId, block: actionBlock);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    state = await waitForState(bloc, (state) => state.totalShotCount == 2);
+    final shotBId = state.selectedShotId!;
+    layout = state.buildSelectedCoverageLayout()!;
+    actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    await drawCoverageRange(bloc, shotId: shotBId, block: actionBlock);
+
+    bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shotAId));
+    state = await waitForState(
+      bloc,
+      (state) => state.snapshot!.shotsById[shotAId]!.coverageRanges.isEmpty,
+    );
+
+    expect(state.snapshot!.shotsById[shotBId]!.coverageRanges, isNotEmpty);
+
+    await bloc.close();
+  });
+
+  test(
+      'marking a shot as checked clears needsCheck and re-stamps digests so a following '
+      'staleness pass stays quiet', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    final layout = created.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
+    await bloc.close();
+
+    // Changing the scene's body (its heading is untouched, so the scene keeps its own id) makes
+    // the recorded range's digest disagree with the text under it, raising needsCheck on save.
+    const modifiedText =
+        "INT. HOUSE - DAY\n\nAction one revised.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
+    await writeScreenplay(modifiedText);
+
+    final reopenedBloc = buildBloc();
+    var state = await waitForState(reopenedBloc, (state) => !state.isLoading);
+    var shot = state.snapshot!.shotsById[shotId]!;
+    expect(shot.needsCheck, isTrue);
+    expect(shot.checkReason, OcptShotCheckReason.coveredTextChanged);
+
+    reopenedBloc.add(OcptShotListShotMarkedAsCheckedEvent(shotId: shotId));
+    state = await waitForState(
+      reopenedBloc,
+      (state) => !state.snapshot!.shotsById[shotId]!.needsCheck,
+    );
+    expect(state.pendingCoverageAnchor, isNull);
+
+    await reopenedBloc.close();
+
+    // Saving the very same (already stale-inducing) text again re-runs the staleness pass; the
+    // digests were just re-stamped to it, so it stays quiet this time.
+    await writeScreenplay(modifiedText);
+    final finalBloc = buildBloc();
+    final finalState = await waitForState(finalBloc, (state) => !state.isLoading);
+    shot = finalState.snapshot!.shotsById[shotId]!;
+    expect(shot.needsCheck, isFalse);
+    expect(shot.checkReason, isNull);
+
+    await finalBloc.close();
+  });
+
+  test('the pending coverage anchor is cleared when another shot is selected', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final firstShotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: firstShotId,
+        blockStartOffset: actionBlock.startOffset,
+        wordStartOffset: actionBlock.words.first.startOffset,
+        wordEndOffset: actionBlock.words.first.endOffset,
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    state = await waitForState(bloc, (state) => state.totalShotCount == 2);
+
+    expect(state.pendingCoverageAnchor, isNull);
+    expect(state.selectedShotId, isNot(firstShotId));
+
+    await bloc.close();
+  });
+
+  test('a coverage write failure surfaces as the transient write error', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(shotCoverageService: const _FailingShotCoverageService());
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: actionBlock.startOffset,
+        wordStartOffset: actionBlock.words.first.startOffset,
+        wordEndOffset: actionBlock.words.first.endOffset,
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
+
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        blockStartOffset: actionBlock.startOffset,
+        wordStartOffset: actionBlock.words.last.startOffset,
+        wordEndOffset: actionBlock.words.last.endOffset,
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.hasWriteError);
+    expect(state.pendingCoverageAnchor, isNull);
+    expect(state.selectedShot!.coverageRanges, isEmpty);
 
     await bloc.close();
   });
