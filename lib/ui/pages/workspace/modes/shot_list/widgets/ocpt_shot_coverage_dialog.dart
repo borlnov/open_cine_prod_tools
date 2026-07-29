@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_display.dart';
 
 /// The alpha applied to [ColorScheme.primary] for text covered by the shot being edited: strong
 /// enough to read at a glance, on the simulated paper sheet, as "this shot films this text".
@@ -25,13 +26,13 @@ const double _ocptOtherCoverageAlpha = 0.10;
 ///
 /// This is what makes the whole band around a word clickable rather than only the glyphs
 /// themselves, and what makes a covered range read as one continuous highlight: each word's box
-/// carries the whitespace that follows it in the source, so two consecutive covered words leave no
-/// gap between their two bands.
+/// carries the whitespace that follows it, so two consecutive covered words leave no gap between
+/// their two bands.
 const double _ocptWordVerticalPadding = 2;
 
 /// A pending coverage range anchor, exactly as `OcptShotListState.pendingCoverageAnchor` holds it:
 /// the first word clicked of a range currently being drawn.
-typedef OcptShotCoverageAnchor = ({int blockStartOffset, int wordStartOffset, int wordEndOffset});
+typedef OcptShotCoverageAnchor = ({int wordStartOffset, int wordEndOffset});
 
 /// The dialog a shot's scenario coverage is selected in: the sequence typeset on a simulated paper
 /// sheet, in Courier Prime at its true screenplay indents, every word clickable.
@@ -40,7 +41,8 @@ typedef OcptShotCoverageAnchor = ({int blockStartOffset, int wordStartOffset, in
 /// happens here, where there is room to read the sequence and to click comfortably. The
 /// interaction is the same three-state one the bloc owns (see
 /// `OcptShotListCoverageWordClickedEvent`): a first click marks the start of a range, a second one
-/// in the same block closes it, a click on already-covered text removes the range covering it.
+/// closes it wherever it lands — a range may run from one block into another — and a click on
+/// already-covered text removes the range covering it.
 ///
 /// Purely presentational, like every other widget of this mode: it renders [layout] and the range
 /// lists it is given and reports every click upward. The mode is what keeps it in step with the
@@ -68,9 +70,9 @@ class OcptShotCoverageDialog extends StatelessWidget {
   /// The first word clicked of a range currently being drawn, or null while none is.
   final OcptShotCoverageAnchor? pendingAnchor;
 
-  /// Called with a clicked word's own block start offset and its own start/end offsets — exactly
-  /// what `OcptShotListCoverageWordClickedEvent` carries.
-  final void Function(int blockStartOffset, int wordStartOffset, int wordEndOffset) onWordTapped;
+  /// Called with a clicked word's own scene-relative start/end offsets — exactly what
+  /// `OcptShotListCoverageWordClickedEvent` carries.
+  final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
 
   /// Called when the `Clear all` action is clicked.
   final VoidCallback onClearAll;
@@ -223,8 +225,8 @@ class _OcptShotCoverageSheet extends StatelessWidget {
   /// The first word clicked of a range currently being drawn, or null while none is.
   final OcptShotCoverageAnchor? pendingAnchor;
 
-  /// Called with a clicked word's own block start offset and its own start/end offsets.
-  final void Function(int blockStartOffset, int wordStartOffset, int wordEndOffset) onWordTapped;
+  /// Called with a clicked word's own scene-relative start/end offsets.
+  final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
 
   /// Class constructor
   const _OcptShotCoverageSheet({
@@ -252,10 +254,17 @@ class _OcptShotCoverageSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final block in layout.blocks)
+            for (var i = 0; i < layout.blocks.length; i++)
               _OcptShotCoverageSheetBlock(
                 layout: layout,
-                block: block,
+                block: layout.blocks[i],
+                // The raw mode's paper preview only ever leaves a blank line where the source has
+                // one: consecutive lines of an action paragraph, and the cue/parenthetical/dialogue
+                // lines of one dialogue block, flow on without a gap. Two adjacent source lines are
+                // one character apart (their own newline); anything wider is a blank line.
+                isFollowedByBlankLine:
+                    i + 1 < layout.blocks.length &&
+                    layout.blocks[i + 1].startOffset - layout.blocks[i].endOffset > 1,
                 previewLayout: previewLayout,
                 ownRanges: ownRanges,
                 otherShotsRanges: otherShotsRanges,
@@ -278,6 +287,10 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// The block rendered.
   final OcptShotCoverageBlock block;
 
+  /// Whether the source leaves a blank line between this block and the next one, which is the only
+  /// place the sheet leaves a vertical gap.
+  final bool isFollowedByBlankLine;
+
   /// The pixel geometry the sheet is typeset with.
   final OcptEditorPreviewLayout previewLayout;
 
@@ -290,13 +303,14 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// The first word clicked of a range currently being drawn, or null while none is.
   final OcptShotCoverageAnchor? pendingAnchor;
 
-  /// Called with a clicked word's own block start offset and its own start/end offsets.
-  final void Function(int blockStartOffset, int wordStartOffset, int wordEndOffset) onWordTapped;
+  /// Called with a clicked word's own scene-relative start/end offsets.
+  final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
 
   /// Class constructor
   const _OcptShotCoverageSheetBlock({
     required this.layout,
     required this.block,
+    required this.isFollowedByBlankLine,
     required this.previewLayout,
     required this.ownRanges,
     required this.otherShotsRanges,
@@ -320,13 +334,15 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
       fontStyle: printStyle.isItalic ? FontStyle.italic : null,
     );
 
+    final displayRuns = ocptFountainWordDisplayRuns(block);
+
     final otherCodes = [
       for (final entry in otherShotsRanges.entries)
         if (layout.rangesIn(block, entry.value).isNotEmpty) entry.key,
     ];
 
     return Padding(
-      padding: EdgeInsets.only(bottom: previewLayout.blockSpacing),
+      padding: EdgeInsets.only(bottom: isFollowedByBlankLine ? previewLayout.blockSpacing : 0),
       child: Align(
         alignment: Alignment.topLeft,
         child: Padding(
@@ -344,11 +360,11 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
                           alignment: PlaceholderAlignment.baseline,
                           baseline: TextBaseline.alphabetic,
                           child: _OcptShotCoverageWord(
-                            text: _displayedTextOf(i, printStyle),
+                            runs: displayRuns[i],
+                            isUppercase: printStyle.isUppercase,
                             style: baseStyle,
                             state: _stateOf(block.words[i]),
                             onTap: () => onWordTapped(
-                              block.startOffset,
                               block.words[i].startOffset,
                               block.words[i].endOffset,
                             ),
@@ -402,28 +418,10 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     FountainLayoutAlignment.left => TextAlign.left,
   };
 
-  /// The text rendered for the word at [index]: the word itself **plus the whitespace separating
-  /// it from the next one** (or ending the line), upper-cased when [printStyle] says the element
-  /// prints upper-cased.
-  ///
-  /// Carrying the trailing whitespace inside the word's own box is what makes a covered range read
-  /// as one continuous highlight instead of a row of separate word-sized patches, and what makes
-  /// the gap between two words clickable rather than dead.
-  String _displayedTextOf(int index, FountainPrintStyle printStyle) {
-    final word = block.words[index];
-    final endOffset = index + 1 < block.words.length
-        ? block.words[index + 1].startOffset
-        : block.endOffset;
-    final text = layout.sceneText.substring(word.startOffset, endOffset);
-
-    return printStyle.isUppercase ? text.toUpperCase() : text;
-  }
-
   /// How [word] is currently painted: the anchor of a range being drawn wins over every coverage,
   /// and this shot's own coverage wins over another shot's.
   _OcptShotCoverageWordState _stateOf(OcptShotCoverageWord word) {
-    if (pendingAnchor?.wordStartOffset == word.startOffset &&
-        pendingAnchor?.blockStartOffset == block.startOffset) {
+    if (pendingAnchor?.wordStartOffset == word.startOffset) {
       return _OcptShotCoverageWordState.anchor;
     }
     if (layout.isWordCovered(word, ownRanges)) {
@@ -456,11 +454,20 @@ enum _OcptShotCoverageWordState {
 /// One clickable word of the sheet, painted per its [state], its whole box (the glyphs, the
 /// whitespace that follows them and [_ocptWordVerticalPadding] above and below) being the click
 /// target.
+///
+/// The word is drawn from its printed display [runs] rather than from the source text it covers,
+/// so the Fountain markers around it (`*italic*`, a forced line's leading character, a heading's
+/// `#N#`) are resolved into real emphasis instead of being shown — exactly as the raw mode's paper
+/// preview resolves them. The offsets the click reports are the source ones all the same, markers
+/// included.
 class _OcptShotCoverageWord extends StatelessWidget {
-  /// The word's text, whitespace and print-time casing included.
-  final String text;
+  /// The word's printed runs, whitespace and inline emphasis included.
+  final List<OcptFountainDisplayRun> runs;
 
-  /// The paper text style the word is typeset in.
+  /// Whether the element this word belongs to prints upper-cased.
+  final bool isUppercase;
+
+  /// The paper text style the word is typeset in, before its own runs' emphasis.
   final TextStyle style;
 
   /// How the word is currently painted.
@@ -471,7 +478,8 @@ class _OcptShotCoverageWord extends StatelessWidget {
 
   /// Class constructor
   const _OcptShotCoverageWord({
-    required this.text,
+    required this.runs,
+    required this.isUppercase,
     required this.style,
     required this.state,
     required this.onTap,
@@ -479,7 +487,8 @@ class _OcptShotCoverageWord extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final accent = colorScheme.primary;
 
     final background = switch (state) {
       _OcptShotCoverageWordState.plain => null,
@@ -487,6 +496,9 @@ class _OcptShotCoverageWord extends StatelessWidget {
       _OcptShotCoverageWordState.other => accent.withValues(alpha: _ocptOtherCoverageAlpha),
       _OcptShotCoverageWordState.anchor => accent,
     };
+    final baseStyle = state == _OcptShotCoverageWordState.anchor
+        ? style.copyWith(color: colorScheme.onPrimary)
+        : style;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -496,14 +508,35 @@ class _OcptShotCoverageWord extends StatelessWidget {
         child: Container(
           color: background,
           padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
-          child: Text(
-            text,
-            style: state == _OcptShotCoverageWordState.anchor
-                ? style.copyWith(color: Theme.of(context).colorScheme.onPrimary)
-                : style,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                for (final run in runs)
+                  TextSpan(
+                    text: isUppercase ? run.text.toUpperCase() : run.text,
+                    style: _styleOf(run.style, baseStyle),
+                  ),
+              ],
+            ),
+            style: baseStyle,
           ),
         ),
       ),
     );
   }
+
+  /// Applies a run's own inline emphasis on top of [base], the element's print style having
+  /// already set the base weight and slope: an `*italic*` run inside a bold scene heading prints
+  /// bold-italic, exactly as it does in the paper preview and in the PDF.
+  static TextStyle _styleOf(FountainInlineStyle style, TextStyle base) => switch (style) {
+    FountainInlineStyle.italic => base.copyWith(fontStyle: FontStyle.italic),
+    FountainInlineStyle.bold => base.copyWith(fontWeight: FontWeight.bold),
+    FountainInlineStyle.boldItalic => base.copyWith(
+      fontWeight: FontWeight.bold,
+      fontStyle: FontStyle.italic,
+    ),
+    FountainInlineStyle.underline => base.copyWith(decoration: TextDecoration.underline),
+    // A note never reaches here: `ocptFountainWordDisplayRuns` drops its text entirely.
+    FountainInlineStyle.plain || FountainInlineStyle.note => base,
+  };
 }

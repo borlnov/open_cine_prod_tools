@@ -67,7 +67,7 @@ Widget _buildDialog({
   List<OcptShotCoverageRange> ownRanges = const [],
   Map<String, List<OcptShotCoverageRange>> otherShotsRanges = const {},
   OcptShotCoverageAnchor? pendingAnchor,
-  void Function(int blockStartOffset, int wordStartOffset, int wordEndOffset)? onWordTapped,
+  void Function(int wordStartOffset, int wordEndOffset)? onWordTapped,
   VoidCallback? onClearAll,
 }) => OcptShotCoverageDialog(
   shotCode: "1/3",
@@ -77,7 +77,7 @@ Widget _buildDialog({
   ownRanges: ownRanges,
   otherShotsRanges: otherShotsRanges,
   pendingAnchor: pendingAnchor,
-  onWordTapped: onWordTapped ?? (_, __, ___) {},
+  onWordTapped: onWordTapped ?? (_, __) {},
   onClearAll: onClearAll ?? () {},
 );
 
@@ -105,6 +105,43 @@ void main() {
     expect(find.text("there."), findsOneWidget);
   });
 
+  testWidgets("prints the text rather than its Fountain markers", (tester) async {
+    await _useLargeSurface(tester);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildDialog(
+          layout: OcptShotCoverageLayout.of(
+            sceneId: _sceneId,
+            sceneText: ".INT. HOUSE - DAY #3#\n\nJohn *walks* in.",
+          ),
+        ),
+      ),
+    );
+
+    // The forcing dot, the scene number and the emphasis markers are all resolved away, the
+    // emphasis itself being rendered instead.
+    expect(find.text("INT. "), findsOneWidget);
+    // "DAY" keeps the space that separated it from the now-hidden scene number.
+    expect(find.text("DAY "), findsOneWidget);
+    expect(find.textContaining("#3#"), findsNothing);
+    expect(find.textContaining("*"), findsNothing);
+  });
+
+  testWidgets("only leaves a blank line's worth of space where the source has one", (tester) async {
+    await _useLargeSurface(tester);
+    await tester.pumpWidget(_wrapInApp(_buildDialog()));
+
+    // "JOHN" and "(whispering)" are adjacent source lines of one dialogue block; the action line
+    // above them is separated by a blank line. The paper preview spaces them exactly that way.
+    final cue = tester.getRect(find.text("JOHN"));
+    final parenthetical = tester.getRect(find.text("(whispering)"));
+    final action = tester.getRect(find.text("in."));
+
+    expect(parenthetical.top - cue.bottom, lessThan(cue.height));
+    expect(cue.top - action.bottom, greaterThan(parenthetical.top - cue.bottom));
+  });
+
   testWidgets("shows the shot's code and its sequence heading", (tester) async {
     await _useLargeSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildDialog()));
@@ -113,19 +150,21 @@ void main() {
     expect(find.text("INT. HOUSE - DAY"), findsOneWidget);
   });
 
-  testWidgets("tapping a word reports its block start offset and its own offsets", (tester) async {
+  testWidgets("tapping a word reports its own scene-relative offsets", (tester) async {
     await _useLargeSurface(tester);
     final layout = _buildLayout();
     final headingBlock = layout.blocks.first;
     final houseWord = headingBlock.words[1];
 
-    (int, int, int)? reported;
+    (int, int)? reported;
     await tester.pumpWidget(
       _wrapInApp(
         _buildDialog(
           layout: layout,
-          onWordTapped: (blockStartOffset, wordStartOffset, wordEndOffset) =>
-              reported = (blockStartOffset, wordStartOffset, wordEndOffset),
+          onWordTapped: (wordStartOffset, wordEndOffset) => reported = (
+            wordStartOffset,
+            wordEndOffset,
+          ),
         ),
       ),
     );
@@ -133,7 +172,7 @@ void main() {
     await tester.tap(find.text("HOUSE "));
     await tester.pump();
 
-    expect(reported, (headingBlock.startOffset, houseWord.startOffset, houseWord.endOffset));
+    expect(reported, (houseWord.startOffset, houseWord.endOffset));
   });
 
   testWidgets("the whole band around a word is clickable, not only its glyphs", (tester) async {
@@ -141,13 +180,15 @@ void main() {
     final layout = _buildLayout();
     final houseWord = layout.blocks.first.words[1];
 
-    (int, int, int)? reported;
+    (int, int)? reported;
     await tester.pumpWidget(
       _wrapInApp(
         _buildDialog(
           layout: layout,
-          onWordTapped: (blockStartOffset, wordStartOffset, wordEndOffset) =>
-              reported = (blockStartOffset, wordStartOffset, wordEndOffset),
+          onWordTapped: (wordStartOffset, wordEndOffset) => reported = (
+            wordStartOffset,
+            wordEndOffset,
+          ),
         ),
       ),
     );
@@ -158,7 +199,7 @@ void main() {
     await tester.tapAt(Offset(box.left + 1, box.bottom + 1));
     await tester.pump();
 
-    expect(reported?.$2, houseWord.startOffset);
+    expect(reported?.$1, houseWord.startOffset);
   });
 
   testWidgets("paints this shot's coverage stronger than another shot's, and the anchor apart", (
@@ -180,11 +221,7 @@ void main() {
           otherShotsRanges: {
             "1/2": [_buildRange(startOffset: dayWord.startOffset, endOffset: dayWord.endOffset)],
           },
-          pendingAnchor: (
-            blockStartOffset: layout.blocks.first.startOffset,
-            wordStartOffset: intWord.startOffset,
-            wordEndOffset: intWord.endOffset,
-          ),
+          pendingAnchor: (wordStartOffset: intWord.startOffset, wordEndOffset: intWord.endOffset),
         ),
       ),
     );
@@ -263,12 +300,15 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildDialog(
-          pendingAnchor: (blockStartOffset: 0, wordStartOffset: 0, wordEndOffset: 4),
+          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
         ),
       ),
     );
 
-    expect(find.text("Click another word of the same block to close the range."), findsOneWidget);
+    expect(
+      find.text("Click another word to close the range; it may run into the next blocks."),
+      findsOneWidget,
+    );
   });
 
   testWidgets("counts the covered words and the ranges, and reports Clear all", (tester) async {

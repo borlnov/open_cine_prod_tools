@@ -1737,7 +1737,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListCoverageHintPendingAnchor": "Click another word of the same block to close the range.",
+  "shotListCoverageHintPendingAnchor": "Click another word to close the range; it may run into the next blocks.",
   "@shotListCoverageHintPendingAnchor": {
     "description": "Interaction hint shown while a coverage range's first word is already clicked",
     "context": "Displayed in the scenario coverage editor's footer",

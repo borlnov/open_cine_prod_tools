@@ -157,9 +157,9 @@ Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector show
   listed until it is untoggled.
 - **Scenario coverage** — the heart of the panel, see §4.4 for the model. In the dock it is
   **read-only**: a `Select…` button, then one entry per range in the order they read in the
-  sequence — the block's Fountain line type, the covered extract quoted, a `modified` badge when
-  the text changed since it was recorded, and `Also covered by 1/2 · 1/4` when other shots cover
-  the same extract. Footer: `N words covered of M · P range(s)` and a `Clear all` action.
+  sequence — the Fountain line types the range runs through (`ACTION → DIALOGUE`), the covered
+  extract quoted with its line breaks, a `modified` badge when the text changed since it was
+  recorded, and `Also covered by 1/2 · 1/4` when other shots cover the same extract. Footer: `N words covered of M · P range(s)` and a `Clear all` action.
   The selecting itself happens in the dialog `Select…` opens (see §3.3.1): the dock is too narrow
   to click words in comfortably, and a shot's coverage is read far more often than authored.
 - **Image** — Shot size, Framing & composition, Camera move, Lens, Format. Framing & composition
@@ -177,16 +177,23 @@ The sequence typeset on a **simulated paper sheet** — white page, Courier Prim
 screenplay indents/widths/alignments of the project's own page setup, exactly as the screenplay
 mode's raw preview renders the same text (`OcptEditorPreviewLayout` is shared between the two).
 
+The text is **printed, not raw**: emphasis markers, a forced line's leading character, a heading's
+trailing `#N#` and inline notes are resolved away exactly as the paper preview resolves them
+(`ocptFountainWordDisplayRuns`), and a blank line of vertical space is left only where the source
+has one, so an action paragraph's lines and a cue/parenthetical/dialogue block read as one
+paragraph. The words' own **source** offsets are untouched by any of that: a range still covers the
+source text, markers included.
+
 Every word is a click target whose box carries the whitespace that follows it plus a little
 vertical padding, so the whole band around a word is clickable rather than its glyphs alone, and a
-recorded range reads as **one continuous highlight** rather than a row of word-sized patches. The
-interaction is unchanged: a click starts a range, a second click in the **same block** closes it
-(clicking the same word twice records a one-word range), a click in another block moves the start,
-and a click on already-covered text removes the range covering it. The first clicked word is
-painted in the accent itself while the range is open, so what the next click will close is never in
-doubt. Another shot's coverage stays a faint wash, with `Also covered by 1/2 · 1/4` under the
-block. Footer: the same counters, the `Clear all` action, and a one-line hint describing the
-current interaction state.
+recorded range reads as **one continuous highlight** rather than a row of word-sized patches. A
+click starts a range, a second click closes it **wherever it lands** — a range may run from one
+block into the next, and clicking the same word twice records a one-word range — and a click on
+already-covered text removes the range covering it. A shot may record as many ranges as it needs.
+The first clicked word is painted in the accent itself while the range is open, so what the next
+click will close is never in doubt. Another shot's coverage stays a faint wash, with
+`Also covered by 1/2 · 1/4` under the block. Footer: the same counters, the `Clear all` action, and
+a one-line hint describing the current interaction state.
 
 ### 3.4 Status bar
 
@@ -336,9 +343,10 @@ next real change.
 This runs on save, in the same pass as the scene reconciliation — never on the 150 ms parse
 debounce. A director does not want a shot flagged mid-keystroke.
 
-**Ranges are per block by construction.** The interaction only closes a range within one block, so
-a stored range never spans a block boundary. Nothing enforces that at the database level; the
-service is the one that guarantees it.
+**A range may span several blocks.** The interaction closes a range wherever the second click
+lands, so a range legitimately runs from an action paragraph into the dialogue below it; nothing
+constrains it beyond being non-empty and staying inside its own scene, which is what its offsets
+are relative to. The inspector labels such a range with every block type it runs through.
 
 ### 4.5 Services
 

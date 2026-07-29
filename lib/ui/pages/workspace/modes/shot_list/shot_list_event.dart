@@ -256,57 +256,33 @@ class OcptShotListShotDeletionRequestedEvent extends OcptShotListEvent {
   @override
   List<Object?> get props => [...super.props, shotId];
 }
-
-/// A click on a scenario coverage word of shot [shotId]'s scene, dispatched by the coverage editor
-/// for every word clicked. [blockStartOffset] identifies the clicked word's own block (a scene-
-/// relative `OcptShotCoverageBlock.startOffset`), and [wordStartOffset]/[wordEndOffset] are the
-/// clicked word's own scene-relative `OcptShotCoverageWord` offsets — all three coming straight
-/// from the `OcptShotCoverageLayout` the coverage editor built to render the scene.
+/// Records a click on a word of the selected shot's scenario coverage.
 ///
-/// The bloc, not the widget, decides what the click means, from
-/// `OcptShotListState.pendingCoverageAnchor`:
-///
-/// - no pending anchor, and the clicked word is already covered by one of [shotId]'s own ranges:
-///   that range is removed ("click an existing range to remove it");
-/// - no pending anchor otherwise: the clicked word becomes the pending anchor, nothing is written;
-/// - a pending anchor in the same block: the range between the anchor and this click is recorded
-///   (order-insensitive, so a backwards click still works, and clicking the anchor word itself
-///   records a legitimate one-word range), and the anchor is cleared;
-/// - a pending anchor in another block: a range may never span two blocks, so the click simply
-///   moves the anchor to the word just clicked, writing nothing.
-///
-/// The anchor is also cleared whenever the selected shot or sequence changes.
+/// One event backs the whole three-state interaction, the bloc rather than the widget deciding
+/// what a click means: with no range open, a click on already-covered text removes the range
+/// covering it and a click anywhere else opens a range on that word; with a range open, the click
+/// closes it, wherever it lands — a range may span several blocks, and clicking the opening word
+/// again records a one-word range.
 class OcptShotListCoverageWordClickedEvent extends OcptShotListEvent {
-  /// The id of the shot whose scenario coverage editor was clicked in.
+  /// The id of the shot whose coverage was clicked.
   final String shotId;
 
-  /// The scene-relative `OcptShotCoverageBlock.startOffset` of the block the clicked word belongs
-  /// to.
-  final int blockStartOffset;
-
-  /// The clicked word's own scene-relative `OcptShotCoverageWord.startOffset`.
+  /// The scene-relative offset at which the clicked word starts.
   final int wordStartOffset;
 
-  /// The clicked word's own scene-relative `OcptShotCoverageWord.endOffset`.
+  /// The scene-relative offset one past the clicked word's last character.
   final int wordEndOffset;
 
   /// Class constructor
   const OcptShotListCoverageWordClickedEvent({
     required this.shotId,
-    required this.blockStartOffset,
     required this.wordStartOffset,
     required this.wordEndOffset,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [
-    ...super.props,
-    shotId,
-    blockStartOffset,
-    wordStartOffset,
-    wordEndOffset,
-  ];
+  List<Object?> get props => [...super.props, shotId, wordStartOffset, wordEndOffset];
 }
 
 /// Requests removing every scenario coverage range of shot [shotId], dispatched by the inspector's

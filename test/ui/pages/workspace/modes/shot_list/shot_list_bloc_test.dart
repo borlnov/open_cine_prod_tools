@@ -73,7 +73,6 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
     required int startOffset,
     required int endOffset,
     required String coveredText,
-    required List<int> blockBoundaries,
   }) async => throw StateError("coverage write intentionally failed for the test");
 }
 
@@ -178,7 +177,6 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: block.startOffset,
         wordStartOffset: block.words.first.startOffset,
         wordEndOffset: block.words.first.endOffset,
       ),
@@ -188,7 +186,6 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: block.startOffset,
         wordStartOffset: block.words.last.startOffset,
         wordEndOffset: block.words.last.endOffset,
       ),
@@ -672,14 +669,13 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: actionBlock.startOffset,
         wordStartOffset: firstWord.startOffset,
         wordEndOffset: firstWord.endOffset,
       ),
     );
     state = await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
 
-    expect(state.pendingCoverageAnchor!.blockStartOffset, actionBlock.startOffset);
+    expect(state.pendingCoverageAnchor!.wordStartOffset, actionBlock.startOffset);
     expect(state.pendingCoverageAnchor!.wordStartOffset, firstWord.startOffset);
     expect(state.selectedShot!.coverageRanges, isEmpty);
 
@@ -728,7 +724,6 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: actionBlock.startOffset,
         wordStartOffset: firstWord.startOffset,
         wordEndOffset: firstWord.endOffset,
       ),
@@ -739,7 +734,7 @@ void main() {
     await bloc.close();
   });
 
-  test('a click in another block moves the anchor instead of writing', () async {
+  test("a second click in another block closes a range spanning both", () async {
     await writeScreenplay(twoSceneText);
 
     final bloc = buildBloc();
@@ -749,35 +744,36 @@ void main() {
     final shotId = state.selectedShotId!;
 
     final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
     final headingBlock = layout.blocks.firstWhere((block) => block.text == "INT. HOUSE - DAY");
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
 
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: actionBlock.startOffset,
-        wordStartOffset: actionBlock.words.first.startOffset,
-        wordEndOffset: actionBlock.words.first.endOffset,
+        wordStartOffset: headingBlock.words.first.startOffset,
+        wordEndOffset: headingBlock.words.first.endOffset,
       ),
     );
     await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
 
-    final headingWord = headingBlock.words.first;
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: headingBlock.startOffset,
-        wordStartOffset: headingWord.startOffset,
-        wordEndOffset: headingWord.endOffset,
+        wordStartOffset: actionBlock.words.last.startOffset,
+        wordEndOffset: actionBlock.words.last.endOffset,
       ),
     );
     state = await waitForState(
       bloc,
-      (state) => state.pendingCoverageAnchor?.blockStartOffset == headingBlock.startOffset,
+      (state) => state.selectedShot!.coverageRanges.isNotEmpty,
     );
 
-    expect(state.pendingCoverageAnchor!.wordStartOffset, headingWord.startOffset);
-    expect(state.selectedShot!.coverageRanges, isEmpty);
+    final range = state.selectedShot!.coverageRanges.single;
+    expect(range.startOffset, headingBlock.words.first.startOffset);
+    expect(range.endOffset, actionBlock.words.last.endOffset);
+    // The range genuinely runs through both blocks, blank line included.
+    expect(layout.blocksSpannedBy(range), [headingBlock, actionBlock]);
+    expect(state.pendingCoverageAnchor, isNull);
 
     await bloc.close();
   });
@@ -876,7 +872,6 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: firstShotId,
-        blockStartOffset: actionBlock.startOffset,
         wordStartOffset: actionBlock.words.first.startOffset,
         wordEndOffset: actionBlock.words.first.endOffset,
       ),
@@ -907,7 +902,6 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: actionBlock.startOffset,
         wordStartOffset: actionBlock.words.first.startOffset,
         wordEndOffset: actionBlock.words.first.endOffset,
       ),
@@ -917,7 +911,6 @@ void main() {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
         shotId: shotId,
-        blockStartOffset: actionBlock.startOffset,
         wordStartOffset: actionBlock.words.last.startOffset,
         wordEndOffset: actionBlock.words.last.endOffset,
       ),

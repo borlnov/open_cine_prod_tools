@@ -115,17 +115,16 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// write lands, whether through the debounce elapsing or an explicit flush.
   final Map<(String, OcptShotListEditableField), String> pendingFieldEdits;
 
-  /// The first word clicked of a scenario coverage range currently being drawn in the selected
-  /// shot's coverage editor, or null while none is being drawn (no click yet, or the range was
-  /// just closed or removed).
+  /// The first word clicked of a scenario coverage range currently being drawn in the coverage
+  /// dialog, or null while none is being drawn (no click yet, or the range was just closed or
+  /// removed).
   ///
-  /// `blockStartOffset` is the scene-relative `OcptShotCoverageBlock.startOffset` of the block the
-  /// anchor word belongs to (a range may never span two blocks, so this is what a second click in
-  /// another block is compared against); `wordStartOffset`/`wordEndOffset` are the anchor word's
-  /// own scene-relative `OcptShotCoverageWord` offsets. Cleared whenever the selected shot or
-  /// sequence changes, and after every coverage write (see `OcptShotListBloc`'s own doc comment on
-  /// its coverage word-click handler for the full three-state interaction this backs).
-  final ({int blockStartOffset, int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor;
+  /// Its two fields are the anchor word's own scene-relative `OcptShotCoverageWord` offsets, which
+  /// identify it on their own — a range may span several blocks, so the block a click lands in
+  /// never takes part in the decision. Cleared whenever the selected shot or sequence changes, and
+  /// after every coverage write (see `OcptShotListBloc`'s own doc comment on its coverage
+  /// word-click handler for the full three-state interaction this backs).
+  final ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor;
 
   /// Every sequence of [snapshot], in display order (empty while nothing is loaded).
   List<OcptShotSequence> get sequences => snapshot?.sequences ?? const [];
@@ -300,7 +299,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     List<String>? speakingCharacters,
     OcptShotFieldSuggestions? suggestions,
     Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
-    ({int blockStartOffset, int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
+    ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
     bool clearPendingCoverageAnchor = false,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,

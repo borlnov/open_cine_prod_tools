@@ -826,12 +826,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   }
 
   /// Resolves a click on a scenario coverage word, exactly as `OcptShotListCoverageWordClickedEvent`
-  /// documents: a click on one of the selected shot's own already-covered words removes that range
-  /// when no anchor is pending; otherwise the click either opens a pending anchor, closes it into a
-  /// freshly recorded range (a second click in the same block), or moves it (a second click in
-  /// another block). Written immediately, like every other coverage change; a stale click — a
-  /// shot no longer selected, or nothing left to lay out — is silently ignored, since the layout
-  /// the click was resolved against might no longer describe what is on screen.
+  /// documents: with no range open, a click on one of the selected shot's own already-covered words
+  /// removes the range covering it and any other click opens a range on that word; with a range
+  /// open, the click closes it wherever it lands. Written immediately, like every other coverage
+  /// change; a stale click — a shot no longer selected, or nothing left to lay out — is silently
+  /// ignored, since the layout the click was resolved against might no longer describe what is on
+  /// screen.
+  ///
+  /// A closing click is never rejected for landing in another block than the one the range was
+  /// opened in: a range legitimately runs from an action paragraph into the dialogue below it, and
+  /// `OcptShotCoverageService.addRange` stopped enforcing anything about blocks along with it.
   Future<void> _onCoverageWordClicked(
     OcptShotListCoverageWordClickedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -853,7 +857,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         emitter(
           state.copyWith(
             pendingCoverageAnchor: (
-              blockStartOffset: event.blockStartOffset,
               wordStartOffset: event.wordStartOffset,
               wordEndOffset: event.wordEndOffset,
             ),
@@ -869,19 +872,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         action: () => _shotCoverageService.removeRange(
           database: project.database,
           rangeId: coveringRange.id,
-        ),
-      );
-      return;
-    }
-
-    if (anchor.blockStartOffset != event.blockStartOffset) {
-      emitter(
-        state.copyWith(
-          pendingCoverageAnchor: (
-            blockStartOffset: event.blockStartOffset,
-            wordStartOffset: event.wordStartOffset,
-            wordEndOffset: event.wordEndOffset,
-          ),
         ),
       );
       return;
@@ -911,7 +901,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         startOffset: range.startOffset,
         endOffset: range.endOffset,
         coveredText: layout.sceneText.substring(range.startOffset, range.endOffset),
-        blockBoundaries: layout.blockBoundaries,
       ),
     );
   }

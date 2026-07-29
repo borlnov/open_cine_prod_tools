@@ -369,10 +369,9 @@ class _ShotListViewState extends State<_ShotListView> {
               ownRanges: shot.coverageRanges,
               otherShotsRanges: state.otherShotsCoverageOfSelectedScene(),
               pendingAnchor: state.pendingCoverageAnchor,
-              onWordTapped: (blockStartOffset, wordStartOffset, wordEndOffset) => bloc.add(
+              onWordTapped: (wordStartOffset, wordEndOffset) => bloc.add(
                 OcptShotListCoverageWordClickedEvent(
                   shotId: shot.id,
-                  blockStartOffset: blockStartOffset,
                   wordStartOffset: wordStartOffset,
                   wordEndOffset: wordEndOffset,
                 ),

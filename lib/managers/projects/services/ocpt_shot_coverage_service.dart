@@ -18,11 +18,11 @@ import 'package:uuid/uuid.dart';
 /// SHA-256 (hex) of that substring's UTF-8 bytes, computed when the range is recorded or
 /// confirmed.
 ///
-/// **A range never spans a block boundary.** The interaction this backs only ever closes a range
-/// within a single Fountain block (a click starts it, a second click in the *same* block closes
-/// it): nothing in `shot_coverages` enforces that a range can't cross into the next block, so
-/// [addRange] is the one place that guarantees it, by rejecting a range whose start and end don't
-/// fall within the same entry of the `blockBoundaries` the caller passes.
+/// **A range may span several blocks.** The interaction this backs closes a range wherever the
+/// second click lands, so a range can start in an action paragraph and end inside the dialogue
+/// below it; nothing here constrains it beyond being non-empty and starting inside its scene. A
+/// range is always confined to a single scene all the same, since that is what its offsets are
+/// relative to.
 ///
 /// **Staleness.** [refreshStaleness] must run right after `OcptSceneIndexService.reconcile` has
 /// refreshed the scenes' `charStart`/`charEnd` for the save that just happened, in the same
@@ -41,10 +41,6 @@ class OcptShotCoverageService {
   /// [sceneId] to shot [shotId], with its digest computed from [coveredText] (the exact substring
   /// the range currently covers), and returns the freshly generated id of the new range.
   ///
-  /// [blockBoundaries] are the scene-relative character offsets where each of the scene's Fountain
-  /// blocks starts, in ascending order, with a final trailing entry equal to the scene's total
-  /// length — see the class doc comment for why this call rejects a range that doesn't fall within
-  /// a single one of them.
   Future<String> addRange({
     required OcptProjectDatabase database,
     required String shotId,
@@ -52,7 +48,6 @@ class OcptShotCoverageService {
     required int startOffset,
     required int endOffset,
     required String coveredText,
-    required List<int> blockBoundaries,
   }) async {
     if (startOffset < 0 || endOffset <= startOffset) {
       throw ArgumentError(
@@ -60,17 +55,6 @@ class OcptShotCoverageService {
         "(startOffset: $startOffset, endOffset: $endOffset)",
       );
     }
-    if (!_fitsInSingleBlock(
-      startOffset: startOffset,
-      endOffset: endOffset,
-      blockBoundaries: blockBoundaries,
-    )) {
-      throw ArgumentError(
-        "A coverage range must not span more than one Fountain block "
-        "(startOffset: $startOffset, endOffset: $endOffset)",
-      );
-    }
-
     final id = const Uuid().v4();
     await database
         .into(database.ocptShotCoveragesTable)
@@ -282,23 +266,6 @@ class OcptShotCoverageService {
       return;
     }
     reasonByShotId[shotId] = reason;
-  }
-
-  /// Whether `[startOffset, endOffset)` falls entirely within a single consecutive pair of
-  /// [blockBoundaries], i.e. doesn't cross any block's start.
-  static bool _fitsInSingleBlock({
-    required int startOffset,
-    required int endOffset,
-    required List<int> blockBoundaries,
-  }) {
-    for (var i = 0; i < blockBoundaries.length - 1; i++) {
-      final blockStart = blockBoundaries[i];
-      final blockEnd = blockBoundaries[i + 1];
-      if (startOffset >= blockStart && startOffset < blockEnd) {
-        return endOffset <= blockEnd;
-      }
-    }
-    return false;
   }
 
   /// The hex SHA-256 digest of [text]'s UTF-8 bytes.

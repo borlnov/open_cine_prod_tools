@@ -230,7 +230,7 @@
   "shotListCoverageDialogCloseAction": "Fermer",
   "shotListCoverageClearAllAction": "Tout effacer",
   "shotListCoverageHintNoAnchor": "Cliquez sur un mot pour démarrer une plage ; cliquez sur un mot couvert pour la supprimer.",
-  "shotListCoverageHintPendingAnchor": "Cliquez sur un autre mot du même bloc pour fermer la plage.",
+  "shotListCoverageHintPendingAnchor": "Cliquez sur un autre mot pour fermer la plage ; elle peut courir sur les blocs suivants.",
   "shotListInspectorImageSectionTitle": "Image",
   "shotListInspectorDifficultySectionTitle": "Difficulté — moy. {value}",
   "shotListInspectorProductionSectionTitle": "Production",

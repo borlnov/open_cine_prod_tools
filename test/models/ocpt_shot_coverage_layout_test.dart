@@ -87,15 +87,19 @@ void main() {
       expect(sceneText.substring(heading.startOffset, heading.endOffset), heading.text);
     });
 
-    test("blockBoundaries is ascending, one entry per source line, ending at sceneText.length", () {
+    test("leaves a wider gap between two blocks the source separates with a blank line", () {
       final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final heading = layout.blocks[0];
+      final action = layout.blocks[1];
+      final character = layout.blocks[2];
+      final parenthetical = layout.blocks[3];
 
-      // 7 source lines (blank ones included) + the trailing sceneText.length entry.
-      expect(layout.blockBoundaries, hasLength(8));
-      expect(layout.blockBoundaries.last, sceneText.length);
-      for (var i = 1; i < layout.blockBoundaries.length; i++) {
-        expect(layout.blockBoundaries[i], greaterThan(layout.blockBoundaries[i - 1]));
-      }
+      // A blank line separates the heading from the action, so their offsets are more than one
+      // character (the newline) apart; the cue and its parenthetical are adjacent lines, so theirs
+      // are exactly one apart. This is what the coverage sheet reads to reproduce the paper
+      // preview's spacing.
+      expect(action.startOffset - heading.endOffset, greaterThan(1));
+      expect(parenthetical.startOffset - character.endOffset, 1);
     });
 
     test("handles a scene text with no trailing newline and one with a trailing blank line", () {
@@ -111,13 +115,11 @@ void main() {
         sceneText: withTrailingNewline,
       );
 
-      expect(layoutWithout.blockBoundaries.last, withoutTrailingNewline.length);
-      expect(layoutWith.blockBoundaries.last, withTrailingNewline.length);
-      // Both still see exactly the two non-blank blocks; the trailing newline only adds one more
-      // (blank) line boundary.
+      // Both still see exactly the two non-blank blocks; a trailing newline only adds a blank
+      // line, which never carries a block of its own.
       expect(layoutWithout.blocks, hasLength(2));
       expect(layoutWith.blocks, hasLength(2));
-      expect(layoutWith.blockBoundaries.length, layoutWithout.blockBoundaries.length + 1);
+      expect(layoutWith.blocks, layoutWithout.blocks);
     });
   });
 
@@ -156,20 +158,51 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageBlock.containsRange", () {
-    test("is true for a range fully inside the block", () {
+  group("OcptShotCoverageLayout.blocksSpannedBy", () {
+    test("returns the single block a range stays inside", () {
       final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
       final heading = layout.blocks.first;
 
-      expect(heading.containsRange(heading.startOffset, heading.endOffset), isTrue);
-      expect(heading.containsRange(heading.startOffset + 1, heading.endOffset - 1), isTrue);
+      final spanned = layout.blocksSpannedBy(
+        _buildRange(
+          sceneId: sceneId,
+          startOffset: heading.startOffset,
+          endOffset: heading.endOffset,
+        ),
+      );
+
+      expect(spanned, [heading]);
     });
 
-    test("is false for a range spilling past the block's end", () {
+    test("returns every block a range runs through, in reading order", () {
+      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final action = layout.blocks[1];
+      final dialogue = layout.blocks.last;
+
+      final spanned = layout.blocksSpannedBy(
+        _buildRange(
+          sceneId: sceneId,
+          startOffset: action.startOffset,
+          endOffset: dialogue.endOffset,
+        ),
+      );
+
+      expect(spanned, layout.blocks.sublist(1));
+    });
+
+    test("ignores a range of another scene", () {
       final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
       final heading = layout.blocks.first;
 
-      expect(heading.containsRange(heading.startOffset, heading.endOffset + 5), isFalse);
+      final spanned = layout.blocksSpannedBy(
+        _buildRange(
+          sceneId: "another-scene",
+          startOffset: heading.startOffset,
+          endOffset: heading.endOffset,
+        ),
+      );
+
+      expect(spanned, isEmpty);
     });
   });
 
@@ -364,8 +397,11 @@ John walks in.
     final sceneText = wholeFountainText.substring(scene.charStart, scene.charEnd);
 
     final layout = OcptShotCoverageLayout.of(sceneId: scene.id, sceneText: sceneText);
-    final headingWords = layout.blocks.first.words;
-    final range = layout.rangeBetween(headingWords[0], headingWords[1]);
+    // Deliberately across two blocks: the heading's first word to the action line's last one.
+    final range = layout.rangeBetween(
+      layout.blocks.first.words.first,
+      layout.blocks.last.words.last,
+    );
 
     final shotId = await shotListService.createShot(
       database: database,
@@ -373,8 +409,8 @@ John walks in.
       sceneId: scene.id,
     );
 
-    // Must not throw: the range sits inside a single block, and blockBoundaries is exactly the
-    // shape addRange expects.
+    // Must not throw: a range built from two of the layout's words is exactly the shape addRange
+    // expects, whether the two words sit in one block or in two.
     await coverageService.addRange(
       database: database,
       shotId: shotId,
@@ -382,7 +418,6 @@ John walks in.
       startOffset: range.startOffset,
       endOffset: range.endOffset,
       coveredText: sceneText.substring(range.startOffset, range.endOffset),
-      blockBoundaries: layout.blockBoundaries,
     );
   });
 }

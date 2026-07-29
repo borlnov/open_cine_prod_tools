@@ -45,9 +45,9 @@ class OcptShotCoverageWord extends Equatable {
 
 /// One non-blank source line of a scene, laid out into its clickable [words].
 ///
-/// A block never spans more than one Fountain source line: the coverage editor's click
-/// interaction only ever closes a range within a single block, which is exactly the invariant
-/// `OcptShotCoverageService.addRange` enforces against [OcptShotCoverageLayout.blockBoundaries].
+/// A block never spans more than one Fountain source line, but a coverage *range* may well span
+/// several blocks: the click interaction closes a range wherever the second click lands, so a
+/// block is a unit of rendering and labelling, never a boundary the model enforces.
 class OcptShotCoverageBlock extends Equatable {
   /// This block's line's [FountainLineType], as classified by [OcptShotCoverageLayout.of], shown
   /// as the block's label in the inspector.
@@ -75,11 +75,6 @@ class OcptShotCoverageBlock extends Equatable {
     required this.endOffset,
     required this.words,
   });
-
-  /// Whether the scene-relative `[startOffset, endOffset)` range fits entirely inside this block,
-  /// i.e. `this.startOffset <= startOffset` and `endOffset <= this.endOffset`.
-  bool containsRange(int startOffset, int endOffset) =>
-      startOffset >= this.startOffset && endOffset <= this.endOffset;
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -113,27 +108,19 @@ class OcptShotCoverageLayout extends Equatable {
   final String sceneText;
 
   /// This scene's non-blank source lines, each laid out into a block. A blank line contributes no
-  /// block of its own (see [blockBoundaries] for where its offset still shows up).
+  /// block of its own, which is what a renderer reads the gap between two consecutive blocks'
+  /// offsets as: adjacent lines are one character apart (their newline), anything wider means the
+  /// source left a blank line there.
   final List<OcptShotCoverageBlock> blocks;
-
-  /// The scene-relative start offset of **every** source line of [sceneText] (blank lines
-  /// included), in ascending order, with a final trailing entry equal to `sceneText.length`.
-  ///
-  /// This is exactly the shape `OcptShotCoverageService.addRange` documents and validates its
-  /// `blockBoundaries` parameter against, so a caller building a range from two of this layout's
-  /// words can pass this list straight through.
-  final List<int> blockBoundaries;
 
   /// Class constructor
   const OcptShotCoverageLayout({
     required this.sceneId,
     required this.sceneText,
     required this.blocks,
-    required this.blockBoundaries,
   });
 
-  /// Lays [sceneText] (scene [sceneId]'s own text) out into [OcptShotCoverageLayout.blocks] and
-  /// [OcptShotCoverageLayout.blockBoundaries].
+  /// Lays [sceneText] (scene [sceneId]'s own text) out into [OcptShotCoverageLayout.blocks].
   ///
   /// Classifies every line of [sceneText] in one `FountainLineClassifier.classify` call: a scene
   /// always starts at its own heading, so classifying its lines in isolation from the rest of the
@@ -148,7 +135,7 @@ class OcptShotCoverageLayout extends Equatable {
     for (var i = 0; i < lines.length; i++) {
       lineStarts[i] = offset;
       // + 1 for the newline separating this line from the next; irrelevant for the last line,
-      // whose real end is never read back from this running total (see blockBoundaries below).
+      // whose real end is its own block's `endOffset` rather than this running total.
       offset += lines[i].length + 1;
     }
 
@@ -182,12 +169,7 @@ class OcptShotCoverageLayout extends Equatable {
       );
     }
 
-    return OcptShotCoverageLayout(
-      sceneId: sceneId,
-      sceneText: sceneText,
-      blocks: blocks,
-      blockBoundaries: [...lineStarts, sceneText.length],
-    );
+    return OcptShotCoverageLayout(sceneId: sceneId, sceneText: sceneText, blocks: blocks);
   }
 
   /// The block whose `[startOffset, endOffset)` contains [offset], or null if [offset] falls on a
@@ -273,6 +255,15 @@ class OcptShotCoverageLayout extends Equatable {
     return sceneText.substring(start, end);
   }
 
+  /// The blocks [range] covers any part of, in reading order: what the inspector labels a quoted
+  /// extract with (`ACTION → DIALOGUE` for a range running from one into the other) now that a
+  /// range may span more than one of them.
+  List<OcptShotCoverageBlock> blocksSpannedBy(OcptShotCoverageRange range) => [
+    if (range.sceneId == sceneId)
+      for (final block in blocks)
+        if (_overlaps(range, block.startOffset, block.endOffset)) block,
+  ];
+
   /// [ranges] (ignoring every range not of [sceneId]) in the order they appear in the scene's
   /// text: the order the inspector lists a shot's covered extracts in, which is the order they
   /// read in rather than the order they happened to be recorded in.
@@ -295,5 +286,5 @@ class OcptShotCoverageLayout extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [sceneId, sceneText, blocks, blockBoundaries];
+  List<Object?> get props => [sceneId, sceneText, blocks];
 }

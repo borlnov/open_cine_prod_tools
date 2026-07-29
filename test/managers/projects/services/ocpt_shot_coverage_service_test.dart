@@ -86,7 +86,6 @@ Action one.
         startOffset: 22,
         endOffset: 25,
         coveredText: "one",
-        blockBoundaries: const [0, 40],
       );
 
       final range = await readSingleRange();
@@ -94,7 +93,50 @@ Action one.
       expect(range.coveredTextDigest, _digestOf("one"));
     });
 
-    test("rejects a range that spans more than one block", () async {
+    test("accepts a range spanning more than one block", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scene.id,
+      );
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+
+      // From inside the heading through the blank line and into the action below it: the click
+      // interaction closes a range wherever the second click lands, so nothing rejects this.
+      final startOffset = sceneText.indexOf("HOUSE");
+      final endOffset = sceneText.indexOf("one.") + "one.".length;
+      final rangeId = await coverageService.addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: scene.id,
+        startOffset: startOffset,
+        endOffset: endOffset,
+        coveredText: sceneText.substring(startOffset, endOffset),
+      );
+
+      final range = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.id.equals(rangeId))).getSingle();
+
+      expect(range.startOffset, startOffset);
+      expect(range.endOffset, endOffset);
+      expect(range.coveredTextDigest, _digestOf(sceneText.substring(startOffset, endOffset)));
+    });
+
+    test("still rejects an empty or negative range", () async {
       await screenplayService.saveScreenplayText(
         database: database,
         screenplayId: screenplayId,
@@ -117,11 +159,9 @@ Action one.
           database: database,
           shotId: shotId,
           sceneId: scene.id,
-          startOffset: 3,
-          endOffset: 8,
-          coveredText: "irrelevant",
-          // Two blocks: [0, 5) and [5, 10).
-          blockBoundaries: const [0, 5, 10],
+          startOffset: 5,
+          endOffset: 5,
+          coveredText: "",
         ),
         throwsArgumentError,
       );
@@ -168,7 +208,6 @@ Action two three.
         startOffset: wordOffset,
         endOffset: wordOffset + "two".length,
         coveredText: "two",
-        blockBoundaries: [0, sceneTextBefore.length],
       );
       final rangeBefore = await readSingleRange();
 
@@ -242,7 +281,6 @@ Action two three.
       startOffset: wordOffset,
       endOffset: wordOffset + "two".length,
       coveredText: "two",
-      blockBoundaries: [0, sceneText.length],
     );
 
     // "two" becomes "TWO": the covered word itself changed.
@@ -305,7 +343,6 @@ Action one two.
       startOffset: wordOffset,
       endOffset: wordOffset + "one".length,
       coveredText: "one",
-      blockBoundaries: [0, sceneText.length],
     );
 
     expect((await readShot(shotId)).needsCheck, isFalse);
@@ -364,7 +401,6 @@ Action two three.
       startOffset: wordOffset,
       endOffset: wordOffset + "Action".length,
       coveredText: "Action",
-      blockBoundaries: [0, sceneText.length],
     );
 
     // Only "three" (after the covered word) changes.
@@ -432,7 +468,6 @@ Action two three four.
       startOffset: wordOffset,
       endOffset: rangeEnd,
       coveredText: "four",
-      blockBoundaries: [0, sceneTextBefore.length],
     );
 
     // The scene shrinks: "four" (and its trailing content) is gone, so the stored range no longer
@@ -506,7 +541,6 @@ Action two three.
       startOffset: wordOffset,
       endOffset: wordOffset + "two".length,
       coveredText: "two",
-      blockBoundaries: [0, sceneText.length],
     );
 
     const editedText = '''
@@ -591,7 +625,6 @@ Action one two three.
       startOffset: oneOffset,
       endOffset: twoOffset + "two".length,
       coveredText: "one two",
-      blockBoundaries: [0, sceneText.length],
     );
     await coverageService.addRange(
       database: database,
@@ -600,7 +633,6 @@ Action one two three.
       startOffset: twoOffset,
       endOffset: twoOffset + "two".length,
       coveredText: "two",
-      blockBoundaries: [0, sceneText.length],
     );
 
     final overlappingWithB = await coverageService.shotIdsCoveringRange(
