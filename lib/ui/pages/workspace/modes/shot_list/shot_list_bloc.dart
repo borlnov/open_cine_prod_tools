@@ -12,9 +12,11 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -46,6 +48,17 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// immediately whenever the selected shot or sequence changes, when the workspace is left, and
 /// (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode
 /// leaves the widget tree for any other reason, so a pending edit is never silently dropped.
+///
+/// A shot's scenario coverage ranges are a further set of discrete, immediately-written actions:
+/// [_onCoverageWordClicked] resolves a word click against
+/// [OcptShotListState.pendingCoverageAnchor] into adding, removing, or simply moving where the
+/// next click would close a range (see that handler's own doc comment for the three-state
+/// interaction), [_onCoverageClearRequested] drops every range of a shot, and
+/// [_onShotMarkedAsChecked] clears a shot's `needsCheck` flag and re-stamps its ranges' digests.
+/// All three go through [OcptShotListState.screenplayText] — the screenplay's Fountain text as
+/// last loaded, which [OcptShotListState.buildSelectedCoverageLayout] slices a scene's own text
+/// out of — loaded once here rather than by [_speakingCharactersOf] on its own, which used to
+/// parse the screenplay text a second time to derive the same list of speaking characters.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -63,6 +76,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// The service used to read and write the shot list.
   final OcptShotListService _shotListService;
 
+  /// The service used to read and write a shot's scenario coverage ranges.
+  final OcptShotCoverageService _shotCoverageService;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -79,6 +95,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
     OcptShotListService? shotListService,
+    OcptShotCoverageService? shotCoverageService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -86,6 +103,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
+       _shotCoverageService =
+           shotCoverageService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotCoverageService,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
     add(const OcptShotListLoadRequestedEvent());
@@ -113,6 +133,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListShotDifficultyChangedEvent>(_onShotDifficultyChanged);
     on<OcptShotListShotCharacterToggledEvent>(_onShotCharacterToggled);
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
+    on<OcptShotListCoverageWordClickedEvent>(_onCoverageWordClicked);
+    on<OcptShotListCoverageClearRequestedEvent>(_onCoverageClearRequested);
+    on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
   }
 
   /// Loads the persisted preferences and the current project's shot list, selecting its first
@@ -152,8 +175,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       return;
     }
 
+    final screenplayText = await _loadScreenplayText(project);
     final snapshot = await _loadSnapshot(project);
-    final speakingCharacters = await _loadSpeakingCharacters(project);
+    final speakingCharacters = _speakingCharactersOf(screenplayText);
     final suggestions = await _loadSuggestions(project);
 
     emitter(
@@ -161,9 +185,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         isLoading: false,
         title: project.name,
         snapshot: snapshot,
+        screenplayText: screenplayText,
         selectedSequenceId: snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id,
         clearSelectedSequenceId: snapshot.sequences.isEmpty,
         clearSelectedShotId: true,
+        clearPendingCoverageAnchor: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         visibleColumns: visibleColumns,
@@ -181,16 +207,21 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         screenplayId: project.primaryScreenplayId,
       );
 
-  /// Reads the screenplay's speaking characters, parsing its current source text and delegating to
-  /// `fountain_kit`'s `speakingCharactersOf`, whose normalisation matches
-  /// `shot_characters.characterName`'s own (both go through `normalizeCharacterName`) so a shot's
-  /// character and a screenplay's speaking role compare equal byte-for-byte.
-  Future<List<String>> _loadSpeakingCharacters(OcptOpenProjectModel project) async {
-    final text = await _projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    final document = const FountainParser().parse(text);
+  /// Reads [project]'s current Fountain source text, kept in `OcptShotListState.screenplayText`
+  /// for [_speakingCharactersOf] and every scenario coverage read/write that needs the whole
+  /// screenplay text rather than a single scene's own slice of it.
+  Future<String> _loadScreenplayText(OcptOpenProjectModel project) =>
+      _projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+      );
+
+  /// Parses [screenplayText] and delegates to `fountain_kit`'s `speakingCharactersOf`, whose
+  /// normalisation matches `shot_characters.characterName`'s own (both go through
+  /// `normalizeCharacterName`) so a shot's character and a screenplay's speaking role compare equal
+  /// byte-for-byte.
+  List<String> _speakingCharactersOf(String screenplayText) {
+    final document = const FountainParser().parse(screenplayText);
     return speakingCharactersOf(document.blocks);
   }
 
@@ -244,6 +275,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       state.copyWith(
         selectedSequenceId: event.sequenceId,
         clearSelectedShotId: !isSameSequence,
+        clearPendingCoverageAnchor: true,
       ),
     );
   }
@@ -273,6 +305,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         selectedShotId: event.shotId,
         rightDockTab: OcptShotListRightDockTab.inspector,
         lastRightDockTab: OcptShotListRightDockTab.inspector,
+        clearPendingCoverageAnchor: true,
       ),
     );
   }
@@ -324,6 +357,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           selectedShotId: shotId,
           rightDockTab: OcptShotListRightDockTab.inspector,
           lastRightDockTab: OcptShotListRightDockTab.inspector,
+          clearPendingCoverageAnchor: true,
         ),
       );
     } catch (error) {
@@ -769,12 +803,179 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           suggestions: await _loadSuggestions(project),
           pendingFieldEdits: pendingWithoutShot,
           clearSelectedShotId: wasSelected,
+          clearPendingCoverageAnchor: wasSelected,
         ),
       );
     } catch (error) {
       appLogger().e("A problem occurred when tried to delete shot ${event.shotId} of the "
           "project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Resolves a click on a scenario coverage word, exactly as `OcptShotListCoverageWordClickedEvent`
+  /// documents: a click on one of the selected shot's own already-covered words removes that range
+  /// when no anchor is pending; otherwise the click either opens a pending anchor, closes it into a
+  /// freshly recorded range (a second click in the same block), or moves it (a second click in
+  /// another block). Written immediately, like every other coverage change; a stale click — a
+  /// shot no longer selected, or nothing left to lay out — is silently ignored, since the layout
+  /// the click was resolved against might no longer describe what is on screen.
+  Future<void> _onCoverageWordClicked(
+    OcptShotListCoverageWordClickedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    final layout = state.buildSelectedCoverageLayout();
+    if (project == null || layout == null || state.selectedShotId != event.shotId) {
+      return;
+    }
+
+    final anchor = state.pendingCoverageAnchor;
+
+    if (anchor == null) {
+      final coveringRange = layout.rangeAt(
+        event.wordStartOffset,
+        state.selectedShot?.coverageRanges ?? const [],
+      );
+      if (coveringRange == null) {
+        emitter(
+          state.copyWith(
+            pendingCoverageAnchor: (
+              blockStartOffset: event.blockStartOffset,
+              wordStartOffset: event.wordStartOffset,
+              wordEndOffset: event.wordEndOffset,
+            ),
+          ),
+        );
+        return;
+      }
+
+      await _writeCoverageChange(
+        emitter: emitter,
+        project: project,
+        shotId: event.shotId,
+        action: () => _shotCoverageService.removeRange(
+          database: project.database,
+          rangeId: coveringRange.id,
+        ),
+      );
+      return;
+    }
+
+    if (anchor.blockStartOffset != event.blockStartOffset) {
+      emitter(
+        state.copyWith(
+          pendingCoverageAnchor: (
+            blockStartOffset: event.blockStartOffset,
+            wordStartOffset: event.wordStartOffset,
+            wordEndOffset: event.wordEndOffset,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final range = layout.rangeBetween(
+      OcptShotCoverageWord(
+        text: layout.sceneText.substring(anchor.wordStartOffset, anchor.wordEndOffset),
+        startOffset: anchor.wordStartOffset,
+        endOffset: anchor.wordEndOffset,
+      ),
+      OcptShotCoverageWord(
+        text: layout.sceneText.substring(event.wordStartOffset, event.wordEndOffset),
+        startOffset: event.wordStartOffset,
+        endOffset: event.wordEndOffset,
+      ),
+    );
+
+    await _writeCoverageChange(
+      emitter: emitter,
+      project: project,
+      shotId: event.shotId,
+      action: () => _shotCoverageService.addRange(
+        database: project.database,
+        shotId: event.shotId,
+        sceneId: layout.sceneId,
+        startOffset: range.startOffset,
+        endOffset: range.endOffset,
+        coveredText: layout.sceneText.substring(range.startOffset, range.endOffset),
+        blockBoundaries: layout.blockBoundaries,
+      ),
+    );
+  }
+
+  /// Removes every scenario coverage range of shot `event.shotId`, written immediately: the
+  /// inspector's `Clear all` action.
+  Future<void> _onCoverageClearRequested(
+    OcptShotListCoverageClearRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _writeCoverageChange(
+      emitter: emitter,
+      project: project,
+      shotId: event.shotId,
+      action: () => _shotCoverageService.clearRangesOfShot(
+        database: project.database,
+        shotId: event.shotId,
+      ),
+    );
+  }
+
+  /// Clears shot `event.shotId`'s `needsCheck` flag and re-stamps every one of its scenario
+  /// coverage ranges' digests to the screenplay's current text, written immediately: the
+  /// inspector's `Needs checking` callout's `Mark as checked` button.
+  ///
+  /// Passes the whole [OcptShotListState.screenplayText], not a single scene's slice of it: the
+  /// offsets `OcptShotCoverageService.markAsChecked` re-stamps are scene-relative to each range's
+  /// own scene's `charStart`, and a shot's ranges may span more than one scene. This also clears a
+  /// `needsCheck` the shot carries for `OcptShotCheckReason.sceneDeleted` (an orphaned shot, which
+  /// has no range to re-stamp at all) exactly as it clears any other reason.
+  Future<void> _onShotMarkedAsChecked(
+    OcptShotListShotMarkedAsCheckedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _writeCoverageChange(
+      emitter: emitter,
+      project: project,
+      shotId: event.shotId,
+      action: () => _shotCoverageService.markAsChecked(
+        database: project.database,
+        shotId: event.shotId,
+        currentFountainText: state.screenplayText,
+      ),
+    );
+  }
+
+  /// Writes a scenario coverage change through [action], reloads the snapshot so every dependent
+  /// aggregate (the `modified` badge, the "also covered by" wash, a shot's `needsCheck`) reflects
+  /// what the database now says, and clears the pending coverage anchor — a coverage write always
+  /// leaves the interaction back at its initial, no-anchor state. Mirrors
+  /// `_onShotDifficultyChanged`/`_onShotCharacterToggled`'s own try/catch shape.
+  Future<void> _writeCoverageChange({
+    required Emitter<OcptShotListState> emitter,
+    required OcptOpenProjectModel project,
+    required String shotId,
+    required Future<void> Function() action,
+  }) async {
+    try {
+      await action();
+      emitter(
+        state.copyWith(snapshot: await _loadSnapshot(project), clearPendingCoverageAnchor: true),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to change the scenario coverage of shot "
+          "$shotId of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true, clearPendingCoverageAnchor: true));
     }
   }
 

@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -29,6 +32,15 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// The whole shot list as last read from the project database, or null while nothing has been
   /// loaded yet.
   final OcptShotListSnapshot? snapshot;
+
+  /// The screenplay's Fountain text, as last loaded by the bloc.
+  ///
+  /// Every scene's own text is sliced out of this string using
+  /// `OcptSceneShotSequence.charStart`/`charEnd`: [buildSelectedCoverageLayout] is what does that
+  /// slicing for the selected sequence, and `OcptShotCoverageService.markAsChecked` needs the
+  /// whole string rather than a single scene's slice (see `OcptShotListBloc`'s own doc comment on
+  /// its `Mark as checked` handler).
+  final String screenplayText;
 
   /// The [OcptShotSequence.id] of the sequence currently selected, or null while none is (an
   /// empty screenplay has no sequence to select in the first place).
@@ -94,6 +106,18 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// write lands, whether through the debounce elapsing or an explicit flush.
   final Map<(String, OcptShotListEditableField), String> pendingFieldEdits;
 
+  /// The first word clicked of a scenario coverage range currently being drawn in the selected
+  /// shot's coverage editor, or null while none is being drawn (no click yet, or the range was
+  /// just closed or removed).
+  ///
+  /// `blockStartOffset` is the scene-relative `OcptShotCoverageBlock.startOffset` of the block the
+  /// anchor word belongs to (a range may never span two blocks, so this is what a second click in
+  /// another block is compared against); `wordStartOffset`/`wordEndOffset` are the anchor word's
+  /// own scene-relative `OcptShotCoverageWord` offsets. Cleared whenever the selected shot or
+  /// sequence changes, and after every coverage write (see `OcptShotListBloc`'s own doc comment on
+  /// its coverage word-click handler for the full three-state interaction this backs).
+  final ({int blockStartOffset, int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor;
+
   /// Every sequence of [snapshot], in display order (empty while nothing is loaded).
   List<OcptShotSequence> get sequences => snapshot?.sequences ?? const [];
 
@@ -124,11 +148,83 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// The total number of shots across every sequence, orphan group included.
   int get totalShotCount => snapshot?.totalShotCount ?? 0;
 
+  /// Builds the scenario coverage layout of the selected shot's scene, or null when no shot is
+  /// selected, none is (or the selected sequence is the orphan group: an orphaned shot's scene
+  /// text is gone, so there is nothing left to lay out).
+  ///
+  /// Rebuilt on demand every time this is called, rather than cached in the state: laying a
+  /// scene's few hundred characters out is cheap, and caching it here would only mean
+  /// invalidating it by hand on every snapshot or [screenplayText] reload instead of simply
+  /// calling this again.
+  OcptShotCoverageLayout? buildSelectedCoverageLayout() {
+    final sequence = selectedSequence;
+    if (selectedShot == null || sequence is! OcptSceneShotSequence) {
+      return null;
+    }
+
+    return OcptShotCoverageLayout.of(
+      sceneId: sequence.sceneId,
+      sceneText: screenplayText.substring(sequence.charStart, sequence.charEnd),
+    );
+  }
+
+  /// Every shot other than the selected one that has a scenario coverage range of the selected
+  /// scene, keyed by that shot's [OcptShot.code], in code order, skipping a shot with no range of
+  /// this scene at all: the inspector's "also covered by" wash.
+  ///
+  /// Derived from [snapshot], already held in memory, rather than through
+  /// `OcptShotCoverageService.shotIdsCoveringRange`: the snapshot already carries every shot's own
+  /// ranges, so querying the database for each block rendered would mean an async call inside a
+  /// build. Empty when no shot is selected or the selected sequence is the orphan group.
+  Map<String, List<OcptShotCoverageRange>> otherShotsCoverageOfSelectedScene() {
+    final sequence = selectedSequence;
+    final selectedShotId = this.selectedShotId;
+    if (selectedShotId == null || sequence is! OcptSceneShotSequence) {
+      return const {};
+    }
+
+    final entries = <MapEntry<String, List<OcptShotCoverageRange>>>[];
+    for (final shot in snapshot?.shotsById.values ?? const <OcptShot>[]) {
+      if (shot.id == selectedShotId) {
+        continue;
+      }
+      final ranges = shot.coverageRanges
+          .where((range) => range.sceneId == sequence.sceneId)
+          .toList(growable: false);
+      if (ranges.isNotEmpty) {
+        entries.add(MapEntry(shot.code, ranges));
+      }
+    }
+    entries.sort((a, b) => a.key.compareTo(b.key));
+
+    return {for (final entry in entries) entry.key: entry.value};
+  }
+
+  /// The selected shot's own coverage ranges of [layout]'s scene that currently disagree with its
+  /// current text, decided range by range through `OcptShotCoverageService.isRangeStale` rather
+  /// than through the coarser, shot-wide `OcptShotCoverageRange.isStale` (which mirrors the whole
+  /// shot's `needsCheck` flag): this is what lets the inspector's `modified` badge mark exactly
+  /// the blocks whose covered text actually changed.
+  Set<String> staleCoverageRangeIdsOfSelectedShot(OcptShotCoverageLayout layout) {
+    final shot = selectedShot;
+    if (shot == null) {
+      return const {};
+    }
+
+    return {
+      for (final range in shot.coverageRanges)
+        if (range.sceneId == layout.sceneId &&
+            OcptShotCoverageService.isRangeStale(range: range, sceneText: layout.sceneText))
+          range.id,
+    };
+  }
+
   /// Class constructor
   const OcptShotListState({
     required this.isLoading,
     required this.title,
     required this.snapshot,
+    required this.screenplayText,
     required this.selectedSequenceId,
     required this.selectedShotId,
     required this.isSequencePanelVisible,
@@ -141,6 +237,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     required this.speakingCharacters,
     required this.suggestions,
     required this.pendingFieldEdits,
+    required this.pendingCoverageAnchor,
   });
 
   /// Init class constructor
@@ -148,6 +245,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     : isLoading = true,
       title = "",
       snapshot = null,
+      screenplayText = "",
       selectedSequenceId = null,
       selectedShotId = null,
       isSequencePanelVisible = true,
@@ -159,19 +257,22 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
       hasWriteError = false,
       speakingCharacters = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
-      pendingFieldEdits = const {};
+      pendingFieldEdits = const {},
+      pendingCoverageAnchor = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId] and [rightDockTab] all
-  /// legitimately go back to null while the mode is alive (nothing selected any more, the dock
-  /// closed), so each has its own clear flag instead.
+  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [rightDockTab] and
+  /// [pendingCoverageAnchor] all legitimately go back to null while the mode is alive (nothing
+  /// selected any more, the dock closed, no range being drawn), so each has its own clear flag
+  /// instead.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
     String? title,
     OcptShotListSnapshot? snapshot,
+    String? screenplayText,
     String? selectedSequenceId,
     bool clearSelectedSequenceId = false,
     String? selectedShotId,
@@ -187,10 +288,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     List<String>? speakingCharacters,
     OcptShotFieldSuggestions? suggestions,
     Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
+    ({int blockStartOffset, int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
+    bool clearPendingCoverageAnchor = false,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
     snapshot: snapshot ?? this.snapshot,
+    screenplayText: screenplayText ?? this.screenplayText,
     selectedSequenceId: clearSelectedSequenceId
         ? null
         : (selectedSequenceId ?? this.selectedSequenceId),
@@ -205,6 +309,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     speakingCharacters: speakingCharacters ?? this.speakingCharacters,
     suggestions: suggestions ?? this.suggestions,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
+    pendingCoverageAnchor: clearPendingCoverageAnchor
+        ? null
+        : (pendingCoverageAnchor ?? this.pendingCoverageAnchor),
   );
 
   /// Object properties
@@ -214,6 +321,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     isLoading,
     title,
     snapshot,
+    screenplayText,
     selectedSequenceId,
     selectedShotId,
     isSequencePanelVisible,
@@ -226,5 +334,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     speakingCharacters,
     suggestions,
     pendingFieldEdits,
+    pendingCoverageAnchor,
   ];
 }
