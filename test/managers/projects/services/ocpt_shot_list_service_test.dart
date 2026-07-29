@@ -364,6 +364,30 @@ Action.
     });
   });
 
+  test("a scene sequence's charStart/charEnd come straight from its scene row", () async {
+    final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''');
+
+    final snapshot = await shotListService.loadShotList(
+      database: database,
+      screenplayId: screenplayId,
+    );
+    final firstSequence = snapshot.sequences[0] as OcptSceneShotSequence;
+    final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
+
+    expect(firstSequence.charStart, scenes[0].charStart);
+    expect(firstSequence.charEnd, scenes[0].charEnd);
+    expect(secondSequence.charStart, scenes[1].charStart);
+    expect(secondSequence.charEnd, scenes[1].charEnd);
+  });
+
   test(
     "detaching a shot's scene through a real saveScreenplayText call preserves its shots, "
     "their heading and drops their coverage",

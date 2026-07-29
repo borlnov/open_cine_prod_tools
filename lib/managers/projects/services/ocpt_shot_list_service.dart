@@ -151,6 +151,8 @@ class OcptShotListService {
       heading: sceneRow.heading,
       sceneNumber: sceneRow.sceneNumber,
       displaySceneNumber: displayNumber,
+      charStart: sceneRow.charStart,
+      charEnd: sceneRow.charEnd,
       shots: [for (final row in shotRows) buildShot(row, displayNumber)],
     );
   }

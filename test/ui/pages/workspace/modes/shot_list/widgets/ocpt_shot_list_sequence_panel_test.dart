@@ -68,6 +68,8 @@ void main() {
     heading: "INT. HOUSE - DAY",
     sceneNumber: null,
     displaySceneNumber: "1",
+    charStart: 0,
+    charEnd: 40,
     shots: [
       _buildShot(id: "shot-1", code: "1/1", shotSize: "Wide shot"),
       _buildShot(id: "shot-2", code: "1/2", shotSize: "Close-up", needsCheck: true),
@@ -78,6 +80,8 @@ void main() {
     heading: "EXT. GARDEN - NIGHT",
     sceneNumber: "2A",
     displaySceneNumber: "2A",
+    charStart: 40,
+    charEnd: 80,
     shots: [_buildShot(id: "shot-3", code: "2A/1")],
   );
 

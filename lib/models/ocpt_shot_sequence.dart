@@ -62,12 +62,25 @@ class OcptSceneShotSequence extends OcptShotSequence {
   /// styled screenplay editor already displays for a heading with no explicit number.
   final String displaySceneNumber;
 
+  /// The character offset, in the screenplay's Fountain text, at which this scene starts, copied
+  /// from the scene's own `scenes` row.
+  ///
+  /// The scenario coverage editor needs this (together with [charEnd]) to slice the scene's own
+  /// text out of the screenplay's whole text before laying it out into blocks and words.
+  final int charStart;
+
+  /// The character offset, in the screenplay's Fountain text, one past the last character of this
+  /// scene, copied from the scene's own `scenes` row. See [charStart].
+  final int charEnd;
+
   /// Class constructor
   const OcptSceneShotSequence({
     required this.sceneId,
     required this.heading,
     required this.sceneNumber,
     required this.displaySceneNumber,
+    required this.charStart,
+    required this.charEnd,
     required super.shots,
   });
 
@@ -82,7 +95,15 @@ class OcptSceneShotSequence extends OcptShotSequence {
 
   /// Object properties
   @override
-  List<Object?> get props => [sceneId, heading, sceneNumber, displaySceneNumber, shots];
+  List<Object?> get props => [
+    sceneId,
+    heading,
+    sceneNumber,
+    displaySceneNumber,
+    charStart,
+    charEnd,
+    shots,
+  ];
 }
 
 /// The single synthetic sequence holding every shot whose scene was deleted from the screenplay.
