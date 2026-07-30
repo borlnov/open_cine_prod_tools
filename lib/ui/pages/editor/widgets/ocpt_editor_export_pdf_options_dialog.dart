@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -68,6 +69,7 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
+              mouseCursor: ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),

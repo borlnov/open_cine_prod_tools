@@ -7,7 +7,6 @@ import 'dart:ui' show Brightness, Locale;
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_intl_ui/act_intl_ui.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
-import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 
 /// The state of the main app bloc, carrying everything the root app shell needs to rebuild when
 /// the persisted locale or theme preference changes.
@@ -31,12 +30,6 @@ class OcptMainAppState extends BlocStateForMixin<OcptMainAppState>
     required this.currentTheme,
     required this.brightness,
   });
-
-  /// Init class constructor
-  const OcptMainAppState.init()
-    : wantedLocale = null,
-      currentTheme = OcptAppTheme.standard,
-      brightness = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   @override

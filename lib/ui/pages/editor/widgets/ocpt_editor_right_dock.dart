@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
@@ -142,6 +143,7 @@ class _OcptRightDockTabLabel extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      mouseCursor: ocptClickableCursor,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
         child: Column(

@@ -7,7 +7,6 @@ import 'dart:ui' show Brightness, Locale;
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_intl_ui/act_intl_ui.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
-import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 
 /// The state of the settings page bloc.
 ///
@@ -43,13 +42,6 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     required this.brightness,
     required this.appVersion,
   });
-
-  /// Init class constructor
-  const OcptSettingsState.init({required this.appVersion})
-    : currentLocale = const Locale.fromSubtags(),
-      wantedLocale = null,
-      currentTheme = OcptAppTheme.standard,
-      brightness = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   @override
