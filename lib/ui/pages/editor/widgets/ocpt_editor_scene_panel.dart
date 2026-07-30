@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
@@ -108,6 +109,7 @@ class _SceneEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      mouseCursor: ocptClickableCursor,
       child: ColoredBox(
         color: isCurrent ? theme.colorScheme.primary.withValues(alpha: 0.14) : Colors.transparent,
         child: Padding(

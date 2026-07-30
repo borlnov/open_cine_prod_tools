@@ -159,7 +159,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   panel's own backdrop painted by `OcptEditorPreview` itself so its white sheet reads as paper in
   dark theme too, regardless of the surrounding themed docks; and `projectPosterTints`, the small
   per-brightness colour family `OcptProjectCard` indexes into by a stable hash of the project
-  path, so a project keeps the same poster tint across launches and machines.
+  path, so a project keeps the same poster tint across launches and machines. The same file owns
+  `ocptClickableCursor`, the hand cursor every clickable control shows: Material's own default
+  (`WidgetStateMouseCursor.adaptiveClickable`) only resolves to the hand on the web, so the
+  component themes hand this one to every control that reads a cursor from the theme, and the
+  widgets with no theme hook (`DropdownButton`, every `InkWell` the app builds itself) pass it at
+  their call site — a new clickable surface must do the same.
 - Branding: the app mark lives in `assets/branding/` as three SVGs — `ocpt_logo_light.svg`
   (accent-filled square), `ocpt_logo_dark.svg` (the same drawing hollow, for near-black surfaces)
   and `ocpt_logo_glyph.svg` (the perforations and page alone, monochrome, **always tinted by its
@@ -351,3 +356,8 @@ minimum before each commit):
   `lib/generated/**`.
 - `staging.yaml` config is never loaded (the ACT `Environment` enum has no staging value);
   documented inline, kept intentionally.
+- ACT manager streams (`ActThemesManager`, `LocalesManager`) emit on change and never replay their
+  current value to a new listener, and `MixinActThemesBloc` does not seed itself: a bloc mixing it
+  in must build its initial state from the manager's getters (`OcptSettingsBloc`/`OcptMainAppBloc`
+  do), otherwise the stored preference is neither shown nor applied, and picking the value already
+  stored emits nothing at all.

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 
@@ -43,6 +44,7 @@ class OcptSettingsAppearanceSection extends StatelessWidget {
                 DropdownButton<Brightness?>(
                   value: brightness,
                   onChanged: onBrightnessChanged,
+                  mouseCursor: ocptClickableCursor,
                   items: [
                     DropdownMenuItem(child: Text(tr.settingsThemeSystemOption)),
                     DropdownMenuItem(

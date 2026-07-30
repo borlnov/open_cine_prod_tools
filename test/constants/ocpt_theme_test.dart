@@ -116,4 +116,61 @@ void main() {
       });
     }
   });
+
+  group('clickable controls show the hand cursor', () {
+    // Material's own defaults resolve to the plain arrow outside the web, so every control that
+    // reads its cursor from the theme must be handed [ocptClickableCursor] here: a missing entry
+    // is a control that silently stops looking clickable on Linux and Windows.
+    for (final brightness in Brightness.values) {
+      final themeData = brightness == Brightness.light
+          ? ocptTheme.lightThemeData!
+          : ocptTheme.darkThemeData!;
+
+      /// The cursor [style] resolves for an enabled control.
+      MouseCursor? enabledCursorOf(ButtonStyle? style) =>
+          style?.mouseCursor?.resolve(<WidgetState>{});
+
+      test('every button style resolves to the click cursor in $brightness', () {
+        expect(enabledCursorOf(themeData.filledButtonTheme.style), SystemMouseCursors.click);
+        expect(enabledCursorOf(themeData.outlinedButtonTheme.style), SystemMouseCursors.click);
+        expect(enabledCursorOf(themeData.textButtonTheme.style), SystemMouseCursors.click);
+        expect(enabledCursorOf(themeData.iconButtonTheme.style), SystemMouseCursors.click);
+        expect(enabledCursorOf(themeData.menuButtonTheme.style), SystemMouseCursors.click);
+      });
+
+      test('a disabled button keeps the plain arrow in $brightness', () {
+        final disabledCursor = themeData.filledButtonTheme.style?.mouseCursor?.resolve(
+          <WidgetState>{WidgetState.disabled},
+        );
+        expect(disabledCursor, SystemMouseCursors.basic);
+      });
+
+      test('menu, popup and tick-box themes resolve to the click cursor in $brightness', () {
+        expect(
+          themeData.popupMenuTheme.mouseCursor?.resolve(<WidgetState>{}),
+          SystemMouseCursors.click,
+        );
+        expect(
+          themeData.menuTheme.style?.mouseCursor?.resolve(<WidgetState>{}),
+          SystemMouseCursors.click,
+        );
+        expect(
+          themeData.dropdownMenuTheme.menuStyle?.mouseCursor?.resolve(<WidgetState>{}),
+          SystemMouseCursors.click,
+        );
+        expect(
+          themeData.checkboxTheme.mouseCursor?.resolve(<WidgetState>{}),
+          SystemMouseCursors.click,
+        );
+        expect(
+          themeData.radioTheme.mouseCursor?.resolve(<WidgetState>{}),
+          SystemMouseCursors.click,
+        );
+        expect(
+          themeData.switchTheme.mouseCursor?.resolve(<WidgetState>{}),
+          SystemMouseCursors.click,
+        );
+      });
+    }
+  });
 }
