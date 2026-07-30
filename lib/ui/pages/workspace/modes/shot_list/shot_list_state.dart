@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
 /// The state of `OcptShotListBloc`.
@@ -156,6 +157,18 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
 
   /// The total number of shots across every sequence, orphan group included.
   int get totalShotCount => snapshot?.totalShotCount ?? 0;
+
+  /// The number of sequences the shot list holds, orphan group included: the status bar's first
+  /// counter.
+  int get sequenceCount => sequences.length;
+
+  /// The number of shots already filmed across every sequence, orphan group included.
+  int get filmedShotCount =>
+      snapshot?.shotsById.values.where((shot) => shot.status == OcptShotStatus.shot).length ?? 0;
+
+  /// The number of shots currently flagged as needing checking, across every sequence.
+  int get shotsToCheckCount =>
+      snapshot?.shotsById.values.where((shot) => shot.needsCheck).length ?? 0;
 
   /// One alert per character still attached to a shot but no longer speaking anywhere in the
   /// screenplay: the deleted-character banners shown above the shot table.

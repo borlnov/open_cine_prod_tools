@@ -1906,6 +1906,39 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListStatsSequences": "{count, plural, one{{count} sequence} other{{count} sequences}}",
+  "@shotListStatsSequences": {
+    "description": "Number of sequences the shot list holds",
+    "context": "Displayed in the status bar of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListStatsFilmed": "{count, plural, one{{count} filmed} other{{count} filmed}}",
+  "@shotListStatsFilmed": {
+    "description": "Number of shots already filmed",
+    "context": "Displayed in the status bar of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListStatsToCheck": "{count, plural, one{{count} to check} other{{count} to check}}",
+  "@shotListStatsToCheck": {
+    "description": "Number of shots flagged as needing checking",
+    "context": "Displayed at the right end of the status bar of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "shotListResetPanelLayoutAction": "Reset panel layout",
   "@shotListResetPanelLayoutAction": {
     "description": "Action restoring the shot list's dock widths to their defaults",

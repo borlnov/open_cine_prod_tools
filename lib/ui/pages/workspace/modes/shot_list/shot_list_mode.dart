@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_removed_character_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_sequence_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -108,6 +109,12 @@ class _ShotListViewState extends State<_ShotListView> {
         leftPanel: _buildSequencePanel(context, state),
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
+        statusBar: OcptShotListStatusBar(
+          sequenceCount: state.sequenceCount,
+          shotCount: state.totalShotCount,
+          filmedShotCount: state.filmedShotCount,
+          shotsToCheckCount: state.shotsToCheckCount,
+        ),
         dockLayoutController: _dockLayoutController,
         onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
           OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
