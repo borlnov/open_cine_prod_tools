@@ -63,3 +63,6 @@ app.*.map.json
 
 # Generated lock file pinning the devcontainer feature versions; regenerated locally as needed.
 .devcontainer/devcontainer-lock.json
+
+# Contains some files used for debugging
+debug/
