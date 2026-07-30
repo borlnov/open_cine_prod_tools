@@ -52,8 +52,9 @@ three pin their third-party actions by commit SHA and run with `permissions: con
 |-- debian-templates/
 |   |-- control.template      # Debian control file
 |   |-- launcher.sh.template  # /usr/bin launcher script
-|   |-- postinst              # runs ldconfig after install
-|   `-- postrm                # runs ldconfig after removal
+|   |-- app.desktop.template  # desktop entry, named after the installed icon
+|   |-- postinst              # ldconfig + icon/desktop caches after install
+|   `-- postrm                # the same after removal
 |-- inno-setup/
 |   `-- installer.iss.template
 |-- workflows/
@@ -78,8 +79,23 @@ VERSION=$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; /^[0-9]/
 PACKAGE_NAME=open-cine-prod-tools
 DEB_DIR="debian-package/${PACKAGE_NAME}_${VERSION}_amd64"
 
-mkdir -p "${DEB_DIR}/usr/bin" "${DEB_DIR}/usr/lib/${PACKAGE_NAME}" "${DEB_DIR}/DEBIAN"
+mkdir -p "${DEB_DIR}/usr/bin" "${DEB_DIR}/usr/lib/${PACKAGE_NAME}" "${DEB_DIR}/DEBIAN" \
+         "${DEB_DIR}/usr/share/applications" \
+         "${DEB_DIR}/usr/share/icons/hicolor/512x512/apps" \
+         "${DEB_DIR}/usr/share/icons/hicolor/scalable/apps"
 cp -r build/linux/x64/release/bundle/* "${DEB_DIR}/usr/lib/${PACKAGE_NAME}/"
+
+cp assets/branding/icons/ocpt_icon_512.png \
+   "${DEB_DIR}/usr/share/icons/hicolor/512x512/apps/${PACKAGE_NAME}.png"
+cp assets/branding/ocpt_logo_light.svg \
+   "${DEB_DIR}/usr/share/icons/hicolor/scalable/apps/${PACKAGE_NAME}.svg"
+
+sed -e "s/{{APP_NAME}}/Open Cine Prod Tools/g" \
+    -e "s/{{PACKAGE_NAME}}/${PACKAGE_NAME}/g" \
+    -e "s/{{EXECUTABLE_NAME}}/open_cine_prod_tools/g" \
+    -e "s/{{DESCRIPTION_SHORT}}/Open-source production tools for film making/g" \
+    .github/debian-templates/app.desktop.template \
+    > "${DEB_DIR}/usr/share/applications/${PACKAGE_NAME}.desktop"
 
 sed -e "s/{{APP_NAME}}/Open Cine Prod Tools/g" \
     -e "s/{{PACKAGE_NAME}}/${PACKAGE_NAME}/g" \
