@@ -52,6 +52,12 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "open_cine_prod_tools");
   }
 
+  // Names the icon the window (and the task bar entry beside it) wears, resolved by the icon
+  // theme against the hicolor icon the Debian package installs under that same name. Running
+  // straight from a build directory, where nothing is installed, the lookup simply fails and the
+  // window keeps the toolkit's default icon.
+  gtk_window_set_icon_name(window, "open-cine-prod-tools");
+
   gtk_window_set_default_size(window, 1280, 720);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();

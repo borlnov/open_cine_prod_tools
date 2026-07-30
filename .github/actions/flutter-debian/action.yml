@@ -27,6 +27,14 @@ inputs:
   description-long:
     description: "Long description of the application for the Debian package"
     required: true
+  icon-png-path:
+    description: "Path to the 512x512 PNG installed as the hicolor icon, relative to the repository root"
+    required: false
+    default: "assets/branding/icons/ocpt_icon_512.png"
+  icon-svg-path:
+    description: "Path to the SVG installed as the scalable hicolor icon, relative to the repository root"
+    required: false
+    default: "assets/branding/ocpt_logo_light.svg"
   dependencies:
     description: "Runtime dependencies of the Debian package"
     required: false
@@ -64,6 +72,8 @@ runs:
         EXECUTABLE_NAME="${{ inputs.executable-name }}"
         FLUTTER_BUILD_DIR="${{ inputs.app-build-directory }}"
         APP_NAME="${{ inputs.app-name }}"
+        ICON_PNG_PATH="${{ inputs.icon-png-path }}"
+        ICON_SVG_PATH="${{ inputs.icon-svg-path }}"
 
         # Template directory relative to this action
         TEMPLATE_DIR="${GITHUB_ACTION_PATH}/../../debian-templates"
@@ -77,6 +87,9 @@ runs:
         mkdir -p "${DEB_DIR}/usr/bin"
         mkdir -p "${DEB_DIR}/usr/lib/${PACKAGE_NAME}"
         mkdir -p "${DEB_DIR}/DEBIAN"
+        mkdir -p "${DEB_DIR}/usr/share/applications"
+        mkdir -p "${DEB_DIR}/usr/share/icons/hicolor/512x512/apps"
+        mkdir -p "${DEB_DIR}/usr/share/icons/hicolor/scalable/apps"
 
         # Copy Flutter application bundle
         echo "Copying Flutter application..."
@@ -93,6 +106,28 @@ runs:
             -e "s/{{EXECUTABLE_NAME}}/${EXECUTABLE_NAME}/g" \
             "${TEMPLATE_DIR}/launcher.sh.template" > "${DEB_DIR}/usr/bin/${PACKAGE_NAME}"
         chmod +x "${DEB_DIR}/usr/bin/${PACKAGE_NAME}"
+
+        # Install the application icon, both as a raster icon for the toolkits that only read PNG
+        # and as the scalable one every modern desktop prefers. Both are named after the package,
+        # which is the icon name the app itself asks its window to wear.
+        echo "Installing icons..."
+        for ICON_SOURCE in "${ICON_PNG_PATH}" "${ICON_SVG_PATH}"; do
+            if [ ! -f "${ICON_SOURCE}" ]; then
+                echo "Error: icon not found: ${ICON_SOURCE}"
+                exit 1
+            fi
+        done
+        cp "${ICON_PNG_PATH}" "${DEB_DIR}/usr/share/icons/hicolor/512x512/apps/${PACKAGE_NAME}.png"
+        cp "${ICON_SVG_PATH}" "${DEB_DIR}/usr/share/icons/hicolor/scalable/apps/${PACKAGE_NAME}.svg"
+
+        # Create the desktop entry from template
+        echo "Creating desktop entry..."
+        sed -e "s/{{APP_NAME}}/${APP_NAME}/g" \
+            -e "s/{{PACKAGE_NAME}}/${PACKAGE_NAME}/g" \
+            -e "s/{{EXECUTABLE_NAME}}/${EXECUTABLE_NAME}/g" \
+            -e "s/{{DESCRIPTION_SHORT}}/${DESCRIPTION_SHORT}/g" \
+            "${TEMPLATE_DIR}/app.desktop.template" \
+            > "${DEB_DIR}/usr/share/applications/${PACKAGE_NAME}.desktop"
 
         # Create DEBIAN control file from template
         echo "Creating control file..."

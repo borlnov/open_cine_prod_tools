@@ -3,12 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -156,6 +158,44 @@ void main() {
         expect(_pageCount(first), _pageCount(second));
       },
     );
+  });
+
+  group('every line stays on its own row', () {
+    // A script page positions each composed line absolutely at its own row,
+    // so a line the renderer considers too wide for its box does not push
+    // the page down: it wraps and draws its tail on top of the next row.
+    // Asserting that every drawn baseline sits on the page's own 12-point
+    // row grid is therefore a direct check that no line ever wrapped twice.
+    const wideAction =
+        'INT. HOUSE - DAY\n\n'
+        'PAUL est habille en costume, il est dans le derriere de la scene, '
+        'cote cour. Il s echauffe, il parait stresse.\n';
+
+    for (final format in OcptPageFormat.values) {
+      test('on ${format.name}, no baseline falls between two rows', () async {
+        final bytes = await service.generate(
+          document: parse(wideAction),
+          pageSetup: pageSetup.copyWith(format: format),
+          projectName: 'P',
+          includeSceneNumbers: true,
+          includeTitlePage: false,
+        );
+
+        final baselines = _textBaselines(bytes);
+        expect(baselines, isNotEmpty);
+        final top = baselines.reduce((a, b) => a > b ? a : b);
+        for (final baseline in baselines) {
+          final rows = (top - baseline) / 12;
+          expect(
+            rows,
+            closeTo(rows.roundToDouble(), 0.001),
+            reason:
+                'a baseline $rows rows below the first one is off the row '
+                'grid, i.e. drawn on top of a neighbouring line',
+          );
+        }
+      });
+    }
   });
 
   group('pdfFileName', () {
@@ -389,6 +429,65 @@ int _pageCount(Uint8List bytes) {
   final matches = RegExp(r'/Type\s*/Page[^s]').allMatches(text);
   return matches.length;
 }
+
+/// The absolute Y coordinate, in points from the page's bottom edge, of
+/// every piece of text [bytes] draws.
+///
+/// Walks each page's content stream with just enough of a PDF graphics-state
+/// interpreter to resolve a `Td` text position against the enclosing
+/// `q`/`cm`/`Q` translations (the `pdf` package emits one translated group
+/// per positioned widget, and only ever translations — never a rotation or a
+/// scale — which is what makes summing the `cm` offsets sufficient here).
+/// The drawn glyphs themselves are deliberately not decoded: only *where*
+/// each run landed matters.
+List<double> _textBaselines(Uint8List bytes) {
+  final zlib = ZLibCodec();
+  final baselines = <double>[];
+  for (final stream in _contentStreams(bytes)) {
+    final String content;
+    try {
+      content = latin1.decode(zlib.decode(latin1.encode(stream)));
+    } on FormatException {
+      // Not a deflated stream at all.
+      continue;
+    }
+
+    // A page's content stream is pure printable ASCII (operators plus
+    // hex-encoded glyph indices), while the other deflated streams of the
+    // document are the embedded font files: skipping anything holding a
+    // control byte keeps this walk on the pages alone, without needing to
+    // parse the object dictionaries [_contentStreams] deliberately ignores.
+    if (content.codeUnits.any((unit) => unit < 0x20 && unit != 0x0a)) {
+      continue;
+    }
+
+    final stack = <double>[];
+    var offsetY = 0.0;
+    for (final token in _graphicsTokens.allMatches(content)) {
+      switch (token.group(0)![0]) {
+        case 'q':
+          stack.add(offsetY);
+        case 'Q':
+          offsetY = stack.removeLast();
+        default:
+          final translation = double.tryParse(token.group(2) ?? '');
+          if (translation == null) {
+            baselines.add(offsetY + double.parse(token.group(4)!));
+          } else {
+            offsetY += translation;
+          }
+      }
+    }
+  }
+  return baselines;
+}
+
+/// Matches the content-stream operators [_textBaselines] cares about: `q`,
+/// `Q`, a `cm` translation matrix (whose Y offset is group 2) and a `Td` text
+/// position (whose Y offset is group 4).
+final RegExp _graphicsTokens = RegExp(
+  r'\bq\b|\bQ\b|1 0 0 1 (-?[\d.]+) (-?[\d.]+) cm|(-?[\d.]+) (-?[\d.]+) Td',
+);
 
 /// Decodes [bytes] as Latin-1 (a lossless byte-for-byte mapping, unlike
 /// UTF-8, which is what lets [contains] search for a literal PDF name like

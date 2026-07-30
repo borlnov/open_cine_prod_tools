@@ -9,6 +9,17 @@ set -e
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     # Update shared library cache
     ldconfig
+
+    # Drop the icon and the menu entry from the desktop's caches, the counterpart of what postinst
+    # does on install. Both tools belong to optional packages, so a system without them is not an
+    # error.
+    if command -v gtk-update-icon-cache > /dev/null; then
+        gtk-update-icon-cache --quiet /usr/share/icons/hicolor || true
+    fi
+
+    if command -v update-desktop-database > /dev/null; then
+        update-desktop-database --quiet /usr/share/applications || true
+    fi
 fi
 
 exit 0

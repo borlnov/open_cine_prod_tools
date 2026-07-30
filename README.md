@@ -6,6 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # Open Cine Prod Tools <!-- omit from toc -->
 
+![Open Cine Prod Tools logo](assets/branding/ocpt_logo_light.svg)
+
 [![Build](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/build.yml/badge.svg)](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/build.yml)
 [![Dart Checks](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/flutter_lint.yml/badge.svg)](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/flutter_lint.yml)
 [![REUSE status](https://api.reuse.software/badge/github.com/borlnov/open_cine_prod_tools)](https://api.reuse.software/info/github.com/borlnov/open_cine_prod_tools)
@@ -119,8 +121,9 @@ Run the test suites with `flutter test` and, inside `packages/fountain_kit`, `da
 lib/                  Application source
 packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
 actlibs/               ACT Flutter packages (git submodule)
-assets/                Config, fonts and other bundled assets
+assets/                Config, fonts, branding and other bundled assets
 test/                  Application test suite
+tool/                  Developer scripts (branding icon generation)
 docs/                  Plans and architecture decision records
 .github/               CI workflows and release pipeline
 ```

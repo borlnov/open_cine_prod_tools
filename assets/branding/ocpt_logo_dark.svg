@@ -1,0 +1,17 @@
+<!--
+SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+<!--
+  The application mark, drawn for dark surfaces: the same perforations and screenplay page as the
+  light variant, but with the rounded square left hollow so the mark reads as a light drawing on a
+  near-black background rather than as a bright violet block.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 76 76" fill="none">
+  <rect x="4" y="4" width="68" height="68" rx="16" stroke="#9B8AFB" stroke-width="4"/>
+  <rect x="15" y="20" width="9" height="9" rx="2" fill="#9B8AFB"/>
+  <rect x="15" y="34" width="9" height="9" rx="2" fill="#9B8AFB"/>
+  <rect x="15" y="48" width="9" height="9" rx="2" fill="#9B8AFB"/>
+  <rect x="33" y="20" width="28" height="37" rx="4" stroke="#9B8AFB" stroke-width="4"/>
+</svg>
