@@ -1868,6 +1868,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListDeleteOrphanedShotTooltip": "Delete this orphaned shot",
+  "@shotListDeleteOrphanedShotTooltip": {
+    "description": "Tooltip of the delete button of a shot whose scene was removed from the screenplay",
+    "context": "Displayed on the orphan group's shot rows in the shot list's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListResetPanelLayoutAction": "Reset panel layout",
   "@shotListResetPanelLayoutAction": {
     "description": "Action restoring the shot list's dock widths to their defaults",

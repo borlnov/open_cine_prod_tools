@@ -151,7 +151,24 @@ class _ShotListViewState extends State<_ShotListView> {
               const OcptShotListShotCreationRequestedEvent(),
             )
           : null,
+      onOrphanedShotDeleted: (shotId) => _handleOrphanedShotDeletion(context, state, shotId),
     );
+  }
+
+  /// Confirms and dispatches the deletion of the orphaned shot [shotId], the left dock's own delete
+  /// button, going through the same confirmation dialog and the same event as the inspector's
+  /// `Delete shot` action. Ignores a click on a shot the snapshot no longer holds.
+  Future<void> _handleOrphanedShotDeletion(
+    BuildContext context,
+    OcptShotListState state,
+    String shotId,
+  ) async {
+    final shot = state.snapshot?.shotsById[shotId];
+    if (shot == null) {
+      return;
+    }
+
+    await _handleDeleteRequested(context, shot);
   }
 
   /// Builds the shell's `centre`: the selected sequence's header, the `Columns ▾` menu, and the

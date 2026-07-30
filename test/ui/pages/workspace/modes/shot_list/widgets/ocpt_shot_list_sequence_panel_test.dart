@@ -32,11 +32,12 @@ OcptShot _buildShot({
   bool needsCheck = false,
   OcptShotStatus status = OcptShotStatus.toShoot,
   int difficulty = 1,
+  String? orphanedHeading,
 }) => OcptShot(
   id: id,
   screenplayId: "screenplay",
-  sceneId: "scene",
-  orphanedHeading: null,
+  sceneId: orphanedHeading == null ? "scene" : null,
+  orphanedHeading: orphanedHeading,
   position: 0,
   shotSize: shotSize,
   framing: "",
@@ -85,8 +86,9 @@ void main() {
     shots: [_buildShot(id: "shot-3", code: "2A/1")],
   );
 
-  /// Pumps the panel with [selectedSequenceId] selected, recording every selection it reports.
-  Future<({List<String> sequences, List<String> shots})> pumpPanel(
+  /// Pumps the panel with [selectedSequenceId] selected, recording every selection and every
+  /// orphaned-shot deletion it reports.
+  Future<({List<String> sequences, List<String> shots, List<String> deletedShots})> pumpPanel(
     WidgetTester tester, {
     required String? selectedSequenceId,
     List<OcptShotSequence>? sequences,
@@ -94,6 +96,7 @@ void main() {
   }) async {
     final selectedSequences = <String>[];
     final selectedShots = <String>[];
+    final deletedShots = <String>[];
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -105,12 +108,13 @@ void main() {
           onSequenceSelected: selectedSequences.add,
           onShotSelected: selectedShots.add,
           onShotCreated: onShotCreated,
+          onOrphanedShotDeleted: deletedShots.add,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    return (sequences: selectedSequences, shots: selectedShots);
+    return (sequences: selectedSequences, shots: selectedShots, deletedShots: deletedShots);
   }
 
   testWidgets("lists every sequence with its number, heading and summary", (tester) async {
@@ -190,5 +194,45 @@ void main() {
 
     expect(find.text("Orphaned shots"), findsOneWidget);
     expect(find.text("—/1"), findsOneWidget);
+  });
+
+  testWidgets("the expanded orphan group heads each deleted scene's shots once", (tester) async {
+    await pumpPanel(
+      tester,
+      selectedSequenceId: OcptOrphanShotSequence.sequenceId,
+      sequences: [
+        OcptOrphanShotSequence(
+          shots: [
+            _buildShot(id: "shot-4", code: "—/1", orphanedHeading: "INT. OLD KITCHEN - DAY"),
+            _buildShot(id: "shot-5", code: "—/2", orphanedHeading: "INT. OLD KITCHEN - DAY"),
+            _buildShot(id: "shot-6", code: "—/3", orphanedHeading: "EXT. CUT ROOFTOP - NIGHT"),
+          ],
+        ),
+      ],
+    );
+
+    // One heading row per run of shots that came from the same deleted scene, not one per shot.
+    expect(find.text("INT. OLD KITCHEN - DAY"), findsOneWidget);
+    expect(find.text("EXT. CUT ROOFTOP - NIGHT"), findsOneWidget);
+  });
+
+  testWidgets("only an orphaned shot carries a delete button, reporting its id", (tester) async {
+    await pumpPanel(tester, selectedSequenceId: "scene-1");
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+
+    final selections = await pumpPanel(
+      tester,
+      selectedSequenceId: OcptOrphanShotSequence.sequenceId,
+      sequences: [
+        OcptOrphanShotSequence(
+          shots: [_buildShot(id: "shot-4", code: "—/1", orphanedHeading: "INT. OLD KITCHEN - DAY")],
+        ),
+      ],
+    );
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pump();
+
+    expect(selections.deletedShots, ["shot-4"]);
   });
 }

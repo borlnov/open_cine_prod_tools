@@ -16,6 +16,12 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// summary line. The selected sequence expands to list its shots, each with its Courier Prime
 /// code, a ⚠ when it needs checking, its ellipsised shot size and a status dot.
 ///
+/// The orphan group expands to a little more than that: its shots are sub-grouped under the
+/// heading their scene had when it was deleted (they are already ordered so that each deleted
+/// scene's shots stay contiguous), and each one carries an explicit delete button — deleting a
+/// scene from the screenplay never destroys its shots, so this is the only place they can be
+/// disposed of once they are no longer wanted.
+///
 /// Width-agnostic, like the screenplay's own scene panel: it fills whatever width its parent
 /// `OcptWorkspaceDock` gives it and owns no background of its own.
 class OcptShotListSequencePanel extends StatelessWidget {
@@ -41,6 +47,13 @@ class OcptShotListSequencePanel extends StatelessWidget {
   /// (no sequence selected, or the orphan group selected) — the button is then disabled.
   final VoidCallback? onShotCreated;
 
+  /// Called with an orphaned shot's id when its delete button is clicked.
+  ///
+  /// Only the orphan group's shots carry one: a shot of a real scene is deleted from the inspector,
+  /// where the whole shot is in view, whereas an orphaned shot has nowhere else to be disposed of
+  /// from.
+  final ValueChanged<String> onOrphanedShotDeleted;
+
   /// Class constructor
   const OcptShotListSequencePanel({
     super.key,
@@ -51,6 +64,7 @@ class OcptShotListSequencePanel extends StatelessWidget {
     required this.onSequenceSelected,
     required this.onShotSelected,
     required this.onShotCreated,
+    required this.onOrphanedShotDeleted,
   });
 
   @override
@@ -96,6 +110,7 @@ class OcptShotListSequencePanel extends StatelessWidget {
                     selectedShotId: selectedShotId,
                     onSelected: () => onSequenceSelected(sequences[index].id),
                     onShotSelected: onShotSelected,
+                    onOrphanedShotDeleted: onOrphanedShotDeleted,
                   ),
                 ),
         ),
@@ -126,6 +141,10 @@ class _SequenceEntry extends StatelessWidget {
   /// Called with a shot's id when one of this sequence's shot rows is clicked.
   final ValueChanged<String> onShotSelected;
 
+  /// Called with an orphaned shot's id when its delete button is clicked; only ever wired on the
+  /// orphan group's own rows.
+  final ValueChanged<String> onOrphanedShotDeleted;
+
   /// Class constructor
   const _SequenceEntry({
     required this.sequence,
@@ -133,6 +152,7 @@ class _SequenceEntry extends StatelessWidget {
     required this.selectedShotId,
     required this.onSelected,
     required this.onShotSelected,
+    required this.onOrphanedShotDeleted,
   });
 
   @override
@@ -206,20 +226,74 @@ class _SequenceEntry extends StatelessWidget {
             ),
           ),
         ),
-        if (isSelected)
-          for (final shot in sequence.shots)
-            _ShotEntry(
-              shot: shot,
-              isSelected: shot.id == selectedShotId,
-              onTap: () => onShotSelected(shot.id),
-            ),
+        if (isSelected) ..._buildShotEntries(),
       ],
+    );
+  }
+
+  /// Builds the expanded sequence's shot rows: plainly one per shot for a real scene, and — for the
+  /// orphan group — a heading row before each run of shots that came from the same deleted scene,
+  /// each row then carrying its own delete button.
+  ///
+  /// The runs need no grouping pass of their own: `detachShotsFromDeletedScenes` appends each newly
+  /// orphaned scene's shots as a block, so shots of the same [OcptShot.orphanedHeading] are already
+  /// contiguous in position order and a heading row is simply emitted wherever the heading changes.
+  List<Widget> _buildShotEntries() {
+    final isOrphanGroup = sequence is OcptOrphanShotSequence;
+    final entries = <Widget>[];
+    String? previousHeading;
+
+    for (final shot in sequence.shots) {
+      if (isOrphanGroup && shot.orphanedHeading != previousHeading) {
+        entries.add(_OrphanedHeadingEntry(heading: shot.orphanedHeading));
+        previousHeading = shot.orphanedHeading;
+      }
+
+      entries.add(
+        _ShotEntry(
+          shot: shot,
+          isSelected: shot.id == selectedShotId,
+          onTap: () => onShotSelected(shot.id),
+          onDelete: isOrphanGroup ? () => onOrphanedShotDeleted(shot.id) : null,
+        ),
+      );
+    }
+
+    return entries;
+  }
+}
+
+/// The sub-header the orphan group shows before each run of shots that came from the same deleted
+/// scene: the heading that scene had at the moment it disappeared.
+class _OrphanedHeadingEntry extends StatelessWidget {
+  /// The heading the deleted scene had, or null for the shots detached before the heading started
+  /// being recorded.
+  final String? heading;
+
+  /// Class constructor
+  const _OrphanedHeadingEntry({required this.heading});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(34, 8, 16, 2),
+      child: Text(
+        ocptShotFieldOrDash(heading),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
     );
   }
 }
 
 /// One shot row of an expanded sequence: its code, a ⚠ when it needs checking, its shot size and
-/// a status dot.
+/// a status dot, plus a delete button when the row is an orphaned shot's.
 class _ShotEntry extends StatelessWidget {
   /// The shot this row shows.
   final OcptShot shot;
@@ -230,8 +304,17 @@ class _ShotEntry extends StatelessWidget {
   /// Called when the row is clicked.
   final VoidCallback onTap;
 
+  /// Called when the row's delete button is clicked, or null for a shot of a real scene — no
+  /// delete button is rendered at all then.
+  final VoidCallback? onDelete;
+
   /// Class constructor
-  const _ShotEntry({required this.shot, required this.isSelected, required this.onTap});
+  const _ShotEntry({
+    required this.shot,
+    required this.isSelected,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -289,6 +372,15 @@ class _ShotEntry extends StatelessWidget {
                   color: ocptShotStatusColor(context, shot.status),
                 ),
               ),
+              if (onDelete != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 14),
+                    tooltip: tr.shotListDeleteOrphanedShotTooltip,
+                    onPressed: onDelete,
+                  ),
+                ),
             ],
           ),
         ),

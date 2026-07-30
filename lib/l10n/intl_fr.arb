@@ -247,6 +247,7 @@
   "shotListDeleteConfirmMessage": "Le plan {code} sera définitivement supprimé.",
   "shotListDeleteConfirmCancelAction": "Annuler",
   "shotListDeleteConfirmDeleteAction": "Supprimer",
+  "shotListDeleteOrphanedShotTooltip": "Supprimer ce plan orphelin",
   "shotListResetPanelLayoutAction": "Réinitialiser la disposition des panneaux",
   "shotListWriteError": "La modification n'a pas pu être enregistrée."
 }
