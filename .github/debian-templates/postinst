@@ -9,6 +9,16 @@ set -e
 if [ "$1" = "configure" ]; then
     # Update shared library cache
     ldconfig
+
+    # Let the desktop pick up the icon and the menu entry the package just installed. Both tools
+    # belong to optional packages, so a system without them is not an error.
+    if command -v gtk-update-icon-cache > /dev/null; then
+        gtk-update-icon-cache --quiet /usr/share/icons/hicolor || true
+    fi
+
+    if command -v update-desktop-database > /dev/null; then
+        update-desktop-database --quiet /usr/share/applications || true
+    fi
 fi
 
 exit 0

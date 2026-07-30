@@ -5,13 +5,14 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 
 /// The size of the accent-filled square carrying the back action, small enough to sit inside the
 /// [ocptToolbarHeight] band with room to breathe, and deliberately smaller than the chrome buttons
 /// around it so the accent fill reads as a compact badge rather than a button.
 const double _backActionSize = 26;
 
-/// The size of the glyph inside the back action's [_backActionSize] square.
+/// The width of the logo glyph inside the back action's [_backActionSize] square.
 const double _backActionIconSize = 16;
 
 /// The diameter of the dot marking unsaved changes.
@@ -144,9 +145,10 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     );
   }
 
-  /// Builds the back action: an accent-filled square badge rather than a plain icon button, so the
-  /// one control leading out of the workspace reads as distinct from every mode and chrome control
-  /// around it. Its "back to projects" meaning is carried by the tooltip alone.
+  /// Builds the back action: an accent-filled square badge carrying the application logo rather
+  /// than a plain icon button, so the one control leading out of the workspace reads as distinct
+  /// from every mode and chrome control around it. Its "back to projects" meaning is carried by
+  /// the tooltip alone.
   Widget _buildBackAction({required ThemeData theme, required Tr tr}) => Tooltip(
     message: tr.editorBackToProjectsTooltip,
     child: Material(
@@ -157,10 +159,11 @@ class OcptWorkspaceToolbar extends StatelessWidget {
         onTap: onBack,
         child: SizedBox.square(
           dimension: _backActionSize,
-          child: Icon(
-            Icons.web_asset,
-            size: _backActionIconSize,
-            color: theme.colorScheme.onPrimary,
+          child: Center(
+            child: OcptLogoGlyph(
+              width: _backActionIconSize,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
         ),
       ),

@@ -74,6 +74,7 @@ breakdown, and a casting tracker.
 | 16    | Issue #15 fixes: native save dialogs + "Export" PDF button, sticky character blocks, scroll bar off the page, copy/paste keeping block types, `#N#` scene numbers with a styled display option, PDF bold/italic/underline regression coverage, dark-theme raw preview reading as paper, title page editable in place in styled mode — milestones M1-M8 in `docs/plans/editor-and-export-fixes.md` (title-page follow-up fixes in `docs/plans/styled-title-page-fixes.md` and `styled-title-page-fixes-2.md`) | ✅                                   |
 | 17    | Workspace shell refactor: studio design system (density/shapes/type scale as component themes), the shell extracted from the editor (`OcptWorkspaceShell`/toolbar/status bar/docks), four production modes behind a bottom mode switcher (screenplay implemented, budget/schedule/shot list as empty states, last mode persisted), inspector and metadata right-dock tabs, project poster tints — milestones M0-M4 in `docs/plans/workspace-shell-refactor.md` | ✅                                   |
 | 18    | Workspace toolbar alignment on the mock-up: accent-filled back badge, filled dirty dot, muted mode label, the dock toggles / save / `⋮` owned and ordered by the shell, a right-dock toggle reopening the last tab used, raw-only tab shortcuts — milestones M1-M4 in `docs/plans/workspace-toolbar-alignment.md` | ✅                                   |
+| 19    | Application logo (issue #24): the mark as SVG variants in `assets/branding/`, `OcptLogo`/`OcptLogoGlyph` shown in the home header, the settings "About" card and the workspace back badge, launcher icons for every platform through `icons_launcher`, Linux desktop entry and hicolor icon in the `.deb`         | ✅                                   |
 
 ## Ways of working
 
@@ -159,6 +160,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   dark theme too, regardless of the surrounding themed docks; and `projectPosterTints`, the small
   per-brightness colour family `OcptProjectCard` indexes into by a stable hash of the project
   path, so a project keeps the same poster tint across launches and machines.
+- Branding: the app mark lives in `assets/branding/` as three SVGs — `ocpt_logo_light.svg`
+  (accent-filled square), `ocpt_logo_dark.svg` (the same drawing hollow, for near-black surfaces)
+  and `ocpt_logo_glyph.svg` (the perforations and page alone, monochrome, **always tinted by its
+  call site**, for a surface that already carries the accent). The UI never reaches for those paths
+  itself: `OcptLogo` / `OcptLogoGlyph` (`lib/ui/widgets/ocpt_logo.dart`, built on
+  `act_flutter_utility`'s `SvgAsset`, so `flutter_svg` stays an indirect dependency) are the only
+  way it draws the mark, `OcptLogo` picking its variant from the ambient
+  `Theme.of(context).brightness`. It is shown in the home header, the settings "About" card and the
+  workspace toolbar's back badge. `assets/branding/icons/` holds the PNG masters (not bundled:
+  the branding assets are declared file by file in the pubspec), rasterized from that same geometry
+  by `dart run tool/generate_branding_icons.dart`, and consumed by
+  `dart run icons_launcher:create` — configured by the pubspec's `icons_launcher` block, which
+  generates the committed Android/iOS/macOS/Windows launcher icons — and by
+  `.github/actions/flutter-debian`, which installs the 512 px and scalable icons plus a `.desktop`
+  entry named after the package (the icon name `linux/runner/my_application.cc` asks the window to
+  wear).
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
