@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
 /// The number of dots a rating row draws, one per value of the 0-5 scale a difficulty axis is
@@ -66,6 +67,7 @@ class OcptShotDifficultyRating extends StatelessWidget {
           for (var dot = 0; dot < _dotCount; dot++)
             InkWell(
               customBorder: const CircleBorder(),
+              mouseCursor: ocptClickableCursor,
               onTap: () => onChanged(dot),
               child: SizedBox(
                 width: _dotHitSize,

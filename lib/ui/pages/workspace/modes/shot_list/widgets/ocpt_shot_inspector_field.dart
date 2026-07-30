@@ -204,6 +204,7 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
               for (final option in options)
                 InkWell(
                   onTap: () => onSelected(option),
+                  mouseCursor: ocptClickableCursor,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Text(option, style: theme.textTheme.bodySmall),

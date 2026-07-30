@@ -166,6 +166,7 @@ class _SequenceEntry extends StatelessWidget {
       children: [
         InkWell(
           onTap: onSelected,
+          mouseCursor: ocptClickableCursor,
           child: ColoredBox(
             color: isSelected
                 ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
@@ -323,6 +324,7 @@ class _ShotEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      mouseCursor: ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
             ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)

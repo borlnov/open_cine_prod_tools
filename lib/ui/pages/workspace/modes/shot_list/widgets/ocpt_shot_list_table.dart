@@ -358,6 +358,7 @@ class OcptShotListRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      mouseCursor: ocptClickableCursor,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: isSelected
