@@ -99,6 +99,20 @@ const double ocptModeSwitcherHeight = 64;
 /// rather than a solid fill.
 const double ocptSelectedStateAlpha = 0.16;
 
+/// The mouse cursor every clickable control of the app shows: the pointing hand when the control
+/// is enabled, the plain arrow when it is disabled.
+///
+/// Material's own default is [WidgetStateMouseCursor.adaptiveClickable], which only resolves to
+/// the hand on the web and leaves the plain arrow everywhere else, so nothing on Linux or Windows
+/// would show a click affordance under the pointer. This app is a mouse-first desktop tool where
+/// custom-drawn surfaces (project cards, mode switcher entries, dock tabs, the toolbar's back
+/// badge) are as clickable as its buttons, so the hand is used throughout instead.
+///
+/// The component themes below hand it to every Material control that reads one from the theme;
+/// the widgets Material gives no theme hook for (`DropdownButton`, and every [InkWell] the app
+/// builds itself) pass this same constant at their call site.
+const WidgetStateMouseCursor ocptClickableCursor = WidgetStateMouseCursor.clickable;
+
 /// Builds the dense UI type scale of the studio design system from [baseThemeData]'s own
 /// [ThemeData.textTheme], via [TextTheme.copyWith] so every slot keeps the brightness-correct
 /// default color Material 3 computed for it (a hand-written [TextTheme] would lose that).
@@ -174,6 +188,8 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         textStyle: textTheme.labelLarge?.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+        enabledMouseCursor: SystemMouseCursors.click,
+        disabledMouseCursor: SystemMouseCursors.basic,
       ),
     ),
     // Medium radius instead of the stock stadium shape. The border stays `outline` and the fill
@@ -185,6 +201,8 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
         side: BorderSide(color: colorScheme.outline),
         backgroundColor: Colors.transparent,
+        enabledMouseCursor: SystemMouseCursors.click,
+        disabledMouseCursor: SystemMouseCursors.basic,
       ),
     ),
     // Not itemized in the design table on its own, but kept visually consistent with its filled
@@ -192,6 +210,8 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
+        enabledMouseCursor: SystemMouseCursors.click,
+        disabledMouseCursor: SystemMouseCursors.basic,
       ),
     ),
     // Square-ish, small-radius icon buttons instead of the stock 40 px circle, with a soft
@@ -209,6 +229,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         // of them far wider than a desktop toolbar has room for. This is a mouse-first desktop
         // app, so the button *is* its own target.
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        mouseCursor: ocptClickableCursor,
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
@@ -271,6 +292,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
         ),
+        mouseCursor: ocptClickableCursor,
       ),
     ),
     // `surfaceContainerHigh`, medium radius, a soft (low) shadow instead of the stock small radius
@@ -281,6 +303,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
       elevation: 3,
       menuPadding: const EdgeInsets.symmetric(vertical: 6),
+      mouseCursor: ocptClickableCursor,
     ),
     // Not itemized in the design table on its own (nothing in the app builds a `MenuAnchor` yet),
     // kept visually consistent with [popupMenuTheme] so a future one inherits the same surface.
@@ -290,8 +313,20 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
         ),
+        mouseCursor: ocptClickableCursor,
       ),
     ),
+    // A `MenuAnchor`'s own entries are buttons rather than menu surfaces, so they take their
+    // cursor from here rather than from [menuTheme] above.
+    menuButtonTheme: const MenuButtonThemeData(
+      style: ButtonStyle(mouseCursor: ocptClickableCursor),
+    ),
+    // The tick boxes and toggles: nothing but their cursor is overridden, Material 3's own colors
+    // and shapes being already colorScheme-driven. Only the checkbox has a call site today (the
+    // PDF export options), the other two are wired up so a future one inherits it for free.
+    checkboxTheme: const CheckboxThemeData(mouseCursor: ocptClickableCursor),
+    radioTheme: const RadioThemeData(mouseCursor: ocptClickableCursor),
+    switchTheme: const SwitchThemeData(mouseCursor: ocptClickableCursor),
     // A thin `outlineVariant` line with no surrounding space, instead of the stock 16 px of
     // vertical breathing room.
     dividerTheme: DividerThemeData(color: colorScheme.outlineVariant, thickness: 1, space: 1),

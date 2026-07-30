@@ -51,6 +51,15 @@ void main() {
     expect(firstTint, secondTint);
   });
 
+  testWidgets('the card shows the hand cursor over its clickable surface', (tester) async {
+    // The card is a custom InkWell rather than a button, so it only shows a click affordance on
+    // Linux and Windows if it asks for [ocptClickableCursor] itself.
+    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
+
+    final inkWell = tester.widget<InkWell>(find.byType(InkWell).first);
+    expect(inkWell.mouseCursor, ocptClickableCursor);
+  });
+
   testWidgets('different project paths spread across the tint palette', (tester) async {
     final paths = List.generate(8, (index) => '/home/user/projects/project-$index.ocpt');
     final tints = <Color>{};

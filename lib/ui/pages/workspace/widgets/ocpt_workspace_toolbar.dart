@@ -157,6 +157,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onBack,
+        mouseCursor: ocptClickableCursor,
         child: SizedBox.square(
           dimension: _backActionSize,
           child: Center(

@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The 11 assignable [FountainLineType]s (every value except [FountainLineType.blank], which has
@@ -52,6 +53,7 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
           child: DropdownButton<FountainLineType>(
             value: currentType,
             isDense: true,
+            mouseCursor: ocptClickableCursor,
             style: Theme.of(context).textTheme.labelSmall,
             items: [
               for (final type in _ocptDropdownTypes)
