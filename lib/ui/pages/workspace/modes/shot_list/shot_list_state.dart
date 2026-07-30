@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_removed_character_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -155,6 +156,19 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
 
   /// The total number of shots across every sequence, orphan group included.
   int get totalShotCount => snapshot?.totalShotCount ?? 0;
+
+  /// One alert per character still attached to a shot but no longer speaking anywhere in the
+  /// screenplay: the deleted-character banners shown above the shot table.
+  ///
+  /// Derived on demand from [snapshot] and [speakingCharacters], like
+  /// [otherShotsCoverageOfSelectedScene] and [buildSelectedCoverageLayout] are, rather than stored:
+  /// both inputs are already in memory, and computing it here is what keeps it impossible for a
+  /// banner to survive the write that resolved it.
+  List<OcptShotRemovedCharacterAlert> get removedCharacterAlerts =>
+      OcptShotRemovedCharacterAlert.buildAll(
+        snapshot: snapshot,
+        speakingCharacters: speakingCharacters,
+      );
 
   /// Builds the scenario coverage layout of the selected shot's scene, or null when no shot is
   /// selected, none is (or the selected sequence is the orphan group: an orphaned shot's scene

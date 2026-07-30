@@ -299,6 +299,48 @@ class OcptShotListCoverageClearRequestedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, shotId];
 }
 
+/// Requests detaching [characterName] from every shot of the screenplay it is still attached to,
+/// dispatched by the deleted-character banner's `Remove from every shot` button.
+///
+/// Written immediately, like every other character change: the banner disappears on its own once
+/// the reloaded snapshot no longer has any shot carrying the name.
+class OcptShotListRemovedCharacterDroppedEvent extends OcptShotListEvent {
+  /// The character to detach from every shot, normalised the same way the shots' own characters
+  /// are (the bloc hands it to `OcptShotListService.removeCharacterFromEveryShot`, which
+  /// normalises it again anyway).
+  final String characterName;
+
+  /// Class constructor
+  const OcptShotListRemovedCharacterDroppedEvent({required this.characterName});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, characterName];
+}
+
+/// Requests replacing [characterName] with [replacementName] on every shot of the screenplay it is
+/// still attached to, dispatched by the deleted-character banner's replacement chips.
+///
+/// A shot that already carries [replacementName] simply drops [characterName] rather than gaining
+/// a duplicate — see `OcptShotListService.replaceCharacterEverywhere`.
+class OcptShotListRemovedCharacterReplacedEvent extends OcptShotListEvent {
+  /// The character no longer speaking anywhere in the screenplay.
+  final String characterName;
+
+  /// The still-speaking character taking its place on every shot.
+  final String replacementName;
+
+  /// Class constructor
+  const OcptShotListRemovedCharacterReplacedEvent({
+    required this.characterName,
+    required this.replacementName,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, characterName, replacementName];
+}
+
 /// Requests clearing shot [shotId]'s `needsCheck` flag and re-stamping every one of its scenario
 /// coverage ranges' digests to the screenplay's current text, dispatched by the inspector's
 /// `Needs checking` callout's `Mark as checked` button.

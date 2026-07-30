@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_removed_character_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_sequence_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
@@ -171,9 +172,54 @@ class _ShotListViewState extends State<_ShotListView> {
     await _handleDeleteRequested(context, shot);
   }
 
-  /// Builds the shell's `centre`: the selected sequence's header, the `Columns ▾` menu, and the
-  /// shot table under them.
+  /// Builds the shell's `centre`: the deleted-character banners, then the selected sequence's
+  /// header, the `Columns ▾` menu, and the shot table under them.
+  ///
+  /// The banners sit above everything else and stay whichever sequence is selected: they report a
+  /// mismatch between the screenplay and the whole shot list, not something about the sequence
+  /// currently being looked at.
   Widget _buildCentre(BuildContext context, OcptShotListState state) {
+    final banners = _buildRemovedCharacterBanners(context, state);
+    final body = _buildSequenceBody(context, state);
+
+    if (banners.isEmpty) {
+      return body;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 0), child: Column(children: banners)),
+        Expanded(child: body),
+      ],
+    );
+  }
+
+  /// Builds one [OcptShotListRemovedCharacterBanner] per alert the state derives, or an empty list
+  /// when every character attached to a shot still speaks somewhere in the screenplay.
+  List<Widget> _buildRemovedCharacterBanners(BuildContext context, OcptShotListState state) => [
+    for (final alert in state.removedCharacterAlerts)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: OcptShotListRemovedCharacterBanner(
+          alert: alert,
+          replacementCandidates: state.speakingCharacters,
+          onRemoveFromEveryShot: () => context.read<OcptShotListBloc>().add(
+            OcptShotListRemovedCharacterDroppedEvent(characterName: alert.characterName),
+          ),
+          onReplaced: (replacementName) => context.read<OcptShotListBloc>().add(
+            OcptShotListRemovedCharacterReplacedEvent(
+              characterName: alert.characterName,
+              replacementName: replacementName,
+            ),
+          ),
+        ),
+      ),
+  ];
+
+  /// Builds what the centre shows under the banners: the selected sequence's header, the
+  /// `Columns ▾` menu and its shot table, or the empty state while no sequence is selected.
+  Widget _buildSequenceBody(BuildContext context, OcptShotListState state) {
     final tr = Tr.of(context);
     final sequence = state.selectedSequence;
 

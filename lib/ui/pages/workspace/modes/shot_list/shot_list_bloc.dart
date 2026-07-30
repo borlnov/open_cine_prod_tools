@@ -135,6 +135,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListShotDifficultyChangedEvent>(_onShotDifficultyChanged);
     on<OcptShotListShotCharacterToggledEvent>(_onShotCharacterToggled);
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
+    on<OcptShotListRemovedCharacterDroppedEvent>(_onRemovedCharacterDropped);
+    on<OcptShotListRemovedCharacterReplacedEvent>(_onRemovedCharacterReplaced);
     on<OcptShotListCoverageWordClickedEvent>(_onCoverageWordClicked);
     on<OcptShotListCoverageClearRequestedEvent>(_onCoverageClearRequested);
     on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
@@ -821,6 +823,64 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     } catch (error) {
       appLogger().e("A problem occurred when tried to delete shot ${event.shotId} of the "
           "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Detaches `event.characterName` from every shot of the screenplay, written immediately: the
+  /// deleted-character banner's `Remove from every shot` button.
+  ///
+  /// The banner itself is derived from the snapshot (`OcptShotListState.removedCharacterAlerts`),
+  /// so reloading it here is what makes the banner disappear — nothing dismisses it by hand.
+  Future<void> _onRemovedCharacterDropped(
+    OcptShotListRemovedCharacterDroppedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) => _writeCharacterChange(
+    emitter: emitter,
+    characterName: event.characterName,
+    action: (project) => _shotListService.removeCharacterFromEveryShot(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      characterName: event.characterName,
+    ),
+  );
+
+  /// Replaces `event.characterName` with `event.replacementName` on every shot of the screenplay,
+  /// written immediately: the deleted-character banner's replacement chips.
+  Future<void> _onRemovedCharacterReplaced(
+    OcptShotListRemovedCharacterReplacedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) => _writeCharacterChange(
+    emitter: emitter,
+    characterName: event.characterName,
+    action: (project) => _shotListService.replaceCharacterEverywhere(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      oldCharacterName: event.characterName,
+      newCharacterName: event.replacementName,
+    ),
+  );
+
+  /// Writes a screenplay-wide character change through [action] and reloads the snapshot, so every
+  /// view derived from it (the banners, a shot's own chips, the table's characters column) reflects
+  /// what the database now says. Mirrors [_writeCoverageChange]'s own try/catch shape, for the two
+  /// actions of the deleted-character banner.
+  Future<void> _writeCharacterChange({
+    required Emitter<OcptShotListState> emitter,
+    required String characterName,
+    required Future<void> Function(OcptOpenProjectModel project) action,
+  }) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await action(project);
+      emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to change the character $characterName on "
+          "every shot of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }

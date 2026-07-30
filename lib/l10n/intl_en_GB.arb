@@ -1868,6 +1868,37 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListRemovedCharacterBanner": "{count, plural, one{{name} was removed from the screenplay but still appears in {count} shot: {codes}.} other{{name} was removed from the screenplay but still appears in {count} shots: {codes}.}}",
+  "@shotListRemovedCharacterBanner": {
+    "description": "Alert naming a character no longer speaking in the screenplay but still attached to shots",
+    "context": "Displayed above the shot table of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "codes": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListRemovedCharacterRemoveAllAction": "Remove from every shot",
+  "@shotListRemovedCharacterRemoveAllAction": {
+    "description": "Action detaching a removed character from every shot carrying it",
+    "context": "Displayed in the deleted-character banner of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRemovedCharacterReplaceLabel": "Replace with:",
+  "@shotListRemovedCharacterReplaceLabel": {
+    "description": "Label introducing the chips replacing a removed character on every shot",
+    "context": "Displayed in the deleted-character banner of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListDeleteOrphanedShotTooltip": "Delete this orphaned shot",
   "@shotListDeleteOrphanedShotTooltip": {
     "description": "Tooltip of the delete button of a shot whose scene was removed from the screenplay",

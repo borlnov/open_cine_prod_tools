@@ -247,6 +247,9 @@
   "shotListDeleteConfirmMessage": "Le plan {code} sera définitivement supprimé.",
   "shotListDeleteConfirmCancelAction": "Annuler",
   "shotListDeleteConfirmDeleteAction": "Supprimer",
+  "shotListRemovedCharacterBanner": "{count, plural, one{{name} a été supprimé du scénario mais apparaît encore dans {count} plan : {codes}.} other{{name} a été supprimé du scénario mais apparaît encore dans {count} plans : {codes}.}}",
+  "shotListRemovedCharacterRemoveAllAction": "Retirer de tous les plans",
+  "shotListRemovedCharacterReplaceLabel": "Remplacer par :",
   "shotListDeleteOrphanedShotTooltip": "Supprimer ce plan orphelin",
   "shotListResetPanelLayoutAction": "Réinitialiser la disposition des panneaux",
   "shotListWriteError": "La modification n'a pas pu être enregistrée."

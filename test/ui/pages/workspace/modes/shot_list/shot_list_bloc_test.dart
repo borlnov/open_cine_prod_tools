@@ -80,6 +80,9 @@ void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
   const dialogueText = "INT. HOUSE - DAY\n\nAction one.\n\nLÉA\nHello there.\n\n"
       "EXT. GARDEN - NIGHT\n\nAction two.\n";
+  const twoCharactersText = "INT. HOUSE - DAY\n\nAction one.\n\nLÉA\nHello there.\n\n"
+      "MARC\nHello back.\n";
+  const oneCharacterLeftText = "INT. HOUSE - DAY\n\nAction one.\n\nMARC\nHello back.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -618,6 +621,83 @@ void main() {
 
     bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: "LÉA"));
     state = await waitForState(bloc, (state) => state.selectedShot!.characters.isEmpty);
+
+    await bloc.close();
+  });
+
+  /// Attaches [characterNames] to a freshly created shot of the first sequence, then closes the
+  /// bloc that did it, and returns the new shot's derived code.
+  ///
+  /// The deleted-character tests all need the same starting point: a shot carrying characters the
+  /// screenplay is then edited to no longer speak. The bloc reads the screenplay's speaking
+  /// characters once, on entry, so a fresh bloc is what sees the edited screenplay — which is also
+  /// what happens in the app, where the shot list mode is mounted anew every time it is switched
+  /// to.
+  Future<String> createShotWithCharacters(List<String> characterNames) async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    for (final characterName in characterNames) {
+      bloc.add(
+        OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: characterName),
+      );
+      state = await waitForState(
+        bloc,
+        (state) => state.selectedShot!.characters.contains(characterName),
+      );
+    }
+
+    final code = state.selectedShot!.code;
+    await bloc.close();
+
+    return code;
+  }
+
+  test('a character the screenplay dropped is reported, then removable everywhere', () async {
+    await writeScreenplay(twoCharactersText);
+    final shotCode = await createShotWithCharacters(["LÉA", "MARC"]);
+
+    await writeScreenplay(oneCharacterLeftText);
+
+    final bloc = buildBloc();
+    var state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.removedCharacterAlerts, hasLength(1));
+    expect(state.removedCharacterAlerts.single.characterName, "LÉA");
+    expect(state.removedCharacterAlerts.single.shotCodes, [shotCode]);
+
+    bloc.add(const OcptShotListRemovedCharacterDroppedEvent(characterName: "LÉA"));
+    state = await waitForState(bloc, (state) => state.removedCharacterAlerts.isEmpty);
+
+    // The character still spoken is left untouched by the removal.
+    expect(state.snapshot!.shotsById.values.single.characters, ["MARC"]);
+
+    await bloc.close();
+  });
+
+  test('a dropped character can be replaced by a still-speaking one on every shot', () async {
+    await writeScreenplay(twoCharactersText);
+    await createShotWithCharacters(["LÉA"]);
+
+    await writeScreenplay(oneCharacterLeftText);
+
+    final bloc = buildBloc();
+    var state = await waitForState(bloc, (state) => !state.isLoading);
+    expect(state.removedCharacterAlerts, hasLength(1));
+
+    bloc.add(
+      const OcptShotListRemovedCharacterReplacedEvent(
+        characterName: "LÉA",
+        replacementName: "MARC",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.removedCharacterAlerts.isEmpty);
+
+    expect(state.snapshot!.shotsById.values.single.characters, ["MARC"]);
 
     await bloc.close();
   });
