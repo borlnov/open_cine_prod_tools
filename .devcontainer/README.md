@@ -33,9 +33,9 @@ root, so no extra mount or configuration is involved. Two things here exist for 
   makes a worktree's links relative, so they resolve both inside the container and on the host, whose
   clone path is different. It needs git >= 2.48 and Debian trixie ships 2.47, which is why the
   Dockerfile builds git from source into `/usr/local`.
-- **Editor exclusions.** `worktrees/` is kept out of the file watcher, search and the Dart analyzer in
-  [`open_cine_prod_tools.code-workspace`](../open_cine_prod_tools.code-workspace), since each worktree
-  is a full copy of the repository.
+- **Editor exclusions.** `worktrees/` is kept out of the file watcher, search and the Dart analyzer
+  in [`open_cine_prod_tools.code-workspace`](../open_cine_prod_tools.code-workspace), since each
+  worktree is a full copy of the repository.
 
 The workflow itself, and the several ways it goes wrong, are documented in
 [`../worktrees/README.md`](../worktrees/README.md) — **read that before creating your first
@@ -88,8 +88,8 @@ URL you open on the host, so it works even though the container has no browser o
 
 The login persists, so **you only do this once**. `gh` writes its credentials to `hosts.yml` in the
 directory `GH_CONFIG_DIR` points at (`devcontainer.json`), which is an isolated named Docker volume
-(`ocpt-gh-config`, declared in [`docker-compose.yml`](./docker-compose.yml)) — the same arrangement as
-Claude Code above, for the same reason: it survives rebuilds and is shared with nothing, so a
+(`ocpt-gh-config`, declared in [`docker-compose.yml`](./docker-compose.yml)) — the same arrangement
+as Claude Code above, for the same reason: it survives rebuilds and is shared with nothing, so a
 container never depends on how the host happens to store its own GitHub login.
 
 Two answers to give the wizard:
