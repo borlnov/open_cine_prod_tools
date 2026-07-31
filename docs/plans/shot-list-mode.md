@@ -159,7 +159,8 @@ Tabbed, like the screenplay's. Tabs: `Inspector`, `Metadata`. The inspector show
   **read-only**: a `Select…` button, then one entry per range in the order they read in the
   sequence — the Fountain line types the range runs through (`ACTION → DIALOGUE`), the covered
   extract quoted with its line breaks, a `modified` badge when the text changed since it was
-  recorded, and `Also covered by 1/2 · 1/4` when other shots cover the same extract. Footer: `N words covered of M · P range(s)` and a `Clear all` action.
+  recorded, and `Also covered by 1/2 · 1/4` when other shots cover the same extract. Footer:
+  `N words covered of M · P range(s)` and a `Clear all` action.
   The selecting itself happens in the dialog `Select…` opens (see §3.3.1): the dock is too narrow
   to click words in comfortably, and a shot's coverage is read far more often than authored.
 - **Image** — Shot size, Framing & composition, Camera move, Lens, Format. Framing & composition
