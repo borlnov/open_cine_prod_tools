@@ -23,8 +23,10 @@ breakdown, and a casting tracker.
 
 - Target platforms: **Linux + Windows first**, then Android, iOS, macOS.
 - Storage: **local only** for now — one SQLite file per project (`.ocpt`, via drift), with the
-  Fountain text as the source of truth plus a stable-UUID scene index. Google Drive sync later,
-  dedicated server last.
+  Fountain text as the source of truth plus a stable-UUID scene index. Sharing and collaboration
+  come next, through an offline-first replica synced by a self-hostable, domain-blind relay
+  server — see `docs/adr/0009`, `docs/adr/0010` and `docs/plans/collaboration-and-sync.md`. Google
+  Drive was evaluated and rejected as a transport.
 - Every document must stay exportable to human-readable formats (PDF, `.fountain`, and open
   docx/xlsx equivalents later).
 - UI languages: English (`en_GB`, main) and French.

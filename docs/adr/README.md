@@ -55,12 +55,12 @@ number is a stable identifier other documents and commits can reference.
 | [0006](0006-workspace-shell-as-a-slot-widget.md) | Workspace shell as a slot widget | Accepted |
 | [0007](0007-schema-migration-policy.md) | Schema migration policy | Accepted |
 | [0008](0008-excel-community-for-the-shot-list-export.md) | excel_community for the shot list export | Accepted |
+| [0009](0009-offline-first-sync-through-a-domain-blind-relay.md) | Offline-first sync through a domain-blind relay | Proposed |
+| [0010](0010-sync-ready-data-model-prerequisites.md) | Sync-ready data model prerequisites | Proposed |
 
 ## Candidates
 
 Decisions worth recording once there is time to write them up properly:
 
-- Local-only storage as the starting point, with Google Drive sync and a dedicated server as
-  later options.
 - The ACT Flutter packages (`actlibs/`) as the application foundation.
 - Routing exclusively through `OcptRouterManager`, never `Navigator` directly.
