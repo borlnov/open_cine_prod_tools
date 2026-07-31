@@ -20,6 +20,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
@@ -45,7 +47,11 @@ import 'package:super_editor/super_editor_test.dart';
 class _RecordingScreenplayService extends OcptScreenplayService {
   /// Class constructor
   const _RecordingScreenplayService({required this.savedTexts})
-    : super(sceneIndexService: const OcptSceneIndexService());
+    : super(
+        sceneIndexService: const OcptSceneIndexService(),
+        shotListService: const OcptShotListService(),
+        shotCoverageService: const OcptShotCoverageService(),
+      );
 
   /// Every Fountain text this service was asked to save, in call order.
   final List<String> savedTexts;

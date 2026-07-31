@@ -4,6 +4,7 @@
 
 import 'package:flutter/rendering.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 
 /// Converts `FountainLayoutMetrics` character-column measurements into pixels for the preview.
 ///
@@ -29,8 +30,8 @@ import 'package:fountain_kit/fountain_kit.dart';
 /// the estimated scroll offset of any block without building its widget first (the preview list
 /// is lazy, so an unbuilt block has no render object to `ensureVisible`).
 class OcptEditorPreviewLayout {
-  /// The font family the preview is typeset in, bundled with the app (see `pubspec.yaml`).
-  static const fontFamily = "CourierPrime";
+  /// The font family the preview is typeset in, the app's one bundled fixed-pitch family.
+  static const fontFamily = ocptMonospaceFontFamily;
 
   /// The preview's font size, in logical pixels.
   static const double fontSize = 13;

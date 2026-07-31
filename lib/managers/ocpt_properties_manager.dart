@@ -12,6 +12,8 @@ import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 
 /// The maximum number of projects kept in [OcptPropertiesManager.recentProjects].
@@ -28,7 +30,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
-/// visibility preference, and the last used workspace mode.
+/// visibility preference, the last used workspace mode, and the shot list mode's own dock
+/// fractions, visible table columns and last right dock tab.
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -88,6 +91,51 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Loading it returns null if nothing has been stored yet, which is equivalent to
   /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION");
+
+  /// This is the key used to store the shot list mode's left (sequences) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction]: the two modes show different panels in that
+  /// dock, so a width that suits one has no reason to suit the other. Loading it returns null if
+  /// nothing has been stored yet, which is equivalent to `OcptWorkspaceDock.leftDefaultFraction`,
+  /// applied at the call site.
+  final shotListLeftDockFraction = SharedPreferencesItem<double>("SHOT_LIST_LEFT_DOCK_FRACTION");
+
+  /// This is the key used to store the shot list mode's right (inspector) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction] for the same reason
+  /// [shotListLeftDockFraction] is. Loading it returns null if nothing has been stored yet, which
+  /// is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final shotListRightDockFraction = SharedPreferencesItem<double>("SHOT_LIST_RIGHT_DOCK_FRACTION");
+
+  /// This is the key used to store which optional columns of the shot list table are visible, as
+  /// the [OcptShotListColumn] names joined by [_shotListColumnsSeparator].
+  ///
+  /// An empty stored string is a meaningful value (every optional column hidden) and is kept
+  /// apart from "nothing stored yet", which loads as null and is equivalent to
+  /// [OcptShotListColumn.defaultVisibleColumns], applied at the call site. A stored name no
+  /// longer matching any enum value is dropped, so removing a column in a later version can never
+  /// make this preference unreadable.
+  final shotListVisibleColumns = SharedPrefsItemWithParser<Set<OcptShotListColumn>, String>(
+    "SHOT_LIST_VISIBLE_COLUMNS",
+    parser: _parseShotListColumns,
+    castTo: _castShotListColumns,
+  );
+
+  /// This is the key used to store the tab the shot list mode's right dock last showed, so
+  /// reopening the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptShotListRightDockTab.inspector].
+  final shotListLastRightDockTab = SharedPrefsItemWithParser<OcptShotListRightDockTab, String>(
+    "SHOT_LIST_LAST_RIGHT_DOCK_TAB",
+    parser: _parseShotListRightDockTab,
+    castTo: (value) => value.name,
+  );
+
+  /// The separator joining the [OcptShotListColumn] names stored for [shotListVisibleColumns].
+  static const _shotListColumnsSeparator = ",";
 
   /// This is the key used to stringify or parse the [FountainPageMargins.leftInches] from/to the
   /// JSON object stored for [pageMargins].
@@ -189,6 +237,46 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
     appLogger().w("The workspace mode stored in the local storage: $value, isn't a known "
         "workspace mode, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the visible shot list table columns.
+  ///
+  /// Never returns null: an unknown name is simply skipped, so a preference written by a version
+  /// knowing a column this one doesn't still yields the columns both versions agree on rather
+  /// than falling back to the defaults wholesale.
+  static Set<OcptShotListColumn>? _parseShotListColumns(String value) {
+    final names = value.split(_shotListColumnsSeparator);
+    final columns = <OcptShotListColumn>{};
+
+    for (final name in names) {
+      for (final column in OcptShotListColumn.values) {
+        if (column.name == name) {
+          columns.add(column);
+        }
+      }
+    }
+
+    return columns;
+  }
+
+  /// Cast the visible shot list table columns to the string representation stored in the local
+  /// storage.
+  static String? _castShotListColumns(Set<OcptShotListColumn> value) =>
+      value.map((column) => column.name).join(_shotListColumnsSeparator);
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptShotListRightDockTab].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptShotListRightDockTab] values.
+  static OcptShotListRightDockTab? _parseShotListRightDockTab(String value) {
+    for (final tab in OcptShotListRightDockTab.values) {
+      if (tab.name == value) {
+        return tab;
+      }
+    }
+
+    appLogger().w("The shot list right dock tab stored in the local storage: $value, isn't a "
+        "known tab, we can't convert it");
     return null;
   }
 

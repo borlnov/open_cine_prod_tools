@@ -49,6 +49,9 @@ dependencies:
   # Generates the stable ids of screenplays, snapshots and scenes
   uuid: ^4.5.1
 
+  # Computes the SHA-256 digest a shot's scenario coverage range is checked for staleness against
+  crypto: ^3.0.6
+
   # Opens the GitHub repository link in the system browser
   url_launcher: ^6.3.2
 

@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_schedule_mode.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_shot_list_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_mode_switcher.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
@@ -17,8 +17,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// The workspace: whichever production mode is active fills the window, with the persistent
 /// bottom mode switcher underneath it.
 ///
-/// Each mode (the screenplay editor, or one of the not-yet-implemented budget/schedule/shot list
-/// modes) builds its own `OcptWorkspaceShell` filling the space above the switcher; the switcher
+/// Each mode (the screenplay editor, the shot list, or one of the not-yet-implemented
+/// budget/schedule modes) builds its own `OcptWorkspaceShell` filling the space above the
+/// switcher; the switcher
 /// itself lives here, outside every mode's shell, so a mode never has to know about it, let alone
 /// thread its active value and selection callback through.
 ///

@@ -4,6 +4,7 @@
 
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
+import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 
 /// Translates local line indices (into the body line array passed to
@@ -55,12 +56,6 @@ class _RangeCalculator {
 class FountainBlockBuilder {
   /// Creates a [FountainBlockBuilder].
   const FountainBlockBuilder();
-
-  /// Matches a character extension in parentheses at the end of a cue, for
-  /// example ` (V.O.)` in `SARAH (V.O.)`.
-  static final RegExp _characterExtension = RegExp(
-    r'^(.*?)\s*\(([^()]*)\)\s*$',
-  );
 
   /// Matches a scene number tag at the end of a heading, for example
   /// `#4A#` in `INT. HOUSE #4A#`.
@@ -236,27 +231,12 @@ class FountainBlockBuilder {
 
   /// Builds a [FountainCharacter] from its raw source line.
   FountainCharacter _buildCharacter(String rawLine, FountainSourceRange range) {
-    var work = rawLine.trim();
-    if (work.startsWith('@')) {
-      work = work.substring(1).trim();
-    }
-    var isDualDialogue = false;
-    if (work.endsWith('^')) {
-      isDualDialogue = true;
-      work = work.substring(0, work.length - 1).trim();
-    }
-    var name = work;
-    String? extension;
-    final match = _characterExtension.firstMatch(work);
-    if (match != null) {
-      name = match.group(1)!.trim();
-      extension = match.group(2)!.trim();
-    }
+    final cue = parseFountainCharacterCue(rawLine);
     return FountainCharacter(
       sourceRange: range,
-      name: name,
-      extension: extension,
-      isDualDialogue: isDualDialogue,
+      name: cue.name,
+      extension: cue.extension,
+      isDualDialogue: cue.isDualDialogue,
     );
   }
 
