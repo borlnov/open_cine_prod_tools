@@ -26,6 +26,7 @@ export 'src/models/fountain_source_range.dart';
 export 'src/models/fountain_styled_run.dart';
 export 'src/models/fountain_title_page.dart';
 export 'src/parser/fountain_block_builder.dart';
+export 'src/parser/fountain_character_cue.dart';
 export 'src/parser/fountain_inline_parser.dart';
 export 'src/parser/fountain_line_classifier.dart';
 export 'src/parser/fountain_parser.dart';

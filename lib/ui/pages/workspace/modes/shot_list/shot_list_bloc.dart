@@ -55,7 +55,8 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// [_onCoverageWordClicked] resolves a word click against
 /// [OcptShotListState.pendingCoverageAnchor] into adding, removing, or simply moving where the
 /// next click would close a range (see that handler's own doc comment for the three-state
-/// interaction), [_onCoverageClearRequested] drops every range of a shot, and
+/// interaction) — a range being added also attaches the characters it covers to the shot, see
+/// [_attachCharactersCoveredBy] —, [_onCoverageClearRequested] drops every range of a shot, and
 /// [_onShotMarkedAsChecked] clears a shot's `needsCheck` flag and re-stamps its ranges' digests.
 /// All three go through [OcptShotListState.screenplayText] — the screenplay's Fountain text as
 /// last loaded, which [OcptShotListState.buildSelectedCoverageLayout] slices a scene's own text
@@ -896,6 +897,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// A closing click is never rejected for landing in another block than the one the range was
   /// opened in: a range legitimately runs from an action paragraph into the dialogue below it, and
   /// `OcptShotCoverageService.addRange` stopped enforcing anything about blocks along with it.
+  ///
+  /// The click that closes a range writes the characters that range covers alongside it, in the
+  /// same [_writeCoverageChange] action so both land before the snapshot is re-read: see
+  /// [_attachCharactersCoveredBy].
   Future<void> _onCoverageWordClicked(
     OcptShotListCoverageWordClickedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -954,15 +959,58 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       emitter: emitter,
       project: project,
       shotId: event.shotId,
-      action: () => _shotCoverageService.addRange(
-        database: project.database,
-        shotId: event.shotId,
-        sceneId: layout.sceneId,
-        startOffset: range.startOffset,
-        endOffset: range.endOffset,
-        sceneText: layout.sceneText,
-      ),
+      action: () async {
+        await _shotCoverageService.addRange(
+          database: project.database,
+          shotId: event.shotId,
+          sceneId: layout.sceneId,
+          startOffset: range.startOffset,
+          endOffset: range.endOffset,
+          sceneText: layout.sceneText,
+        );
+        await _attachCharactersCoveredBy(
+          project: project,
+          shotId: event.shotId,
+          layout: layout,
+          range: range,
+        );
+      },
     );
+  }
+
+  /// Attaches to shot [shotId] every character the range just recorded covers, so selecting a
+  /// shot's scenario coverage ticks its character chips on its own instead of leaving the same
+  /// names to be clicked twice.
+  ///
+  /// Deliberately additive: a range that stops covering a character (removed, or narrowed) never
+  /// detaches anybody, since a shot's characters are the director's own list — a silent role, an
+  /// extra, a character kept in frame through a reply they don't speak — and only the user knows
+  /// which of them the coverage happens to explain. A name already attached is skipped, and so is
+  /// one no longer among [OcptShotListState.speakingCharacters], which would otherwise come back
+  /// as a struck-through `(removed)` chip.
+  Future<void> _attachCharactersCoveredBy({
+    required OcptOpenProjectModel project,
+    required String shotId,
+    required OcptShotCoverageLayout layout,
+    required ({int startOffset, int endOffset}) range,
+  }) async {
+    final attached = state.snapshot?.shotsById[shotId]?.characters ?? const <String>[];
+    final covered = layout.charactersCoveredBy(
+      startOffset: range.startOffset,
+      endOffset: range.endOffset,
+    );
+
+    for (final characterName in covered) {
+      if (attached.contains(characterName) || !state.speakingCharacters.contains(characterName)) {
+        continue;
+      }
+
+      await _shotListService.attachCharacter(
+        database: project.database,
+        shotId: shotId,
+        characterName: characterName,
+      );
+    }
   }
 
   /// Removes every scenario coverage range of shot `event.shotId`, written immediately: the

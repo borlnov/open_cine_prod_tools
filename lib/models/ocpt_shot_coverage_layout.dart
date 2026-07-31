@@ -264,6 +264,63 @@ class OcptShotCoverageLayout extends Equatable {
         if (_overlaps(range, block.startOffset, block.endOffset)) block,
   ];
 
+  /// The normalised names of the characters speaking anywhere within the scene-relative
+  /// `[startOffset, endOffset)` span, in first-appearance order: which characters a range about to
+  /// be recorded covers, which is what the shot list attaches to a shot the moment its scenario
+  /// coverage is selected.
+  ///
+  /// A character counts as covered when the span reaches any line of the dialogue they are cued
+  /// for — their cue line itself, one of their spoken lines, or one of the parentheticals in
+  /// between — so covering nothing but the second line of a reply still names its speaker.
+  /// Everything else (action, headings, transitions) names nobody.
+  ///
+  /// The names go through `fountain_kit`'s [parseFountainCharacterCue] then
+  /// [normalizeCharacterName], exactly as [speakingCharactersOf] derives the screenplay's own
+  /// speaking roles from its parsed blocks, so the two compare equal byte-for-byte.
+  List<String> charactersCoveredBy({required int startOffset, required int endOffset}) {
+    final covered = <String>[];
+
+    // The character whose dialogue the walk is currently inside, or null while it is anywhere
+    // else: a parenthetical and a dialogue line belong to the cue above them, which is what makes
+    // a span covering them alone name that character.
+    String? currentCharacter;
+
+    for (final block in blocks) {
+      switch (block.type) {
+        case FountainLineType.character:
+          currentCharacter = normalizeCharacterName(parseFountainCharacterCue(block.text).name);
+        // The two line types belonging to the cue above them: they leave the walk inside the
+        // dialogue group they are part of.
+        case FountainLineType.parenthetical:
+        case FountainLineType.dialogue:
+          break;
+        // Every other line type ends whichever dialogue group was being walked. Spelled out one
+        // by one rather than through a `default`, so a new `FountainLineType` has to be given its
+        // own answer here rather than silently falling in with these.
+        case FountainLineType.blank:
+        case FountainLineType.pageBreak:
+        case FountainLineType.section:
+        case FountainLineType.synopsis:
+        case FountainLineType.sceneHeading:
+        case FountainLineType.transition:
+        case FountainLineType.centeredText:
+        case FountainLineType.lyrics:
+        case FountainLineType.action:
+          currentCharacter = null;
+      }
+
+      if (currentCharacter == null || covered.contains(currentCharacter)) {
+        continue;
+      }
+
+      if (block.startOffset < endOffset && block.endOffset > startOffset) {
+        covered.add(currentCharacter);
+      }
+    }
+
+    return covered;
+  }
+
   /// [ranges] (ignoring every range not of [sceneId]) in the order they appear in the scene's
   /// text: the order the inspector lists a shot's covered extracts in, which is the order they
   /// read in rather than the order they happened to be recorded in.

@@ -786,6 +786,73 @@ void main() {
     await bloc.close();
   });
 
+  test('closing a range over dialogue attaches the characters it covers', () async {
+    await writeScreenplay(dialogueText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+    expect(state.selectedShot!.characters, isEmpty);
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final dialogueBlock = layout.blocks.firstWhere((block) => block.text == "Hello there.");
+
+    await drawCoverageRange(bloc, shotId: shotId, block: dialogueBlock);
+    state = await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
+
+    // The cue itself is outside the range: the speaker is named by their dialogue alone.
+    expect(state.selectedShot!.characters, ["LÉA"]);
+
+    await bloc.close();
+  });
+
+  test('a range covering no dialogue attaches nobody', () async {
+    await writeScreenplay(dialogueText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+
+    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
+    state = bloc.state;
+
+    expect(state.selectedShot!.coverageRanges, hasLength(1));
+    expect(state.selectedShot!.characters, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('removing a range keeps the characters it had attached', () async {
+    await writeScreenplay(dialogueText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final dialogueBlock = layout.blocks.firstWhere((block) => block.text == "Hello there.");
+
+    await drawCoverageRange(bloc, shotId: shotId, block: dialogueBlock);
+    await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
+
+    bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shotId));
+    state = await waitForState(bloc, (state) => state.selectedShot!.coverageRanges.isEmpty);
+
+    // Attaching is one-way: only the user takes a character off a shot.
+    expect(state.selectedShot!.characters, ["LÉA"]);
+
+    await bloc.close();
+  });
+
   test('a click on a covered word with no anchor removes that range', () async {
     await writeScreenplay(twoSceneText);
 

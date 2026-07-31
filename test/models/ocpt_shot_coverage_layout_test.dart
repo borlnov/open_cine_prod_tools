@@ -356,6 +356,90 @@ void main() {
     });
   });
 
+  group("OcptShotCoverageLayout.charactersCoveredBy", () {
+    // Two speakers, the second one cued twice, so first-appearance order and deduplication are
+    // both observable; JOHN's cue carries an extension and a forcing marker, neither of which may
+    // reach the name the shot list stores.
+    const dialogueSceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\n@JOHN (V.O.)\n'
+        '(whispering)\nHello there.\n\nSARAH\nHello back.\n\nThey wait.\n\nJOHN\nStill here.';
+
+    /// The layout of [dialogueSceneText], and the span of the block whose text is [blockText].
+    (OcptShotCoverageLayout, OcptShotCoverageBlock) layoutAndBlock(String blockText) {
+      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: dialogueSceneText);
+      return (layout, layout.blocks.firstWhere((block) => block.text == blockText));
+    }
+
+    test("names the character a covered cue line introduces", () {
+      final (layout, block) = layoutAndBlock("@JOHN (V.O.)");
+
+      expect(
+        layout.charactersCoveredBy(
+          startOffset: block.startOffset,
+          endOffset: block.endOffset,
+        ),
+        ["JOHN"],
+      );
+    });
+
+    test("names the speaker of a covered dialogue or parenthetical line, cue left out", () {
+      final (layout, dialogue) = layoutAndBlock("Hello there.");
+      final (_, parenthetical) = layoutAndBlock("(whispering)");
+
+      expect(
+        layout.charactersCoveredBy(
+          startOffset: dialogue.startOffset,
+          endOffset: dialogue.endOffset,
+        ),
+        ["JOHN"],
+      );
+      expect(
+        layout.charactersCoveredBy(
+          startOffset: parenthetical.startOffset,
+          endOffset: parenthetical.endOffset,
+        ),
+        ["JOHN"],
+      );
+    });
+
+    test("names nobody for a span covering only a heading or an action line", () {
+      final (layout, action) = layoutAndBlock("John walks in.");
+      final (_, heading) = layoutAndBlock("INT. HOUSE - DAY");
+
+      expect(
+        layout.charactersCoveredBy(startOffset: action.startOffset, endOffset: action.endOffset),
+        isEmpty,
+      );
+      expect(
+        layout.charactersCoveredBy(startOffset: heading.startOffset, endOffset: heading.endOffset),
+        isEmpty,
+      );
+    });
+
+    test("names every speaker of a wider span once, in first-appearance order", () {
+      final (layout, _) = layoutAndBlock("INT. HOUSE - DAY");
+
+      expect(
+        layout.charactersCoveredBy(startOffset: 0, endOffset: dialogueSceneText.length),
+        ["JOHN", "SARAH"],
+      );
+    });
+
+    test("stops naming a speaker once the dialogue group is over", () {
+      final (layout, action) = layoutAndBlock("They wait.");
+
+      // From SARAH's reply through the action line under it: the action ends the group, so the
+      // JOHN cued *after* it is not named.
+      final (_, sarahDialogue) = layoutAndBlock("Hello back.");
+      expect(
+        layout.charactersCoveredBy(
+          startOffset: sarahDialogue.startOffset,
+          endOffset: action.endOffset,
+        ),
+        ["SARAH"],
+      );
+    });
+  });
+
   test("a range built from two words of one block passes OcptShotCoverageService.addRange's "
       "own single-block rule", () async {
     const shotListService = OcptShotListService();
