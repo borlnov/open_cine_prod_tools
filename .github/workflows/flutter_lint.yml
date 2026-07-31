@@ -4,10 +4,34 @@
 
 name: Dart Checks
 
+# Paths cover everything the analyzer and the tests read: the app and package sources, the
+# dependency and lint configuration, the actlibs submodule pointer, and the CI definition itself.
+# The two lists are identical and have to be repeated: GitHub Actions does not resolve YAML anchors.
 on:
   pull_request:
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "packages/**"
+      - "actlibs"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".github/workflows/flutter_lint.yml"
+      - ".github/actions/flutter-setup/**"
   push:
     branches: [main]
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "packages/**"
+      - "actlibs"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".github/workflows/flutter_lint.yml"
+      - ".github/actions/flutter-setup/**"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
