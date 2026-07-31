@@ -22,9 +22,10 @@
   "mounts": [
     // Mount .ssh from the host to allow git operations that require authentication to work inside the container
     "source=${localEnv:HOME}/.ssh,target=/home/debian/.ssh,type=bind,consistency=cached"
-    // ~/.claude is an isolated named volume (ocpt-claude-config), declared and mounted in
-    // docker-compose.yml — not a host bind mount, to avoid leaking absolute in-container plugin
-    // paths across containers. See README.md.
+    // The tool config dirs (~/.claude and ~/.config/gh) are isolated named volumes
+    // (ocpt-claude-config, ocpt-gh-config), declared and mounted in docker-compose.yml — not host
+    // bind mounts, so each container keeps its own logins and nothing depends on how the host
+    // stores its own. See README.md.
   ],
   "customizations": {
     "vscode": {
@@ -92,6 +93,10 @@
     // onboarding and trusted-folder state) at the isolated named volume mounted here. This is what
     // makes a single interactive `claude` sign-in survive rebuilds. See README.md.
     "CLAUDE_CONFIG_DIR": "/home/debian/.claude",
+    // Same idea for gh: pin its config dir to the path docker-compose.yml mounts its volume on.
+    // This is where gh already defaults to, but stating it makes the login location explicit and
+    // immune to an XDG_CONFIG_HOME appearing in the environment. See README.md.
+    "GH_CONFIG_DIR": "/home/debian/.config/gh",
     // Single source of truth for the workspace path, derived from workspaceFolder so it can never
     // drift.
     "WORKSPACE_DIR": "${containerWorkspaceFolder}"

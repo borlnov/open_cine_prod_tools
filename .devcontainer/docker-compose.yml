@@ -31,12 +31,8 @@ services:
         USERNAME: debian
     # Was runArgs: --network=host
     network_mode: host
-    # Forward the gh token into the container as a real env var. The value comes from the
-    # auto-loaded .devcontainer/.env (Compose substitutes it here; see .env.example). Optional: if
-    # unset it resolves to empty and gh just falls back to `gh auth login`. Claude needs nothing
-    # here — it's an in-container `claude` sign-in.
-    environment:
-      GH_TOKEN: ${GH_TOKEN:-}
+    # No tool credentials are passed in from the host: both gh and Claude Code are signed into from
+    # inside the container once, and their config volumes below keep that login across rebuilds.
     volumes:
       # Workspace mount. Defaults to simple mode: clone -> /workspaces/open_cine_prod_tools.
       # Worktree users set both vars in .devcontainer/.env (see .env.example):
@@ -57,6 +53,12 @@ services:
       # absolute in-container paths that a shared host ~/.claude would leak across containers/users. The
       # Dockerfile pre-creates ~/.claude so this volume initialises with user ownership. See README.md.
       - ocpt-claude-config:/home/debian/.claude
+      # GitHub CLI credentials (hosts.yml, written by `gh auth login`; GH_CONFIG_DIR points here) in
+      # a named volume, so the interactive login survives rebuilds. Only the gh directory is
+      # mounted, never the whole ~/.config: the image and Flutter write their own state next to it,
+      # and image content is copied into a named volume once at creation, so it would then go stale.
+      # The Dockerfile pre-creates ~/.config/gh so this volume initialises with user ownership.
+      - ocpt-gh-config:/home/debian/.config/gh
       # Pub package cache in a named volume: without it every fresh `docker compose run` container
       # starts with an empty ~/.pub-cache and re-downloads all dependencies. The Dockerfile
       # pre-creates the directory so the volume initialises with user ownership.
@@ -64,8 +66,12 @@ services:
     # The image's CMD is just bash; keep the service alive so VS Code can attach into it.
     command: sleep infinity
 
+# One volume per tool rather than a shared credentials volume, so each can be reset on its own
+# (`docker volume rm ocpt-gh-config` to force a fresh gh login, without touching Claude).
 volumes:
   # Isolated per-container Claude Code config. Persists across rebuilds, shared with nothing.
   ocpt-claude-config:
+  # Isolated per-container gh config. Persists across rebuilds, shared with nothing.
+  ocpt-gh-config:
   # Pub package cache shared by successive containers of this project (see the mount above).
   ocpt-pub-cache:
