@@ -15,24 +15,10 @@
   // be kept in sync by hand is the simple-mode default mount target in docker-compose.yml (a mount
   // target inherently has to equal workspaceFolder); both files cross-reference each other.
   "workspaceFolder": "/workspaces/open_cine_prod_tools",
-  "features": {
-    // A recent git (>= 2.48, needed for worktree.useRelativePaths — see postCreateCommand) is built
-    // from source in the Dockerfile and installed to /usr/local. This feature is kept at
-    // "os-provided" only so gh/git tooling that expects the feature present still resolves; the
-    // Dockerfile's /usr/local/bin/git takes precedence on PATH. Building from source here (version:
-    // latest) proved unreliable across rebuilds, which is why it moved into the Dockerfile.
-    "ghcr.io/devcontainers/features/git:1": { "version": "os-provided" },
-    // GitHub CLI (gh) - used alongside Claude Code for PR/issue workflows. Auth reuses the host's
-    // ~/.ssh mount and GH_TOKEN forwarded from .devcontainer/.env (see docker-compose.yml).
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    // Node.js (LTS) - required by the Claude Code CLI feature below; the base image ships none.
-    // Listed before claude-code so Node is present when it installs.
-    "ghcr.io/devcontainers/features/node:1": {},
-    // Installs the Claude Code CLI. Auth is interactive: run `claude` once and sign in through the
-    // wizard. Credentials and config live in an isolated named volume (CLAUDE_CONFIG_DIR below), so
-    // the login persists across rebuilds — no token to manage. See README.md.
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
-  },
+  // No devcontainer features: every tool (git, gh, Flutter, reuse) is installed directly in the
+  // Dockerfile, which keeps versions explicit and the build reproducible, and Claude Code is
+  // installed by postCreateCommand below. In particular this drops the Node.js feature entirely —
+  // nothing in this repo needs a Node runtime once Claude Code comes from its own native installer.
   "mounts": [
     // Mount .ssh from the host to allow git operations that require authentication to work inside the container
     "source=${localEnv:HOME}/.ssh,target=/home/debian/.ssh,type=bind,consistency=cached"
@@ -74,11 +60,22 @@
   //   container ONLY when ~/.gitconfig does not yet exist. A `git config --global` here would create
   //   ~/.gitconfig first and silently suppress that copy, leaving the container with no user.name /
   //   user.email. Writing --system keeps ~/.gitconfig absent so the host identity still comes through.
+  // - The Claude Code CLI, via the official installer, which fetches a self-contained native binary
+  //   (no Node.js runtime). Installed here rather than in the Dockerfile for two reasons: the ~250MB
+  //   binary and every version the CLI self-updates to then live in the container's writable layer,
+  //   where the CLI's own cleanup can actually reclaim them, instead of being pinned in an image
+  //   layer forever; and CLAUDE_CONFIG_DIR (containerEnv below) is a runtime-only setting, so the
+  //   installer's state file lands in the config dir rather than beside it. It runs as remoteUser
+  //   because everything goes under $HOME — the launcher in ~/.local/bin (on PATH via the Dockerfile)
+  //   and the binaries in ~/.local/share/claude/ — and the installer refuses to run under sudo.
+  //   `latest` selects the latest release channel. Authentication is interactive: run `claude` once
+  //   and sign in; the login lands in the ~/.claude volume and survives rebuilds. See README.md.
   // - Flutter dependencies for the app and its local packages
   // - ACT package dependencies (actlibs/ submodule)
   // - Localization and code generation
   "postCreateCommand": {
     "git worktree relative paths": "sudo git config --system worktree.useRelativePaths true",
+    "claude code": "curl -fsSL https://claude.ai/install.sh | bash -s latest",
     "flutter pub app": "[ -f pubspec.yaml ] && flutter pub get || true",
     "flutter pub fountain_kit": "[ -f packages/fountain_kit/pubspec.yaml ] && (cd packages/fountain_kit && flutter pub get) || true",
     "act packages pub": "[ -x actlibs/tool/pub_get_all.sh ] && ./actlibs/tool/pub_get_all.sh || true",
@@ -91,8 +88,6 @@
     // Forward the X11 socket so the Flutter Linux desktop app can open a window from inside the
     // container.
     "DISPLAY": "unix${localEnv:DISPLAY}",
-    // The Claude binary is owned by the devcontainer feature; don't let it self-update.
-    "DISABLE_AUTOUPDATER": "1",
     // Point Claude's entire config (the ~/.claude data dir AND ~/.claude.json, which holds the login,
     // onboarding and trusted-folder state) at the isolated named volume mounted here. This is what
     // makes a single interactive `claude` sign-in survive rebuilds. See README.md.

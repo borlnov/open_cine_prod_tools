@@ -74,10 +74,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf "/tmp/git-${GIT_VERSION}" /var/lib/apt/lists/* \
     && git --version
 
-# Set locale
-RUN apt-get update && apt-get install -y \
-    locales \
-    && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+# =============================================================================
+# GitHub CLI (gh)
+# =============================================================================
+# From GitHub's own apt repository rather than Debian's: trixie ships gh 2.46
+# (early 2024), while upstream is years ahead. gh is used alongside Claude Code
+# for PR/issue workflows. Installed here rather than via the github-cli
+# devcontainer feature, which would pull in the same stale-or-unpinned choice
+# without the explicit version this gives. Authentication is interactive: run
+# `gh auth login` once and the credentials persist in a named volume (see
+# docker-compose.yml and README.md).
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+       -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/* \
+    && gh --version
+
+# Set locale (the `locales` package comes from the base apt block above)
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen
 
 ENV LANG=en_US.UTF-8 \
@@ -89,10 +107,11 @@ ENV LANG=en_US.UTF-8 \
 # =============================================================================
 ARG USERNAME=debian
 
-# Use bash as the login shell: the Node.js devcontainer feature runs its nvm setup as this user via
-# `su`, which uses the login shell. The default (/bin/sh -> dash) lacks `source` and fails the build.
+# bash (not the default /bin/sh -> dash) as the login shell: the Claude Code installer and the pipx
+# shims source shell snippets that rely on bash builtins, and it is what an interactive terminal
+# expects anyway.
 RUN useradd -m -s /bin/bash $USERNAME \
-    && echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
+    && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && usermod -a -G dialout,plugdev $USERNAME
 
@@ -111,12 +130,7 @@ ARG FLUTTER_VERSION=3.44.6
 ENV FLUTTER_HOME=/home/${USERNAME}/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
 
-# Allow user to run sudo without password
-USER root
-RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
-    && chmod 0440 /etc/sudoers.d/${USERNAME}
-
-# Switch to user for flutter installation
+# Switch to user for flutter installation (passwordless sudo was granted in the user setup stage)
 USER ${USERNAME}
 
 # Download and install Flutter
@@ -143,8 +157,9 @@ RUN pipx install reuse \
     && pipx ensurepath
 
 # pipx ensurepath only edits ~/.bashrc, which non-login/non-interactive shells (docker exec, the
-# image verification below) never source. Bake the pipx shim dir into PATH so `reuse` resolves
-# everywhere.
+# image verification below) never source. Bake the shim dir into PATH so `reuse` resolves everywhere.
+# ~/.local/bin also holds the Claude Code launcher that postCreateCommand installs at container
+# creation (see devcontainer.json), so this covers both.
 ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
 
 # Switch back to root user
@@ -177,17 +192,22 @@ RUN mkdir -p /workspaces && chown ${USERNAME}:${USERNAME} /workspaces
 # Switch to user
 USER ${USERNAME}
 
-# Pre-create ~/.claude (owned by the user) so the isolated named volume mounted here
-# (ocpt-claude-config, see docker-compose.yml) inherits user ownership when Docker first initialises
-# it. Without this the fresh volume is root-owned and Claude can't write to it. Baking it in avoids
-# any runtime chown. CLAUDE_CONFIG_DIR (devcontainer.json) points Claude's whole config — including
-# ~/.claude.json — in here, so a single browser login persists across rebuilds.
-RUN mkdir -p /home/${USERNAME}/.claude
+# Pre-create the three directories that docker-compose.yml mounts named volumes on, so they are
+# owned by the user: Docker initialises a fresh named volume from the image content at its mount
+# point, and a mount point that does not exist in the image yields a root-owned volume the tool
+# cannot write to. Baking the dirs in avoids any runtime chown. Keep all three paths in sync with the
+# volume targets in docker-compose.yml.
+# - ~/.claude: CLAUDE_CONFIG_DIR (devcontainer.json) points Claude's whole config — including
+#   ~/.claude.json — in here, so a single browser login persists across rebuilds.
+# - ~/.config/gh: gh writes its credentials to hosts.yml in here (GH_CONFIG_DIR, devcontainer.json),
+#   so a single `gh auth login` persists across rebuilds.
+# - ~/.pub-cache: downloaded pub packages survive across `docker compose run` invocations instead of
+#   being re-fetched every time.
+RUN mkdir -p /home/${USERNAME}/.claude /home/${USERNAME}/.config/gh /home/${USERNAME}/.pub-cache
 
-# Pre-create ~/.pub-cache (owned by the user) for the same volume-ownership reason as ~/.claude
-# above: a named volume (ocpt-pub-cache, see docker-compose.yml) is mounted here so downloaded pub
-# packages survive across `docker compose run` invocations instead of being re-fetched every time.
-RUN mkdir -p /home/${USERNAME}/.pub-cache
+# Claude Code is deliberately NOT installed here — it is installed by postCreateCommand (see
+# devcontainer.json), which keeps its ~250MB of self-updating binaries out of the image layers.
+# It lands in ~/.local/bin, which is already on PATH above.
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]
@@ -195,6 +215,7 @@ SHELL ["/bin/bash", "-c"]
 # Verify installations
 RUN echo "=== Development Environment ===" \
     && echo "Git: $(git --version)" \
+    && echo "GitHub CLI: $(gh --version | head -1)" \
     && echo "Flutter: $(flutter --version | head -1)" \
     && echo "Dart: $(dart --version)" \
     && echo "Reuse: $(reuse --version)" \
