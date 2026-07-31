@@ -116,7 +116,7 @@ void main() {
       "FRAMING & COMPOSITION",
       "CAMERA MOVE",
       "DIFF.",
-      "DURATION",
+      "DURATION (MM:SS)",
       "SHOOTING DAY",
       "STATUS",
     ]) {
@@ -166,7 +166,7 @@ void main() {
 
     expect(find.text("1/1"), findsOneWidget);
     expect(find.text("LÉA"), findsOneWidget);
-    expect(find.text("1:35"), findsOneWidget);
+    expect(find.text("01:35"), findsOneWidget);
     expect(find.text("3"), findsOneWidget);
     expect(find.text("Retake"), findsOneWidget);
     // The shot has no shooting day yet.

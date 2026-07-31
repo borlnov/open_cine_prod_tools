@@ -20,11 +20,24 @@ void main() {
       expect(ocptParseShotDuration(ocptFormatShotDuration(null)), isNull);
     });
 
-    test("m:ss round-trips through both directions", () {
+    test("mm:ss round-trips through both directions", () {
       for (final milliseconds in [0, 5000, 65000, 600000, 3599000]) {
         final formatted = ocptFormatShotDuration(milliseconds);
         expect(ocptParseShotDuration(formatted), milliseconds, reason: "for $formatted");
       }
+    });
+
+    test("both halves are formatted on two digits", () {
+      expect(ocptFormatShotDuration(0), "00:00");
+      expect(ocptFormatShotDuration(45000), "00:45");
+      expect(ocptFormatShotDuration(90000), "01:30");
+      expect(ocptFormatShotDuration(4500000), "75:00");
+    });
+
+    test("leading zeroes are optional on the way in", () {
+      expect(ocptParseShotDuration("1:30"), 90000);
+      expect(ocptParseShotDuration("01:30"), 90000);
+      expect(ocptParseShotDuration("00:05"), 5000);
     });
 
     test("a bare non-negative integer is read as a number of seconds", () {
@@ -37,6 +50,28 @@ void main() {
       expect(() => ocptParseShotDuration("-5"), throwsFormatException);
       expect(() => ocptParseShotDuration("1:75"), throwsFormatException);
       expect(() => ocptParseShotDuration("1:2:3"), throwsFormatException);
+    });
+  });
+
+  group("ocptIsShotDurationValid", () {
+    test("answers what ocptParseShotDuration accepts, without throwing", () {
+      expect(ocptIsShotDurationValid(""), isTrue);
+      expect(ocptIsShotDurationValid("45"), isTrue);
+      expect(ocptIsShotDurationValid("01:30"), isTrue);
+      expect(ocptIsShotDurationValid("1:75"), isFalse);
+      expect(ocptIsShotDurationValid("1:2:3"), isFalse);
+      expect(ocptIsShotDurationValid(":"), isFalse);
+    });
+  });
+
+  group("ocptShotDurationInputFormatters", () {
+    test("keeps the digits and the separator, drops everything else", () {
+      var filtered = const TextEditingValue(text: "1m 30s!");
+      for (final formatter in ocptShotDurationInputFormatters) {
+        filtered = formatter.formatEditUpdate(TextEditingValue.empty, filtered);
+      }
+
+      expect(filtered.text, "130");
     });
   });
 

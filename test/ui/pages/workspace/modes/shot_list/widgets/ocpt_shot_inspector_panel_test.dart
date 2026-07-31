@@ -79,6 +79,18 @@ OcptShot _buildShot({
       (difficultySet + difficultyCamera + difficultyActing + difficultySound) / 4,
 );
 
+/// The text field of the panel's estimated duration row, the one field of the panel bound to
+/// something other than free text.
+TextField _durationFieldOf(WidgetTester tester) => tester.widget<TextField>(
+  find.descendant(
+    of: find.ancestor(
+      of: find.text("ESTIMATED DURATION (MM:SS)"),
+      matching: find.byType(OcptShotInspectorField),
+    ),
+    matching: find.byType(TextField),
+  ),
+);
+
 /// Builds a panel with a sensible default of every field, only the fields a given test cares
 /// about overridden.
 Widget _buildPanel({
@@ -87,6 +99,7 @@ Widget _buildPanel({
   void Function(OcptShotDifficultyAxis axis, int value)? onDifficultyChanged,
   ValueChanged<String>? onCharacterToggled,
   void Function(OcptShotListEditableField field, String rawValue)? onFieldChanged,
+  String Function(OcptShotListEditableField field)? fieldValueOf,
   VoidCallback? onMarkAsChecked,
   VoidCallback? onSelectCoverageRequested,
   VoidCallback? onDeleteRequested,
@@ -99,7 +112,7 @@ Widget _buildPanel({
   coverageLayout: null,
   otherShotsCoverageRanges: const {},
   staleCoverageRangeIds: const {},
-  fieldValueOf: (field) => "",
+  fieldValueOf: fieldValueOf ?? (field) => "",
   onDifficultyChanged: onDifficultyChanged ?? (_, __) {},
   onCharacterToggled: onCharacterToggled ?? (_) {},
   onFieldChanged: onFieldChanged ?? (_, __) {},
@@ -157,9 +170,45 @@ void main() {
     await _useTallSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
 
-    expect(find.text("ESTIMATED DURATION"), findsOneWidget);
+    expect(find.text("ESTIMATED DURATION (MM:SS)"), findsOneWidget);
     expect(find.text("SHOOTING DAY"), findsNothing);
     expect(find.text("PLANNED TAKES"), findsNothing);
+  });
+
+  testWidgets("the estimated duration field accepts nothing but a mm:ss duration",
+      (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(),
+          fieldValueOf: (field) =>
+              field == OcptShotListEditableField.estimatedDuration ? "1:75" : "",
+        ),
+      ),
+    );
+
+    final field = _durationFieldOf(tester);
+
+    expect(field.inputFormatters, ocptShotDurationInputFormatters);
+    expect(field.decoration?.hintText, "mm:ss");
+    expect(field.decoration?.errorText, "Use the mm:ss format");
+  });
+
+  testWidgets("the estimated duration field shows no error for a duration it accepts",
+      (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(),
+          fieldValueOf: (field) =>
+              field == OcptShotListEditableField.estimatedDuration ? "01:30" : "",
+        ),
+      ),
+    );
+
+    expect(_durationFieldOf(tester).decoration?.errorText, isNull);
   });
 
   testWidgets("the fields written as a sentence are as tall as the director's notes",

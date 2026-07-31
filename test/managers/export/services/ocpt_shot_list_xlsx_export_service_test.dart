@@ -227,7 +227,7 @@ void main() {
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.cameraMove), "Slow push in");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.lens), "35mm");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.recordingFormat), "4K · 25 fps");
-      expect(_cellOf(shotRow, OcptShotListXlsxColumn.duration), "1:30");
+      expect(_cellOf(shotRow, OcptShotListXlsxColumn.duration), "01:30");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.takes), 4);
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.sound), "Direct sound");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.difficulty), 2.75);

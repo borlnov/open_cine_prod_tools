@@ -253,12 +253,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
         _sectionTitle(context, tr.shotListInspectorProductionSectionTitle),
         const SizedBox(height: 8),
-        OcptShotInspectorField(
-          shotId: shot.id,
-          label: tr.shotListInspectorEstimatedDurationLabel,
-          value: fieldValueOf(OcptShotListEditableField.estimatedDuration),
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.estimatedDuration, value),
-        ),
+        _buildEstimatedDurationField(tr, shot),
         OcptShotInspectorField(
           shotId: shot.id,
           label: tr.shotListColumnSound,
@@ -304,6 +299,30 @@ class OcptShotInspectorPanel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// The estimated duration field of [shot]: the one field of the panel whose value is not free
+  /// text but a `mm:ss` duration, so it is the one built here rather than inline.
+  ///
+  /// Nothing but digits and the `:` separator can be typed into it
+  /// ([ocptShotDurationInputFormatters]), its label and its placeholder both state the format, and
+  /// a badly shaped duration (`1:75`, `1:2:3`) is marked in error under the field — matching what
+  /// the bloc does with it, which is to leave the shot's stored duration alone until what was
+  /// typed parses.
+  Widget _buildEstimatedDurationField(Tr tr, OcptShot shot) {
+    final value = fieldValueOf(OcptShotListEditableField.estimatedDuration);
+
+    return OcptShotInspectorField(
+      shotId: shot.id,
+      label: tr.shotListInspectorEstimatedDurationLabel,
+      value: value,
+      hintText: tr.shotListInspectorEstimatedDurationHint,
+      errorText: ocptIsShotDurationValid(value)
+          ? null
+          : tr.shotListInspectorEstimatedDurationError,
+      inputFormatters: ocptShotDurationInputFormatters,
+      onChanged: (value) => onFieldChanged(OcptShotListEditableField.estimatedDuration, value),
     );
   }
 

@@ -1512,10 +1512,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListColumnDuration": "Duration",
+  "shotListColumnDuration": "Duration (mm:ss)",
   "@shotListColumnDuration": {
-    "description": "Header of the estimated duration column",
-    "context": "Displayed in the shot table's header row and columns menu",
+    "description": "Header of the estimated duration column, stating the format its cells are written in",
+    "context": "Displayed in the shot table's header row, columns menu and exported workbook",
     "type": "text",
     "placeholders": {}
   },
@@ -1790,9 +1790,23 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListInspectorEstimatedDurationLabel": "Estimated duration",
+  "shotListInspectorEstimatedDurationLabel": "Estimated duration (mm:ss)",
   "@shotListInspectorEstimatedDurationLabel": {
-    "description": "Label of the estimated duration field",
+    "description": "Label of the estimated duration field, stating the format it is written in",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorEstimatedDurationHint": "mm:ss",
+  "@shotListInspectorEstimatedDurationHint": {
+    "description": "Placeholder of the estimated duration field, shown while it is empty",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorEstimatedDurationError": "Use the mm:ss format",
+  "@shotListInspectorEstimatedDurationError": {
+    "description": "Error shown under the estimated duration field when what it holds is not a duration",
     "context": "Displayed in the shot inspector's production section",
     "type": "text",
     "placeholders": {}

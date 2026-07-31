@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
@@ -126,17 +127,24 @@ String ocptFormatShotDifficulty(BuildContext context, double value) =>
       decimalDigits: 1,
     ).format(value);
 
-/// Formats the shot duration [milliseconds] as `m:ss`, or [ocptShotListEmptyValue] when the shot
+/// Formats the shot duration [milliseconds] as `mm:ss`, or [ocptShotListEmptyValue] when the shot
 /// has no estimated duration yet.
+///
+/// Both halves are always written on two digits (`01:30`, `00:45`), so a column of durations reads
+/// as one column rather than as a ragged edge, and so what the table shows is exactly what the
+/// inspector's own field accepts back. A duration of an hour or more simply overflows its minutes
+/// (`75:00`): a *shot* never runs that long, and inventing an hours field for it would cost every
+/// other duration a pair of leading zeroes.
 String ocptFormatShotDuration(int? milliseconds) {
   if (milliseconds == null) {
     return ocptShotListEmptyValue;
   }
 
   final totalSeconds = (milliseconds / Duration.millisecondsPerSecond).round();
+  final minutes = totalSeconds ~/ Duration.secondsPerMinute;
   final seconds = totalSeconds % Duration.secondsPerMinute;
 
-  return "${totalSeconds ~/ Duration.secondsPerMinute}:${seconds.toString().padLeft(2, "0")}";
+  return "${minutes.toString().padLeft(2, "0")}:${seconds.toString().padLeft(2, "0")}";
 }
 
 /// Returns [value] if it holds anything other than whitespace, [ocptShotListEmptyValue]
@@ -149,9 +157,11 @@ String ocptShotFieldOrDash(String? value) =>
 ///
 /// A blank [input], or exactly [ocptShotListEmptyValue] (what [ocptFormatShotDuration] itself
 /// renders for a null duration, so the two stay round-trippable), means "no estimate" and parses
-/// to null. `m:ss` parses to milliseconds. A bare non-negative integer is read as a number of
-/// seconds. Anything else throws a [FormatException]: the shot inspector's own choice, on
-/// catching it, is to leave the shot's stored duration untouched rather than write anything.
+/// to null. `mm:ss` parses to milliseconds, leading zeroes optional on either half (`1:30` and
+/// `01:30` are the same duration). A bare non-negative integer is read as a number of seconds, so
+/// a duration under a minute can be typed as `45` alone. Anything else throws a
+/// [FormatException]: the shot inspector's own choice, on catching it, is to leave the shot's
+/// stored duration untouched rather than write anything, and to mark the field in error.
 int? ocptParseShotDuration(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed == ocptShotListEmptyValue) {
@@ -178,4 +188,27 @@ int? ocptParseShotDuration(String input) {
   }
 
   return (minutes * Duration.secondsPerMinute + seconds) * Duration.millisecondsPerSecond;
+}
+
+/// The formatters the shot inspector's estimated-duration field is built with: what `mm:ss` is
+/// written with, digits and the `:` separator, and nothing else.
+///
+/// Keeping every other character out of the field is what turns "the duration is a number" into
+/// something the user is shown rather than told: a letter, a sign or a space never even appears,
+/// so the only mistake left to report is a badly shaped one (`1:75`, `1:2:3`), which
+/// [ocptIsShotDurationValid] answers for.
+final List<TextInputFormatter> ocptShotDurationInputFormatters = [
+  FilteringTextInputFormatter.allow(RegExp("[0-9:]")),
+];
+
+/// Whether [input] is something [ocptParseShotDuration] accepts, answered without throwing: what
+/// the shot inspector's duration field asks itself on every keystroke to decide whether to show
+/// its `mm:ss` error, while the bloc goes on parsing the very same text for the value itself.
+bool ocptIsShotDurationValid(String input) {
+  try {
+    ocptParseShotDuration(input);
+    return true;
+  } on FormatException {
+    return false;
+  }
 }

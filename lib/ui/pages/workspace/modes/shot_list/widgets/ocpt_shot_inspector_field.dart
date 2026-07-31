@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 
 /// The number of lines a [OcptShotInspectorField.multiline] field is tall before it grows with
@@ -23,6 +24,11 @@ const int _multilineMinLines = 4;
 /// (rather than letting [RawAutocomplete] create its own internal ones, which would fight the
 /// caret on every rebuild), so keeps the caret and the autocomplete overlay perfectly in step with
 /// the shot list bloc's own debounce.
+///
+/// A field whose value has a grammar of its own (the estimated duration's `mm:ss`) additionally
+/// gets [inputFormatters] keeping the characters that grammar has no room for out, a [hintText]
+/// stating it while the field is empty, and an [errorText] its caller computes from what was
+/// typed: this widget stays a plain text box and never reads a value it is bound to.
 ///
 /// [value] is the field's current authoritative value — a pending edit still sitting in the
 /// bloc's debounce, or the shot's own stored value otherwise. The internal controller is only
@@ -52,6 +58,20 @@ class OcptShotInspectorField extends StatefulWidget {
   /// Director's notes, Location scouting) instead of being a single line.
   final bool multiline;
 
+  /// The greyed placeholder shown while the field is empty, or null for a field whose label says
+  /// everything there is to say: the estimated duration's `mm:ss` is the only one so far.
+  final String? hintText;
+
+  /// The error shown under the field, or null while what it holds is fine. Computed by the caller
+  /// (which is the one that knows how to read the field's own grammar) rather than by this widget,
+  /// which stays a plain text box whatever it is bound to.
+  final String? errorText;
+
+  /// The formatters restricting what the field accepts, or null for a field taking any text at
+  /// all: the estimated duration allows nothing but digits and its `:` separator, so a wrong
+  /// character can never even be typed and [errorText] is only ever about the shape of what was.
+  final List<TextInputFormatter>? inputFormatters;
+
   /// Called with the field's raw text on every keystroke, and when a suggestion is picked.
   final ValueChanged<String> onChanged;
 
@@ -63,6 +83,9 @@ class OcptShotInspectorField extends StatefulWidget {
     required this.value,
     this.suggestions,
     this.multiline = false,
+    this.hintText,
+    this.errorText,
+    this.inputFormatters,
     required this.onChanged,
   });
 
@@ -167,7 +190,12 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
     maxLines: widget.multiline ? null : 1,
     minLines: widget.multiline ? _multilineMinLines : 1,
     style: Theme.of(context).textTheme.bodySmall,
-    decoration: const InputDecoration(isDense: true),
+    inputFormatters: widget.inputFormatters,
+    decoration: InputDecoration(
+      isDense: true,
+      hintText: widget.hintText,
+      errorText: widget.errorText,
+    ),
   );
 }
 
