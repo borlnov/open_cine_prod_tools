@@ -181,12 +181,10 @@ RUN printf 'export PATH="%s:%s:$PATH"\n' "/home/${USERNAME}/.local/bin" "${FLUTT
 # the host's ownership, and debian (UID 1000) matches the host user.
 WORKDIR /home/${USERNAME}
 
-# Pre-create the workspace parent so it is owned by the user, not root.
-# In simple mode docker-compose bind-mounts only /workspaces/open_cine_prod_tools; Docker would
-# otherwise auto-create the /workspaces parent as root, leaving the user unable to `git worktree add`
-# sibling worktrees (/workspaces/<branch>). Baking the dir in with user ownership fixes that without
-# a runtime chown. In worktree mode /workspaces is itself the bind mount, which harmlessly shadows
-# this dir. Keep this path in sync with the mount target in docker-compose.yml / devcontainer.json.
+# Pre-create the workspace parent so it is owned by the user, not root: docker-compose bind-mounts
+# the clone at /workspaces/open_cine_prod_tools, and Docker would otherwise auto-create the
+# /workspaces parent as root. Baking the dir in with user ownership avoids a runtime chown. Keep this
+# path in sync with the mount target in docker-compose.yml / devcontainer.json.
 RUN mkdir -p /workspaces && chown ${USERNAME}:${USERNAME} /workspaces
 
 # Switch to user

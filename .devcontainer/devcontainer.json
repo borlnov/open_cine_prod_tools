@@ -4,16 +4,13 @@
 {
   "name": "Open Cine Prod Tools Dev Environment",
   // Docker Compose based (see docker-compose.yml). The `dev` service carries what used to live in
-  // runArgs / workspaceMount / build, and lets an optional .devcontainer/.env switch on git-worktree
-  // mounts without touching this file. See README.md.
+  // runArgs / workspaceMount / build, none of which Compose honours. See README.md.
   "dockerComposeFile": "docker-compose.yml",
   "service": "dev",
-  // SINGLE SOURCE OF TRUTH for the in-container workspace path. The clone is ALWAYS here, whether
-  // docker-compose mounted just the clone (simple, default) or the whole project root (worktree
-  // mode), so nothing downstream needs to know which mode is active. Everything else derives from
-  // this: WORKSPACE_DIR via ${containerWorkspaceFolder} (containerEnv below). The ONE value that must
-  // be kept in sync by hand is the simple-mode default mount target in docker-compose.yml (a mount
-  // target inherently has to equal workspaceFolder); both files cross-reference each other.
+  // SINGLE SOURCE OF TRUTH for the in-container workspace path: everything else derives from it
+  // (WORKSPACE_DIR via ${containerWorkspaceFolder}, see containerEnv below). The ONE value that must
+  // be kept in sync by hand is the workspace mount target in docker-compose.yml (a mount target
+  // inherently has to equal workspaceFolder); both files cross-reference each other.
   "workspaceFolder": "/workspaces/open_cine_prod_tools",
   // No devcontainer features: every tool (git, gh, Flutter, reuse) is installed directly in the
   // Dockerfile, which keeps versions explicit and the build reproducible, and Claude Code is
@@ -51,12 +48,14 @@
     }
   },
   // Install the various dependencies for the project after the container is created. Commands run
-  // from the workspaceFolder, so paths are relative and mode-agnostic. Each dependency-install entry
-  // is guarded (checks the relevant file/dir exists before running) so it succeeds at any stage of the
-  // repo's life — the actlibs/ ACT submodule, the packages/fountain_kit package, and the intl_utils /
+  // from the workspaceFolder, so paths stay relative. Each dependency-install entry is guarded
+  // (checks the relevant file/dir exists before running) so it succeeds at any stage of the repo's
+  // life — the actlibs/ ACT submodule, the packages/fountain_kit package, and the intl_utils /
   // build_runner codegen are expected to arrive in later commits, not all at once. This includes:
-  // - Relative git worktree paths, so `git worktree add` works regardless of where the project root
-  //   is mounted (only honoured by git >= 2.48). This is written to the SYSTEM config (/etc/gitconfig)
+  // - Relative git worktree paths, so a worktree created under ./worktrees/ resolves both from the
+  //   container (/workspaces/open_cine_prod_tools) and from the host, whose clone path differs (only
+  //   honoured by git >= 2.48). This is written to the SYSTEM config (/usr/local/etc/gitconfig, since
+  //   git is built with prefix=/usr/local — see the Dockerfile)
   //   on purpose: VS Code's `dev.containers.copyGitConfig` copies the host ~/.gitconfig into the
   //   container ONLY when ~/.gitconfig does not yet exist. A `git config --global` here would create
   //   ~/.gitconfig first and silently suppress that copy, leaving the container with no user.name /
