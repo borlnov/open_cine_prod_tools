@@ -98,7 +98,7 @@ escape hatch — which does mean it also discards uncommitted work without askin
 in the worktree first.
 
 The branch outlives the worktree; delete it separately once its work is merged or abandoned
-(`tools/prune-gone-branches.sh` cleans up the ones whose PR has been merged and whose remote branch
+(`tool/prune-gone-branches.sh` cleans up the ones whose PR has been merged and whose remote branch
 is gone, and deliberately skips any branch still checked out in a worktree).
 
 If a worktree directory was deleted by hand, `git worktree prune` drops the leftover administrative
