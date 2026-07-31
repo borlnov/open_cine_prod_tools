@@ -83,6 +83,14 @@
     "l10n generate": "[ -f pubspec.yaml ] && grep -q intl_utils pubspec.yaml && dart run intl_utils:generate || true",
     "build_runner": "[ -f pubspec.yaml ] && grep -q build_runner pubspec.yaml && dart run build_runner build || true"
   },
+  // patch-arb-editor-schema.sh works around a bug in the google.arb-editor bundled JSON schema that
+  // otherwise flags every metadata block in the two ARB files (see the script header). It runs here
+  // rather than in postCreateCommand because the extension is only guaranteed installed once VS Code
+  // has attached, and it is reinstalled on every rebuild. Object form, so further entries added here
+  // run in parallel.
+  "postAttachCommand": {
+    "arb-editor schema fix": "bash .devcontainer/patch-arb-editor-schema.sh"
+  },
   // Use 'debian' as the default user inside the container
   "remoteUser": "debian",
   "containerEnv": {
