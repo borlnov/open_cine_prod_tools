@@ -120,6 +120,12 @@ dependencies:
   # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
   pdf: ^3.12.0
 
+  # Writes the exported shot list workbook (XLSX). The community fork of `excel` rather than
+  # `excel` itself, whose latest release is still capped at `archive ^3` and `xml <7` and can
+  # therefore not be resolved alongside the `image` version `icons_launcher` pulls in; see
+  # docs/adr/0008-excel-community-for-the-shot-list-export.md
+  excel_community: ^2.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

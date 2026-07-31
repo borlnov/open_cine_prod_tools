@@ -13,8 +13,11 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
 class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
@@ -27,11 +30,11 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 }
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
-/// or a PDF.
+/// or a PDF, and the project's shot list out of it as an XLSX workbook.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
-/// [fountainIoService] and [pdfExportService], and the "save as" location picking to
-/// [saveLocationService] — the services this manager owns (RFL18).
+/// [fountainIoService], [pdfExportService] and [shotListXlsxExportService], and the "save as"
+/// location picking to [saveLocationService] — the services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -41,6 +44,9 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service rendering a screenplay PDF.
   final OcptPdfExportService pdfExportService;
+
+  /// The service building the shot list XLSX workbook.
+  final OcptShotListXlsxExportService shotListXlsxExportService;
 
   /// The service showing the native "save as" dialog and resolving the chosen path.
   final OcptSaveLocationService saveLocationService;
@@ -52,6 +58,7 @@ class OcptExportManager extends AbsWithLifeCycle {
   }) : _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        fountainIoService = const OcptFountainIoService(),
        pdfExportService = OcptPdfExportService(),
+       shotListXlsxExportService = const OcptShotListXlsxExportService(),
        saveLocationService = saveLocationService ?? const OcptSaveLocationService();
 
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
@@ -99,6 +106,26 @@ class OcptExportManager extends AbsWithLifeCycle {
       bytes: bytes,
     );
   }
+
+  /// Builds the XLSX workbook of [snapshot] via [shotListXlsxExportService] and shows the native
+  /// save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the sheet itself holds (its name, its headers, the
+  /// status labels and the sequence separator titles), and [fileTypeLabel] is the localized label
+  /// passed to the native dialog's type filter — this manager has no `Tr` of its own. Returns the
+  /// path of the written file, or null if the user cancelled or the save failed (failures are
+  /// logged; the OS dialog already reported a cancellation to the user).
+  Future<String?> exportShotListXlsx({
+    required OcptShotListSnapshot snapshot,
+    required OcptShotListXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: shotListXlsxExportService.xlsxFileName(projectName),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: shotListXlsxExportService.generate(snapshot: snapshot, labels: labels),
+  );
 
   /// Shows the native save dialog and writes [bytes] to the chosen location.
   ///

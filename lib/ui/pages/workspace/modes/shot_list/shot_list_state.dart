@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -17,6 +18,38 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+
+/// The kind of transient notice [OcptShotListIoNotice] carries, one per shot list export outcome.
+enum OcptShotListIoNoticeKind {
+  /// The shot list was successfully exported to an XLSX workbook.
+  xlsxExportSucceeded,
+
+  /// Exporting the shot list to an XLSX workbook failed.
+  xlsxExportFailed,
+}
+
+/// A transient notice, produced by `OcptShotListBloc`, reporting the outcome of an export, shown
+/// as a SnackBar then dismissed.
+///
+/// Modelled on the screenplay editor's own `OcptEditorIoNotice`, and deliberately kept apart from
+/// [OcptShotListState.hasWriteError]: a failed export leaves the project untouched and says
+/// nothing about the shot list itself, while a write error reports that an edit the user made
+/// never reached the database.
+class OcptShotListIoNotice extends Equatable {
+  /// The outcome this notice reports.
+  final OcptShotListIoNoticeKind kind;
+
+  /// The path the shot list was exported to, only set when [kind] is
+  /// [OcptShotListIoNoticeKind.xlsxExportSucceeded].
+  final String? path;
+
+  /// Class constructor
+  const OcptShotListIoNotice({required this.kind, this.path});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [kind, path];
+}
 
 /// The state of `OcptShotListBloc`.
 ///
@@ -97,6 +130,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// Whether the last write to the project database failed; shown as a transient SnackBar then
   /// dismissed.
   final bool hasWriteError;
+
+  /// The outcome of the last shot list export, or null while there is nothing to report; shown as
+  /// a transient SnackBar then dismissed.
+  final OcptShotListIoNotice? ioNotice;
 
   /// The screenplay's whole cast — the speaking roles and the characters introduced in capitals in
   /// an action line alike, see `fountain_kit`'s `screenplayCharactersOf` — normalised through
@@ -271,6 +308,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     required this.rightDockFraction,
     required this.visibleColumns,
     required this.hasWriteError,
+    required this.ioNotice,
     required this.screenplayCharacters,
     required this.suggestions,
     required this.pendingFieldEdits,
@@ -293,6 +331,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       visibleColumns = OcptShotListColumn.defaultVisibleColumns,
       hasWriteError = false,
+      ioNotice = null,
       screenplayCharacters = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
       pendingFieldEdits = const {},
@@ -301,10 +340,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [rightDockTab] and
-  /// [pendingCoverageAnchor] all legitimately go back to null while the mode is alive (nothing
-  /// selected any more, the dock closed, no range being drawn), so each has its own clear flag
-  /// instead.
+  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [rightDockTab],
+  /// [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while the mode is
+  /// alive (nothing selected any more, the dock closed, no range being drawn, the export notice
+  /// dismissed), so each has its own clear flag instead.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
@@ -324,6 +363,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     double? rightDockFraction,
     Set<OcptShotListColumn>? visibleColumns,
     bool? hasWriteError,
+    OcptShotListIoNotice? ioNotice,
+    bool clearIoNotice = false,
     List<String>? screenplayCharacters,
     OcptShotFieldSuggestions? suggestions,
     Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
@@ -346,6 +387,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     visibleColumns: visibleColumns ?? this.visibleColumns,
     hasWriteError: hasWriteError ?? this.hasWriteError,
+    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     screenplayCharacters: screenplayCharacters ?? this.screenplayCharacters,
     suggestions: suggestions ?? this.suggestions,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
@@ -372,6 +414,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     rightDockFraction,
     visibleColumns,
     hasWriteError,
+    ioNotice,
     screenplayCharacters,
     suggestions,
     pendingFieldEdits,

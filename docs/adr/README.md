@@ -54,6 +54,7 @@ number is a stable identifier other documents and commits can reference.
 | [0005](0005-resizable-editor-docks.md) | Resizable editor docks | Accepted |
 | [0006](0006-workspace-shell-as-a-slot-widget.md) | Workspace shell as a slot widget | Accepted |
 | [0007](0007-schema-migration-policy.md) | Schema migration policy | Accepted |
+| [0008](0008-excel-community-for-the-shot-list-export.md) | excel_community for the shot list export | Accepted |
 
 ## Candidates
 

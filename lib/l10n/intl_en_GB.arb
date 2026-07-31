@@ -1952,5 +1952,51 @@
     "context": "Displayed as a SnackBar over the shot list mode",
     "type": "text",
     "placeholders": {}
+  },
+  "shotListExportXlsxAction": "Export XLSX",
+  "@shotListExportXlsxAction": {
+    "description": "Action exporting the whole shot list to an Excel workbook",
+    "context": "Displayed next to the columns menu, above the shot table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxMenuAction": "Export the shot list…",
+  "@shotListExportXlsxMenuAction": {
+    "description": "Action exporting the whole shot list to an Excel workbook",
+    "context": "Displayed in the overflow menu of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxFileTypeLabel": "Excel workbook",
+  "@shotListExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the shot list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxSheetName": "Shot list",
+  "@shotListExportXlsxSheetName": {
+    "description": "Name given to the single sheet of the exported workbook",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxSuccessMessage": "Exported to {path}",
+  "@shotListExportXlsxSuccessMessage": {
+    "description": "Message shown when the shot list was successfully exported to an Excel workbook",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListExportXlsxError": "The shot list could not be exported.",
+  "@shotListExportXlsxError": {
+    "description": "Error shown when exporting the shot list to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
   }
 }
