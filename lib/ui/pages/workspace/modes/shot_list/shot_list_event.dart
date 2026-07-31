@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -147,6 +148,38 @@ class OcptShotListColumnToggledEvent extends OcptShotListEvent {
 class OcptShotListWriteErrorDismissedEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListWriteErrorDismissedEvent();
+}
+
+/// Requests exporting the whole shot list to an XLSX workbook, dispatched by the table's
+/// `Export XLSX` button and by the mode's `⋮` menu alike.
+///
+/// Both localized payloads are resolved by the widget dispatching this, since the bloc has no
+/// `BuildContext` of its own: [labels] is every string the sheet itself carries (see
+/// `ocptShotListXlsxLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the
+/// `.xlsx` type. Any pending field edit is flushed first, so a value typed seconds before the
+/// export is in the workbook rather than only on screen.
+class OcptShotListXlsxExportRequestedEvent extends OcptShotListEvent {
+  /// Every localized string the exported sheet holds.
+  final OcptShotListXlsxLabels labels;
+
+  /// The localized label of the `.xlsx` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListXlsxExportRequestedEvent({
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, labels, fileTypeLabel];
+}
+
+/// Dismisses the transient export notice currently shown, if any.
+class OcptShotListIoNoticeDismissedEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListIoNoticeDismissedEvent();
 }
 
 /// Requests leaving the workspace and going back to the projects list.

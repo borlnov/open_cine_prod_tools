@@ -5,8 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
 /// The placeholder shown in place of a shot field that has no value yet.
@@ -38,6 +41,59 @@ String ocptShotStatusLabel(Tr tr, OcptShotStatus status) => switch (status) {
   OcptShotStatus.shot => tr.shotListStatusShot,
   OcptShotStatus.retake => tr.shotListStatusRetake,
 };
+
+/// The header label of the exported workbook's column [column].
+///
+/// Reuses the table's own column labels wherever the workbook writes the same column, so the
+/// spreadsheet a crew works from never names a column differently than the app does; the two
+/// columns the table has no room for take the inspector's own section titles instead.
+String ocptShotListXlsxColumnLabel(Tr tr, OcptShotListXlsxColumn column) => switch (column) {
+  OcptShotListXlsxColumn.shot => tr.shotListColumnShot,
+  OcptShotListXlsxColumn.characters => tr.shotListColumnCharacters,
+  OcptShotListXlsxColumn.set => tr.shotListColumnSet,
+  OcptShotListXlsxColumn.shotSize => tr.shotListColumnShotSize,
+  OcptShotListXlsxColumn.framing => tr.shotListColumnFraming,
+  OcptShotListXlsxColumn.cameraMove => tr.shotListColumnCameraMove,
+  OcptShotListXlsxColumn.lens => tr.shotListColumnLens,
+  OcptShotListXlsxColumn.recordingFormat => tr.shotListColumnFormat,
+  OcptShotListXlsxColumn.duration => tr.shotListColumnDuration,
+  OcptShotListXlsxColumn.takes => tr.shotListColumnTakes,
+  OcptShotListXlsxColumn.sound => tr.shotListColumnSound,
+  OcptShotListXlsxColumn.difficulty => tr.shotListColumnDifficulty,
+  OcptShotListXlsxColumn.shootingDay => tr.shotListColumnShootingDay,
+  OcptShotListXlsxColumn.status => tr.shotListColumnStatus,
+  OcptShotListXlsxColumn.notes => tr.shotListInspectorNotesSectionTitle,
+  OcptShotListXlsxColumn.locationNotes => tr.shotListInspectorLocationSectionTitle,
+};
+
+/// Builds every localized string the exported shot list workbook carries, for the [sequences] it
+/// is being built from.
+///
+/// This is the single bridge between the UI's `Tr` and `OcptShotListXlsxExportService`, which runs
+/// in the manager layer and has no `BuildContext` to resolve anything of its own: a sequence's
+/// separator title is resolved here, sequence by sequence, since a real scene's own header takes
+/// its number and heading as placeholders while the orphan group's is a plain title.
+OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> sequences) =>
+    OcptShotListXlsxLabels(
+      sheetName: tr.shotListExportXlsxSheetName,
+      columnHeaders: {
+        for (final column in OcptShotListXlsxColumn.values)
+          column: ocptShotListXlsxColumnLabel(tr, column),
+      },
+      statusLabels: {
+        for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
+      },
+      sequenceTitles: {
+        for (final sequence in sequences)
+          sequence.id: switch (sequence) {
+            OcptSceneShotSequence() => tr.shotListSequenceHeader(
+              sequence.displaySceneNumber,
+              sequence.heading,
+            ),
+            OcptOrphanShotSequence() => tr.shotListOrphanSequenceTitle,
+          },
+      },
+    );
 
 /// The colour the shooting status [status] is painted with.
 ///

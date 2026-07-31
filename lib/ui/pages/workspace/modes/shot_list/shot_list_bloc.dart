@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -62,6 +63,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// last loaded, which [OcptShotListState.buildSelectedCoverageLayout] slices a scene's own text
 /// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
+///
+/// The one action that reads the shot list rather than writing to it is the XLSX export
+/// ([_onXlsxExportRequested]): it flushes whatever is still pending, then hands the loaded
+/// snapshot to [OcptExportManager], which owns both the workbook building and the native save
+/// dialog.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -75,6 +81,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
 
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
+
+  /// The manager used to export the shot list to an XLSX workbook.
+  final OcptExportManager _exportManager;
 
   /// The service used to read and write the shot list.
   final OcptShotListService _shotListService;
@@ -97,12 +106,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
     OcptShotListService? shotListService,
     OcptShotCoverageService? shotCoverageService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
@@ -130,6 +141,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptShotListColumnToggledEvent>(_onColumnToggled);
     on<OcptShotListWriteErrorDismissedEvent>(_onWriteErrorDismissed);
+    on<OcptShotListXlsxExportRequestedEvent>(_onXlsxExportRequested);
+    on<OcptShotListIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListShotFieldChangedEvent>(_onShotFieldChanged);
     on<OcptShotListFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
@@ -502,6 +515,65 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     Emitter<OcptShotListState> emitter,
   ) async {
     emitter(state.copyWith(hasWriteError: false));
+  }
+
+  /// Exports the whole shot list to an XLSX workbook.
+  ///
+  /// Flushes any pending field edit first — that flush re-reads the snapshot, so the workbook
+  /// holds the value the user typed seconds ago rather than the one the database held before it —
+  /// then hands what the state now carries to [OcptExportManager.exportShotListXlsx]. A cancelled
+  /// save dialog is a silent no-op; a failure raises the transient export-failed notice.
+  ///
+  /// Exports the whole shot list, not only the selected sequence: the workbook is what leaves the
+  /// app, and the orphan group travels with it exactly as the left dock shows it.
+  Future<void> _onXlsxExportRequested(
+    OcptShotListXlsxExportRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final path = await _exportManager.exportShotListXlsx(
+        snapshot: snapshot,
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.xlsxExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the shot list of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.xlsxExportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Clears the transient export notice currently shown, if any.
+  Future<void> _onIoNoticeDismissed(
+    OcptShotListIoNoticeDismissedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(clearIoNotice: true));
   }
 
   /// Leaves the workspace: flushes any pending field edit, closes the current project, and

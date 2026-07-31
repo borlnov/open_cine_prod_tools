@@ -255,5 +255,11 @@
   "shotListStatsFilmed": "{count, plural, one{{count} tourné} other{{count} tournés}}",
   "shotListStatsToCheck": "{count, plural, one{{count} à vérifier} other{{count} à vérifier}}",
   "shotListResetPanelLayoutAction": "Réinitialiser la disposition des panneaux",
-  "shotListWriteError": "La modification n'a pas pu être enregistrée."
+  "shotListWriteError": "La modification n'a pas pu être enregistrée.",
+  "shotListExportXlsxAction": "Exporter en XLSX",
+  "shotListExportXlsxMenuAction": "Exporter le découpage…",
+  "shotListExportXlsxFileTypeLabel": "Classeur Excel",
+  "shotListExportXlsxSheetName": "Découpage technique",
+  "shotListExportXlsxSuccessMessage": "Exporté vers {path}",
+  "shotListExportXlsxError": "Le découpage n'a pas pu être exporté."
 }

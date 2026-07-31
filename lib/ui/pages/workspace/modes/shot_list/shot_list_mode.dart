@@ -97,7 +97,7 @@ class _ShotListViewState extends State<_ShotListView> {
         isDirty: false,
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
-        overflowEntries: _buildOverflowEntries(context),
+        overflowEntries: _buildOverflowEntries(context, state),
         isLeftDockOpen: state.isSequencePanelVisible,
         onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
           const OcptShotListSequencePanelToggledEvent(),
@@ -123,16 +123,38 @@ class _ShotListViewState extends State<_ShotListView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries.
+  /// Builds the mode's `⋮` overflow menu entries: the XLSX export (the same action the table's own
+  /// `Export XLSX` button dispatches, reachable from the toolbar too), and resetting the panel
+  /// layout.
   ///
-  /// The shot list has nothing to export or import yet, so resetting the panel layout is its only
-  /// entry for now.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
-    PopupMenuItem<void>(
-      onTap: () => context.read<OcptShotListBloc>().add(const OcptShotListDockLayoutResetEvent()),
-      child: Text(Tr.of(context).shotListResetPanelLayoutAction),
-    ),
-  ];
+  /// The export entry is disabled while the shot list holds no shot at all: there would be nothing
+  /// in the workbook but its header row.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptShotListState state) =>
+      [
+        PopupMenuItem<void>(
+          enabled: state.totalShotCount > 0,
+          onTap: () => _requestXlsxExport(context, state),
+          child: Text(Tr.of(context).shotListExportXlsxMenuAction),
+        ),
+        PopupMenuItem<void>(
+          onTap: () =>
+              context.read<OcptShotListBloc>().add(const OcptShotListDockLayoutResetEvent()),
+          child: Text(Tr.of(context).shotListResetPanelLayoutAction),
+        ),
+      ];
+
+  /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
+  /// every localized string the workbook and the native save dialog carry.
+  void _requestXlsxExport(BuildContext context, OcptShotListState state) {
+    final tr = Tr.of(context);
+
+    context.read<OcptShotListBloc>().add(
+      OcptShotListXlsxExportRequestedEvent(
+        labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
+        fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
+      ),
+    );
+  }
 
   /// Builds the sequence tree, the shell's `leftPanel`, or null while it's hidden.
   ///
@@ -251,6 +273,17 @@ class _ShotListViewState extends State<_ShotListView> {
                 onColumnToggled: (column) => context.read<OcptShotListBloc>().add(
                   OcptShotListColumnToggledEvent(column: column),
                 ),
+              ),
+              const SizedBox(width: 8),
+              // Exports the whole shot list, not the sequence this header names: the button sits
+              // here because the mock-up puts it next to the columns menu, not because it is
+              // scoped to what the table below currently shows.
+              OutlinedButton.icon(
+                onPressed: state.totalShotCount > 0
+                    ? () => _requestXlsxExport(context, state)
+                    : null,
+                icon: const Icon(Icons.file_download_outlined, size: 16),
+                label: Text(tr.shotListExportXlsxAction),
               ),
             ],
           ),
@@ -486,6 +519,26 @@ class _ShotListViewState extends State<_ShotListView> {
         ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
       context.read<OcptShotListBloc>().add(const OcptShotListWriteErrorDismissedEvent());
     }
+
+    final ioNotice = state.ioNotice;
+    if (ioNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+      context.read<OcptShotListBloc>().add(const OcptShotListIoNoticeDismissedEvent());
+    }
+  }
+
+  /// Maps [notice] to its localized, user-facing message.
+  String _ioNoticeMessage(BuildContext context, OcptShotListIoNotice notice) {
+    final tr = Tr.of(context);
+
+    return switch (notice.kind) {
+      OcptShotListIoNoticeKind.xlsxExportSucceeded => tr.shotListExportXlsxSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptShotListIoNoticeKind.xlsxExportFailed => tr.shotListExportXlsxError,
+    };
   }
 }
 

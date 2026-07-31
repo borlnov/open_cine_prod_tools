@@ -5,7 +5,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -14,6 +16,8 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
@@ -75,6 +79,60 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
     required String sceneText,
   }) async => throw StateError("coverage write intentionally failed for the test");
 }
+
+/// An export manager whose [exportShotListXlsx] is stubbed and whose calls are recorded, so the
+/// bloc's export path can be exercised without any real native dialog or workbook write.
+class _FakeExportManager extends OcptExportManager {
+  /// Class constructor
+  _FakeExportManager({this.exportResult, this.fails = false})
+    : super(fileSelectorManager: const FileSelectorManager());
+
+  /// The path [exportShotListXlsx] returns, or null to simulate a cancelled save dialog.
+  final String? exportResult;
+
+  /// Whether [exportShotListXlsx] throws, to exercise the bloc's export failure path.
+  final bool fails;
+
+  /// The snapshot of the last [exportShotListXlsx] call.
+  OcptShotListSnapshot? lastExportedSnapshot;
+
+  /// The labels of the last [exportShotListXlsx] call.
+  OcptShotListXlsxLabels? lastExportedLabels;
+
+  /// The project name of the last [exportShotListXlsx] call.
+  String? lastExportedProjectName;
+
+  /// The file type label of the last [exportShotListXlsx] call.
+  String? lastExportedFileTypeLabel;
+
+  @override
+  Future<String?> exportShotListXlsx({
+    required OcptShotListSnapshot snapshot,
+    required OcptShotListXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedLabels = labels;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+
+    if (fails) {
+      throw StateError("shot list export intentionally failed for the test");
+    }
+
+    return exportResult;
+  }
+}
+
+/// The labels the export tests dispatch, standing in for what `ocptShotListXlsxLabelsOf` builds
+/// from a real `Tr`: the bloc only carries them through to the manager.
+const _exportLabels = OcptShotListXlsxLabels(
+  sheetName: "Shot list",
+  columnHeaders: {},
+  statusLabels: {},
+  sequenceTitles: {},
+);
 
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
@@ -146,9 +204,12 @@ void main() {
   }
 
   /// Builds a bloc wired to the test project. [fieldEditDebounce] defaults to a short duration so
-  /// tests exercising the field-edit debounce don't have to wait out the real 2 s one.
+  /// tests exercising the field-edit debounce don't have to wait out the real 2 s one, and
+  /// [exportManager] to a [_FakeExportManager] whose export cancels, so no test ever reaches a
+  /// native save dialog.
   OcptShotListBloc buildBloc({
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
     OcptShotListService? shotListService,
     OcptShotCoverageService? shotCoverageService,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
@@ -156,6 +217,7 @@ void main() {
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
+    exportManager: exportManager ?? _FakeExportManager(),
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
     fieldEditDebounce: fieldEditDebounce,
@@ -1143,6 +1205,115 @@ void main() {
     state = await waitForState(bloc, (state) => state.hasWriteError);
     expect(state.pendingCoverageAnchor, isNull);
     expect(state.selectedShot!.coverageRanges, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('exporting the shot list hands the loaded snapshot to the export manager', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie.xlsx");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      const OcptShotListXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.xlsxExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie.xlsx");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "Excel workbook");
+    expect(exportManager.lastExportedLabels, _exportLabels);
+    // The whole shot list travels, not only the selected sequence.
+    expect(exportManager.lastExportedSnapshot!.sequences, hasLength(2));
+    expect(exportManager.lastExportedSnapshot!.totalShotCount, 1);
+
+    bloc.add(const OcptShotListIoNoticeDismissedEvent());
+    final dismissedState = await waitForState(bloc, (state) => state.ioNotice == null);
+    expect(dismissedState.hasWriteError, isFalse);
+
+    await bloc.close();
+  });
+
+  test('exporting flushes a pending field edit first, so the workbook holds it', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie.xlsx");
+    final bloc = buildBloc(exportManager: exportManager, fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Close-up",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptShotListXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Close-up");
+
+    await bloc.close();
+  });
+
+  test('a cancelled save dialog leaves no export notice at all', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    // Nothing to wait for: a cancellation emits no state of its own, so the assertion is that the
+    // bloc settles back with no notice once the export has had time to resolve.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing export raises the transient export failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.xlsxExportFailed);
+    expect(state.ioNotice!.path, isNull);
 
     await bloc.close();
   });
