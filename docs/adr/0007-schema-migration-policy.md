@@ -44,7 +44,7 @@ turned on, meaning nothing already relied on inserting orphaned rows.
 
 A user's existing `.ocpt` file always opens, gains the three new empty tables the first time it
 is opened by a build that knows about them, and keeps every screenplay, snapshot and scene it
-had — there is no destructive path through the migration. The additive-only rule is now a constraint
+had — there is no destructive path through the migration. The additive-only rule is a constraint
 on every future schema change: a column that turns out to need a different type or a `NOT NULL`
 without a sensible default cannot be changed in place under this policy, and must instead be
 introduced as a new column with its own migration step, leaving the old one to be cleaned up in a
