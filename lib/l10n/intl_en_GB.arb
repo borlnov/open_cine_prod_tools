@@ -1519,10 +1519,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListColumnTakes": "Takes",
+  "shotListColumnTakes": "Planned takes",
   "@shotListColumnTakes": {
-    "description": "Header of the planned takes column",
-    "context": "Displayed in the shot table's header row and columns menu",
+    "description": "Header of the planned takes column, which counts the takes planned for a shot rather than the ones already shot",
+    "context": "Displayed in the shot table's header row, columns menu and exported workbook",
     "type": "text",
     "placeholders": {}
   },

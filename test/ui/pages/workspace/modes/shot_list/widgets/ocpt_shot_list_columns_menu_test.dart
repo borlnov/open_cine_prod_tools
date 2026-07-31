@@ -55,7 +55,7 @@ void main() {
       "Lens",
       "Format",
       "Duration (mm:ss)",
-      "Takes",
+      "Planned takes",
       "Sound",
     ]) {
       expect(find.text(label), findsOneWidget, reason: "missing the $label entry");

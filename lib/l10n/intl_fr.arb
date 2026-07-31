@@ -203,7 +203,7 @@
   "shotListColumnLens": "Focale",
   "shotListColumnFormat": "Format",
   "shotListColumnDuration": "Durée (mm:ss)",
-  "shotListColumnTakes": "Prises",
+  "shotListColumnTakes": "Prises prévues",
   "shotListColumnSound": "Son",
   "shotListColumnDifficulty": "Diff.",
   "shotListColumnShootingDay": "Jour de tournage",
