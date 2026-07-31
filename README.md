@@ -80,13 +80,13 @@ Planned production tools, in priority order:
 
 ## Platforms
 
-| Platform | Status               |
-| -------- | -------------------- |
-| Linux    | ✅ Active development |
-| Windows  | ✅ Active development |
-| Android  | 🚧 Scaffolded         |
-| iOS      | 🚧 Scaffolded         |
-| macOS    | 🚧 Scaffolded         |
+| Platform | Status |
+| --- | --- |
+| Linux | ✅ Active development |
+| Windows | ✅ Active development |
+| Android | 🚧 Scaffolded |
+| iOS | 🚧 Scaffolded |
+| macOS | 🚧 Scaffolded |
 
 ## Installation
 

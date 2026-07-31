@@ -53,16 +53,21 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Claude Code local state (worktrees, session cache); never committed
-.claude/
+# Claude Code per-user settings. A shared .claude/settings.json is tracked; the *.local.json variant
+# is by definition machine-local (that is what the name means to the tool).
+.claude/settings.local.json
 
-# Dev container
+# Git worktrees
 
-# Per-user overrides (GH_TOKEN, worktree mount mode); see .devcontainer/.env.example.
-.devcontainer/.env
+# Home for `git worktree add worktrees/<name>` checkouts. Ignored so worktrees can live inside the
+# repository without ever showing up as untracked content. The directory's README explains the
+# workflow and stays tracked, which also keeps the directory itself present after a fresh clone.
+/worktrees/*
+!/worktrees/README.md
 
-# Generated lock file pinning the devcontainer feature versions; regenerated locally as needed.
-.devcontainer/devcontainer-lock.json
+# Claude Code's built-in worktree feature puts its checkouts here instead of ./worktrees/. Ignored so
+# a stray one never shows up as untracked content; worktrees/README.md has the intended location.
+.claude/worktrees/
 
 # Contains some files used for debugging
 debug/

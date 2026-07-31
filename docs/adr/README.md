@@ -45,15 +45,15 @@ number is a stable identifier other documents and commits can reference.
 
 ## Index
 
-| Number                                          | Title                                        | Status   |
-| ------------------------------------------------ | --------------------------------------------- | -------- |
-| [0001](0001-per-project-sqlite-file-with-drift.md) | Per-project SQLite file with drift            | Accepted |
+| Number | Title | Status |
+| --- | --- | --- |
+| [0001](0001-per-project-sqlite-file-with-drift.md) | Per-project SQLite file with drift | Accepted |
 | [0002](0002-fountain-kit-as-a-standalone-dart-package.md) | fountain_kit as a standalone Dart package | Accepted |
-| [0003](0003-super-editor-for-the-styled-editor.md) | super_editor for the styled editor            | Accepted |
-| [0004](0004-generated-code-is-not-committed.md)    | Generated code is not committed               | Accepted |
-| [0005](0005-resizable-editor-docks.md)             | Resizable editor docks                        | Accepted |
-| [0006](0006-workspace-shell-as-a-slot-widget.md)   | Workspace shell as a slot widget              | Accepted |
-| [0007](0007-schema-migration-policy.md)            | Schema migration policy                       | Accepted |
+| [0003](0003-super-editor-for-the-styled-editor.md) | super_editor for the styled editor | Accepted |
+| [0004](0004-generated-code-is-not-committed.md) | Generated code is not committed | Accepted |
+| [0005](0005-resizable-editor-docks.md) | Resizable editor docks | Accepted |
+| [0006](0006-workspace-shell-as-a-slot-widget.md) | Workspace shell as a slot widget | Accepted |
+| [0007](0007-schema-migration-policy.md) | Schema migration policy | Accepted |
 
 ## Candidates
 

@@ -4,41 +4,25 @@
 {
   "name": "Open Cine Prod Tools Dev Environment",
   // Docker Compose based (see docker-compose.yml). The `dev` service carries what used to live in
-  // runArgs / workspaceMount / build, and lets an optional .devcontainer/.env switch on git-worktree
-  // mounts without touching this file. See README.md.
+  // runArgs / workspaceMount / build, none of which Compose honours. See README.md.
   "dockerComposeFile": "docker-compose.yml",
   "service": "dev",
-  // SINGLE SOURCE OF TRUTH for the in-container workspace path. The clone is ALWAYS here, whether
-  // docker-compose mounted just the clone (simple, default) or the whole project root (worktree
-  // mode), so nothing downstream needs to know which mode is active. Everything else derives from
-  // this: WORKSPACE_DIR via ${containerWorkspaceFolder} (containerEnv below). The ONE value that must
-  // be kept in sync by hand is the simple-mode default mount target in docker-compose.yml (a mount
-  // target inherently has to equal workspaceFolder); both files cross-reference each other.
+  // SINGLE SOURCE OF TRUTH for the in-container workspace path: everything else derives from it
+  // (WORKSPACE_DIR via ${containerWorkspaceFolder}, see containerEnv below). The ONE value that must
+  // be kept in sync by hand is the workspace mount target in docker-compose.yml (a mount target
+  // inherently has to equal workspaceFolder); both files cross-reference each other.
   "workspaceFolder": "/workspaces/open_cine_prod_tools",
-  "features": {
-    // A recent git (>= 2.48, needed for worktree.useRelativePaths — see postCreateCommand) is built
-    // from source in the Dockerfile and installed to /usr/local. This feature is kept at
-    // "os-provided" only so gh/git tooling that expects the feature present still resolves; the
-    // Dockerfile's /usr/local/bin/git takes precedence on PATH. Building from source here (version:
-    // latest) proved unreliable across rebuilds, which is why it moved into the Dockerfile.
-    "ghcr.io/devcontainers/features/git:1": { "version": "os-provided" },
-    // GitHub CLI (gh) - used alongside Claude Code for PR/issue workflows. Auth reuses the host's
-    // ~/.ssh mount and GH_TOKEN forwarded from .devcontainer/.env (see docker-compose.yml).
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    // Node.js (LTS) - required by the Claude Code CLI feature below; the base image ships none.
-    // Listed before claude-code so Node is present when it installs.
-    "ghcr.io/devcontainers/features/node:1": {},
-    // Installs the Claude Code CLI. Auth is interactive: run `claude` once and sign in through the
-    // wizard. Credentials and config live in an isolated named volume (CLAUDE_CONFIG_DIR below), so
-    // the login persists across rebuilds — no token to manage. See README.md.
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
-  },
+  // No devcontainer features: every tool (git, gh, Flutter, reuse) is installed directly in the
+  // Dockerfile, which keeps versions explicit and the build reproducible, and Claude Code is
+  // installed by postCreateCommand below. In particular this drops the Node.js feature entirely —
+  // nothing in this repo needs a Node runtime once Claude Code comes from its own native installer.
   "mounts": [
     // Mount .ssh from the host to allow git operations that require authentication to work inside the container
     "source=${localEnv:HOME}/.ssh,target=/home/debian/.ssh,type=bind,consistency=cached"
-    // ~/.claude is an isolated named volume (ocpt-claude-config), declared and mounted in
-    // docker-compose.yml — not a host bind mount, to avoid leaking absolute in-container plugin
-    // paths across containers. See README.md.
+    // The tool config dirs (~/.claude and ~/.config/gh) are isolated named volumes
+    // (ocpt-claude-config, ocpt-gh-config), declared and mounted in docker-compose.yml — not host
+    // bind mounts, so each container keeps its own logins and nothing depends on how the host
+    // stores its own. See README.md.
   ],
   "customizations": {
     "vscode": {
@@ -64,26 +48,47 @@
     }
   },
   // Install the various dependencies for the project after the container is created. Commands run
-  // from the workspaceFolder, so paths are relative and mode-agnostic. Each dependency-install entry
-  // is guarded (checks the relevant file/dir exists before running) so it succeeds at any stage of the
-  // repo's life — the actlibs/ ACT submodule, the packages/fountain_kit package, and the intl_utils /
+  // from the workspaceFolder, so paths stay relative. Each dependency-install entry is guarded
+  // (checks the relevant file/dir exists before running) so it succeeds at any stage of the repo's
+  // life — the actlibs/ ACT submodule, the packages/fountain_kit package, and the intl_utils /
   // build_runner codegen are expected to arrive in later commits, not all at once. This includes:
-  // - Relative git worktree paths, so `git worktree add` works regardless of where the project root
-  //   is mounted (only honoured by git >= 2.48). This is written to the SYSTEM config (/etc/gitconfig)
+  // - Relative git worktree paths, so a worktree created under ./worktrees/ resolves both from the
+  //   container (/workspaces/open_cine_prod_tools) and from the host, whose clone path differs (only
+  //   honoured by git >= 2.48). This is written to the SYSTEM config (/usr/local/etc/gitconfig, since
+  //   git is built with prefix=/usr/local — see the Dockerfile)
   //   on purpose: VS Code's `dev.containers.copyGitConfig` copies the host ~/.gitconfig into the
   //   container ONLY when ~/.gitconfig does not yet exist. A `git config --global` here would create
   //   ~/.gitconfig first and silently suppress that copy, leaving the container with no user.name /
   //   user.email. Writing --system keeps ~/.gitconfig absent so the host identity still comes through.
+  // - The Claude Code CLI, via the official installer, which fetches a self-contained native binary
+  //   (no Node.js runtime). Installed here rather than in the Dockerfile for two reasons: the ~250MB
+  //   binary and every version the CLI self-updates to then live in the container's writable layer,
+  //   where the CLI's own cleanup can actually reclaim them, instead of being pinned in an image
+  //   layer forever; and CLAUDE_CONFIG_DIR (containerEnv below) is a runtime-only setting, so the
+  //   installer's state file lands in the config dir rather than beside it. It runs as remoteUser
+  //   because everything goes under $HOME — the launcher in ~/.local/bin (on PATH via the Dockerfile)
+  //   and the binaries in ~/.local/share/claude/ — and the installer refuses to run under sudo.
+  //   `latest` selects the latest release channel. Authentication is interactive: run `claude` once
+  //   and sign in; the login lands in the ~/.claude volume and survives rebuilds. See README.md.
   // - Flutter dependencies for the app and its local packages
   // - ACT package dependencies (actlibs/ submodule)
   // - Localization and code generation
   "postCreateCommand": {
     "git worktree relative paths": "sudo git config --system worktree.useRelativePaths true",
+    "claude code": "curl -fsSL https://claude.ai/install.sh | bash -s latest",
     "flutter pub app": "[ -f pubspec.yaml ] && flutter pub get || true",
     "flutter pub fountain_kit": "[ -f packages/fountain_kit/pubspec.yaml ] && (cd packages/fountain_kit && flutter pub get) || true",
     "act packages pub": "[ -x actlibs/tool/pub_get_all.sh ] && ./actlibs/tool/pub_get_all.sh || true",
     "l10n generate": "[ -f pubspec.yaml ] && grep -q intl_utils pubspec.yaml && dart run intl_utils:generate || true",
     "build_runner": "[ -f pubspec.yaml ] && grep -q build_runner pubspec.yaml && dart run build_runner build || true"
+  },
+  // patch-arb-editor-schema.sh works around a bug in the google.arb-editor bundled JSON schema that
+  // otherwise flags every metadata block in the two ARB files (see the script header). It runs here
+  // rather than in postCreateCommand because the extension is only guaranteed installed once VS Code
+  // has attached, and it is reinstalled on every rebuild. Object form, so further entries added here
+  // run in parallel.
+  "postAttachCommand": {
+    "arb-editor schema fix": "bash .devcontainer/patch-arb-editor-schema.sh"
   },
   // Use 'debian' as the default user inside the container
   "remoteUser": "debian",
@@ -91,12 +96,14 @@
     // Forward the X11 socket so the Flutter Linux desktop app can open a window from inside the
     // container.
     "DISPLAY": "unix${localEnv:DISPLAY}",
-    // The Claude binary is owned by the devcontainer feature; don't let it self-update.
-    "DISABLE_AUTOUPDATER": "1",
     // Point Claude's entire config (the ~/.claude data dir AND ~/.claude.json, which holds the login,
     // onboarding and trusted-folder state) at the isolated named volume mounted here. This is what
     // makes a single interactive `claude` sign-in survive rebuilds. See README.md.
     "CLAUDE_CONFIG_DIR": "/home/debian/.claude",
+    // Same idea for gh: pin its config dir to the path docker-compose.yml mounts its volume on.
+    // This is where gh already defaults to, but stating it makes the login location explicit and
+    // immune to an XDG_CONFIG_HOME appearing in the environment. See README.md.
+    "GH_CONFIG_DIR": "/home/debian/.config/gh",
     // Single source of truth for the workspace path, derived from workspaceFolder so it can never
     // drift.
     "WORKSPACE_DIR": "${containerWorkspaceFolder}"

@@ -11,6 +11,16 @@
             "type": "shell",
             "command": "dart run intl_utils:generate",
             "problemMatcher": []
+        },
+        {
+            "label": "Git: Prune gone branches",
+            "type": "shell",
+            "command": "${workspaceFolder}/tool/prune-gone-branches.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
         }
     ]
 }

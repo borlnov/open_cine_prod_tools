@@ -19,10 +19,10 @@ repeats them. Work happens on branch `15-editor-and-export-fixes`.
 
 ## The two defects (Benoit's words, translated)
 
-| #   | Symptom                                                                                     | Fix |
-| --- | ------------------------------------------------------------------------------------------- | --- |
-| 1   | In `d81a36e`, the title-page placeholders are not visible at all                             | F5  |
-| 2   | Typing a value into a field, then pressing Backspace, does not delete the text — it stays    | F6  |
+| # | Symptom | Fix |
+| --- | --- | --- |
+| 1 | In `d81a36e`, the title-page placeholders are not visible at all | F5 |
+| 2 | Typing a value into a field, then pressing Backspace, does not delete the text — it stays | F6 |
 
 F5 and F6 are independent and touch disjoint files. F5 first: it is what makes the sheet visible
 again, and F6's manual pass needs a visible sheet to check anything on.
