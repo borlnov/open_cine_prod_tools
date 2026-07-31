@@ -83,6 +83,10 @@ void main() {
   const twoCharactersText = "INT. HOUSE - DAY\n\nAction one.\n\nLÉA\nHello there.\n\n"
       "MARC\nHello back.\n";
   const oneCharacterLeftText = "INT. HOUSE - DAY\n\nAction one.\n\nMARC\nHello back.\n";
+  // ELISA is introduced in capitals in an action line and never speaks: the screenwriting
+  // convention for a character's first appearance, and the only way a silent role is ever named.
+  const silentCharacterText = "INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nLÉA\n"
+      "Hello there.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -469,15 +473,48 @@ void main() {
     await bloc.close();
   });
 
-  test('loads the screenplay speaking characters and the field suggestion lists', () async {
+  test('loads the screenplay characters and the field suggestion lists', () async {
     await writeScreenplay(dialogueText);
 
     final bloc = buildBloc();
     final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.speakingCharacters, ["LÉA"]);
+    expect(state.screenplayCharacters, ["LÉA"]);
     expect(state.suggestions.shotSizes, isEmpty);
     expect(state.suggestions.sounds, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('a character only introduced in an action line is part of the cast', () async {
+    await writeScreenplay(silentCharacterText);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    // ELISA never speaks: the action line introducing her in capitals is the only place the
+    // screenplay names her, and she still has to be attachable to a shot.
+    expect(state.screenplayCharacters, ["ELISA", "LÉA"]);
+
+    await bloc.close();
+  });
+
+  test('a character named only in an action line is never reported as removed', () async {
+    await writeScreenplay(silentCharacterText);
+
+    final bloc = buildBloc();
+    var state = await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      OcptShotListShotCharacterToggledEvent(shotId: state.selectedShotId!, characterName: "ELISA"),
+    );
+    state = await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
+
+    expect(state.selectedShot!.characters, ["ELISA"]);
+    expect(state.removedCharacterAlerts, isEmpty);
 
     await bloc.close();
   });

@@ -49,8 +49,8 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// placeholder), shown in the Production section. Ignored while [shot] is null.
   final String sequenceDisplayNumber;
 
-  /// Every speaking role of the whole screenplay, for the characters chips.
-  final List<String> speakingCharacters;
+  /// Every character the whole screenplay names, for the characters chips.
+  final List<String> screenplayCharacters;
 
   /// The project-wide suggestion lists for the fields that have one.
   final OcptShotFieldSuggestions suggestions;
@@ -101,7 +101,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.shot,
     required this.sequenceHeading,
     required this.sequenceDisplayNumber,
-    required this.speakingCharacters,
+    required this.screenplayCharacters,
     required this.suggestions,
     required this.coverageLayout,
     required this.otherShotsCoverageRanges,
@@ -163,7 +163,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         _sectionTitle(context, tr.shotListInspectorCharactersSectionTitle),
         const SizedBox(height: 8),
         OcptShotCharacterChips(
-          speakingCharacters: speakingCharacters,
+          screenplayCharacters: screenplayCharacters,
           attachedCharacters: shot.characters,
           onToggled: onCharacterToggled,
         ),

@@ -124,10 +124,10 @@ ellipsised, and a status dot at the end. A single `+ Shot` button in the footer 
 
 Top to bottom:
 
-1. **Deleted-character banner(s)**, one per character that no longer speaks anywhere in the
-   screenplay but is still attached to shots: `CLARA was removed from the screenplay but still
-   appears in 3 shots: 1/4 · 3/1 · 3/2.`, with a `Remove from every shot` button and a row of
-   replacement chips for the remaining characters.
+1. **Deleted-character banner(s)**, one per character the screenplay no longer names anywhere
+   (neither cued nor written in capitals in an action) but that is still attached to shots:
+   `CLARA was removed from the screenplay but still appears in 3 shots: 1/4 · 3/1 · 3/2.`, with a
+   `Remove from every shot` button and a row of replacement chips for the remaining characters.
 2. **Sequence header**: `Sequence 1 — INT. LÉA'S FLAT - NIGHT`, and under it
    `4 shots · avg. difficulty 1,8 · 3 left to shoot`.
 3. **`Columns ▾` menu** and an **`Export XLSX`** button, right-aligned on the same row.
@@ -208,7 +208,7 @@ These were settled with Benoit before this plan was written. They are not open q
 | 1 | **A sequence is strictly a screenplay scene.** No free-standing sequences, no `shot_sequences` table, no `+ Sequence` button: a shot references a `scenes` row directly, and its sequence number and set are *read from* the scene index, never duplicated into the shot list. |
 | 2 | **A scene deleted from the screenplay never destroys its shots.** They are detached and grouped at the end of the left dock under an `Orphaned shots` entry, carrying the heading the scene had when it disappeared, with an explicit delete action. See §4.3. |
 | 3 | **The table is read-only; all editing happens in the inspector.** The table stays a dense, legible synthesis. No inline cell editing, no keyboard grid navigation. |
-| 4 | **A shot's characters come from the screenplay's speaking characters, plus free additions** for silent roles and extras. This is what makes the deleted-character banner meaningful. |
+| 4 | **A shot's characters come from the screenplay's whole cast, plus free additions** for extras. The cast is the dialogue cues *and* the names written in capitals in the action, the convention a screenplay introduces a character with — a role that never speaks is named nowhere else. This is what makes the deleted-character banner meaningful. |
 | 5 | **Shot codes are fully automatic**: `<scene number>/<1-based rank in the scene>`, recomputed on every insertion, deletion and reorder. No manual override, no `bis`. |
 | 6 | **The image and sound fields are free text with project-wide suggestions**, not enums: the shot-list vocabulary varies too much between crews to close it. Suggestions are the distinct values already entered elsewhere in the same project. |
 | 7 | **The mock-up's `Versions` tab is out of scope.** Project versioning (read-only preview, fork, restore, its `canEdit` flag threaded through every mode) is its own future step. Nothing in this step should anticipate it beyond not making it harder. |

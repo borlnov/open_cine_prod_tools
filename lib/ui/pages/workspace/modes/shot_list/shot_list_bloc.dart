@@ -60,7 +60,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// [_onShotMarkedAsChecked] clears a shot's `needsCheck` flag and re-stamps its ranges' digests.
 /// All three go through [OcptShotListState.screenplayText] — the screenplay's Fountain text as
 /// last loaded, which [OcptShotListState.buildSelectedCoverageLayout] slices a scene's own text
-/// out of — loaded once here rather than by [_speakingCharactersOf] on its own, which used to
+/// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
@@ -183,7 +183,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     final screenplayText = await _loadScreenplayText(project);
     final pageSetup = await _loadPageSetup();
     final snapshot = await _loadSnapshot(project);
-    final speakingCharacters = _speakingCharactersOf(screenplayText);
+    final screenplayCharacters = _screenplayCharactersOf(screenplayText);
     final suggestions = await _loadSuggestions(project);
 
     emitter(
@@ -201,7 +201,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         rightDockFraction: rightDockFraction,
         visibleColumns: visibleColumns,
         lastRightDockTab: lastRightDockTab,
-        speakingCharacters: speakingCharacters,
+        screenplayCharacters: screenplayCharacters,
         suggestions: suggestions,
       ),
     );
@@ -215,7 +215,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       );
 
   /// Reads [project]'s current Fountain source text, kept in `OcptShotListState.screenplayText`
-  /// for [_speakingCharactersOf] and every scenario coverage read/write that needs the whole
+  /// for [_screenplayCharactersOf] and every scenario coverage read/write that needs the whole
   /// screenplay text rather than a single scene's own slice of it.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) =>
       _projectsManager.screenplayService.loadScreenplayText(
@@ -231,13 +231,19 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
   );
 
-  /// Parses [screenplayText] and delegates to `fountain_kit`'s `speakingCharactersOf`, whose
+  /// Parses [screenplayText] and delegates to `fountain_kit`'s `screenplayCharactersOf`, whose
   /// normalisation matches `shot_characters.characterName`'s own (both go through
-  /// `normalizeCharacterName`) so a shot's character and a screenplay's speaking role compare equal
+  /// `normalizeCharacterName`) so a shot's character and a screenplay's own compare equal
   /// byte-for-byte.
-  List<String> _speakingCharactersOf(String screenplayText) {
+  ///
+  /// The whole cast, not only the speaking roles: a character introduced in capitals in an action
+  /// line and never given a single line of dialogue (a silhouette, an extra, someone who only
+  /// crosses the frame) still has to be attachable to a shot, and would otherwise be reported as
+  /// removed from the screenplay by `OcptShotListState.removedCharacterAlerts` the moment somebody
+  /// attached them.
+  List<String> _screenplayCharactersOf(String screenplayText) {
     final document = const FountainParser().parse(screenplayText);
-    return speakingCharactersOf(document.blocks);
+    return screenplayCharactersOf(document.blocks);
   }
 
   /// Reads every free-text field's project-wide suggestion list.
@@ -986,7 +992,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// detaches anybody, since a shot's characters are the director's own list — a silent role, an
   /// extra, a character kept in frame through a reply they don't speak — and only the user knows
   /// which of them the coverage happens to explain. A name already attached is skipped, and so is
-  /// one no longer among [OcptShotListState.speakingCharacters], which would otherwise come back
+  /// one no longer among [OcptShotListState.screenplayCharacters], which would otherwise come back
   /// as a struck-through `(removed)` chip.
   Future<void> _attachCharactersCoveredBy({
     required OcptOpenProjectModel project,
@@ -1001,7 +1007,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     );
 
     for (final characterName in covered) {
-      if (attached.contains(characterName) || !state.speakingCharacters.contains(characterName)) {
+      if (attached.contains(characterName) || !state.screenplayCharacters.contains(characterName)) {
         continue;
       }
 

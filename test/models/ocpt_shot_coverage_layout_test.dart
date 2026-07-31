@@ -401,7 +401,7 @@ void main() {
       );
     });
 
-    test("names nobody for a span covering only a heading or an action line", () {
+    test("names nobody for a span covering only a heading or a nameless action line", () {
       final (layout, action) = layoutAndBlock("John walks in.");
       final (_, heading) = layoutAndBlock("INT. HOUSE - DAY");
 
@@ -412,6 +412,19 @@ void main() {
       expect(
         layout.charactersCoveredBy(startOffset: heading.startOffset, endOffset: heading.endOffset),
         isEmpty,
+      );
+    });
+
+    test("names the character a covered action line introduces in capitals", () {
+      const sceneWithSilentRole = 'INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nJOHN\n'
+          'Hello there.';
+      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneWithSilentRole);
+      final action = layout.blocks.firstWhere((block) => block.text.startsWith("ELISA"));
+
+      // ELISA never speaks; the action line is the only place the scene names her.
+      expect(
+        layout.charactersCoveredBy(startOffset: action.startOffset, endOffset: action.endOffset),
+        ["ELISA"],
       );
     });
 

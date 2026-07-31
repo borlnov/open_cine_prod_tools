@@ -264,21 +264,35 @@ class OcptShotCoverageLayout extends Equatable {
         if (_overlaps(range, block.startOffset, block.endOffset)) block,
   ];
 
-  /// The normalised names of the characters speaking anywhere within the scene-relative
-  /// `[startOffset, endOffset)` span, in first-appearance order: which characters a range about to
-  /// be recorded covers, which is what the shot list attaches to a shot the moment its scenario
-  /// coverage is selected.
+  /// The normalised names of the characters the scene-relative `[startOffset, endOffset)` span
+  /// names, in first-appearance order: which characters a range about to be recorded covers, which
+  /// is what the shot list attaches to a shot the moment its scenario coverage is selected.
   ///
-  /// A character counts as covered when the span reaches any line of the dialogue they are cued
-  /// for — their cue line itself, one of their spoken lines, or one of the parentheticals in
-  /// between — so covering nothing but the second line of a reply still names its speaker.
-  /// Everything else (action, headings, transitions) names nobody.
+  /// Two ways of being named, matching the two ways a screenplay names anybody:
   ///
-  /// The names go through `fountain_kit`'s [parseFountainCharacterCue] then
-  /// [normalizeCharacterName], exactly as [speakingCharactersOf] derives the screenplay's own
-  /// speaking roles from its parsed blocks, so the two compare equal byte-for-byte.
+  /// - a speaker, when the span reaches any line of the dialogue they are cued for — their cue
+  ///   line itself, one of their spoken lines, or one of the parentheticals in between — so
+  ///   covering nothing but the second line of a reply still names its speaker;
+  /// - a character written in capitals in a covered action line, the convention a screenplay
+  ///   introduces a character with, which is the only way a role that never speaks is named at
+  ///   all.
+  ///
+  /// Everything else (headings, transitions, lyrics) names nobody. A partially covered line counts
+  /// whole, in both cases: a range is a span of text, not a span of names.
+  ///
+  /// The names go through `fountain_kit`'s [parseFountainCharacterCue] /
+  /// [charactersIntroducedInActionLine] then [normalizeCharacterName], exactly as
+  /// [screenplayCharactersOf] derives the screenplay's own cast from its parsed blocks, so the two
+  /// compare equal byte-for-byte.
   List<String> charactersCoveredBy({required int startOffset, required int endOffset}) {
     final covered = <String>[];
+
+    /// Records [name] unless the span already named them.
+    void record(String name) {
+      if (!covered.contains(name)) {
+        covered.add(name);
+      }
+    }
 
     // The character whose dialogue the walk is currently inside, or null while it is anywhere
     // else: a parenthetical and a dialogue line belong to the cue above them, which is what makes
@@ -286,6 +300,8 @@ class OcptShotCoverageLayout extends Equatable {
     String? currentCharacter;
 
     for (final block in blocks) {
+      final isCovered = block.startOffset < endOffset && block.endOffset > startOffset;
+
       switch (block.type) {
         case FountainLineType.character:
           currentCharacter = normalizeCharacterName(parseFountainCharacterCue(block.text).name);
@@ -294,9 +310,15 @@ class OcptShotCoverageLayout extends Equatable {
         case FountainLineType.parenthetical:
         case FountainLineType.dialogue:
           break;
-        // Every other line type ends whichever dialogue group was being walked. Spelled out one
-        // by one rather than through a `default`, so a new `FountainLineType` has to be given its
-        // own answer here rather than silently falling in with these.
+        case FountainLineType.action:
+          currentCharacter = null;
+          if (isCovered) {
+            charactersIntroducedInActionLine(block.text).forEach(record);
+          }
+        // Every other line type ends whichever dialogue group was being walked and names nobody of
+        // its own. Spelled out one by one rather than through a `default`, so a new
+        // `FountainLineType` has to be given its own answer here rather than silently falling in
+        // with these.
         case FountainLineType.blank:
         case FountainLineType.pageBreak:
         case FountainLineType.section:
@@ -305,16 +327,11 @@ class OcptShotCoverageLayout extends Equatable {
         case FountainLineType.transition:
         case FountainLineType.centeredText:
         case FountainLineType.lyrics:
-        case FountainLineType.action:
           currentCharacter = null;
       }
 
-      if (currentCharacter == null || covered.contains(currentCharacter)) {
-        continue;
-      }
-
-      if (block.startOffset < endOffset && block.endOffset > startOffset) {
-        covered.add(currentCharacter);
+      if (isCovered && currentCharacter != null) {
+        record(currentCharacter);
       }
     }
 

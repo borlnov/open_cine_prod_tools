@@ -5,22 +5,22 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
-/// The shot inspector's "Characters in shot" chips: one toggleable chip per speaking role of the
-/// whole screenplay, plus any character attached to this shot that no longer speaks anywhere in
-/// it.
+/// The shot inspector's "Characters in shot" chips: one toggleable chip per character of the whole
+/// screenplay — the speaking roles and the ones only introduced in capitals in an action line
+/// alike — plus any character attached to this shot the screenplay no longer names at all.
 ///
-/// [speakingCharacters] and [attachedCharacters] are both already normalised through
+/// [screenplayCharacters] and [attachedCharacters] are both already normalised through
 /// `fountain_kit`'s `normalizeCharacterName`, so they compare equal byte-for-byte: an attached
-/// character not found in the speaking list is the removed case, appended after every speaking
-/// role, struck through in the error colour with a `(removed)` suffix, and stays listed (and
-/// toggleable off) until it is untoggled. Toggling a chip writes immediately — there is no typing
-/// debounce for this.
+/// character not found in the cast is the removed case, appended after every other one, struck
+/// through in the error colour with a `(removed)` suffix, and stays listed (and toggleable off)
+/// until it is untoggled. Toggling a chip writes immediately — there is no typing debounce for
+/// this.
 ///
-/// A chip can only be toggled, never authored: attaching a silent role or an extra the screenplay
-/// never cues has no input of its own yet, and comes in a future version.
+/// A chip can only be toggled, never authored: attaching somebody the screenplay names nowhere,
+/// not even in an action line, has no input of its own yet, and comes in a future version.
 class OcptShotCharacterChips extends StatelessWidget {
-  /// Every speaking role of the whole screenplay, normalised, in first-appearance order.
-  final List<String> speakingCharacters;
+  /// Every character the whole screenplay names, normalised, in first-appearance order.
+  final List<String> screenplayCharacters;
 
   /// This shot's own attached characters, normalised, in whatever order they were attached.
   final List<String> attachedCharacters;
@@ -31,7 +31,7 @@ class OcptShotCharacterChips extends StatelessWidget {
   /// Class constructor
   const OcptShotCharacterChips({
     super.key,
-    required this.speakingCharacters,
+    required this.screenplayCharacters,
     required this.attachedCharacters,
     required this.onToggled,
   });
@@ -43,9 +43,9 @@ class OcptShotCharacterChips extends StatelessWidget {
 
     final removed = [
       for (final name in attachedCharacters)
-        if (!speakingCharacters.contains(name)) name,
+        if (!screenplayCharacters.contains(name)) name,
     ];
-    final everyName = [...speakingCharacters, ...removed];
+    final everyName = [...screenplayCharacters, ...removed];
 
     if (everyName.isEmpty) {
       return Text(

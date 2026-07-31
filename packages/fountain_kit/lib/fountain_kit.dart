@@ -16,6 +16,7 @@ export 'src/layout/fountain_print_style.dart';
 // shared only between the two statistics classes.
 export 'src/layout/fountain_printable_text.dart' show normalizeCharacterName;
 export 'src/layout/fountain_scene_statistics.dart';
+export 'src/layout/fountain_screenplay_characters.dart';
 export 'src/layout/fountain_script_composer.dart';
 export 'src/layout/fountain_script_statistics.dart';
 export 'src/layout/fountain_speaking_characters.dart';

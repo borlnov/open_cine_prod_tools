@@ -210,7 +210,7 @@ class _ShotListViewState extends State<_ShotListView> {
         padding: const EdgeInsets.only(bottom: 10),
         child: OcptShotListRemovedCharacterBanner(
           alert: alert,
-          replacementCandidates: state.speakingCharacters,
+          replacementCandidates: state.screenplayCharacters,
           onRemoveFromEveryShot: () => context.read<OcptShotListBloc>().add(
             OcptShotListRemovedCharacterDroppedEvent(characterName: alert.characterName),
           ),
@@ -298,7 +298,7 @@ class _ShotListViewState extends State<_ShotListView> {
         shot: selectedShot,
         sequenceHeading: sequenceHeading,
         sequenceDisplayNumber: sequenceDisplayNumber,
-        speakingCharacters: state.speakingCharacters,
+        screenplayCharacters: state.screenplayCharacters,
         suggestions: state.suggestions,
         coverageLayout: coverageLayout,
         otherShotsCoverageRanges: state.otherShotsCoverageOfSelectedScene(),

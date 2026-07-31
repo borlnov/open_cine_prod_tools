@@ -25,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotCharacterChips(
-          speakingCharacters: const ["LÉA", "MARC"],
+          screenplayCharacters: const ["LÉA", "MARC"],
           attachedCharacters: const ["LÉA"],
           onToggled: (_) {},
         ),
@@ -45,7 +45,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotCharacterChips(
-          speakingCharacters: const ["LÉA"],
+          screenplayCharacters: const ["LÉA"],
           attachedCharacters: const ["LÉA", "CLARA"],
           onToggled: (_) {},
         ),
@@ -66,7 +66,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotCharacterChips(
-          speakingCharacters: const ["LÉA", "MARC"],
+          screenplayCharacters: const ["LÉA", "MARC"],
           attachedCharacters: const ["LÉA"],
           onToggled: toggled.add,
         ),
@@ -83,7 +83,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotCharacterChips(
-          speakingCharacters: const [],
+          screenplayCharacters: const [],
           attachedCharacters: const [],
           onToggled: (_) {},
         ),

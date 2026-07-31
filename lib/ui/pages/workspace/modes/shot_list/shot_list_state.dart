@@ -98,11 +98,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// dismissed.
   final bool hasWriteError;
 
-  /// The screenplay's speaking characters, normalised through `fountain_kit`'s
+  /// The screenplay's whole cast — the speaking roles and the characters introduced in capitals in
+  /// an action line alike, see `fountain_kit`'s `screenplayCharactersOf` — normalised through
   /// `normalizeCharacterName` and in first-appearance order, as parsed once on entry. The
   /// inspector's character chips combine these with the selected shot's own `OcptShot.characters`
   /// (which can include a name no longer among these, see `OcptShotCharacterChips`).
-  final List<String> speakingCharacters;
+  final List<String> screenplayCharacters;
 
   /// The project-wide suggestion lists the inspector's free-text fields with suggestions read
   /// from, reloaded after every field-edit flush.
@@ -170,17 +171,17 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   int get shotsToCheckCount =>
       snapshot?.shotsById.values.where((shot) => shot.needsCheck).length ?? 0;
 
-  /// One alert per character still attached to a shot but no longer speaking anywhere in the
-  /// screenplay: the deleted-character banners shown above the shot table.
+  /// One alert per character still attached to a shot but named nowhere in the screenplay any
+  /// more: the deleted-character banners shown above the shot table.
   ///
-  /// Derived on demand from [snapshot] and [speakingCharacters], like
+  /// Derived on demand from [snapshot] and [screenplayCharacters], like
   /// [otherShotsCoverageOfSelectedScene] and [buildSelectedCoverageLayout] are, rather than stored:
   /// both inputs are already in memory, and computing it here is what keeps it impossible for a
   /// banner to survive the write that resolved it.
   List<OcptShotRemovedCharacterAlert> get removedCharacterAlerts =>
       OcptShotRemovedCharacterAlert.buildAll(
         snapshot: snapshot,
-        speakingCharacters: speakingCharacters,
+        screenplayCharacters: screenplayCharacters,
       );
 
   /// Builds the scenario coverage layout of the selected shot's scene, or null when no shot is
@@ -270,7 +271,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     required this.rightDockFraction,
     required this.visibleColumns,
     required this.hasWriteError,
-    required this.speakingCharacters,
+    required this.screenplayCharacters,
     required this.suggestions,
     required this.pendingFieldEdits,
     required this.pendingCoverageAnchor,
@@ -292,7 +293,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       visibleColumns = OcptShotListColumn.defaultVisibleColumns,
       hasWriteError = false,
-      speakingCharacters = const [],
+      screenplayCharacters = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
       pendingFieldEdits = const {},
       pendingCoverageAnchor = null;
@@ -323,7 +324,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     double? rightDockFraction,
     Set<OcptShotListColumn>? visibleColumns,
     bool? hasWriteError,
-    List<String>? speakingCharacters,
+    List<String>? screenplayCharacters,
     OcptShotFieldSuggestions? suggestions,
     Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
@@ -345,7 +346,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     visibleColumns: visibleColumns ?? this.visibleColumns,
     hasWriteError: hasWriteError ?? this.hasWriteError,
-    speakingCharacters: speakingCharacters ?? this.speakingCharacters,
+    screenplayCharacters: screenplayCharacters ?? this.screenplayCharacters,
     suggestions: suggestions ?? this.suggestions,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     pendingCoverageAnchor: clearPendingCoverageAnchor
@@ -371,7 +372,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     rightDockFraction,
     visibleColumns,
     hasWriteError,
-    speakingCharacters,
+    screenplayCharacters,
     suggestions,
     pendingFieldEdits,
     pendingCoverageAnchor,

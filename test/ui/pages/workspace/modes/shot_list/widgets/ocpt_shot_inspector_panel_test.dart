@@ -83,7 +83,7 @@ OcptShot _buildShot({
 /// about overridden.
 Widget _buildPanel({
   OcptShot? shot,
-  List<String> speakingCharacters = const ["LÉA"],
+  List<String> screenplayCharacters = const ["LÉA"],
   void Function(OcptShotDifficultyAxis axis, int value)? onDifficultyChanged,
   ValueChanged<String>? onCharacterToggled,
   void Function(OcptShotListEditableField field, String rawValue)? onFieldChanged,
@@ -94,7 +94,7 @@ Widget _buildPanel({
   shot: shot,
   sequenceHeading: "INT. LÉA'S FLAT - NIGHT",
   sequenceDisplayNumber: "1",
-  speakingCharacters: speakingCharacters,
+  screenplayCharacters: screenplayCharacters,
   suggestions: const OcptShotFieldSuggestions.empty(),
   coverageLayout: null,
   otherShotsCoverageRanges: const {},

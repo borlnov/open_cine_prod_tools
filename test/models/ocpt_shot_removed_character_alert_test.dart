@@ -87,7 +87,7 @@ void main() {
     test("reports every character no longer speaking, with the shots still carrying it", () {
       final alerts = OcptShotRemovedCharacterAlert.buildAll(
         snapshot: snapshot,
-        speakingCharacters: const ["LÉA", "MARC"],
+        screenplayCharacters: const ["LÉA", "MARC"],
       );
 
       expect(alerts.length, 1);
@@ -99,7 +99,7 @@ void main() {
     test("reports nothing while every attached character still speaks", () {
       final alerts = OcptShotRemovedCharacterAlert.buildAll(
         snapshot: snapshot,
-        speakingCharacters: const ["LÉA", "CLARA", "MARC"],
+        screenplayCharacters: const ["LÉA", "CLARA", "MARC"],
       );
 
       expect(alerts, isEmpty);
@@ -108,7 +108,7 @@ void main() {
     test("sorts several removed characters by name, so the banners keep a stable order", () {
       final alerts = OcptShotRemovedCharacterAlert.buildAll(
         snapshot: snapshot,
-        speakingCharacters: const [],
+        screenplayCharacters: const [],
       );
 
       expect(alerts.map((alert) => alert.characterName), ["CLARA", "LÉA", "MARC"]);
@@ -117,7 +117,7 @@ void main() {
 
     test("reports nothing while no shot list is loaded yet", () {
       expect(
-        OcptShotRemovedCharacterAlert.buildAll(snapshot: null, speakingCharacters: const ["LÉA"]),
+        OcptShotRemovedCharacterAlert.buildAll(snapshot: null, screenplayCharacters: const ["LÉA"]),
         isEmpty,
       );
     });
