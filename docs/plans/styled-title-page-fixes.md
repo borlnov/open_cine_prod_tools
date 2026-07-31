@@ -19,12 +19,12 @@ never repeats them except where a fix needs a specific reminder. Work happens on
 
 ## The four defects (Benoit's words, translated)
 
-| #   | Symptom                                                                                            | Fix |
-| --- | -------------------------------------------------------------------------------------------------- | --- |
-| 1   | The title-page placeholders are not where the real values land (title/credit/author must be centred) | F1  |
-| 2   | The draft date must sit on the contact's **first line** — draft date right, contact left            | F4  |
-| 3   | Pressing Back on an empty placeholder deletes the placeholder; it must never be deleted             | F2  |
-| 4   | With a title page, the styled view's sheets no longer line up with the text                         | F3  |
+| # | Symptom | Fix |
+| --- | --- | --- |
+| 1 | The title-page placeholders are not where the real values land (title/credit/author must be centred) | F1 |
+| 2 | The draft date must sit on the contact's **first line** — draft date right, contact left | F4 |
+| 3 | Pressing Back on an empty placeholder deletes the placeholder; it must never be deleted | F2 |
+| 4 | With a title page, the styled view's sheets no longer line up with the text | F3 |
 
 Ordering rationale: F1 and F2 are small, independent and touch disjoint files. F3 introduces the
 shared title-page geometry module that F4 then builds on, so it must land before F4. F4 is the
@@ -284,15 +284,15 @@ Worked example, US Letter (`8.5 × 11 in`, margins `1.5/1/1/1`, 10 chars/in, 6 l
 ⇒ `glyphWidth ≈ 7.8`, `pixelsPerInch ≈ 78`, `lineHeight ≈ 13`, `pageHeight ≈ 858`), with an empty
 title page (one node per field):
 
-| Field      | Top gap (px)                    | Text height (px)      |
-| ---------- | ------------------------------- | --------------------- |
-| Title      | `0.32 × 858 ≈ 274.6`            | `1.6 × 13 ≈ 20.8`     |
-| Credit     | `2 × 13 = 26`                   | 13                    |
-| Author     | 13                              | 13                    |
-| Draft date | `0.22 × 858 ≈ 188.8`            | 13                    |
-| Contact    | 13                              | 13                    |
-| Source     | 13                              | 13                    |
-| **Total**  |                                 | **≈ 614 px**          |
+| Field | Top gap (px) | Text height (px) |
+| --- | --- | --- |
+| Title | `0.32 × 858 ≈ 274.6` | `1.6 × 13 ≈ 20.8` |
+| Credit | `2 × 13 = 26` | 13 |
+| Author | 13 | 13 |
+| Draft date | `0.22 × 858 ≈ 188.8` | 13 |
+| Contact | 13 | 13 |
+| Source | 13 | 13 |
+| **Total** | | **≈ 614 px** |
 
 614 px is 72 % of a sheet — the body starts three quarters of a page too low. Confirm these numbers
 in the reproduction test rather than trusting the table.
