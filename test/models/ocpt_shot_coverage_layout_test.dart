@@ -428,6 +428,23 @@ void main() {
       );
     });
 
+    test("names nobody for a heading the source left no blank line under", () {
+      // No blank line under it, so the heading is classified as an action line: its location and
+      // its time of day must still never be attached to a shot as characters.
+      const sceneWithTightHeading = 'EXT. Rue de Lyon - NUIT\nMARIE marche vite.';
+      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneWithTightHeading);
+      final heading = layout.blocks.first;
+
+      expect(
+        layout.charactersCoveredBy(startOffset: heading.startOffset, endOffset: heading.endOffset),
+        isEmpty,
+      );
+      expect(
+        layout.charactersCoveredBy(startOffset: 0, endOffset: sceneWithTightHeading.length),
+        ["MARIE"],
+      );
+    });
+
     test("names every speaker of a wider span once, in first-appearance order", () {
       final (layout, _) = layoutAndBlock("INT. HOUSE - DAY");
 

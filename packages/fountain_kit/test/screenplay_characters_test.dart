@@ -59,6 +59,18 @@ void main() {
     test('ignores a single letter and a bare dash', () {
       expect(charactersIntroducedInActionLine('A - B'), isEmpty);
     });
+
+    test('names nobody in a line opening with a scene heading prefix', () {
+      // Whatever the surrounding context classified it as: a location and a time
+      // of day are never cast.
+      expect(charactersIntroducedInActionLine('EXT. Rue de Lyon - NUIT'), isEmpty);
+      expect(charactersIntroducedInActionLine('INT. Cuisine de Paul - JOUR'), isEmpty);
+      expect(charactersIntroducedInActionLine('I/E Voiture de MARIE - JOUR'), isEmpty);
+    });
+
+    test('still names a character whose own name merely starts with those letters', () {
+      expect(charactersIntroducedInActionLine("INTERPOL débarque."), ['INTERPOL']);
+    });
   });
 
   group('over a parsed document', () {
@@ -94,6 +106,17 @@ Oui.
       final document = const FountainParser().parse('INT. HOUSE - DAY\n\nCUT TO:\n');
 
       expect(screenplayCharactersOf(document.blocks), isEmpty);
+    });
+
+    test('a heading with no blank line under it names nobody either', () {
+      // Auto-detection reads it as an action line (a heading needs a blank line
+      // on either side), which used to make its capitals part of the cast.
+      final document = const FountainParser().parse(
+        'EXT. Rue de Lyon - NUIT\n'
+        'MARIE marche vite.\n',
+      );
+
+      expect(screenplayCharactersOf(document.blocks), ['MARIE']);
     });
   });
 }
