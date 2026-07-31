@@ -67,26 +67,31 @@ breakdown, and a casting tracker.
 | 8 | Editor styled block mode (super_editor, real page layout) | ✅ |
 | R1-R3 | Review fixes: `OcptSpecificColors` file, SPDX email, dialogs via router manager | ✅ (`411d9b1`, `4d6835d`, `59e52e1`) |
 | R4 | Review fix: editor toolbar back navigation (flush save → close project → pop) | ✅ (`a788bdf`) |
-| 8b | Styled mode rework: true WYSIWYG editor (hidden Fountain markers, block-type dropdown + Tab cycle + smart Enter, B/I/U, sticky manual types) — milestones M1-M6 in `docs/plans/wysiwyg-styled-editor.md` | ✅ |
+| 8b | Styled mode rework: true WYSIWYG editor (hidden Fountain markers, block-type dropdown + Tab cycle + smart Enter, B/I/U, sticky manual types) | ✅ |
 | 9 | `.fountain` import/export (export manager + fountain IO service, home "Import a screenplay…" action, editor `⋮` menu with export / import-and-replace, pre-import snapshot) | ✅ |
-| 9b | Editor polish & page simulation (styled widths/Tab/dropdown/uppercase, preview fit-to-width, toggle icons, Word-like page mode — milestones M1-M7 in `docs/plans/editor-polish-and-page-simulation.md`) | ✅ |
+| 9b | Editor polish & page simulation (styled widths/Tab/dropdown/uppercase, preview fit-to-width, toggle icons, Word-like page mode) | ✅ |
 | 10 | Settings page (language system/en/fr via act_intl_ui, theme system/light/dark via `ActThemesManager`, page-setup settings (page size + margins), about section) | ✅ |
-| 11 | CI build & release: `.github/actions/*` + `build.yml` (Linux `.deb` + Windows Inno Setup installer, git-describe versioning, GitHub Release on `v*`), SHA-pinning + least-privilege on existing workflows, `dependabot.yml`, `.github/ci-doc.md` — milestones M1-M4 in `docs/plans/ci-build-linux-windows.md` | ✅ |
-| 12 | PDF screenplay export (`pdf` package, line-level paginator, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title-page editor splicing the Fountain source) — milestones M1-M4 in `docs/plans/pdf-screenplay-export.md` | ✅ |
+| 11 | CI build & release: `.github/actions/*` + `build.yml` (Linux `.deb` + Windows Inno Setup installer, git-describe versioning, GitHub Release on `v*`), SHA-pinning + least-privilege on existing workflows, `dependabot.yml`, `.github/ci-doc.md` | ✅ |
+| 12 | PDF screenplay export (`pdf` package, line-level paginator, options dialog: page format pre-filled from project + scene-numbers checkbox, Courier Prime embedded, pagination via `FountainLayoutMetrics`, title-page editor splicing the Fountain source) | ✅ |
 | 13 | CI matrix {`.`, `packages/fountain_kit`}, README rewrite, `docs/adr/` (drift, fountain_kit, super_editor, generated-files deviation) | ✅ |
-| 14 | Editor statistics (page count, character count, last autosave time) — milestones M1-M4 in `docs/plans/editor-statistics.md` | ✅ |
-| 15 | Editor docks & Fountain syntax guide (resizable/persisted left+right docks, right dock tabbed preview/syntax, read-only syntax guide panel) — milestones M1-M4 in `docs/plans/editor-docks-and-syntax-guide.md` | ✅ |
-| 16 | Issue #15 fixes: native save dialogs + "Export" PDF button, sticky character blocks, scroll bar off the page, copy/paste keeping block types, `#N#` scene numbers with a styled display option, PDF bold/italic/underline regression coverage, dark-theme raw preview reading as paper, title page editable in place in styled mode — milestones M1-M8 in `docs/plans/editor-and-export-fixes.md` (title-page follow-up fixes in `docs/plans/styled-title-page-fixes.md` and `styled-title-page-fixes-2.md`) | ✅ |
-| 17 | Workspace shell refactor: studio design system (density/shapes/type scale as component themes), the shell extracted from the editor (`OcptWorkspaceShell`/toolbar/status bar/docks), four production modes behind a bottom mode switcher (screenplay implemented, budget/schedule/shot list as empty states, last mode persisted), inspector and metadata right-dock tabs, project poster tints — milestones M0-M4 in `docs/plans/workspace-shell-refactor.md` | ✅ |
-| 18 | Workspace toolbar alignment on the mock-up: accent-filled back badge, filled dirty dot, muted mode label, the dock toggles / save / `⋮` owned and ordered by the shell, a right-dock toggle reopening the last tab used, raw-only tab shortcuts — milestones M1-M4 in `docs/plans/workspace-toolbar-alignment.md` | ✅ |
+| 14 | Editor statistics (page count, character count, last autosave time) | ✅ |
+| 15 | Editor docks & Fountain syntax guide (resizable/persisted left+right docks, right dock tabbed preview/syntax, read-only syntax guide panel) | ✅ |
+| 16 | Issue #15 fixes: native save dialogs + "Export" PDF button, sticky character blocks, scroll bar off the page, copy/paste keeping block types, `#N#` scene numbers with a styled display option, PDF bold/italic/underline regression coverage, dark-theme raw preview reading as paper, title page editable in place in styled mode | ✅ |
+| 17 | Workspace shell refactor: studio design system (density/shapes/type scale as component themes), the shell extracted from the editor (`OcptWorkspaceShell`/toolbar/status bar/docks), four production modes behind a bottom mode switcher (screenplay implemented, budget/schedule/shot list as empty states, last mode persisted), inspector and metadata right-dock tabs, project poster tints | ✅ |
+| 18 | Workspace toolbar alignment on the mock-up: accent-filled back badge, filled dirty dot, muted mode label, the dock toggles / save / `⋮` owned and ordered by the shell, a right-dock toggle reopening the last tab used, raw-only tab shortcuts | ✅ |
 | 19 | Application logo (issue #24): the mark as SVG variants in `assets/branding/`, `OcptLogo`/`OcptLogoGlyph` shown in the home header, the settings "About" card and the workspace back badge, launcher icons for every platform through `icons_launcher`, Linux desktop entry and hicolor icon in the `.deb` | ✅ |
 | 20 | Devcontainer & tooling modernization: no devcontainer features (gh from GitHub's apt repo, Claude Code from its native installer, no Node runtime), gh login persisted in a named volume, arb-editor schema fix on attach, worktrees moved inside the clone (`worktrees/`, the `.env` mount mode dropped), `tool/prune-gone-branches.sh` + `tool/install-ocpt.sh`, path-filtered lint workflows, `AGENTS.md` with `CLAUDE.md` as a symlink | ✅ |
+| 21 | Shot list mode (découpage technique, issue #19): schema v2 (`shots`, `shot_characters`, `shot_coverages`) with the first `MigrationStrategy` and the `foreign_keys` pragma, sequence panel + shot table + shot inspector, scenario coverage per shot with staleness detection (`coveredTextDigest` / `needsCheck`), XLSX export through `excel_community` | ✅ |
+| 22 | Collaboration & sync: strategy only so far — an offline-first replica synced through a self-hostable, domain-blind relay, and the schema prerequisites it needs first (`docs/adr/0009`, `docs/adr/0010`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
 
 ## Ways of working
 
 - Benoit communicates in French; **all code, comments, commits, branches and GitHub content
   are in English**.
-- Work happens on branch `13-rework-the-project-with-claude`.
+- Work happens on an issue-named branch (`<issue-number>-<slug>`), merged into `main` through a
+  pull request.
+- A plan in `docs/plans/` describes work not yet done. Once its step ships and its outcome is
+  folded into this file, the plan is deleted — the code and the ADRs are the record from then on.
 - Sizeable work: plan first, reviewed by Benoit, then implementation **delegated to Sonnet 5
   agents** orchestrated and reviewed by the main session. User checkpoints between milestones.
 - One commit per logical change. Never reference the plan, steps, or these instructions in
