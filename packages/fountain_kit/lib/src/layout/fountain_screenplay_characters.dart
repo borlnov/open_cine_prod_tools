@@ -5,6 +5,7 @@
 import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/layout/fountain_speaking_characters.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
+import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 
 /// The most words a run of upper-case words may hold and still be read as a
 /// character's name.
@@ -45,11 +46,21 @@ final RegExp _tokenEdges = RegExp(r'^[^\p{L}]+|[^\p{L}]+$', unicode: true);
 /// introduced *among* ordinary prose, so a line written entirely in capitals
 /// is a screenwriter emphasising a whole beat (`BLACKOUT.`), not a cast entry.
 ///
+/// A line opening with a scene heading's leading token
+/// ([FountainLineClassifier.holdsSceneHeadingPrefix]) names nobody either,
+/// however it was classified: auto-detection only calls such a line a heading
+/// when a blank line sits on either side of it, so `EXT. Rue de Lyon - NUIT`
+/// written straight above its first line of action reaches this function as an
+/// action line, and every capitalised word of it (`EXT`, `NUIT`) would
+/// otherwise be read as a character. A location and a time of day are never
+/// cast, so the prefix is answer enough on its own.
+///
 /// This is a convention, not a syntax: an acronym or an emphasised word
 /// written in capitals (`OK`, `STOP`) is named here just like a character
 /// would be. The caller decides what to do with a name it does not recognise.
 List<String> charactersIntroducedInActionLine(String line) {
-  if (_holdsNoLowerCaseLetter(line)) {
+  if (_holdsNoLowerCaseLetter(line) ||
+      FountainLineClassifier.holdsSceneHeadingPrefix(line)) {
     return const [];
   }
 

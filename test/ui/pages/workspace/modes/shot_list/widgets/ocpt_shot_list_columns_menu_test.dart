@@ -50,7 +50,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CheckboxMenuButton), findsNWidgets(OcptShotListColumn.values.length));
-    for (final label in const ["Set", "Lens", "Format", "Duration", "Takes", "Sound"]) {
+    for (final label in const [
+      "Set",
+      "Lens",
+      "Format",
+      "Duration (mm:ss)",
+      "Planned takes",
+      "Sound",
+    ]) {
       expect(find.text(label), findsOneWidget, reason: "missing the $label entry");
     }
     // The always-shown columns aren't toggleable, so they aren't listed at all.
@@ -79,6 +86,6 @@ void main() {
 
     expect(toggled, [OcptShotListColumn.lens]);
     // Turning several columns on must stay one trip through the menu.
-    expect(find.text("Duration"), findsOneWidget);
+    expect(find.text("Duration (mm:ss)"), findsOneWidget);
   });
 }

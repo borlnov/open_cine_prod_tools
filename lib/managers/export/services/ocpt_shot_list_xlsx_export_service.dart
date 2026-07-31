@@ -164,8 +164,9 @@ class OcptShotListXlsxExportService {
     OcptOrphanShotSequence() => shot.orphanedHeading,
   };
 
-  /// The cell holding a shot's estimated duration [milliseconds], written `m:ss` as the app shows
-  /// it, or null while the shot has no estimate yet.
+  /// The cell holding a shot's estimated duration [milliseconds], written `mm:ss` as the app shows
+  /// it (both halves on two digits, so a column of durations reads as one column here too), or
+  /// null while the shot has no estimate yet.
   ///
   /// Deliberately formatted here rather than through the shot list's own
   /// `ocptFormatShotDuration`: that one lives in the UI layer (which this service, sitting under
@@ -177,7 +178,7 @@ class OcptShotListXlsxExportService {
     }
 
     final totalSeconds = (milliseconds / Duration.millisecondsPerSecond).round();
-    final minutes = totalSeconds ~/ Duration.secondsPerMinute;
+    final minutes = (totalSeconds ~/ Duration.secondsPerMinute).toString().padLeft(2, "0");
     final seconds = (totalSeconds % Duration.secondsPerMinute).toString().padLeft(2, "0");
 
     return TextCellValue("$minutes:$seconds");
