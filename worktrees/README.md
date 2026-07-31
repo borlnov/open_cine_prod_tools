@@ -66,7 +66,7 @@ What each line is there for:
 
 ## Build
 
-Nothing special: the commands in the [agent guidelines](../CLAUDE.md) work unchanged. Each worktree
+Nothing special: the commands in the [agent guidelines](../AGENTS.md) work unchanged. Each worktree
 gets its own `build/` and `.dart_tool/`, so none of them collide.
 
 Budget the disk, though. A worktree that has been analyzed, tested and built for Linux debug runs
