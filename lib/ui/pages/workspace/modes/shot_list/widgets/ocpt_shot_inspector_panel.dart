@@ -357,9 +357,17 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
                 const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton(
+                  child: FilledButton(
                     onPressed: onMarkAsChecked,
-                    style: TextButton.styleFrom(foregroundColor: color),
+                    // Filled with the callout's own warning colour rather than the accent, so it
+                    // reads as the answer to the warning it sits in; the label takes the theme's
+                    // `surface` because the two warning colours are built to carry against it —
+                    // near-black under the light amber of the dark theme, near-white under the
+                    // darkened amber of the light one.
+                    style: FilledButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: theme.colorScheme.surface,
+                    ),
                     child: Text(tr.shotListNeedsCheckMarkAsCheckedAction),
                   ),
                 ),

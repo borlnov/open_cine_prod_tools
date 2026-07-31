@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -300,6 +301,28 @@ void main() {
     );
 
     expect(find.text("This shot's scene was removed from the screenplay."), findsOneWidget);
+  });
+
+  testWidgets("Mark as checked is filled with the callout's own warning colour", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(needsCheck: true, checkReason: OcptShotCheckReason.sceneDeleted),
+        ),
+      ),
+    );
+
+    // A filled button, not a bare label: the action has to carry its own background against the
+    // callout's tinted one.
+    final button = tester.widget<FilledButton>(
+      find.ancestor(of: find.text("Mark as checked"), matching: find.byType(FilledButton)),
+    );
+    final context = tester.element(find.byType(OcptShotInspectorPanel));
+    expect(
+      button.style?.backgroundColor?.resolve({}),
+      ocptShotListWarningColor(context),
+    );
   });
 
   testWidgets("clicking Mark as checked reports it", (tester) async {
