@@ -76,6 +76,11 @@ Then reproduce what the `flutter-debian` action does, from the repository root:
 
 ```bash
 VERSION=$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; /^[0-9]/! s/^/0.0.0-/')
+# Debian sorts a hyphenated suffix after the plain version, semver sorts it before. Spell the
+# pre-release with a tilde so apt sees 0.1.0~alpha.1 as older than 0.1.0, and keep git describe's
+# trailing '<n>-g<sha>' sorting after it with a '+'.
+VERSION="${VERSION/-/\~}"
+VERSION="${VERSION//-/+}"
 PACKAGE_NAME=open-cine-prod-tools
 DEB_DIR="debian-package/${PACKAGE_NAME}_${VERSION}_amd64"
 
@@ -140,6 +145,10 @@ values), rename it to `installer.iss`, then run
 
 ## Cutting a release
 
+Bump `version:` in `pubspec.yaml` first, and merge that. It is what `package_info_plus` reports
+inside the app - the About dialog and the settings page - and nothing derives it from the tag, so
+a tag that disagrees with it ships binaries that misname themselves.
+
 ```bash
 git tag v0.1.0
 git push --tags
@@ -148,3 +157,7 @@ git push --tags
 This triggers `build.yml` on the new tag: `create-release` publishes a GitHub Release with the
 `.deb`, the Windows installer, and a `SHA256SUMS.txt`. The binaries are unsigned, so Windows
 SmartScreen will warn on first run.
+
+Pre-release tags follow semver: `v0.1.0-alpha.1`, `v0.1.0-beta.2`, `v1.0.0-rc.1`. The hyphenated
+suffix is what `create-release` keys on to flag the release as a pre-release, so it never takes
+over the "Latest release" slot.
