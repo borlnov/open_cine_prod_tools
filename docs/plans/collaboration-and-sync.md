@@ -167,12 +167,14 @@ stays afterwards as the desktop fallback.
 
 ### M4 — The relay
 
-`packages/ocpt_sync_relay`: the five routes, one bearer token per project, snapshot upload and
-pruning below it, a SQLite store, and a Dockerfile. `OcptRelayRemoteStorage` on the client, plus
+`packages/ocpt_sync_relay`: the five routes, one bearer token per project, project creation on a
+first append carrying the instance enrolment secret, snapshot upload and pruning below it, a SQLite
+store, and a Dockerfile plus the compose file of §5.1. `OcptRelayRemoteStorage` on the client, plus
 the pairing screen and the status indicator described in §3.4.
 
 Tests on the server side are plain Dart: route behaviour, sequence monotonicity, rejection of a
-bad or missing token, pruning not losing a changeset a replica has not yet read.
+bad or missing token, an unknown project refused without the enrolment secret, pruning not losing a
+changeset a replica has not yet read.
 
 The server must stay domain-blind — if a reviewer finds a table name or a domain type anywhere in
 this package, the design has drifted.
@@ -194,7 +196,64 @@ production actually has to follow on the ground.
 
 ---
 
-## 5. Out of scope
+## 5. Deployment topology
+
+### 5.1 Hosting more than one person on one machine
+
+The relay is one binary, one port and one SQLite file, so a second person is a second service in
+the same compose file: same image, differing only by volume, enrolment secret and hostname. It is
+deliberately not a second tenant inside one instance — with no accounts there is nothing inside an
+instance to separate two people by, and the enrolment secret that lets someone create their own
+projects is instance-wide by construction (ADR 0009).
+
+Splitting also buys what sharing cannot. An instance upgrades or restarts without touching the
+other, which matters when one of them is mid-shoot; a mistake in token checking cannot reach
+across; and handing someone their independence later is moving one volume and one service, not
+extracting rows from a shared database. The cost is a second container to keep patched, which for
+one shared image is the same `docker compose pull` as for one.
+
+```mermaid
+flowchart TB
+  subgraph owner["Operator A replicas"]
+    a1["desktop"]
+    a2["tablet"]
+    a3["1st AD laptop"]
+  end
+  subgraph guest["Operator B replicas"]
+    b1["desktop"]
+    b2["their own crew"]
+  end
+  subgraph host["One host, one compose file, one image"]
+    proxy["reverse proxy, TLS"]
+    ra["relay instance A<br>enrolment secret A"]
+    rb["relay instance B<br>enrolment secret B"]
+    da[("a.sqlite<br>opaque changesets + snapshots")]
+    db[("b.sqlite<br>opaque changesets + snapshots")]
+    proxy --> ra --> da
+    proxy --> rb --> db
+  end
+  owner -->|"HTTPS + WSS, one token per project"| proxy
+  guest -->|"HTTPS + WSS, one token per project"| proxy
+```
+
+### 5.2 The same binary on set
+
+On location the relay moves to a laptop or a Pi behind a travel router, with no internet involved
+and no client code path of its own. At the end of the day that set relay reconciles upstream as a
+client of the prep relay, which is M6.
+
+```mermaid
+flowchart LR
+  tablet["tablet, director"] --> lan
+  firstAd["laptop, 1st AD"] --> lan
+  script["laptop, script"] --> lan
+  lan["travel router, no internet"] --> setRelay["set relay<br>same binary, laptop or Pi"]
+  setRelay -.->|"end of day, as a client"| prepRelay["prep relay instance"]
+```
+
+---
+
+## 6. Out of scope
 
 Stated so no agent drifts into them:
 

@@ -49,6 +49,15 @@ changesets since a sequence number, upload a snapshot and let everything below i
 the latest snapshot, and a WebSocket announcing that new changesets exist. Authentication is one
 bearer token per project — no accounts, no passwords, no personal data.
 
+A project comes into existence without a sixth route: an append for an unknown project identifier
+creates it when the request carries the instance's **enrolment secret**, and is rejected otherwise.
+The client picks the identifier and the token itself, so whoever holds that secret creates projects
+from the app alone, with nothing for the operator to provision by hand.
+
+Refusing accounts leaves the instance as the only trust boundary the design has: one instance is
+one person or one production, and hosting a second person means a second instance beside the first
+— same image, its own secret, its own database file — never a second tenant inside one.
+
 The server never parses a changeset, never learns a table or column name, and holds no domain
 logic. The domain model can therefore evolve without redeploying anything and without breaking an
 instance running an older build.
@@ -69,6 +78,10 @@ There is server code to write, ship and keep patched, and that is an obligation 
 self-hosts it, even with an attack surface of one token check and blob storage. It costs a few
 euros a month on a small VPS, or nothing on a Pi. Film crews will not deploy anything, so in
 practice Benoit hosts for his own productions and publishes a Docker image for others.
+
+Hosting for someone else therefore costs a second service in the same compose file rather than a
+multi-tenant rewrite, and their data stays one volume: the day they want their own machine, that
+volume and that service move with them.
 
 A server does not remove offline-first: a local replica, a pending queue and a merge are still
 required, they simply resolve against an authority instead of against arbitrary peers.
