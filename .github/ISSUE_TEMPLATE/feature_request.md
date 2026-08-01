@@ -7,6 +7,12 @@ assignees: ''
 
 ---
 
+<!--
+SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 
