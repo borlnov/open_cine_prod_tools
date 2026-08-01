@@ -38,7 +38,14 @@ void main() {
     await database.close();
   });
 
-  Future<List<OcptScreenplaySnapshotRow>> readSnapshots() => (database.select(
+  Future<List<OcptScreenplaySnapshotRow>> readSnapshots() =>
+      (database.select(database.ocptScreenplaySnapshotsTable)
+            ..where((row) => row.isDeleted.equals(false))
+            ..orderBy([(row) => OrderingTerm.asc(row.createdAt)]))
+          .get();
+
+  /// Reads back every snapshot row, tombstones included, oldest first.
+  Future<List<OcptScreenplaySnapshotRow>> readSnapshotsIncludingTombstones() => (database.select(
     database.ocptScreenplaySnapshotsTable,
   )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
 
@@ -119,5 +126,25 @@ void main() {
     // since the very first save snapshots the initial empty text). Only the 30 most recent survive.
     expect(snapshots.first.fountainText, "version 4");
     expect(snapshots.last.fountainText, "version 33");
+  });
+
+  test('a pruned snapshot is a tombstone with its text dropped, not a deleted row', () async {
+    for (var i = 0; i < 35; i++) {
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: "version $i",
+        snapshotReason: OcptSnapshotReason.timer,
+      );
+    }
+
+    final everyRow = await readSnapshotsIncludingTombstones();
+    final pruned = everyRow.where((row) => row.isDeleted).toList(growable: false);
+
+    // 35 saves wrote 35 snapshot rows; the 30 most recent stayed live.
+    expect(everyRow, hasLength(35));
+    expect(pruned, hasLength(35 - OcptScreenplayService.maxSnapshotsPerScreenplay));
+    // Pruning exists to bound the file's size, so a pruned row keeps nothing but its marker.
+    expect(pruned.every((row) => row.fountainText.isEmpty), isTrue);
   });
 }

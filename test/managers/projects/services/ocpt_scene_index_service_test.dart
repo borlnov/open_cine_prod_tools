@@ -35,8 +35,16 @@ void main() {
     await database.close();
   });
 
-  /// Reads back every scene of [screenplayId], ordered by position.
-  Future<List<OcptSceneRow>> readScenes() => (database.select(
+  /// Reads back every live scene of [screenplayId], ordered by position: tombstoned rows are
+  /// filtered out, exactly as every reader of the index does.
+  Future<List<OcptSceneRow>> readScenes() =>
+      (database.select(database.ocptScenesTable)
+            ..where((row) => row.isDeleted.equals(false))
+            ..orderBy([(row) => OrderingTerm.asc(row.position)]))
+          .get();
+
+  /// Reads back every scene row of [screenplayId], tombstones included.
+  Future<List<OcptSceneRow>> readScenesIncludingTombstones() => (database.select(
     database.ocptScenesTable,
   )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
 
@@ -267,6 +275,15 @@ Action.
     expect(after, hasLength(1));
     expect(after.single.id, houseId);
     expect(after.single.heading, "INT. HOUSE - DAY");
+
+    // The deleted scene is a tombstone, not a removal: its row is still there, flagged, so a
+    // replica that never saw the deletion can still learn about it.
+    final everyRow = await readScenesIncludingTombstones();
+    expect(everyRow, hasLength(2));
+    expect(
+      everyRow.where((row) => row.isDeleted).map((row) => row.heading),
+      ["EXT. STREET - NIGHT"],
+    );
   });
 
   test('a plain rename (no scene number) at the same position keeps the id, by relative order', () async {
