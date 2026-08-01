@@ -17,6 +17,7 @@
 #   tool/screenshot-app.sh start [--size WxH] [--build] [--keep-home]
 #   tool/screenshot-app.sh shot <file.png> [window-id]
 #   tool/screenshot-app.sh click <x> <y>         # click at window coordinates
+#   tool/screenshot-app.sh move <x> <y>          # move the pointer, click nothing
 #   tool/screenshot-app.sh type <text>           # type into the focused window
 #   tool/screenshot-app.sh key <keys>            # e.g. Return, ctrl+l
 #   tool/screenshot-app.sh scroll up|down [n] [x y]  # n notches under x,y
@@ -28,6 +29,10 @@
 # `type` and `key` go to whichever window has the focus, so they reach the app's
 # native file dialogs - separate X windows - as well as the app itself. `windows`
 # lists them, and `shot` takes an id when a dialog is what needs capturing.
+#
+# `move` is what keeps tooltips out of a capture: the pointer is left wherever the
+# last click put it, and a toolbar button under it will have opened its tooltip by
+# the time the screenshot is taken. Move away from the chrome before `shot`.
 #
 # A session survives between invocations, so a caller drives the UI one command
 # at a time and looks at the PNG in between. Coordinates are the ones read off
@@ -216,6 +221,14 @@ cmd_click() {
 # the window manager gives them the focus, so plain XTEST events land wherever
 # the user's would. Sending to $OCPT_WID would type into the window behind the
 # dialog instead.
+cmd_move() {
+  local x="${1:?Usage: $0 move <x> <y>}" y="${2:?Usage: $0 move <x> <y>}"
+  load_session
+  xdotool mousemove --window "$OCPT_WID" "$x" "$y"
+  # Long enough for a tooltip the pointer is leaving to fade out.
+  sleep 1
+}
+
 cmd_type() {
   local text="${1?Usage: $0 type <text>}"
   load_session
@@ -290,6 +303,7 @@ case "${1:-}" in
   start)  shift; cmd_start "$@" ;;
   shot)   shift; cmd_shot "$@" ;;
   click)  shift; cmd_click "$@" ;;
+  move)   shift; cmd_move "$@" ;;
   type)   shift; cmd_type "$@" ;;
   key)    shift; cmd_key "$@" ;;
   scroll) shift; cmd_scroll "$@" ;;
@@ -297,5 +311,5 @@ case "${1:-}" in
   home)   shift; cmd_home ;;
   status) shift; cmd_status ;;
   stop)   shift; cmd_stop ;;
-  *)      sed -n '6,47p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *)      sed -n '6,52p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
