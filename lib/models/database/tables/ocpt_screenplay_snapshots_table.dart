@@ -43,8 +43,17 @@ class OcptScreenplaySnapshotsTable extends Table {
   /// Why this snapshot was taken.
   TextColumn get reason => text().map(const OcptSnapshotReasonConverter())();
 
-  /// The full Fountain source text captured by this snapshot.
+  /// The full Fountain source text captured by this snapshot, or the empty string once the
+  /// snapshot has been pruned (see [isDeleted]).
   TextColumn get fountainText => text()();
+
+  /// {@macro open_cine_prod_tools.isDeleted}
+  ///
+  /// A snapshot is tombstoned when `OcptScreenplayService` prunes it past the rolling cap, and its
+  /// [fountainText] is cleared in the same write: pruning exists to bound the project file's size,
+  /// which a tombstone still carrying a whole screenplay would defeat entirely. A tombstoned
+  /// snapshot is a marker that the row is gone, nothing more.
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
   /// {@macro drift.Table.primaryKey}
   @override

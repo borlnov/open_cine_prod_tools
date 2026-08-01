@@ -42,8 +42,8 @@ class OcptShotCheckReasonConverter extends TypeConverter<OcptShotCheckReason, St
 /// A shot belongs to a scene ([sceneId]), which the shot list treats as its "sequence": a
 /// sequence is strictly a screenplay scene, never a free-standing row of its own. The shot
 /// **code** shown to the user (e.g. `4/2`) is never stored here: it is derived at read time from
-/// the scene's number and this shot's [position], recomputed on every insertion, deletion and
-/// reorder, so it is always in step with the scene index.
+/// the scene's number and this shot's rank among its group as [sortKey] orders it, so it is always
+/// in step with the scene index and with every insertion, deletion and reorder.
 @DataClassName('OcptShotRow')
 class OcptShotsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShotsTable}
@@ -64,9 +64,28 @@ class OcptShotsTable extends Table {
   /// which scene it used to belong to. Null while [sceneId] is still set.
   TextColumn get orphanedHeading => text().nullable()();
 
-  /// The 0-based rank of this shot within its scene (or, once orphaned, within the orphan group),
-  /// used together with the scene's number to derive the shot's code.
+  /// {@template open_cine_prod_tools.position}
+  /// The rank this row had within its group when it was inserted. **No longer what orders the
+  /// group** — [sortKey] is.
+  ///
+  /// It is kept, stamped once at insertion and never renumbered afterwards, only because
+  /// `docs/adr/0007-schema-migration-policy.md` forbids dropping a column in place and
+  /// `docs/adr/0010-sync-ready-data-model-prerequisites.md` leaves its retirement to a deliberate
+  /// breaking version. Code touching order reads [sortKey]; nothing should read this.
+  /// {@endtemplate}
   IntColumn get position => integer()();
+
+  /// {@template open_cine_prod_tools.sortKey}
+  /// The fractional index this row is ordered by within its group: a string sorting strictly
+  /// between its two neighbours' own keys.
+  ///
+  /// This is what makes an insertion or a move write **exactly one row**
+  /// (`docs/adr/0010-sync-ready-data-model-prerequisites.md`): the dense `position` renumbering it
+  /// replaced turned one user action into as many candidate conflicts as the group had rows, and
+  /// made two concurrent insertions at the same index collide instead of coexisting. See
+  /// `lib/utils/ocpt_fractional_key.dart` for how a key is allocated.
+  /// {@endtemplate}
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
 
   /// The shot size ("valeur de plan"), free text.
   TextColumn get shotSize => text().withDefault(const Constant(''))();
@@ -128,6 +147,9 @@ class OcptShotsTable extends Table {
   /// Why [needsCheck] is set, or null while it is false. See [OcptShotCheckReason] for why this
   /// is a stable reason code rather than a localised string.
   TextColumn get checkReason => text().nullable().map(const OcptShotCheckReasonConverter())();
+
+  /// {@macro open_cine_prod_tools.isDeleted}
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
   /// {@macro drift.Table.primaryKey}
   @override
