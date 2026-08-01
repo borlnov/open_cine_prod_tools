@@ -52,6 +52,9 @@ outputs:
   deb-file:
     description: "Filename of the generated .deb package (under artifacts/)"
     value: ${{ steps.build-deb.outputs.deb-file }}
+  deb-version:
+    description: "Debian-ordered version stamped into the package, derived from the semver input"
+    value: ${{ steps.build-deb.outputs.deb-version }}
 
 runs:
   using: "composite"
@@ -77,6 +80,16 @@ runs:
 
         # Template directory relative to this action
         TEMPLATE_DIR="${GITHUB_ACTION_PATH}/../../debian-templates"
+
+        # Semver and Debian disagree on what a hyphen means. Semver reads '0.1.0-alpha.1' as
+        # coming *before* '0.1.0'; Debian reads the hyphen as the upstream/revision separator and
+        # sorts the same string *after* it, so apt would refuse the upgrade from a pre-release to
+        # the final version as a downgrade. Debian spells "sorts earlier" with a tilde, so the
+        # first hyphen - the one introducing the semver pre-release - becomes '~'. Any further
+        # hyphen only ever comes from git describe's '<n>-g<sha>' suffix on untagged builds, which
+        # must sort *after* the pre-release it follows: '+' does that and keeps the version legal.
+        VERSION="${VERSION/-/\~}"
+        VERSION="${VERSION//-/+}"
 
         echo "Building Debian package: ${PACKAGE_NAME} v${VERSION}"
 
@@ -171,6 +184,7 @@ runs:
         mv "${DEB_DIR}.deb" "artifacts/${DEB_FILE}"
 
         echo "deb-file=${DEB_FILE}" >> "$GITHUB_OUTPUT"
+        echo "deb-version=${VERSION}" >> "$GITHUB_OUTPUT"
 
         # Show package information
         echo ""

@@ -189,7 +189,9 @@ jobs:
         run: |
           echo "Installing open-cine-prod-tools package..."
           sudo apt-get update -y
-          sudo apt install -y ./packages/open-cine-prod-tools_${{ needs.get-version.outputs.version }}_amd64.deb
+          # The package file is named after the Debian version, which is not the semver one for
+          # pre-releases, so let the glob find the single package the artifact holds.
+          sudo apt install -y ./packages/*.deb
 
           # Verify installation
           dpkg -l | grep open-cine-prod-tools
@@ -241,3 +243,7 @@ jobs:
         with:
           generate_release_notes: true
           files: release-assets/**
+          # A semver pre-release tag carries a hyphenated suffix ('0.1.0-alpha.1'), a
+          # final one never does. Marking those releases keeps them off the repository's
+          # "Latest release" slot, which must always point at a stable build.
+          prerelease: ${{ contains(needs.get-version.outputs.version, '-') }}
