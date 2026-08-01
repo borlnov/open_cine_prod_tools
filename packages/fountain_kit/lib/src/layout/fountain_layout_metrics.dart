@@ -26,8 +26,9 @@ enum FountainLayoutAlignment {
 /// Every measurement is given both in inches (the authoritative unit, since
 /// screenplay layout conventions are defined in inches) and in character
 /// columns of 12-point Courier, which is the monospaced font every
-/// screenplay is traditionally set in. A column count is
-/// `round(inches * charsPerInch)`.
+/// screenplay is traditionally set in. An indent is
+/// `round(inches * charsPerInch)`; a width is *truncated* rather than
+/// rounded, see [maxWidthColumns].
 class FountainElementLayout extends Equatable {
   /// Creates a [FountainElementLayout].
   const FountainElementLayout({
@@ -49,7 +50,17 @@ class FountainElementLayout extends Equatable {
   /// wrap, in inches.
   final double maxWidthInches;
 
-  /// [maxWidthInches] expressed in character columns.
+  /// [maxWidthInches] expressed in character columns, always **truncated**
+  /// (never rounded up), so a line wrapped at this many columns is
+  /// guaranteed to physically fit within [maxWidthInches].
+  ///
+  /// Rounding up would let the width of a full line exceed its own box:
+  /// on A4, an action's 5.7677in width rounds to 58 columns, which measure
+  /// 5.796in of 12-point Courier — 0.03in too wide. A renderer sizing the
+  /// line's box from [maxWidthInches] then re-wraps the overflowing word
+  /// onto a second line of its own, which lands on top of the next line of
+  /// the page. Truncating cannot overshoot, since the font's real pitch is
+  /// never wider than the nominal [FountainLayoutMetrics.charsPerInch].
   final int maxWidthColumns;
 
   /// How this element's text is aligned within its box.
@@ -128,6 +139,13 @@ class FountainLayoutMetrics extends Equatable {
 
   /// 12-point Courier's vertical pitch, single-spaced: 6 lines per inch.
   static const double _courierLinesPerInch = 6;
+
+  /// The slack added before truncating a width to whole columns, so that a
+  /// width meant to be an exact number of columns but computed as, say,
+  /// 5.9999999999 inches still yields that whole column rather than losing
+  /// one to floating point noise. Far smaller than any real fraction of a
+  /// column, so it can never turn a genuinely short width into a longer one.
+  static const double _columnRoundingEpsilon = 1e-9;
 
   /// The distance from the page's left edge to where a character cue
   /// starts, in inches (2.2 inches past the standard 1.5-inch left
@@ -306,6 +324,11 @@ class FountainLayoutMetrics extends Equatable {
 
   /// Builds a [FountainElementLayout], deriving its character-column
   /// measurements from its inch measurements at [_courierCharsPerInch].
+  ///
+  /// The indent is rounded (it names a column the text starts at, and the
+  /// standard indents all land on an exact column anyway), while the width
+  /// is truncated: it is a budget a wrapped line must never exceed, see
+  /// [FountainElementLayout.maxWidthColumns].
   static FountainElementLayout _elementLayout({
     required double leftIndentInches,
     required double maxWidthInches,
@@ -314,7 +337,9 @@ class FountainLayoutMetrics extends Equatable {
     leftIndentInches: leftIndentInches,
     leftIndentColumns: (leftIndentInches * _courierCharsPerInch).round(),
     maxWidthInches: maxWidthInches,
-    maxWidthColumns: (maxWidthInches * _courierCharsPerInch).round(),
+    maxWidthColumns:
+        (maxWidthInches * _courierCharsPerInch + _columnRoundingEpsilon)
+            .floor(),
     alignment: alignment,
   );
 

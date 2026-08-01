@@ -5,12 +5,16 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:path/path.dart' as p;
 
 /// A save-location service whose [pickSaveLocation] is stubbed and whose calls are recorded, so
@@ -179,6 +183,76 @@ void main() {
       expect(saveLocationService.lastSuggestedFileName, "My Movie.pdf");
       expect(saveLocationService.lastFileTypeLabel, "PDF document");
       expect(saveLocationService.lastExtensions, const ["pdf"]);
+    });
+  });
+
+  group('exportShotListXlsx', () {
+    final snapshot = OcptShotListSnapshot.build(
+      screenplayId: "screenplay",
+      sequences: const [],
+    );
+    const labels = OcptShotListXlsxLabels(
+      sheetName: "Shot list",
+      columnHeaders: {},
+      statusLabels: {},
+      sequenceTitles: {},
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      final path = await manager.exportShotListXlsx(
+        snapshot: snapshot,
+        labels: labels,
+        projectName: "My Movie",
+        fileTypeLabel: "Excel workbook",
+      );
+
+      expect(path, isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a readable workbook and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie.xlsx");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      final path = await manager.exportShotListXlsx(
+        snapshot: snapshot,
+        labels: labels,
+        projectName: "My Movie",
+        fileTypeLabel: "Excel workbook",
+      );
+
+      expect(path, chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(Excel.decodeBytes(writtenBytes).tables.keys, ["Shot list"]);
+    });
+
+    test('suggests the file name computed by OcptShotListXlsxExportService', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await manager.exportShotListXlsx(
+        snapshot: snapshot,
+        labels: labels,
+        projectName: "My Movie",
+        fileTypeLabel: "Excel workbook",
+      );
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie.xlsx");
+      expect(saveLocationService.lastFileTypeLabel, "Excel workbook");
+      expect(saveLocationService.lastExtensions, const [
+        OcptShotListXlsxExportService.xlsxFileExtension,
+      ]);
     });
   });
 }

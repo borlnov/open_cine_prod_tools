@@ -14,6 +14,18 @@
     "settings": {
         "files.trimTrailingWhitespace": true,
         "files.insertFinalNewline": true,
+        // Keep git worktrees (see worktrees/README.md) out of this window: each one is a complete
+        // copy of the repository, so indexing them all multiplies the analyzer's and the file
+        // watcher's workload. Open a worktree in its own window instead.
+        "files.watcherExclude": {
+            "**/worktrees/**": true
+        },
+        "search.exclude": {
+            "worktrees": true
+        },
+        "dart.analysisExcludedFolders": [
+            "worktrees"
+        ],
         "dart.lineLength": 100,
         "editor.rulers": [
             100

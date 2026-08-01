@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
+import 'package:fountain_kit/src/layout/fountain_speaking_characters.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 
@@ -23,10 +24,8 @@ class FountainSceneStatistics extends Equatable {
     required this.pageEighths,
   });
 
-  /// The scene's speaking roles, in order of first appearance, normalized
-  /// (trimmed, internal whitespace collapsed, upper-cased) and deduplicated
-  /// the same way [FountainScriptStatistics.speakingCharacterCount] is —
-  /// see [normalizeCharacterName].
+  /// The scene's speaking roles, as computed by [speakingCharactersOf] over
+  /// the scene's own blocks.
   final List<String> speakingCharacters;
 
   /// The number of words across the scene's printable content, from its
@@ -75,7 +74,7 @@ class FountainSceneStatistics extends Equatable {
     }
 
     return FountainSceneStatistics(
-      speakingCharacters: _speakingCharactersOf(sceneBlocks),
+      speakingCharacters: speakingCharactersOf(sceneBlocks),
       wordCount: words,
       pageEighths: _pageEighthsOf(document, metrics, sceneIndex),
     );
@@ -97,23 +96,6 @@ class FountainSceneStatistics extends Equatable {
     final start = headingIndices[sceneIndex];
     final end = sceneIndex + 1 < headingIndices.length ? headingIndices[sceneIndex + 1] : blocks.length;
     return blocks.sublist(start, end);
-  }
-
-  /// The normalized, deduplicated, first-appearance-ordered speaking roles
-  /// introduced by a [FountainDialogueGroup] anywhere in [sceneBlocks]. A
-  /// dual-dialogue pair contributes both of its cues.
-  static List<String> _speakingCharactersOf(List<FountainBlock> sceneBlocks) {
-    final seen = <String>{};
-    final ordered = <String>[];
-    for (final block in sceneBlocks) {
-      if (block case FountainDialogueGroup(:final character)) {
-        final normalized = normalizeCharacterName(character.name);
-        if (seen.add(normalized)) {
-          ordered.add(normalized);
-        }
-      }
-    }
-    return ordered;
   }
 
   /// Composes the whole of [document] at [metrics] and returns the

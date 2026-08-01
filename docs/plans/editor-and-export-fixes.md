@@ -26,17 +26,17 @@ title-page dialog.
 Issue #15 is the first batch of defects found by **using** the app to write, plus the two small
 features they imply. Nine points, all independent except where noted:
 
-| #   | Symptom (user words, translated)                                              | Milestone |
-| --- | ----------------------------------------------------------------------------- | --------- |
-| 2   | Export does not ask where to save the file (`.fountain` and PDF alike)        | M1        |
-| 3   | The PDF export dialog's confirm button reads "Apply" instead of "Export"      | M1        |
-| 5   | Typing in a "Character" block switches it back to "Action"                    | M2        |
-| 7   | The scroll bar is drawn on top of the white page in styled mode               | M2        |
-| 6   | Copy/paste loses the block types in styled mode                               | M3        |
-| 8   | `#1#` scene numbers do not work; add auto-numbering + syntax-guide entry      | M4        |
-| 9   | The exported PDF loses bold/italic/underline                                  | M5        |
-| 1   | In dark theme the raw-mode preview is all dark, nothing is white              | M6        |
-| 4   | The styled view must show the title page as it is exported, fillable in place | M7        |
+| # | Symptom (user words, translated) | Milestone |
+| --- | --- | --- |
+| 2 | Export does not ask where to save the file (`.fountain` and PDF alike) | M1 |
+| 3 | The PDF export dialog's confirm button reads "Apply" instead of "Export" | M1 |
+| 5 | Typing in a "Character" block switches it back to "Action" | M2 |
+| 7 | The scroll bar is drawn on top of the white page in styled mode | M2 |
+| 6 | Copy/paste loses the block types in styled mode | M3 |
+| 8 | `#1#` scene numbers do not work; add auto-numbering + syntax-guide entry | M4 |
+| 9 | The exported PDF loses bold/italic/underline | M5 |
+| 1 | In dark theme the raw-mode preview is all dark, nothing is white | M6 |
+| 4 | The styled view must show the title page as it is exported, fillable in place | M7 |
 
 Ordering rationale: M1–M3 are small, well-diagnosed and touch disjoint files; M4–M5 need a
 reproduction test before any behaviour change; M6 needs a visual reproduction; M7 is the largest
@@ -427,12 +427,12 @@ visibly "lost the bold" of every scene heading.
 
 Four commits, made after this plan was written and **not** reflected above, already fixed that:
 
-| Commit    | What it does                                                                     |
-| --------- | -------------------------------------------------------------------------------- |
+| Commit | What it does |
+| --- | --- |
 | `3cc21c9` | `FountainPrintStyle`: the shared base weight/slope/case table, in `fountain_kit` |
-| `aef65f5` | `OcptPdfExportService._spansFor` composes the block style with each run's flags  |
-| `6feb3bc` | Preview + styled stylesheet re-derived from the same table                       |
-| `5b47dcf` | Preview's scene-heading/lyrics branches read the table instead of hardcoding     |
+| `aef65f5` | `OcptPdfExportService._spansFor` composes the block style with each run's flags |
+| `6feb3bc` | Preview + styled stylesheet re-derived from the same table |
+| `5b47dcf` | Preview's scene-heading/lyrics branches read the table instead of hardcoding |
 
 **Do not redo, revert or "improve" any of this.** Read those four commits first.
 
@@ -517,10 +517,10 @@ A throwaway widget test pumped `OcptEditorPreview` under `ocptTheme.darkThemeDat
 panel's `RepaintBoundary` to an image (`toImage()` inside `tester.runAsync`, US Letter metrics, a
 panel 40 px wider than `layout.pageWidth`, a five-block screenplay):
 
-| `isPageSimulationEnabled` | Sheet `Material` rect               | Sampled pixels                     |
-| ------------------------- | ----------------------------------- | ---------------------------------- |
-| `false`                   | `Rect.fromLTRB(20, 0, 1125, 700)`   | `#ffffff`, alpha `ff`, everywhere  |
-| `true`                    | `Rect.fromLTRB(20, 0, **20**, 1430)` | fully transparent (alpha `00`) everywhere |
+| `isPageSimulationEnabled` | Sheet `Material` rect | Sampled pixels |
+| --- | --- | --- |
+| `false` | `Rect.fromLTRB(20, 0, 1125, 700)` | `#ffffff`, alpha `ff`, everywhere |
+| `true` | `Rect.fromLTRB(20, 0, **20**, 1430)` | fully transparent (alpha `00`) everywhere |
 
 So with page simulation on the white sheet is laid out **zero pixels wide** and paints nothing at
 all. Page simulation is on by default (`editor_bloc.dart`: `isPageSimulationEnabled.load() ?? true`),

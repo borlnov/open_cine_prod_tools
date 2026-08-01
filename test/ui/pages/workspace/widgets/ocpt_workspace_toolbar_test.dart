@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 
 /// Wraps [child] with the localization delegates so the toolbar's [Tr.of] tooltip lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -40,6 +41,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(backCount, 1);
+  });
+
+  testWidgets("the back badge carries the app logo, tinted to read on the accent fill", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(OcptWorkspaceToolbar));
+    final glyph = tester.widget<OcptLogoGlyph>(find.byType(OcptLogoGlyph));
+
+    expect(glyph.color, Theme.of(context).colorScheme.onPrimary);
   });
 
   testWidgets("the dirty marker is shown only while there are unsaved changes", (tester) async {

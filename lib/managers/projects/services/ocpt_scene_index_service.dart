@@ -34,6 +34,13 @@ class _ParsedScene {
 /// This is the single place responsible for deciding which parsed scene heading corresponds to
 /// which existing `scenes` row, so a scene's id stays stable across edits: other features (e.g.
 /// scene notes, shot lists) can hold onto that id.
+///
+/// This service knows nothing about what else references a scene by id: **dependencies never
+/// reference their dependents**, so it cannot call into, say, the shot list service directly.
+/// [reconcile]'s optional `onScenesDeleted` callback is the one place it offers a dependent a hook
+/// at the single moment the information a dependent might need (a scene row about to disappear)
+/// still exists, without this service ever importing or knowing the shape of what that dependent
+/// does with it.
 class OcptSceneIndexService {
   /// Class constructor
   const OcptSceneIndexService();
@@ -57,10 +64,17 @@ class OcptSceneIndexService {
   /// `charEnd` refreshed. Parsed headings left unmatched after all three passes become new rows,
   /// with a freshly generated UUID. Existing rows left unmatched after all three passes are
   /// deleted: their scene is gone from the screenplay.
+  ///
+  /// [onScenesDeleted], when given, is awaited inside this method's own transaction, immediately
+  /// before those rows are deleted, and only when there is at least one to delete: it is the single
+  /// hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the one moment
+  /// the about-to-vanish rows' data (their heading, in particular) is still available to copy
+  /// elsewhere. See the class doc comment for why this is a callback rather than a direct call.
   Future<void> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
     required FountainDocument document,
+    Future<void> Function(List<OcptSceneRow> scenesAboutToBeDeleted)? onScenesDeleted,
   }) async {
     final existingRows =
         await (database.select(database.ocptScenesTable)
@@ -72,6 +86,10 @@ class OcptSceneIndexService {
     final matches = _matchScenes(existingRows: existingRows, parsedScenes: parsedScenes);
 
     await database.transaction(() async {
+      if (matches.rowsToDelete.isNotEmpty && onScenesDeleted != null) {
+        await onScenesDeleted(matches.rowsToDelete);
+      }
+
       for (final row in matches.rowsToDelete) {
         await (database.delete(
           database.ocptScenesTable,

@@ -4,7 +4,13 @@
 
 name: REUSE Compliance Check
 
-on: [push, pull_request]
+# No paths filter: every file in the tree needs SPDX information, so any change can break
+# compliance. Push is narrowed to main because pull_request already covers every other branch.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -22,4 +28,4 @@ jobs:
       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
     - name: REUSE Compliance Check
-      uses: fsfe/reuse-action@bb774aa972c2a89ff34781233d275075cbddf542 # v5.0.0
+      uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0

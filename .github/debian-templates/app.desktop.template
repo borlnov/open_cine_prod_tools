@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name={{APP_NAME}}
+Comment={{DESCRIPTION_SHORT}}
+Exec={{PACKAGE_NAME}} %f
+Icon={{PACKAGE_NAME}}
+Terminal=false
+Categories=AudioVideo;Video;Office;
+Keywords=screenplay;fountain;film;production;
+StartupNotify=true
+StartupWMClass={{EXECUTABLE_NAME}}

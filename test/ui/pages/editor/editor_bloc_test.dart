@@ -16,6 +16,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -36,7 +38,12 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// still go through the real implementation.
 class _FailingScreenplayService extends OcptScreenplayService {
   /// Class constructor
-  const _FailingScreenplayService() : super(sceneIndexService: const OcptSceneIndexService());
+  const _FailingScreenplayService()
+    : super(
+        sceneIndexService: const OcptSceneIndexService(),
+        shotListService: const OcptShotListService(),
+        shotCoverageService: const OcptShotCoverageService(),
+      );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   @override

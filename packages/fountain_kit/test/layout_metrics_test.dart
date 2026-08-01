@@ -123,6 +123,62 @@ void main() {
     test('character cues still start 3.7in from the page edge', () {
       _expectClose(metrics.character.leftIndentInches, 3.7);
     });
+
+    test('a width that is not a whole number of columns truncates', () {
+      // 8.2677in wide, minus a 1.5in left and a 1in right margin, leaves
+      // 5.7677in: 57 whole columns, plus 0.68 of a 58th that must not be
+      // handed out.
+      expect(metrics.action.maxWidthColumns, 57);
+      expect(metrics.sceneHeading.maxWidthColumns, 57);
+      expect(metrics.parenthetical.maxWidthColumns, 41);
+      expect(metrics.character.maxWidthColumns, 35);
+    });
+  });
+
+  group('column widths never exceed their inch widths', () {
+    // The invariant behind the truncation: a line wrapped at
+    // maxWidthColumns must physically fit in maxWidthInches, or a renderer
+    // sizing the line's box from the inches will re-wrap it and, since every
+    // line is positioned at its own row, draw the overflow on top of the
+    // next line.
+    for (final entry in {
+      'US Letter': FountainLayoutMetrics.usLetter(),
+      'A4': FountainLayoutMetrics.a4(),
+      'A4 with wide margins': FountainLayoutMetrics.a4(
+        margins: const FountainPageMargins.standard().copyWith(
+          rightInches: 1.35,
+        ),
+      ),
+    }.entries) {
+      test('${entry.key} keeps every element within its own width', () {
+        final metrics = entry.value;
+        for (final element in [
+          metrics.sceneHeading,
+          metrics.action,
+          metrics.character,
+          metrics.parenthetical,
+          metrics.dialogue,
+          metrics.transition,
+          metrics.centeredText,
+          metrics.lyrics,
+        ]) {
+          final columnsWidthInches =
+              element.maxWidthColumns / metrics.charsPerInch;
+          expect(
+            columnsWidthInches,
+            lessThanOrEqualTo(element.maxWidthInches),
+            reason: '$element overflows its own box',
+          );
+          // And no more than a single column is given up, so truncating
+          // never quietly narrows a page beyond what it must.
+          expect(
+            columnsWidthInches,
+            greaterThan(element.maxWidthInches - 1 / metrics.charsPerInch),
+            reason: '$element gives up more than one column',
+          );
+        }
+      });
+    }
   });
 
   group('equality', () {

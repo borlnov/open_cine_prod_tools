@@ -6,12 +6,18 @@ import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 void main() {
   const screenplayId = "screenplay-1";
-  const service = OcptScreenplayService(sceneIndexService: OcptSceneIndexService());
+  const service = OcptScreenplayService(
+    sceneIndexService: OcptSceneIndexService(),
+    shotListService: OcptShotListService(),
+    shotCoverageService: OcptShotCoverageService(),
+  );
 
   late OcptProjectDatabase database;
 

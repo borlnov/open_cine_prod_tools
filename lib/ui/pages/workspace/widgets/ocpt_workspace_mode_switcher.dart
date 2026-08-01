@@ -99,6 +99,7 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
         message: tooltip,
         child: InkWell(
           onTap: onTap,
+          mouseCursor: ocptClickableCursor,
           borderRadius: BorderRadius.circular(ocptRadiusMedium),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),

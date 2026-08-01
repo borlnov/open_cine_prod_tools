@@ -6,6 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # Open Cine Prod Tools <!-- omit from toc -->
 
+![Open Cine Prod Tools logo](assets/branding/ocpt_logo_light.svg)
+
 [![Build](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/build.yml/badge.svg)](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/build.yml)
 [![Dart Checks](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/flutter_lint.yml/badge.svg)](https://github.com/borlnov/open_cine_prod_tools/actions/workflows/flutter_lint.yml)
 [![REUSE status](https://api.reuse.software/badge/github.com/borlnov/open_cine_prod_tools)](https://api.reuse.software/info/github.com/borlnov/open_cine_prod_tools)
@@ -78,13 +80,13 @@ Planned production tools, in priority order:
 
 ## Platforms
 
-| Platform | Status               |
-| -------- | -------------------- |
-| Linux    | ✅ Active development |
-| Windows  | ✅ Active development |
-| Android  | 🚧 Scaffolded         |
-| iOS      | 🚧 Scaffolded         |
-| macOS    | 🚧 Scaffolded         |
+| Platform | Status |
+| --- | --- |
+| Linux | ✅ Active development |
+| Windows | ✅ Active development |
+| Android | 🚧 Scaffolded |
+| iOS | 🚧 Scaffolded |
+| macOS | 🚧 Scaffolded |
 
 ## Installation
 
@@ -101,17 +103,54 @@ The binaries are unsigned, so Windows SmartScreen will warn on first run.
 
 ## Building from source
 
+The project ships a [devcontainer](.devcontainer/) (Debian trixie, Flutter 3.44.6, the Linux
+desktop build toolchain, `reuse`) with everything needed to build and run the app — nothing to
+install by hand.
+
 ```bash
 git clone --recurse-submodules https://github.com/borlnov/open_cine_prod_tools.git
 cd open_cine_prod_tools
-# Open in the provided devcontainer (Flutter 3.44.6), then:
-flutter pub get
-dart run intl_utils:generate
-dart run build_runner build
-flutter run -d linux
 ```
 
+Then either:
+
+- **VS Code**: open the folder and "Reopen in Container". Its `postCreateCommand` installs
+  dependencies and runs the code generators automatically.
+- **Manually**, from the repo root:
+
+  ```bash
+  cd .devcontainer && docker compose up -d
+  docker compose exec dev bash
+  # inside the container:
+  cd /workspaces/open_cine_prod_tools
+  flutter pub get
+  dart run intl_utils:generate
+  dart run build_runner build
+  flutter run -d linux
+  ```
+
+  Skipping `intl_utils:generate` / `build_runner build` is the most common cause of a fresh build
+  failing with a missing `part '*.g.dart'` (or `l10n.dart`) file: both are git-ignored generated
+  code (see `docs/adr/`) that only get produced automatically through VS Code's "Reopen in
+  Container" flow, not by a plain `docker compose up`.
+
 Run the test suites with `flutter test` and, inside `packages/fountain_kit`, `dart test`.
+
+`flutter run -d linux` opens a window on the host's X server: the container forwards the X11
+socket, so a typical Linux desktop needs nothing extra. On **Windows with WSL2**, make sure WSLg
+is enabled (ships by default on recent Windows 11). If a window appears in the taskbar but stays
+invisible with a `[WARN:COPY MODE]` title, that's a known WSLg bug, not this project: recent WSL
+releases sometimes fail to mount `/mnt/shared_memory` at boot
+([microsoft/WSL#40618](https://github.com/microsoft/WSL/issues/40618)). Workaround, run once from
+a WSL shell on the host:
+
+```bash
+sudo mkdir -p /mnt/shared_memory
+sudo mount -t tmpfs tmpfs /mnt/shared_memory
+```
+
+See [.devcontainer/README.md](.devcontainer/README.md) for the full devcontainer setup (Claude
+Code and `gh` auth, git worktrees, GUI forwarding).
 
 ## Repository layout
 
@@ -119,8 +158,9 @@ Run the test suites with `flutter test` and, inside `packages/fountain_kit`, `da
 lib/                  Application source
 packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
 actlibs/               ACT Flutter packages (git submodule)
-assets/                Config, fonts and other bundled assets
+assets/                Config, fonts, branding and other bundled assets
 test/                  Application test suite
+tool/                  Developer scripts (branding icon generation)
 docs/                  Plans and architecture decision records
 .github/               CI workflows and release pipeline
 ```

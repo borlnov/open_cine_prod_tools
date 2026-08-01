@@ -349,7 +349,7 @@ class OcptPdfExportService {
             left: line.leftIndentInches * _pointsPerInch,
             top: rowTopPt,
             child: pw.SizedBox(
-              width: elementLayout.maxWidthInches * _pointsPerInch,
+              width: _lineBoxWidthPt(elementLayout, metrics),
               child: pw.RichText(
                 textAlign: _textAlignFor(line.alignment),
                 text: pw.TextSpan(children: _spansFor(line.runs, blockStyle, fonts)),
@@ -397,6 +397,25 @@ class OcptPdfExportService {
       build: (context) => pw.Stack(children: children),
     );
   }
+
+  /// The width, in points, of the box one [FountainScriptLine] of [layout]
+  /// is drawn in.
+  ///
+  /// Derived from [FountainElementLayout.maxWidthColumns] rather than from
+  /// [FountainElementLayout.maxWidthInches], so the box is measured in the
+  /// very unit [FountainScriptComposer] wrapped the line to: a line can then
+  /// never be one column wider than the box holding it, whatever the page
+  /// format. That matters because every line is absolutely positioned at its
+  /// own row, so a [pw.RichText] re-wrapping a line it considers too wide
+  /// would not push the page down — it would draw the overflow on top of the
+  /// next row. Courier Prime's real pitch being slightly narrower than the
+  /// nominal [FountainLayoutMetrics.charsPerInch] leaves a little slack on
+  /// top of that, and truncated column counts keep the box inside the page
+  /// margins (which right-aligned transitions and centered text rely on).
+  static double _lineBoxWidthPt(
+    FountainElementLayout layout,
+    FountainLayoutMetrics metrics,
+  ) => layout.maxWidthColumns / metrics.charsPerInch * _pointsPerInch;
 
   /// Turns [runs] into the [pw.TextSpan]s of one [FountainScriptLine], each
   /// carrying the Courier Prime variant matching [blockStyle]'s bold/italic

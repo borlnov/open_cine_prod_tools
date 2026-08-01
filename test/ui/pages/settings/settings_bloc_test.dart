@@ -20,9 +20,11 @@ import 'package:open_cine_prod_tools/ui/pages/settings/settings_state.dart';
 /// [MixinSetWantedLocaleBloc]'s reaction to [NewLocaleWantedByUserEvent], never the manager's own
 /// persistence or system-locale resolution.
 class _FakeLocalesManager extends LocalesManager {
-  /// Class constructor
-  _FakeLocalesManager()
-    : super(
+  /// Class constructor, [wantedLocale] standing for a locale the user had already picked in a
+  /// previous session.
+  _FakeLocalesManager({Locale? wantedLocale})
+    : _wanted = wantedLocale,
+      super(
         getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
         propertiesGetter: () => throw UnimplementedError(),
         configGetter: () => throw UnimplementedError(),
@@ -58,9 +60,11 @@ class _FakeLocalesManager extends LocalesManager {
 /// backed by real config/properties managers: this test only exercises
 /// [MixinActThemesBloc]'s reaction to [AskToUpdateBrightnessEvent].
 class _FakeActThemesManager extends ActThemesManager {
-  /// Class constructor
-  _FakeActThemesManager()
-    : super(
+  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// previous session.
+  _FakeActThemesManager({Brightness? brightness})
+    : _brightness = brightness,
+      super(
         propertiesGetter: () => throw UnimplementedError(),
         configGetter: () => throw UnimplementedError(),
         appThemes: OcptAppTheme.values,
@@ -91,8 +95,14 @@ class _FakeActThemesManager extends ActThemesManager {
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
 
+  /// Stores [newBrightness] and, like the real manager's value keeper, only notifies the stream
+  /// when the value actually changes.
   @override
   Future<void> setBrightness({required Brightness? newBrightness}) async {
+    if (newBrightness == _brightness) {
+      return;
+    }
+
     _brightness = newBrightness;
     _brightnessCtrl.add(newBrightness);
   }
@@ -116,10 +126,13 @@ void main() {
     OcptGlobalManager.instance;
   });
 
-  setUp(() async {
-    // MixinSetWantedLocaleBloc/MixinActThemesBloc resolve their manager directly from
-    // globalGetIt() (no constructor injection), so fresh fakes are registered before every test
-    // to keep them isolated from one another.
+  /// Registers fresh fake managers, replacing any already registered, with [brightness] and
+  /// [wantedLocale] standing for preferences the user had persisted in a previous session.
+  ///
+  /// [OcptSettingsBloc] and its mixins resolve their managers directly from globalGetIt() (no
+  /// constructor injection), so this runs before every test to keep them isolated from one
+  /// another, and again in the tests that need a stored preference in place.
+  Future<void> registerFakeManagers({Brightness? brightness, Locale? wantedLocale}) async {
     final managers = globalGetIt();
     if (managers.isRegistered<LocalesManager>()) {
       await managers.unregister<LocalesManager>();
@@ -128,14 +141,16 @@ void main() {
       await managers.unregister<ActThemesManager>();
     }
 
-    final locales = _FakeLocalesManager();
-    final themes = _FakeActThemesManager();
+    final locales = _FakeLocalesManager(wantedLocale: wantedLocale);
+    final themes = _FakeActThemesManager(brightness: brightness);
     addTearDown(locales.disposeFake);
     addTearDown(themes.disposeFake);
 
     managers.registerSingleton<LocalesManager>(locales);
     managers.registerSingleton<ActThemesManager>(themes);
-  });
+  }
+
+  setUp(registerFakeManagers);
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
   Future<OcptSettingsState> waitForState(
@@ -165,6 +180,31 @@ void main() {
     final state = await waitForState(bloc, (state) => state.brightness == Brightness.dark);
 
     expect(state.brightness, Brightness.dark);
+
+    await bloc.close();
+  });
+
+  test("starts on the preferences the managers already hold", () async {
+    await registerFakeManagers(brightness: Brightness.dark, wantedLocale: const Locale("fr"));
+
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+
+    expect(bloc.state.brightness, Brightness.dark);
+    expect(bloc.state.wantedLocale, const Locale("fr"));
+
+    await bloc.close();
+  });
+
+  test("keeps the stored brightness when it is the one picked again", () async {
+    // The managers' streams only emit on change, so picking the brightness already stored notifies
+    // nothing: the state must already carry it rather than wait for an emission that never comes.
+    await registerFakeManagers(brightness: Brightness.dark);
+
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+    bloc.add(const AskToUpdateBrightnessEvent(newBrightness: Brightness.dark));
+    await pumpEventQueue();
+
+    expect(bloc.state.brightness, Brightness.dark);
 
     await bloc.close();
   });

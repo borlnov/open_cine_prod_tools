@@ -49,6 +49,9 @@ dependencies:
   # Generates the stable ids of screenplays, snapshots and scenes
   uuid: ^4.5.1
 
+  # Computes the SHA-256 digest a shot's scenario coverage range is checked for staleness against
+  crypto: ^3.0.6
+
   # Opens the GitHub repository link in the system browser
   url_launcher: ^6.3.2
 
@@ -117,6 +120,12 @@ dependencies:
   # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
   pdf: ^3.12.0
 
+  # Writes the exported shot list workbook (XLSX). The community fork of `excel` rather than
+  # `excel` itself, whose latest release is still capped at `archive ^3` and `xml <7` and can
+  # therefore not be resolved alongside the `image` version `icons_launcher` pulls in; see
+  # docs/adr/0008-excel-community-for-the-shot-list-export.md
+  excel_community: ^2.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -136,6 +145,11 @@ dev_dependencies:
   # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
   drift_dev: ^2.24.0
 
+  # Brings in the icons_launcher tooling used to turn the branding masters into every platform's
+  # launcher icon (`dart run icons_launcher:create`, configured by the icons_launcher block below)
+  act_launcher_icon:
+    path: actlibs/act_launcher_icon
+
   # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
   build_runner: ^2.4.13
 
@@ -145,6 +159,13 @@ flutter:
 
   assets:
     - assets/config/
+    # The three variants of the application mark are listed one by one rather than as a whole
+    # directory: `assets/branding/icons/` sits next to them and holds the PNG masters the launcher
+    # icon generator and the Debian packaging consume, which have no business being bundled into
+    # the application.
+    - assets/branding/ocpt_logo_light.svg
+    - assets/branding/ocpt_logo_dark.svg
+    - assets/branding/ocpt_logo_glyph.svg
     - assets/fonts/courier_prime/
     - assets/fonts/roboto/
     - LICENSES/
@@ -175,6 +196,30 @@ flutter:
         - asset: assets/fonts/roboto/Roboto-BoldItalic.ttf
           weight: 700
           style: italic
+
+# Turns the branding masters of assets/branding/icons/ into every platform's launcher icon, through
+# `dart run icons_launcher:create`. The generated icons are committed, so this only has to be run
+# again when the mark itself changes.
+#
+# Linux is deliberately left out: the platform support of icons_launcher writes a snapcraft icon,
+# while this app ships a Debian package, whose icon and desktop entry are built from the same
+# masters by .github/actions/flutter-debian instead.
+icons_launcher:
+  image_path: "assets/branding/icons/ocpt_icon_1024.png"
+  platforms:
+    android:
+      enable: true
+      adaptive_background_color: "#6C5CE7"
+      adaptive_foreground_image: "assets/branding/icons/ocpt_icon_adaptive_foreground_1024.png"
+    ios:
+      enable: true
+      # iOS masks the icon itself and rejects any transparency, so it gets the opaque, full-bleed
+      # master rather than the rounded one every other platform uses.
+      image_path: "assets/branding/icons/ocpt_icon_ios_1024.png"
+    macos:
+      enable: true
+    windows:
+      enable: true
 
 flutter_intl:
   enabled: true

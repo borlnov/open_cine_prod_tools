@@ -61,9 +61,11 @@ class _FakeLocalesManager extends LocalesManager {
 /// A themes manager whose current theme/brightness are held in plain fields: see the bloc test
 /// for why this fake exists instead of a real [ActThemesManager].
 class _FakeActThemesManager extends ActThemesManager {
-  /// Class constructor
-  _FakeActThemesManager()
-    : super(
+  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// previous session.
+  _FakeActThemesManager({Brightness? brightness})
+    : _brightness = brightness,
+      super(
         propertiesGetter: () => throw UnimplementedError(),
         configGetter: () => throw UnimplementedError(),
         appThemes: OcptAppTheme.values,
@@ -157,7 +159,12 @@ void main() {
     OcptGlobalManager.instance;
   });
 
-  setUp(() async {
+  /// Registers fresh fake managers, replacing any already registered, with [brightness] standing
+  /// for a brightness the user had persisted in a previous session.
+  ///
+  /// [OcptSettingsBloc] resolves its managers directly from globalGetIt(), so this runs before
+  /// every test, and again in the test that needs a stored preference in place.
+  Future<void> registerFakeManagers({Brightness? brightness}) async {
     final managers = globalGetIt();
     if (managers.isRegistered<LocalesManager>()) {
       await managers.unregister<LocalesManager>();
@@ -170,7 +177,7 @@ void main() {
     }
 
     final locales = _FakeLocalesManager();
-    final themes = _FakeActThemesManager();
+    final themes = _FakeActThemesManager(brightness: brightness);
     addTearDown(locales.disposeFake);
     addTearDown(themes.disposeFake);
 
@@ -179,7 +186,9 @@ void main() {
       ..registerSingleton<LocalesManager>(locales)
       ..registerSingleton<ActThemesManager>(themes)
       ..registerSingleton<OcptRouterManager>(routerManager);
-  });
+  }
+
+  setUp(registerFakeManagers);
 
   /// Pumps [OcptSettingsView] backed by a fresh [OcptSettingsBloc] with the injected
   /// [appVersion], returning the bloc so tests can inspect its state.
@@ -225,6 +234,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bloc.state.brightness, Brightness.dark);
+  });
+
+  testWidgets("shows the brightness already stored instead of System", (tester) async {
+    await registerFakeManagers(brightness: Brightness.dark);
+
+    await pumpSettingsView(tester);
+    final context = tester.element(find.byType(OcptSettingsView));
+    final tr = Tr.of(context);
+
+    // The closed dropdown renders its selected item as the button's own child, so the label on
+    // screen is "Dark" and not the "System" one an unseeded state would have shown.
+    final dropdown = tester.widget<DropdownButton<Brightness?>>(
+      find.byType(DropdownButton<Brightness?>),
+    );
+    expect(dropdown.value, Brightness.dark);
+    expect(find.text(tr.settingsThemeDarkOption), findsOneWidget);
   });
 
   testWidgets("picking a language option dispatches the update to the bloc", (tester) async {

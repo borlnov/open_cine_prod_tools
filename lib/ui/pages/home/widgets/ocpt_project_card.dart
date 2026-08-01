@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
@@ -47,6 +48,7 @@ class OcptProjectCard extends StatelessWidget {
       child: InkWell(
         key: ValueKey(entry.project.path),
         onTap: exists ? onTap : null,
+        mouseCursor: ocptClickableCursor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

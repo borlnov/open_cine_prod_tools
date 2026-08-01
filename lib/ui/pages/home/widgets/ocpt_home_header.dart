@@ -4,8 +4,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 
-/// The top region of the home page: the app title, and the two primary actions of the page.
+/// The side of the application logo standing next to the home page's title: big enough to read as
+/// the app's mark on the one page that has room for it, small enough to stay under the title's own
+/// line height.
+const double _logoSize = 32;
+
+/// The top region of the home page: the app logo and title, and the two primary actions of the
+/// page.
 class OcptHomeHeader extends StatelessWidget {
   /// Called when the user taps the "New project" action.
   final VoidCallback onNewProject;
@@ -34,6 +41,8 @@ class OcptHomeHeader extends StatelessWidget {
 
     return Row(
       children: [
+        const OcptLogo(size: _logoSize),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(tr.appTitle, style: Theme.of(context).textTheme.headlineSmall),
         ),

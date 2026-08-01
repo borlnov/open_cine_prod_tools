@@ -1324,5 +1324,693 @@
         "type": "String"
       }
     }
+  },
+  "shotListSequencesPanelTitle": "Sequences",
+  "@shotListSequencesPanelTitle": {
+    "description": "Title of the shot list's left dock",
+    "context": "Displayed above the sequence tree of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListSequencesEmptyHint": "Sequences will appear here as the screenplay grows.",
+  "@shotListSequencesEmptyHint": {
+    "description": "Hint shown in the shot list's left dock when the screenplay has no scene yet",
+    "context": "Displayed in place of the sequence tree",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListShotsCount": "{count, plural, one{{count} shot} other{{count} shots}}",
+  "@shotListShotsCount": {
+    "description": "Shot count of a sequence, and of the whole shot list",
+    "context": "Displayed in the shot list's left dock and in its centre sequence header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListAverageDifficulty": "avg. difficulty {value}",
+  "@shotListAverageDifficulty": {
+    "description": "Average difficulty segment of a sequence summary",
+    "context": "Displayed in the shot list's left dock and in its centre sequence header",
+    "type": "text",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListLeftToShoot": "{count, plural, one{{count} left to shoot} other{{count} left to shoot}}",
+  "@shotListLeftToShoot": {
+    "description": "Number of shots of a sequence not filmed yet",
+    "context": "Displayed in the shot list's centre sequence header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListSequenceHeader": "Sequence {number} — {heading}",
+  "@shotListSequenceHeader": {
+    "description": "Header naming the sequence the shot table lists",
+    "context": "Displayed above the shot table of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      },
+      "heading": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListOrphanSequenceTitle": "Orphaned shots",
+  "@shotListOrphanSequenceTitle": {
+    "description": "Name of the group holding the shots whose scene was removed from the screenplay",
+    "context": "Displayed as the last entry of the shot list's left dock, and as its centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListAddShotAction": "+ Shot",
+  "@shotListAddShotAction": {
+    "description": "Action creating a shot at the end of the selected sequence",
+    "context": "Displayed in the footer of the shot list's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckTooltip": "This shot needs checking",
+  "@shotListNeedsCheckTooltip": {
+    "description": "Tooltip of the warning marker of a shot that needs checking",
+    "context": "Shown on hover over the warning marker in the shot list's left dock and table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckReasonCoveredTextChanged": "The screenplay text one of this shot's coverage ranges covers has changed.",
+  "@shotListNeedsCheckReasonCoveredTextChanged": {
+    "description": "Reason a shot needs checking: the covered text changed since the range was recorded",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckReasonCoverageOutOfBounds": "One of this shot's coverage ranges no longer fits inside its scene and was clamped.",
+  "@shotListNeedsCheckReasonCoverageOutOfBounds": {
+    "description": "Reason a shot needs checking: a coverage range no longer fits inside its scene",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckReasonSceneDeleted": "This shot's scene was removed from the screenplay.",
+  "@shotListNeedsCheckReasonSceneDeleted": {
+    "description": "Reason a shot needs checking: its scene was deleted from the screenplay",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNeedsCheckMarkAsCheckedAction": "Mark as checked",
+  "@shotListNeedsCheckMarkAsCheckedAction": {
+    "description": "Action clearing a shot's needs-checking flag",
+    "context": "Displayed in the shot inspector's Needs checking callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListShotsEmptyHint": "This sequence has no shot yet.",
+  "@shotListShotsEmptyHint": {
+    "description": "Hint shown in place of the shot table when the selected sequence has no shot",
+    "context": "Displayed in the centre of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNoSequenceSelectedHint": "Select a sequence to see its shots.",
+  "@shotListNoSequenceSelectedHint": {
+    "description": "Hint shown in place of the shot table when no sequence is selected",
+    "context": "Displayed in the centre of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnsMenuAction": "Columns",
+  "@shotListColumnsMenuAction": {
+    "description": "Label of the menu showing or hiding the optional columns of the shot table",
+    "context": "Displayed as a button above the shot table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnShot": "Shot",
+  "@shotListColumnShot": {
+    "description": "Header of the shot code column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnCharacters": "Characters",
+  "@shotListColumnCharacters": {
+    "description": "Header of the characters column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnSet": "Set",
+  "@shotListColumnSet": {
+    "description": "Header of the set column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnShotSize": "Shot size",
+  "@shotListColumnShotSize": {
+    "description": "Header of the shot size column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnFraming": "Framing & composition",
+  "@shotListColumnFraming": {
+    "description": "Header of the framing and composition column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnCameraMove": "Camera move",
+  "@shotListColumnCameraMove": {
+    "description": "Header of the camera move column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnLens": "Lens",
+  "@shotListColumnLens": {
+    "description": "Header of the lens column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnFormat": "Format",
+  "@shotListColumnFormat": {
+    "description": "Header of the recording format column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnDuration": "Duration (mm:ss)",
+  "@shotListColumnDuration": {
+    "description": "Header of the estimated duration column, stating the format its cells are written in",
+    "context": "Displayed in the shot table's header row, columns menu and exported workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnTakes": "Planned takes",
+  "@shotListColumnTakes": {
+    "description": "Header of the planned takes column, which counts the takes planned for a shot rather than the ones already shot",
+    "context": "Displayed in the shot table's header row, columns menu and exported workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnSound": "Sound",
+  "@shotListColumnSound": {
+    "description": "Header of the sound column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnDifficulty": "Diff.",
+  "@shotListColumnDifficulty": {
+    "description": "Header of the average difficulty column",
+    "context": "Displayed in the shot table's header row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnShootingDay": "Shooting day",
+  "@shotListColumnShootingDay": {
+    "description": "Header of the shooting day column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListColumnStatus": "Status",
+  "@shotListColumnStatus": {
+    "description": "Header of the shooting status column",
+    "context": "Displayed in the shot table's header row and columns menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatusToShoot": "To shoot",
+  "@shotListStatusToShoot": {
+    "description": "Name of the shooting status of a shot not filmed yet",
+    "context": "Displayed in the shot table's status column and in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatusShot": "Shot",
+  "@shotListStatusShot": {
+    "description": "Name of the shooting status of a shot already filmed and accepted",
+    "context": "Displayed in the shot table's status column and in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatusRetake": "Retake",
+  "@shotListStatusRetake": {
+    "description": "Name of the shooting status of a shot that must be filmed again",
+    "context": "Displayed in the shot table's status column and in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockInspectorTabLabel": "Inspector",
+  "@shotListRightDockInspectorTabLabel": {
+    "description": "Name of the shot inspector tab of the shot list's right dock",
+    "context": "Displayed in the tab row of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockMetadataTabLabel": "Metadata",
+  "@shotListRightDockMetadataTabLabel": {
+    "description": "Name of the metadata tab of the shot list's right dock",
+    "context": "Displayed in the tab row of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockCloseTooltip": "Close the panel",
+  "@shotListRightDockCloseTooltip": {
+    "description": "Tooltip of the close button of the shot list's right dock",
+    "context": "Shown on hover over the close button of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListNoShotSelectedHint": "Select a shot to see its details.",
+  "@shotListNoShotSelectedHint": {
+    "description": "Hint shown in the shot inspector when no shot is selected",
+    "context": "Displayed in the right dock of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorHeaderTitle": "Shot {code}",
+  "@shotListInspectorHeaderTitle": {
+    "description": "Header of the shot inspector, naming the selected shot",
+    "context": "Displayed at the top of the inspector tab of the shot list's right dock",
+    "type": "text",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListInspectorCharactersSectionTitle": "Characters in shot",
+  "@shotListInspectorCharactersSectionTitle": {
+    "description": "Title of the inspector's characters section",
+    "context": "Displayed above the character chips of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorCoverageSectionTitle": "Scenario coverage",
+  "@shotListInspectorCoverageSectionTitle": {
+    "description": "Title of the inspector's scenario coverage section",
+    "context": "Displayed above the scenario coverage editor of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageOrphanHint": "This shot's scene is gone: there is nothing left to cover.",
+  "@shotListCoverageOrphanHint": {
+    "description": "Hint shown in place of the coverage editor for an orphaned shot",
+    "context": "Displayed in the shot inspector's scenario coverage section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageModifiedBadge": "Modified",
+  "@shotListCoverageModifiedBadge": {
+    "description": "Badge on a coverage block whose text changed since it was recorded",
+    "context": "Displayed next to a block's label in the scenario coverage editor",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageAlsoCoveredBy": "Also covered by {codes}",
+  "@shotListCoverageAlsoCoveredBy": {
+    "description": "The other shots' codes covering the same coverage block",
+    "context": "Displayed under a block of the scenario coverage editor",
+    "type": "text",
+    "placeholders": {
+      "codes": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListCoverageWordsCovered": "{covered, plural, one{{covered} word covered of {total}} other{{covered} words covered of {total}}}",
+  "@shotListCoverageWordsCovered": {
+    "description": "Number of a scene's words covered by the shot, out of its total word count",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {
+      "covered": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListCoverageRangesCount": "{count, plural, one{{count} range} other{{count} ranges}}",
+  "@shotListCoverageRangesCount": {
+    "description": "Number of scenario coverage ranges the shot has recorded",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListCoverageSelectAction": "Select\u2026",
+  "@shotListCoverageSelectAction": {
+    "description": "Label of the button opening the dialog a shot's scenario coverage is selected in",
+    "context": "Shown in the shot inspector's scenario coverage section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageEmptyHint": "No screenplay text covered yet.",
+  "@shotListCoverageEmptyHint": {
+    "description": "Hint shown in the scenario coverage section of a shot covering nothing yet",
+    "context": "Shown in the shot inspector's scenario coverage section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageExtract": "\u00ab {text} \u00bb",
+  "@shotListCoverageExtract": {
+    "description": "One covered extract of the screenplay, quoted in the shot inspector",
+    "context": "Shown in the shot inspector's scenario coverage section, one per coverage range",
+    "type": "text",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "pushes the door open, hesitates"
+      }
+    }
+  },
+  "shotListCoverageDialogTitle": "Coverage \u2014 Shot {code}",
+  "@shotListCoverageDialogTitle": {
+    "description": "Title of the dialog a shot's scenario coverage is selected in",
+    "context": "Shown at the top of the scenario coverage dialog",
+    "type": "text",
+    "placeholders": {
+      "code": {
+        "type": "String",
+        "example": "1/3"
+      }
+    }
+  },
+  "shotListCoverageDialogCloseAction": "Close",
+  "@shotListCoverageDialogCloseAction": {
+    "description": "Label of the button closing the scenario coverage dialog",
+    "context": "Shown at the bottom of the scenario coverage dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageClearAllAction": "Clear all",
+  "@shotListCoverageClearAllAction": {
+    "description": "Action removing every scenario coverage range of the shot",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageHintNoAnchor": "Click a word to start a range; click a covered word to remove it.",
+  "@shotListCoverageHintNoAnchor": {
+    "description": "Interaction hint shown while no coverage range is being drawn",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCoverageHintPendingAnchor": "Click another word to close the range; it may run into the next blocks.",
+  "@shotListCoverageHintPendingAnchor": {
+    "description": "Interaction hint shown while a coverage range's first word is already clicked",
+    "context": "Displayed in the scenario coverage editor's footer",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorImageSectionTitle": "Image",
+  "@shotListInspectorImageSectionTitle": {
+    "description": "Title of the inspector's image section (shot size, framing, camera move, lens, format)",
+    "context": "Displayed above the image fields of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorDifficultySectionTitle": "Difficulty — avg. {value}",
+  "@shotListInspectorDifficultySectionTitle": {
+    "description": "Title of the inspector's difficulty section, naming the shot's average difficulty",
+    "context": "Displayed above the difficulty rows of the shot inspector",
+    "type": "text",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListInspectorProductionSectionTitle": "Production",
+  "@shotListInspectorProductionSectionTitle": {
+    "description": "Title of the inspector's production section (shooting day, duration, takes, sound, sequence)",
+    "context": "Displayed above the production fields of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorNotesSectionTitle": "Director's notes",
+  "@shotListInspectorNotesSectionTitle": {
+    "description": "Title of the inspector's director's notes section",
+    "context": "Displayed above the notes field of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorLocationSectionTitle": "Location scouting",
+  "@shotListInspectorLocationSectionTitle": {
+    "description": "Title of the inspector's location scouting section",
+    "context": "Displayed above the location scouting field of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorSequenceLabel": "Sequence",
+  "@shotListInspectorSequenceLabel": {
+    "description": "Label of the read-only sequence field",
+    "context": "Displayed in the shot inspector's production section and in the metadata tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorEstimatedDurationLabel": "Estimated duration (mm:ss)",
+  "@shotListInspectorEstimatedDurationLabel": {
+    "description": "Label of the estimated duration field, stating the format it is written in",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorEstimatedDurationHint": "mm:ss",
+  "@shotListInspectorEstimatedDurationHint": {
+    "description": "Placeholder of the estimated duration field, shown while it is empty",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorEstimatedDurationError": "Use the mm:ss format",
+  "@shotListInspectorEstimatedDurationError": {
+    "description": "Error shown under the estimated duration field when what it holds is not a duration",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListInspectorPlannedTakesLabel": "Planned takes",
+  "@shotListInspectorPlannedTakesLabel": {
+    "description": "Label of the planned takes field",
+    "context": "Displayed in the shot inspector's production section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDifficultyAxisActing": "Acting",
+  "@shotListDifficultyAxisActing": {
+    "description": "Label of the acting difficulty axis",
+    "context": "Displayed in the shot inspector's difficulty section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCharactersEmptyHint": "No speaking characters yet.",
+  "@shotListCharactersEmptyHint": {
+    "description": "Hint shown in place of the character chips when the screenplay has no speaking character",
+    "context": "Displayed in the shot inspector's characters section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListCharacterRemovedLabel": "{name} (removed)",
+  "@shotListCharacterRemovedLabel": {
+    "description": "Label of a character chip for a character no longer speaking in the screenplay",
+    "context": "Displayed in the shot inspector's characters section",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListDeleteShotAction": "Delete shot",
+  "@shotListDeleteShotAction": {
+    "description": "Action deleting the selected shot",
+    "context": "Displayed at the bottom of the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteConfirmTitle": "Delete this shot?",
+  "@shotListDeleteConfirmTitle": {
+    "description": "Title of the shot deletion confirmation dialog",
+    "context": "Displayed after clicking \"Delete shot\" in the shot inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteConfirmMessage": "Shot {code} will be permanently deleted.",
+  "@shotListDeleteConfirmMessage": {
+    "description": "Message of the shot deletion confirmation dialog, naming the shot",
+    "context": "Displayed after clicking \"Delete shot\" in the shot inspector",
+    "type": "text",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListDeleteConfirmCancelAction": "Cancel",
+  "@shotListDeleteConfirmCancelAction": {
+    "description": "Action cancelling the shot deletion",
+    "context": "Displayed in the shot deletion confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteConfirmDeleteAction": "Delete",
+  "@shotListDeleteConfirmDeleteAction": {
+    "description": "Action confirming the shot deletion",
+    "context": "Displayed in the shot deletion confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRemovedCharacterBanner": "{count, plural, one{{name} was removed from the screenplay but still appears in {count} shot: {codes}.} other{{name} was removed from the screenplay but still appears in {count} shots: {codes}.}}",
+  "@shotListRemovedCharacterBanner": {
+    "description": "Alert naming a character no longer speaking in the screenplay but still attached to shots",
+    "context": "Displayed above the shot table of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "codes": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListRemovedCharacterRemoveAllAction": "Remove from every shot",
+  "@shotListRemovedCharacterRemoveAllAction": {
+    "description": "Action detaching a removed character from every shot carrying it",
+    "context": "Displayed in the deleted-character banner of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRemovedCharacterReplaceLabel": "Replace with:",
+  "@shotListRemovedCharacterReplaceLabel": {
+    "description": "Label introducing the chips replacing a removed character on every shot",
+    "context": "Displayed in the deleted-character banner of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListDeleteOrphanedShotTooltip": "Delete this orphaned shot",
+  "@shotListDeleteOrphanedShotTooltip": {
+    "description": "Tooltip of the delete button of a shot whose scene was removed from the screenplay",
+    "context": "Displayed on the orphan group's shot rows in the shot list's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListStatsSequences": "{count, plural, one{{count} sequence} other{{count} sequences}}",
+  "@shotListStatsSequences": {
+    "description": "Number of sequences the shot list holds",
+    "context": "Displayed in the status bar of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListStatsFilmed": "{count, plural, one{{count} filmed} other{{count} filmed}}",
+  "@shotListStatsFilmed": {
+    "description": "Number of shots already filmed",
+    "context": "Displayed in the status bar of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListStatsToCheck": "{count, plural, one{{count} to check} other{{count} to check}}",
+  "@shotListStatsToCheck": {
+    "description": "Number of shots flagged as needing checking",
+    "context": "Displayed at the right end of the status bar of the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListResetPanelLayoutAction": "Reset panel layout",
+  "@shotListResetPanelLayoutAction": {
+    "description": "Action restoring the shot list's dock widths to their defaults",
+    "context": "Displayed in the overflow menu of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListWriteError": "The change could not be saved.",
+  "@shotListWriteError": {
+    "description": "Error shown when a shot list change couldn't be written to the project",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxAction": "Export XLSX",
+  "@shotListExportXlsxAction": {
+    "description": "Action exporting the whole shot list to an Excel workbook",
+    "context": "Displayed next to the columns menu, above the shot table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxMenuAction": "Export the shot list…",
+  "@shotListExportXlsxMenuAction": {
+    "description": "Action exporting the whole shot list to an Excel workbook",
+    "context": "Displayed in the overflow menu of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxFileTypeLabel": "Excel workbook",
+  "@shotListExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the shot list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxSheetName": "Shot list",
+  "@shotListExportXlsxSheetName": {
+    "description": "Name given to the single sheet of the exported workbook",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxSuccessMessage": "Exported to {path}",
+  "@shotListExportXlsxSuccessMessage": {
+    "description": "Message shown when the shot list was successfully exported to an Excel workbook",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListExportXlsxError": "The shot list could not be exported.",
+  "@shotListExportXlsxError": {
+    "description": "Error shown when exporting the shot list to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
   }
 }

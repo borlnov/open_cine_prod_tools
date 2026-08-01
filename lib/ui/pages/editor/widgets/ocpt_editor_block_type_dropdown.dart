@@ -4,7 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
 
 /// The 11 assignable [FountainLineType]s (every value except [FountainLineType.blank], which has
 /// no manual-choice meaning), in the order [OcptEditorBlockTypeDropdown] lists them: the 6
@@ -52,10 +54,11 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
           child: DropdownButton<FountainLineType>(
             value: currentType,
             isDense: true,
+            mouseCursor: ocptClickableCursor,
             style: Theme.of(context).textTheme.labelSmall,
             items: [
               for (final type in _ocptDropdownTypes)
-                DropdownMenuItem(value: type, child: Text(_labelOf(tr, type))),
+                DropdownMenuItem(value: type, child: Text(ocptFountainLineTypeLabel(tr, type))),
             ],
             onChanged: (type) {
               if (type != null) {
@@ -67,20 +70,4 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
       ),
     );
   }
-
-  /// The localized label of [type], read from [tr].
-  String _labelOf(Tr tr, FountainLineType type) => switch (type) {
-    FountainLineType.sceneHeading => tr.editorBlockTypeSceneHeading,
-    FountainLineType.action => tr.editorBlockTypeAction,
-    FountainLineType.character => tr.editorBlockTypeCharacter,
-    FountainLineType.parenthetical => tr.editorBlockTypeParenthetical,
-    FountainLineType.dialogue => tr.editorBlockTypeDialogue,
-    FountainLineType.transition => tr.editorBlockTypeTransition,
-    FountainLineType.centeredText => tr.editorBlockTypeCenteredText,
-    FountainLineType.lyrics => tr.editorBlockTypeLyrics,
-    FountainLineType.section => tr.editorBlockTypeSection,
-    FountainLineType.synopsis => tr.editorBlockTypeSynopsis,
-    FountainLineType.pageBreak => tr.editorBlockTypePageBreak,
-    FountainLineType.blank => "",
-  };
 }

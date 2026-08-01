@@ -21,6 +21,9 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
+; Shows the application's own icon in "Apps & features", taken from the executable, which the
+; Flutter runner builds with windows/runner/resources/app_icon.ico embedded.
+UninstallDisplayIcon={app}\{#MyAppExeName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputBaseFilename={{OUTPUT_BASE_FILENAME}}

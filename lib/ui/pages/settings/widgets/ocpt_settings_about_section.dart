@@ -4,13 +4,19 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// The URL of the application's GitHub repository, opened by the "GitHub repository" row.
 const _githubRepositoryUrl = "https://github.com/borlnov/open_cine_prod_tools";
+
+/// The side of the application logo standing next to the app's name and version: the height of the
+/// three lines it sits beside, so the card reads as one block rather than as a logo with a caption.
+const double _logoSize = 56;
 
 /// The settings page's "About" section card: the app name, its version, its license, a link to
 /// the GitHub repository, and a row opening the third-party licenses page.
@@ -35,14 +41,32 @@ class OcptSettingsAboutSection extends StatelessWidget {
           children: [
             Text(tr.settingsAboutSectionTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            Text(tr.appTitle, style: theme.textTheme.bodyLarge),
-            const SizedBox(height: 4),
-            Text(tr.settingsAboutVersionLabel(appVersion), style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 4),
-            Text(
-              // SPDX identifiers aren't translated content, unlike every other string here.
-              "Apache-2.0",
-              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const OcptLogo(size: _logoSize),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(tr.appTitle, style: theme.textTheme.bodyLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr.settingsAboutVersionLabel(appVersion),
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      // SPDX identifiers aren't translated content, unlike every other string
+                      // here.
+                      "Apache-2.0",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             _OcptAboutRow(
@@ -91,6 +115,7 @@ class _OcptAboutRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      mouseCursor: ocptClickableCursor,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(

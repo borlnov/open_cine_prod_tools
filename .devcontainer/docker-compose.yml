@@ -4,19 +4,9 @@
 
 # Dev container service for Open Cine Prod Tools.
 #
-# Two mount modes, selected entirely by an OPTIONAL .devcontainer/.env file:
-#
-#   * Simple (default, no .env): the repository clone is mounted at
-#     /workspaces/open_cine_prod_tools and nothing else from the host is exposed. Use this if you
-#     don't need git worktrees.
-#
-#   * Worktree (opt-in via .env): the PROJECT ROOT one level above the clone is mounted at
-#     /workspaces, so the clone (/workspaces/open_cine_prod_tools) and its sibling worktrees
-#     (/workspaces/<branch>) are all visible inside the container. This lets several agents
-#     work on different branches in parallel. See .env.example and README.md.
-#
-# In BOTH modes the clone ends up at /workspaces/open_cine_prod_tools, which is why devcontainer.json
-# can keep a single static workspaceFolder regardless of which mode is active.
+# The repository clone is mounted at /workspaces/open_cine_prod_tools and nothing else from the host
+# is exposed. Git worktrees live inside the clone, under the gitignored ./worktrees/ directory, so
+# they need no extra mount — see ../worktrees/README.md.
 #
 # This file replaces the former devcontainer.json `runArgs`, `workspaceMount` and `build`, none
 # of which are honoured once a container is Docker Compose based.
@@ -31,24 +21,16 @@ services:
         USERNAME: debian
     # Was runArgs: --network=host
     network_mode: host
-    # Forward the gh token into the container as a real env var. The value comes from the
-    # auto-loaded .devcontainer/.env (Compose substitutes it here; see .env.example). Optional: if
-    # unset it resolves to empty and gh just falls back to `gh auth login`. Claude needs nothing
-    # here — it's an in-container `claude` sign-in.
-    environment:
-      GH_TOKEN: ${GH_TOKEN:-}
+    # No tool credentials are passed in from the host: both gh and Claude Code are signed into from
+    # inside the container once, and their config volumes below keep that login across rebuilds.
     volumes:
-      # Workspace mount. Defaults to simple mode: clone -> /workspaces/open_cine_prod_tools.
-      # Worktree users set both vars in .devcontainer/.env (see .env.example):
-      #   WORKSPACE_MOUNT_SOURCE=../..   # the project root, one level above the clone
-      #   WORKSPACE_MOUNT_TARGET=/workspaces
-      # Relative sources resolve against this file's directory (.devcontainer): `..` is the clone,
-      # `../..` is the project root that also contains the sibling worktrees.
+      # Workspace mount: the clone (`..`, i.e. the parent of this file's .devcontainer directory)
+      # at /workspaces/open_cine_prod_tools.
       #
-      # The simple-mode default target below MUST equal workspaceFolder in devcontainer.json (a mount
-      # target inherently has to). That file is the single source of truth; this is the one value
-      # that has to be kept in sync with it by hand.
-      - ${WORKSPACE_MOUNT_SOURCE:-..}:${WORKSPACE_MOUNT_TARGET:-/workspaces/open_cine_prod_tools}:cached
+      # The target below MUST equal workspaceFolder in devcontainer.json (a mount target inherently
+      # has to). That file is the single source of truth; this is the one value that has to be kept
+      # in sync with it by hand.
+      - ..:/workspaces/open_cine_prod_tools:cached
       # Was runArgs: --volume=/tmp/.X11-unix:/tmp/.X11-unix:z. Forwards the X11 socket so the Flutter
       # Linux desktop app can open a window from inside the container.
       - /tmp/.X11-unix:/tmp/.X11-unix:z
@@ -57,6 +39,12 @@ services:
       # absolute in-container paths that a shared host ~/.claude would leak across containers/users. The
       # Dockerfile pre-creates ~/.claude so this volume initialises with user ownership. See README.md.
       - ocpt-claude-config:/home/debian/.claude
+      # GitHub CLI credentials (hosts.yml, written by `gh auth login`; GH_CONFIG_DIR points here) in
+      # a named volume, so the interactive login survives rebuilds. Only the gh directory is
+      # mounted, never the whole ~/.config: the image and Flutter write their own state next to it,
+      # and image content is copied into a named volume once at creation, so it would then go stale.
+      # The Dockerfile pre-creates ~/.config/gh so this volume initialises with user ownership.
+      - ocpt-gh-config:/home/debian/.config/gh
       # Pub package cache in a named volume: without it every fresh `docker compose run` container
       # starts with an empty ~/.pub-cache and re-downloads all dependencies. The Dockerfile
       # pre-creates the directory so the volume initialises with user ownership.
@@ -64,8 +52,12 @@ services:
     # The image's CMD is just bash; keep the service alive so VS Code can attach into it.
     command: sleep infinity
 
+# One volume per tool rather than a shared credentials volume, so each can be reset on its own
+# (`docker volume rm ocpt-gh-config` to force a fresh gh login, without touching Claude).
 volumes:
   # Isolated per-container Claude Code config. Persists across rebuilds, shared with nothing.
   ocpt-claude-config:
+  # Isolated per-container gh config. Persists across rebuilds, shared with nothing.
+  ocpt-gh-config:
   # Pub package cache shared by successive containers of this project (see the mount above).
   ocpt-pub-cache:
