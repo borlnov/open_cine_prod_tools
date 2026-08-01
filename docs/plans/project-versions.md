@@ -13,12 +13,34 @@ checkpoint between each milestone. **Read the repository `CLAUDE.md` first** —
 its architecture, ways of working, coding standards, licensing rules and verification gates, and
 does not repeat them.
 
-**This step comes after the shot list mode ([#19](https://github.com/borlnov/open_cine_prod_tools/issues/19),
-`docs/plans/shot-list-mode.md`)** and completes
-the mock-up that step implemented: the `Versions` right-dock tab and the read-only preview banner
-were deliberately carved out of it (decision 7 of that plan) because they are a cross-cutting
-concern, not a mode. Nothing here is screenplay-specific or shot-list-specific: versions are a
-property of the **project**.
+**This step comes after the shot list mode
+([#19](https://github.com/borlnov/open_cine_prod_tools/issues/19))** and completes the mock-up that
+step implemented: the `Versions` right-dock tab and the read-only preview banner were deliberately
+carved out of it because they are a cross-cutting concern, not a mode. Nothing here is
+screenplay-specific or shot-list-specific: versions are a property of the **project**.
+
+## 0. Prerequisite — the sync-ready data model
+
+**M1 of `docs/plans/collaboration-and-sync.md` ships before this step starts.** That milestone
+([ADR 0010](../adr/0010-sync-ready-data-model-prerequisites.md)) turns every hard `delete()` into an
+`isDeleted` tombstone, adds `sortKey` beside `position` as the real ordering key, and adds the
+`row_field_versions` sidecar holding per-column version stamps. It takes schema **v3**; this step is
+therefore schema **v4**.
+
+That ordering is not a preference, it is what keeps this step from being written twice. Two things
+here are new call sites against exactly the three properties ADR 0010 fixes:
+
+- the payload codec (§4.2.1) freezes a column list in a format that is then stored inside users'
+  `.ocpt` files, so a column added afterwards means a payload format migration;
+- `restoreVersion` (§4.5) rewrites most of the project at once, and the obvious way to write it is
+  a bulk delete-and-reinsert — which would be the single largest hard delete in the app.
+
+Built before ADR 0010, both would have to be rewritten against it, and the versions already created
+in users' files would need migrating. Built after, they are written once, correctly.
+
+The rest of the collaboration plan (the changeset engine, M3 onwards) is **not** a prerequisite, but
+this plan is written so that nothing in it has to be redesigned when that engine lands: §4.3 and
+§4.5 call out where sync will attach.
 
 ---
 
@@ -28,8 +50,10 @@ property of the **project**.
 
 Open Cine Prod Tools is an open-source (Apache-2.0) suite of film-production tools: a Fountain
 screenplay editor and a shot list, inside a workspace shell that hosts four production modes.
-Storage is local only — one SQLite file per project (`.ocpt`, via drift). There are no accounts, no
-server and no network: everything in this step happens inside a single file on the user's disk.
+Storage is local only — one SQLite file per project (`.ocpt`, via drift). There are no accounts and
+no network yet: everything in this step happens inside a single file on the user's disk. Sharing
+that file between machines is the collaboration plan's job, not this one's — but the schema this
+step builds on is already the sync-ready one, and §0 explains why that matters here.
 
 ### 1.2 Structure that matters here
 
@@ -38,10 +62,14 @@ server and no network: everything in this step happens inside a single file on t
   `ValueKeeperWithStream<OcptOpenProjectModel?>` and exposed through `currentProject` /
   `currentProjectStream`. It also owns `OcptScreenplayService` and `OcptSceneIndexService` (and,
   after step 19, `OcptShotListService` and `OcptShotCoverageService`).
-- **Every read and every write in the app goes through `currentProject.database`.** Grep
+- **Every read and every write *the user drives* goes through `currentProject.database`.** Grep
   `editor_bloc.dart` for `project.database`: the bloc never holds a connection of its own. This
   single fact is what makes §4.3 possible, and it is the most important thing to know before
-  reading this plan.
+  reading this plan. Note the qualifier, added when this plan was reconciled with the sync
+  strategy: once `OcptSyncManager` exists it applies incoming changesets to the project **file**
+  whether or not the user is previewing a version, so it is the one component that must not read
+  its database off the open-project model's active slot. §4.3 gives it a slot of its own rather
+  than leaving it to find out the hard way.
 - **`OcptProjectDatabase`** already has a `.memory()` constructor (used by tests) alongside its
   file-backed one.
 - **`project_info`** is a single-row header table (`id` always 1) carrying `name`, `createdAt`,
@@ -142,7 +170,8 @@ deserializing every payload to draw a list.
 
 ### 3.5 Decisions
 
-All nine were settled with Benoit before this plan was finalised. They are not open questions.
+Decisions 1 to 9 were settled with Benoit before this plan was finalised; 10 to 13 were added when
+the plan was reconciled with the collaboration strategy. They are not open questions.
 
 | # | Decision |
 | - | -------- |
@@ -153,8 +182,12 @@ All nine were settled with Benoit before this plan was finalised. They are not o
 | 5 | **Versions are never pruned automatically.** Unlike snapshots, only the user deletes them. |
 | 6 | **Restoring first auto-creates a safety version of the working copy**, named `Before restoring <name>`, so a restore can itself be undone. It appears in the list like any other version. |
 | 7 | **In preview, the screenplay mode renders the read-only formatted preview, not an editor.** Reusing `OcptEditorPreview` costs nothing; making the styled editor read-only would mean a second super_editor rendering path (`SuperReader`, its own stylesheet, its own title-page components) to maintain forever. |
-| 8 | **There is no author field.** The app has no accounts, no network and no second user; a version carries its name, its note and its date, and nothing that pretends to be an identity. Revisit only if the project ever becomes multi-user. |
+| 8 | **There is no author field, but the row records `createdByDeviceId`.** The app has no accounts and no identities, and a version must not pretend otherwise: nothing in the UI names a person. Decision 8's original revisit condition — "if the project ever becomes multi-user" — is however already met by the collaboration strategy, and ADR 0010 mints a `deviceId` at first launch anyway, so the column is added now, unused by the UI. Adding it later would cost a payload format instead. |
 | 9 | **The payload carries the full page setup — page format *and* margins.** Restoring a version restores the pagination it was written against, so the page count shown on its card stays true. See §4.2.2 for the consequence this has, since the margins are an app-wide preference rather than project data. |
+| 10 | **`project_versions` is a local table and is never synchronised.** Versions are one person's working history of their own replica, payloads are hundreds of kilobytes each, and pushing them through a changeset log would dominate the sync traffic for no collaborative gain. `project_info.currentVersionId` is local for the same reason: a restore on one machine must not silently move another machine's pointer. Sharing a version between people is what exporting a project file is for, and it is out of scope (§6). |
+| 11 | **Restoring writes tombstones and version stamps like any other edit — it never hard-deletes.** ADR 0010 forbids the hard delete, and a restore that skipped the per-column stamps would be undone at the next merge by a replica whose stamps are higher. See §4.5.1: this is the single subtlest consequence of combining the two features, and it applies from the moment the schema has tombstones, long before any sync engine exists. |
+| 12 | **The payload carries `row_field_versions` for the rows it carries.** Restoring rewinds the data, so it must rewind the stamps with it; leaving the stamps at their working-copy values would let a merge treat restored columns as older than an edit the restore was meant to supersede. They are cheap — the payload already carries every row those stamps describe. |
+| 13 | **The payload codec migrates old formats, it does not only reject unknown ones.** A payload lives inside a user's `.ocpt` for as long as the version does, so the format outlives the app build that wrote it. The codec upgrades any format it knows to the current one on decode, and rejects only formats from the *future*. See §4.2.3. |
 
 ---
 
@@ -179,7 +212,7 @@ lib/ui/pages/workspace/widgets/ ocpt_project_versions_panel.dart
                                 ocpt_workspace_shell.dart           (+ banner slot, read-only pill)
 ```
 
-### 4.2 Database — schema v3
+### 4.2 Database — schema v4
 
 **`project_versions`** (`@DataClassName('OcptProjectVersionRow')`)
 
@@ -193,14 +226,21 @@ lib/ui/pages/workspace/widgets/ ocpt_project_versions_panel.dart
 | `payloadFormat` | int | the payload's own format version, **independent of the drift schema version** |
 | `payload` | text | the serialized project state, §4.2.1 |
 | `summaryJson` | text | the counters of §3.4 |
+| `createdByDeviceId` | text | the `OcptPropertiesManager.deviceId` of the replica that created it, decision 8 — recorded, never shown |
+
+The table is **local**: no `isDeleted`, no `sortKey`, no `row_field_versions` stamps, and it is
+absent from the synchronised set (decision 10). Say so in its doc comment, next to the sentence
+distinguishing it from `screenplay_snapshots`, so the next person adding a table does not copy the
+wrong precedent.
 
 **`project_info`** gains `currentVersionId` (text?, nullable, references `project_versions.id`):
-which version the working copy descends from. Null in a project that has never had one.
+which version the working copy descends from. Null in a project that has never had one. Local as
+well, for the reason decision 10 gives.
 
-**Migration.** `schemaVersion` goes from 2 (shot list) to 3: `onUpgrade` creates
-`project_versions` and adds the `currentVersionId` column. Additive only, like the previous one.
-If step 19 has not landed when this is built, this becomes v2 instead and the payload simply has no
-shot-list section — the payload format is versioned precisely so that this is a non-event.
+**Migration.** `schemaVersion` goes from 3 (the sync-ready data model, §0) to 4: `onUpgrade` creates
+`project_versions` and adds the `currentVersionId` column. Additive only, like the two before it.
+Its test starts from a **v3** database, and — since drift replays migrations in order — from a v1
+and a v2 one as well, checking each lands on the same v4 shape with every pre-existing row intact.
 
 #### 4.2.1 The payload
 
@@ -212,11 +252,15 @@ payload's shape. It encodes to and decodes from a plain JSON object:
   "payloadFormat": 1,
   "screenplays":      [ { id, title, fountainText, updatedAt }, … ],
   "scenes":           [ { id, screenplayId, position, heading, sceneNumber,
-                          charStart, charEnd }, … ],
-  "shots":            [ … every column of the shots table … ],
-  "shotCharacters":   [ { shotId, characterName, position }, … ],
+                          charStart, charEnd, isDeleted }, … ],
+  "shots":            [ … every column of the shots table, isDeleted and
+                          sortKey included … ],
+  "shotCharacters":   [ { shotId, characterName, position, sortKey,
+                          isDeleted }, … ],
   "shotCoverages":    [ { id, shotId, sceneId, startOffset, endOffset,
-                          coveredTextDigest }, … ],
+                          coveredTextDigest, isDeleted }, … ],
+  "rowFieldVersions": [ { tableName, rowId, columnName, version,
+                          deviceId }, … ],
   "projectSettings":  { pageFormat, settingsJson },
   "pageMargins":      { … the OcptPropertiesManager.pageMargins value … }
 }
@@ -225,9 +269,19 @@ payload's shape. It encodes to and decodes from a plain JSON object:
 Rows are stored **verbatim, with their primary keys** — see decision 2. Encoding is one query per
 table; decoding is one bulk insert per table inside a single transaction.
 
-The codec must round-trip: `decode(encode(state))` equals `state`, tested directly. It must also
-reject a `payloadFormat` it does not know, with a clear localised error, rather than half-restoring
-a project.
+Three of those fields exist because of ADR 0010, and each is load-bearing:
+
+- **`isDeleted`** — tombstones are rows, so a version that carried only the live rows would
+  resurrect, on restore, everything the user had deleted since. The payload carries the tombstones
+  and the restore reinstates them as tombstones.
+- **`sortKey`** — after ADR 0010 this, not `position`, is what orders a group. A payload that
+  carried `position` alone would restore a shot list in an undefined order. `position` stays in the
+  payload only because it is still a column; `sortKey` is what the restored rows are ordered by.
+- **`rowFieldVersions`** — decision 12. Scoped to the rows the payload carries, so it is encoded by
+  joining on those ids rather than dumping the whole sidecar table.
+
+The codec must round-trip: `decode(encode(state))` equals `state`, tested directly — including the
+stamps, which is the test that catches a codec silently dropping the sidecar.
 
 Payloads are stored as plain JSON text. A 120-page screenplay is roughly 150 KB, so fifty versions
 of a finished feature land in single-digit megabytes — acceptable for a local file. Compression is
@@ -257,6 +311,25 @@ the accepted cost of having a version's page count stay true, and it must be han
 Every call site keeps going through `OcptPageSetup.toMetrics()`; what changes is where the
 `OcptPageSetup` being rendered comes from when a version is previewed.
 
+#### 4.2.3 Payload formats outlive app builds
+
+A payload sits in a user's `.ocpt` for as long as the version does, so the build that reads it is
+rarely the build that wrote it. `payloadFormat` therefore has to be a **migration path, not just a
+guard** (decision 13):
+
+- decoding a format **older** than the current one upgrades it in memory, field by field, and the
+  upgraded payload is what gets restored — a stored payload is never rewritten in place, so a
+  version stays byte-identical to what was captured;
+- decoding a format **newer** than the current one — a file touched by a later build — fails with a
+  clear localised error naming the app version, rather than half-restoring a project;
+- every upgrade step is a named function with its own test, and the fixtures of retired formats are
+  kept: the point of the field is lost if nothing ever exercises the old branch.
+
+Format 1 is the shape of §4.2.1, which already contains the ADR 0010 columns. The first upgrade step
+this will need in practice is the next column any synchronised table gains — the codec's column list
+is a hand-written mirror of the schema, and reviewers should treat "a table gained a column" as "the
+codec and its payload format need looking at".
+
 ### 4.3 Preview — the in-memory database swap
 
 This is the core of the step, and it is small because of §1.2's second bullet.
@@ -276,7 +349,31 @@ does **not** need any mode to learn a second data path. Instead:
 The project file is never opened for writing during a preview, and a crash mid-preview leaves it
 exactly as it was.
 
-Two consequences to handle explicitly:
+#### 4.3.1 The model carries two databases, not one
+
+The swap above works because the app has exactly one writer. `OcptSyncManager` will be a second
+one, and it writes to the **project file** on its own schedule — a changeset arriving while the user
+is reading a version has nothing to do with that version and must land in the working copy.
+
+So `OcptOpenProjectModel` gets two slots rather than one substituted:
+
+- **`database`** — what the modes read and what the user's edits go through. The memory database
+  while previewing, the file one otherwise. Every existing call site keeps compiling and keeps
+  meaning what it meant.
+- **`fileDatabase`** — always the file-backed connection, never swapped, never closed by
+  `previewVersion`. Outside a preview the two are the same instance.
+
+Nothing in this step reads `fileDatabase` except `OcptProjectVersionsService` itself, which must
+create, list, delete and restore versions against the real file even while a preview is on screen
+(deleting a version you are not previewing is legitimate mid-preview). It exists mainly so that the
+sync engine has a correct slot to attach to instead of forcing this design open later — a two-field
+model now costs one field and a doc comment; retrofitting it after three modes and a sync manager
+read `database` costs an audit of every call site.
+
+`previewVersion` therefore opens the memory database **in addition to** the file one, and
+`exitPreview` closes only the memory one.
+
+Two further consequences to handle explicitly:
 
 - **`OcptOpenProjectModel.props`** currently excludes `database` from equality. `isReadOnly` and
   the previewed version's id **must** be part of it, or entering preview would emit a model that
@@ -296,6 +393,15 @@ The service layer defends itself too: every mutating method of `OcptScreenplaySe
 `OcptShotListService` and `OcptShotCoverageService` is a no-op that logs a warning when handed a
 read-only project. A UI bug must not be able to corrupt a preview into the working copy.
 
+**What `isReadOnly` means, precisely: the user may not edit what is on screen.** It is not a global
+write lock on the project, and the difference matters the moment sync exists. A merge applying an
+incoming changeset is not a user edit, it targets `fileDatabase` (§4.3.1), and it must go through
+whether or not a preview is up — a read-only gate that swallowed it would drop another person's
+work silently, which is the worst failure mode this design has. The gate is therefore expressed as
+"this call was handed the preview database", not "this project is currently read-only", and
+`OcptChangesetService` never passes through it. State this in the doc comment of every guard, or
+someone will eventually reuse the flag for the wrong thing.
+
 `OcptWorkspaceShell` gains exactly two things — the only changes this step makes to it:
 
 - an optional `banner` slot rendered between the toolbar and the docks row, and
@@ -312,7 +418,7 @@ Modes pass both from their own state. `OcptWorkspaceReadOnlyBanner` is built onc
 | --------- | --------- |
 | `listVersions` | newest first, **without** deserializing payloads — cards render from `summaryJson` |
 | `createVersion(name, note)` | encodes the working copy, computes the summary, inserts, sets `project_info.currentVersionId` |
-| `restoreVersion(id)` | auto-creates the safety version of decision 6, then, in one transaction, deletes every row of the payload's tables and bulk-inserts the decoded ones, and sets `currentVersionId`; once that has committed, and only then, writes the payload's margins through `OcptPropertiesManager` (§4.2.2) |
+| `restoreVersion(id)` | auto-creates the safety version of decision 6, then applies the payload in one transaction as §4.5.1 describes — tombstones and version stamps, never a hard delete — and sets `currentVersionId`; once that has committed, and only then, writes the payload's margins through `OcptPropertiesManager` (§4.2.2) |
 | `forkFromVersion(id)` | `restoreVersion` followed by `createVersion`, so the new branch point is itself a named entry |
 | `deleteVersion(id)` | refuses to delete the version currently being previewed; clears `currentVersionId` if it pointed there |
 
@@ -323,6 +429,56 @@ the manager's open-project state rather than the database.
 be transactional, tested against a project that has diverged substantially from the version being
 restored, and it must leave the app on a consistent state even if the modes were showing stale
 data: after it completes, the manager re-emits the project model so every mode reloads.
+
+#### 4.5.1 A restore is an edit, not a reset
+
+The obvious implementation — delete every row of the payload's tables, bulk-insert the decoded ones
+— is wrong twice over once ADR 0010 has landed, and both failures are silent.
+
+**It hard-deletes.** ADR 0010 turned deletion into an `isDeleted` update precisely so a replica that
+was offline can learn a row is gone. A row hard-deleted by a restore leaves no trace to merge, so a
+replica that still has it re-inserts it.
+
+**It leaves the version stamps behind.** `row_field_versions` is what decides, per column, whose
+value wins. Rewriting a column's value without bumping its stamp means the restored value carries an
+older version than the edit it was meant to supersede — so the next merge cheerfully replaces the
+restored project with the state the user had just deliberately abandoned. The restore appears to
+work, and is undone minutes later by a device nobody touched.
+
+The restore therefore expresses itself in the same vocabulary as any other write, inside one
+transaction, with `PRAGMA defer_foreign_keys = ON` (ADR 0010 — the payload's rows legitimately
+arrive in an order that violates a foreign key part way through):
+
+1. **Rows in the payload, absent from the working copy** — insert, and stamp every column.
+2. **Rows in both** — update, column by column, and bump the stamp of each column whose value
+   actually changes. A column that already matches the payload is not touched and not stamped:
+   this is what keeps a restore from stomping an unrelated concurrent edit that happened to agree.
+3. **Rows in the working copy, absent from the payload** — set `isDeleted`, and stamp it. Not
+   deleted.
+4. **Rows the payload carries as tombstones** — reinstated as tombstones, same as any other row.
+
+Stamps are written with the local `deviceId` and a version strictly above the highest the row's
+column currently holds, so a restore reads to every other replica as what it is: a deliberate, most
+recent edit.
+
+`scenes` is the one exception, and it needs none of this: ADR 0010 keeps it out of the merge
+entirely, so its rows are replaced outright — verbatim, ids included, per decision 2, which is
+exactly what stops the restored `shots.sceneId` references from dangling.
+
+Two more obligations, both easy to miss:
+
+- **Snapshot the screenplay at the restore point.** `screenplays.fountainText` is not merged
+  column-wise: ADR 0010 reconciles it by a three-way line merge against the nearest common
+  `screenplay_snapshots` row. A restore replaces the whole text in one write, so without a snapshot
+  taken at that moment the merge base skips the discontinuity and the three-way merge reconciles
+  against text that never existed on this replica. `restoreVersion` writes a snapshot before
+  applying the payload, with a reason of its own added to `OcptSnapshotReason`. Note this is
+  unrelated to decision 6's safety *version* — different table, different purpose, both needed.
+- **Publishing the restore.** Once the relay exists (M4 of the collaboration plan), a restore is
+  also the ideal moment to use its *upload a snapshot* route: it is by definition a complete,
+  self-consistent project state, and it lets the relay prune the changesets below it. That wiring
+  belongs to the collaboration plan, not here; what this step owes it is that steps 1-4 above leave
+  the database in a state that is already correct without it.
 
 ### 4.6 UI
 
@@ -346,22 +502,26 @@ checkpoint.
 
 ### M1 — Schema, payload codec, service
 
-`project_versions`, the `currentVersionId` column, schema v3 and its migration,
-`OcptProjectVersionCodec`, `OcptProjectVersionsService` with list/create/delete. No UI.
+`project_versions` (with `createdByDeviceId`), the `currentVersionId` column, schema v4 and its
+migration, `OcptProjectVersionCodec`, `OcptProjectVersionsService` with list/create/delete. No UI.
 
-Tests: migration from a v2 database preserving everything; codec round-trip; codec rejecting an
-unknown `payloadFormat`; scene ids surviving encode/decode identically; create/list/delete.
+Tests: migration from a v3 database preserving everything, and from v1 and v2 through the replayed
+chain; codec round-trip **including `isDeleted`, `sortKey` and the `rowFieldVersions` stamps**;
+codec upgrading a format older than the current one; codec rejecting a format newer than it knows;
+scene ids surviving encode/decode identically; create/list/delete.
 
 ### M2 — Preview infrastructure
 
-`isReadOnly` on `OcptOpenProjectModel` (equality included), `previewVersion` / `exitPreview` on
-`OcptProjectsManager`, the memory-database hydration, the dirty-refusal of §4.3, the read-only
-no-ops in the three mutating services, and the previewed page setup travelling on the preview state
-without ever being written (§4.2.2).
+`isReadOnly` on `OcptOpenProjectModel` (equality included), the `fileDatabase` slot of §4.3.1,
+`previewVersion` / `exitPreview` on `OcptProjectsManager`, the memory-database hydration, the
+dirty-refusal of §4.3, the read-only no-ops in the three mutating services, and the previewed page
+setup travelling on the preview state without ever being written (§4.2.2).
 
 Tests: entering preview emits a model that is not equal to the previous one; the file database is
-untouched after a preview cycle; a mutating service call on a read-only project changes nothing;
-a full preview cycle leaves `OcptPropertiesManager.pageMargins` exactly as it was.
+untouched after a preview cycle; `fileDatabase` stays the same open connection across a full
+preview cycle and is still usable for writing during the preview; a mutating service call on a
+read-only project changes nothing; a full preview cycle leaves `OcptPropertiesManager.pageMargins`
+exactly as it was.
 
 ### M3 — The versions panel
 
@@ -384,11 +544,25 @@ diverged substantially from the version; restore leaving the working copy intern
 (no `shots.sceneId` pointing at a scene the payload did not carry); a failed transaction leaving
 both the database *and* the margins untouched; the safety version being restorable in turn.
 
+The §4.5.1 obligations get their own tests, because every one of them fails silently:
+
+- a row present in the working copy but not in the payload ends up **tombstoned, not deleted**, and
+  its `isDeleted` stamp is bumped;
+- every column whose value the restore changed comes out with a stamp strictly above what it held
+  before, carrying the local `deviceId`;
+- a column whose value already matched the payload is left unstamped;
+- a restore writes a `screenplay_snapshots` row before touching `screenplays.fountainText`;
+- `scenes` rows come back with the payload's ids, and no `shots.sceneId` dangles afterwards.
+
 ---
 
 ## 6. Out of scope
 
 Multiple named branches, or any tree-shaped history: versions are a flat, chronological list with a
 `current` pointer. Diffing two versions. Merging. Any per-mode version (a version is always the
-whole project). Exporting or importing a version as a file. Anything involving a network, an
-account, or a second user — see decision 8.
+whole project). Exporting or importing a version as a file.
+
+Anything that puts a version on a network: sharing the version list between replicas, publishing a
+payload through the relay, or naming the person who created one in the UI — decisions 8 and 10.
+What this step *does* owe the collaboration plan is a working copy that is correct to merge after a
+restore (§4.5.1); what it does not owe it is a single line of sync code.
