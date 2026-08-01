@@ -63,8 +63,12 @@ logic. The domain model can therefore evolve without redeploying anything and wi
 instance running an older build.
 
 Every device keeps a full local replica. The app stays completely usable offline and queues its
-changes; merging happens **client-side and per column** on reconnect, against server-assigned
-sequence numbers rather than distributed clocks.
+changes; merging happens **client-side and per column** on reconnect. A relay's sequence number is
+a delivery cursor only — "everything up to here has reached me" — and never decides a winner: M6
+puts a set relay and a prep relay in the same day, and their counters are unrelated. The winner is
+the changeset's own `(counter, deviceId)` stamp, a device-local Lamport counter with the device
+identifier as tiebreak, so the same edits converge on the same value whichever relay carried them
+and in whichever order they arrived.
 
 The server is portable: on set it runs on a laptop at the video village or on a Raspberry Pi, with
 tablets reaching it over a travel router. Same binary, same client code path, different address —
@@ -93,6 +97,12 @@ implementation.
 Full replication means there is no per-document access control: whoever holds a project token
 holds everything, including the budget once it exists. Keeping a document away from the crew means
 a separate project file, not permissions inside this one.
+
+"Domain-blind" means the relay does not parse a changeset, not that it could not read one. Whoever
+operates an instance can read the productions it carries, which matters the moment that instance
+hosts someone else. Encrypting payloads under a project key the relay never receives would close
+that, at the price of a lost key costing the server-side copy; it is left to an ADR of its own
+rather than quietly assumed here.
 
 The data model changes this depends on are deliberately not decided here; they are ADR 0010, and
 they are required whichever transport wins.
