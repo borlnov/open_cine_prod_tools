@@ -90,6 +90,10 @@ breakdown, and a casting tracker.
   are in English**.
 - Work happens on an issue-named branch (`<issue-number>-<slug>`), merged into `main` through a
   pull request.
+- A session that needs a checkout of its own puts it under `worktrees/`
+  (`git worktree add worktrees/<name> -b <branch>`), never in the `.claude/worktrees/` directory
+  Claude Code's own worktree feature defaults to: create it with git first, then enter it by path.
+  A fresh worktree is not usable until the bring-up in `worktrees/README.md` has run.
 - A plan in `docs/plans/` describes work not yet done. Once its step ships and its outcome is
   folded into this file, the plan is deleted — the code and the ADRs are the record from then on.
 - Sizeable work: plan first, reviewed by Benoit, then implementation **delegated to Sonnet 5
