@@ -82,7 +82,8 @@ breakdown, and a casting tracker.
 | 19 | Application logo (issue #24): the mark as SVG variants in `assets/branding/`, `OcptLogo`/`OcptLogoGlyph` shown in the home header, the settings "About" card and the workspace back badge, launcher icons for every platform through `icons_launcher`, Linux desktop entry and hicolor icon in the `.deb` | ✅ |
 | 20 | Devcontainer & tooling modernization: no devcontainer features (gh from GitHub's apt repo, Claude Code from its native installer, no Node runtime), gh login persisted in a named volume, arb-editor schema fix on attach, worktrees moved inside the clone (`worktrees/`, the `.env` mount mode dropped), `tool/prune-gone-branches.sh` + `tool/install-ocpt.sh`, path-filtered lint workflows, `AGENTS.md` with `CLAUDE.md` as a symlink | ✅ |
 | 21 | Shot list mode (découpage technique, issue #19): schema v2 (`shots`, `shot_characters`, `shot_coverages`) with the first `MigrationStrategy` and the `foreign_keys` pragma, sequence panel + shot table + shot inspector, scenario coverage per shot with staleness detection (`coveredTextDigest` / `needsCheck`), XLSX export through `excel_community` | ✅ |
-| 22 | Collaboration & sync: strategy only so far — an offline-first replica synced through a self-hostable, domain-blind relay, and the schema prerequisites it needs first (`docs/adr/0009`, `docs/adr/0010`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
+| 22 | Collaboration & sync M1 — sync-ready data model (ADR 0010): schema v3 (`isDeleted` tombstones on every synchronised table, `sortKey` fractional indexes beside `position` with their backfill, the `row_field_versions` sidecar), every hard `delete()` turned into a tombstone and every read filtering them out, `deviceId` in `OcptPropertiesManager` | ✅ |
+| 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
 
 ## Ways of working
 
@@ -197,10 +198,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v1 (`project_info`, `screenplays`, `screenplay_snapshots`,
-  `scenes`), `storeDateTimeAsText: true`, scene reconciliation in 3 passes (explicit scene
-  number → exact heading → relative order). `**/*.g.dart` is git-ignored (documented
-  deviation); CI regenerates with build_runner.
+- Persistence: drift schema v3 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, `row_field_versions`), `storeDateTimeAsText: true`, scene
+  reconciliation in 3 passes (explicit scene number → exact heading → relative order).
+  `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
+- Sync-ready data model (ADR 0010): **no service ever deletes a row**. Every synchronised table
+  carries `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out —
+  including `scenes`, which is never synchronised but whose rows are referenced by two tables that
+  are. Ordering is `sortKey`, a fractional index (`lib/utils/ocpt_fractional_key.dart`,
+  base-62 strings, never ending on the lowest digit so two keys always have room for a third):
+  `ocptFractionalKeyBetween` allocates one, `ocptFractionalKeySequence` backfills a whole group,
+  `ocptFractionalKeyRekeyPlan` gives the minimal set of writes a reorder needs, so an insertion or
+  a move writes exactly one row. `position` survives as a legacy column stamped once at insertion
+  and never renumbered — nothing reads it, and `OcptShot.position` is a read-time rank the loading
+  service counts off, not that column. `row_field_versions` holds the per-column version stamps a
+  merge resolves conflicts with; nothing writes to it yet (M3 of the collaboration plan does).
+  `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a screenplay in and out of the app as
   a plain `.fountain` file or a PDF: the native open dialog, and three services it owns (RFL18) —
   `OcptFountainIoService` (bytes ↔ text, suggested file names), `OcptPdfExportService` (the PDF
