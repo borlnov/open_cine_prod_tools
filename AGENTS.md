@@ -115,6 +115,13 @@ cd .devcontainer && docker compose run --rm dev bash -lc 'cd /workspaces/open_ci
 Git commands run on the host, from the repo root. The devcontainer persists the pub cache and
 Claude config in named volumes; X11 is forwarded so `flutter run -d linux` can open a window.
 
+Screenshots of the running app come from `tool/screenshot-app.sh`, which starts it on a private
+Xvfb display and exposes `shot` / `click` / `type` / `key` / `scroll` between invocations. Capture
+through that script rather than launching the app by hand: the container advertises the developer's
+WSLg compositor, GTK prefers Wayland when it sees one, and the window opens on their desktop
+instead of off screen - and the home screen lists recent projects by full path, which the script's
+isolated `HOME` keeps out of the images. Run it with no arguments for the command list.
+
 ## Architecture
 
 See `docs/adr/` for the rationale behind the structural choices below (drift storage,
