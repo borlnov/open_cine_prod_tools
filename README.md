@@ -43,22 +43,45 @@ linting already written). And if the result at the end is good enough to be used
 
 ## Screenshots
 
-Screenshots are coming.
+The styled screenplay mode: the real page layout, the scene dock, and the live statistics in the
+status bar.
 
-<!-- Screenshots will be inserted here. -->
+![The screenplay editor showing a formatted screenplay, with a scene list docked on the left](docs/screenshots/screenplay-editor.png)
+
+The raw Fountain mode, with the paper-simulated preview and the docked syntax guide beside it.
+
+![The Fountain source on the left, its rendered screenplay preview on the right](docs/screenshots/fountain-source-and-preview.png)
+
+The shot list mode, here in the dark theme: one sequence per scene, and a shot table whose columns
+you choose.
+
+![The shot list showing three shots with their characters, shot size, framing and camera move](docs/screenshots/shot-list-dark.png)
 
 ## Features
 
 What the app does today:
 
 - A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
-  bottom mode switcher for the production tools: the screenplay editor is fully featured; budget,
-  schedule and shot list are shown as "coming soon" placeholders (see [Roadmap](#roadmap)).
+  bottom mode switcher for the production tools. Screenplay and shot list are implemented; budget
+  and schedule are still empty states (see [Roadmap](#roadmap)). Dock sizes and the mode you were
+  last in come back with the project.
 - A styled WYSIWYG screenplay mode with the real page layout: a block-type dropdown, Tab cycling
-  between screenplay element types, smart Enter, and bold/italic/underline.
-- A raw Fountain mode with a side-by-side, paper-simulated preview.
+  between screenplay element types, smart Enter, bold/italic/underline, a title page edited in
+  place, and `#N#` scene numbers.
+- A raw Fountain mode with a side-by-side, paper-simulated preview, and a read-only Fountain
+  syntax guide in the right dock.
+- A scene dock to navigate the screenplay, and live statistics in the status bar: pages, scenes,
+  characters, words and signs.
+- A shot list mode (découpage technique): one sequence per scene, a shot table whose columns you
+  choose, and a shot inspector for shot size, framing, camera move, lens, recording format, sound,
+  estimated duration, planned takes, shooting day, status, notes, and difficulty rated separately
+  for set, camera, acting and sound. Characters come from the ones the screenplay already knows
+  about. Each shot can be tied to the passages of the screenplay it covers, and a shot whose
+  covered text has changed since is flagged for re-checking rather than silently going stale.
+  Exports to XLSX.
 - `.fountain` import and export.
-- PDF export with an options dialog, page numbers, and embedded Courier Prime.
+- PDF export with an options dialog, page numbers, optional scene numbers, and embedded Courier
+  Prime.
 - Page setup: page format and margins.
 - Autosave.
 - English (`en_GB`) and French interfaces.
@@ -68,8 +91,6 @@ What the app does today:
 
 Planned production tools, in priority order:
 
-- Shot lists (decoupage technique)
-- Scenario coverage per shot
 - Shooting schedule
 - Call sheets
 - Budget
