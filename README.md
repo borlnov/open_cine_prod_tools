@@ -43,9 +43,19 @@ linting already written). And if the result at the end is good enough to be used
 
 ## Screenshots
 
-Screenshots are coming.
+The styled screenplay mode: the real page layout, the scene dock, and the live statistics in the
+status bar.
 
-<!-- Screenshots will be inserted here. -->
+![The screenplay editor showing a formatted screenplay, with a scene list docked on the left](docs/screenshots/screenplay-editor.png)
+
+The raw Fountain mode, with the paper-simulated preview and the docked syntax guide beside it.
+
+![The Fountain source on the left, its rendered screenplay preview on the right](docs/screenshots/fountain-source-and-preview.png)
+
+The shot list mode, here in the dark theme: one sequence per scene, and a shot table whose columns
+you choose.
+
+![The shot list showing three shots with their characters, shot size, framing and camera move](docs/screenshots/shot-list-dark.png)
 
 ## Features
 
