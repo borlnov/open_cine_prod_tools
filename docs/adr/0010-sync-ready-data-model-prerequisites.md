@@ -47,7 +47,9 @@ Three additive changes, schema v3, plus one preference:
   ordering.
 - **`row_field_versions(tableName, rowId, columnName, version, deviceId)`**, one new table holding
   per-column version stamps. It carries the entire merge granularity, so **no existing table gains
-  a version column**.
+  a version column**. `version` is a device-local Lamport counter, never a relay sequence number,
+  and `(version, deviceId)` orders two writes to the same column: a relay's counter cannot play
+  that role once a set relay and a prep relay both exist in one day (ADR 0009).
 - **`deviceId`**, a UUID generated on first launch and kept in `OcptPropertiesManager`, identifying
   a replica and its pending queue.
 
@@ -90,7 +92,9 @@ device id is needed by any future diagnostics.
   every synchronised table and every new field has to remember to add its twin.
 - **Row-level rather than column-level versioning**: markedly simpler, but it loses the shot list
   and shooting schedule case outright, which is the collaboration the feature exists for.
-- **Hybrid logical clocks instead of server-assigned versions**: required only for peer-to-peer
-  merge, which ADR 0009 removed by making the relay portable.
+- **Hybrid logical clocks instead of a plain Lamport counter**: they add a wall-clock component so
+  a winner matches human intuition about which edit came last, at the price of clock-skew handling.
+  A bare counter converges just as surely, and the case it reads oddly — an edit made earlier
+  winning because its device had counted further — is rare enough to leave to a later ADR.
 - **Event sourcing the whole model**: a replay engine and log compaction, where per-column stamps
   on the existing tables buy the same convergence for a fraction of the code.

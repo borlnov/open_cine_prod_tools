@@ -49,13 +49,26 @@ changesets since a sequence number, upload a snapshot and let everything below i
 the latest snapshot, and a WebSocket announcing that new changesets exist. Authentication is one
 bearer token per project — no accounts, no passwords, no personal data.
 
+A project comes into existence without a sixth route: an append for an unknown project identifier
+creates it when the request carries the instance's **enrolment secret**, and is rejected otherwise.
+The client picks the identifier and the token itself, so whoever holds that secret creates projects
+from the app alone, with nothing for the operator to provision by hand.
+
+Refusing accounts leaves the instance as the only trust boundary the design has: one instance is
+one person or one production, and hosting a second person means a second instance beside the first
+— same image, its own secret, its own database file — never a second tenant inside one.
+
 The server never parses a changeset, never learns a table or column name, and holds no domain
 logic. The domain model can therefore evolve without redeploying anything and without breaking an
 instance running an older build.
 
 Every device keeps a full local replica. The app stays completely usable offline and queues its
-changes; merging happens **client-side and per column** on reconnect, against server-assigned
-sequence numbers rather than distributed clocks.
+changes; merging happens **client-side and per column** on reconnect. A relay's sequence number is
+a delivery cursor only — "everything up to here has reached me" — and never decides a winner: M6
+puts a set relay and a prep relay in the same day, and their counters are unrelated. The winner is
+the changeset's own `(counter, deviceId)` stamp, a device-local Lamport counter with the device
+identifier as tiebreak, so the same edits converge on the same value whichever relay carried them
+and in whichever order they arrived.
 
 The server is portable: on set it runs on a laptop at the video village or on a Raspberry Pi, with
 tablets reaching it over a travel router. Same binary, same client code path, different address —
@@ -70,6 +83,10 @@ self-hosts it, even with an attack surface of one token check and blob storage. 
 euros a month on a small VPS, or nothing on a Pi. Film crews will not deploy anything, so in
 practice Benoit hosts for his own productions and publishes a Docker image for others.
 
+Hosting for someone else therefore costs a second service in the same compose file rather than a
+multi-tenant rewrite, and their data stays one volume: the day they want their own machine, that
+volume and that service move with them.
+
 A server does not remove offline-first: a local replica, a pending queue and a merge are still
 required, they simply resolve against an authority instead of against arbitrary peers.
 
@@ -80,6 +97,12 @@ implementation.
 Full replication means there is no per-document access control: whoever holds a project token
 holds everything, including the budget once it exists. Keeping a document away from the crew means
 a separate project file, not permissions inside this one.
+
+"Domain-blind" means the relay does not parse a changeset, not that it could not read one. Whoever
+operates an instance can read the productions it carries, which matters the moment that instance
+hosts someone else. Encrypting payloads under a project key the relay never receives would close
+that, at the price of a lost key costing the server-side copy; it is left to an ADR of its own
+rather than quietly assumed here.
 
 The data model changes this depends on are deliberately not decided here; they are ADR 0010, and
 they are required whichever transport wins.
