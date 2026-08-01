@@ -106,6 +106,20 @@ entries.
 
 ## Claude Code
 
-Claude Code's built-in worktree feature defaults to `.claude/worktrees/`, not here. That path is
-gitignored so a stray checkout does no harm, but the convention for this repository is `worktrees/`
-and the bring-up above still applies either way.
+Claude Code's built-in worktree feature defaults to `.claude/worktrees/`, not here, and that
+location is not configurable. That path is gitignored so a stray checkout does no harm, but the
+convention for this repository is `worktrees/`, so an agent session that needs an isolated
+checkout — including one whose harness refuses to edit files outside a worktree — creates it here
+with git and only then hands the path to the tool:
+
+```bash
+git worktree add worktrees/my-feature -b my-feature   # from the repository root
+```
+
+then `EnterWorktree` with `path: <repo>/worktrees/my-feature`, which accepts any worktree listed by
+`git worktree list` as long as the session has not entered another one first. Asking that tool for a
+worktree *by name* is what puts a checkout under `.claude/worktrees/`.
+
+The bring-up above applies either way, and so does the removal procedure: `ExitWorktree` never
+deletes a worktree entered by path, which is the intended behaviour here — these are removed
+deliberately, with `git worktree remove --force`.
