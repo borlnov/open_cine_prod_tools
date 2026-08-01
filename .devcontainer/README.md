@@ -112,6 +112,12 @@ the host's X server. This requires an X11 (or XWayland) display reachable from t
 extra setup is needed on a typical Linux desktop; on WSL, make sure an X server (e.g. WSLg, which
 ships by default on recent Windows 11) is running.
 
+To capture the app rather than watch it, use [`tool/screenshot-app.sh`](../tool/screenshot-app.sh)
+instead: it runs the app on its own Xvfb display, so nothing appears on your desktop, the window
+size is reproducible, and the app starts against an empty home directory so none of your projects
+show up in the images. The image ships the tools it needs (Xvfb, openbox, xdotool, x11-utils,
+ImageMagick).
+
 ## First run
 
 1. Open the folder in VS Code and reopen in the container (or run

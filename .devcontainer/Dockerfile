@@ -47,6 +47,16 @@ RUN apt-get update && apt-get install -y \
     sudo \
     locales \
     ca-certificates \
+    # Off-screen capture of the running app (tool/screenshot-app.sh): a virtual X
+    # server to run it on, a window manager so its window can be resized, xdotool
+    # and xwininfo to drive and inspect it, and ImageMagick's `import` to grab the
+    # window. None of this is needed to build or test - only to produce the README
+    # screenshots without putting the app on the developer's own desktop.
+    xvfb \
+    openbox \
+    xdotool \
+    x11-utils \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
