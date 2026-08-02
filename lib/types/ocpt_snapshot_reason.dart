@@ -21,4 +21,14 @@ enum OcptSnapshotReason {
 
   /// The snapshot was taken right before an imported `.fountain` file replaced the screenplay.
   import,
+
+  /// The snapshot was taken right before a project version restored its own text over the
+  /// screenplay's.
+  ///
+  /// This one exists for the merge rather than for the user: a screenplay's text is reconciled by a
+  /// three-way line merge against the nearest common snapshot
+  /// (`docs/adr/0010-sync-ready-data-model-prerequisites.md`), and a restore replaces the whole text
+  /// in a single write. Without a snapshot taken at that very moment, the merge base would skip the
+  /// discontinuity and reconcile against text that never existed on this replica.
+  restore,
 }

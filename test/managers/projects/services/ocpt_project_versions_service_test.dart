@@ -2,18 +2,26 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 void main() {
   // Reading a version's stored summary logs through appLogger(), which requires a global manager
@@ -21,7 +29,14 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const codec = OcptProjectVersionCodec();
-  const service = OcptProjectVersionsService(codec: codec);
+  const service = OcptProjectVersionsService(
+    codec: codec,
+    screenplayService: OcptScreenplayService(
+      sceneIndexService: OcptSceneIndexService(),
+      shotListService: OcptShotListService(),
+      shotCoverageService: OcptShotCoverageService(),
+    ),
+  );
   const screenplayId = "screenplay-1";
   const deviceId = "device-1";
   const appVersion = "0.1.0";
@@ -423,6 +438,317 @@ void main() {
       expect(info.settingsJson, payload.settingsJson);
       expect(info.currentVersionId, isNull);
       expect(await preview.select(preview.ocptProjectVersionsTable).get(), isEmpty);
+    });
+  });
+
+  group("restoreVersion", () {
+    const capturedText = "INT. HOUSE - DAY\n\nCLARA enters.";
+    const rewrittenText = "EXT. STREET - NIGHT\n\nThe rewrite.";
+
+    /// The screenplay's text as the project currently holds it.
+    Future<String> readScreenplayText() async =>
+        (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText;
+
+    /// The shot [id] as the project currently holds it, tombstone included.
+    Future<OcptShotRow?> readShot(String id) => (database.select(
+      database.ocptShotsTable,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+    /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>`.
+    Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+      for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+        "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+    };
+
+    /// Restores the version [id], with the fixed provenance every test here uses.
+    Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> restore(String id) =>
+        service.restoreVersion(
+          database: database,
+          id: id,
+          safetyVersionName: "Before restoring",
+          appVersion: appVersion,
+          deviceId: deviceId,
+          pageMargins: margins,
+        );
+
+    /// Captures the project as a version, then makes the working copy diverge from it: the
+    /// screenplay is rewritten, one shot is edited, and another is added.
+    Future<OcptProjectVersion> createDivergedProject() async {
+      await insertScene(id: "scene-1");
+      await insertShot(id: "shot-1", sceneId: "scene-1");
+
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptScreenplaysTable)
+          .write(const OcptScreenplaysTableCompanion(fountainText: Value(rewrittenText)));
+      await (database.update(
+        database.ocptShotsTable,
+      )..where((table) => table.id.equals("shot-1"))).write(
+        const OcptShotsTableCompanion(framing: Value("High angle")),
+      );
+      await insertShot(id: "shot-2", sceneId: "scene-1");
+
+      return version;
+    }
+
+    test("puts back what the version held, and points the project at it", () async {
+      final version = await createDivergedProject();
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      expect(await readScreenplayText(), capturedText);
+      expect((await readShot("shot-1"))?.framing, "Low angle");
+      expect(await readCurrentVersionId(), version.id);
+
+      // The margins the caller has to finish restoring — they are a preference, so this service
+      // hands them back rather than writing them.
+      expect(result.value?.margins, margins);
+      expect(result.value?.format, OcptPageFormat.a4);
+    });
+
+    test("tombstones what the version didn't hold instead of deleting it", () async {
+      final version = await createDivergedProject();
+
+      await restore(version.id);
+
+      final droppedShot = await readShot("shot-2");
+      expect(droppedShot, isNotNull, reason: "the row must still be there, as a tombstone");
+      expect(droppedShot?.isDeleted, isTrue);
+
+      // And the shot list the user sees is the version's own.
+      final liveShots = await (database.select(
+        database.ocptShotsTable,
+      )..where((table) => table.isDeleted.equals(false))).get();
+      expect(liveShots.map((shot) => shot.id), ["shot-1"]);
+    });
+
+    test("stamps every column it changed, above what that column already held", () async {
+      final version = await createDivergedProject();
+
+      // As if the edit that rewrote the framing had been stamped by the changeset engine.
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "shots",
+              rowId: "shot-1",
+              columnName: "framing",
+              version: 7,
+              deviceId: "device-0",
+            ),
+          );
+
+      await restore(version.id);
+
+      final stamps = await readStamps();
+
+      // A column the restore rewrote reads, to every other replica, as the most recent edit there
+      // is — which is exactly what it is.
+      expect(stamps["shots/shot-1/framing"]?.version, 8);
+      expect(stamps["shots/shot-1/framing"]?.deviceId, deviceId);
+
+      // A row the version didn't hold is tombstoned, and the tombstone is stamped like any other
+      // write.
+      expect(stamps["shots/shot-2/isDeleted"]?.version, 1);
+      expect(stamps["shots/shot-2/isDeleted"]?.deviceId, deviceId);
+
+      // A column whose value already matched the version is left alone: a restore must not stomp
+      // an unrelated concurrent edit that happened to agree with it.
+      expect(stamps.containsKey("shots/shot-1/lens"), isFalse);
+      expect(stamps.containsKey("shots/shot-1/sortKey"), isFalse);
+    });
+
+    test("snapshots the screenplay before writing the version's text over it", () async {
+      final version = await createDivergedProject();
+
+      await restore(version.id);
+
+      final snapshots = await (database.select(
+        database.ocptScreenplaySnapshotsTable,
+      )..where((table) => table.reason.equalsValue(OcptSnapshotReason.restore))).get();
+
+      // The three-way merge a screenplay is reconciled with looks for a common snapshot, and a
+      // restore replaces the whole text in one write: without this row, the merge base would skip
+      // the discontinuity entirely.
+      expect(snapshots.single.fountainText, rewrittenText);
+    });
+
+    test("brings the scenes back with their own ids, leaving no shot pointing at nothing", () async {
+      final version = await createDivergedProject();
+
+      // A scene the version never held, with a shot of its own hanging off it.
+      await insertScene(id: "scene-later");
+      await insertShot(id: "shot-later", sceneId: "scene-later");
+
+      await restore(version.id);
+
+      final scenes = await database.select(database.ocptScenesTable).get();
+      expect(scenes.map((scene) => scene.id), containsAll(["scene-1", "scene-later"]));
+      expect(scenes.firstWhere((scene) => scene.id == "scene-1").isDeleted, isFalse);
+      expect(scenes.firstWhere((scene) => scene.id == "scene-later").isDeleted, isTrue);
+
+      // Every shot the user is left with points at a scene the version carried: the ids are the
+      // payload's own, never re-derived, which is what keeps the references it holds valid.
+      final liveSceneIds = {
+        for (final scene in scenes.where((scene) => !scene.isDeleted)) scene.id,
+      };
+      final liveShots = await (database.select(
+        database.ocptShotsTable,
+      )..where((table) => table.isDeleted.equals(false))).get();
+
+      expect(liveShots, isNotEmpty);
+      for (final shot in liveShots) {
+        expect(liveSceneIds, contains(shot.sceneId));
+      }
+    });
+
+    test("keeps the state it replaces as a version, restorable in its turn", () async {
+      final version = await createDivergedProject();
+
+      await restore(version.id);
+
+      final versions = await service.listVersions(database: database);
+      final safety = versions.firstWhere((entry) => entry.name == "Before restoring");
+
+      // The project descends from the version it was put back on, not from the safety copy taken
+      // on the way there.
+      expect(versions.singleWhere((entry) => entry.id == version.id).isCurrent, isTrue);
+      expect(safety.isCurrent, isFalse);
+
+      // Undoing the restore is restoring the safety version, and it brings the whole diverged
+      // state back.
+      expect((await restore(safety.id)).status, OcptProjectRestoreStatus.ok);
+      expect(await readScreenplayText(), rewrittenText);
+      expect((await readShot("shot-1"))?.framing, "High angle");
+      expect((await readShot("shot-2"))?.isDeleted, isFalse);
+      expect(await readCurrentVersionId(), safety.id);
+    });
+
+    test("a restore that fails leaves the project exactly as it was", () async {
+      await createDivergedProject();
+
+      // A payload no project could ever hold: its shot belongs to a screenplay that doesn't exist,
+      // so the transaction can only fail — at the commit, since the foreign keys are deferred.
+      final payload = await readPayload(
+        (await createVersion(name: "v2 — Sound")).id,
+      );
+      await database
+          .into(database.ocptProjectVersionsTable)
+          .insert(
+            OcptProjectVersionsTableCompanion.insert(
+              id: "version-inconsistent",
+              name: "v3 — Broken",
+              createdAt: DateTime.utc(2026, 6, 2),
+              appVersion: appVersion,
+              payloadFormat: OcptProjectVersionCodec.currentPayloadFormat,
+              payload: codec.encode(
+                OcptProjectVersionPayload(
+                  screenplays: payload.screenplays,
+                  scenes: payload.scenes,
+                  shots: [payload.shots.first.copyWith(screenplayId: "no-such-screenplay")],
+                  shotCharacters: payload.shotCharacters,
+                  shotCoverages: payload.shotCoverages,
+                  rowFieldVersions: payload.rowFieldVersions,
+                  pageSetup: payload.pageSetup,
+                  settingsJson: payload.settingsJson,
+                ),
+              ),
+              summaryJson: "{}",
+              createdByDeviceId: deviceId,
+            ),
+          );
+
+      final versionsBefore = await service.listVersions(database: database);
+
+      final result = await restore("version-inconsistent");
+
+      expect(result.status, OcptProjectRestoreStatus.writeFailed);
+      expect(result.value, isNull);
+      expect(await readScreenplayText(), rewrittenText);
+      expect((await readShot("shot-1"))?.framing, "High angle");
+
+      // The safety version is part of the same transaction, so a failed restore doesn't even leave
+      // that behind.
+      expect(
+        (await service.listVersions(database: database)).map((entry) => entry.id),
+        versionsBefore.map((entry) => entry.id),
+      );
+    });
+
+    test("refuses a version the project doesn't have, and one from a later build", () async {
+      await createDivergedProject();
+
+      expect(
+        (await restore("no-such-version")).status,
+        OcptProjectRestoreStatus.versionNotFound,
+      );
+
+      await database
+          .into(database.ocptProjectVersionsTable)
+          .insert(
+            OcptProjectVersionsTableCompanion.insert(
+              id: "version-from-the-future",
+              name: "v9 — Written by a later build",
+              createdAt: DateTime.utc(2026, 6, 2),
+              appVersion: "99.0.0",
+              payloadFormat: OcptProjectVersionCodec.currentPayloadFormat + 1,
+              payload: '{"payloadFormat":${OcptProjectVersionCodec.currentPayloadFormat + 1}}',
+              summaryJson: "{}",
+              createdByDeviceId: deviceId,
+            ),
+          );
+
+      expect(
+        (await restore("version-from-the-future")).status,
+        OcptProjectRestoreStatus.unsupportedFutureFormat,
+      );
+      expect(await readScreenplayText(), rewrittenText);
+    });
+  });
+
+  group("forkFromVersion", () {
+    test("restores the version, then marks the branch it starts as its own version", () async {
+      await insertScene(id: "scene-1");
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptScreenplaysTable)
+          .write(
+            const OcptScreenplaysTableCompanion(
+              fountainText: Value("EXT. STREET - NIGHT\n\nThe rewrite."),
+            ),
+          );
+
+      final result = await service.forkFromVersion(
+        database: database,
+        id: version.id,
+        safetyVersionName: "Before restoring v1 — First read",
+        forkName: "From v1 — First read",
+        forkNote: "New branch",
+        appVersion: appVersion,
+        deviceId: deviceId,
+        pageMargins: margins,
+      );
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final versions = await service.listVersions(database: database);
+      expect(
+        versions.map((entry) => entry.name),
+        containsAll(["From v1 — First read", "Before restoring v1 — First read"]),
+      );
+
+      // The branch point is where the project now stands: the fork's own capture is the current
+      // version, and it describes the restored state rather than the one that was on screen.
+      final fork = versions.firstWhere((entry) => entry.name == "From v1 — First read");
+      expect(fork.isCurrent, isTrue);
+      expect(fork.note, "New branch");
+      expect(
+        (await readPayload(fork.id)).screenplays.single.fountainText,
+        "INT. HOUSE - DAY\n\nCLARA enters.",
+      );
     });
   });
 

@@ -117,6 +117,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       shotCoverageService = const OcptShotCoverageService(),
       projectVersionsService = const OcptProjectVersionsService(
         codec: OcptProjectVersionCodec(),
+        screenplayService: OcptScreenplayService(
+          sceneIndexService: OcptSceneIndexService(),
+          shotListService: OcptShotListService(),
+          shotCoverageService: OcptShotCoverageService(),
+        ),
       ),
       screenplayService = const OcptScreenplayService(
         sceneIndexService: OcptSceneIndexService(),

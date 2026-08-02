@@ -9,16 +9,20 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// Creates, lists and deletes a project's named versions: the production history the user drives
-/// from the workspace's `Versions` dock tab.
+/// Creates, lists, deletes and restores a project's named versions: the production history the user
+/// drives from the workspace's `Versions` dock tab.
 ///
 /// {@macro open_cine_prod_tools.OcptProjectVersionsTable.versusSnapshots}
 ///
@@ -42,11 +46,23 @@ class OcptProjectVersionsService {
     'shot_coverages',
   ];
 
+  /// The name, as the Dart side of the schema spells it, of the tombstone column every
+  /// synchronised table carries: the one column a restore stamps on a row the payload doesn't hold.
+  static const _isDeletedColumnName = "isDeleted";
+
   /// The codec turning the captured state into the text stored in `project_versions.payload`.
   final OcptProjectVersionCodec _codec;
 
+  /// The service taking the screenplay snapshot a restore owes the merge before it overwrites a
+  /// screenplay's text (see [restoreVersion]).
+  final OcptScreenplayService _screenplayService;
+
   /// Class constructor
-  const OcptProjectVersionsService({required OcptProjectVersionCodec codec}) : _codec = codec;
+  const OcptProjectVersionsService({
+    required OcptProjectVersionCodec codec,
+    required OcptScreenplayService screenplayService,
+  }) : _codec = codec,
+       _screenplayService = screenplayService;
 
   /// Lists every version of the project in [database], newest first.
   ///
@@ -218,6 +234,146 @@ class OcptProjectVersionsService {
     });
   });
 
+  /// Puts the project in [database] back into the state the version [id] captured, and makes it
+  /// the version the working copy descends from.
+  ///
+  /// This is the one destructive operation of the app that isn't a file deletion, so everything it
+  /// does happens inside a single transaction, and it starts by capturing the working copy as a
+  /// version of its own named [safetyVersionName] — a restore can itself be undone. A failure at any
+  /// point rolls the whole thing back, the safety version included.
+  ///
+  /// The value returned on success is the page setup the version was captured with, which the
+  /// caller **must** finish restoring: the format half of it has just been written to the project
+  /// header here, but the margins are an app-wide preference rather than project data, so they are
+  /// written through `OcptPropertiesManager` by the caller, and only once this transaction has
+  /// committed — margins pointing at a restore that failed would leave the whole app paginating
+  /// against a state no project holds.
+  ///
+  /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
+  /// **A restore is an edit, not a reset**, and that distinction is what the whole of
+  /// [_applyPayload] is about. The obvious implementation — empty the tables, bulk-insert the
+  /// payload's rows — is wrong twice over, and both failures are silent (see
+  /// `docs/adr/0010-sync-ready-data-model-prerequisites.md`): it hard-deletes rows a replica that
+  /// was offline would then re-insert, having never learnt they were gone, and it leaves the
+  /// per-column version stamps behind, so the next merge would replace the restored project with
+  /// the very state the user had just deliberately abandoned. The restore therefore expresses
+  /// itself in the same vocabulary as any other write: rows are inserted, updated or tombstoned,
+  /// and every column it actually changes is stamped anew.
+  /// {@endtemplate}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> restoreVersion({
+    required OcptProjectDatabase database,
+    required String id,
+    required String safetyVersionName,
+    required String appVersion,
+    required String deviceId,
+    required FountainPageMargins pageMargins,
+  }) async {
+    if (database.refusesUserWrite("restoreVersion")) {
+      return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
+    }
+
+    if (await loadVersion(database: database, id: id) == null) {
+      appLogger().w("The project version $id can't be restored: no such version in this project");
+      return const ResultWithStatus(status: OcptProjectRestoreStatus.versionNotFound);
+    }
+
+    final payloadResult = await loadPayload(database: database, id: id);
+    final payload = payloadResult.value;
+    if (payload == null) {
+      return ResultWithStatus(
+        status: switch (payloadResult.status) {
+          OcptProjectVersionPayloadStatus.unsupportedFutureFormat =>
+            OcptProjectRestoreStatus.unsupportedFutureFormat,
+          _ => OcptProjectRestoreStatus.malformedPayload,
+        },
+      );
+    }
+
+    try {
+      await database.transaction(() async {
+        // The payload's rows legitimately arrive in an order that violates a foreign key part way
+        // through (a scene reinstated after the shot pointing at it, say), so the checks are
+        // deferred to the commit rather than run statement by statement.
+        await database.customStatement('PRAGMA defer_foreign_keys = ON');
+
+        await createVersion(
+          database: database,
+          name: safetyVersionName,
+          note: "",
+          appVersion: appVersion,
+          deviceId: deviceId,
+          pageMargins: pageMargins,
+        );
+
+        await _applyPayload(database: database, payload: payload, deviceId: deviceId);
+
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(
+              OcptProjectInfoTableCompanion(
+                pageFormat: Value(payload.pageSetup.format),
+                settingsJson: Value(payload.settingsJson),
+                currentVersionId: Value(id),
+              ),
+            );
+      });
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to restore the project version $id: $error");
+      return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
+    }
+
+    return ResultWithStatus(status: OcptProjectRestoreStatus.ok, value: payload.pageSetup);
+  }
+
+  /// Restores the version [id] over the project in [database], then captures the result as a new
+  /// version named [forkName] with the user's [forkNote]: the branch the user starts from an older
+  /// state is itself a named entry of the list rather than an unmarked rewrite.
+  ///
+  /// The fork's own capture is measured against the page setup the restore has just put back, not
+  /// the one the app was showing a moment ago — the state it describes is the restored one.
+  ///
+  /// Everything [restoreVersion] guarantees holds here: a fork that fails leaves the project
+  /// untouched. A fork whose *capture* fails leaves the restore in place, since that transaction has
+  /// committed by then — the project is then simply restored without a card marking the branch, and
+  /// the safety version is still there.
+  Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> forkFromVersion({
+    required OcptProjectDatabase database,
+    required String id,
+    required String safetyVersionName,
+    required String forkName,
+    required String forkNote,
+    required String appVersion,
+    required String deviceId,
+    required FountainPageMargins pageMargins,
+  }) async {
+    final restored = await restoreVersion(
+      database: database,
+      id: id,
+      safetyVersionName: safetyVersionName,
+      appVersion: appVersion,
+      deviceId: deviceId,
+      pageMargins: pageMargins,
+    );
+
+    final restoredPageSetup = restored.value;
+    if (restoredPageSetup == null) {
+      return restored;
+    }
+
+    await createVersion(
+      database: database,
+      name: forkName,
+      note: forkNote,
+      appVersion: appVersion,
+      deviceId: deviceId,
+      pageMargins: restoredPageSetup.margins,
+    );
+
+    return restored;
+  }
+
   /// Deletes the version [id] of the project in [database], clearing the project header's pointer
   /// first when it is the one being deleted.
   ///
@@ -283,4 +439,282 @@ class OcptProjectVersionsService {
   }) => (database.select(
     database.ocptRowFieldVersionsTable,
   )..where((table) => table.targetTableName.isIn(_payloadTableNames))).get();
+
+  /// Writes [payload] over the project in [database], from inside [restoreVersion]'s transaction.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
+  ///
+  /// The tables are walked in dependency order — a screenplay before its scenes, a scene before the
+  /// shots pointing at it — and `scenes` is the one that carries no stamp at all: ADR 0010 keeps it
+  /// out of the merge entirely, since it is derived from the screenplay text and recomputed
+  /// locally. Its rows still go back **verbatim, ids included**, which is what stops the restored
+  /// `shots.sceneId` and `shot_coverages.sceneId` references from dangling; and a scene the payload
+  /// doesn't carry is tombstoned rather than deleted, for the reason `OcptScenesTable.isDeleted`
+  /// gives — the tombstoned shots and coverages still left over from the working copy reference it,
+  /// and `PRAGMA foreign_keys` is on.
+  Future<void> _applyPayload({
+    required OcptProjectDatabase database,
+    required OcptProjectVersionPayload payload,
+    required String deviceId,
+  }) async {
+    final stamps = await _OcptRestoreStamps.of(
+      database: database,
+      payload: payload,
+      deviceId: deviceId,
+    );
+
+    await _snapshotScreenplaysAboutToChange(database: database, payload: payload);
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptScreenplaysTable,
+      payloadRows: payload.screenplays,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptScenesTable,
+      payloadRows: payload.scenes,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: null,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShotsTable,
+      payloadRows: payload.shots,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShotCharactersTable,
+      payloadRows: payload.shotCharacters,
+      rowIdOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShotCoveragesTable,
+      payloadRows: payload.shotCoverages,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await stamps.flush(database);
+  }
+
+  /// Snapshots the text of every screenplay [payload] is about to overwrite in [database].
+  ///
+  /// This is what a restore owes the merge rather than the user (see [OcptSnapshotReason.restore]),
+  /// and it has to happen before a single character of `screenplays.fountainText` changes. Only the
+  /// screenplays whose text actually differs are snapshotted: a restore that changes nothing must
+  /// not push thirty real snapshots out of the rolling window for nothing.
+  Future<void> _snapshotScreenplaysAboutToChange({
+    required OcptProjectDatabase database,
+    required OcptProjectVersionPayload payload,
+  }) async {
+    final currentRows = {
+      for (final row in await database.select(database.ocptScreenplaysTable).get()) row.id: row,
+    };
+
+    for (final screenplay in payload.screenplays) {
+      final current = currentRows[screenplay.id];
+
+      // A screenplay the working copy doesn't hold live has no text to protect: either it is about
+      // to be inserted, or it is a tombstone the restore only reinstates as one.
+      if (current == null || current.isDeleted || current.fountainText == screenplay.fountainText) {
+        continue;
+      }
+
+      await _screenplayService.snapshotBeforeRestore(
+        database: database,
+        screenplayId: screenplay.id,
+      );
+    }
+  }
+
+  /// Restores one table of a payload: [payloadRows] are written over whatever [table] currently
+  /// holds in [database], and whatever it holds beyond them is tombstoned.
+  ///
+  /// The three cases, each stamped through [stamps] unless the table is one no merge ever sees (see
+  /// [_applyPayload]):
+  ///
+  /// - a row the payload holds and the working copy doesn't is **inserted**, and every one of its
+  ///   columns stamped;
+  /// - a row both hold is **updated**, and only the columns whose value actually changes are
+  ///   stamped. A column that already matches the payload is left alone: that is what keeps a
+  ///   restore from stomping an unrelated concurrent edit that happened to agree with it;
+  /// - a row the working copy holds and the payload doesn't is **tombstoned**, never deleted, and
+  ///   its tombstone column stamped. One already tombstoned is left untouched, stamp included.
+  ///
+  /// [rowIdOf] names a row both in the map matching the two sides up and in
+  /// `row_field_versions.rowId`, so a composite primary key goes through
+  /// [ocptCompositeRowStampKey]. [tombstonedOf] returns the row as its own tombstone — returning it
+  /// unchanged is how a table with no tombstone column would opt out.
+  Future<void> _restoreTable<D extends DataClass>({
+    required OcptProjectDatabase database,
+    required TableInfo<Table, D> table,
+    required List<D> payloadRows,
+    required String Function(D row) rowIdOf,
+    required D Function(D row) tombstonedOf,
+    required _OcptRestoreStamps? stamps,
+  }) async {
+    final leftovers = {
+      for (final row in await database.select(table).get()) rowIdOf(row): row,
+    };
+
+    for (final row in payloadRows) {
+      final rowId = rowIdOf(row);
+      final current = leftovers.remove(rowId);
+
+      if (current == null) {
+        await database.into(table).insert(_insertable(row));
+        stamps?.stamp(table: table, rowId: rowId, columnNames: row.toJson().keys);
+        continue;
+      }
+
+      final changedColumnNames = _changedColumnNames(from: current, to: row);
+      if (changedColumnNames.isEmpty) {
+        continue;
+      }
+
+      await database.into(table).insertOnConflictUpdate(_insertable(row));
+      stamps?.stamp(table: table, rowId: rowId, columnNames: changedColumnNames);
+    }
+
+    for (final leftover in leftovers.entries) {
+      final tombstone = tombstonedOf(leftover.value);
+      if (tombstone == leftover.value) {
+        continue;
+      }
+
+      await database.into(table).insertOnConflictUpdate(_insertable(tombstone));
+      stamps?.stamp(
+        table: table,
+        rowId: leftover.key,
+        columnNames: const [_isDeletedColumnName],
+      );
+    }
+  }
+
+  /// [row] seen as what drift's generator always makes a data class — an `Insertable` of its own
+  /// type — which [DataClass] itself doesn't declare.
+  ///
+  /// Generic code over a table's rows needs both halves of that pair: [DataClass] to read a row's
+  /// columns back ([_changedColumnNames]), and `Insertable` to write it. Every generated row class
+  /// implements the two; only their common supertype doesn't say so.
+  static Insertable<D> _insertable<D extends DataClass>(D row) => row as Insertable<D>;
+
+  /// The names of the columns [to] holds a different value in than [from], as the Dart side of the
+  /// schema spells them — which is exactly how `row_field_versions.columnName` spells them too.
+  ///
+  /// Read off the rows' own JSON representation rather than compared field by field per table: a
+  /// column added to a synchronised table is then stamped by a restore without anybody having to
+  /// remember to add it here. (The payload's column list is the hand-written mirror of the schema,
+  /// and one such list is enough — see [OcptProjectVersionCodec].)
+  static List<String> _changedColumnNames({required DataClass from, required DataClass to}) {
+    final before = from.toJson();
+
+    return [
+      for (final column in to.toJson().entries)
+        if (before[column.key] != column.value) column.key,
+    ];
+  }
+}
+
+/// The per-column version stamps one restore writes, accumulated as it walks the tables and written
+/// in one batch at the end of its transaction.
+///
+/// A stamp says, per column, *whose* value wins a merge and *when* it was written, so a restore has
+/// to leave every column it changed carrying a version strictly above the one that column already
+/// held, under this replica's own device id: anything less and the next merge would treat the
+/// restored value as older than the edit the restore was meant to supersede — undoing it, minutes
+/// later, from a machine nobody touched.
+///
+/// The payload's own stamps are a **floor**, not the values written: they describe the state the
+/// restore comes back to, so a column whose payload stamp is somehow above the working copy's still
+/// ends up strictly above both. What they never do is get written as they stand — that would be the
+/// exact failure above, spelled with more steps.
+class _OcptRestoreStamps {
+  /// The device id every stamp this restore writes carries: this replica's own.
+  final String deviceId;
+
+  /// The highest version known for each `(table, row, column)`, whether it comes from the working
+  /// copy, from the payload's floor, or from a stamp this restore has already handed out.
+  final Map<(String, String, String), int> _versions;
+
+  /// The stamps written so far, waiting for [flush].
+  final _pending = <OcptRowFieldVersionsTableCompanion>[];
+
+  /// Class constructor
+  _OcptRestoreStamps._({required this.deviceId, required Map<(String, String, String), int> versions})
+    : _versions = versions;
+
+  /// Reads the stamps the project in [database] currently holds, raised to the floor [payload]
+  /// carries for the same columns.
+  static Future<_OcptRestoreStamps> of({
+    required OcptProjectDatabase database,
+    required OcptProjectVersionPayload payload,
+    required String deviceId,
+  }) async {
+    final versions = <(String, String, String), int>{};
+
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get()) {
+      versions[(stamp.targetTableName, stamp.rowId, stamp.columnName)] = stamp.version;
+    }
+
+    for (final stamp in payload.rowFieldVersions) {
+      final key = (stamp.targetTableName, stamp.rowId, stamp.columnName);
+      final known = versions[key];
+      if (known == null || known < stamp.version) {
+        versions[key] = stamp.version;
+      }
+    }
+
+    return _OcptRestoreStamps._(deviceId: deviceId, versions: versions);
+  }
+
+  /// Stamps [columnNames] of the row [rowId] of [table] as written, now, by this replica.
+  void stamp({
+    required TableInfo<Table, DataClass> table,
+    required String rowId,
+    required Iterable<String> columnNames,
+  }) {
+    for (final columnName in columnNames) {
+      final key = (table.actualTableName, rowId, columnName);
+      final version = (_versions[key] ?? 0) + 1;
+      _versions[key] = version;
+
+      _pending.add(
+        OcptRowFieldVersionsTableCompanion.insert(
+          targetTableName: table.actualTableName,
+          rowId: rowId,
+          columnName: columnName,
+          version: version,
+          deviceId: deviceId,
+        ),
+      );
+    }
+  }
+
+  /// Writes every stamp handed out since this object was built into [database].
+  Future<void> flush(OcptProjectDatabase database) async {
+    if (_pending.isEmpty) {
+      return;
+    }
+
+    await database.batch(
+      (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
+    );
+  }
 }
