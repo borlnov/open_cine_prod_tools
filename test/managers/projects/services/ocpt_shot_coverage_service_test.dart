@@ -53,12 +53,20 @@ void main() {
     database.ocptShotsTable,
   )..where((row) => row.id.equals(shotId))).getSingle();
 
-  Future<OcptShotCoverageRow> readSingleRange() =>
-      database.select(database.ocptShotCoveragesTable).getSingle();
+  /// Every live coverage range: a range this service "removes" is tombstoned rather than deleted,
+  /// and every reader filters tombstones out.
+  Future<List<OcptShotCoverageRow>> readRanges() => (database.select(
+    database.ocptShotCoveragesTable,
+  )..where((row) => row.isDeleted.equals(false))).get();
 
-  Future<List<OcptSceneRow>> readScenes() => (database.select(
-    database.ocptScenesTable,
-  )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
+  /// The one live coverage range, failing if there is anything but exactly one.
+  Future<OcptShotCoverageRow> readSingleRange() async => (await readRanges()).single;
+
+  Future<List<OcptSceneRow>> readScenes() =>
+      (database.select(database.ocptScenesTable)
+            ..where((row) => row.isDeleted.equals(false))
+            ..orderBy([(row) => OrderingTerm.asc(row.position)]))
+          .get();
 
   group("addRange", () {
     test("computes and stores the digest of the covered text", () async {
@@ -273,7 +281,7 @@ Action one two three four.
         endOffset: fourEnd,
         sceneText: sceneText,
       );
-      expect(await database.select(database.ocptShotCoveragesTable).get(), hasLength(2));
+      expect(await readRanges(), hasLength(2));
 
       // The bridge covers "two three", joining both of them at once.
       await coverageService.addRange(
@@ -329,7 +337,7 @@ Action one two three.
         sceneText: sceneText,
       );
 
-      expect(await database.select(database.ocptShotCoveragesTable).get(), hasLength(2));
+      expect(await readRanges(), hasLength(2));
     });
 
     test("never merges across two shots, nor across two scenes", () async {
@@ -377,7 +385,7 @@ Action one two.
         sceneText: sceneText,
       );
 
-      final ranges = await database.select(database.ocptShotCoveragesTable).get();
+      final ranges = await readRanges();
       expect(ranges, hasLength(2));
       expect(ranges.map((range) => range.shotId), containsAll([shotA, shotB]));
     });
@@ -890,6 +898,73 @@ Action one two three.
     );
 
     expect(overlappingWithB, [shotA]);
+
+    // Removing shot A's range tombstones it, and every reader — this one included — has to stop
+    // seeing it rather than rely on the row being gone.
+    final rangeOfA = (await readRanges()).firstWhere((row) => row.shotId == shotA);
+    await coverageService.removeRange(database: database, rangeId: rangeOfA.id);
+
+    expect(
+      await coverageService.shotIdsCoveringRange(
+        database: database,
+        sceneId: scene.id,
+        startOffset: twoOffset,
+        endOffset: twoOffset + "two".length,
+        excludingShotId: shotB,
+      ),
+      isEmpty,
+    );
+    expect((await readRanges()).map((row) => row.shotId), [shotB]);
+    // The row itself is still there, flagged.
+    expect(await database.select(database.ocptShotCoveragesTable).get(), hasLength(2));
+  });
+
+  test("a shot whose ranges were all cleared stops being flagged stale by a later save", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action one two three.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final scene = (await readScenes()).single;
+    final shotId = await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: scene.id,
+    );
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+        .substring(scene.charStart, scene.charEnd);
+
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: scene.id,
+      startOffset: sceneText.indexOf("one"),
+      endOffset: sceneText.indexOf("three") + "three".length,
+      sceneText: sceneText,
+    );
+    await coverageService.clearRangesOfShot(database: database, shotId: shotId);
+
+    expect(await readRanges(), isEmpty);
+
+    // Rewriting the text the cleared range covered must not raise a flag through a tombstone.
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
+INT. HOUSE - DAY
+
+Action four five six.
+''',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    expect((await readShot(shotId)).needsCheck, isFalse);
   });
 
   group("digestOf", () {

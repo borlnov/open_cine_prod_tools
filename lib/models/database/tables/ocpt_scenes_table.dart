@@ -41,6 +41,16 @@ class OcptScenesTable extends Table {
   /// scene.
   IntColumn get charEnd => integer()();
 
+  /// {@macro open_cine_prod_tools.isDeleted}
+  ///
+  /// This table is the one exception to that template's reasoning: `scenes` is derived from the
+  /// screenplay text and is never synchronised at all (ADR 0010) — it is recomputed locally.
+  /// Its rows are tombstoned all the same, because `shots.sceneId` and `shot_coverages.sceneId`
+  /// reference them and those two tables *are* synchronised: a coverage row kept as a tombstone
+  /// still points at its scene, so hard-deleting the scene under it would break a foreign key the
+  /// schema declares and `PRAGMA foreign_keys` enforces.
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
   /// {@macro drift.Table.primaryKey}
   @override
   Set<Column> get primaryKey => {id};

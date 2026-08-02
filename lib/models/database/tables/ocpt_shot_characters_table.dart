@@ -23,8 +23,14 @@ class OcptShotCharactersTable extends Table {
   /// compares exactly against the screenplay's speaking characters.
   TextColumn get characterName => text()();
 
-  /// The 0-based display order of this character among the shot's characters.
+  /// {@macro open_cine_prod_tools.position}
   IntColumn get position => integer()();
+
+  /// {@macro open_cine_prod_tools.sortKey}
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
+
+  /// {@macro open_cine_prod_tools.isDeleted}
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
   /// {@macro drift.Table.primaryKey}
   @override

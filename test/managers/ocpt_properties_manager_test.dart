@@ -151,4 +151,24 @@ void main() {
       expect(await manager.pageMargins.load(), margins);
     });
   });
+
+  group('OcptPropertiesManager.deviceId', () {
+    test('is nothing until something asks for it', () async {
+      expect(await manager.deviceId.load(), isNull);
+    });
+
+    test('loadOrCreateDeviceId mints one, stores it, and returns the same one afterwards', () async {
+      final minted = await manager.loadOrCreateDeviceId();
+
+      expect(minted, isNotEmpty);
+      expect(await manager.deviceId.load(), minted);
+      expect(await manager.loadOrCreateDeviceId(), minted);
+    });
+
+    test('loadOrCreateDeviceId keeps an id already stored rather than minting a new one', () async {
+      await manager.deviceId.store("an-existing-device-id");
+
+      expect(await manager.loadOrCreateDeviceId(), "an-existing-device-id");
+    });
+  });
 }

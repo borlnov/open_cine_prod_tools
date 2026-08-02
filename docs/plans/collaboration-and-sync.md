@@ -99,6 +99,15 @@ the same one-service-per-responsibility split as `OcptExportManager`:
 The screenplay text is still written only through `OcptScreenplayService.saveScreenplayText`, never
 by hand, so scene reconciliation keeps running after a merge exactly as it does after an edit.
 
+The three services that touch the database write to the project **file**, through
+`OcptOpenProjectModel.fileDatabase` rather than its `database` slot. The two are the same
+connection except while a version is being previewed, and that difference is the whole point: a
+changeset arriving while the user reads an old version belongs to the working copy, not to the
+read-only replica on screen. For the same reason, the `isReadOnly` guards in the domain services
+are scoped to user edits and must never swallow an incoming merge — see
+`docs/plans/project-versions.md` §4.3.1 and §4.4. If versions have not shipped yet, both slots
+exist and are the same connection, and nothing here changes.
+
 ### 3.3 Schema v3
 
 Per ADR 0010: `isDeleted` on every synchronised table, `sortKey` beside `position` on the ordered
@@ -106,7 +115,34 @@ ones, the `row_field_versions` sidecar table, and a `deviceId` in `OcptPropertie
 migration is additive, as ADR 0007 requires, and backfills `sortKey` from the existing `position`
 ordering.
 
-### 3.4 What the user sees
+**This claims schema v3, and `docs/plans/project-versions.md` claims v4.** Both plans originally
+claimed v3; M1 here ships first, for the reasons that plan's §0 gives, so it keeps the number. If
+that order ever changes, the numbers swap with it — the two are a single sequence, and nothing else
+about either plan depends on which is which.
+
+### 3.4 What synchronising does *not* cover
+
+Two tables are named here so no agent has to guess later.
+
+`scenes` is derived and recomputed, never synchronised (ADR 0010). `project_versions`, once
+`docs/plans/project-versions.md` ships, is **local to a replica**: a version is one person's
+working history, its payload is hundreds of kilobytes, and pushing those through the changeset log
+would dominate the traffic for no collaborative gain (decision 10 of that plan). `project_info`'s
+`currentVersionId` is local for the same reason — a restore on one machine must not move another
+machine's pointer.
+
+A restore is the one operation from that plan this one has to know about. It rewrites most of the
+project in a single transaction, and it is written — from its own first milestone, before any sync
+code exists — as tombstones plus per-column stamps rather than a delete-and-reinsert, so it merges
+like any other edit. Two later hooks follow from it:
+
+- **M3** must have a test for it: a restore on one replica converging correctly against a replica
+  that was offline throughout, including rows the restore tombstoned.
+- **M4** should publish a restore through the relay's *upload a snapshot* route rather than as a
+  changeset. A restored project is by definition a complete, self-consistent state, which is what
+  that route exists for, and it lets everything below it be pruned.
+
+### 3.5 What the user sees
 
 Sync is meant to be invisible when it works. The visible surface is deliberately small: a status
 indicator in the workspace status bar (in sync, syncing, offline with a pending count, or an error),
@@ -139,6 +175,11 @@ a reorder writing exactly one row.
 No sync, no network, no UI. This milestone is worth shipping on its own even if nothing after it
 is ever built.
 
+**It also gates `docs/plans/project-versions.md` entirely** (that plan's §0): the version payload
+codec freezes a column list into files on users' disks, and a restore is a bulk delete — both would
+have to be written twice if versions shipped first, and the payloads already stored would need
+migrating.
+
 ### M2 — The app on a tablet
 
 Android build wired into `build.yml`, and the shot list made usable with a finger on a tablet:
@@ -160,7 +201,9 @@ instances pointed at the same directory must converge.
 Tests: two replicas editing different columns of the same shot row, both surviving; a delete on one
 side and an edit on the other; a replica offline across several changesets catching up in one go;
 concurrent insertions at the same index coexisting; screenplay three-way merge on a clean case and
-on a genuine conflict; `scenes` recomputed rather than merged.
+on a genuine conflict; `scenes` recomputed rather than merged; and — if versions have shipped — a
+restore on one replica converging against a replica that was offline throughout, with the rows the
+restore tombstoned staying gone and an incoming changeset applying normally while a preview is up.
 
 No server yet. The folder transport exists to prove the engine without any network code, and it
 stays afterwards as the desktop fallback.
@@ -169,8 +212,9 @@ stays afterwards as the desktop fallback.
 
 `packages/ocpt_sync_relay`: the five routes, one bearer token per project, project creation on a
 first append carrying the instance enrolment secret, snapshot upload and pruning below it, a SQLite
-store, and a Dockerfile plus the compose file of §5.1. `OcptRelayRemoteStorage` on the client, plus
-the pairing screen and the status indicator described in §3.4.
+store, and a Dockerfile plus the compose file of §5.1. If versions have shipped, a restore publishes
+itself through the snapshot route rather than as a changeset (§3.4). `OcptRelayRemoteStorage` on the
+client, plus the pairing screen and the status indicator described in §3.5.
 
 Tests on the server side are plain Dart: route behaviour, sequence monotonicity, rejection of a
 bad or missing token, an unknown project refused without the enrolment secret, pruning not losing a

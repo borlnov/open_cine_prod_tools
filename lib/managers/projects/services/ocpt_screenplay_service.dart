@@ -56,9 +56,9 @@ class OcptScreenplayService {
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final row = await (database.select(
-      database.ocptScreenplaysTable,
-    )..where((table) => table.id.equals(screenplayId))).getSingle();
+    final row = await (database.select(database.ocptScreenplaysTable)
+          ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
+        .getSingle();
 
     return row.fountainText;
   }
@@ -118,7 +118,7 @@ class OcptScreenplayService {
       );
 
       await (database.update(database.ocptScreenplaysTable)
-            ..where((table) => table.id.equals(screenplayId)))
+            ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
           .write(
             OcptScreenplaysTableCompanion(
               fountainText: Value(fountainText),
@@ -167,15 +167,23 @@ class OcptScreenplayService {
         );
   }
 
-  /// Deletes the snapshots of [screenplayId] in [database] beyond the
+  /// Prunes the snapshots of [screenplayId] in [database] beyond the
   /// [maxSnapshotsPerScreenplay] most recent ones.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// The pruned rows also have their `fountainText` cleared, in the same write: this is the one
+  /// tombstone in the app that discards what it tombstones, because pruning exists precisely to
+  /// bound the project file's size and a tombstone still carrying a whole screenplay would defeat
+  /// it. Nothing reads a tombstoned snapshot's text — the merge base a three-way screenplay merge
+  /// looks for is by definition one both replicas still hold.
   Future<void> _pruneSnapshots({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
     final snapshots =
         await (database.select(database.ocptScreenplaySnapshotsTable)
-              ..where((table) => table.screenplayId.equals(screenplayId))
+              ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
               ..orderBy([(table) => OrderingTerm.desc(table.createdAt)]))
             .get();
 
@@ -183,13 +191,18 @@ class OcptScreenplayService {
       return;
     }
 
-    final idsToDelete = snapshots
+    final idsToPrune = snapshots
         .skip(maxSnapshotsPerScreenplay)
         .map((snapshot) => snapshot.id)
         .toList(growable: false);
 
-    await (database.delete(
+    await (database.update(
       database.ocptScreenplaySnapshotsTable,
-    )..where((table) => table.id.isIn(idsToDelete))).go();
+    )..where((table) => table.id.isIn(idsToPrune))).write(
+      const OcptScreenplaySnapshotsTableCompanion(
+        fountainText: Value(""),
+        isDeleted: Value(true),
+      ),
+    );
   }
 }
