@@ -168,4 +168,18 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets("a panel with no onEditTitlePage renders no Edit… button", (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const OcptEditorMetadataPanel(
+          titlePage: null,
+          statistics: FountainScriptStatistics.empty,
+          onEditTitlePage: null,
+        ),
+      ),
+    );
+
+    expect(find.byType(TextButton), findsNothing);
+  });
 }

@@ -219,6 +219,23 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
 
+  /// Whether the right dock's formatted-preview tab exists at all right now.
+  ///
+  /// Two states have no use for it, for the same reason: what the centre already shows *is* the
+  /// formatted screenplay — the styled block editor, and the read-only preview a project version is
+  /// shown through. `OcptEditorBloc` applies the same predicate to the mode it is about to switch
+  /// to, through [isPreviewTabAvailableFor], so an open preview tab is auto-closed (and remembered)
+  /// rather than left showing nothing.
+  bool get isPreviewTabAvailable =>
+      isPreviewTabAvailableFor(mode: mode, isReadOnly: isPreviewingVersion);
+
+  /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
+  /// [mode], with [isReadOnly] telling whether a project version is being previewed.
+  static bool isPreviewTabAvailableFor({
+    required OcptEditorMode mode,
+    required bool isReadOnly,
+  }) => mode == OcptEditorMode.raw && !isReadOnly;
+
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 

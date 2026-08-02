@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -203,6 +204,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The editor route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stays in its
   /// init form with an empty document.
+  ///
+  /// This is also `MixinOcptProjectVersionsBloc`'s [reloadFromProjectDatabase] hook, so it emits
+  /// which version is being previewed alongside the text it just read: what it read comes from that
+  /// very version's in-memory database, and the two must reach the page together (see the hook's
+  /// own doc comment).
   Future<void> _onLoadRequested(
     OcptEditorLoadRequestedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -216,6 +222,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final rightDockFraction =
         await _propertiesManager.editorRightDockFraction.load() ?? OcptWorkspaceDock.rightDefaultFraction;
 
+    final project = _projectsManager.currentProject;
+    final previewedVersion = project?.previewedVersion;
+
     // Applies the same raw/styled right-dock transition the mode toggle itself applies (see
     // `_rightDockTransitionFor`), now that the persisted mode is known: e.g. an editor that was
     // left in styled mode last session starts with its (session-local, always-preview-by-default)
@@ -223,11 +232,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     // immediately forbids.
     final dockTabTransition = _rightDockTransitionFor(
       newMode: mode,
+      isReadOnly: project?.isReadOnly ?? false,
       rightDockTab: state.rightDockTab,
       autoClosedRightDockTab: state.autoClosedRightDockTab,
     );
 
-    final project = _projectsManager.currentProject;
     if (project == null) {
       final document = _fountainParser.parse("");
       emitter(
@@ -235,6 +244,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           isLoading: false,
           document: document,
           mode: mode,
+          clearPreviewedVersionId: true,
           isPageSimulationEnabled: isPageSimulationEnabled,
           areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
           leftDockFraction: leftDockFraction,
@@ -254,13 +264,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       database: project.database,
       screenplayId: project.primaryScreenplayId,
     );
-    final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
-    final margins = await _propertiesManager.pageMargins.load();
     final document = _fountainParser.parse(text);
-    final pageSetup = OcptPageSetup(
-      format: pageFormat ?? OcptPageFormat.usLetter,
-      margins: margins ?? const FountainPageMargins.standard(),
-    );
+    final pageSetup = await _loadPageSetup(project);
     final sceneStats = _sceneStatisticsFor(
       document,
       pageSetup,
@@ -272,6 +277,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         isLoading: false,
         title: project.name,
         mode: mode,
+        previewedVersionId: previewedVersion?.id,
+        clearPreviewedVersionId: previewedVersion == null,
         text: text,
         document: document,
         pageSetup: pageSetup,
@@ -290,6 +297,21 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
   }
 
+  /// Reads the page setup [project] is typeset with: the version's own while one is being
+  /// previewed, and the project's page format paired with the app-wide margins preference
+  /// otherwise.
+  ///
+  /// A previewed version is laid out with the setup it was written against — that is what keeps the
+  /// page count shown on its card true — and that setup travels on the open project model alone: a
+  /// preview never writes it anywhere, since its margins half is an app-wide preference that has
+  /// nothing to do with this project.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
+
   /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
   FountainScriptStatistics _statisticsFor(FountainDocument document, OcptPageSetup pageSetup) =>
       FountainScriptStatistics.of(document, pageSetup.toMetrics());
@@ -307,10 +329,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
   /// [_onLoadRequested] once the persisted mode is known.
   ///
-  /// - switching to styled while the preview tab is active closes the dock and remembers that tab
-  ///   in [autoClosedRightDockTab] (decision 4: styled mode has no preview tab at all);
-  /// - switching to raw with the dock closed and a tab remembered reopens it on that tab and
-  ///   forgets it;
+  /// - becoming a mode with no preview tab while that tab is active closes the dock and remembers
+  ///   it in [autoClosedRightDockTab] (decision 4: styled mode has no preview tab at all, and
+  ///   neither has a read-only preview, whose whole centre already *is* the formatted screenplay);
+  /// - becoming a mode that has one again, with the dock closed and a tab remembered, reopens it on
+  ///   that tab and forgets it;
   /// - any other combination (the syntax tab active, the dock already closed with nothing
   ///   remembered, switching to the mode it's already in, …) is left untouched — in particular,
   ///   this never touches a dock the user closed by hand (which never leaves anything in
@@ -323,10 +346,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   })
   _rightDockTransitionFor({
     required OcptEditorMode newMode,
+    required bool isReadOnly,
     required OcptEditorRightDockTab? rightDockTab,
     required OcptEditorRightDockTab? autoClosedRightDockTab,
   }) {
-    if (newMode == OcptEditorMode.styled && rightDockTab == OcptEditorRightDockTab.preview) {
+    final isPreviewTabAvailable = OcptEditorState.isPreviewTabAvailableFor(
+      mode: newMode,
+      isReadOnly: isReadOnly,
+    );
+
+    if (!isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview) {
       return (
         rightDockTab: null,
         clearRightDockTab: true,
@@ -334,7 +363,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         clearAutoClosedRightDockTab: false,
       );
     }
-    if (newMode == OcptEditorMode.raw && rightDockTab == null && autoClosedRightDockTab != null) {
+    if (isPreviewTabAvailable && rightDockTab == null && autoClosedRightDockTab != null) {
       return (
         rightDockTab: autoClosedRightDockTab,
         clearRightDockTab: false,
@@ -569,11 +598,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// on [OcptEditorState.lastRightDockTab], and clears
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   ///
-  /// Reopening applies the styled mode's own rule on the remembered tab: that mode has no preview
-  /// tab at all (the same rule [_rightDockTransitionFor] enforces on a mode switch), so a
-  /// remembered preview tab falls back to the syntax guide there rather than reopening a dock with
-  /// nothing to show. The memory itself is left untouched, so going back to raw mode still brings
-  /// the preview back.
+  /// Reopening applies the same rule on the remembered tab as [_rightDockTransitionFor] does on a
+  /// mode switch: the styled mode and a version's read-only preview both have no preview tab at
+  /// all, so a remembered preview tab falls back to the syntax guide there rather than reopening a
+  /// dock with nothing to show. The memory itself is left untouched, so going back to raw mode (or
+  /// leaving the preview) still brings the preview back.
   Future<void> _onRightDockToggled(
     OcptEditorRightDockToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -584,8 +613,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
 
     final isPreviewForbidden =
-        state.mode == OcptEditorMode.styled &&
-        state.lastRightDockTab == OcptEditorRightDockTab.preview;
+        !state.isPreviewTabAvailable && state.lastRightDockTab == OcptEditorRightDockTab.preview;
 
     emitter(
       state.copyWith(
@@ -648,6 +676,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final newMode = state.mode == OcptEditorMode.styled ? OcptEditorMode.raw : OcptEditorMode.styled;
     final dockTabTransition = _rightDockTransitionFor(
       newMode: newMode,
+      isReadOnly: state.isPreviewingVersion,
       rightDockTab: state.rightDockTab,
       autoClosedRightDockTab: state.autoClosedRightDockTab,
     );

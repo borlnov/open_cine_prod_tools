@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
@@ -37,8 +38,16 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
 /// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
 /// the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
-/// inspector and the read-only metadata panel, all three in both modes) hosting at most one panel
-/// at a time, and a thin toolbar above them.
+/// inspector, the read-only metadata panel and the project versions, all four in both modes)
+/// hosting at most one panel at a time, and a thin toolbar above them.
+///
+/// While a project version is being previewed, the mode shows the version instead of the working
+/// copy, and shows it read-only: the centre becomes the formatted preview whichever editing mode is
+/// active (there is no editor at all then, see `OcptProjectVersionsPanel` and the plan's decision
+/// 7 — making the styled editor read-only would mean a second super_editor rendering path to
+/// maintain forever), every control that would write is withheld, and the shell carries the band
+/// naming the version. Reading the screenplay, browsing its scenes, exporting it and looking at its
+/// statistics all stay available: none of them touches the project.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class EditorPage extends StatelessWidget {
@@ -156,11 +165,13 @@ class _EditorViewState extends State<_EditorView> {
               return const Center(child: CircularProgressIndicator());
             }
 
+            final isReadOnly = state.isPreviewingVersion;
             final isRawMode = state.mode == OcptEditorMode.raw;
 
             return OcptWorkspaceShell(
               title: state.title,
               isDirty: state.isDirty,
+              isReadOnly: isReadOnly,
               onBack: () => context.read<OcptEditorBloc>().add(
                 const OcptEditorBackRequestedEvent(),
               ),
@@ -175,10 +186,13 @@ class _EditorViewState extends State<_EditorView> {
               onToggleRightDock: () => context.read<OcptEditorBloc>().add(
                 const OcptEditorRightDockToggledEvent(),
               ),
-              onSave: _requestManualSave,
+              // A previewed version has nothing to save: the whole point of the preview is that
+              // nothing the user does reaches the project.
+              onSave: isReadOnly ? null : _requestManualSave,
               isSaving: state.isSaving,
+              banner: _buildReadOnlyBanner(context, state),
               leftPanel: _buildScenePanel(context, state),
-              rightPanel: _buildRightDock(context, state, isRawMode: isRawMode),
+              rightPanel: _buildRightDock(context, state),
               centre: _buildCentre(context, state, isRawMode: isRawMode),
               statusBar: _buildStatusBar(context, state),
               dockLayoutController: _dockLayoutController,
@@ -192,6 +206,26 @@ class _EditorViewState extends State<_EditorView> {
     ),
   );
 
+  /// Builds the band naming the version being previewed, the shell's `banner`, or null while the
+  /// working copy is on screen.
+  ///
+  /// Null too — the banner is simply not drawn — in the narrow window where the previewed version
+  /// isn't in the list the panel was drawn from any more: the refresh ending every version handler
+  /// resolves it on its own, and a band that named nothing would say less than no band at all.
+  Widget? _buildReadOnlyBanner(BuildContext context, OcptEditorState state) {
+    final previewedVersion = state.previewedVersion;
+    if (previewedVersion == null) {
+      return null;
+    }
+
+    return OcptWorkspaceReadOnlyBanner(
+      version: previewedVersion,
+      onExitPreview: () => context.read<OcptEditorBloc>().add(
+        const OcptProjectVersionPreviewExitRequestedEvent(),
+      ),
+    );
+  }
+
   /// Builds the screenplay's own toolbar controls, right-aligned before the chrome the shell
   /// builds itself (the mode label, the dock toggles, the save action and the overflow menu): the
   /// block-type/format controls (rendered only while attached to a live styled editor), the right
@@ -200,12 +234,22 @@ class _EditorViewState extends State<_EditorView> {
   /// Both tab selectors are raw-mode only: the styled mode has no preview tab at all, and its own
   /// layout leaves the syntax guide reachable through the dock's tab row alone, which keeps the
   /// toolbar from carrying a shortcut to a tab the mode barely uses.
+  ///
+  /// A version being previewed leaves the whole group out: the format controls write, and the two
+  /// remaining ones are about an editing mode that isn't shown at all then (the centre is the
+  /// formatted preview whichever mode is active, and the dock's preview tab doesn't exist — see
+  /// [OcptEditorState.isPreviewTabAvailable]). Every dock tab stays reachable from the dock's own
+  /// tab row.
   List<Widget> _buildToolbarActions(
     BuildContext context,
     OcptEditorState state, {
     required bool isRawMode,
   }) {
     final tr = Tr.of(context);
+
+    if (state.isPreviewingVersion) {
+      return const [];
+    }
 
     return [
       OcptEditorFormatControls(controller: _styledEditorController),
@@ -248,8 +292,15 @@ class _EditorViewState extends State<_EditorView> {
   /// Builds the screenplay's `⋮` overflow menu entries: export, export to PDF, import and
   /// replace, the page-simulation and scene-numbers toggles, page setup, title page, and resetting
   /// the panel layout.
+  ///
+  /// While a version is being previewed, the three entries that rewrite the screenplay — import and
+  /// replace, page setup, title page — are left out. The rest stays: the two exports write a file
+  /// of what is on screen (exporting a version is exactly what one would want a preview for), and
+  /// the page-simulation, scene-numbers and panel-layout entries are app-wide display preferences
+  /// that never touch a project.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptEditorState state) {
     final tr = Tr.of(context);
+    final isReadOnly = state.isPreviewingVersion;
 
     return [
       PopupMenuItem<void>(
@@ -262,10 +313,11 @@ class _EditorViewState extends State<_EditorView> {
         onTap: () => _requestExportPdf(context),
         child: Text(tr.editorExportPdfAction),
       ),
-      PopupMenuItem<void>(
-        onTap: () => _requestImportAndReplace(context),
-        child: Text(tr.editorImportAndReplaceAction),
-      ),
+      if (!isReadOnly)
+        PopupMenuItem<void>(
+          onTap: () => _requestImportAndReplace(context),
+          child: Text(tr.editorImportAndReplaceAction),
+        ),
       CheckedPopupMenuItem<void>(
         checked: state.isPageSimulationEnabled,
         onTap: () => context.read<OcptEditorBloc>().add(
@@ -280,14 +332,16 @@ class _EditorViewState extends State<_EditorView> {
         ),
         child: Text(tr.editorToggleSceneNumbersAction),
       ),
-      PopupMenuItem<void>(
-        onTap: () => _requestPageSetup(context),
-        child: Text(tr.editorPageSetupAction),
-      ),
-      PopupMenuItem<void>(
-        onTap: () => _requestTitlePage(context),
-        child: Text(tr.editorTitlePageAction),
-      ),
+      if (!isReadOnly) ...[
+        PopupMenuItem<void>(
+          onTap: () => _requestPageSetup(context),
+          child: Text(tr.editorPageSetupAction),
+        ),
+        PopupMenuItem<void>(
+          onTap: () => _requestTitlePage(context),
+          child: Text(tr.editorTitlePageAction),
+        ),
+      ],
       PopupMenuItem<void>(
         onTap: () => context.read<OcptEditorBloc>().add(
           const OcptEditorDockLayoutResetEvent(),
@@ -308,9 +362,25 @@ class _EditorViewState extends State<_EditorView> {
         )
       : null;
 
-  /// Builds the editor itself (raw source field or styled block editor), the shell's `centre`.
-  Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) =>
-      isRawMode
+  /// Builds the editor itself (raw source field or styled block editor), the shell's `centre`, or
+  /// the read-only formatted preview while a project version is being previewed.
+  ///
+  /// That substitution is the plan's decision 7: the preview renders the version exactly as it
+  /// would print, and reusing it costs nothing, whereas making the styled editor read-only would
+  /// mean a second super_editor rendering path (`SuperReader`, its own stylesheet, its own
+  /// title-page components) to maintain forever. It applies in both editing modes, since neither of
+  /// them may be typed into.
+  Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
+    if (state.isPreviewingVersion) {
+      return OcptEditorPreview(
+        document: state.document,
+        pageSetup: state.pageSetup,
+        currentLine: state.currentLine,
+        isPageSimulationEnabled: state.isPageSimulationEnabled,
+      );
+    }
+
+    return isRawMode
       ? OcptEditorSourceField(
           controller: _textController,
           scrollController: _editorScrollController,
@@ -330,17 +400,18 @@ class _EditorViewState extends State<_EditorView> {
           jumpRequest: state.jumpRequest,
           styledController: _styledEditorController,
         );
+  }
 
   /// Builds the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide,
-  /// the scene inspector and the read-only metadata panel, all three in both modes), the shell's
-  /// `rightPanel`, or null while the dock is closed.
-  Widget? _buildRightDock(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
+  /// the scene inspector, the read-only metadata panel and the project versions, all four in both
+  /// modes), the shell's `rightPanel`, or null while the dock is closed.
+  Widget? _buildRightDock(BuildContext context, OcptEditorState state) {
     final rightDockTab = state.rightDockTab;
     if (rightDockTab == null) {
       return null;
     }
 
-    final previewChild = isRawMode && rightDockTab == OcptEditorRightDockTab.preview
+    final previewChild = state.isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
         ? OcptEditorPreview(
             document: state.document,
             pageSetup: state.pageSetup,
@@ -353,7 +424,7 @@ class _EditorViewState extends State<_EditorView> {
 
     return OcptEditorRightDock(
       activeTab: rightDockTab,
-      isPreviewTabAvailable: isRawMode,
+      isPreviewTabAvailable: state.isPreviewTabAvailable,
       previewChild: previewChild,
       inspectorChild: OcptEditorInspectorPanel(
         scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
@@ -363,7 +434,7 @@ class _EditorViewState extends State<_EditorView> {
       metadataChild: OcptEditorMetadataPanel(
         titlePage: state.document?.titlePage,
         statistics: state.statistics,
-        onEditTitlePage: () => _requestTitlePage(context),
+        onEditTitlePage: state.isPreviewingVersion ? null : () => _requestTitlePage(context),
       ),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptEditorBloc>().add(
