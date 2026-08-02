@@ -22,6 +22,7 @@ OcptShot _buildShot({
   String? orphanedHeading,
   List<String> characters = const [],
   String shotSize = "",
+  String abbreviation = "",
   String framing = "",
   String cameraMove = "",
   String lens = "",
@@ -41,6 +42,7 @@ OcptShot _buildShot({
   orphanedHeading: orphanedHeading,
   position: 0,
   shotSize: shotSize,
+  abbreviation: abbreviation,
   framing: framing,
   cameraMove: cameraMove,
   lens: lens,
@@ -193,6 +195,7 @@ void main() {
                 code: "1/1",
                 characters: const ["LÉA", "MARC"],
                 shotSize: "Close-up",
+                abbreviation: "CU",
                 framing: "Low angle",
                 cameraMove: "Slow push in",
                 lens: "35mm",
@@ -223,6 +226,7 @@ void main() {
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.characters), "LÉA, MARC");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.set), "INT. FLAT - NIGHT");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.shotSize), "Close-up");
+      expect(_cellOf(shotRow, OcptShotListXlsxColumn.abbreviation), "CU");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.framing), "Low angle");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.cameraMove), "Slow push in");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.lens), "35mm");
@@ -258,6 +262,7 @@ void main() {
       final shotRow = rows[2];
 
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.shotSize), isNull);
+      expect(_cellOf(shotRow, OcptShotListXlsxColumn.abbreviation), isNull);
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.characters), isNull);
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.duration), isNull);
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.takes), isNull);

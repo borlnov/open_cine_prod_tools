@@ -19,6 +19,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
+/// The width of the abbreviation field's own box, sitting right under the shot size it abbreviates:
+/// enough for the three or four characters an abbreviation ever holds (`PM`, `GP`, `TGP`), so the
+/// field says how much is expected of it rather than offering a full-width box for two letters.
+const double _abbreviationFieldWidth = 96;
+
 /// The shot list's right dock inspector tab: every field of the selected shot, editable in place.
 ///
 /// Purely presentational, like the screenplay editor's own `OcptEditorInspectorPanel`: the shot
@@ -189,6 +194,13 @@ class OcptShotInspectorPanel extends StatelessWidget {
           value: fieldValueOf(OcptShotListEditableField.shotSize),
           suggestions: suggestions.shotSizes,
           onChanged: (value) => onFieldChanged(OcptShotListEditableField.shotSize, value),
+        ),
+        OcptShotInspectorField(
+          shotId: shot.id,
+          label: tr.shotListColumnAbbreviation,
+          value: fieldValueOf(OcptShotListEditableField.abbreviation),
+          fieldWidth: _abbreviationFieldWidth,
+          onChanged: (value) => onFieldChanged(OcptShotListEditableField.abbreviation, value),
         ),
         OcptShotInspectorField(
           shotId: shot.id,

@@ -72,6 +72,12 @@ class OcptShotInspectorField extends StatefulWidget {
   /// character can never even be typed and [errorText] is only ever about the shape of what was.
   final List<TextInputFormatter>? inputFormatters;
 
+  /// The width of the text box itself, or null for one filling the dock's width as every field
+  /// does by default: a field whose values are only ever a couple of characters long (the shot
+  /// size's abbreviation) says so by being that wide. The label above it keeps the full width
+  /// whatever this holds, so a narrow box never wraps its own label.
+  final double? fieldWidth;
+
   /// Called with the field's raw text on every keystroke, and when a suggestion is picked.
   final ValueChanged<String> onChanged;
 
@@ -86,6 +92,7 @@ class OcptShotInspectorField extends StatefulWidget {
     this.hintText,
     this.errorText,
     this.inputFormatters,
+    this.fieldWidth,
     required this.onChanged,
   });
 
@@ -142,9 +149,23 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
             ),
             const SizedBox(height: 4),
           ],
-          _buildField(context),
+          _buildSizedField(context),
         ],
       ),
+    );
+  }
+
+  /// [_buildField], kept to [OcptShotInspectorField.fieldWidth] and aligned to the left of the
+  /// panel when the caller asked for a narrow box, left to fill the dock's width otherwise.
+  Widget _buildSizedField(BuildContext context) {
+    final fieldWidth = widget.fieldWidth;
+    if (fieldWidth == null) {
+      return _buildField(context);
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(width: fieldWidth, child: _buildField(context)),
     );
   }
 

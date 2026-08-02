@@ -58,7 +58,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// The database options used by this database.
   ///
@@ -80,13 +80,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `docs/adr/0010-sync-ready-data-model-prerequisites.md` — an `isDeleted` tombstone flag on
   /// every synchronised table, a `sortKey` fractional index beside `position` on the two ordered
   /// ones — creates [OcptRowFieldVersionsTable], and backfills the new keys from the order
-  /// `position` already held (see [_backfillSortKeys]). Both steps are additive, as ADR 0007
-  /// requires: every new column carries a default, so the rows a project already had stay valid
-  /// without being rewritten.
+  /// `position` already held (see [_backfillSortKeys]). From 3 to 4 it adds `shots.abbreviation`,
+  /// the short label the scenario coverage export marks its bars with. Every step is additive, as
+  /// ADR 0007 requires: every new column carries a default, so the rows a project already had stay
+  /// valid without being rewritten.
   ///
-  /// The v3 columns are only *added* to the shot list tables when the file already had them: a
-  /// file coming from version 1 has just had those three tables created above, from the current
-  /// declarations, so they carry the v3 columns already.
+  /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
+  /// them: a file coming from version 1 has just had those three tables created above, from the
+  /// current declarations, so they carry both generations of columns already.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
@@ -116,6 +117,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
         await m.createTable(ocptRowFieldVersionsTable);
         await _backfillSortKeys();
+      }
+
+      if (from < 4 && from >= 2) {
+        await m.addColumn(ocptShotsTable, ocptShotsTable.abbreviation);
       }
     },
     beforeOpen: (details) async {

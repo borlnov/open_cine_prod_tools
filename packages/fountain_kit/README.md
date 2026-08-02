@@ -66,6 +66,22 @@ Smells like Sunday.
 classification, block building), which keeps the door open for a future
 incremental re-parse of just a changed region of a document.
 
+## Pagination and source provenance
+
+`FountainScriptComposer.compose` lays a parsed document out into printed
+pages, applying the professional US screenplay conventions (blank spacer
+lines, a scene heading or a character cue never left last on a page, a split
+dialogue group getting its `(MORE)` and its repeated `NAME (CONT'D)` cue).
+
+Every printed line it emits carries a nullable
+`FountainScriptLine.sourceRange` pointing back into the document's own source
+text, so a caller can map a span of source characters onto the rows it was
+printed on — what an annotation drawn beside the text needs, and something
+only the code that did the wrapping can know. The anchoring is best effort: a
+line whose text cannot be located in the source gets no range rather than a
+wrong one, and `FountainScriptLine.isSynthetic` marks the lines the composer
+wrote itself.
+
 ## License
 
 Licensed under the Apache-2.0 license, like the rest of Open Cine Prod

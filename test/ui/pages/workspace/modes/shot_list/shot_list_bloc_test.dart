@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -15,10 +16,14 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -80,30 +85,45 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
   }) async => throw StateError("coverage write intentionally failed for the test");
 }
 
-/// An export manager whose [exportShotListXlsx] is stubbed and whose calls are recorded, so the
-/// bloc's export path can be exercised without any real native dialog or workbook write.
+/// An export manager whose two exports are stubbed and whose calls are recorded, so the bloc's
+/// export paths can be exercised without any real native dialog, workbook or PDF write.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
   _FakeExportManager({this.exportResult, this.fails = false})
     : super(fileSelectorManager: const FileSelectorManager());
 
-  /// The path [exportShotListXlsx] returns, or null to simulate a cancelled save dialog.
+  /// The path either export returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
 
-  /// Whether [exportShotListXlsx] throws, to exercise the bloc's export failure path.
+  /// Whether either export throws, to exercise the bloc's export failure path.
   final bool fails;
 
-  /// The snapshot of the last [exportShotListXlsx] call.
+  /// The snapshot of the last export call, of either kind.
   OcptShotListSnapshot? lastExportedSnapshot;
 
   /// The labels of the last [exportShotListXlsx] call.
   OcptShotListXlsxLabels? lastExportedLabels;
 
-  /// The project name of the last [exportShotListXlsx] call.
+  /// The project name of the last export call, of either kind.
   String? lastExportedProjectName;
 
-  /// The file type label of the last [exportShotListXlsx] call.
+  /// The file type label of the last export call, of either kind.
   String? lastExportedFileTypeLabel;
+
+  /// The screenplay text of the last [exportScenarioCoverage] call.
+  String? lastCoverageScreenplayText;
+
+  /// The parsed document of the last [exportScenarioCoverage] call.
+  FountainDocument? lastCoverageDocument;
+
+  /// The page setup of the last [exportScenarioCoverage] call.
+  OcptPageSetup? lastCoveragePageSetup;
+
+  /// The labels of the last [exportScenarioCoverage] call.
+  OcptScenarioCoverageLabels? lastCoverageLabels;
+
+  /// The four content toggles of the last [exportScenarioCoverage] call.
+  ({bool sceneNumbers, bool titlePage, bool legendPage, bool summaryPage})? lastCoverageToggles;
 
   @override
   Future<String?> exportShotListXlsx({
@@ -123,6 +143,41 @@ class _FakeExportManager extends OcptExportManager {
 
     return exportResult;
   }
+
+  @override
+  Future<String?> exportScenarioCoverage({
+    required FountainDocument document,
+    required String screenplayText,
+    required OcptShotListSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptScenarioCoverageLabels labels,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required bool includeTitlePage,
+    required bool includeLegendPage,
+    required bool includeSummaryPage,
+    required String fileTypeLabel,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+    lastCoverageDocument = document;
+    lastCoverageScreenplayText = screenplayText;
+    lastCoveragePageSetup = pageSetup;
+    lastCoverageLabels = labels;
+    lastCoverageToggles = (
+      sceneNumbers: includeSceneNumbers,
+      titlePage: includeTitlePage,
+      legendPage: includeLegendPage,
+      summaryPage: includeSummaryPage,
+    );
+
+    if (fails) {
+      throw StateError("scenario coverage export intentionally failed for the test");
+    }
+
+    return exportResult;
+  }
 }
 
 /// The labels the export tests dispatch, standing in for what `ocptShotListXlsxLabelsOf` builds
@@ -132,6 +187,37 @@ const _exportLabels = OcptShotListXlsxLabels(
   columnHeaders: {},
   statusLabels: {},
   sequenceTitles: {},
+);
+
+/// The labels the scenario coverage export tests dispatch, standing in for what
+/// `ocptScenarioCoverageLabelsOf` builds from a real `Tr`: the bloc only carries them through to the
+/// manager.
+const _coverageLabels = OcptScenarioCoverageLabels(
+  fileNameSuffix: "coverage",
+  legendTitle: "Shot legend",
+  legendShotHeader: "Shot",
+  legendShotSizeHeader: "Shot size",
+  legendFramingHeader: "Framing & composition",
+  legendCameraMoveHeader: "Camera move",
+  summaryTitle: "Coverage summary",
+  summarySequenceHeader: "Sequence",
+  summaryShotCountHeader: "Shots",
+  summaryCoveredHeader: "Covered",
+  summaryStaleHeader: "To check",
+  summaryUncoveredHeader: "Uncovered passages",
+  laneOverflowNote: "Some pages ran out of lanes.",
+  sequenceTitles: {},
+);
+
+/// The options the scenario coverage export tests dispatch, standing in for what the mode's own
+/// options dialog returns.
+const _coverageOptions = OcptScenarioCoverageExportOptions(
+  format: OcptPageFormat.a4,
+  margins: FountainPageMargins.standard(),
+  includeSceneNumbers: true,
+  includeTitlePage: false,
+  includeLegendPage: true,
+  includeSummaryPage: false,
 );
 
 void main() {
@@ -622,6 +708,69 @@ void main() {
 
     state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Wide");
     expect(state.pendingFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  test('committing a shot size deduces the abbreviation once, then never again', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Plan moyen",
+      ),
+    );
+    var state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Plan moyen");
+    expect(state.selectedShot!.abbreviation, "PM");
+
+    // A later shot size never overwrites the abbreviation the shot already carries.
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Gros plan",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Gros plan");
+    expect(state.selectedShot!.abbreviation, "PM");
+
+    await bloc.close();
+  });
+
+  test('an abbreviation typed in the same flush wins over the deduced one', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Plan moyen",
+      ),
+    );
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.abbreviation,
+        rawValue: "PMS",
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Plan moyen");
+    expect(state.selectedShot!.abbreviation, "PMS");
 
     await bloc.close();
   });
@@ -1313,6 +1462,128 @@ void main() {
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
     expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.xlsxExportFailed);
+    expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the scenario coverage hands the screenplay and its options to the manager',
+      () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - coverage.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      const OcptShotListScenarioCoverageExportRequestedEvent(
+        options: _coverageOptions,
+        labels: _coverageLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - coverage.pdf");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastCoverageLabels, _coverageLabels);
+    // The document travels alongside the very text it was parsed from: a coverage range addresses
+    // that text by character offset.
+    expect(exportManager.lastCoverageScreenplayText, twoSceneText);
+    expect(exportManager.lastCoverageDocument!.blocks, isNotEmpty);
+    // The dialog's format wins over the project's own, and its margins are carried through.
+    expect(exportManager.lastCoveragePageSetup!.format, OcptPageFormat.a4);
+    expect(exportManager.lastCoveragePageSetup!.margins, _coverageOptions.margins);
+    expect(
+      exportManager.lastCoverageToggles,
+      (sceneNumbers: true, titlePage: false, legendPage: true, summaryPage: false),
+    );
+    expect(exportManager.lastExportedSnapshot!.totalShotCount, 1);
+
+    await bloc.close();
+  });
+
+  test('exporting the scenario coverage flushes a pending field edit first', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - coverage.pdf");
+    final bloc = buildBloc(exportManager: exportManager, fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Gros plan",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptShotListScenarioCoverageExportRequestedEvent(
+        options: _coverageOptions,
+        labels: _coverageLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    // The legend prints the shot size the user typed seconds ago, and the abbreviation deduced
+    // from it alongside.
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Gros plan");
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.abbreviation, "GP");
+
+    await bloc.close();
+  });
+
+  test('a cancelled coverage save dialog leaves no export notice at all', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListScenarioCoverageExportRequestedEvent(
+        options: _coverageOptions,
+        labels: _coverageLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    // Nothing to wait for: a cancellation emits no state of its own, so the assertion is that the
+    // bloc settles back with no notice once the export has had time to resolve.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing coverage export raises its own transient failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListScenarioCoverageExportRequestedEvent(
+        options: _coverageOptions,
+        labels: _coverageLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.scenarioCoverageExportFailed);
     expect(state.ioNotice!.path, isNull);
 
     await bloc.close();

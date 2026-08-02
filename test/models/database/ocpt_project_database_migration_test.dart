@@ -34,6 +34,20 @@ CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "
 CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFERENCES shots (id), "scene_id" TEXT NOT NULL REFERENCES scenes (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "covered_text_digest" TEXT NOT NULL, PRIMARY KEY ("id"));
 ''';
 
+// The same, for schema version 3: every table carrying its sync-ready columns (`is_deleted`
+// everywhere, `sort_key` on the two ordered tables) and the `row_field_versions` sidecar, but the
+// `shots` table still without the `abbreviation` column version 4 adds.
+const _v3Ddl = '''
+CREATE TABLE "project_info" ("id" INTEGER NOT NULL DEFAULT 1, "name" TEXT NOT NULL, "created_at" TEXT NOT NULL, "app_version_at_creation" TEXT NOT NULL, "page_format" TEXT NOT NULL, "settings_json" TEXT NULL, PRIMARY KEY ("id"));
+CREATE TABLE "screenplays" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "fountain_text" TEXT NOT NULL DEFAULT '', "updated_at" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "screenplay_snapshots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "created_at" TEXT NOT NULL, "reason" TEXT NOT NULL, "fountain_text" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "scenes" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "position" INTEGER NOT NULL, "heading" TEXT NOT NULL, "scene_number" TEXT NULL, "char_start" INTEGER NOT NULL, "char_end" INTEGER NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "scene_id" TEXT NULL REFERENCES scenes (id), "orphaned_heading" TEXT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "shot_size" TEXT NOT NULL DEFAULT '', "framing" TEXT NOT NULL DEFAULT '', "camera_move" TEXT NOT NULL DEFAULT '', "lens" TEXT NOT NULL DEFAULT '', "recording_format" TEXT NOT NULL DEFAULT '', "estimated_duration_ms" INTEGER NULL, "shooting_day" TEXT NULL, "planned_takes" INTEGER NULL, "sound" TEXT NOT NULL DEFAULT '', "status" TEXT NOT NULL DEFAULT 'toShoot', "difficulty_set" INTEGER NOT NULL DEFAULT 1, "difficulty_camera" INTEGER NOT NULL DEFAULT 1, "difficulty_acting" INTEGER NOT NULL DEFAULT 1, "difficulty_sound" INTEGER NOT NULL DEFAULT 1, "notes" TEXT NOT NULL DEFAULT '', "location_notes" TEXT NOT NULL DEFAULT '', "needs_check" INTEGER NOT NULL DEFAULT 0 CHECK ("needs_check" IN (0, 1)), "check_reason" TEXT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("shot_id", "character_name"));
+CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFERENCES shots (id), "scene_id" TEXT NOT NULL REFERENCES scenes (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "covered_text_digest" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "row_field_versions" ("table_name" TEXT NOT NULL, "row_id" TEXT NOT NULL, "column_name" TEXT NOT NULL, "version" INTEGER NOT NULL, "device_id" TEXT NOT NULL, PRIMARY KEY ("table_name", "row_id", "column_name"));
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -50,7 +64,8 @@ void main() {
   final snapshotCreatedAt = DateTime.utc(2026, 1, 16, 18, 44);
 
   /// Writes the rows every version of the schema already had — the project header, one screenplay,
-  /// one snapshot and one scene — into the legacy database [db] built from [_v1Ddl] or [_v2Ddl].
+  /// one snapshot and one scene — into the legacy database [db] built from [_v1Ddl], [_v2Ddl] or
+  /// [_v3Ddl].
   void seedCommonRows(sqlite3.Database db) {
     db.execute(
       "INSERT INTO project_info (id, name, created_at, app_version_at_creation, page_format) "
@@ -170,6 +185,7 @@ void main() {
     final shot = await database.select(database.ocptShotsTable).getSingle();
     expect(shot.id, "shot1");
     expect(shot.isDeleted, isFalse);
+    expect(shot.abbreviation, "");
     final shotCharacter = await database.select(database.ocptShotCharactersTable).getSingle();
     expect(shotCharacter.characterName, "CLARA");
     final coverage = await database.select(database.ocptShotCoveragesTable).getSingle();
@@ -189,13 +205,13 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
 
-    // (d) the schema version stored in the file is now 3.
-    expect(await readSchemaVersion(database), 3);
+    // (d) the schema version stored in the file is now 4.
+    expect(await readSchemaVersion(database), 4);
 
     await database.close();
   });
 
-  test('a v2 database migrates to v3, backfilling a strictly ordered sortKey per group', () async {
+  test('a v2 database migrates to the current schema, backfilling a sortKey per group', () async {
     final filePath = p.join(tempDir.path, 'legacy_v2.ocpt');
 
     final legacyDb = sqlite3.sqlite3.open(filePath);
@@ -248,6 +264,7 @@ void main() {
     expect(shots.every((row) => !row.isDeleted), isTrue);
     for (final row in shots) {
       expect(row.framing, "framing of ${row.id}");
+      expect(row.abbreviation, "");
     }
 
     final coverage = await database.select(database.ocptShotCoveragesTable).getSingle();
@@ -305,7 +322,48 @@ void main() {
           ),
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
-    expect(await readSchemaVersion(database), 3);
+    expect(await readSchemaVersion(database), 4);
+
+    await database.close();
+  });
+
+  test('a v3 database migrates to v4, gaining an empty abbreviation on every shot', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v3.ocpt');
+
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v3Ddl);
+    legacyDb.execute('PRAGMA user_version = 3;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute(
+      "INSERT INTO shots (id, screenplay_id, scene_id, position, sort_key, shot_size, framing) "
+      "VALUES ('shot-a', 's1', 'scene1', 0, 'V', 'Gros plan', 'framing of shot-a');",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every original row survived, the shot included: the step is a plain `ADD COLUMN`, so
+    // nothing the file already held is rewritten.
+    await expectCommonRowsSurvived(database);
+
+    final shot = await database.select(database.ocptShotsTable).getSingle();
+    expect(shot.id, "shot-a");
+    expect(shot.shotSize, "Gros plan");
+    expect(shot.framing, "framing of shot-a");
+    expect(shot.sortKey, "V");
+    expect(shot.isDeleted, isFalse);
+
+    // (b) the new column is there, holding its default rather than being deduced retroactively:
+    // an abbreviation is only ever written when a shot size is committed from the inspector.
+    expect(shot.abbreviation, "");
+
+    await database
+        .update(database.ocptShotsTable)
+        .write(const OcptShotsTableCompanion(abbreviation: Value("GP")));
+    expect((await database.select(database.ocptShotsTable).getSingle()).abbreviation, "GP");
+
+    // (c) the file now says version 4.
+    expect(await readSchemaVersion(database), 4);
 
     await database.close();
   });

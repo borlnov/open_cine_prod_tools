@@ -64,6 +64,35 @@ void main() {
     });
   });
 
+  group("ocptDeduceShotAbbreviation", () {
+    test("reads the initials of the shot size's words, upper cased", () {
+      expect(ocptDeduceShotAbbreviation("Plan moyen"), "PM");
+      expect(ocptDeduceShotAbbreviation("Gros plan"), "GP");
+      expect(ocptDeduceShotAbbreviation("très gros plan"), "TGP");
+      expect(ocptDeduceShotAbbreviation("Plan d'ensemble"), "PD");
+    });
+
+    test("counts a hyphenated shot size as a single word", () {
+      expect(ocptDeduceShotAbbreviation("Close-up"), "C");
+      expect(ocptDeduceShotAbbreviation("Extreme close-up"), "EC");
+    });
+
+    test("ignores the surrounding and repeated whitespace", () {
+      expect(ocptDeduceShotAbbreviation("  Plan   moyen  "), "PM");
+    });
+
+    test("skips a word carrying no letter nor digit at all", () {
+      expect(ocptDeduceShotAbbreviation("Plan — moyen"), "PM");
+      expect(ocptDeduceShotAbbreviation("(gros) plan"), "GP");
+    });
+
+    test("deduces nothing from a shot size with no initial to read", () {
+      expect(ocptDeduceShotAbbreviation(""), "");
+      expect(ocptDeduceShotAbbreviation("   "), "");
+      expect(ocptDeduceShotAbbreviation("— …"), "");
+    });
+  });
+
   group("ocptShotDurationInputFormatters", () {
     test("keeps the digits and the separator, drops everything else", () {
       var filtered = const TextEditingValue(text: "1m 30s!");

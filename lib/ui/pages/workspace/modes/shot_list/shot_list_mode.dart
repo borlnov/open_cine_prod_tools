@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
@@ -124,17 +125,24 @@ class _ShotListViewState extends State<_ShotListView> {
   );
 
   /// Builds the mode's `⋮` overflow menu entries: the XLSX export (the same action the table's own
-  /// `Export XLSX` button dispatches, reachable from the toolbar too), and resetting the panel
-  /// layout.
+  /// `Export XLSX` button dispatches, reachable from the toolbar too), the scenario coverage
+  /// export, and resetting the panel layout.
   ///
-  /// The export entry is disabled while the shot list holds no shot at all: there would be nothing
-  /// in the workbook but its header row.
+  /// Both export entries are disabled while the shot list holds no shot at all: there would be
+  /// nothing in the workbook but its header row, and nothing to annotate the screenplay with.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptShotListState state) =>
       [
         PopupMenuItem<void>(
           enabled: state.totalShotCount > 0,
           onTap: () => _requestXlsxExport(context, state),
           child: Text(Tr.of(context).shotListExportXlsxMenuAction),
+        ),
+        PopupMenuItem<void>(
+          enabled: state.totalShotCount > 0,
+          // `onTap` fires as the menu closes, so the dialog this opens is shown from the mode's own
+          // context rather than from the entry's, which is already on its way out of the tree.
+          onTap: () => unawaited(_requestScenarioCoverageExport(context, state)),
+          child: Text(Tr.of(context).shotListExportCoverageMenuAction),
         ),
         PopupMenuItem<void>(
           onTap: () =>
@@ -152,6 +160,35 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListXlsxExportRequestedEvent(
         labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the scenario coverage export options dialog, then dispatches the export request if the
+  /// user applied it, resolving here — the last place with a [BuildContext] — every localized
+  /// string the exported document and the native save dialog carry.
+  Future<void> _requestScenarioCoverageExport(
+    BuildContext context,
+    OcptShotListState state,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final options = await OcptScenarioCoverageExportDialog.show(
+      context,
+      current: state.pageSetup,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptShotListScenarioCoverageExportRequestedEvent(
+        options: options,
+        labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
+        fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
       ),
     );
   }
@@ -412,6 +449,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
     return switch (field) {
       OcptShotListEditableField.shotSize => shot.shotSize,
+      OcptShotListEditableField.abbreviation => shot.abbreviation,
       OcptShotListEditableField.framing => shot.framing,
       OcptShotListEditableField.cameraMove => shot.cameraMove,
       OcptShotListEditableField.lens => shot.lens,
@@ -538,6 +576,9 @@ class _ShotListViewState extends State<_ShotListView> {
         notice.path ?? "",
       ),
       OcptShotListIoNoticeKind.xlsxExportFailed => tr.shotListExportXlsxError,
+      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded =>
+        tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.scenarioCoverageExportFailed => tr.shotListExportCoverageError,
     };
   }
 }

@@ -179,43 +179,110 @@ class FountainInlineParser {
   /// [parse] itself is unchanged and keeps returning single-style spans, so
   /// callers that only need [FountainInlineStyle] (the raw-mode preview)
   /// keep working exactly as before.
-  List<FountainStyledRun> parseRuns(String text) =>
-      parse(text).map(_toStyledRun).toList();
+  ///
+  /// [line] and [startOffset] anchor the returned runs in a larger source
+  /// document, exactly as [parse]'s parameters of the same name do: [line] is
+  /// the 0-based source line [text] was taken from and [startOffset] is the
+  /// character offset of `text[0]` within that document. They must be passed
+  /// together; when either is left out, every returned run carries a `null`
+  /// [FountainStyledRun.sourceRange] rather than one anchored at an offset
+  /// that would be a fiction. Unlike [parse]'s spans, a run's range covers
+  /// only what the run actually renders: the outer emphasis markers, and the
+  /// nested ones this method resolves, are excluded from it.
+  List<FountainStyledRun> parseRuns(
+    String text, {
+    int? line,
+    int? startOffset,
+  }) {
+    final isAnchored = line != null && startOffset != null;
+    return parse(
+      text,
+      line: line ?? 0,
+      startOffset: startOffset ?? 0,
+    ).map((span) => _toStyledRun(span, isAnchored: isAnchored)).toList();
+  }
 
   /// Converts one top-level [FountainInlineSpan] into a [FountainStyledRun],
   /// resolving one level of nesting as described on [parseRuns].
-  FountainStyledRun _toStyledRun(FountainInlineSpan span) {
+  ///
+  /// [isAnchored] tells whether [span]'s own range points into a real source
+  /// document; when it does not, the resulting run carries no range at all.
+  FountainStyledRun _toStyledRun(
+    FountainInlineSpan span, {
+    required bool isAnchored,
+  }) {
+    final range = isAnchored ? span.sourceRange : null;
     switch (span.style) {
       case FountainInlineStyle.plain:
-        return FountainStyledRun(text: span.text);
+        return FountainStyledRun(text: span.text, sourceRange: range);
       case FountainInlineStyle.note:
-        return FountainStyledRun(text: '[[${span.text}]]', isNote: true);
+        // A note's `[[`/`]]` delimiters stay in the run's text, so its range
+        // is the span's own, unnarrowed.
+        return FountainStyledRun(
+          text: '[[${span.text}]]',
+          isNote: true,
+          sourceRange: range,
+        );
       case FountainInlineStyle.boldItalic:
-        return FountainStyledRun(text: span.text, isBold: true, isItalic: true);
+        return FountainStyledRun(
+          text: span.text,
+          isBold: true,
+          isItalic: true,
+          sourceRange: _withoutMarkers(range, 3),
+        );
       case FountainInlineStyle.bold:
-        return _resolveNesting(span.text, _nestedInBoldOrItalic, isBold: true);
+        return _resolveNesting(
+          span.text,
+          _nestedInBoldOrItalic,
+          _withoutMarkers(range, 2),
+          isBold: true,
+        );
       case FountainInlineStyle.italic:
         return _resolveNesting(
           span.text,
           _nestedInBoldOrItalic,
+          _withoutMarkers(range, 1),
           isItalic: true,
         );
       case FountainInlineStyle.underline:
         return _resolveNesting(
           span.text,
           _nestedInUnderline,
+          _withoutMarkers(range, 1),
           isUnderline: true,
         );
     }
   }
 
+  /// Narrows [range] by [markerLength] characters at each end, turning the
+  /// range of a `**bold**` span into the range of the `bold` a
+  /// [FountainStyledRun] actually renders. Returns `null` for a `null`
+  /// [range]; the parse rules guarantee the range is always long enough for
+  /// the markers it is asked to drop.
+  FountainSourceRange? _withoutMarkers(
+    FountainSourceRange? range,
+    int markerLength,
+  ) => range == null
+      ? null
+      : FountainSourceRange(
+          startLine: range.startLine,
+          endLine: range.endLine,
+          startOffset: range.startOffset + markerLength,
+          endOffset: range.endOffset - markerLength,
+        );
+
   /// Checks whether [text] is fully wrapped in one of [candidates]; if so,
   /// returns a [FountainStyledRun] combining that nested style with the
   /// outer style already carried by [isBold]/[isItalic]/[isUnderline],
   /// otherwise returns a run with only the outer style and [text] as-is.
+  ///
+  /// [range] is [text]'s own range, the outer marker already dropped from it;
+  /// a resolved nesting narrows it further by the nested marker's own length,
+  /// so the returned run's range always covers exactly what it renders.
   FountainStyledRun _resolveNesting(
     String text,
-    List<_EmphasisMarker> candidates, {
+    List<_EmphasisMarker> candidates,
+    FountainSourceRange? range, {
     bool isBold = false,
     bool isItalic = false,
     bool isUnderline = false,
@@ -227,9 +294,10 @@ class FountainInlineParser {
         isBold: isBold,
         isItalic: isItalic,
         isUnderline: isUnderline,
+        sourceRange: range,
       );
     }
-    final (nestedStyle, innerText) = nested;
+    final (nestedStyle, innerText, nestedMarkerLength) = nested;
     return FountainStyledRun(
       text: innerText,
       isBold:
@@ -241,16 +309,17 @@ class FountainInlineParser {
           nestedStyle == FountainInlineStyle.boldItalic ||
           nestedStyle == FountainInlineStyle.italic,
       isUnderline: isUnderline || nestedStyle == FountainInlineStyle.underline,
+      sourceRange: _withoutMarkers(range, nestedMarkerLength),
     );
   }
 
-  /// Returns the nested style and inner text if [text] is entirely wrapped
-  /// in one marker from [candidates] (tried longest-first), using the same
-  /// leftmost-closing-marker rule as [parse] itself so the two agree on
-  /// what counts as a matched pair; returns `null` if [text] is not fully
-  /// wrapped by any candidate (for example plain, unmatched, or wrapped by
-  /// only part of the string).
-  (FountainInlineStyle, String)? _matchFullWrap(
+  /// Returns the nested style, inner text and marker length if [text] is
+  /// entirely wrapped in one marker from [candidates] (tried longest-first),
+  /// using the same leftmost-closing-marker rule as [parse] itself so the
+  /// two agree on what counts as a matched pair; returns `null` if [text] is
+  /// not fully wrapped by any candidate (for example plain, unmatched, or
+  /// wrapped by only part of the string).
+  (FountainInlineStyle, String, int)? _matchFullWrap(
     String text,
     List<_EmphasisMarker> candidates,
   ) {
@@ -261,7 +330,11 @@ class FountainInlineParser {
       }
       final closeIndex = text.indexOf(token, token.length);
       if (closeIndex == text.length - token.length) {
-        return (marker.style, text.substring(token.length, closeIndex));
+        return (
+          marker.style,
+          text.substring(token.length, closeIndex),
+          token.length,
+        );
       }
     }
     return null;

@@ -41,6 +41,9 @@ class OcptShot extends Equatable {
   /// The shot size ("valeur de plan"), free text.
   final String shotSize;
 
+  /// The short abbreviation of [shotSize] (`PM`, `GP`), free text, empty until deduced or typed.
+  final String abbreviation;
+
   /// The framing and composition ("angle et composition du cadre"), free text.
   final String framing;
 
@@ -113,6 +116,7 @@ class OcptShot extends Equatable {
     required this.orphanedHeading,
     required this.position,
     required this.shotSize,
+    required this.abbreviation,
     required this.framing,
     required this.cameraMove,
     required this.lens,
@@ -156,6 +160,7 @@ class OcptShot extends Equatable {
     orphanedHeading: row.orphanedHeading,
     position: position,
     shotSize: row.shotSize,
+    abbreviation: row.abbreviation,
     framing: row.framing,
     cameraMove: row.cameraMove,
     lens: row.lens,
@@ -193,6 +198,7 @@ class OcptShot extends Equatable {
     orphanedHeading,
     position,
     shotSize,
+    abbreviation,
     framing,
     cameraMove,
     lens,

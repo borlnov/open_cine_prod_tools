@@ -26,6 +26,12 @@ enum OcptShotListIoNoticeKind {
 
   /// Exporting the shot list to an XLSX workbook failed.
   xlsxExportFailed,
+
+  /// The scenario coverage was successfully exported to an annotated screenplay PDF.
+  scenarioCoverageExportSucceeded,
+
+  /// Exporting the scenario coverage to an annotated screenplay PDF failed.
+  scenarioCoverageExportFailed,
 }
 
 /// A transient notice, produced by `OcptShotListBloc`, reporting the outcome of an export, shown
@@ -39,8 +45,7 @@ class OcptShotListIoNotice extends Equatable {
   /// The outcome this notice reports.
   final OcptShotListIoNoticeKind kind;
 
-  /// The path the shot list was exported to, only set when [kind] is
-  /// [OcptShotListIoNoticeKind.xlsxExportSucceeded].
+  /// The path the export was written to, only set when [kind] is one of the two succeeded kinds.
   final String? path;
 
   /// Class constructor

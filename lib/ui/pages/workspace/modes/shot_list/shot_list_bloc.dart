@@ -51,6 +51,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// immediately whenever the selected shot or sequence changes, when the workspace is left, and
 /// (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode
 /// leaves the widget tree for any other reason, so a pending edit is never silently dropped.
+/// Committing a shot size additionally deduces the shot's abbreviation from it while the shot has
+/// none of its own ([_deduceAbbreviationIfEmpty]), which is the only write this bloc performs that
+/// the user didn't type themselves.
 ///
 /// A shot's scenario coverage ranges are a further set of discrete, immediately-written actions:
 /// [_onCoverageWordClicked] resolves a word click against
@@ -64,10 +67,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
 ///
-/// The one action that reads the shot list rather than writing to it is the XLSX export
-/// ([_onXlsxExportRequested]): it flushes whatever is still pending, then hands the loaded
-/// snapshot to [OcptExportManager], which owns both the workbook building and the native save
-/// dialog.
+/// The two actions that read the shot list rather than writing to it are its exports — the XLSX
+/// workbook ([_onXlsxExportRequested]) and the scenario coverage PDF
+/// ([_onScenarioCoverageExportRequested]): both flush whatever is still pending, then hand the
+/// loaded snapshot to [OcptExportManager], which owns both the document building and the native
+/// save dialog.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -142,6 +146,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListColumnToggledEvent>(_onColumnToggled);
     on<OcptShotListWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptShotListXlsxExportRequestedEvent>(_onXlsxExportRequested);
+    on<OcptShotListScenarioCoverageExportRequestedEvent>(_onScenarioCoverageExportRequested);
     on<OcptShotListIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListShotFieldChangedEvent>(_onShotFieldChanged);
@@ -568,6 +573,69 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     }
   }
 
+  /// Exports the screenplay annotated with the shots covering it, as a PDF.
+  ///
+  /// The read-only sibling of [_onXlsxExportRequested], and built the same way: flush whatever is
+  /// still pending — that flush re-reads the snapshot, so the legend holds the shot size the user
+  /// typed seconds ago — then hand what the state now carries to
+  /// [OcptExportManager.exportScenarioCoverage]. A cancelled save dialog is a silent no-op; a
+  /// failure raises the transient export-failed notice.
+  ///
+  /// [OcptShotListState.screenplayText] is parsed here rather than kept parsed in the state: the
+  /// document is only ever needed by this export, and the very string it is parsed from travels
+  /// alongside it, since a coverage range addresses that text by character offset.
+  Future<void> _onScenarioCoverageExportRequested(
+    OcptShotListScenarioCoverageExportRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportScenarioCoverage(
+        document: const FountainParser().parse(state.screenplayText),
+        screenplayText: state.screenplayText,
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeSceneNumbers: options.includeSceneNumbers,
+        includeTitlePage: options.includeTitlePage,
+        includeLegendPage: options.includeLegendPage,
+        includeSummaryPage: options.includeSummaryPage,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the scenario coverage of the project "
+          "at ${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.scenarioCoverageExportFailed,
+          ),
+        ),
+      );
+    }
+  }
+
   /// Clears the transient export notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptShotListIoNoticeDismissedEvent event,
@@ -690,19 +758,65 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
 
   /// Writes every entry of [pending] through `OcptShotListService.updateShot`, translating each
   /// field into the matching named argument (see `OcptShotListEditableField`'s own doc comment
-  /// for the mapping).
+  /// for the mapping), and deduces an abbreviation alongside every shot size committed here (see
+  /// [_deduceAbbreviationIfEmpty]).
+  ///
+  /// A shot whose abbreviation is being typed in the very same flush is left out of the deduction:
+  /// what the user is writing wins over what the shot size would have suggested, whichever of the
+  /// two entries this loop happens to reach first.
   Future<void> _writeAllPendingFields({
     required OcptOpenProjectModel project,
     required Map<(String, OcptShotListEditableField), String> pending,
   }) async {
     for (final entry in pending.entries) {
+      final (shotId, field) = entry.key;
+
       await _writeField(
         database: project.database,
-        shotId: entry.key.$1,
-        field: entry.key.$2,
+        shotId: shotId,
+        field: field,
         rawValue: entry.value,
       );
+
+      if (field == OcptShotListEditableField.shotSize &&
+          !pending.containsKey((shotId, OcptShotListEditableField.abbreviation))) {
+        await _deduceAbbreviationIfEmpty(
+          database: project.database,
+          shotId: shotId,
+          shotSize: entry.value,
+        );
+      }
     }
+  }
+
+  /// Writes onto shot [shotId] the abbreviation [ocptDeduceShotAbbreviation] reads out of the
+  /// [shotSize] just committed, unless the shot already carries one.
+  ///
+  /// Deduced once, at that moment only: an abbreviation the user has typed — or one deduced from
+  /// an earlier shot size — is never overwritten by a later edit of the shot size, and clearing
+  /// the field leaves it empty until the shot size is committed again. A shot size with no
+  /// initials to read at all (blank, or punctuation alone) deduces nothing rather than emptying
+  /// what the shot holds.
+  Future<void> _deduceAbbreviationIfEmpty({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required String shotSize,
+  }) async {
+    final stored = state.snapshot?.shotsById[shotId]?.abbreviation ?? "";
+    if (stored.trim().isNotEmpty) {
+      return;
+    }
+
+    final deduced = ocptDeduceShotAbbreviation(shotSize);
+    if (deduced.isEmpty) {
+      return;
+    }
+
+    await _shotListService.updateShot(
+      database: database,
+      shotId: shotId,
+      abbreviation: Value(deduced),
+    );
   }
 
   /// Writes a single field edit through `OcptShotListService.updateShot`.
@@ -721,6 +835,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           database: database,
           shotId: shotId,
           shotSize: Value(rawValue),
+        );
+      case OcptShotListEditableField.abbreviation:
+        await _shotListService.updateShot(
+          database: database,
+          shotId: shotId,
+          abbreviation: Value(rawValue),
         );
       case OcptShotListEditableField.framing:
         await _shotListService.updateShot(

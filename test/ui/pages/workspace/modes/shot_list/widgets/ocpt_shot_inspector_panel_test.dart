@@ -55,6 +55,7 @@ OcptShot _buildShot({
   orphanedHeading: null,
   position: 0,
   shotSize: "Wide shot",
+  abbreviation: "WS",
   framing: "Eye level",
   cameraMove: "Static",
   lens: "35 mm",
@@ -233,6 +234,55 @@ void main() {
     }
 
     expect(fieldOf("SHOT SIZE").maxLines, 1);
+  });
+
+  testWidgets("the abbreviation sits right under the shot size, in a box of its own width",
+      (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(),
+          fieldValueOf: (field) =>
+              field == OcptShotListEditableField.abbreviation ? "PM" : "",
+        ),
+      ),
+    );
+
+    /// The rectangle of the text field of the inspector field labelled [label].
+    Rect fieldRectOf(String label) => tester.getRect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(label),
+          matching: find.byType(OcptShotInspectorField),
+        ),
+        matching: find.byType(TextField),
+      ),
+    );
+
+    final shotSizeRect = fieldRectOf("SHOT SIZE");
+    final abbreviationRect = fieldRectOf("ABBREVIATION");
+
+    expect(abbreviationRect.top, greaterThan(shotSizeRect.top));
+    expect(abbreviationRect.bottom, lessThan(fieldRectOf("FRAMING & COMPOSITION").top));
+    expect(abbreviationRect.width, lessThan(shotSizeRect.width));
+    expect(abbreviationRect.left, shotSizeRect.left);
+
+    expect(
+      tester
+          .widget<TextField>(
+            find.descendant(
+              of: find.ancestor(
+                of: find.text("ABBREVIATION"),
+                matching: find.byType(OcptShotInspectorField),
+              ),
+              matching: find.byType(TextField),
+            ),
+          )
+          .controller
+          ?.text,
+      "PM",
+    );
   });
 
   testWidgets("clicking a difficulty dot reports the axis and value", (tester) async {

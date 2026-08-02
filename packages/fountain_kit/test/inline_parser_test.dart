@@ -291,4 +291,86 @@ void main() {
       ]);
     });
   });
+
+  group('parseRuns source ranges', () {
+    /// Parses [text] anchored at [startOffset] on [line], defaulting to an
+    /// anchor at the very start of a one-line document.
+    List<FountainStyledRun> anchored(
+      String text, {
+      int line = 0,
+      int startOffset = 0,
+    }) => const FountainInlineParser().parseRuns(
+      text,
+      line: line,
+      startOffset: startOffset,
+    );
+
+    /// The source [text] a run of [source] covers, so a range can be
+    /// asserted by quoting what it points at rather than by arithmetic.
+    String covered(String source, FountainStyledRun run) => source.substring(
+      run.sourceRange!.startOffset,
+      run.sourceRange!.endOffset,
+    );
+
+    test('an unanchored call leaves every run without a range', () {
+      final runs = const FountainInlineParser().parseRuns('a **b** c');
+      expect(runs.map((run) => run.sourceRange), everyElement(isNull));
+    });
+
+    test('an anchor on only one of the two parameters is not an anchor', () {
+      // The pair is meaningless split apart: a line number without an offset
+      // (or the reverse) would anchor every run at a fictional zero.
+      final runs = const FountainInlineParser().parseRuns('a b', line: 3);
+      expect(runs.single.sourceRange, isNull);
+    });
+
+    test('a plain run covers exactly its own text', () {
+      const source = 'Nothing special here.';
+      expect(covered(source, anchored(source).single), source);
+    });
+
+    test('an emphasis run covers its text without its markers', () {
+      const source = 'a **bold** word';
+      final runs = anchored(source);
+      expect(covered(source, runs[0]), 'a ');
+      expect(covered(source, runs[1]), 'bold');
+      expect(covered(source, runs[2]), ' word');
+    });
+
+    test('a nested emphasis run drops both markers from its range', () {
+      const source = '_**both**_';
+      final run = anchored(source).single;
+      expect(
+        run,
+        const FountainStyledRun(text: 'both', isBold: true, isUnderline: true),
+      );
+      expect(covered(source, run), 'both');
+    });
+
+    test('a note run keeps its brackets inside its range', () {
+      const source = 'before [[a note]] after';
+      final note = anchored(source)[1];
+      expect(covered(source, note), '[[a note]]');
+    });
+
+    test('the anchor shifts every run into the larger document', () {
+      const line = 'a *b* c';
+      final runs = anchored(line, line: 7, startOffset: 100);
+      expect(runs[1].sourceRange!.startLine, 7);
+      expect(runs[1].sourceRange!.endLine, 7);
+      // "a *b* c" shifted by 100: the italic "b" sits at 103, its markers
+      // at 102 and 104.
+      expect(runs[1].sourceRange!.startOffset, 103);
+      expect(runs[1].sourceRange!.endOffset, 104);
+    });
+
+    test('an escaped character leaves the range longer than the text', () {
+      const source = r'A \*star\* here.';
+      final run = anchored(source).single;
+      expect(run.text, 'A *star* here.');
+      // The backslashes are gone from the rendered text but are still part
+      // of what the run occupies in the source.
+      expect(covered(source, run), source);
+    });
+  });
 }

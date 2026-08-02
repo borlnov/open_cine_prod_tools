@@ -212,6 +212,7 @@ class OcptShotListService {
     required OcptProjectDatabase database,
     required String shotId,
     Value<String> shotSize = const Value.absent(),
+    Value<String> abbreviation = const Value.absent(),
     Value<String> framing = const Value.absent(),
     Value<String> cameraMove = const Value.absent(),
     Value<String> lens = const Value.absent(),
@@ -235,6 +236,7 @@ class OcptShotListService {
     )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).write(
       OcptShotsTableCompanion(
         shotSize: shotSize,
+        abbreviation: abbreviation,
         framing: framing,
         cameraMove: cameraMove,
         lens: lens,

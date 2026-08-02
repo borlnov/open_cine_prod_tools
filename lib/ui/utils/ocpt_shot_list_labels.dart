@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
@@ -53,6 +54,7 @@ String ocptShotListXlsxColumnLabel(Tr tr, OcptShotListXlsxColumn column) => swit
   OcptShotListXlsxColumn.characters => tr.shotListColumnCharacters,
   OcptShotListXlsxColumn.set => tr.shotListColumnSet,
   OcptShotListXlsxColumn.shotSize => tr.shotListColumnShotSize,
+  OcptShotListXlsxColumn.abbreviation => tr.shotListColumnAbbreviation,
   OcptShotListXlsxColumn.framing => tr.shotListColumnFraming,
   OcptShotListXlsxColumn.cameraMove => tr.shotListColumnCameraMove,
   OcptShotListXlsxColumn.lens => tr.shotListColumnLens,
@@ -84,17 +86,54 @@ OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> se
       statusLabels: {
         for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
       },
-      sequenceTitles: {
-        for (final sequence in sequences)
-          sequence.id: switch (sequence) {
-            OcptSceneShotSequence() => tr.shotListSequenceHeader(
-              sequence.displaySceneNumber,
-              sequence.heading,
-            ),
-            OcptOrphanShotSequence() => tr.shotListOrphanSequenceTitle,
-          },
-      },
+      sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
     );
+
+/// Builds every localized string the exported scenario coverage document carries, for the
+/// [sequences] it is being built from.
+///
+/// The sibling of [ocptShotListXlsxLabelsOf] for the other export the shot list mode offers, and
+/// the same single bridge between the UI's `Tr` and a service running in the manager layer, with no
+/// `BuildContext` to resolve anything of its own.
+///
+/// The legend's own column headers are the shot table's, resolved through the very same keys
+/// [ocptShotListXlsxColumnLabel] uses, so the three places a crew reads about a shot — the app, the
+/// workbook and this document — never name the same field differently. Only what has no on-screen
+/// counterpart at all (the two appendices' headings, the summary's own columns, the file name
+/// suffix) gets a key of its own.
+OcptScenarioCoverageLabels ocptScenarioCoverageLabelsOf(Tr tr, List<OcptShotSequence> sequences) =>
+    OcptScenarioCoverageLabels(
+      fileNameSuffix: tr.shotListExportCoverageFileNameSuffix,
+      legendTitle: tr.shotListExportCoverageLegendTitle,
+      legendShotHeader: tr.shotListColumnShot,
+      legendShotSizeHeader: tr.shotListColumnShotSize,
+      legendFramingHeader: tr.shotListColumnFraming,
+      legendCameraMoveHeader: tr.shotListColumnCameraMove,
+      summaryTitle: tr.shotListExportCoverageSummaryTitle,
+      summarySequenceHeader: tr.shotListExportCoverageSummarySequenceHeader,
+      summaryShotCountHeader: tr.shotListExportCoverageSummaryShotCountHeader,
+      summaryCoveredHeader: tr.shotListExportCoverageSummaryCoveredHeader,
+      summaryStaleHeader: tr.shotListExportCoverageSummaryStaleHeader,
+      summaryUncoveredHeader: tr.shotListExportCoverageSummaryUncoveredHeader,
+      laneOverflowNote: tr.shotListExportCoverageLaneOverflowNote,
+      sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+    );
+
+/// The title of each of the [sequences], keyed by `OcptShotSequence.id`, as both exports name them.
+///
+/// Resolved sequence by sequence rather than formatted by the exporting service, since a real
+/// scene's own header takes its number and heading as placeholders while the orphan group's is a
+/// plain title.
+Map<String, String> ocptShotListSequenceTitlesOf(Tr tr, List<OcptShotSequence> sequences) => {
+  for (final sequence in sequences)
+    sequence.id: switch (sequence) {
+      OcptSceneShotSequence() => tr.shotListSequenceHeader(
+        sequence.displaySceneNumber,
+        sequence.heading,
+      ),
+      OcptOrphanShotSequence() => tr.shotListOrphanSequenceTitle,
+    },
+};
 
 /// The colour the shooting status [status] is painted with.
 ///
@@ -188,6 +227,31 @@ int? ocptParseShotDuration(String input) {
   }
 
   return (minutes * Duration.secondsPerMinute + seconds) * Duration.millisecondsPerSecond;
+}
+
+/// Deduces the short abbreviation of the shot size [shotSize]: the initials of its words, upper
+/// cased (`Plan moyen` → `PM`, `Gros plan` → `GP`, `Close-up` → `C`).
+///
+/// A "word" is whatever whitespace separates, so a hyphenated shot size counts as one — which is
+/// what makes `Close-up` a `C` rather than a `CU`, matching how a French crew writes the same
+/// abbreviations. A word carrying no letter or digit at all (a lone dash, a bracket) contributes
+/// nothing, and a shot size made of nothing but those deduces to an empty abbreviation, which the
+/// caller reads as "nothing to deduce" rather than writing it.
+///
+/// Only ever applied to a shot whose abbreviation is still empty, and only at the moment its shot
+/// size is committed: an abbreviation the user has typed is theirs, and editing the shot size
+/// afterwards never overwrites it.
+String ocptDeduceShotAbbreviation(String shotSize) {
+  final initials = StringBuffer();
+
+  for (final word in shotSize.split(RegExp(r"\s+"))) {
+    final initial = RegExp(r"[\p{L}\p{N}]", unicode: true).firstMatch(word)?.group(0);
+    if (initial != null) {
+      initials.write(initial.toUpperCase());
+    }
+  }
+
+  return initials.toString();
 }
 
 /// The formatters the shot inspector's estimated-duration field is built with: what `mm:ss` is
