@@ -6,6 +6,7 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -13,10 +14,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_removed_character_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
 /// The kind of transient notice [OcptShotListIoNotice] carries, one per shot list export outcome.
@@ -63,7 +66,8 @@ class OcptShotListIoNotice extends Equatable {
 /// database the moment they change. [pendingFieldEdits] is the exception — the inspector's typed
 /// free-text fields go through a 2 s autosave debounce of their own, so a field can be "dirty" in
 /// that narrow sense while nothing else in this state is.
-class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
+class OcptShotListState extends BlocStateForMixin<OcptShotListState>
+    with MixinOcptProjectVersionsState<OcptShotListState> {
   /// Whether the shot list is still being loaded from the project database.
   final bool isLoading;
 
@@ -170,6 +174,22 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
   /// after every coverage write (see `OcptShotListBloc`'s own doc comment on its coverage
   /// word-click handler for the full three-state interaction this backs).
   final ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
+  @override
+  final List<OcptProjectVersion> projectVersions;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.previewedVersionId}
+  @override
+  final String? previewedVersionId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
+  @override
+  final String? versionPendingDeletionId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
+  @override
+  final OcptProjectVersionNoticeKind? projectVersionNotice;
 
   /// Every sequence of [snapshot], in display order (empty while nothing is loaded).
   List<OcptShotSequence> get sequences => snapshot?.sequences ?? const [];
@@ -318,6 +338,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     required this.suggestions,
     required this.pendingFieldEdits,
     required this.pendingCoverageAnchor,
+    required this.projectVersions,
+    required this.previewedVersionId,
+    required this.versionPendingDeletionId,
+    required this.projectVersionNotice,
   });
 
   /// Init class constructor
@@ -340,7 +364,11 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
       screenplayCharacters = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
       pendingFieldEdits = const {},
-      pendingCoverageAnchor = null;
+      pendingCoverageAnchor = null,
+      projectVersions = const [],
+      previewedVersionId = null,
+      versionPendingDeletionId = null,
+      projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -375,6 +403,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
     bool clearPendingCoverageAnchor = false,
+    List<OcptProjectVersion>? projectVersions,
+    String? previewedVersionId,
+    bool clearPreviewedVersionId = false,
+    String? versionPendingDeletionId,
+    bool clearVersionPendingDeletionId = false,
+    OcptProjectVersionNoticeKind? projectVersionNotice,
+    bool clearProjectVersionNotice = false,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -399,6 +434,36 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState> {
     pendingCoverageAnchor: clearPendingCoverageAnchor
         ? null
         : (pendingCoverageAnchor ?? this.pendingCoverageAnchor),
+    projectVersions: projectVersions ?? this.projectVersions,
+    previewedVersionId: clearPreviewedVersionId
+        ? null
+        : (previewedVersionId ?? this.previewedVersionId),
+    versionPendingDeletionId: clearVersionPendingDeletionId
+        ? null
+        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
+    projectVersionNotice: clearProjectVersionNotice
+        ? null
+        : (projectVersionNotice ?? this.projectVersionNotice),
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
+  @override
+  OcptShotListState copyProjectVersionsState({
+    List<OcptProjectVersion>? projectVersions,
+    String? previewedVersionId,
+    bool clearPreviewedVersionId = false,
+    String? versionPendingDeletionId,
+    bool clearVersionPendingDeletionId = false,
+    OcptProjectVersionNoticeKind? projectVersionNotice,
+    bool clearProjectVersionNotice = false,
+  }) => copyWith(
+    projectVersions: projectVersions,
+    previewedVersionId: previewedVersionId,
+    clearPreviewedVersionId: clearPreviewedVersionId,
+    versionPendingDeletionId: versionPendingDeletionId,
+    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    projectVersionNotice: projectVersionNotice,
+    clearProjectVersionNotice: clearProjectVersionNotice,
   );
 
   /// Object properties

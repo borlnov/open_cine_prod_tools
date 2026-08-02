@@ -6,8 +6,11 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
@@ -72,7 +75,12 @@ class OcptEditorIoNotice extends Equatable {
 }
 
 /// The state of `OcptEditorBloc`.
-class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
+///
+/// Mixes in [MixinOcptProjectVersionsState], the slice every production mode shares: the project's
+/// versions belong to the project, not to the screenplay, so the four fields the `Versions` dock
+/// tab reads come from there rather than being declared here.
+class OcptEditorState extends BlocStateForMixin<OcptEditorState>
+    with MixinOcptProjectVersionsState<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
   final bool isLoading;
 
@@ -195,6 +203,22 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// its own 150 ms parse debounce, or when a caret move actually lands on a different scene.
   final FountainSceneStatistics? sceneStatistics;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
+  @override
+  final List<OcptProjectVersion> projectVersions;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.previewedVersionId}
+  @override
+  final String? previewedVersionId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
+  @override
+  final String? versionPendingDeletionId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
+  @override
+  final OcptProjectVersionNoticeKind? projectVersionNotice;
+
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
@@ -228,6 +252,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.ioNotice,
     required this.statistics,
     required this.sceneStatistics,
+    required this.projectVersions,
+    required this.previewedVersionId,
+    required this.versionPendingDeletionId,
+    required this.projectVersionNotice,
   });
 
   /// Init class constructor
@@ -254,7 +282,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       jumpRequest = null,
       ioNotice = null,
       statistics = FountainScriptStatistics.empty,
-      sceneStatistics = null;
+      sceneStatistics = null,
+      projectVersions = const [],
+      previewedVersionId = null,
+      versionPendingDeletionId = null,
+      projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -297,6 +329,13 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     FountainScriptStatistics? statistics,
     FountainSceneStatistics? sceneStatistics,
     bool clearSceneStatistics = false,
+    List<OcptProjectVersion>? projectVersions,
+    String? previewedVersionId,
+    bool clearPreviewedVersionId = false,
+    String? versionPendingDeletionId,
+    bool clearVersionPendingDeletionId = false,
+    OcptProjectVersionNoticeKind? projectVersionNotice,
+    bool clearProjectVersionNotice = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -323,6 +362,36 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     statistics: statistics ?? this.statistics,
     sceneStatistics: clearSceneStatistics ? null : (sceneStatistics ?? this.sceneStatistics),
+    projectVersions: projectVersions ?? this.projectVersions,
+    previewedVersionId: clearPreviewedVersionId
+        ? null
+        : (previewedVersionId ?? this.previewedVersionId),
+    versionPendingDeletionId: clearVersionPendingDeletionId
+        ? null
+        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
+    projectVersionNotice: clearProjectVersionNotice
+        ? null
+        : (projectVersionNotice ?? this.projectVersionNotice),
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
+  @override
+  OcptEditorState copyProjectVersionsState({
+    List<OcptProjectVersion>? projectVersions,
+    String? previewedVersionId,
+    bool clearPreviewedVersionId = false,
+    String? versionPendingDeletionId,
+    bool clearVersionPendingDeletionId = false,
+    OcptProjectVersionNoticeKind? projectVersionNotice,
+    bool clearProjectVersionNotice = false,
+  }) => copyWith(
+    projectVersions: projectVersions,
+    previewedVersionId: previewedVersionId,
+    clearPreviewedVersionId: clearPreviewedVersionId,
+    versionPendingDeletionId: versionPendingDeletionId,
+    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    projectVersionNotice: projectVersionNotice,
+    clearProjectVersionNotice: clearProjectVersionNotice,
   );
 
   /// Object properties

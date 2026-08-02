@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -20,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
@@ -41,7 +43,15 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 /// When the bloc closes (the user leaves the page), any pending unsaved change is flushed with a
 /// best-effort save: the debounce timers are cancelled and the save runs directly against the
 /// service, so no edit is lost by navigating away right after typing.
-class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
+///
+/// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
+/// `Versions` tab does: the project's versions are a property of the *project*, so that tab and
+/// its state are shared with every other production mode rather than reimplemented here. The two
+/// hooks the mixin needs are answered by [flushPendingProjectWrites] (a pending autosave must
+/// reach the working copy before a preview swaps the database out) and
+/// [reloadFromProjectDatabase].
+class OcptEditorBloc extends BlocForMixin<OcptEditorState>
+    with MixinOcptProjectVersionsBloc<OcptEditorState> {
   /// The default delay between the last edit and the re-parse of the source text.
   static const defaultParseDebounce = Duration(milliseconds: 150);
 
@@ -160,6 +170,32 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptEditorTitlePageChangedEvent>(_onTitlePageChanged);
   }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// Saves the screenplay if it holds unsaved changes, so a preview about to swap the database
+  /// can't send the text sitting in the autosave debounce into the previewed version instead.
+  ///
+  /// Tagged [OcptSnapshotReason.manual] like every other save the user's own action triggers: from
+  /// the screenplay's point of view, clicking a version card is as deliberate as pressing Ctrl+S.
+  @protected
+  @override
+  Future<void> flushPendingProjectWrites(Emitter<OcptEditorState> emitter) async {
+    if (!state.isDirty) {
+      return;
+    }
+
+    await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
+  @protected
+  @override
+  Future<void> reloadFromProjectDatabase(Emitter<OcptEditorState> emitter) =>
+      _onLoadRequested(const OcptEditorLoadRequestedEvent(), emitter);
 
   /// Loads the current project's screenplay text, title and page format, and parses the text,
   /// together with the persisted preferred editor mode.
