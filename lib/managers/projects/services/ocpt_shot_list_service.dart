@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over a screenplay's shot list: its shots, their attached characters, and detaching them
@@ -22,6 +23,16 @@ import 'package:uuid/uuid.dart';
 /// shots that reference them. Everything about a coverage range's staleness lives in
 /// `OcptShotCoverageService`, this service's sibling; this one only reads coverage rows back
 /// unchanged to build [OcptShot.coverageRanges].
+///
+/// {@template open_cine_prod_tools.tombstones}
+/// **Nothing here deletes a row.** Every "delete" sets the row's `isDeleted` flag and every read
+/// filters flagged rows back out, so a replica that was offline when a row went away can still
+/// learn that it did — see `docs/adr/0010-sync-ready-data-model-prerequisites.md`.
+/// {@endtemplate}
+///
+/// **Order is `sortKey`, never `position`.** A group's rows are ordered by their fractional index,
+/// so inserting or moving one writes exactly that one row rather than renumbering the whole group.
+/// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
 class OcptShotListService {
   /// Class constructor
   const OcptShotListService();
@@ -31,7 +42,8 @@ class OcptShotListService {
   ///
   /// Runs exactly three queries against `shots`, `shot_characters` and `shot_coverages` (a shot
   /// list is hundreds of rows, not millions, so joining them in memory here is cheap and keeps
-  /// each query trivial to read), plus the `scenes` query every sequence is built from.
+  /// each query trivial to read), plus the `scenes` query every sequence is built from. Each of
+  /// them filters tombstones out.
   ///
   /// A range's [OcptShotCoverageRange.isStale] here is not recomputed against the current
   /// screenplay text (that would need a further query this method deliberately doesn't run): it
@@ -45,14 +57,14 @@ class OcptShotListService {
   }) async {
     final sceneRows =
         await (database.select(database.ocptScenesTable)
-              ..where((table) => table.screenplayId.equals(screenplayId))
+              ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
               ..orderBy([(table) => OrderingTerm.asc(table.position)]))
             .get();
 
     final shotRows =
         await (database.select(database.ocptShotsTable)
-              ..where((table) => table.screenplayId.equals(screenplayId))
-              ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+              ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
             .get();
 
     final shotIds = shotRows.map((row) => row.id).toList(growable: false);
@@ -60,15 +72,16 @@ class OcptShotListService {
     final characterRows = shotIds.isEmpty
         ? const <OcptShotCharacterRow>[]
         : await (database.select(database.ocptShotCharactersTable)
-                ..where((table) => table.shotId.isIn(shotIds))
-                ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+                ..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
 
     final coverageRows = shotIds.isEmpty
         ? const <OcptShotCoverageRow>[]
-        : await (database.select(
-            database.ocptShotCoveragesTable,
-          )..where((table) => table.shotId.isIn(shotIds))).get();
+        : await (database.select(database.ocptShotCoveragesTable)..where(
+                (table) => table.shotId.isIn(shotIds) & table.isDeleted.not(),
+              ))
+              .get();
 
     final charactersByShotId = <String, List<String>>{};
     for (final row in characterRows) {
@@ -91,7 +104,7 @@ class OcptShotListService {
       }
     }
 
-    OcptShot buildShot(OcptShotRow row, String sceneDisplayNumber) {
+    OcptShot buildShot(OcptShotRow row, String sceneDisplayNumber, int rank) {
       final isCoverageStale =
           row.needsCheck &&
           (row.checkReason == OcptShotCheckReason.coveredTextChanged ||
@@ -99,6 +112,7 @@ class OcptShotListService {
 
       return OcptShot.fromRow(
         row: row,
+        position: rank,
         sceneDisplayNumber: sceneDisplayNumber,
         characters: charactersByShotId[row.id] ?? const [],
         coverageRanges: [
@@ -114,12 +128,11 @@ class OcptShotListService {
     ];
 
     if (orphanedShotRows.isNotEmpty) {
-      final orderedOrphans = List<OcptShotRow>.of(orphanedShotRows)
-        ..sort((a, b) => a.position.compareTo(b.position));
       sequences.add(
         OcptOrphanShotSequence(
           shots: [
-            for (final row in orderedOrphans) buildShot(row, _orphanSceneDisplayNumber),
+            for (var i = 0; i < orphanedShotRows.length; i++)
+              buildShot(orphanedShotRows[i], _orphanSceneDisplayNumber, i),
           ],
         ),
       );
@@ -136,15 +149,17 @@ class OcptShotListService {
 
   /// Builds the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
   /// screenplay's scenes is [sceneIndex].
+  ///
+  /// [shotRowsBySceneId] holds each scene's shots in the order the `sortKey` query returned them,
+  /// which is the order they display in and the order their codes are numbered from.
   static OcptSceneShotSequence _buildSceneSequence(
     OcptSceneRow sceneRow,
     int sceneIndex,
     Map<String, List<OcptShotRow>> shotRowsBySceneId,
-    OcptShot Function(OcptShotRow row, String sceneDisplayNumber) buildShot,
+    OcptShot Function(OcptShotRow row, String sceneDisplayNumber, int rank) buildShot,
   ) {
     final displayNumber = sceneRow.sceneNumber ?? "${sceneIndex + 1}";
-    final shotRows = List<OcptShotRow>.of(shotRowsBySceneId[sceneRow.id] ?? const [])
-      ..sort((a, b) => a.position.compareTo(b.position));
+    final shotRows = shotRowsBySceneId[sceneRow.id] ?? const <OcptShotRow>[];
 
     return OcptSceneShotSequence(
       sceneId: sceneRow.id,
@@ -153,7 +168,9 @@ class OcptShotListService {
       displaySceneNumber: displayNumber,
       charStart: sceneRow.charStart,
       charEnd: sceneRow.charEnd,
-      shots: [for (final row in shotRows) buildShot(row, displayNumber)],
+      shots: [
+        for (var i = 0; i < shotRows.length; i++) buildShot(shotRows[i], displayNumber, i),
+      ],
     );
   }
 
@@ -179,6 +196,9 @@ class OcptShotListService {
             screenplayId: screenplayId,
             sceneId: Value(sceneId),
             position: existing.length,
+            sortKey: Value(
+              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+            ),
           ),
         );
 
@@ -186,8 +206,8 @@ class OcptShotListService {
   }
 
   /// Updates the fields of the shot [shotId] in [database] that are passed as something other than
-  /// [Value.absent]. Never touches [shotId]'s `position`, `sceneId` or `orphanedHeading`: those are
-  /// only ever changed by [reorderShot], [deleteShot] and [detachShotsFromDeletedScenes].
+  /// [Value.absent]. Never touches [shotId]'s `sortKey`, `sceneId` or `orphanedHeading`: those are
+  /// only ever changed by [reorderShot] and [detachShotsFromDeletedScenes].
   Future<void> updateShot({
     required OcptProjectDatabase database,
     required String shotId,
@@ -212,7 +232,7 @@ class OcptShotListService {
   }) async {
     await (database.update(
       database.ocptShotsTable,
-    )..where((table) => table.id.equals(shotId))).write(
+    )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).write(
       OcptShotsTableCompanion(
         shotSize: shotSize,
         framing: framing,
@@ -236,37 +256,39 @@ class OcptShotListService {
     );
   }
 
-  /// Deletes the shot [shotId] from [database], its attached characters and coverage ranges along
-  /// with it, then renumbers the `position` of every remaining shot of its group (its scene, or the
-  /// orphan group) contiguously from 0.
+  /// Tombstones the shot [shotId] in [database], its attached characters and coverage ranges along
+  /// with it.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// The shots left in the group keep the `sortKey` they had: removing one from an ascending run
+  /// leaves the rest ascending, so a deletion writes only what it deletes.
   Future<void> deleteShot({required OcptProjectDatabase database, required String shotId}) async {
     await database.transaction(() async {
-      final shot = await _getShotRow(database: database, shotId: shotId);
-
-      await (database.delete(
+      await (database.update(
         database.ocptShotCoveragesTable,
-      )..where((table) => table.shotId.equals(shotId))).go();
-      await (database.delete(
-        database.ocptShotCharactersTable,
-      )..where((table) => table.shotId.equals(shotId))).go();
-      await (database.delete(
-        database.ocptShotsTable,
-      )..where((table) => table.id.equals(shotId))).go();
-
-      final remaining = await _shotRowsOfGroup(
-        database: database,
-        screenplayId: shot.screenplayId,
-        sceneId: shot.sceneId,
+      )..where((table) => table.shotId.equals(shotId))).write(
+        const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
       );
-      await _renumberGroup(database: database, orderedRows: remaining);
+      await (database.update(
+        database.ocptShotCharactersTable,
+      )..where((table) => table.shotId.equals(shotId))).write(
+        const OcptShotCharactersTableCompanion(isDeleted: Value(true)),
+      );
+      await (database.update(
+        database.ocptShotsTable,
+      )..where((table) => table.id.equals(shotId))).write(
+        const OcptShotsTableCompanion(isDeleted: Value(true)),
+      );
     });
   }
 
   /// Moves the shot [shotId] to [newPosition] (0-based) within its own group (its scene, or the
-  /// orphan group), renumbering every shot of that group contiguously from 0 afterwards.
+  /// orphan group), by giving it a `sortKey` sitting between the two shots it lands between.
   ///
-  /// [newPosition] is clamped to the group's bounds, so moving a shot "to the end" can be expressed
-  /// with any position at or beyond the group's current shot count.
+  /// This writes **exactly one row**, whatever the size of the group and however far the shot
+  /// moves. [newPosition] is clamped to the group's bounds, so moving a shot "to the end" can be
+  /// expressed with any position at or beyond the group's current shot count.
   Future<void> reorderShot({
     required OcptProjectDatabase database,
     required String shotId,
@@ -274,52 +296,88 @@ class OcptShotListService {
   }) async {
     await database.transaction(() async {
       final shot = await _getShotRow(database: database, shotId: shotId);
-      final group = await _shotRowsOfGroup(
-        database: database,
-        screenplayId: shot.screenplayId,
-        sceneId: shot.sceneId,
-      );
+      final others =
+          (await _shotRowsOfGroup(
+            database: database,
+            screenplayId: shot.screenplayId,
+            sceneId: shot.sceneId,
+          ))..removeWhere((row) => row.id == shotId);
 
-      group.removeWhere((row) => row.id == shotId);
       final clampedPosition = newPosition < 0
           ? 0
-          : (newPosition > group.length ? group.length : newPosition);
-      group.insert(clampedPosition, shot);
+          : (newPosition > others.length ? others.length : newPosition);
 
-      await _renumberGroup(database: database, orderedRows: group);
+      final sortKey = ocptFractionalKeyBetween(
+        before: clampedPosition > 0 ? others[clampedPosition - 1].sortKey : null,
+        after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
+      );
+
+      await (database.update(
+        database.ocptShotsTable,
+      )..where((table) => table.id.equals(shotId))).write(
+        OcptShotsTableCompanion(sortKey: Value(sortKey)),
+      );
     });
   }
 
   /// Attaches [characterName] (normalised through `fountain_kit`'s `normalizeCharacterName`) to
   /// shot [shotId], appended after its current characters. Does nothing if the shot already has it.
+  ///
+  /// A character detached earlier left a tombstone behind, and the table's primary key is
+  /// `{shotId, characterName}`: re-attaching it therefore lifts that tombstone rather than
+  /// inserting a second row, which the key would refuse anyway.
   Future<void> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String characterName,
   }) async {
     final normalized = normalizeCharacterName(characterName);
-    final existing =
-        await (database.select(
-          database.ocptShotCharactersTable,
-        )..where((table) => table.shotId.equals(shotId))).get();
 
-    if (existing.any((row) => row.characterName == normalized)) {
-      return;
-    }
+    await database.transaction(() async {
+      final existing = await _characterRowsOfShot(database: database, shotId: shotId);
+      if (existing.any((row) => row.characterName == normalized)) {
+        return;
+      }
 
-    await database
-        .into(database.ocptShotCharactersTable)
-        .insert(
-          OcptShotCharactersTableCompanion.insert(
-            shotId: shotId,
-            characterName: normalized,
-            position: existing.length,
-          ),
-        );
+      final sortKey = ocptFractionalKeyBetween(
+        before: existing.isEmpty ? null : existing.last.sortKey,
+      );
+
+      final tombstone = await _characterRow(
+        database: database,
+        shotId: shotId,
+        characterName: normalized,
+      );
+
+      if (tombstone != null) {
+        await (database.update(database.ocptShotCharactersTable)..where(
+              (table) => table.shotId.equals(shotId) & table.characterName.equals(normalized),
+            ))
+            .write(
+              OcptShotCharactersTableCompanion(
+                sortKey: Value(sortKey),
+                isDeleted: const Value(false),
+              ),
+            );
+        return;
+      }
+
+      await database
+          .into(database.ocptShotCharactersTable)
+          .insert(
+            OcptShotCharactersTableCompanion.insert(
+              shotId: shotId,
+              characterName: normalized,
+              position: existing.length,
+              sortKey: Value(sortKey),
+            ),
+          );
+    });
   }
 
-  /// Detaches [characterName] (normalised the same way [attachCharacter] does) from shot [shotId],
-  /// renumbering the shot's remaining characters contiguously from 0.
+  /// Detaches [characterName] (normalised the same way [attachCharacter] does) from shot [shotId].
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
   Future<void> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
@@ -327,45 +385,41 @@ class OcptShotListService {
   }) async {
     final normalized = normalizeCharacterName(characterName);
 
-    await database.transaction(() async {
-      await (database.delete(database.ocptShotCharactersTable)..where(
-            (table) => table.shotId.equals(shotId) & table.characterName.equals(normalized),
-          ))
-          .go();
-
-      final remaining =
-          await (database.select(database.ocptShotCharactersTable)
-                ..where((table) => table.shotId.equals(shotId))
-                ..orderBy([(table) => OrderingTerm.asc(table.position)]))
-              .get();
-
-      for (var i = 0; i < remaining.length; i++) {
-        if (remaining[i].position == i) {
-          continue;
-        }
-        await (database.update(database.ocptShotCharactersTable)..where(
-              (table) =>
-                  table.shotId.equals(shotId) & table.characterName.equals(remaining[i].characterName),
-            ))
-            .write(OcptShotCharactersTableCompanion(position: Value(i)));
-      }
-    });
+    await (database.update(database.ocptShotCharactersTable)..where(
+          (table) => table.shotId.equals(shotId) & table.characterName.equals(normalized),
+        ))
+        .write(const OcptShotCharactersTableCompanion(isDeleted: Value(true)));
   }
 
   /// Reorders shot [shotId]'s characters to [orderedCharacterNames] (normalised the same way
   /// [attachCharacter] does), which must be a permutation of its currently attached characters.
+  ///
+  /// Only the characters that actually have to move are written: `ocptFractionalKeyRekeyPlan`
+  /// leaves the longest run already in ascending order alone, so moving a single character writes
+  /// a single row.
   Future<void> reorderCharacters({
     required OcptProjectDatabase database,
     required String shotId,
     required List<String> orderedCharacterNames,
   }) async {
     await database.transaction(() async {
-      for (var i = 0; i < orderedCharacterNames.length; i++) {
-        final normalized = normalizeCharacterName(orderedCharacterNames[i]);
+      final rows = await _characterRowsOfShot(database: database, shotId: shotId);
+      final sortKeyByName = {for (final row in rows) row.characterName: row.sortKey};
+
+      final names = [
+        for (final name in orderedCharacterNames) normalizeCharacterName(name),
+      ]..removeWhere((name) => !sortKeyByName.containsKey(name));
+
+      final plan = ocptFractionalKeyRekeyPlan([
+        for (final name in names) sortKeyByName[name]!,
+      ]);
+
+      for (final entry in plan.entries) {
         await (database.update(database.ocptShotCharactersTable)..where(
-              (table) => table.shotId.equals(shotId) & table.characterName.equals(normalized),
+              (table) =>
+                  table.shotId.equals(shotId) & table.characterName.equals(names[entry.key]),
             ))
-            .write(OcptShotCharactersTableCompanion(position: Value(i)));
+            .write(OcptShotCharactersTableCompanion(sortKey: Value(entry.value)));
       }
     });
   }
@@ -373,6 +427,8 @@ class OcptShotListService {
   /// Removes [characterName] (normalised the same way [attachCharacter] does) from every shot of
   /// screenplay [screenplayId] it is attached to: the deleted-character banner's "remove from every
   /// shot" action.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
   Future<void> removeCharacterFromEveryShot({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -384,18 +440,21 @@ class OcptShotListService {
       return;
     }
 
-    await (database.delete(database.ocptShotCharactersTable)..where(
+    await (database.update(database.ocptShotCharactersTable)..where(
           (table) => table.shotId.isIn(shotIds) & table.characterName.equals(normalized),
         ))
-        .go();
+        .write(const OcptShotCharactersTableCompanion(isDeleted: Value(true)));
   }
 
   /// Replaces [oldCharacterName] with [newCharacterName] (both normalised the same way
   /// [attachCharacter] does) on every shot of screenplay [screenplayId] it is attached to: the
   /// deleted-character banner's replacement chips.
   ///
-  /// A shot that already has [newCharacterName] attached simply drops [oldCharacterName] instead of
-  /// attaching a duplicate (the table's primary key is `{shotId, characterName}`).
+  /// The new name takes the place the old one held, so a replacement never reshuffles a shot's
+  /// characters. A shot that already has [newCharacterName] attached simply drops
+  /// [oldCharacterName] instead of attaching a duplicate (the table's primary key is
+  /// `{shotId, characterName}`), and one that only has it as a tombstone lifts that tombstone
+  /// rather than inserting against the same key.
   Future<void> replaceCharacterEverywhere({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -416,24 +475,27 @@ class OcptShotListService {
     await database.transaction(() async {
       final rows =
           await (database.select(database.ocptShotCharactersTable)..where(
-                (table) => table.shotId.isIn(shotIds) & table.characterName.equals(normalizedOld),
+                (table) =>
+                    table.shotId.isIn(shotIds) &
+                    table.characterName.equals(normalizedOld) &
+                    table.isDeleted.not(),
               ))
               .get();
 
       for (final row in rows) {
-        final alreadyHasNewName =
-            await (database.select(database.ocptShotCharactersTable)..where(
-                  (table) => table.shotId.equals(row.shotId) & table.characterName.equals(normalizedNew),
-                ))
-                .getSingleOrNull() !=
-            null;
-
-        await (database.delete(database.ocptShotCharactersTable)..where(
-              (table) => table.shotId.equals(row.shotId) & table.characterName.equals(normalizedOld),
+        await (database.update(database.ocptShotCharactersTable)..where(
+              (table) =>
+                  table.shotId.equals(row.shotId) & table.characterName.equals(normalizedOld),
             ))
-            .go();
+            .write(const OcptShotCharactersTableCompanion(isDeleted: Value(true)));
 
-        if (!alreadyHasNewName) {
+        final existingNew = await _characterRow(
+          database: database,
+          shotId: row.shotId,
+          characterName: normalizedNew,
+        );
+
+        if (existingNew == null) {
           await database
               .into(database.ocptShotCharactersTable)
               .insert(
@@ -441,6 +503,18 @@ class OcptShotListService {
                   shotId: row.shotId,
                   characterName: normalizedNew,
                   position: row.position,
+                  sortKey: Value(row.sortKey),
+                ),
+              );
+        } else if (existingNew.isDeleted) {
+          await (database.update(database.ocptShotCharactersTable)..where(
+                (table) =>
+                    table.shotId.equals(row.shotId) & table.characterName.equals(normalizedNew),
+              ))
+              .write(
+                OcptShotCharactersTableCompanion(
+                  sortKey: Value(row.sortKey),
+                  isDeleted: const Value(false),
                 ),
               );
         }
@@ -449,16 +523,16 @@ class OcptShotListService {
   }
 
   /// The hook `OcptSceneIndexService.reconcile` invokes, through `OcptScreenplayService`,
-  /// immediately before deleting [scenesAboutToBeDeleted] from the `scenes` table.
+  /// immediately before tombstoning [scenesAboutToBeDeleted] in the `scenes` table.
   ///
   /// Every shot of every one of [scenesAboutToBeDeleted] is orphaned: its `sceneId` becomes null,
   /// its `orphanedHeading` becomes the scene's heading, `needsCheck` becomes true with
-  /// [OcptShotCheckReason.sceneDeleted], and its coverage ranges are deleted (a range anchored to a
-  /// scene that no longer exists is meaningless). The newly orphaned shots are appended, in the
-  /// order [scenesAboutToBeDeleted] lists their scenes and each scene's own shot order, after
-  /// whichever shots were already orphaned, renumbering the whole orphan group's `position`
-  /// contiguously from 0 so [OcptOrphanShotSequence] reads grouped by [OcptShot.orphanedHeading]
-  /// without any extra grouping logic at read time.
+  /// [OcptShotCheckReason.sceneDeleted], and its coverage ranges are tombstoned (a range anchored
+  /// to a scene that no longer exists is meaningless). The newly orphaned shots are appended, in
+  /// the order [scenesAboutToBeDeleted] lists their scenes and each scene's own shot order, after
+  /// whichever shots were already orphaned, each getting a `sortKey` past the orphan group's
+  /// current tail so [OcptOrphanShotSequence] reads grouped by [OcptShot.orphanedHeading] without
+  /// any extra grouping logic at read time.
   ///
   /// Called inside `reconcile`'s own transaction: this method does not open one of its own.
   Future<void> detachShotsFromDeletedScenes({
@@ -478,6 +552,7 @@ class OcptShotListService {
       screenplayId: screenplayId,
       sceneId: null,
     );
+    var previousSortKey = existingOrphans.isEmpty ? null : existingOrphans.last.sortKey;
     var nextPosition = existingOrphans.length;
 
     for (final scene in scenesAboutToBeDeleted) {
@@ -488,16 +563,20 @@ class OcptShotListService {
       );
 
       for (final shot in shotsOfScene) {
-        await (database.delete(
+        await (database.update(
           database.ocptShotCoveragesTable,
-        )..where((table) => table.shotId.equals(shot.id))).go();
+        )..where((table) => table.shotId.equals(shot.id))).write(
+          const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
+        );
 
+        previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
         await (database.update(database.ocptShotsTable)..where((table) => table.id.equals(shot.id)))
             .write(
               OcptShotsTableCompanion(
                 sceneId: const Value(null),
                 orphanedHeading: Value(scene.heading),
                 position: Value(nextPosition),
+                sortKey: Value(previousSortKey),
                 needsCheck: const Value(true),
                 checkReason: const Value(OcptShotCheckReason.sceneDeleted),
               ),
@@ -577,6 +656,7 @@ class OcptShotListService {
       ..addColumns([column(database.ocptShotsTable)])
       ..where(
         database.ocptShotsTable.screenplayId.equals(screenplayId) &
+            database.ocptShotsTable.isDeleted.not() &
             column(database.ocptShotsTable).equals("").not(),
       )
       ..orderBy([OrderingTerm.asc(column(database.ocptShotsTable))]);
@@ -585,14 +665,16 @@ class OcptShotListService {
     return [for (final row in rows) row.read(column(database.ocptShotsTable))!];
   }
 
-  /// Reads back the shot row [shotId], throwing if it doesn't exist.
+  /// Reads back the shot row [shotId], throwing if it doesn't exist or has been tombstoned.
   Future<OcptShotRow> _getShotRow({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.select(database.ocptShotsTable)..where((table) => table.id.equals(shotId))).getSingle();
+  }) => (database.select(database.ocptShotsTable)
+        ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
+      .getSingle();
 
-  /// Every shot row of screenplay [screenplayId] belonging to the group [sceneId] identifies (a
-  /// real scene, or the orphan group when [sceneId] is null), ordered by `position`.
+  /// Every live shot row of screenplay [screenplayId] belonging to the group [sceneId] identifies
+  /// (a real scene, or the orphan group when [sceneId] is null), ordered by `sortKey`.
   Future<List<OcptShotRow>> _shotRowsOfGroup({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -603,37 +685,46 @@ class OcptShotListService {
         : database.ocptShotsTable.sceneId.equals(sceneId);
 
     return (database.select(database.ocptShotsTable)
-          ..where((table) => table.screenplayId.equals(screenplayId) & sceneCondition)
-          ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+          ..where(
+            (table) =>
+                table.screenplayId.equals(screenplayId) & sceneCondition & table.isDeleted.not(),
+          )
+          ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
         .get();
   }
 
-  /// Every shot id of screenplay [screenplayId], across every scene and the orphan group alike.
+  /// Every live shot id of screenplay [screenplayId], across every scene and the orphan group
+  /// alike.
   Future<List<String>> _shotIdsOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final rows = await (database.select(
-      database.ocptShotsTable,
-    )..where((table) => table.screenplayId.equals(screenplayId))).get();
+    final rows =
+        await (database.select(database.ocptShotsTable)..where(
+              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
+            ))
+            .get();
     return rows.map((row) => row.id).toList(growable: false);
   }
 
-  /// Writes `position` `0, 1, 2, …` onto [orderedRows], in the order given, skipping a row whose
-  /// `position` is already correct.
-  Future<void> _renumberGroup({
+  /// Every live character row of shot [shotId], ordered by `sortKey`.
+  Future<List<OcptShotCharacterRow>> _characterRowsOfShot({
     required OcptProjectDatabase database,
-    required List<OcptShotRow> orderedRows,
-  }) async {
-    for (var i = 0; i < orderedRows.length; i++) {
-      if (orderedRows[i].position == i) {
-        continue;
-      }
-      await (database.update(
-        database.ocptShotsTable,
-      )..where((table) => table.id.equals(orderedRows[i].id))).write(
-        OcptShotsTableCompanion(position: Value(i)),
-      );
-    }
-  }
+    required String shotId,
+  }) => (database.select(database.ocptShotCharactersTable)
+        ..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())
+        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+      .get();
+
+  /// The `{shotId, characterName}` row, **tombstoned or not**, or null if that pair was never
+  /// attached at all: the one read that has to see through tombstones, since the primary key it
+  /// looks up is what an insertion would collide with.
+  Future<OcptShotCharacterRow?> _characterRow({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required String characterName,
+  }) => (database.select(database.ocptShotCharactersTable)..where(
+        (table) => table.shotId.equals(shotId) & table.characterName.equals(characterName),
+      ))
+      .getSingleOrNull();
 }

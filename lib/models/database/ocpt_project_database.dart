@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_row_field_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snapshots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 
 part 'ocpt_project_database.g.dart';
 
@@ -31,8 +33,9 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptProjectInfoTable]), its screenplay(s) ([OcptScreenplaysTable]), safety copies of their
 /// text ([OcptScreenplaySnapshotsTable]), the reconciled scene index ([OcptScenesTable]) and, from
 /// schema version 2 onwards, the shot list built on top of that index ([OcptShotsTable],
-/// [OcptShotCharactersTable], [OcptShotCoveragesTable]). `OcptProjectsManager` owns the single
-/// instance open at a time.
+/// [OcptShotCharactersTable], [OcptShotCoveragesTable]). From schema version 3 it also holds the
+/// per-column version stamps a merge resolves conflicts with ([OcptRowFieldVersionsTable]).
+/// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -42,6 +45,7 @@ part 'ocpt_project_database.g.dart';
     OcptShotsTable,
     OcptShotCharactersTable,
     OcptShotCoveragesTable,
+    OcptRowFieldVersionsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -54,7 +58,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// The database options used by this database.
   ///
@@ -72,9 +76,21 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// `onUpgrade` from 1 to 2 creates exactly the three shot list tables and nothing else: no
   /// existing table is touched, so every screenplay, snapshot and scene a project already had
-  /// survives untouched. `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase`
-  /// leaves it at SQLite's own default, which is off, so the `references()` declared on the
-  /// tables above would otherwise never actually be enforced.
+  /// survives untouched. From 2 to 3 it adds the sync-ready columns of
+  /// `docs/adr/0010-sync-ready-data-model-prerequisites.md` — an `isDeleted` tombstone flag on
+  /// every synchronised table, a `sortKey` fractional index beside `position` on the two ordered
+  /// ones — creates [OcptRowFieldVersionsTable], and backfills the new keys from the order
+  /// `position` already held (see [_backfillSortKeys]). Both steps are additive, as ADR 0007
+  /// requires: every new column carries a default, so the rows a project already had stay valid
+  /// without being rewritten.
+  ///
+  /// The v3 columns are only *added* to the shot list tables when the file already had them: a
+  /// file coming from version 1 has just had those three tables created above, from the current
+  /// declarations, so they carry the v3 columns already.
+  ///
+  /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
+  /// own default, which is off, so the `references()` declared on the tables above would otherwise
+  /// never actually be enforced.
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
@@ -84,9 +100,81 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         await m.createTable(ocptShotCharactersTable);
         await m.createTable(ocptShotCoveragesTable);
       }
+
+      if (from < 3) {
+        await m.addColumn(ocptScreenplaysTable, ocptScreenplaysTable.isDeleted);
+        await m.addColumn(ocptScreenplaySnapshotsTable, ocptScreenplaySnapshotsTable.isDeleted);
+        await m.addColumn(ocptScenesTable, ocptScenesTable.isDeleted);
+
+        if (from >= 2) {
+          await m.addColumn(ocptShotsTable, ocptShotsTable.sortKey);
+          await m.addColumn(ocptShotsTable, ocptShotsTable.isDeleted);
+          await m.addColumn(ocptShotCharactersTable, ocptShotCharactersTable.sortKey);
+          await m.addColumn(ocptShotCharactersTable, ocptShotCharactersTable.isDeleted);
+          await m.addColumn(ocptShotCoveragesTable, ocptShotCoveragesTable.isDeleted);
+        }
+
+        await m.createTable(ocptRowFieldVersionsTable);
+        await _backfillSortKeys();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Writes a `sortKey` onto every `shots` and `shot_characters` row that predates schema version
+  /// 3, preserving the order those rows already had under `position`.
+  ///
+  /// Each group is keyed independently — a scene's shots (the orphan group, whose `scene_id` is
+  /// null, counting as one of its own per screenplay), then a shot's characters — because a
+  /// fractional index only ever has to be unique and ordered *within* the group it orders.
+  /// Ties on `position` (which nothing forbade before this version) are broken by the row's own
+  /// key, so the backfill is deterministic and two machines migrating the same file land on the
+  /// same keys.
+  ///
+  /// Written in raw SQL rather than through the generated API: this runs part way through a
+  /// migration, at a point where it is the columns just added by hand, and not drift's picture of
+  /// the schema, that describe what the file actually holds.
+  Future<void> _backfillSortKeys() async {
+    await _backfillGroups(
+      selectSql: 'SELECT id, screenplay_id, scene_id FROM shots ORDER BY position, id',
+      groupKeyOf: (row) => "${row.data['screenplay_id']}/${row.data['scene_id']}",
+      updateSql: 'UPDATE shots SET sort_key = ? WHERE id = ?',
+      updateArgsOf: (row) => [row.data['id']],
+    );
+
+    await _backfillGroups(
+      selectSql: 'SELECT shot_id, character_name FROM shot_characters '
+          'ORDER BY position, character_name',
+      groupKeyOf: (row) => "${row.data['shot_id']}",
+      updateSql: 'UPDATE shot_characters SET sort_key = ? WHERE shot_id = ? AND character_name = ?',
+      updateArgsOf: (row) => [row.data['shot_id'], row.data['character_name']],
+    );
+  }
+
+  /// Runs one table's half of [_backfillSortKeys]: reads every row with [selectSql] (already in
+  /// the order the keys must follow), splits them into groups by [groupKeyOf], and writes the
+  /// [ocptFractionalKeySequence] of each group through [updateSql], whose first placeholder is the
+  /// key and whose remaining ones are filled by [updateArgsOf].
+  Future<void> _backfillGroups({
+    required String selectSql,
+    required String Function(QueryRow row) groupKeyOf,
+    required String updateSql,
+    required List<Object?> Function(QueryRow row) updateArgsOf,
+  }) async {
+    final rows = await customSelect(selectSql).get();
+
+    final rowsByGroup = <String, List<QueryRow>>{};
+    for (final row in rows) {
+      rowsByGroup.putIfAbsent(groupKeyOf(row), () => []).add(row);
+    }
+
+    for (final group in rowsByGroup.values) {
+      final keys = ocptFractionalKeySequence(group.length);
+      for (var i = 0; i < group.length; i++) {
+        await customStatement(updateSql, [keys[i], ...updateArgsOf(group[i])]);
+      }
+    }
+  }
 }

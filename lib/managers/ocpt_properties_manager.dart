@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
+import 'package:uuid/uuid.dart';
 
 /// The maximum number of projects kept in [OcptPropertiesManager.recentProjects].
 const _maxRecentProjects = 10;
@@ -30,8 +31,9 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// On top of the [MixinLocaleProperties] wanted locale and the [MixinThemesProperties] theme and
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
-/// visibility preference, the last used workspace mode, and the shot list mode's own dock
-/// fractions, visible table columns and last right dock tab.
+/// visibility preference, the last used workspace mode, the shot list mode's own dock
+/// fractions, visible table columns and last right dock tab, and the id identifying this replica
+/// of the app ([loadOrCreateDeviceId]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -134,6 +136,12 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     castTo: (value) => value.name,
   );
 
+  /// This is the key used to store the id identifying this replica of the app.
+  ///
+  /// Prefer [loadOrCreateDeviceId] over reading this item directly: loading it returns null until
+  /// something has asked for the id once, and every caller wants the id, not the absence of one.
+  final deviceId = SharedPreferencesItem<String>("DEVICE_ID");
+
   /// The separator joining the [OcptShotListColumn] names stored for [shotListVisibleColumns].
   static const _shotListColumnsSeparator = ",";
 
@@ -163,6 +171,26 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     parser: _parsePageMargins,
     castTo: _castPageMargins,
   );
+
+  /// The id identifying this replica of the app, minting and storing one the first time it is
+  /// asked for and returning the very same one on every later call and every later launch.
+  ///
+  /// A device id is what tells one replica of a project from another
+  /// (`docs/adr/0010-sync-ready-data-model-prerequisites.md`): it stamps the per-column versions a
+  /// merge resolves conflicts with, and identifies the queue of changes still waiting to be sent.
+  /// It is a plain UUID and names a *machine's copy of the app*, never a person: the app has no
+  /// accounts, and nothing here should ever be shown as one.
+  Future<String> loadOrCreateDeviceId() async {
+    final stored = await deviceId.load();
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+
+    final minted = const Uuid().v4();
+    await deviceId.store(minted);
+
+    return minted;
+  }
 
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///

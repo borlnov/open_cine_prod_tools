@@ -55,16 +55,32 @@ void main() {
       screenplayId: screenplayId,
       document: _parse(source),
     );
-    return (database.select(
-      database.ocptScenesTable,
-    )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
+    return (database.select(database.ocptScenesTable)
+          ..where((row) => row.isDeleted.equals(false))
+          ..orderBy([(row) => OrderingTerm.asc(row.position)]))
+        .get();
   }
 
-  Future<List<OcptShotRow>> readShots() => (database.select(
-    database.ocptShotsTable,
-  )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
+  /// Every live shot, in the order `sortKey` puts them in — which is what the shot list displays
+  /// and what its codes are numbered from, `position` having stopped being renumbered.
+  Future<List<OcptShotRow>> readShots() =>
+      (database.select(database.ocptShotsTable)
+            ..where((row) => row.isDeleted.equals(false))
+            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
+          .get();
 
-  group("shot CRUD and position renumbering", () {
+  /// Every shot row, tombstones included.
+  Future<List<OcptShotRow>> readShotsIncludingTombstones() => (database.select(
+    database.ocptShotsTable,
+  )..orderBy([(row) => OrderingTerm.asc(row.sortKey)])).get();
+
+  /// Every live shot's `sortKey`, keyed by shot id: what a test compares before and after a write
+  /// to count how many rows that write actually touched.
+  Future<Map<String, String>> readSortKeys() async => {
+    for (final row in await readShots()) row.id: row.sortKey,
+  };
+
+  group("shot CRUD and ordering", () {
     test("createShot appends at the end of its scene", () async {
       final scenes = await reconcile('''
 INT. HOUSE - DAY
@@ -86,11 +102,10 @@ Action.
 
       final shots = await readShots();
       expect(shots, hasLength(2));
-      expect(shots.firstWhere((row) => row.id == firstId).position, 0);
-      expect(shots.firstWhere((row) => row.id == secondId).position, 1);
+      expect(shots.map((row) => row.id), [firstId, secondId]);
     });
 
-    test("deleteShot renumbers the remaining shots of its scene contiguously", () async {
+    test("deleteShot tombstones the shot and leaves every other row untouched", () async {
       final scenes = await reconcile('''
 INT. HOUSE - DAY
 
@@ -114,15 +129,23 @@ Action.
         sceneId: sceneId,
       );
 
+      final keysBefore = await readSortKeys();
       await shotListService.deleteShot(database: database, shotId: firstId);
+      final keysAfter = await readSortKeys();
 
       final shots = await readShots();
-      expect(shots, hasLength(2));
-      expect(shots.firstWhere((row) => row.id == secondId).position, 0);
-      expect(shots.firstWhere((row) => row.id == thirdId).position, 1);
+      expect(shots.map((row) => row.id), [secondId, thirdId]);
+      // Removing one row of an ascending run leaves the rest ascending, so a deletion rewrites
+      // nothing but the row it deletes.
+      expect(keysAfter[secondId], keysBefore[secondId]);
+      expect(keysAfter[thirdId], keysBefore[thirdId]);
+
+      final everyRow = await readShotsIncludingTombstones();
+      expect(everyRow, hasLength(3));
+      expect(everyRow.singleWhere((row) => row.id == firstId).isDeleted, isTrue);
     });
 
-    test("reorderShot moves a shot and renumbers its whole scene contiguously", () async {
+    test("reorderShot moves a shot by writing exactly one row", () async {
       final scenes = await reconcile('''
 INT. HOUSE - DAY
 
@@ -147,12 +170,48 @@ Action.
       );
 
       // Moves the first shot to the end: expected new order is second, third, first.
+      final keysBefore = await readSortKeys();
       await shotListService.reorderShot(database: database, shotId: firstId, newPosition: 2);
+      final keysAfter = await readSortKeys();
 
-      final shots = await readShots();
-      expect(shots.firstWhere((row) => row.id == secondId).position, 0);
-      expect(shots.firstWhere((row) => row.id == thirdId).position, 1);
-      expect(shots.firstWhere((row) => row.id == firstId).position, 2);
+      expect((await readShots()).map((row) => row.id), [secondId, thirdId, firstId]);
+      // This is the whole point of the fractional index: however far a shot moves and however
+      // large its scene, only the shot that moved is written.
+      expect(
+        keysAfter.keys.where((id) => keysAfter[id] != keysBefore[id]),
+        [firstId],
+      );
+    });
+
+    test("reorderShot to the head, and repeatedly between the same pair, keeps the order", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      final sceneId = scenes.single.id;
+
+      final ids = [
+        for (var i = 0; i < 4; i++)
+          await shotListService.createShot(
+            database: database,
+            screenplayId: screenplayId,
+            sceneId: sceneId,
+          ),
+      ];
+
+      // To the head, from the tail.
+      await shotListService.reorderShot(database: database, shotId: ids[3], newPosition: 0);
+      expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[1], ids[2]]);
+
+      // Then squeeze the last one between the same two neighbours, over and over: a fractional
+      // key always has room for one more, it just grows a digit when it runs out.
+      for (var i = 0; i < 5; i++) {
+        await shotListService.reorderShot(database: database, shotId: ids[2], newPosition: 1);
+        expect((await readShots()).map((row) => row.id), [ids[3], ids[2], ids[0], ids[1]]);
+        await shotListService.reorderShot(database: database, shotId: ids[0], newPosition: 1);
+        expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[2], ids[1]]);
+      }
     });
 
     test("updateShot only touches the fields it's given a Value for", () async {
@@ -179,7 +238,6 @@ Action.
       expect(shot.shotSize, "CU");
       expect(shot.notes, "Watch the eyeline.");
       expect(shot.framing, ""); // untouched, still its column default
-      expect(shot.position, 0); // untouched
     });
   });
 
@@ -407,9 +465,11 @@ Action two.
         snapshotReason: OcptSnapshotReason.manual,
       );
 
-      final scenesBefore = await (database.select(
-        database.ocptScenesTable,
-      )..orderBy([(row) => OrderingTerm.asc(row.position)])).get();
+      final scenesBefore =
+          await (database.select(database.ocptScenesTable)
+                ..where((row) => row.isDeleted.equals(false))
+                ..orderBy([(row) => OrderingTerm.asc(row.position)]))
+              .get();
       final streetScene = scenesBefore.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
 
       final shotId = await shotListService.createShot(
@@ -447,10 +507,15 @@ Action one.
       expect(shot.orphanedHeading, "EXT. STREET - NIGHT");
       expect(shot.needsCheck, isTrue);
       expect(shot.checkReason, OcptShotCheckReason.sceneDeleted);
-      expect(shot.position, 0);
 
-      final remainingCoverage = await database.select(database.ocptShotCoveragesTable).get();
-      expect(remainingCoverage, isEmpty);
+      final liveCoverage =
+          await (database.select(database.ocptShotCoveragesTable)
+                ..where((row) => row.isDeleted.equals(false)))
+              .get();
+      expect(liveCoverage, isEmpty);
+      // Tombstoned, not deleted: the range's row is still there for a replica to learn about.
+      final everyCoverage = await database.select(database.ocptShotCoveragesTable).get();
+      expect(everyCoverage.single.isDeleted, isTrue);
 
       final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
       final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
@@ -458,4 +523,173 @@ Action one.
       expect(orphanSequence.shots.single.orphanedHeading, "EXT. STREET - NIGHT");
     },
   );
+
+  group("a tombstoned row is invisible to every reader", () {
+    test("a deleted shot is gone from the shot list, its characters and its suggestions", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      final sceneId = scenes.single.id;
+
+      final keptId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      );
+      final deletedId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      );
+
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: keptId,
+        characterName: "Clara",
+      );
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: deletedId,
+        characterName: "Marc",
+      );
+      await shotListService.updateShot(
+        database: database,
+        shotId: keptId,
+        shotSize: const Value("CU"),
+        framing: const Value("Low angle"),
+      );
+      await shotListService.updateShot(
+        database: database,
+        shotId: deletedId,
+        shotSize: const Value("WIDE"),
+        framing: const Value("Dutch angle"),
+      );
+
+      await shotListService.deleteShot(database: database, shotId: deletedId);
+
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      expect(snapshot.shotsById.keys, [keptId]);
+      expect(snapshot.shotsById[keptId]!.characters, ["CLARA"]);
+      expect((snapshot.sequences.single as OcptSceneShotSequence).shots.single.id, keptId);
+
+      // The suggestion lists are the readers most easily forgotten, and a deleted shot's free text
+      // has no business still being offered.
+      expect(
+        await shotListService.distinctShotSizes(database: database, screenplayId: screenplayId),
+        ["CU"],
+      );
+      expect(
+        await shotListService.distinctFramings(database: database, screenplayId: screenplayId),
+        ["Low angle"],
+      );
+
+      // Every other shot-wide write ignores it too: the replaced name must not come back on it.
+      await shotListService.replaceCharacterEverywhere(
+        database: database,
+        screenplayId: screenplayId,
+        oldCharacterName: "Marc",
+        newCharacterName: "Julie",
+      );
+      final afterReplace = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      expect(afterReplace.shotsById.keys, [keptId]);
+      expect(afterReplace.shotsById[keptId]!.characters, ["CLARA"]);
+    });
+
+    test("a detached character is gone, and re-attaching it lifts its tombstone", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scenes.single.id,
+      );
+
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Clara",
+      );
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Marc",
+      );
+      await shotListService.detachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Clara",
+      );
+
+      Future<List<String>> charactersOfShot() async =>
+          (await shotListService.loadShotList(
+            database: database,
+            screenplayId: screenplayId,
+          )).shotsById[shotId]!.characters;
+
+      expect(await charactersOfShot(), ["MARC"]);
+
+      // The primary key is `{shotId, characterName}`, so re-attaching cannot insert a second row:
+      // it has to lift the tombstone the detach left behind, and append the character at the end.
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        characterName: "Clara",
+      );
+      expect(await charactersOfShot(), ["MARC", "CLARA"]);
+    });
+
+    test("a scene tombstoned by a save no longer shows a sequence of its own", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      expect(
+        (await shotListService.loadShotList(
+          database: database,
+          screenplayId: screenplayId,
+        )).sequences,
+        hasLength(2),
+      );
+
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final sequences = (await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+      )).sequences;
+      expect(sequences, hasLength(1));
+      expect((sequences.single as OcptSceneShotSequence).heading, "INT. HOUSE - DAY");
+    });
+  });
 }

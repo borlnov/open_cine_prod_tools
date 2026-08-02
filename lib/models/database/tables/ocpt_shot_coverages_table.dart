@@ -42,6 +42,9 @@ class OcptShotCoveragesTable extends Table {
   /// used to detect staleness without storing the substring itself.
   TextColumn get coveredTextDigest => text()();
 
+  /// {@macro open_cine_prod_tools.isDeleted}
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
   /// {@macro drift.Table.primaryKey}
   @override
   Set<Column> get primaryKey => {id};

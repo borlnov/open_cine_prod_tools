@@ -16,6 +16,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 /// never stored, so it is always in step with the scene index and with insertions/deletions/
 /// reorders. [averageDifficulty] is the mean of the four difficulty axes. Both are computed once,
 /// by [OcptShot.fromRow], rather than recomputed by every reader.
+///
+/// [position] is likewise a read-time rank, not the `shots.position` column of the same name: that
+/// column stopped being renumbered when `sortKey` took over the ordering
+/// (`docs/adr/0010-sync-ready-data-model-prerequisites.md`), so the only rank that is true of the
+/// shot list as it displays is the one the loading service counted off while ordering the group.
 class OcptShot extends Equatable {
   /// The stable, unique id of this shot (a UUID).
   final String id;
@@ -29,7 +34,8 @@ class OcptShot extends Equatable {
   /// The heading the scene had at the moment it was deleted, or null while [sceneId] is set.
   final String? orphanedHeading;
 
-  /// The 0-based rank of this shot within its scene (or, once orphaned, within the orphan group).
+  /// The 0-based rank of this shot within its scene (or, once orphaned, within the orphan group),
+  /// as its group's `sortKey` order counts it off. See the class doc comment.
   final int position;
 
   /// The shot size ("valeur de plan"), free text.
@@ -130,13 +136,16 @@ class OcptShot extends Equatable {
     required this.averageDifficulty,
   });
 
-  /// Builds an [OcptShot] from its stored [row], its attached [characters] (already in display
-  /// order) and [coverageRanges], deriving [code] from [sceneDisplayNumber] (the sequence's
-  /// explicit scene number, or its 1-based index among the screenplay's scenes when it has none)
-  /// and this shot's 1-based rank within it, and [averageDifficulty] from the four difficulty
-  /// columns of [row].
+  /// Builds an [OcptShot] from its stored [row], its 0-based [position] within its group, its
+  /// attached [characters] (already in display order) and [coverageRanges], deriving [code] from
+  /// [sceneDisplayNumber] (the sequence's explicit scene number, or its 1-based index among the
+  /// screenplay's scenes when it has none) and [position] + 1, and [averageDifficulty] from the
+  /// four difficulty columns of [row].
+  ///
+  /// [position] is passed in rather than read off [row]: see the class doc comment.
   factory OcptShot.fromRow({
     required OcptShotRow row,
+    required int position,
     required String sceneDisplayNumber,
     required List<String> characters,
     required List<OcptShotCoverageRange> coverageRanges,
@@ -145,7 +154,7 @@ class OcptShot extends Equatable {
     screenplayId: row.screenplayId,
     sceneId: row.sceneId,
     orphanedHeading: row.orphanedHeading,
-    position: row.position,
+    position: position,
     shotSize: row.shotSize,
     framing: row.framing,
     cameraMove: row.cameraMove,
@@ -166,7 +175,7 @@ class OcptShot extends Equatable {
     checkReason: row.checkReason,
     characters: characters,
     coverageRanges: coverageRanges,
-    code: "$sceneDisplayNumber/${row.position + 1}",
+    code: "$sceneDisplayNumber/${position + 1}",
     averageDifficulty:
         (row.difficultySet + row.difficultyCamera + row.difficultyActing + row.difficultySound) / 4,
   );

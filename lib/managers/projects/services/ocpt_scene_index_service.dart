@@ -41,6 +41,8 @@ class _ParsedScene {
 /// at the single moment the information a dependent might need (a scene row about to disappear)
 /// still exists, without this service ever importing or knowing the shape of what that dependent
 /// does with it.
+///
+/// {@macro open_cine_prod_tools.tombstones}
 class OcptSceneIndexService {
   /// Class constructor
   const OcptSceneIndexService();
@@ -63,12 +65,15 @@ class OcptSceneIndexService {
   /// Matched rows keep their id and get their `position`/`heading`/`sceneNumber`/`charStart`/
   /// `charEnd` refreshed. Parsed headings left unmatched after all three passes become new rows,
   /// with a freshly generated UUID. Existing rows left unmatched after all three passes are
-  /// deleted: their scene is gone from the screenplay.
+  /// **tombstoned** — their scene is gone from the screenplay, and only the reads above stop
+  /// seeing it. `scenes` is derived and never synchronised, so its tombstones are not there to be
+  /// merged; they are there because `shots.sceneId` and `shot_coverages.sceneId` reference these
+  /// rows and those tables' own tombstones keep pointing at them (see `OcptScenesTable.isDeleted`).
   ///
   /// [onScenesDeleted], when given, is awaited inside this method's own transaction, immediately
-  /// before those rows are deleted, and only when there is at least one to delete: it is the single
-  /// hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the one moment
-  /// the about-to-vanish rows' data (their heading, in particular) is still available to copy
+  /// before those rows are tombstoned, and only when there is at least one to tombstone: it is the
+  /// single hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the one
+  /// moment the about-to-vanish rows' data (their heading, in particular) is still available to copy
   /// elsewhere. See the class doc comment for why this is a callback rather than a direct call.
   Future<void> reconcile({
     required OcptProjectDatabase database,
@@ -78,7 +83,7 @@ class OcptSceneIndexService {
   }) async {
     final existingRows =
         await (database.select(database.ocptScenesTable)
-              ..where((row) => row.screenplayId.equals(screenplayId))
+              ..where((row) => row.screenplayId.equals(screenplayId) & row.isDeleted.not())
               ..orderBy([(row) => OrderingTerm.asc(row.position)]))
             .get();
 
@@ -91,9 +96,11 @@ class OcptSceneIndexService {
       }
 
       for (final row in matches.rowsToDelete) {
-        await (database.delete(
+        await (database.update(
           database.ocptScenesTable,
-        )..where((table) => table.id.equals(row.id))).go();
+        )..where((table) => table.id.equals(row.id))).write(
+          const OcptScenesTableCompanion(isDeleted: Value(true)),
+        );
       }
 
       for (var position = 0; position < parsedScenes.length; position++) {
@@ -194,7 +201,8 @@ class _SceneMatchPlan {
   /// heading didn't match any existing row and needs a freshly generated id.
   final List<String?> idsByHeadingIndex;
 
-  /// The existing rows that weren't matched to any parsed heading: their scene is gone.
+  /// The existing rows that weren't matched to any parsed heading: their scene is gone, so they
+  /// are tombstoned.
   final List<OcptSceneRow> rowsToDelete;
 
   /// Class constructor
