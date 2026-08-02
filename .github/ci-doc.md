@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 # CI: build and release
 
 This directory holds the GitHub Actions pipeline that builds Open Cine Prod Tools for Linux
-(a Debian package) and Windows (an Inno Setup installer), and publishes both to a GitHub
-Release on version tags.
+(a Debian package), Windows (an Inno Setup installer) and macOS (a disk image), and publishes
+all three to a GitHub Release on version tags.
 
 ## Workflows
 
@@ -21,10 +21,25 @@ Runs on push to `main`, on pull requests to `main`, on `v*` tags, and on manual 
   builds the Flutter app for Linux, packages it as a `.deb`, uploads it as an artifact.
 - **build-windows** - same generation and build steps for Windows, packages an Inno Setup
   installer. Only runs on `main`, on `v*` tags, or on manual dispatch (not on every PR).
+- **build-macos** - same generation and build steps for macOS, then packages the `.app` bundle
+  as a drag-to-`Applications` disk image. Gated exactly like build-windows. It splits the
+  version in two before building (`--build-name` gets the dotted numeric prefix,
+  `--build-number` the commit distance) because a bundle's `CFBundleShortVersionString` only
+  accepts dotted numbers, while the disk image's file name keeps the full `git describe`
+  version. Signing and notarization steps sit around the packaging step but stay dormant until
+  the Apple secrets exist (see
+  [ADR 0011](../docs/adr/0011-macos-distribution-outside-the-app-store.md)); until then the app
+  ships with the ad-hoc signature the Xcode project asks for. The job ends by checking the
+  result structurally: `lipo -archs` on the executable, `codesign -dv` on the bundle,
+  `plutil -lint` on the built `Info.plist`, and a mount of the image to confirm it holds the
+  `.app` and the `Applications` symlink.
 - **test-deb** - downloads the `.deb` built by build-linux, installs it on a fresh runner,
   checks the launcher and the bundled executable are present, then removes it.
-- **create-release** - only on `v*` tags. Downloads the Linux and Windows artifacts, writes a
-  `SHA256SUMS.txt`, and publishes a GitHub Release with both files attached.
+- **create-release** - only on `v*` tags. Downloads the Linux, Windows and macOS artifacts,
+  writes a `SHA256SUMS.txt`, and publishes a GitHub Release with all three files attached.
+
+Nobody has run the macOS application yet - there is no Mac behind this project - so `build-macos`
+is only ever verified as far as those structural checks go.
 
 ### flutter_lint.yml, markdown_lint.yml, reuse_compliance.yml
 
@@ -48,7 +63,8 @@ three pin their third-party actions by commit SHA and run with `permissions: con
 |   |-- flutter-setup/        # Flutter SDK + pub cache
 |   |-- flutter-build/        # flutter build <platform> --release, with a build cache
 |   |-- flutter-debian/       # packages a Flutter build directory as a .deb
-|   `-- windows-installer/    # packages a Flutter build directory as an Inno Setup installer
+|   |-- windows-installer/    # packages a Flutter build directory as an Inno Setup installer
+|   `-- macos-dmg/            # packages a Flutter build directory as a .dmg (hdiutil)
 |-- debian-templates/
 |   |-- control.template      # Debian control file
 |   |-- launcher.sh.template  # /usr/bin launcher script
@@ -143,6 +159,48 @@ Copy `.github/inno-setup/installer.iss.template` next to
 values), rename it to `installer.iss`, then run
 `iscc /DMyAppVersion="0.1.0" installer.iss` from that directory.
 
+## Building the DMG locally
+
+Requires a Mac with Flutter 3.44.6 and Xcode's command line tools. Everything below is what the
+`build-macos` job does, minus the dormant signing steps.
+
+```bash
+flutter pub get
+dart run intl_utils:generate
+dart run build_runner build
+flutter build macos --release --build-name=0.1.0 --build-number=0
+```
+
+`--build-name` must be dotted numbers only: it becomes `CFBundleShortVersionString`, which
+rejects anything else. The build writes its bundle to `build/macos/Build/Products/Release`, named
+after `PRODUCT_NAME` and therefore holding spaces - so every path below quotes it.
+
+Then reproduce what the `macos-dmg` action does, from the repository root:
+
+```bash
+APP_NAME="Open Cine Prod Tools"
+VERSION=$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; /^[0-9]/! s/^/0.0.0-/')
+APP_BUNDLE="build/macos/Build/Products/Release/${APP_NAME}.app"
+
+# Stage what the mounted volume shows: the application, and the shortcut to drag it onto. ditto,
+# never cp: it is the only copy preserving the extended attributes a signature covers.
+rm -rf dmg-staging && mkdir -p dmg-staging artifacts
+ditto "${APP_BUNDLE}" "dmg-staging/${APP_NAME}.app"
+ln -s /Applications dmg-staging/Applications
+
+hdiutil create -volname "${APP_NAME}" -srcfolder dmg-staging -ov -format UDZO \
+    "artifacts/OpenCineProdTools_${VERSION}_macos.dmg"
+rm -rf dmg-staging
+```
+
+Two macOS specifics worth knowing before touching this:
+
+- **`macos/Podfile.lock` is not in the repository.** `pod install` only runs on macOS, so the lock
+  file cannot be produced here and is deliberately left untracked rather than gitignored - the
+  first person to build on a Mac is expected to commit the one their build generates.
+- **The application has never been run on a Mac.** The build is exercised by the CI only, and only
+  through the structural checks listed above.
+
 ## Cutting a release
 
 Bump `version:` in `pubspec.yaml` first, and merge that. It is what `package_info_plus` reports
@@ -155,8 +213,10 @@ git push --tags
 ```
 
 This triggers `build.yml` on the new tag: `create-release` publishes a GitHub Release with the
-`.deb`, the Windows installer, and a `SHA256SUMS.txt`. The binaries are unsigned, so Windows
-SmartScreen will warn on first run.
+`.deb`, the Windows installer, the macOS disk image, and a `SHA256SUMS.txt`. The binaries are
+unsigned, so Windows SmartScreen warns on first run and macOS Gatekeeper refuses the downloaded
+application until the user opens it from its context menu or clears its quarantine flag - which
+the README explains to them.
 
 Pre-release tags follow semver: `v0.1.0-alpha.1`, `v0.1.0-beta.2`, `v1.0.0-rc.1`. The hyphenated
 suffix is what `create-release` keys on to flag the release as a pre-release, so it never takes
