@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -29,6 +30,9 @@ const _screenplay =
 
 /// The action line of the first scene, the passage most tests cover.
 const _actionLine = "John walks in and looks around the room.";
+
+/// The PDF fill-colour operands of the opaque plate a bar's label is printed on: plain white.
+const _labelPlateFill = "1 1 1";
 
 /// Every localized string of the document, filled with recognisable placeholders: nothing here
 /// asserts on the printed text (Courier Prime is embedded as an Identity-H composite font, so a
@@ -163,6 +167,32 @@ void main() {
         ],
       );
 
+  /// A shot list whose two shots both cover the start of [_actionLine], so their bars land on the
+  /// same row in two different lanes — the very case a label reaches over a neighbour's bar in.
+  OcptShotListSnapshot overlappingSnapshot() => OcptShotListSnapshot.build(
+    screenplayId: "screenplay",
+    sequences: [
+      sceneSequence(0, [
+        for (final (index, length) in [_actionLine.length, 10].indexed)
+          _buildShot(
+            id: "shot-${index + 1}",
+            code: "1/${index + 1}",
+            sceneId: "scene-1",
+            abbreviation: "PM",
+            coverageRanges: [
+              _buildRange(
+                id: "range-${index + 1}",
+                sceneId: "scene-1",
+                startOffset: offsetOf(0, _actionLine),
+                endOffset: offsetOf(0, _actionLine) + length,
+              ),
+            ],
+          ),
+      ]),
+      sceneSequence(1, const []),
+    ],
+  );
+
   /// The same shot list with no coverage range at all: every shot is there, nothing is covered.
   OcptShotListSnapshot uncoveredSnapshot() => OcptShotListSnapshot.build(
     screenplayId: "screenplay",
@@ -267,6 +297,26 @@ void main() {
       expect(_contentStreams(withAbbreviation), isNot(_contentStreams(withoutAbbreviation)));
     });
 
+    test("prints every bar's label on an opaque plate of its own", () async {
+      final bytes = await generate(snapshot: coveringSnapshot());
+
+      // A plate the label alone is printed on: without it, a label reaching over a neighbouring
+      // bar prints a coloured word over a coloured stroke, which no reader can tell apart.
+      expect(_filledRectangleColors(bytes), contains(_labelPlateFill));
+    });
+
+    test("draws every label over every bar of the page, never under one", () async {
+      final bytes = await generate(snapshot: overlappingSnapshot());
+      final fills = _filledRectangleColors(bytes);
+
+      // Two bars on the same row, hence two labels, hence two plates — and both of them come after
+      // every coloured fill of the page (the bars themselves and their ticks), which is the only
+      // stacking order that keeps the first label readable when the second bar runs under it.
+      final plates = fills.where((fill) => fill == _labelPlateFill);
+      expect(plates, hasLength(2));
+      expect(fills.sublist(fills.length - 2), everyElement(_labelPlateFill));
+    });
+
     test("a shot list holding no coverage at all still prints the whole screenplay", () async {
       final bytes = await generate(snapshot: uncoveredSnapshot());
 
@@ -312,6 +362,31 @@ void main() {
 int _pageCount(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
+}
+
+/// The fill colour of every filled rectangle the document draws, in drawing order, as the PDF
+/// operand triple itself — white being [_labelPlateFill].
+///
+/// Inflates every `stream` object and reads back the `W H re R G B rg f` sequences a coloured
+/// `pdf`-package container emits. Like [_contentStreams] this is a boundary search rather than a
+/// PDF parser: it keeps whichever streams hold such a sequence at all, which on these documents are
+/// the page contents and never the embedded font files.
+List<String> _filledRectangleColors(Uint8List bytes) {
+  final pattern = RegExp(r"re ((?:[\d.]+ ){3})rg f");
+
+  return [
+    for (final stream in _contentStreams(bytes))
+      for (final match in pattern.allMatches(_inflated(stream) ?? "")) match.group(1)!.trim(),
+  ];
+}
+
+/// [stream] inflated, or null when it is not a deflated stream at all.
+String? _inflated(String stream) {
+  try {
+    return latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
+  } on FormatException {
+    return null;
+  }
 }
 
 /// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order.

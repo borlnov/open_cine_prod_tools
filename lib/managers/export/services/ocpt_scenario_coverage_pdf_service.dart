@@ -40,6 +40,14 @@ const double _labelLineHeightPt = _labelFontSizePt * 1.2;
 /// The horizontal air, in points, between a bar and the label printed beside it.
 const double _labelGapPt = 2;
 
+/// The padding, in points, between a label's text and the edge of the opaque plate it is printed
+/// on: what keeps the text legible when the plate lands over a neighbouring bar.
+const double _labelPaddingPt = 1.5;
+
+/// The colour of that plate — the paper's own white, so a label reads as printed on the page
+/// rather than on whatever it happens to cover.
+const PdfColor _labelBackgroundColor = PdfColors.white;
+
 /// The grey an uncovered passage is washed with, behind the text.
 ///
 /// Light enough that 12pt Courier stays perfectly readable through it, dark enough to survive a
@@ -209,26 +217,40 @@ class OcptScenarioCoveragePdfService {
 
   /// The bars, their labels and their ticks, drawn on top of the script [page] [coveragePage]
   /// annotates.
+  ///
+  /// Every label comes after every bar rather than each one right after its own: a page dense
+  /// enough for the lanes to have tightened lets a label reach over its neighbours' bars, and it is
+  /// the label — the only thing on the page naming which shot a bar belongs to — that has to stay
+  /// readable when the two meet.
   List<pw.Widget> _barWidgets({
     required FountainScriptPage page,
     required OcptScenarioCoveragePage coveragePage,
     required OcptScriptPagePainter painter,
-  }) => [
-    for (final segment in coveragePage.segments)
-      ..._segmentWidgets(
+  }) {
+    final bars = <pw.Widget>[];
+    final labels = <pw.Widget>[];
+
+    for (final segment in coveragePage.segments) {
+      final widgets = _segmentWidgets(
         segment: segment,
         page: page,
         coveragePage: coveragePage,
         painter: painter,
-      ),
-  ];
+      );
+      bars.addAll(widgets.bars);
+      labels.add(widgets.label);
+    }
 
-  /// The widgets one bar draws: the bar itself, its label beside it, and the ticks marking where
-  /// inside its first and last rows the covered passage actually starts and ends.
+    return [...bars, ...labels];
+  }
+
+  /// The widgets one bar draws, kept apart so the caller can stack them in its own order: the bar
+  /// itself and the ticks marking where inside its first and last rows the covered passage actually
+  /// starts and ends, then the label printed beside it.
   ///
   /// A stale bar (its range no longer agrees with the screenplay's text) is outlined rather than
   /// filled, so it reads as "recorded, needs re-checking" instead of as solid coverage.
-  List<pw.Widget> _segmentWidgets({
+  ({List<pw.Widget> bars, pw.Widget label}) _segmentWidgets({
     required OcptCoverageBarSegment segment,
     required FountainScriptPage page,
     required OcptScenarioCoveragePage coveragePage,
@@ -247,19 +269,24 @@ class OcptScenarioCoveragePdfService {
     final topPt = painter.rowTopPt(segment.firstRow);
     final heightPt = (segment.lastRow - segment.firstRow + 1) * painter.lineHeightPt;
 
-    return [
-      pw.Positioned(
-        left: leftPt,
-        top: topPt,
-        child: pw.Container(
-          width: widthPt,
-          height: heightPt,
-          decoration: segment.isStale
-              ? pw.BoxDecoration(border: pw.Border.all(color: color, width: _staleBarStrokePt))
-              : pw.BoxDecoration(color: color),
+    return (
+      bars: [
+        pw.Positioned(
+          left: leftPt,
+          top: topPt,
+          child: pw.Container(
+            width: widthPt,
+            height: heightPt,
+            decoration: segment.isStale
+                ? pw.BoxDecoration(border: pw.Border.all(color: color, width: _staleBarStrokePt))
+                : pw.BoxDecoration(color: color),
+          ),
         ),
-      ),
-      _labelWidget(
+        for (final tick in [segment.startTick, segment.endTick])
+          if (tick != null && tick.row < page.lines.length)
+            _tickWidget(tick: tick, line: page.lines[tick.row], painter: painter, color: color),
+      ],
+      label: _labelWidget(
         segment: segment,
         painter: painter,
         color: color,
@@ -267,19 +294,18 @@ class OcptScenarioCoveragePdfService {
         barWidthPt: widthPt,
         barMiddlePt: topPt + heightPt / 2,
       ),
-      for (final tick in [segment.startTick, segment.endTick])
-        if (tick != null && tick.row < page.lines.length)
-          _tickWidget(tick: tick, line: page.lines[tick.row], painter: painter, color: color),
-    ];
+    );
   }
 
-  /// The label printed beside one bar, at its vertical middle and in its own colour.
+  /// The label printed beside one bar, at its vertical middle and in its own colour, on an opaque
+  /// plate of its own.
   ///
   /// Grows away from the text — leftward for a bar in the left margin, rightward for one in the
   /// right margin — over whatever room the margin still has, exactly as the reference document
-  /// prints it. Two bars whose middles land on the same row can therefore overprint each other's
-  /// label; that is the same trade-off the reference makes, and the alternative (a rotated label
-  /// confined to its own lane) is unreadable at this size.
+  /// prints it. It therefore crosses the lanes further out, and two bars whose middles land on the
+  /// same row still overprint each other's label; the plate is what keeps the first of those two
+  /// collisions legible, which is why the label hugs its text rather than filling the room it is
+  /// aligned in — a plate as wide as the margin would blank out every bar beside it.
   pw.Widget _labelWidget({
     required OcptCoverageBarSegment segment,
     required OcptScriptPagePainter painter,
@@ -296,18 +322,32 @@ class OcptScenarioCoveragePdfService {
 
     return pw.Positioned(
       left: leftPt,
-      top: barMiddlePt - _labelLineHeightPt / 2,
+      // The plate's padding sits outside the line box the label is centred on, so the text itself
+      // stays on the bar's middle row.
+      top: barMiddlePt - _labelLineHeightPt / 2 - _labelPaddingPt,
       child: pw.SizedBox(
         width: widthPt,
-        child: pw.Text(
-          segment.label,
-          maxLines: 1,
-          textAlign: isLeft ? pw.TextAlign.right : pw.TextAlign.left,
-          style: pw.TextStyle(
-            font: painter.fonts.regular,
-            fontSize: _labelFontSizePt,
-            color: color,
-          ),
+        // A row rather than the plain text the alignment alone used to place: the plate has to be
+        // as wide as the label, and pushed to the far side of that room by something other than
+        // its own width.
+        child: pw.Row(
+          mainAxisAlignment: isLeft ? pw.MainAxisAlignment.end : pw.MainAxisAlignment.start,
+          children: [
+            pw.Container(
+              color: _labelBackgroundColor,
+              padding: const pw.EdgeInsets.all(_labelPaddingPt),
+              child: pw.Text(
+                segment.label,
+                maxLines: 1,
+                textAlign: isLeft ? pw.TextAlign.right : pw.TextAlign.left,
+                style: pw.TextStyle(
+                  font: painter.fonts.regular,
+                  fontSize: _labelFontSizePt,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
