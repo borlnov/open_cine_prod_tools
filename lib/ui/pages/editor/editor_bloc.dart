@@ -94,6 +94,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// The id given to the next [OcptEditorJumpRequest], increased after each one.
   int _nextJumpRequestId = 0;
 
+  /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
+  late final void Function() _unregisterUnsavedChangesReporter;
+
   /// Class constructor
   ///
   /// [parseDebounce], [autosaveDebounce] and [statisticsDebounce] are only meant to be overridden
@@ -118,6 +121,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
        _autosaveDebounce = autosaveDebounce,
        _statisticsDebounce = statisticsDebounce,
        super(const OcptEditorState.init()) {
+    // The screenplay is the one thing in the app that lives in memory between two writes (the
+    // autosave debounce), so this is the mode that has an answer to give when the projects manager
+    // asks whether it may swap the database under everyone to preview a version.
+    _unregisterUnsavedChangesReporter = _projectsManager.registerUnsavedChangesReporter(
+      () => state.isDirty,
+    );
+
     add(const OcptEditorLoadRequestedEvent());
   }
 
@@ -916,6 +926,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
     _statisticsTimer?.cancel();
+    _unregisterUnsavedChangesReporter();
 
     final project = _projectsManager.currentProject;
     if (project != null && state.isDirty && !state.isSaving) {

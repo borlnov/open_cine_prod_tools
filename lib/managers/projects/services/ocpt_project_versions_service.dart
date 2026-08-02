@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
@@ -12,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// Creates, lists and deletes a project's named versions: the production history the user drives
@@ -117,6 +120,103 @@ class OcptProjectVersionsService {
       );
     });
   }
+
+  /// Loads the single version [id] of the project in [database], or null if it has no such
+  /// version.
+  ///
+  /// Reads the card's columns alone, deliberately leaving `payload` in the file: this is what the
+  /// preview asks for the version's *identity* with, and it must stay as cheap as [listVersions]
+  /// even though the payload of that same row is about to be read by [loadPayload].
+  Future<OcptProjectVersion?> loadVersion({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    final table = database.ocptProjectVersionsTable;
+
+    final row =
+        await (database.selectOnly(table)
+              ..addColumns([table.id, table.name, table.note, table.createdAt, table.summaryJson])
+              ..where(table.id.equals(id)))
+            .getSingleOrNull();
+
+    if (row == null) {
+      return null;
+    }
+
+    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
+
+    return OcptProjectVersion(
+      id: row.read(table.id)!,
+      name: row.read(table.name)!,
+      note: row.read(table.note)!,
+      createdAt: row.read(table.createdAt)!,
+      summary: OcptProjectVersionSummary.parse(row.read(table.summaryJson)!),
+      isCurrent: info?.currentVersionId == id,
+    );
+  }
+
+  /// Reads and decodes the payload of the version [id] of the project in [database].
+  ///
+  /// This is the one read that does deserialize a payload, and it exists for the two operations
+  /// that need the state itself rather than the card: entering a version's preview, and restoring
+  /// it. Every failure comes back as a status — a version whose payload can't be read is a version
+  /// the user must be told about, never an exception thrown at whichever screen asked.
+  Future<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>> loadPayload({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    final row = await (database.select(
+      database.ocptProjectVersionsTable,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+    if (row == null) {
+      appLogger().w("The project version $id can't be loaded: no such version in this project");
+      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
+    }
+
+    return _codec.decode(row.payload);
+  }
+
+  /// Writes [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
+  /// so the modes find the version's state exactly where they usually find the working copy's.
+  ///
+  /// [projectInfo] is the working copy's own header: the preview keeps the project's name, its
+  /// creation date and the app version that created it, and takes only what the payload owns — the
+  /// page format and the free-form settings. Its `currentVersionId` is deliberately left null,
+  /// since the preview database holds no `project_versions` row for it to point at.
+  ///
+  /// The rows go in verbatim, tombstones and primary keys included, in dependency order and within
+  /// a single transaction: a half-hydrated preview must never be shown. The page **margins** the
+  /// payload carries are not written here — they are an app-wide preference, and a preview never
+  /// touches the user's preferences (they travel on `OcptOpenProjectModel.previewedPageSetup`
+  /// instead).
+  Future<void> hydratePreview({
+    required OcptProjectDatabase database,
+    required OcptProjectInfoRow projectInfo,
+    required OcptProjectVersionPayload payload,
+  }) => database.transaction(() async {
+    await database
+        .into(database.ocptProjectInfoTable)
+        .insert(
+          OcptProjectInfoTableCompanion.insert(
+            name: projectInfo.name,
+            createdAt: projectInfo.createdAt,
+            appVersionAtCreation: projectInfo.appVersionAtCreation,
+            pageFormat: payload.pageSetup.format,
+            settingsJson: Value(payload.settingsJson),
+          ),
+        );
+
+    await database.batch((batch) {
+      batch
+        ..insertAll(database.ocptScreenplaysTable, payload.screenplays)
+        ..insertAll(database.ocptScenesTable, payload.scenes)
+        ..insertAll(database.ocptShotsTable, payload.shots)
+        ..insertAll(database.ocptShotCharactersTable, payload.shotCharacters)
+        ..insertAll(database.ocptShotCoveragesTable, payload.shotCoverages)
+        ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
+    });
+  });
 
   /// Deletes the version [id] of the project in [database], clearing the project header's pointer
   /// first when it is the one being deleted.

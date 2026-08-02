@@ -273,6 +273,159 @@ void main() {
     });
   });
 
+  group("loadVersion", () {
+    test("loads one version's card fields, flagged current off the project header", () async {
+      await createVersion(name: "v1");
+      final second = await createVersion(name: "v2 — Shot list", note: "Seq. 1 to 3");
+
+      final version = await service.loadVersion(database: database, id: second.id);
+
+      expect(version?.id, second.id);
+      expect(version?.name, "v2 — Shot list");
+      expect(version?.note, "Seq. 1 to 3");
+      expect(version?.createdAt, second.createdAt);
+      expect(version?.summary, second.summary);
+      expect(version?.isCurrent, isTrue);
+    });
+
+    test("returns null for a version this project doesn't have", () async {
+      await createVersion();
+
+      expect(await service.loadVersion(database: database, id: "no-such-version"), isNull);
+    });
+  });
+
+  group("loadPayload", () {
+    test("decodes the payload stored with the version", () async {
+      await insertScene(id: "scene-1");
+      await insertShot(id: "shot-1", sceneId: "scene-1");
+      final version = await createVersion();
+
+      final result = await service.loadPayload(database: database, id: version.id);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value?.scenes.single.id, "scene-1");
+      expect(result.value?.shots.single.id, "shot-1");
+      expect(result.value?.pageSetup.margins, margins);
+    });
+
+    test("refuses a payload written in a format this build doesn't know", () async {
+      await database
+          .into(database.ocptProjectVersionsTable)
+          .insert(
+            OcptProjectVersionsTableCompanion.insert(
+              id: "version-from-the-future",
+              name: "v1 — Written by a later build",
+              createdAt: DateTime.utc(2026, 6, 2),
+              appVersion: "99.0.0",
+              payloadFormat: OcptProjectVersionCodec.currentPayloadFormat + 1,
+              payload: '{"payloadFormat":${OcptProjectVersionCodec.currentPayloadFormat + 1}}',
+              summaryJson: "{}",
+              createdByDeviceId: deviceId,
+            ),
+          );
+
+      final result = await service.loadPayload(database: database, id: "version-from-the-future");
+
+      expect(result.status, OcptProjectVersionPayloadStatus.unsupportedFutureFormat);
+      expect(result.value, isNull);
+    });
+
+    test("reports a version this project doesn't have rather than throwing", () async {
+      final result = await service.loadPayload(database: database, id: "no-such-version");
+
+      expect(result.status, OcptProjectVersionPayloadStatus.malformedPayload);
+      expect(result.value, isNull);
+    });
+  });
+
+  group("hydratePreview", () {
+    test("writes the payload's rows verbatim into an empty preview database", () async {
+      await insertScene(id: "scene-1");
+      await insertScene(id: "scene-gone", isDeleted: true);
+      await insertShot(id: "shot-1", sceneId: "scene-1");
+      await insertShot(id: "shot-gone", sceneId: "scene-1", isDeleted: true);
+      await database
+          .into(database.ocptShotCharactersTable)
+          .insert(
+            OcptShotCharactersTableCompanion.insert(
+              shotId: "shot-1",
+              characterName: "CLARA",
+              position: 0,
+              sortKey: const Value("V"),
+            ),
+          );
+      await database
+          .into(database.ocptShotCoveragesTable)
+          .insert(
+            OcptShotCoveragesTableCompanion.insert(
+              id: "coverage-1",
+              shotId: "shot-1",
+              sceneId: "scene-1",
+              startOffset: 0,
+              endOffset: 5,
+              coveredTextDigest: "digest",
+            ),
+          );
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "shots",
+              rowId: "shot-1",
+              columnName: "framing",
+              version: 7,
+              deviceId: "device-0",
+            ),
+          );
+
+      final payload = await readPayload((await createVersion()).id);
+
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(preview.close);
+
+      await service.hydratePreview(
+        database: preview,
+        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+        payload: payload,
+      );
+
+      expect(await preview.select(preview.ocptScreenplaysTable).get(), payload.screenplays);
+      expect(await preview.select(preview.ocptScenesTable).get(), payload.scenes);
+      expect(await preview.select(preview.ocptShotsTable).get(), payload.shots);
+      expect(await preview.select(preview.ocptShotCharactersTable).get(), payload.shotCharacters);
+      expect(await preview.select(preview.ocptShotCoveragesTable).get(), payload.shotCoverages);
+      expect(
+        await preview.select(preview.ocptRowFieldVersionsTable).get(),
+        payload.rowFieldVersions,
+      );
+    });
+
+    test("gives the preview a header of the project's own, pointing at no version", () async {
+      final payload = await readPayload((await createVersion()).id);
+
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(preview.close);
+
+      await service.hydratePreview(
+        database: preview,
+        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+        payload: payload,
+      );
+
+      final info = await preview.select(preview.ocptProjectInfoTable).getSingle();
+      expect(info.name, "My Movie");
+      expect(info.createdAt, DateTime.utc(2026, 1, 4));
+      expect(info.appVersionAtCreation, appVersion);
+      // The page format and the settings are the payload's; the version list is not copied at all,
+      // so the pointer into it has nothing to point at.
+      expect(info.pageFormat, payload.pageSetup.format);
+      expect(info.settingsJson, payload.settingsJson);
+      expect(info.currentVersionId, isNull);
+      expect(await preview.select(preview.ocptProjectVersionsTable).get(), isEmpty);
+    });
+  });
+
   group("deleteVersion", () {
     test("deletes the version and clears the pointer when it pointed at it", () async {
       final version = await createVersion();
