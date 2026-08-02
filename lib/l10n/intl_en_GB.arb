@@ -2019,5 +2019,121 @@
     "context": "Displayed as a SnackBar over the shot list mode",
     "type": "text",
     "placeholders": {}
+  },
+  "shotListExportCoverageMenuAction": "Export the scenario coverage…",
+  "@shotListExportCoverageMenuAction": {
+    "description": "Action exporting the screenplay annotated with the shots covering it, as a PDF",
+    "context": "Displayed in the overflow menu of the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageDialogTitle": "Export the scenario coverage",
+  "@shotListExportCoverageDialogTitle": {
+    "description": "Title of the dialog picking the options the scenario coverage export runs with",
+    "context": "Displayed as a dialog over the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageLegendLabel": "Include the shot legend page",
+  "@shotListExportCoverageLegendLabel": {
+    "description": "Checkbox including the page listing every shot and the colour its bars are drawn in",
+    "context": "Displayed in the scenario coverage export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummaryLabel": "Include the coverage summary page",
+  "@shotListExportCoverageSummaryLabel": {
+    "description": "Checkbox including the page summarising how much of each sequence is covered",
+    "context": "Displayed in the scenario coverage export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageFileTypeLabel": "PDF document",
+  "@shotListExportCoverageFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the scenario coverage",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageFileNameSuffix": "coverage",
+  "@shotListExportCoverageFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - coverage.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageLegendTitle": "Shot legend",
+  "@shotListExportCoverageLegendTitle": {
+    "description": "Heading of the exported page listing every shot and the colour its bars are drawn in",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummaryTitle": "Coverage summary",
+  "@shotListExportCoverageSummaryTitle": {
+    "description": "Heading of the exported page summarising how much of each sequence is covered",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummarySequenceHeader": "Sequence",
+  "@shotListExportCoverageSummarySequenceHeader": {
+    "description": "Header of the summary column naming a sequence",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummaryShotCountHeader": "Shots",
+  "@shotListExportCoverageSummaryShotCountHeader": {
+    "description": "Header of the summary column counting how many shots a sequence holds",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummaryCoveredHeader": "Covered",
+  "@shotListExportCoverageSummaryCoveredHeader": {
+    "description": "Header of the summary column giving the share of a sequence at least one shot covers",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummaryStaleHeader": "To check",
+  "@shotListExportCoverageSummaryStaleHeader": {
+    "description": "Header of the summary column counting the coverage ranges that no longer agree with the screenplay",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSummaryUncoveredHeader": "Uncovered passages",
+  "@shotListExportCoverageSummaryUncoveredHeader": {
+    "description": "Header of the summary column quoting the passages of a sequence no shot covers",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageLaneOverflowNote": "Some pages hold more overlapping shots than their margins have room for: on those pages the outermost bar stands for several shots at once.",
+  "@shotListExportCoverageLaneOverflowNote": {
+    "description": "Note printed under the summary when a page ran out of margin lanes to draw its bars in",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageSuccessMessage": "Exported to {path}",
+  "@shotListExportCoverageSuccessMessage": {
+    "description": "Message shown when the scenario coverage was successfully exported to a PDF file",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListExportCoverageError": "The scenario coverage could not be exported.",
+  "@shotListExportCoverageError": {
+    "description": "Error shown when exporting the scenario coverage to a PDF file failed",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
   }
 }

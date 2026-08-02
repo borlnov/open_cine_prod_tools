@@ -67,10 +67,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
 ///
-/// The one action that reads the shot list rather than writing to it is the XLSX export
-/// ([_onXlsxExportRequested]): it flushes whatever is still pending, then hands the loaded
-/// snapshot to [OcptExportManager], which owns both the workbook building and the native save
-/// dialog.
+/// The two actions that read the shot list rather than writing to it are its exports — the XLSX
+/// workbook ([_onXlsxExportRequested]) and the scenario coverage PDF
+/// ([_onScenarioCoverageExportRequested]): both flush whatever is still pending, then hand the
+/// loaded snapshot to [OcptExportManager], which owns both the document building and the native
+/// save dialog.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -145,6 +146,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListColumnToggledEvent>(_onColumnToggled);
     on<OcptShotListWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptShotListXlsxExportRequestedEvent>(_onXlsxExportRequested);
+    on<OcptShotListScenarioCoverageExportRequestedEvent>(_onScenarioCoverageExportRequested);
     on<OcptShotListIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListShotFieldChangedEvent>(_onShotFieldChanged);
@@ -566,6 +568,69 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       emitter(
         state.copyWith(
           ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.xlsxExportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Exports the screenplay annotated with the shots covering it, as a PDF.
+  ///
+  /// The read-only sibling of [_onXlsxExportRequested], and built the same way: flush whatever is
+  /// still pending — that flush re-reads the snapshot, so the legend holds the shot size the user
+  /// typed seconds ago — then hand what the state now carries to
+  /// [OcptExportManager.exportScenarioCoverage]. A cancelled save dialog is a silent no-op; a
+  /// failure raises the transient export-failed notice.
+  ///
+  /// [OcptShotListState.screenplayText] is parsed here rather than kept parsed in the state: the
+  /// document is only ever needed by this export, and the very string it is parsed from travels
+  /// alongside it, since a coverage range addresses that text by character offset.
+  Future<void> _onScenarioCoverageExportRequested(
+    OcptShotListScenarioCoverageExportRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportScenarioCoverage(
+        document: const FountainParser().parse(state.screenplayText),
+        screenplayText: state.screenplayText,
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeSceneNumbers: options.includeSceneNumbers,
+        includeTitlePage: options.includeTitlePage,
+        includeLegendPage: options.includeLegendPage,
+        includeSummaryPage: options.includeSummaryPage,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the scenario coverage of the project "
+          "at ${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.scenarioCoverageExportFailed,
+          ),
         ),
       );
     }

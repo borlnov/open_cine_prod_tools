@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -174,6 +176,38 @@ class OcptShotListXlsxExportRequestedEvent extends OcptShotListEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel];
+}
+
+/// Requests exporting the screenplay annotated with the shots covering it, dispatched by the mode's
+/// `⋮` menu once its own options dialog has resolved.
+///
+/// [options] is what that dialog returned — the page format and margins the document is typeset
+/// with, and the four content toggles. Both localized payloads are resolved by the widget
+/// dispatching this, since the bloc has no `BuildContext` of its own: [labels] is every string the
+/// document itself carries (see `ocptScenarioCoverageLabelsOf`), [fileTypeLabel] the label the
+/// native save dialog shows for the `.pdf` type. Any pending field edit is flushed first, exactly
+/// as [OcptShotListXlsxExportRequestedEvent] does, so a shot size typed seconds before the export
+/// is in the legend rather than only on screen.
+class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListEvent {
+  /// The one-off options the export runs with.
+  final OcptScenarioCoverageExportOptions options;
+
+  /// Every localized string the exported document holds.
+  final OcptScenarioCoverageLabels labels;
+
+  /// The localized label of the `.pdf` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListScenarioCoverageExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
@@ -85,17 +86,54 @@ OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> se
       statusLabels: {
         for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
       },
-      sequenceTitles: {
-        for (final sequence in sequences)
-          sequence.id: switch (sequence) {
-            OcptSceneShotSequence() => tr.shotListSequenceHeader(
-              sequence.displaySceneNumber,
-              sequence.heading,
-            ),
-            OcptOrphanShotSequence() => tr.shotListOrphanSequenceTitle,
-          },
-      },
+      sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
     );
+
+/// Builds every localized string the exported scenario coverage document carries, for the
+/// [sequences] it is being built from.
+///
+/// The sibling of [ocptShotListXlsxLabelsOf] for the other export the shot list mode offers, and
+/// the same single bridge between the UI's `Tr` and a service running in the manager layer, with no
+/// `BuildContext` to resolve anything of its own.
+///
+/// The legend's own column headers are the shot table's, resolved through the very same keys
+/// [ocptShotListXlsxColumnLabel] uses, so the three places a crew reads about a shot — the app, the
+/// workbook and this document — never name the same field differently. Only what has no on-screen
+/// counterpart at all (the two appendices' headings, the summary's own columns, the file name
+/// suffix) gets a key of its own.
+OcptScenarioCoverageLabels ocptScenarioCoverageLabelsOf(Tr tr, List<OcptShotSequence> sequences) =>
+    OcptScenarioCoverageLabels(
+      fileNameSuffix: tr.shotListExportCoverageFileNameSuffix,
+      legendTitle: tr.shotListExportCoverageLegendTitle,
+      legendShotHeader: tr.shotListColumnShot,
+      legendShotSizeHeader: tr.shotListColumnShotSize,
+      legendFramingHeader: tr.shotListColumnFraming,
+      legendCameraMoveHeader: tr.shotListColumnCameraMove,
+      summaryTitle: tr.shotListExportCoverageSummaryTitle,
+      summarySequenceHeader: tr.shotListExportCoverageSummarySequenceHeader,
+      summaryShotCountHeader: tr.shotListExportCoverageSummaryShotCountHeader,
+      summaryCoveredHeader: tr.shotListExportCoverageSummaryCoveredHeader,
+      summaryStaleHeader: tr.shotListExportCoverageSummaryStaleHeader,
+      summaryUncoveredHeader: tr.shotListExportCoverageSummaryUncoveredHeader,
+      laneOverflowNote: tr.shotListExportCoverageLaneOverflowNote,
+      sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+    );
+
+/// The title of each of the [sequences], keyed by `OcptShotSequence.id`, as both exports name them.
+///
+/// Resolved sequence by sequence rather than formatted by the exporting service, since a real
+/// scene's own header takes its number and heading as placeholders while the orphan group's is a
+/// plain title.
+Map<String, String> ocptShotListSequenceTitlesOf(Tr tr, List<OcptShotSequence> sequences) => {
+  for (final sequence in sequences)
+    sequence.id: switch (sequence) {
+      OcptSceneShotSequence() => tr.shotListSequenceHeader(
+        sequence.displaySceneNumber,
+        sequence.heading,
+      ),
+      OcptOrphanShotSequence() => tr.shotListOrphanSequenceTitle,
+    },
+};
 
 /// The colour the shooting status [status] is painted with.
 ///
