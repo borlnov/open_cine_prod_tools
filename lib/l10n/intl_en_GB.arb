@@ -2336,6 +2336,70 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectVersionRestoreAction": "Restore this version",
+  "@projectVersionRestoreAction": {
+    "description": "Action putting the whole project back on a version, which only opens its inline confirmation",
+    "context": "Displayed on a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRestoreConfirmMessage": "Put the whole project back into this state? The page setup comes back with it, and the state it replaces is kept as a version of its own.",
+  "@projectVersionRestoreConfirmMessage": {
+    "description": "Question of the inline confirmation shown before restoring a project version",
+    "context": "Displayed inside the version's own card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRestoreConfirmAction": "Restore",
+  "@projectVersionRestoreConfirmAction": {
+    "description": "Action confirming that the project goes back to a version",
+    "context": "Displayed in the inline confirmation of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRestoreCancelAction": "Cancel",
+  "@projectVersionRestoreCancelAction": {
+    "description": "Action cancelling the restore of a project version",
+    "context": "Displayed in the inline confirmation of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRestoreSafetyName": "Before restoring {versionName}",
+  "@projectVersionRestoreSafetyName": {
+    "description": "Name of the version automatically created to keep the state a restore replaces",
+    "context": "Shown as a version card of its own, in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {
+      "versionName": {
+        "type": "String"
+      }
+    }
+  },
+  "projectVersionForkName": "From {versionName}",
+  "@projectVersionForkName": {
+    "description": "Name of the version marking the branch point a fork starts",
+    "context": "Shown as a version card of its own, in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {
+      "versionName": {
+        "type": "String"
+      }
+    }
+  },
+  "projectVersionRestoreError": "The project could not be put back on this version.",
+  "@projectVersionRestoreError": {
+    "description": "Error shown when restoring a project version failed, leaving the project untouched",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRestoreUnsupportedFormatError": "This version was created by a newer version of the application: update it to restore this version.",
+  "@projectVersionRestoreUnsupportedFormatError": {
+    "description": "Error shown when the version to restore was written by a later build of the app",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
   "workspaceReadOnlyPill": "Read only",
   "@workspaceReadOnlyPill": {
     "description": "Pill telling that what the workspace shows may not be edited",
@@ -2360,6 +2424,13 @@
         "type": "String"
       }
     }
+  },
+  "workspaceReadOnlyBannerForkAction": "Start from this version",
+  "@workspaceReadOnlyBannerForkAction": {
+    "description": "Action restoring the previewed version and marking the branch it starts",
+    "context": "Displayed in the read-only banner of the workspace, next to the action leaving the preview",
+    "type": "text",
+    "placeholders": {}
   },
   "workspaceReadOnlyBannerExitAction": "Back to the current version",
   "@workspaceReadOnlyBannerExitAction": {

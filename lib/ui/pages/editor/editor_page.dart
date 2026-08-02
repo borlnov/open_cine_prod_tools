@@ -218,8 +218,17 @@ class _EditorViewState extends State<_EditorView> {
       return null;
     }
 
+    final tr = Tr.of(context);
+
     return OcptWorkspaceReadOnlyBanner(
       version: previewedVersion,
+      onForkRequested: () => context.read<OcptEditorBloc>().add(
+        OcptProjectVersionForkRequestedEvent(
+          versionId: previewedVersion.id,
+          safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
+          forkName: tr.projectVersionForkName(previewedVersion.name),
+        ),
+      ),
       onExitPreview: () => context.read<OcptEditorBloc>().add(
         const OcptProjectVersionPreviewExitRequestedEvent(),
       ),
@@ -454,6 +463,7 @@ class _EditorViewState extends State<_EditorView> {
         versions: state.projectVersions,
         previewedVersionId: state.previewedVersionId,
         versionPendingDeletionId: state.versionPendingDeletionId,
+        versionPendingRestoreId: state.versionPendingRestoreId,
         onCreateRequested: state.isPreviewingVersion
             ? null
             : () => _requestVersionCreation(context),
@@ -462,6 +472,18 @@ class _EditorViewState extends State<_EditorView> {
         ),
         onPreviewExitRequested: () => context.read<OcptEditorBloc>().add(
           const OcptProjectVersionPreviewExitRequestedEvent(),
+        ),
+        onRestoreRequested: (versionId) => context.read<OcptEditorBloc>().add(
+          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
+        ),
+        onRestoreCancelled: () => context.read<OcptEditorBloc>().add(
+          const OcptProjectVersionRestoreCancelledEvent(),
+        ),
+        onRestoreConfirmed: (version) => context.read<OcptEditorBloc>().add(
+          OcptProjectVersionRestoreConfirmedEvent(
+            versionId: version.id,
+            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
+          ),
         ),
         onDeleteRequested: (versionId) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionDeletionRequestedEvent(versionId: versionId),

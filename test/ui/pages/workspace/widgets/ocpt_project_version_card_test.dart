@@ -50,7 +50,11 @@ void main() {
           version: _version(note: "Everything before the rewrite"),
           isPreviewed: false,
           isConfirmingDeletion: false,
+          isConfirmingRestore: false,
           onTap: () {},
+          onRestoreRequested: () {},
+          onRestoreConfirmed: () {},
+          onRestoreCancelled: () {},
           onDeleteRequested: () {},
           onDeleteConfirmed: () {},
           onDeleteCancelled: () {},
@@ -76,7 +80,11 @@ void main() {
           version: _version(isCurrent: true),
           isPreviewed: false,
           isConfirmingDeletion: false,
+          isConfirmingRestore: false,
           onTap: null,
+          onRestoreRequested: null,
+          onRestoreConfirmed: () {},
+          onRestoreCancelled: () {},
           onDeleteRequested: null,
           onDeleteConfirmed: () {},
           onDeleteCancelled: () {},
@@ -102,7 +110,11 @@ void main() {
           version: _version(),
           isPreviewed: true,
           isConfirmingDeletion: false,
+          isConfirmingRestore: false,
           onTap: () => exited++,
+          onRestoreRequested: () {},
+          onRestoreConfirmed: () {},
+          onRestoreCancelled: () {},
           onDeleteRequested: null,
           onDeleteConfirmed: () {},
           onDeleteCancelled: () {},
@@ -128,7 +140,11 @@ void main() {
           version: _version(),
           isPreviewed: false,
           isConfirmingDeletion: false,
+          isConfirmingRestore: false,
           onTap: () => previewed++,
+          onRestoreRequested: () {},
+          onRestoreConfirmed: () {},
+          onRestoreCancelled: () {},
           onDeleteRequested: () {},
           onDeleteConfirmed: () {},
           onDeleteCancelled: () {},
@@ -154,7 +170,11 @@ void main() {
           version: _version(),
           isPreviewed: false,
           isConfirmingDeletion: true,
+          isConfirmingRestore: false,
           onTap: () {},
+          onRestoreRequested: () {},
+          onRestoreConfirmed: () {},
+          onRestoreCancelled: () {},
           onDeleteRequested: () {},
           onDeleteConfirmed: () => confirmed++,
           onDeleteCancelled: () => cancelled++,
@@ -175,5 +195,66 @@ void main() {
 
     await tester.tap(find.text(tr.projectVersionDeleteConfirmAction));
     expect(confirmed, 1);
+  });
+
+  testWidgets('the restore confirmation is inline, and answers back both ways', (tester) async {
+    var confirmed = 0;
+    var cancelled = 0;
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        OcptProjectVersionCard(
+          version: _version(),
+          isPreviewed: false,
+          isConfirmingDeletion: false,
+          isConfirmingRestore: true,
+          onTap: () {},
+          onRestoreRequested: () {},
+          onRestoreConfirmed: () => confirmed++,
+          onRestoreCancelled: () => cancelled++,
+          onDeleteRequested: () {},
+          onDeleteConfirmed: () {},
+          onDeleteCancelled: () {},
+        ),
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionCard));
+    final tr = Tr.of(context);
+
+    // The question replaces the footer, and it is the one that says what a restore costs: the page
+    // setup comes back with the state, and the state being replaced is kept.
+    expect(find.text(tr.projectVersionRestoreConfirmMessage), findsOneWidget);
+    expect(find.text(tr.projectVersionPreviewHint), findsNothing);
+    expect(find.text(tr.projectVersionRestoreAction), findsNothing);
+
+    await tester.tap(find.text(tr.projectVersionRestoreCancelAction));
+    expect(cancelled, 1);
+
+    await tester.tap(find.text(tr.projectVersionRestoreConfirmAction));
+    expect(confirmed, 1);
+  });
+
+  testWidgets('a card with nothing to restore from shows no restore action', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        OcptProjectVersionCard(
+          version: _version(isCurrent: true),
+          isPreviewed: false,
+          isConfirmingDeletion: false,
+          isConfirmingRestore: false,
+          onTap: null,
+          onRestoreRequested: null,
+          onRestoreConfirmed: () {},
+          onRestoreCancelled: () {},
+          onDeleteRequested: null,
+          onDeleteConfirmed: () {},
+          onDeleteCancelled: () {},
+        ),
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionCard));
+
+    expect(find.text(Tr.of(context).projectVersionRestoreAction), findsNothing);
   });
 }

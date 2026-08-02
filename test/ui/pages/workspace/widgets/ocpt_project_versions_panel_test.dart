@@ -50,6 +50,15 @@ class _PanelCalls {
   /// How many times the panel cancelled a deletion.
   int deleteCancelled = 0;
 
+  /// The ids the panel asked to confirm the restore of.
+  final restoreRequested = <String>[];
+
+  /// The versions the panel confirmed the restore of.
+  final restoreConfirmed = <OcptProjectVersion>[];
+
+  /// How many times the panel cancelled a restore.
+  int restoreCancelled = 0;
+
   /// How many times the panel asked to create a version.
   int created = 0;
 }
@@ -60,14 +69,19 @@ Widget _panel({
   required _PanelCalls calls,
   String? previewedVersionId,
   String? versionPendingDeletionId,
+  String? versionPendingRestoreId,
   bool canCreate = true,
 }) => OcptProjectVersionsPanel(
   versions: versions,
   previewedVersionId: previewedVersionId,
   versionPendingDeletionId: versionPendingDeletionId,
+  versionPendingRestoreId: versionPendingRestoreId,
   onCreateRequested: canCreate ? () => calls.created++ : null,
   onPreviewRequested: calls.previewed.add,
   onPreviewExitRequested: () => calls.exited++,
+  onRestoreRequested: calls.restoreRequested.add,
+  onRestoreCancelled: () => calls.restoreCancelled++,
+  onRestoreConfirmed: calls.restoreConfirmed.add,
   onDeleteRequested: calls.deleteRequested.add,
   onDeleteCancelled: () => calls.deleteCancelled++,
   onDeleteConfirmed: calls.deleteConfirmed.add,
@@ -184,5 +198,59 @@ void main() {
       find.widgetWithText(FilledButton, tr.projectVersionDeleteConfirmAction),
     );
     expect(calls.deleteConfirmed, ["a"]);
+  });
+
+  testWidgets('restoring goes through the card that asked, and carries the version itself', (
+    tester,
+  ) async {
+    final calls = _PanelCalls();
+    final versions = [_version("b", isCurrent: true), _version("a")];
+
+    await tester.pumpWidget(_wrapWithLocalization(_panel(versions: versions, calls: calls)));
+
+    final context = tester.element(find.byType(OcptProjectVersionsPanel));
+    final tr = Tr.of(context);
+
+    // Only the versions the project could go back to offer it: the current one is what is already
+    // on screen.
+    expect(find.text(tr.projectVersionRestoreAction), findsOneWidget);
+
+    await tester.tap(find.text(tr.projectVersionRestoreAction));
+    expect(calls.restoreRequested, ["a"]);
+
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _panel(versions: versions, calls: calls, versionPendingRestoreId: "a"),
+      ),
+    );
+
+    expect(find.text(tr.projectVersionRestoreConfirmMessage), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(FilledButton, tr.projectVersionRestoreConfirmAction),
+    );
+
+    // The whole version rather than its id: the page names the safety version after it, and that
+    // name is localized.
+    expect(calls.restoreConfirmed.single.id, "a");
+    expect(calls.restoreConfirmed.single.name, "Version a");
+  });
+
+  testWidgets('the previewed version can be restored, but still not deleted', (tester) async {
+    final calls = _PanelCalls();
+
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _panel(versions: [_version("a")], calls: calls, previewedVersionId: "a"),
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionsPanel));
+    final tr = Tr.of(context);
+
+    expect(find.text(tr.projectVersionDeleteAction), findsNothing);
+
+    await tester.tap(find.text(tr.projectVersionRestoreAction));
+    expect(calls.restoreRequested, ["a"]);
   });
 }

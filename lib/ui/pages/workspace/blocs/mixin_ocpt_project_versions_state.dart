@@ -37,6 +37,13 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   /// {@endtemplate}
   String? get versionPendingDeletionId;
 
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
+  /// The id of the version whose card currently shows its inline restore confirmation, or null
+  /// while none does. At most one card confirms at a time, and never for both answers at once: a
+  /// card asking whether to restore isn't also asking whether to delete.
+  /// {@endtemplate}
+  String? get versionPendingRestoreId;
+
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   /// The outcome of the last version operation the user has to be told about, or null while there
   /// is nothing to report; shown as a transient SnackBar then dismissed.
@@ -72,9 +79,9 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   /// This is the copyWith method for the mixin.
   ///
-  /// The three nullable fields legitimately go back to null while the mode is alive (a preview
-  /// left, a confirmation cancelled, a notice dismissed), so each carries its own clear flag
-  /// rather than relying on "a null argument means unchanged".
+  /// The four nullable fields legitimately go back to null while the mode is alive (a preview
+  /// left, a confirmation cancelled or answered, a notice dismissed), so each carries its own clear
+  /// flag rather than relying on "a null argument means unchanged".
   /// {@endtemplate}
   S copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
@@ -82,6 +89,8 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
     bool clearPreviewedVersionId = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   });
@@ -93,6 +102,7 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
     projectVersions,
     previewedVersionId,
     versionPendingDeletionId,
+    versionPendingRestoreId,
     projectVersionNotice,
   ];
 }

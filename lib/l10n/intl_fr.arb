@@ -309,8 +309,17 @@
   "projectVersionPreviewUnsavedChangesError": "Enregistrez vos modifications avant de consulter une autre version.",
   "projectVersionPreviewUnsupportedFormatError": "Cette version a été créée par une version plus récente de l'application : mettez-la à jour pour l'ouvrir.",
   "projectVersionPreviewError": "Cette version n'a pas pu être ouverte.",
+  "projectVersionRestoreAction": "Restaurer cette version",
+  "projectVersionRestoreConfirmMessage": "Remettre tout le projet dans cet état ? La mise en page revient avec lui, et l'état remplacé est conservé comme une version à part entière.",
+  "projectVersionRestoreConfirmAction": "Restaurer",
+  "projectVersionRestoreCancelAction": "Annuler",
+  "projectVersionRestoreSafetyName": "Avant la restauration de {versionName}",
+  "projectVersionForkName": "À partir de {versionName}",
+  "projectVersionRestoreError": "Le projet n'a pas pu être remis sur cette version.",
+  "projectVersionRestoreUnsupportedFormatError": "Cette version a été créée par une version plus récente de l'application : mettez-la à jour pour la restaurer.",
   "workspaceReadOnlyPill": "Lecture seule",
   "workspaceReadOnlyTooltip": "Cette version est affichée en lecture seule ; le projet lui-même n'est pas modifié",
   "workspaceReadOnlyBannerTitle": "Lecture seule — {versionName}",
+  "workspaceReadOnlyBannerForkAction": "Repartir de cette version",
   "workspaceReadOnlyBannerExitAction": "Revenir à la version actuelle"
 }

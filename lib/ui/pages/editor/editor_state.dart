@@ -215,6 +215,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final String? versionPendingDeletionId;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
+  @override
+  final String? versionPendingRestoreId;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
@@ -272,6 +276,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.projectVersions,
     required this.previewedVersionId,
     required this.versionPendingDeletionId,
+    required this.versionPendingRestoreId,
     required this.projectVersionNotice,
   });
 
@@ -303,6 +308,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       projectVersions = const [],
       previewedVersionId = null,
       versionPendingDeletionId = null,
+      versionPendingRestoreId = null,
       projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -351,6 +357,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool clearPreviewedVersionId = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => OcptEditorState(
@@ -386,6 +394,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     versionPendingDeletionId: clearVersionPendingDeletionId
         ? null
         : (versionPendingDeletionId ?? this.versionPendingDeletionId),
+    versionPendingRestoreId: clearVersionPendingRestoreId
+        ? null
+        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
     projectVersionNotice: clearProjectVersionNotice
         ? null
         : (projectVersionNotice ?? this.projectVersionNotice),
@@ -399,6 +410,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool clearPreviewedVersionId = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => copyWith(
@@ -407,6 +420,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     clearPreviewedVersionId: clearPreviewedVersionId,
     versionPendingDeletionId: versionPendingDeletionId,
     clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    versionPendingRestoreId: versionPendingRestoreId,
+    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
   );

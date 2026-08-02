@@ -283,6 +283,158 @@ void main() {
     await bloc.close();
   });
 
+  test('restoring a version confirms inline, then puts the project back on it', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final created = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = created.projectVersions.single.id;
+
+    await writeScreenplay(secondText);
+    bloc.add(const OcptEditorLoadRequestedEvent());
+    await waitForState(bloc, (state) => state.text == secondText);
+
+    // Asking only opens the card's own confirmation: nothing is written yet.
+    bloc.add(OcptProjectVersionRestoreRequestedEvent(versionId: versionId));
+    final asking = await waitForState(bloc, (state) => state.versionPendingRestoreId != null);
+    expect(asking.versionPendingRestoreId, versionId);
+    expect(asking.text, secondText);
+
+    bloc.add(const OcptProjectVersionRestoreCancelledEvent());
+    final cancelled = await waitForState(bloc, (state) => state.versionPendingRestoreId == null);
+    expect(cancelled.text, secondText);
+
+    bloc.add(
+      OcptProjectVersionRestoreConfirmedEvent(
+        versionId: versionId,
+        safetyVersionName: "Before restoring v1",
+      ),
+    );
+    // The mode's own data and the version list are read back one after the other, so the state
+    // this waits for is the second of the two: the list is what the restore changed last.
+    final restored = await waitForState(
+      bloc,
+      (state) => state.projectVersions.any((version) => version.name == "Before restoring v1"),
+    );
+
+    // The mode shows the version's own state, and the list has caught up with what the restore did
+    // to it: the state it replaced is a card of its own, and the `Current` badge has moved.
+    expect(restored.text, firstText);
+    expect(
+      restored.projectVersions.singleWhere((version) => version.id == versionId).isCurrent,
+      isTrue,
+    );
+    expect(restored.versionPendingRestoreId, isNull);
+    expect(restored.projectVersionNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('restoring flushes the unsaved screenplay into the state it is about to replace', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final created = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = created.projectVersions.single.id;
+
+    // Typed but never saved: the autosave debounce is 30 s here, so nothing reached the database.
+    bloc.add(const OcptEditorTextChangedEvent(text: secondText));
+    await waitForState(bloc, (state) => state.isDirty);
+
+    bloc.add(
+      OcptProjectVersionRestoreConfirmedEvent(
+        versionId: versionId,
+        safetyVersionName: "Before restoring v1",
+      ),
+    );
+    final restored = await waitForState(
+      bloc,
+      (state) => state.projectVersions.any((version) => version.name == "Before restoring v1"),
+    );
+    expect(restored.text, firstText);
+    expect(restored.isDirty, isFalse);
+
+    // What the user had typed is in the safety version rather than lost: restoring the safety
+    // version in turn brings it back.
+    final safety = restored.projectVersions.firstWhere(
+      (version) => version.name == "Before restoring v1",
+    );
+
+    bloc.add(
+      OcptProjectVersionRestoreConfirmedEvent(
+        versionId: safety.id,
+        safetyVersionName: "Before restoring the safety version",
+      ),
+    );
+    final undone = await waitForState(bloc, (state) => state.text == secondText);
+    expect(undone.isPreviewingVersion, isFalse);
+
+    await bloc.close();
+  });
+
+  test('starting from the previewed version restores it and marks the branch', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final created = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = created.projectVersions.single.id;
+
+    await writeScreenplay(secondText);
+    bloc.add(const OcptEditorLoadRequestedEvent());
+    await waitForState(bloc, (state) => state.text == secondText);
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    bloc.add(
+      OcptProjectVersionForkRequestedEvent(
+        versionId: versionId,
+        safetyVersionName: "Before restoring v1",
+        forkName: "From v1",
+      ),
+    );
+    final forked = await waitForState(
+      bloc,
+      (state) => state.projectVersions.any((version) => version.name == "From v1"),
+    );
+
+    // The preview is over — what was read-only a moment ago is the working copy now — and the
+    // branch point is the version the project descends from.
+    expect(forked.isPreviewingVersion, isFalse);
+    expect(projectsManager.currentProject!.isReadOnly, isFalse);
+    expect(forked.text, firstText);
+    expect(forked.projectVersions.first.name, "From v1");
+    expect(forked.projectVersions.first.isCurrent, isTrue);
+
+    await bloc.close();
+  });
+
+  test('restoring a version that no longer exists reports it and changes nothing', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(
+      const OcptProjectVersionRestoreConfirmedEvent(
+        versionId: "not-a-version",
+        safetyVersionName: "Before restoring nothing",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.projectVersionNotice != null);
+
+    expect(state.projectVersionNotice, OcptProjectVersionNoticeKind.restoreFailed);
+    expect(state.text, firstText);
+    expect(state.projectVersions, isEmpty);
+
+    await bloc.close();
+  });
+
   test('previewing a version that no longer exists reports it and leaves the working copy',
       () async {
     await writeScreenplay(firstText);

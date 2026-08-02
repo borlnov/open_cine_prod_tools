@@ -15,18 +15,19 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// Three states, exactly one at a time:
 ///
 /// - **current** — the working copy descends from this version. It carries the `Current` badge,
-///   says so plainly, and is neither clickable nor deletable: there is nothing to preview (it is
-///   what is on screen) and deleting it would leave the project descending from nothing.
+///   says so plainly, and is neither clickable, restorable nor deletable: there is nothing to
+///   preview or to restore (it is what is on screen) and deleting it would leave the project
+///   descending from nothing.
 /// - **previewed** — this version is the one currently on screen read-only. It carries the
 ///   `Preview` badge in the workspace's warning colour, and clicking it goes back to the working
 ///   copy. Deleting it is refused too (`OcptProjectsManager.deleteProjectVersion` refuses it as
-///   well), since the preview reads from a database hydrated out of that very row.
-/// - **any other** — clicking it enters its read-only preview, and `Delete` starts the inline
-///   confirmation this card shows itself, instead of a dialog: the question is about this card,
-///   and the mock-up asks it where the answer applies.
+///   well), since the preview reads from a database hydrated out of that very row. Restoring it,
+///   on the other hand, is exactly what a user reading it may want next.
+/// - **any other** — clicking it enters its read-only preview.
 ///
-/// `Restore this version` is deliberately absent: restoring rewrites the project, and it lands
-/// with the restore operation itself.
+/// `Restore this version` and `Delete` each start the inline confirmation this card shows itself,
+/// instead of a dialog: the question is about this card, and the mock-up asks it where the answer
+/// applies. Only one of the two is ever being asked at a time.
 class OcptProjectVersionCard extends StatelessWidget {
   /// The version this card shows.
   final OcptProjectVersion version;
@@ -37,9 +38,22 @@ class OcptProjectVersionCard extends StatelessWidget {
   /// Whether this card currently shows its inline delete confirmation instead of its actions.
   final bool isConfirmingDeletion;
 
+  /// Whether this card currently shows its inline restore confirmation instead of its actions.
+  final bool isConfirmingRestore;
+
   /// Called when the card is clicked, or null when clicking it does nothing (the current
   /// version's card).
   final VoidCallback? onTap;
+
+  /// Called when `Restore this version` is clicked, which only asks for confirmation; null on a
+  /// card there is nothing to restore from (the current version's).
+  final VoidCallback? onRestoreRequested;
+
+  /// Called when the inline confirmation's `Restore` is clicked, which rewrites the project.
+  final VoidCallback onRestoreConfirmed;
+
+  /// Called when the inline restore confirmation's `Cancel` is clicked.
+  final VoidCallback onRestoreCancelled;
 
   /// Called when `Delete` is clicked, which only asks for confirmation; null on a card that may
   /// not be deleted.
@@ -57,7 +71,11 @@ class OcptProjectVersionCard extends StatelessWidget {
     required this.version,
     required this.isPreviewed,
     required this.isConfirmingDeletion,
+    required this.isConfirmingRestore,
     required this.onTap,
+    required this.onRestoreRequested,
+    required this.onRestoreConfirmed,
+    required this.onRestoreCancelled,
     required this.onDeleteRequested,
     required this.onDeleteConfirmed,
     required this.onDeleteCancelled,
@@ -94,6 +112,8 @@ class OcptProjectVersionCard extends StatelessWidget {
               const SizedBox(height: 8),
               if (isConfirmingDeletion)
                 _buildDeleteConfirmation(context, theme, tr)
+              else if (isConfirmingRestore)
+                _buildRestoreConfirmation(context, theme, tr)
               else
                 _buildFooter(context, theme, tr),
             ],
@@ -134,26 +154,71 @@ class OcptProjectVersionCard extends StatelessWidget {
     );
   }
 
-  /// Builds what the card says under its counters when it isn't confirming a deletion: the hint
-  /// telling the user what clicking it does, and the `Delete` action when it may be deleted.
-  Widget _buildFooter(BuildContext context, ThemeData theme, Tr tr) => Row(
+  /// Builds what the card says under its counters when it isn't asking anything: the hint telling
+  /// the user what clicking it does, then the two actions it offers — each shown only where it
+  /// means something.
+  ///
+  /// The hint and the actions sit on two lines rather than one: `Restore this version` is a long
+  /// label, and the dock it lives in is narrow and resizable down to a third of the workspace.
+  Widget _buildFooter(BuildContext context, ThemeData theme, Tr tr) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Expanded(
-        child: Text(
-          switch ((version.isCurrent, isPreviewed)) {
-            (true, _) => tr.projectVersionCurrentHint,
-            (_, true) => tr.projectVersionPreviewedHint,
-            _ => tr.projectVersionPreviewHint,
-          },
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
+      Text(
+        switch ((version.isCurrent, isPreviewed)) {
+          (true, _) => tr.projectVersionCurrentHint,
+          (_, true) => tr.projectVersionPreviewedHint,
+          _ => tr.projectVersionPreviewHint,
+        },
+        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
       ),
-      if (onDeleteRequested != null)
-        TextButton(
-          onPressed: onDeleteRequested,
-          style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-          child: Text(tr.projectVersionDeleteAction),
+      if (onRestoreRequested != null || onDeleteRequested != null)
+        // A `Wrap` rather than a `Row`: `Restore this version` is a long label, the dock it lives
+        // in is resizable down to a third of the workspace, and the two actions then simply stack
+        // instead of overflowing.
+        Wrap(
+          alignment: WrapAlignment.end,
+          children: [
+            if (onRestoreRequested != null)
+              TextButton(
+                onPressed: onRestoreRequested,
+                child: Text(tr.projectVersionRestoreAction),
+              ),
+            if (onDeleteRequested != null)
+              TextButton(
+                onPressed: onDeleteRequested,
+                style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+                child: Text(tr.projectVersionDeleteAction),
+              ),
+          ],
         ),
+    ],
+  );
+
+  /// Builds the inline restore confirmation shown in place of the card's footer: what restoring
+  /// actually does to the project, then the two answers to it.
+  ///
+  /// The question says the page setup comes back too, and that the state being replaced is kept:
+  /// both are consequences the user cannot see anywhere else, and the second is the one that makes
+  /// the answer safe to give.
+  Widget _buildRestoreConfirmation(BuildContext context, ThemeData theme, Tr tr) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(tr.projectVersionRestoreConfirmMessage, style: theme.textTheme.bodySmall),
+      const SizedBox(height: 6),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(
+            onPressed: onRestoreCancelled,
+            child: Text(tr.projectVersionRestoreCancelAction),
+          ),
+          const SizedBox(width: 6),
+          FilledButton(
+            onPressed: onRestoreConfirmed,
+            child: Text(tr.projectVersionRestoreConfirmAction),
+          ),
+        ],
+      ),
     ],
   );
 

@@ -8,13 +8,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 
 /// Everything a production mode's bloc needs to host the `Versions` dock tab: listing the
-/// project's versions, creating one, deleting one, and entering or leaving a version's read-only
-/// preview.
+/// project's versions, creating one, deleting one, entering or leaving a version's read-only
+/// preview, and putting the project back on one — by restoring it, or by starting a new branch
+/// from it.
 ///
 /// A version covers the whole project rather than any one mode's data, so this is deliberately a
 /// mixin (the `MixinActThemesBloc` idiom) rather than a bloc of its own or a copy in each mode:
@@ -77,6 +79,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     on<OcptProjectVersionDeletionRequestedEvent>(_onVersionDeletionRequested);
     on<OcptProjectVersionDeletionCancelledEvent>(_onVersionDeletionCancelled);
     on<OcptProjectVersionDeletionConfirmedEvent>(_onVersionDeletionConfirmed);
+    on<OcptProjectVersionRestoreRequestedEvent>(_onVersionRestoreRequested);
+    on<OcptProjectVersionRestoreCancelledEvent>(_onVersionRestoreCancelled);
+    on<OcptProjectVersionRestoreConfirmedEvent>(_onVersionRestoreConfirmed);
+    on<OcptProjectVersionForkRequestedEvent>(_onVersionForkRequested);
     on<OcptProjectVersionPreviewRequestedEvent>(_onVersionPreviewRequested);
     on<OcptProjectVersionPreviewExitRequestedEvent>(_onVersionPreviewExitRequested);
     on<OcptProjectVersionNoticeDismissedEvent>(_onVersionNoticeDismissed);
@@ -119,13 +125,18 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await _emitVersions(emitter);
   }
 
-  /// Shows the inline delete confirmation of one card, replacing whichever one was already
-  /// showing.
+  /// Shows the inline delete confirmation of one card, replacing whichever answer any card was
+  /// already asking for.
   Future<void> _onVersionDeletionRequested(
     OcptProjectVersionDeletionRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(versionPendingDeletionId: event.versionId));
+    emitter(
+      state.copyProjectVersionsState(
+        versionPendingDeletionId: event.versionId,
+        clearVersionPendingRestoreId: true,
+      ),
+    );
   }
 
   /// Hides the inline delete confirmation currently shown.
@@ -153,6 +164,90 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
       return;
     }
 
+    await _emitVersions(emitter);
+  }
+
+  /// Shows the inline restore confirmation of one card, replacing whichever answer any card was
+  /// already asking for.
+  Future<void> _onVersionRestoreRequested(
+    OcptProjectVersionRestoreRequestedEvent event,
+    Emitter<S> emitter,
+  ) async {
+    emitter(
+      state.copyProjectVersionsState(
+        versionPendingRestoreId: event.versionId,
+        clearVersionPendingDeletionId: true,
+      ),
+    );
+  }
+
+  /// Hides the inline restore confirmation currently shown.
+  Future<void> _onVersionRestoreCancelled(
+    OcptProjectVersionRestoreCancelledEvent event,
+    Emitter<S> emitter,
+  ) async {
+    emitter(state.copyProjectVersionsState(clearVersionPendingRestoreId: true));
+  }
+
+  /// Puts the whole project back into the state a version holds, then reloads everything the mode
+  /// shows from the restored working copy.
+  ///
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.restoreReloadsEverything}
+  /// A restore changes both halves of what this mixin shows: the mode's own data — hence the
+  /// [reloadFromProjectDatabase], exactly as after a preview — and the version *list* itself, which
+  /// gains the safety version taken on the way and moves its `Current` badge. So unlike the preview
+  /// handlers, this one ends on [_emitVersions] too.
+  ///
+  /// The pending write is flushed first for the same reason a preview flushes it: what the mode
+  /// still holds in a debounce belongs to the state being replaced, and a restore is precisely the
+  /// moment it would otherwise land in a project it was never typed into.
+  /// {@endtemplate}
+  Future<void> _onVersionRestoreConfirmed(
+    OcptProjectVersionRestoreConfirmedEvent event,
+    Emitter<S> emitter,
+  ) async {
+    await flushPendingProjectWrites(emitter);
+
+    final status = await projectsManager.restoreProjectVersion(
+      versionId: event.versionId,
+      safetyVersionName: event.safetyVersionName,
+    );
+
+    await _applyRestoreOutcome(status, emitter);
+  }
+
+  /// Starts a new branch from a version: restores it, then marks the branch point with a version of
+  /// its own.
+  ///
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.restoreReloadsEverything}
+  Future<void> _onVersionForkRequested(
+    OcptProjectVersionForkRequestedEvent event,
+    Emitter<S> emitter,
+  ) async {
+    await flushPendingProjectWrites(emitter);
+
+    final status = await projectsManager.forkProjectVersion(
+      versionId: event.versionId,
+      safetyVersionName: event.safetyVersionName,
+      forkName: event.forkName,
+      // The branch point is named, never described: what it is a branch from is the whole of what
+      // there is to say about it, and the name already says it.
+      forkNote: "",
+    );
+
+    await _applyRestoreOutcome(status, emitter);
+  }
+
+  /// Reports [status] to the mode: on success by reloading what it shows and the version list, on
+  /// failure by a notice alone — a refused restore leaves the project exactly as it was, so there
+  /// is nothing to reload.
+  Future<void> _applyRestoreOutcome(OcptProjectRestoreStatus status, Emitter<S> emitter) async {
+    if (!status.isSuccess) {
+      await _emitVersions(emitter, notice: _noticeForRestoreStatus(status));
+      return;
+    }
+
+    await reloadFromProjectDatabase(emitter);
     await _emitVersions(emitter);
   }
 
@@ -226,11 +321,23 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         previewedVersionId: previewedVersionId,
         clearPreviewedVersionId: previewedVersionId == null,
         clearVersionPendingDeletionId: true,
+        clearVersionPendingRestoreId: true,
         projectVersionNotice: notice,
         clearProjectVersionNotice: notice == null,
       ),
     );
   }
+
+  /// The notice reporting the failed restore [status] to the user.
+  ///
+  /// [OcptProjectRestoreStatus.noProjectOpen] and [OcptProjectRestoreStatus.versionNotFound] read
+  /// as the generic failure, for the reason [_noticeForPreviewStatus] gives about its own two.
+  OcptProjectVersionNoticeKind _noticeForRestoreStatus(OcptProjectRestoreStatus status) =>
+      switch (status) {
+        OcptProjectRestoreStatus.unsupportedFutureFormat =>
+          OcptProjectVersionNoticeKind.restoreUnsupportedFormat,
+        _ => OcptProjectVersionNoticeKind.restoreFailed,
+      };
 
   /// The notice reporting the failed preview [status] to the user.
   ///

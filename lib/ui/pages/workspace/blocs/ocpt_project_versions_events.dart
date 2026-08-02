@@ -72,6 +72,79 @@ class OcptProjectVersionDeletionConfirmedEvent extends BlocEventForMixin {
   List<Object?> get props => [...super.props, versionId];
 }
 
+/// Reports that the user clicked `Restore this version` on the card of the version [versionId],
+/// which shows that card's inline confirmation rather than restoring anything.
+class OcptProjectVersionRestoreRequestedEvent extends BlocEventForMixin {
+  /// The id of the version whose restore is being confirmed.
+  final String versionId;
+
+  /// Class constructor
+  const OcptProjectVersionRestoreRequestedEvent({required this.versionId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, versionId];
+}
+
+/// Reports that the user cancelled the inline restore confirmation currently shown.
+class OcptProjectVersionRestoreCancelledEvent extends BlocEventForMixin {
+  /// Class constructor
+  const OcptProjectVersionRestoreCancelledEvent();
+}
+
+/// Requests putting the whole project back into the state the version [versionId] holds, confirmed
+/// inline in its card.
+///
+/// [safetyVersionName] is the name the version keeping the state this one replaces is created
+/// under. It comes from the page rather than being built where it is used, for the reason every
+/// user-facing string in this app does: the blocs and managers have no `Tr` of their own.
+class OcptProjectVersionRestoreConfirmedEvent extends BlocEventForMixin {
+  /// The id of the version to restore.
+  final String versionId;
+
+  /// The name given to the version capturing the state the restore replaces.
+  final String safetyVersionName;
+
+  /// Class constructor
+  const OcptProjectVersionRestoreConfirmedEvent({
+    required this.versionId,
+    required this.safetyVersionName,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, versionId, safetyVersionName];
+}
+
+/// Requests starting a new branch from the version [versionId]: restoring it, then marking the
+/// branch it starts with a version of its own named [forkName].
+///
+/// Dispatched by the read-only banner's `Start from this version`, so the version it names is
+/// always the one being previewed. [safetyVersionName] means what it means in
+/// [OcptProjectVersionRestoreConfirmedEvent], and both names are localized by the page for the
+/// reason given there.
+class OcptProjectVersionForkRequestedEvent extends BlocEventForMixin {
+  /// The id of the version to start the new branch from.
+  final String versionId;
+
+  /// The name given to the version capturing the state the restore replaces.
+  final String safetyVersionName;
+
+  /// The name given to the version marking the branch point.
+  final String forkName;
+
+  /// Class constructor
+  const OcptProjectVersionForkRequestedEvent({
+    required this.versionId,
+    required this.safetyVersionName,
+    required this.forkName,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, versionId, safetyVersionName, forkName];
+}
+
 /// Requests entering the read-only preview of the version [versionId].
 class OcptProjectVersionPreviewRequestedEvent extends BlocEventForMixin {
   /// The id of the version to preview.

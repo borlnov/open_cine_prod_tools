@@ -37,7 +37,11 @@ void main() {
   testWidgets("the headline names the version and quotes the user's note", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceReadOnlyBanner(version: _version(), onExitPreview: () {}),
+        OcptWorkspaceReadOnlyBanner(
+          version: _version(),
+          onForkRequested: () {},
+          onExitPreview: () {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -55,7 +59,11 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceReadOnlyBanner(version: _version(note: ""), onExitPreview: () {}),
+        OcptWorkspaceReadOnlyBanner(
+          version: _version(note: ""),
+          onForkRequested: () {},
+          onExitPreview: () {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -70,7 +78,11 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceReadOnlyBanner(version: _version(), onExitPreview: () {}),
+        OcptWorkspaceReadOnlyBanner(
+          version: _version(),
+          onForkRequested: () {},
+          onExitPreview: () {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -90,7 +102,11 @@ void main() {
 
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceReadOnlyBanner(version: _version(), onExitPreview: () => exitCount++),
+        OcptWorkspaceReadOnlyBanner(
+          version: _version(),
+          onForkRequested: () {},
+          onExitPreview: () => exitCount++,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -100,5 +116,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(exitCount, 1);
+  });
+
+  testWidgets("the fork action fires onForkRequested when clicked", (tester) async {
+    var forkCount = 0;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceReadOnlyBanner(
+          version: _version(),
+          onForkRequested: () => forkCount++,
+          onExitPreview: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceReadOnlyBanner)));
+    await tester.tap(find.text(tr.workspaceReadOnlyBannerForkAction));
+    await tester.pumpAndSettle();
+
+    // Starting from the version rewrites the project, so it asks nothing here: the banner is
+    // already the answer to that question, and the state left behind is kept as a version.
+    expect(forkCount, 1);
   });
 }

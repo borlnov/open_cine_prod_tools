@@ -29,6 +29,10 @@ class OcptProjectVersionsPanel extends StatelessWidget {
   /// does.
   final String? versionPendingDeletionId;
 
+  /// The id of the version whose card shows its inline restore confirmation, or null while none
+  /// does.
+  final String? versionPendingRestoreId;
+
   /// Called when `Create a version` is clicked; null while creating one is refused (a version is
   /// being previewed, so the capture would record a state the user isn't looking at).
   final VoidCallback? onCreateRequested;
@@ -38,6 +42,20 @@ class OcptProjectVersionsPanel extends StatelessWidget {
 
   /// Called when the previewed version's card is clicked, to go back to the working copy.
   final VoidCallback onPreviewExitRequested;
+
+  /// Called with a version's id when its `Restore this version` is clicked, which only asks for
+  /// confirmation.
+  final ValueChanged<String> onRestoreRequested;
+
+  /// Called when an inline restore confirmation is cancelled.
+  final VoidCallback onRestoreCancelled;
+
+  /// Called with a version when its inline restore confirmation is confirmed.
+  ///
+  /// The whole version rather than its id alone, unlike every other callback here: restoring names
+  /// the state it replaces after the version being restored, and that name is a localized string
+  /// only the page can build.
+  final ValueChanged<OcptProjectVersion> onRestoreConfirmed;
 
   /// Called with a version's id when its `Delete` is clicked, which only asks for confirmation.
   final ValueChanged<String> onDeleteRequested;
@@ -54,9 +72,13 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     required this.versions,
     required this.previewedVersionId,
     required this.versionPendingDeletionId,
+    required this.versionPendingRestoreId,
     required this.onCreateRequested,
     required this.onPreviewRequested,
     required this.onPreviewExitRequested,
+    required this.onRestoreRequested,
+    required this.onRestoreCancelled,
+    required this.onRestoreConfirmed,
     required this.onDeleteRequested,
     required this.onDeleteCancelled,
     required this.onDeleteConfirmed,
@@ -100,8 +122,8 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     );
   }
 
-  /// Builds [version]'s card, wiring the three actions that depend on which of the three states it
-  /// is in (see [OcptProjectVersionCard]'s own doc comment).
+  /// Builds [version]'s card, wiring the actions that depend on which of the three states it is in
+  /// (see [OcptProjectVersionCard]'s own doc comment).
   Widget _buildCard(OcptProjectVersion version) {
     final isPreviewed = version.id == previewedVersionId;
 
@@ -110,11 +132,18 @@ class OcptProjectVersionsPanel extends StatelessWidget {
       version: version,
       isPreviewed: isPreviewed,
       isConfirmingDeletion: version.id == versionPendingDeletionId,
+      isConfirmingRestore: version.id == versionPendingRestoreId,
       onTap: switch ((version.isCurrent, isPreviewed)) {
         (true, _) => null,
         (_, true) => onPreviewExitRequested,
         _ => () => onPreviewRequested(version.id),
       },
+      // Restoring the version being previewed is legitimate — it is the obvious next move once the
+      // user has read it — where deleting it is not: the preview reads from a database hydrated out
+      // of that very row.
+      onRestoreRequested: version.isCurrent ? null : () => onRestoreRequested(version.id),
+      onRestoreConfirmed: () => onRestoreConfirmed(version),
+      onRestoreCancelled: onRestoreCancelled,
       onDeleteRequested: version.isCurrent || isPreviewed
           ? null
           : () => onDeleteRequested(version.id),

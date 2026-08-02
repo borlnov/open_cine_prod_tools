@@ -22,5 +22,8 @@ String ocptProjectVersionNoticeMessage(BuildContext context, OcptProjectVersionN
     OcptProjectVersionNoticeKind.previewUnsupportedFormat =>
       tr.projectVersionPreviewUnsupportedFormatError,
     OcptProjectVersionNoticeKind.previewFailed => tr.projectVersionPreviewError,
+    OcptProjectVersionNoticeKind.restoreFailed => tr.projectVersionRestoreError,
+    OcptProjectVersionNoticeKind.restoreUnsupportedFormat =>
+      tr.projectVersionRestoreUnsupportedFormatError,
   };
 }

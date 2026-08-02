@@ -449,8 +449,17 @@ class _ShotListViewState extends State<_ShotListView> {
       return null;
     }
 
+    final tr = Tr.of(context);
+
     return OcptWorkspaceReadOnlyBanner(
       version: previewedVersion,
+      onForkRequested: () => context.read<OcptShotListBloc>().add(
+        OcptProjectVersionForkRequestedEvent(
+          versionId: previewedVersion.id,
+          safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
+          forkName: tr.projectVersionForkName(previewedVersion.name),
+        ),
+      ),
       onExitPreview: () => context.read<OcptShotListBloc>().add(
         const OcptProjectVersionPreviewExitRequestedEvent(),
       ),
@@ -467,6 +476,7 @@ class _ShotListViewState extends State<_ShotListView> {
         versions: state.projectVersions,
         previewedVersionId: state.previewedVersionId,
         versionPendingDeletionId: state.versionPendingDeletionId,
+        versionPendingRestoreId: state.versionPendingRestoreId,
         onCreateRequested: state.isPreviewingVersion
             ? null
             : () => _requestVersionCreation(context),
@@ -475,6 +485,18 @@ class _ShotListViewState extends State<_ShotListView> {
         ),
         onPreviewExitRequested: () => context.read<OcptShotListBloc>().add(
           const OcptProjectVersionPreviewExitRequestedEvent(),
+        ),
+        onRestoreRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
+        ),
+        onRestoreCancelled: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionRestoreCancelledEvent(),
+        ),
+        onRestoreConfirmed: (version) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRestoreConfirmedEvent(
+            versionId: version.id,
+            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
+          ),
         ),
         onDeleteRequested: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionDeletionRequestedEvent(versionId: versionId),

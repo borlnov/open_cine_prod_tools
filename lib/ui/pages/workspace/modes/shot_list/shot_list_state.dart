@@ -187,6 +187,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   @override
   final String? versionPendingDeletionId;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
+  @override
+  final String? versionPendingRestoreId;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
@@ -341,6 +345,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.projectVersions,
     required this.previewedVersionId,
     required this.versionPendingDeletionId,
+    required this.versionPendingRestoreId,
     required this.projectVersionNotice,
   });
 
@@ -368,6 +373,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       projectVersions = const [],
       previewedVersionId = null,
       versionPendingDeletionId = null,
+      versionPendingRestoreId = null,
       projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -408,6 +414,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearPreviewedVersionId = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => OcptShotListState(
@@ -441,6 +449,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     versionPendingDeletionId: clearVersionPendingDeletionId
         ? null
         : (versionPendingDeletionId ?? this.versionPendingDeletionId),
+    versionPendingRestoreId: clearVersionPendingRestoreId
+        ? null
+        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
     projectVersionNotice: clearProjectVersionNotice
         ? null
         : (projectVersionNotice ?? this.projectVersionNotice),
@@ -454,6 +465,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearPreviewedVersionId = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => copyWith(
@@ -462,6 +475,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     clearPreviewedVersionId: clearPreviewedVersionId,
     versionPendingDeletionId: versionPendingDeletionId,
     clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    versionPendingRestoreId: versionPendingRestoreId,
+    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
   );

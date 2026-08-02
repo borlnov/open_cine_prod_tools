@@ -26,4 +26,12 @@ enum OcptProjectVersionNoticeKind {
 
   /// The version's payload couldn't be read or hydrated: that version is lost, the project isn't.
   previewFailed,
+
+  /// Putting the project back on a version failed. Nothing was written: a restore is all or
+  /// nothing, the safety version it would have taken on the way included.
+  restoreFailed,
+
+  /// The version to restore was written by a later build of the app, and is refused rather than
+  /// half-restored.
+  restoreUnsupportedFormat,
 }
