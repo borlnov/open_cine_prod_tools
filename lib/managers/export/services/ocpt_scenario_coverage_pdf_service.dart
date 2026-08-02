@@ -30,6 +30,16 @@ const double _staleBarStrokePt = 0.5;
 /// mid-line.
 const double _tickWidthPt = 1.2;
 
+/// The width, in points, of the cap closing a bar at either end — the horizontal stroke a script
+/// supervisor's lining draws there.
+///
+/// Capped by its lane's pitch at the call site, so a cap never reaches into the neighbouring lane's
+/// own bar on a page whose lanes have tightened.
+const double _barCapWidthPt = 6;
+
+/// The thickness, in points, of that cap.
+const double _barCapThicknessPt = 1.2;
+
 /// The font size, in points, a bar's label is printed at.
 const double _labelFontSizePt = 7;
 
@@ -245,8 +255,9 @@ class OcptScenarioCoveragePdfService {
   }
 
   /// The widgets one bar draws, kept apart so the caller can stack them in its own order: the bar
-  /// itself and the ticks marking where inside its first and last rows the covered passage actually
-  /// starts and ends, then the label printed beside it.
+  /// itself, the caps closing it where the covered passage really starts and ends, and the ticks
+  /// marking where inside its first and last rows those boundaries fall, then the label printed
+  /// beside it.
   ///
   /// A stale bar (its range no longer agrees with the screenplay's text) is outlined rather than
   /// filled, so it reads as "recorded, needs re-checking" instead of as solid coverage.
@@ -282,6 +293,22 @@ class OcptScenarioCoveragePdfService {
                 : pw.BoxDecoration(color: color),
           ),
         ),
+        if (segment.startsRange)
+          _barCapWidget(
+            color: color,
+            bandPt: bandPt,
+            barLeftPt: leftPt,
+            barWidthPt: widthPt,
+            topPt: topPt,
+          ),
+        if (segment.endsRange)
+          _barCapWidget(
+            color: color,
+            bandPt: bandPt,
+            barLeftPt: leftPt,
+            barWidthPt: widthPt,
+            topPt: topPt + heightPt - _barCapThicknessPt,
+          ),
         for (final tick in [segment.startTick, segment.endTick])
           if (tick != null && tick.row < page.lines.length)
             _tickWidget(tick: tick, line: page.lines[tick.row], painter: painter, color: color),
@@ -350,6 +377,30 @@ class OcptScenarioCoveragePdfService {
           ],
         ),
       ),
+    );
+  }
+
+  /// The horizontal stroke closing a bar at [topPt], centred on the bar it caps.
+  ///
+  /// Only ever drawn where the covered passage really begins or ends, never where a page break cut
+  /// the bar in two: an uncapped end is precisely how a reader tells a bar continues overleaf.
+  /// Always solid, stale bar or not — a cap is a boundary mark rather than a claim about how sure
+  /// the coverage is, and hollowing a stroke this short would only make it disappear.
+  pw.Widget _barCapWidget({
+    required PdfColor color,
+    required double bandPt,
+    required double barLeftPt,
+    required double barWidthPt,
+    required double topPt,
+  }) {
+    // Wider than the bar so it reads as a cap rather than as a thicker end, but never wider than
+    // its own lane band, whose neighbour would otherwise be crossed by it.
+    final widthPt = math.max(barWidthPt, math.min(_barCapWidthPt, bandPt));
+
+    return pw.Positioned(
+      left: barLeftPt + barWidthPt / 2 - widthPt / 2,
+      top: topPt,
+      child: pw.Container(width: widthPt, height: _barCapThicknessPt, color: color),
     );
   }
 

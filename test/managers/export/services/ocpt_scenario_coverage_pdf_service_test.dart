@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
@@ -297,6 +298,16 @@ void main() {
       expect(_contentStreams(withAbbreviation), isNot(_contentStreams(withoutAbbreviation)));
     });
 
+    test("closes a bar with a cap at each end of the passage it covers", () async {
+      final bytes = await generate(snapshot: coveringSnapshot());
+
+      // The bar and the two caps closing it: three fills in the shot's own colour, where the bar
+      // alone used to be the only one. The passage covers whole lines here, so no tick of the same
+      // colour is drawn inside the text to be counted with them.
+      final fills = _filledRectangleColors(bytes);
+      expect(fills.where((fill) => fill == _fillOf(ocptCoverageColorAt(0))), hasLength(3));
+    });
+
     test("prints every bar's label on an opaque plate of its own", () async {
       final bytes = await generate(snapshot: coveringSnapshot());
 
@@ -378,6 +389,23 @@ List<String> _filledRectangleColors(Uint8List bytes) {
     for (final stream in _contentStreams(bytes))
       for (final match in pattern.allMatches(_inflated(stream) ?? "")) match.group(1)!.trim(),
   ];
+}
+
+/// The PDF fill-colour operands of the ARGB [color], formatted exactly as the `pdf` package's own
+/// `PdfNum` writes them: five decimals with the trailing zeros (and a bare decimal point) dropped.
+String _fillOf(int color) => [
+  for (final shift in [16, 8, 0]) _operandOf((color >> shift & 0xFF) / 255),
+].join(" ");
+
+/// [value] as one such operand.
+String _operandOf(double value) {
+  final fixed = value.toStringAsFixed(5);
+  if (!fixed.contains(".")) {
+    return fixed;
+  }
+
+  final trimmed = fixed.replaceFirst(RegExp(r"0+$"), "");
+  return trimmed.endsWith(".") ? trimmed.substring(0, trimmed.length - 1) : trimmed;
 }
 
 /// [stream] inflated, or null when it is not a deflated stream at all.

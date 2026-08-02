@@ -207,6 +207,8 @@ void main() {
       expect(segments.single.label, "PM1/1");
       expect(segments.single.colorIndex, 0);
       expect(segments.single.isStale, isFalse);
+      expect(segments.single.startsRange, isTrue);
+      expect(segments.single.endsRange, isTrue);
       expect(segments.single.startTick, isNull);
       expect(segments.single.endTick, isNull);
     });
@@ -432,6 +434,12 @@ void main() {
       // The passage starts and ends on a line boundary, so neither page carries a tick.
       expect(first.startTick, isNull);
       expect(second.endTick, isNull);
+      // Only the two ends the passage really has, so the renderer caps neither side of the break:
+      // an uncapped bar end is how a reader tells the bar carries on overleaf.
+      expect(first.startsRange, isTrue);
+      expect(first.endsRange, isFalse);
+      expect(second.startsRange, isFalse);
+      expect(second.endsRange, isTrue);
     });
   });
 

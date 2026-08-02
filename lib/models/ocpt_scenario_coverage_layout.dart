@@ -87,6 +87,17 @@ class OcptCoverageBarSegment extends Equatable {
   /// [OcptScenarioCoveragePage.hasLaneOverflow].
   final bool sharesOutermostLane;
 
+  /// Whether [firstRow] is where the covered range really begins, so the renderer can cap the bar
+  /// there.
+  ///
+  /// False on the continuation a range spanning a page break draws on its later pages: that bar's
+  /// top edge is the page's doing, not the range's, and capping it would claim a shot starts where
+  /// the paper merely ran out.
+  final bool startsRange;
+
+  /// Whether [lastRow] is where the covered range really ends, the mirror of [startsRange].
+  final bool endsRange;
+
   /// Where inside [firstRow]'s text the covered range starts, or null when it starts on that
   /// line's first column (nothing to mark) or that line could not be resolved precisely.
   final OcptCoverageTick? startTick;
@@ -106,6 +117,8 @@ class OcptCoverageBarSegment extends Equatable {
     required this.label,
     required this.isStale,
     required this.sharesOutermostLane,
+    required this.startsRange,
+    required this.endsRange,
     required this.startTick,
     required this.endTick,
   });
@@ -128,6 +141,8 @@ class OcptCoverageBarSegment extends Equatable {
     label,
     isStale,
     sharesOutermostLane,
+    startsRange,
+    endsRange,
     startTick,
     endTick,
   ];
@@ -578,6 +593,8 @@ class OcptScenarioCoverageLayout extends Equatable {
           colorIndex: range.colorIndex,
           label: range.label,
           isStale: range.isStale,
+          startsRange: groupStart == firstIndex,
+          endsRange: index == lastIndex,
           startTick: groupStart == firstIndex && startTickColumn != null
               ? OcptCoverageTick(row: rows[firstIndex].rowIndex, column: startTickColumn)
               : null,
@@ -1100,6 +1117,12 @@ class _PendingSegment {
   /// Whether the covered range no longer agrees with the screenplay's text.
   final bool isStale;
 
+  /// Whether [firstRow] is where the covered range really begins.
+  final bool startsRange;
+
+  /// Whether [lastRow] is where the covered range really ends.
+  final bool endsRange;
+
   /// The tick marking where inside [firstRow] the range starts, if any.
   final OcptCoverageTick? startTick;
 
@@ -1114,6 +1137,8 @@ class _PendingSegment {
     required this.colorIndex,
     required this.label,
     required this.isStale,
+    required this.startsRange,
+    required this.endsRange,
     required this.startTick,
     required this.endTick,
   });
@@ -1129,6 +1154,8 @@ class _PendingSegment {
     label: label,
     isStale: isStale,
     sharesOutermostLane: placement.sharesOutermostLane,
+    startsRange: startsRange,
+    endsRange: endsRange,
     startTick: startTick,
     endTick: endTick,
   );
