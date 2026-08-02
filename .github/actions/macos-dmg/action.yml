@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Build macOS Disk Image"
+description: "Build a drag-to-Applications DMG from a Flutter macOS app bundle using hdiutil"
+
+inputs:
+  version:
+    description: "Version of the application to be packaged"
+    required: true
+  app-name:
+    description: "Base name of the built application bundle, without the .app extension (e.g. 'Open Cine Prod Tools')"
+    required: true
+  app-build-directory:
+    description: "Path to the Flutter app build directory relative to the repository root (e.g. 'build/macos/Build/Products/Release')"
+    required: true
+  output-name:
+    description: "Base name for the output disk image file (version and _macos suffix are appended, e.g. 'OpenCineProdTools')"
+    required: true
+  volume-name:
+    description: "Name the disk image is mounted under in the Finder (defaults to the app name)"
+    required: false
+    default: ""
+
+outputs:
+  dmg-path:
+    description: "Path to the generated disk image"
+    value: ${{ steps.build-dmg.outputs.dmg-path }}
+  dmg-file:
+    description: "Filename of the generated disk image"
+    value: ${{ steps.build-dmg.outputs.dmg-file }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build macOS disk image
+      id: build-dmg
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        VERSION="${{ inputs.version }}"
+        APP_NAME="${{ inputs.app-name }}"
+        APP_BUILD_DIR="${{ inputs.app-build-directory }}"
+        OUTPUT_NAME="${{ inputs.output-name }}"
+        VOLUME_NAME="${{ inputs.volume-name }}"
+
+        # The volume name only defaults to the app name once the app name is known, which an
+        # action input default cannot express.
+        if [ -z "${VOLUME_NAME}" ]; then
+            VOLUME_NAME="${APP_NAME}"
+        fi
+
+        APP_BUNDLE="${APP_BUILD_DIR}/${APP_NAME}.app"
+
+        echo "Building disk image for: ${APP_BUNDLE}"
+
+        if [ ! -d "${APP_BUNDLE}" ]; then
+            echo "Error: application bundle not found: ${APP_BUNDLE}"
+            exit 1
+        fi
+
+        # Stage what the mounted volume shows: the application, and the /Applications symlink the
+        # user drags it onto.
+        STAGING_DIR="dmg-staging"
+        rm -rf "${STAGING_DIR}"
+        mkdir -p "${STAGING_DIR}"
+
+        # ditto, never cp: it is the only copy that preserves the bundle's resource forks,
+        # extended attributes and symlinks, all of which a signature is computed over.
+        echo "Staging the application bundle..."
+        ditto "${APP_BUNDLE}" "${STAGING_DIR}/${APP_NAME}.app"
+        ln -s /Applications "${STAGING_DIR}/Applications"
+
+        mkdir -p artifacts
+        DMG_FILE="${OUTPUT_NAME}_${VERSION}_macos.dmg"
+        DMG_PATH="artifacts/${DMG_FILE}"
+
+        echo "Creating ${DMG_PATH}..."
+        hdiutil create \
+            -volname "${VOLUME_NAME}" \
+            -srcfolder "${STAGING_DIR}" \
+            -ov \
+            -format UDZO \
+            "${DMG_PATH}"
+
+        rm -rf "${STAGING_DIR}"
+
+        if [ ! -f "${DMG_PATH}" ]; then
+            echo "Error: Expected disk image not found: ${DMG_PATH}"
+            exit 1
+        fi
+
+        echo "dmg-path=${DMG_PATH}" >> "$GITHUB_OUTPUT"
+        echo "dmg-file=${DMG_FILE}" >> "$GITHUB_OUTPUT"
+
+        echo ""
+        echo "Disk image built successfully: ${DMG_PATH}"
+        echo ""
+        echo "=== Disk Image Info ==="
+        hdiutil imageinfo "${DMG_PATH}"
+        echo ""
+        echo "Done!"

@@ -108,13 +108,19 @@ Planned production tools, in priority order:
 | --- | --- |
 | Linux | ✅ Active development |
 | Windows | ✅ Active development |
+| macOS | ⚠️ Build available (unsigned, untested) |
 | Android | 🚧 Scaffolded |
 | iOS | 🚧 Scaffolded |
-| macOS | 🚧 Scaffolded |
+
+> ⚠️ **The macOS build has never been tested.** The `.dmg` is produced by the CI on a
+> GitHub-hosted macOS runner and checked structurally (architectures, signature, disk image
+> layout), but nobody has run the application on a Mac yet — there is none available to this
+> project. Treat that build as untried: it is published so it can be tried, and reports are
+> welcome. Linux and Windows are the platforms actually being developed against.
 
 ## Installation
 
-Download the `.deb` (Linux) or the installer (Windows) from the
+Download the `.deb` (Linux), the installer (Windows) or the `.dmg` (macOS) from the
 [GitHub Releases](https://github.com/borlnov/open_cine_prod_tools/releases) page.
 
 On Linux:
@@ -123,7 +129,17 @@ On Linux:
 sudo apt install ./open-cine-prod-tools_<version>_amd64.deb
 ```
 
-The binaries are unsigned, so Windows SmartScreen will warn on first run.
+On macOS, open the `.dmg` and drag **Open Cine Prod Tools** onto the `Applications` shortcut
+next to it — keeping in mind the warning above.
+
+The binaries are unsigned, so Windows SmartScreen warns on first run, and macOS Gatekeeper refuses
+to launch the application at all. Get past Gatekeeper either by right-clicking the app in
+`Applications` and choosing **Open** (then **Open** again in the dialog that follows), or by
+clearing the quarantine flag once:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Open Cine Prod Tools.app"
+```
 
 ## Building from source
 

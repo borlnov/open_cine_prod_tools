@@ -21,7 +21,10 @@ découpage technique (shot lists) and the scenario coverage per shot ship alongs
 long-term roadmap adds, in priority order: shooting schedule, call sheets, budget, script
 supervisor reports, storyboard, breakdown, and a casting tracker.
 
-- Target platforms: **Linux + Windows first**, then Android, iOS, macOS.
+- Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
+  released by the CI (see the Architecture section) but has never been run on a Mac — there is
+  none available to this project, so nothing about it can be verified here beyond what the CI
+  checks structurally. Say so rather than implying it works.
 - Storage: **local only** for now — one SQLite file per project (`.ocpt`, via drift), with the
   Fountain text as the source of truth plus a stable-UUID scene index. Sharing and collaboration
   come next, through an offline-first replica synced by a self-hostable, domain-blind relay
@@ -84,7 +87,8 @@ supervisor reports, storyboard, breakdown, and a casting tracker.
 | 21 | Shot list mode (découpage technique, issue #19): schema v2 (`shots`, `shot_characters`, `shot_coverages`) with the first `MigrationStrategy` and the `foreign_keys` pragma, sequence panel + shot table + shot inspector, scenario coverage per shot with staleness detection (`coveredTextDigest` / `needsCheck`), XLSX export through `excel_community` | ✅ |
 | 22 | Collaboration & sync M1 — sync-ready data model (ADR 0010): schema v3 (`isDeleted` tombstones on every synchronised table, `sortKey` fractional indexes beside `position` with their backfill, the `row_field_versions` sidecar), every hard `delete()` turned into a tombstone and every read filtering them out, `deviceId` in `OcptPropertiesManager` | ✅ |
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
-| 23 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
+| 23 | macOS build (issue #40): the bundle named "Open Cine Prod Tools", the App Sandbox dropped from both entitlements files (ADR 0011), the SDK's `Podfile` tracked, a `macos-dmg` composite action building a drag-to-`Applications` disk image with `hdiutil`, and a `build-macos` job gated like the Windows one, signing and notarization wired but dormant | ✅ (untested on a real Mac) |
+| 24 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
 
 ## Ways of working
 
@@ -206,6 +210,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `.github/actions/flutter-debian`, which installs the 512 px and scalable icons plus a `.desktop`
   entry named after the package (the icon name `linux/runner/my_application.cc` asks the window to
   wear).
+- Desktop packaging: `build.yml` builds the three desktop targets and one composite action per
+  format packages each — `flutter-debian` (`.deb`), `windows-installer` (Inno Setup),
+  `macos-dmg` (`hdiutil create -format UDZO` over a staging directory holding the `.app` copied
+  with `ditto` and an `/Applications` symlink). The macOS bundle's `PRODUCT_NAME` is the display
+  name `Open Cine Prod Tools`, so every script path quotes it; its version is split before the
+  build (`--build-name` = the dotted numeric prefix, `--build-number` = the commit distance)
+  because `CFBundleShortVersionString` rejects `git describe`'s output. The app is distributed
+  outside the Mac App Store (`docs/adr/0011`): **the App Sandbox is off** in both entitlements
+  files — the recent-projects list reopens a project by absolute path, which a sandboxed app
+  cannot do without security-scoped bookmarks — and the `.app` carries only the scaffold's ad-hoc
+  signature, so the README documents the Gatekeeper bypass beside the SmartScreen note. Real
+  signing and notarization are written into `build.yml` and dormant, guarded by
+  `if: env.APPLE_CERTIFICATE != ''`; `--options runtime` belongs to that path alone, never to the
+  unsigned one. `macos/Podfile` is tracked (copied verbatim from the pinned SDK's template),
+  `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
+  build on one commits it. See `.github/ci-doc.md` for the local recipes.
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
 - Source provenance (ADR 0012): every printed line `FountainScriptComposer` emits carries a nullable
