@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The number of dots a rating row draws, one per value of the 0-5 scale a difficulty axis is
 /// rated on.
@@ -102,7 +103,7 @@ class OcptShotDifficultyRating extends StatelessWidget {
       return theme.colorScheme.error;
     }
     if (value >= 3) {
-      return ocptShotListWarningColor(context);
+      return ocptWarningColor(context);
     }
     return theme.colorScheme.primary;
   }

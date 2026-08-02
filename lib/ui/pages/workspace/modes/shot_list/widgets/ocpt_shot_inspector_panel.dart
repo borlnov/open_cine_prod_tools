@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The width of the abbreviation field's own box, sitting right under the shot size it abbreviates:
 /// enough for the three or four characters an abbreviation ever holds (`PM`, `GP`, `TGP`), so the
@@ -350,7 +351,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
 /// The `Needs checking` callout shown at the top of [OcptShotInspectorPanel] whenever the selected
 /// shot's `OcptShot.needsCheck` is set: [reason], localised, and a `Mark as checked` button.
-/// Tinted with [ocptShotListWarningColor], the colour this mode marks everything needing
+/// Tinted with [ocptWarningColor], the colour this mode marks everything needing
 /// attention with.
 class _OcptShotNeedsCheckCallout extends StatelessWidget {
   /// Why the shot needs checking.
@@ -366,7 +367,7 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final color = ocptShotListWarningColor(context);
+    final color = ocptWarningColor(context);
 
     return Container(
       width: double.infinity,
