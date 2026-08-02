@@ -7,6 +7,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -77,8 +78,8 @@ class OcptEditorIoNotice extends Equatable {
 /// The state of `OcptEditorBloc`.
 ///
 /// Mixes in [MixinOcptProjectVersionsState], the slice every production mode shares: the project's
-/// versions belong to the project, not to the screenplay, so the four fields the `Versions` dock
-/// tab reads come from there rather than being declared here.
+/// versions belong to the project, not to the screenplay, so the fields the `Versions` dock tab
+/// reads come from there rather than being declared here.
 class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     with MixinOcptProjectVersionsState<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
@@ -211,6 +212,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final String? previewedVersionId;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.workingCopy}
+  @override
+  final OcptProjectWorkingCopyState? workingCopy;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
   @override
   final String? versionPendingDeletionId;
@@ -218,6 +223,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
   @override
   final String? versionPendingRestoreId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRenameId}
+  @override
+  final String? versionPendingRenameId;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   @override
@@ -275,8 +284,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.sceneStatistics,
     required this.projectVersions,
     required this.previewedVersionId,
+    required this.workingCopy,
     required this.versionPendingDeletionId,
     required this.versionPendingRestoreId,
+    required this.versionPendingRenameId,
     required this.projectVersionNotice,
   });
 
@@ -307,8 +318,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       sceneStatistics = null,
       projectVersions = const [],
       previewedVersionId = null,
+      workingCopy = null,
       versionPendingDeletionId = null,
       versionPendingRestoreId = null,
+      versionPendingRenameId = null,
       projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -355,10 +368,14 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
     String? versionPendingRestoreId,
     bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => OcptEditorState(
@@ -391,12 +408,16 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     previewedVersionId: clearPreviewedVersionId
         ? null
         : (previewedVersionId ?? this.previewedVersionId),
+    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
     versionPendingDeletionId: clearVersionPendingDeletionId
         ? null
         : (versionPendingDeletionId ?? this.versionPendingDeletionId),
     versionPendingRestoreId: clearVersionPendingRestoreId
         ? null
         : (versionPendingRestoreId ?? this.versionPendingRestoreId),
+    versionPendingRenameId: clearVersionPendingRenameId
+        ? null
+        : (versionPendingRenameId ?? this.versionPendingRenameId),
     projectVersionNotice: clearProjectVersionNotice
         ? null
         : (projectVersionNotice ?? this.projectVersionNotice),
@@ -408,20 +429,28 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
     String? versionPendingRestoreId,
     bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
     clearPreviewedVersionId: clearPreviewedVersionId,
+    workingCopy: workingCopy,
+    clearWorkingCopy: clearWorkingCopy,
     versionPendingDeletionId: versionPendingDeletionId,
     clearVersionPendingDeletionId: clearVersionPendingDeletionId,
     versionPendingRestoreId: versionPendingRestoreId,
     clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    versionPendingRenameId: versionPendingRenameId,
+    clearVersionPendingRenameId: clearVersionPendingRenameId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
   );

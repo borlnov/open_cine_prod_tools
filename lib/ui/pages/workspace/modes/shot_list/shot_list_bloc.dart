@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -74,7 +75,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// its state are shared with the screenplay mode rather than reimplemented here. The two hooks the
 /// mixin needs are answered by [flushPendingProjectWrites] (a field edit still sitting in the
 /// debounce must reach the working copy before a preview swaps the database out) and
-/// [reloadFromProjectDatabase].
+/// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_flushPendingFieldEdits` each
+/// dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a
+/// field edit landing while it is already open — the two moments the mixin's working-copy card is
+/// worth a fresh, throttled read.
 ///
 /// The two actions that read the shot list rather than writing to it are its exports — the XLSX
 /// workbook ([_onXlsxExportRequested]) and the scenario coverage PDF
@@ -459,6 +463,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
   /// or switches to it) and records it as the tab the toolbar's toggle reopens the dock on.
+  ///
+  /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
+  /// working-copy card needs a fresh read for: the other is a field edit flushing while it is
+  /// already the one showing (see `_flushPendingFieldEdits`).
   Future<void> _onRightDockTabSelected(
     OcptShotListRightDockTabSelectedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -473,6 +481,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         lastRightDockTab: event.tab,
       ),
     );
+
+    if (!isAlreadyActive && event.tab == OcptShotListRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
   }
 
   /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
@@ -755,6 +767,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(snapshot: snapshot, suggestions: suggestions, pendingFieldEdits: const {}),
       );
+
+      // The other of the two moments the working-copy card needs a fresh read for (see
+      // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
+      if (state.rightDockTab == OcptShotListRightDockTab.versions) {
+        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+      }
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending shot list field edit of "
           "the project at ${project.path}: $error");

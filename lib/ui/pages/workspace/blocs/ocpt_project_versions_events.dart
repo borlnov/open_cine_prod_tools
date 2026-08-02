@@ -116,33 +116,56 @@ class OcptProjectVersionRestoreConfirmedEvent extends BlocEventForMixin {
   List<Object?> get props => [...super.props, versionId, safetyVersionName];
 }
 
-/// Requests starting a new branch from the version [versionId]: restoring it, then marking the
-/// branch it starts with a version of its own named [forkName].
-///
-/// Dispatched by the read-only banner's `Start from this version`, so the version it names is
-/// always the one being previewed. [safetyVersionName] means what it means in
-/// [OcptProjectVersionRestoreConfirmedEvent], and both names are localized by the page for the
-/// reason given there.
-class OcptProjectVersionForkRequestedEvent extends BlocEventForMixin {
-  /// The id of the version to start the new branch from.
+/// Reports that the user clicked `Rename` on the card of the version [versionId], which shows
+/// that card's inline rename form rather than renaming anything yet.
+class OcptProjectVersionRenameRequestedEvent extends BlocEventForMixin {
+  /// The id of the version whose rename form is being shown.
   final String versionId;
 
-  /// The name given to the version capturing the state the restore replaces.
-  final String safetyVersionName;
+  /// Class constructor
+  const OcptProjectVersionRenameRequestedEvent({required this.versionId});
 
-  /// The name given to the version marking the branch point.
-  final String forkName;
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, versionId];
+}
+
+/// Reports that the user cancelled the inline rename form currently shown.
+class OcptProjectVersionRenameCancelledEvent extends BlocEventForMixin {
+  /// Class constructor
+  const OcptProjectVersionRenameCancelledEvent();
+}
+
+/// Requests renaming the version [versionId] to [name], replacing its [note], confirmed inline in
+/// its card's rename form.
+class OcptProjectVersionRenameConfirmedEvent extends BlocEventForMixin {
+  /// The id of the version to rename.
+  final String versionId;
+
+  /// The new user-facing name of the version.
+  final String name;
+
+  /// The new free-text description of the version, empty when the user wrote none.
+  final String note;
 
   /// Class constructor
-  const OcptProjectVersionForkRequestedEvent({
+  const OcptProjectVersionRenameConfirmedEvent({
     required this.versionId,
-    required this.safetyVersionName,
-    required this.forkName,
+    required this.name,
+    required this.note,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, versionId, safetyVersionName, forkName];
+  List<Object?> get props => [...super.props, versionId, name, note];
+}
+
+/// Requests a fresh read of the working copy's own card, throttled by the mixin rather than run on
+/// every dispatch: see `MixinOcptProjectVersionsBloc`'s own doc comment for where this is
+/// dispatched from and why.
+class OcptProjectWorkingCopyRefreshRequestedEvent extends BlocEventForMixin {
+  /// Class constructor
+  const OcptProjectWorkingCopyRefreshRequestedEvent();
 }
 
 /// Requests entering the read-only preview of the version [versionId].

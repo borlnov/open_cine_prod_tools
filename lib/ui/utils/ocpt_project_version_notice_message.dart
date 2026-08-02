@@ -17,6 +17,7 @@ String ocptProjectVersionNoticeMessage(BuildContext context, OcptProjectVersionN
   return switch (kind) {
     OcptProjectVersionNoticeKind.creationFailed => tr.projectVersionCreationError,
     OcptProjectVersionNoticeKind.deletionFailed => tr.projectVersionDeletionError,
+    OcptProjectVersionNoticeKind.renameFailed => tr.projectVersionRenameError,
     OcptProjectVersionNoticeKind.previewBlockedByUnsavedChanges =>
       tr.projectVersionPreviewUnsavedChangesError,
     OcptProjectVersionNoticeKind.previewUnsupportedFormat =>

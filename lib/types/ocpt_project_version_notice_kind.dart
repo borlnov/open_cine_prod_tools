@@ -15,6 +15,9 @@ enum OcptProjectVersionNoticeKind {
   /// Deleting a version failed; the version is still there.
   deletionFailed,
 
+  /// Renaming a version failed; its name and note are unchanged.
+  renameFailed,
+
   /// A version can't be previewed while a mode still holds changes that haven't reached the
   /// database. The panel saves first and retries on its own, so this is only reported when that
   /// save itself didn't settle the matter.

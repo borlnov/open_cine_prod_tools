@@ -7,6 +7,7 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -183,6 +184,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   @override
   final String? previewedVersionId;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.workingCopy}
+  @override
+  final OcptProjectWorkingCopyState? workingCopy;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
   @override
   final String? versionPendingDeletionId;
@@ -190,6 +195,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
   @override
   final String? versionPendingRestoreId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRenameId}
+  @override
+  final String? versionPendingRenameId;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   @override
@@ -344,8 +353,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.pendingCoverageAnchor,
     required this.projectVersions,
     required this.previewedVersionId,
+    required this.workingCopy,
     required this.versionPendingDeletionId,
     required this.versionPendingRestoreId,
+    required this.versionPendingRenameId,
     required this.projectVersionNotice,
   });
 
@@ -372,8 +383,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       pendingCoverageAnchor = null,
       projectVersions = const [],
       previewedVersionId = null,
+      workingCopy = null,
       versionPendingDeletionId = null,
       versionPendingRestoreId = null,
+      versionPendingRenameId = null,
       projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -412,10 +425,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
     String? versionPendingRestoreId,
     bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => OcptShotListState(
@@ -446,12 +463,16 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     previewedVersionId: clearPreviewedVersionId
         ? null
         : (previewedVersionId ?? this.previewedVersionId),
+    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
     versionPendingDeletionId: clearVersionPendingDeletionId
         ? null
         : (versionPendingDeletionId ?? this.versionPendingDeletionId),
     versionPendingRestoreId: clearVersionPendingRestoreId
         ? null
         : (versionPendingRestoreId ?? this.versionPendingRestoreId),
+    versionPendingRenameId: clearVersionPendingRenameId
+        ? null
+        : (versionPendingRenameId ?? this.versionPendingRenameId),
     projectVersionNotice: clearProjectVersionNotice
         ? null
         : (projectVersionNotice ?? this.projectVersionNotice),
@@ -463,20 +484,28 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
     String? versionPendingRestoreId,
     bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
     clearPreviewedVersionId: clearPreviewedVersionId,
+    workingCopy: workingCopy,
+    clearWorkingCopy: clearWorkingCopy,
     versionPendingDeletionId: versionPendingDeletionId,
     clearVersionPendingDeletionId: clearVersionPendingDeletionId,
     versionPendingRestoreId: versionPendingRestoreId,
     clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    versionPendingRenameId: versionPendingRenameId,
+    clearVersionPendingRenameId: clearVersionPendingRenameId,
     projectVersionNotice: projectVersionNotice,
     clearProjectVersionNotice: clearProjectVersionNotice,
   );

@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
@@ -50,7 +51,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 /// its state are shared with every other production mode rather than reimplemented here. The two
 /// hooks the mixin needs are answered by [flushPendingProjectWrites] (a pending autosave must
 /// reach the working copy before a preview swaps the database out) and
-/// [reloadFromProjectDatabase].
+/// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_saveCurrentText` each dispatch
+/// [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a save landing
+/// while it is already open — the two moments the mixin's working-copy card is worth a fresh,
+/// throttled read.
 class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     with MixinOcptProjectVersionsBloc<OcptEditorState> {
   /// The default delay between the last edit and the re-parse of the source text.
@@ -526,6 +530,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           lastSavedAt: DateTime.now(),
         ),
       );
+
+      // The other of the two moments the working-copy card needs a fresh read for (see
+      // `_onRightDockTabSelected`): a save that lands while the tab showing it is already open.
+      if (state.rightDockTab == OcptEditorRightDockTab.versions) {
+        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+      }
     } catch (error) {
       appLogger().e("A problem occurred when tried to save the screenplay of the project at "
           "${project.path}: $error");
@@ -592,6 +602,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         clearAutoClosedRightDockTab: true,
       ),
     );
+
+    // Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
+    // working-copy card needs a fresh read for: the other is a save landing while it is already
+    // the one showing (see `_saveCurrentText`).
+    if (!isAlreadyActive && event.tab == OcptEditorRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
   }
 
   /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens

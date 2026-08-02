@@ -306,6 +306,7 @@
   "projectVersionCreateConfirmAction": "Créer",
   "projectVersionCreationError": "La version n'a pas pu être créée.",
   "projectVersionDeletionError": "La version n'a pas pu être supprimée.",
+  "projectVersionRenameError": "La version n'a pas pu être renommée.",
   "projectVersionPreviewUnsavedChangesError": "Enregistrez vos modifications avant de consulter une autre version.",
   "projectVersionPreviewUnsupportedFormatError": "Cette version a été créée par une version plus récente de l'application : mettez-la à jour pour l'ouvrir.",
   "projectVersionPreviewError": "Cette version n'a pas pu être ouverte.",

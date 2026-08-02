@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -26,6 +27,40 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 class _SilentRouterManager extends OcptRouterManager {
   @override
   void pop<Y extends Object?>([Y? result]) {}
+}
+
+/// A projects manager whose [renameProjectVersion] always fails, to exercise the bloc's rename
+/// failure path.
+class _FailingRenameProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _FailingRenameProjectsManager({required OcptPropertiesManager propertiesManager})
+    : super(propertiesManager: propertiesManager);
+
+  @override
+  Future<void> renameProjectVersion({
+    required String versionId,
+    required String name,
+    required String note,
+  }) async => throw StateError("rename intentionally failed for the test");
+}
+
+/// A projects manager that counts how many times a working-copy capture actually reads the whole
+/// project, so the mixin's throttle can be measured without depending on real wall-clock gaps
+/// between assertions.
+class _CountingProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
+    : super(propertiesManager: propertiesManager);
+
+  /// How many times [captureWorkingCopyState] actually ran, as opposed to being skipped by the
+  /// mixin's throttle before ever reaching here.
+  int captureCount = 0;
+
+  @override
+  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+    captureCount++;
+    return super.captureWorkingCopyState();
+  }
 }
 
 /// The versions dock tab, exercised through `OcptEditorBloc` — one of the two blocs mixing
@@ -70,8 +105,10 @@ void main() {
   });
 
   /// Builds a bloc wired to the test project, with debounces short enough to await in a test.
-  OcptEditorBloc buildBloc() => OcptEditorBloc(
-    projectsManager: projectsManager,
+  /// [overrideProjectsManager] lets a test swap in a manager of its own (already holding an open
+  /// project), for the tests that need to observe or fail one of its calls.
+  OcptEditorBloc buildBloc({OcptProjectsManager? overrideProjectsManager}) => OcptEditorBloc(
+    projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: _SilentRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
@@ -106,7 +143,10 @@ void main() {
 
   test('a project with no version starts with an empty list', () async {
     final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
+    // The mixin's own initial refresh is a second, independently-processed handler dispatched
+    // alongside the editor's own load: waiting for `workingCopy` too, not only `!isLoading`, is
+    // what guarantees it has actually landed before the test closes the bloc out from under it.
+    await waitForState(bloc, (state) => !state.isLoading && state.workingCopy != null);
 
     expect(bloc.state.projectVersions, isEmpty);
     expect(bloc.state.isPreviewingVersion, isFalse);
@@ -152,6 +192,92 @@ void main() {
     bloc.add(OcptProjectVersionDeletionConfirmedEvent(versionId: versionId));
     final deleted = await waitForState(bloc, (state) => state.projectVersions.isEmpty);
     expect(deleted.versionPendingDeletionId, isNull);
+
+    await bloc.close();
+  });
+
+  test('renaming a version shows its form inline first, then updates its name and note',
+      () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: "First cut"));
+    final created = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = created.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionRenameRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.versionPendingRenameId == versionId);
+
+    // Cancelling leaves the version alone.
+    bloc.add(const OcptProjectVersionRenameCancelledEvent());
+    final cancelled = await waitForState(bloc, (state) => state.versionPendingRenameId == null);
+    expect(cancelled.projectVersions.single.name, "v1");
+
+    bloc.add(
+      OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: "v1 bis", note: "Renamed"),
+    );
+    final renamed = await waitForState(
+      bloc,
+      (state) => state.projectVersions.length == 1 && state.projectVersions.single.name == "v1 bis",
+    );
+    expect(renamed.projectVersions.single.note, "Renamed");
+    expect(renamed.versionPendingRenameId, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing rename reports it and leaves the version alone', () async {
+    final failingManager = _FailingRenameProjectsManager(propertiesManager: propertiesManager);
+    await failingManager.initLifeCycle();
+    final created = await failingManager.createProject(
+      name: "Failing Movie",
+      filePath: p.join(tempDir.path, "failing.ocpt"),
+    );
+    expect(created.status.isSuccess, isTrue);
+    await failingManager.createProjectVersion(name: "v1", note: "");
+
+    final bloc = buildBloc(overrideProjectsManager: failingManager);
+    await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = bloc.state.projectVersions.single.id;
+
+    bloc.add(
+      OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: "v1 bis", note: ""),
+    );
+    final state = await waitForState(bloc, (state) => state.projectVersionNotice != null);
+
+    expect(state.projectVersionNotice, OcptProjectVersionNoticeKind.renameFailed);
+    expect(state.projectVersions.single.name, "v1");
+
+    await bloc.close();
+    await failingManager.disposeLifeCycle();
+  });
+
+  test('the delete, restore and rename inline modes exclude each other', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final created = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = created.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionDeletionRequestedEvent(versionId: versionId));
+    var state = await waitForState(bloc, (state) => state.versionPendingDeletionId == versionId);
+    expect(state.versionPendingRestoreId, isNull);
+    expect(state.versionPendingRenameId, isNull);
+
+    bloc.add(OcptProjectVersionRestoreRequestedEvent(versionId: versionId));
+    state = await waitForState(bloc, (state) => state.versionPendingRestoreId == versionId);
+    expect(state.versionPendingDeletionId, isNull);
+    expect(state.versionPendingRenameId, isNull);
+
+    bloc.add(OcptProjectVersionRenameRequestedEvent(versionId: versionId));
+    state = await waitForState(bloc, (state) => state.versionPendingRenameId == versionId);
+    expect(state.versionPendingDeletionId, isNull);
+    expect(state.versionPendingRestoreId, isNull);
+
+    bloc.add(OcptProjectVersionDeletionRequestedEvent(versionId: versionId));
+    state = await waitForState(bloc, (state) => state.versionPendingDeletionId == versionId);
+    expect(state.versionPendingRenameId, isNull);
 
     await bloc.close();
   });
@@ -370,13 +496,21 @@ void main() {
         safetyVersionName: "Before restoring the safety version",
       ),
     );
-    final undone = await waitForState(bloc, (state) => state.text == secondText);
+    // The mode's own data lands before the version list does (see `_onVersionRestoreConfirmed`'s
+    // own doc comment), so this waits for the working copy to actually descend from the safety
+    // version — the list's own read — rather than for the text alone, which a still-in-flight
+    // restore could otherwise leave the bloc closing underneath.
+    final undone = await waitForState(
+      bloc,
+      (state) => state.text == secondText && state.workingCopy?.baseVersionId == safety.id,
+    );
     expect(undone.isPreviewingVersion, isFalse);
 
     await bloc.close();
   });
 
-  test('starting from the previewed version restores it and marks the branch', () async {
+  test('restoring the previewed version — the banner action — restores it and leaves the preview',
+      () async {
     await writeScreenplay(firstText);
     final bloc = buildBloc();
     await waitForState(bloc, (state) => state.text == firstText);
@@ -392,25 +526,27 @@ void main() {
     bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
     await waitForState(bloc, (state) => state.previewedVersionId != null);
 
+    // `OcptProjectsManager.restoreProjectVersion` leaves the preview on its own, so the same event
+    // a version's own card dispatches is all the read-only banner's `Start from this version`
+    // needs — no dedicated fork event or branch-point card any more.
     bloc.add(
-      OcptProjectVersionForkRequestedEvent(
+      OcptProjectVersionRestoreConfirmedEvent(
         versionId: versionId,
         safetyVersionName: "Before restoring v1",
-        forkName: "From v1",
       ),
     );
-    final forked = await waitForState(
+    // The mode's own data lands before the version list does (see `_onVersionRestoreConfirmed`'s
+    // own doc comment), so this waits for the working copy to actually descend from the restored
+    // version — the list's own read — rather than for the text alone, which a still-in-flight
+    // restore could otherwise leave the bloc closing underneath.
+    final restored = await waitForState(
       bloc,
-      (state) => state.projectVersions.any((version) => version.name == "From v1"),
+      (state) => state.text == firstText && state.workingCopy?.baseVersionId == versionId,
     );
 
-    // The preview is over — what was read-only a moment ago is the working copy now — and the
-    // branch point is the version the project descends from.
-    expect(forked.isPreviewingVersion, isFalse);
+    // The preview is over — what was read-only a moment ago is the working copy now.
+    expect(restored.isPreviewingVersion, isFalse);
     expect(projectsManager.currentProject!.isReadOnly, isFalse);
-    expect(forked.text, firstText);
-    expect(forked.projectVersions.first.name, "From v1");
-    expect(forked.projectVersions.first.isBase, isTrue);
 
     await bloc.close();
   });
@@ -454,5 +590,100 @@ void main() {
     await waitForState(bloc, (state) => state.projectVersionNotice == null);
 
     await bloc.close();
+  });
+
+  test('the working copy is captured and emitted alongside the list', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final created = await waitForState(
+      bloc,
+      (state) => state.workingCopy?.baseVersionId != null,
+    );
+
+    // A fresh version's own working copy is identical content, so nothing has diverged from it
+    // yet.
+    expect(created.workingCopy?.baseVersionId, created.projectVersions.single.id);
+    expect(created.workingCopy?.isModifiedSinceBase, isFalse);
+
+    await bloc.close();
+  });
+
+  test('no working copy is captured while a version is being previewed', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    // `workingCopy` alone is already non-null before this (the mixin's own initial refresh sets
+    // it, with no base yet): waiting for a base is what actually proves this creation's own
+    // capture — not the earlier one — has landed.
+    final created = await waitForState(bloc, (state) => state.workingCopy?.baseVersionId != null);
+    final versionId = created.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    final previewing = await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    expect(previewing.workingCopy, isNull);
+
+    await bloc.close();
+  });
+
+  test('leaving a preview captures the working copy again', () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final created = await waitForState(bloc, (state) => state.workingCopy?.baseVersionId != null);
+    final versionId = created.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    // Nothing else would put the card back: the `Versions` tab showing it is already the selected
+    // one, so no reselection is coming to ask for a capture.
+    bloc.add(const OcptProjectVersionPreviewExitRequestedEvent());
+    final left = await waitForState(bloc, (state) => state.previewedVersionId == null);
+
+    expect(left.workingCopy?.baseVersionId, versionId);
+    expect(left.workingCopy?.isModifiedSinceBase, isFalse);
+
+    await bloc.close();
+  });
+
+  test('two working-copy refreshes in a row only capture once, but a change always captures',
+      () async {
+    final countingManager = _CountingProjectsManager(propertiesManager: propertiesManager);
+    await countingManager.initLifeCycle();
+    final created = await countingManager.createProject(
+      name: "Throttle Movie",
+      filePath: p.join(tempDir.path, "throttle.ocpt"),
+    );
+    expect(created.status.isSuccess, isTrue);
+
+    final bloc = buildBloc(overrideProjectsManager: countingManager);
+    // The initial refresh on mount already captured the working copy once, through the
+    // unthrottled path every project-changing operation goes through.
+    await waitForState(bloc, (state) => state.workingCopy != null);
+    final afterMount = countingManager.captureCount;
+    expect(afterMount, 1);
+
+    // Both land well inside the 2 s throttle window, so only the first would ever capture again.
+    bloc.add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    bloc.add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(countingManager.captureCount, afterMount);
+
+    // Creating a version changes the project, so it captures the truth regardless of how soon
+    // after the last capture it happens.
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    expect(countingManager.captureCount, afterMount + 1);
+
+    await bloc.close();
+    await countingManager.disposeLifeCycle();
   });
 }

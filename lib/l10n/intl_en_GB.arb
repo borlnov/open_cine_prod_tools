@@ -2315,6 +2315,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectVersionRenameError": "The version could not be renamed.",
+  "@projectVersionRenameError": {
+    "description": "Error shown when renaming a project version failed",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectVersionPreviewUnsavedChangesError": "Save your changes before viewing another version.",
   "@projectVersionPreviewUnsavedChangesError": {
     "description": "Error shown when a version can't be previewed because a mode still holds unsaved changes",

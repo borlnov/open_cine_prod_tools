@@ -4,13 +4,14 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 
 /// The slice of a production mode's state the `Versions` dock tab reads, mixed into every mode's
 /// own state.
 ///
 /// A version covers the whole project rather than any one mode's data, so the panel is the same
-/// widget in every dock and needs the same four fields wherever it is shown. Mixing them in (the
+/// widget in every dock and needs the same fields wherever it is shown. Mixing them in (the
 /// `MixinActThemesState` idiom) is what keeps the two — soon four — modes from each growing their
 /// own copy of the same list, and what lets `OcptProjectVersionsPanel` be built from a state it
 /// knows nothing else about.
@@ -31,6 +32,17 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   /// {@endtemplate}
   String? get previewedVersionId;
 
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.workingCopy}
+  /// A live snapshot of the working copy — the counters it would show right now, and whether it
+  /// still matches the version it descends from — or null while a version is being previewed (the
+  /// working-copy card is exactly what a preview replaces) or before the first capture has landed.
+  ///
+  /// Reading it is not free (`OcptProjectsManager.captureWorkingCopyState` measures the whole
+  /// project), so this is refreshed on its own schedule rather than on every state change: see
+  /// `MixinOcptProjectVersionsBloc`'s throttle.
+  /// {@endtemplate}
+  OcptProjectWorkingCopyState? get workingCopy;
+
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
   /// The id of the version whose card currently shows its inline delete confirmation, or null
   /// while none does. At most one card confirms at a time.
@@ -39,10 +51,17 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
   /// The id of the version whose card currently shows its inline restore confirmation, or null
-  /// while none does. At most one card confirms at a time, and never for both answers at once: a
-  /// card asking whether to restore isn't also asking whether to delete.
+  /// while none does. At most one card confirms at a time, and never for two different answers at
+  /// once: a card asking whether to restore isn't also asking whether to delete or to rename it.
   /// {@endtemplate}
   String? get versionPendingRestoreId;
+
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRenameId}
+  /// The id of the version whose card currently shows its inline rename form, or null while none
+  /// does. The third of the three mutually exclusive inline modes a card can be in, alongside
+  /// [versionPendingDeletionId] and [versionPendingRestoreId].
+  /// {@endtemplate}
+  String? get versionPendingRenameId;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
   /// The outcome of the last version operation the user has to be told about, or null while there
@@ -79,18 +98,23 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   /// This is the copyWith method for the mixin.
   ///
-  /// The four nullable fields legitimately go back to null while the mode is alive (a preview
-  /// left, a confirmation cancelled or answered, a notice dismissed), so each carries its own clear
-  /// flag rather than relying on "a null argument means unchanged".
+  /// The nullable fields legitimately go back to null while the mode is alive (a preview left, a
+  /// confirmation cancelled or answered, a notice dismissed, a working-copy capture withheld
+  /// because a preview is up), so each carries its own clear flag rather than relying on "a null
+  /// argument means unchanged".
   /// {@endtemplate}
   S copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
     String? versionPendingDeletionId,
     bool clearVersionPendingDeletionId = false,
     String? versionPendingRestoreId,
     bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
   });
@@ -101,8 +125,10 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
     ...super.props,
     projectVersions,
     previewedVersionId,
+    workingCopy,
     versionPendingDeletionId,
     versionPendingRestoreId,
+    versionPendingRenameId,
     projectVersionNotice,
   ];
 }

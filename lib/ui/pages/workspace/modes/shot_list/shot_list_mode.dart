@@ -453,11 +453,14 @@ class _ShotListViewState extends State<_ShotListView> {
 
     return OcptWorkspaceReadOnlyBanner(
       version: previewedVersion,
+      // `Start from this version` is a plain restore of the version being previewed:
+      // `OcptProjectsManager.restoreProjectVersion` leaves the preview on its own before writing
+      // anything, so the handler needs nothing beyond the same event a version's own card
+      // dispatches.
       onForkRequested: () => context.read<OcptShotListBloc>().add(
-        OcptProjectVersionForkRequestedEvent(
+        OcptProjectVersionRestoreConfirmedEvent(
           versionId: previewedVersion.id,
           safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
-          forkName: tr.projectVersionForkName(previewedVersion.name),
         ),
       ),
       onExitPreview: () => context.read<OcptShotListBloc>().add(
