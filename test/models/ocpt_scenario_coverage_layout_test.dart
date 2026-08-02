@@ -154,6 +154,15 @@ class _ComposedScreenplay {
   int offsetOf(int index, String passage) =>
       text.indexOf(passage) - document.scenes[index].sourceRange.startOffset;
 
+  /// The Fountain text of the [index]th scene: the very slice a coverage range's own offsets are
+  /// relative to, so its length is the offset a range covering the scene to its end stops at.
+  String sceneText(int index) {
+    final scenes = document.scenes;
+    final start = scenes[index].sourceRange.startOffset;
+    final end = index + 1 < scenes.length ? scenes[index + 1].sourceRange.startOffset : text.length;
+    return text.substring(start, end);
+  }
+
   /// Lays [sequences]' coverage out over this screenplay.
   OcptScenarioCoverageLayout layoutOf(List<OcptShotSequence> sequences) =>
       OcptScenarioCoverageLayout.of(
@@ -580,10 +589,24 @@ void main() {
       ]);
 
       final gaps = layout.pages.single.gaps;
-      // Every row but the covered action line (row 2) and the blank spacers (rows 1, 3, 6, 8).
-      expect(gaps.map((gap) => gap.row), [0, 4, 5, 7, 9]);
+      // Every row but the covered action line (row 2), the blank spacers (rows 1, 3, 6, 8) and the
+      // two scene headings (rows 0 and 7).
+      expect(gaps.map((gap) => gap.row), [4, 5, 9]);
       expect(gaps.first.startColumn, 0);
-      expect(gaps.first.endColumn, "INT. KITCHEN - DAY".length);
+      expect(gaps.first.endColumn, "JOHN".length);
+    });
+
+    test("never washes a scene heading, covered or not", () {
+      final screenplay = _ComposedScreenplay(_screenplay);
+
+      // A shot list covering nothing at all: every printed row is uncovered, headings included.
+      final layout = screenplay.layoutOf([
+        screenplay.sceneSequence(0, const []),
+        screenplay.sceneSequence(1, const []),
+      ]);
+
+      expect(layout.pages.single.gaps.map((gap) => gap.row), isNot(contains(0)));
+      expect(layout.pages.single.gaps.map((gap) => gap.row), isNot(contains(7)));
     });
 
     test("washes only the uncovered part of a partially covered line", () {
@@ -675,13 +698,41 @@ void main() {
       expect(first.heading, "INT. KITCHEN - DAY");
       expect(first.shotCount, 2);
       expect(first.staleRangeCount, 1);
-      // The scene holds the heading, the action line and the dialogue group; only the action
-      // line's 8 words are covered.
+      // The scene's coverable text is the action line and the dialogue group — its heading counts
+      // for nothing — and only the action line's 8 words are covered.
       expect(first.coveredWordCount, 8);
       expect(first.wordCount, greaterThan(first.coveredWordCount));
       expect(first.coveredWordShare, first.coveredWordCount / first.wordCount);
-      expect(first.uncoveredExtracts, contains("INT. KITCHEN - DAY"));
+      expect(first.uncoveredExtracts, ["JOHN", "Hello there."]);
       expect(first.isOrphanGroup, isFalse);
+    });
+
+    test("leaves the scene headings out of the measures a scene is summarised by", () {
+      final screenplay = _ComposedScreenplay(_screenplay);
+      final start = screenplay.offsetOf(0, _actionLine);
+      final scene = screenplay.sceneText(0);
+
+      // Everything of the scene but its heading: the action line and the whole dialogue group.
+      final layout = screenplay.layoutOf([
+        screenplay.sceneSequence(0, [
+          _buildShot(
+            id: "shot-1",
+            code: "1/1",
+            sceneId: "scene-1",
+            coverageRanges: [
+              _buildRange(sceneId: "scene-1", startOffset: start, endOffset: scene.length),
+            ],
+          ),
+        ]),
+        screenplay.sceneSequence(1, const []),
+      ]);
+
+      final first = layout.summary.first;
+      // A scene nothing but its heading is left out of therefore reads as fully covered, rather
+      // than as short of the words no shot can ever claim.
+      expect(first.coveredWordCount, first.wordCount);
+      expect(first.coveredWordShare, 1);
+      expect(first.uncoveredExtracts, isEmpty);
     });
 
     test("measures a scene with no shot at all as entirely uncovered", () {

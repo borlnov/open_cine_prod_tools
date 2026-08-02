@@ -761,9 +761,13 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// A row with no anchored run of its own is left alone rather than washed whole: a blank spacer
   /// line, a `(MORE)` token or a line the composer could not anchor says nothing about whether it
   /// is covered, and washing it would claim it does.
+  ///
+  /// A scene heading is left alone for a different reason: it names the scene rather than playing
+  /// in it, so no shot has any business covering it and washing it would report an omission nobody
+  /// can act on.
   static List<OcptCoverageGap> _gapsOf(_PrintedRow row, List<_Interval> covered) {
     final line = row.line;
-    if (line.isSynthetic || line.runs.isEmpty) {
+    if (line.isSynthetic || line.runs.isEmpty || line.isSceneHeading) {
       return const [];
     }
 
@@ -911,6 +915,10 @@ class OcptScenarioCoverageLayout extends Equatable {
 
   /// The summary row of a real scene [sequence], measured against its own slice of
   /// [screenplayText].
+  ///
+  /// Measured over [_coverableBlocksOf] rather than over the whole scene, so the percentage and the
+  /// extracts answer for exactly the text the printed page washes — a heading counted as uncovered
+  /// would hold every scene's share below 100% with nothing a shot could do about it.
   static OcptCoverageSummaryRow _sceneSummaryOf(
     OcptSceneShotSequence sequence,
     String screenplayText,
@@ -921,11 +929,18 @@ class OcptScenarioCoverageLayout extends Equatable {
       sceneId: sequence.sceneId,
       sceneText: screenplayText.substring(start, end),
     );
+    final blocks = _coverableBlocksOf(layout);
     final ranges = [for (final shot in sequence.shots) ...shot.coverageRanges];
 
     var wordCount = 0;
-    for (final block in layout.blocks) {
+    var coveredWordCount = 0;
+    for (final block in blocks) {
       wordCount += block.words.length;
+      for (final word in block.words) {
+        if (layout.isWordCovered(word, ranges)) {
+          coveredWordCount++;
+        }
+      }
     }
 
     return OcptCoverageSummaryRow(
@@ -934,12 +949,20 @@ class OcptScenarioCoverageLayout extends Equatable {
       heading: sequence.heading,
       shotCount: sequence.shotCount,
       wordCount: wordCount,
-      coveredWordCount: layout.countCoveredWords(ranges),
+      coveredWordCount: coveredWordCount,
       staleRangeCount: _staleRangeCountOf(sequence),
-      uncoveredExtracts: _uncoveredExtractsOf(layout, ranges),
+      uncoveredExtracts: _uncoveredExtractsOf(layout, blocks, ranges),
       isOrphanGroup: false,
     );
   }
+
+  /// The blocks of [layout] a shot can meaningfully cover: everything but the scene headings, which
+  /// name the scene rather than play in it and are left out of the whole coverage report — the
+  /// washes drawn on the page as much as the figures measuring them.
+  static List<OcptShotCoverageBlock> _coverableBlocksOf(OcptShotCoverageLayout layout) => [
+    for (final block in layout.blocks)
+      if (block.type != FountainLineType.sceneHeading) block,
+  ];
 
   /// How many of [sequence]'s shots' coverage ranges no longer agree with the screenplay's text.
   static int _staleRangeCountOf(OcptShotSequence sequence) {
@@ -950,7 +973,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return count;
   }
 
-  /// The uncovered passages of the scene [layout] lays out, quoted in reading order.
+  /// The uncovered passages of [blocks] — the coverable part of the scene [layout] lays out —
+  /// quoted in reading order.
   ///
   /// Built from the scene's own words rather than from the printed rows, so an extract reads as
   /// the screenplay wrote it (markers and all) rather than as the paginator wrapped it. Consecutive
@@ -958,11 +982,12 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// characters and the list itself at [_maxUncoveredExtracts] entries.
   static List<String> _uncoveredExtractsOf(
     OcptShotCoverageLayout layout,
+    List<OcptShotCoverageBlock> blocks,
     List<OcptShotCoverageRange> ranges,
   ) {
     final extracts = <String>[];
 
-    for (final block in layout.blocks) {
+    for (final block in blocks) {
       OcptShotCoverageWord? first;
       OcptShotCoverageWord? last;
 
