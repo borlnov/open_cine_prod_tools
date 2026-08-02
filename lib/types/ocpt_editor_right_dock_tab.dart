@@ -8,10 +8,10 @@
 /// `OcptEditorState.rightDockTab`. [preview] and [syntax] are also reachable from the workspace
 /// toolbar's own buttons — in the raw editing mode only — which double as their selector: clicking
 /// the button of an inactive (or closed) tab opens the dock on it, clicking the button of the tab
-/// already active closes the dock. [inspector] and [metadata] have no toolbar button (the toolbar
-/// already carries two tab-opening buttons and does not grow more), and neither tab has one in the
-/// styled mode: the dock's own tab row is then their only selector, alongside the toolbar's dock
-/// toggle reopening the dock on whichever tab it last showed.
+/// already active closes the dock. [inspector], [metadata] and [versions] have no toolbar button (the
+/// toolbar already carries two tab-opening buttons and does not grow more), and none of them has
+/// one in the styled mode: the dock's own tab row is then their only selector, alongside the
+/// toolbar's dock toggle reopening the dock on whichever tab it last showed.
 enum OcptEditorRightDockTab {
   /// The formatted screenplay preview, only offered in the raw editing mode: the styled mode's
   /// own layout already is the formatted screenplay.
@@ -27,4 +27,10 @@ enum OcptEditorRightDockTab {
   /// The screenplay's title-page fields and script-wide statistics, read-only. Offered in both
   /// editing modes.
   metadata,
+
+  /// The project's named versions: the production history the user creates, browses read-only and
+  /// deletes. Offered in both editing modes, and in every other production mode too — a version
+  /// covers the whole project, so this tab is the one panel of the dock that isn't about the
+  /// screenplay at all (see `OcptShotListRightDockTab.versions`, its shot list twin).
+  versions,
 }

@@ -2135,5 +2135,205 @@
     "context": "Displayed as a SnackBar over the shot list mode",
     "type": "text",
     "placeholders": {}
+  },
+  "editorRightDockVersionsTabLabel": "Versions",
+  "@editorRightDockVersionsTabLabel": {
+    "description": "Label of the project versions tab in the editor's right dock",
+    "context": "Displayed in the tab row at the top of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListRightDockVersionsTabLabel": "Versions",
+  "@shotListRightDockVersionsTabLabel": {
+    "description": "Name of the project versions tab of the shot list's right dock",
+    "context": "Displayed in the tab row of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionsPanelTitle": "Project versions",
+  "@projectVersionsPanelTitle": {
+    "description": "Header of the project versions panel",
+    "context": "Displayed at the top of the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionsPanelSubtitle": "A version covers the screenplay and the shot list together.",
+  "@projectVersionsPanelSubtitle": {
+    "description": "Line explaining what a project version holds",
+    "context": "Displayed under the header of the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionsCreateAction": "Create a version",
+  "@projectVersionsCreateAction": {
+    "description": "Action capturing the whole project as a new named version",
+    "context": "Displayed in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionsEmptyHint": "No version yet. Create one to keep a permanent checkpoint of this project.",
+  "@projectVersionsEmptyHint": {
+    "description": "Hint shown in place of the version list while the project has no version",
+    "context": "Displayed in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionSequencesBrokenDown": "{count, plural, one{{count} sequence broken down} other{{count} sequences broken down}}",
+  "@projectVersionSequencesBrokenDown": {
+    "description": "Broken-down sequence count of a project version, measured when it was created",
+    "context": "Displayed on a version card, after its page count",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectVersionCurrentBadge": "Current",
+  "@projectVersionCurrentBadge": {
+    "description": "Badge of the version the working copy descends from",
+    "context": "Displayed on a version card in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionPreviewBadge": "Preview",
+  "@projectVersionPreviewBadge": {
+    "description": "Badge of the version currently being previewed read-only",
+    "context": "Displayed on a version card in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCurrentHint": "State loaded in the editor",
+  "@projectVersionCurrentHint": {
+    "description": "Line telling that the current version is what the workspace already shows",
+    "context": "Displayed on the current version's card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionPreviewHint": "Click the card to view this version read-only",
+  "@projectVersionPreviewHint": {
+    "description": "Line telling what clicking a version card does",
+    "context": "Displayed on every version card that is neither the current nor the previewed one",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionPreviewedHint": "Click the card to go back to the current version",
+  "@projectVersionPreviewedHint": {
+    "description": "Line telling what clicking the previewed version's card does",
+    "context": "Displayed on the previewed version's card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionDeleteAction": "Delete",
+  "@projectVersionDeleteAction": {
+    "description": "Action asking to delete a project version, which only opens its inline confirmation",
+    "context": "Displayed on a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionDeleteConfirmMessage": "Permanently delete this version? This cannot be undone.",
+  "@projectVersionDeleteConfirmMessage": {
+    "description": "Question of the inline confirmation shown before deleting a project version",
+    "context": "Displayed inside the version's own card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionDeleteConfirmAction": "Delete",
+  "@projectVersionDeleteConfirmAction": {
+    "description": "Action confirming the permanent deletion of a project version",
+    "context": "Displayed in the inline confirmation of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionDeleteCancelAction": "Cancel",
+  "@projectVersionDeleteCancelAction": {
+    "description": "Action cancelling the deletion of a project version",
+    "context": "Displayed in the inline confirmation of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateDialogTitle": "Create a version",
+  "@projectVersionCreateDialogTitle": {
+    "description": "Title of the project version creation dialog",
+    "context": "Displayed after clicking \"Create a version\" in the versions tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateDialogMessage": "This version keeps the whole project as it stands: screenplay, scene index, shot list and scenario coverage.",
+  "@projectVersionCreateDialogMessage": {
+    "description": "Message of the project version creation dialog, saying what is captured",
+    "context": "Displayed in the project version creation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateNameLabel": "Name",
+  "@projectVersionCreateNameLabel": {
+    "description": "Label of the name field of the project version creation dialog",
+    "context": "Displayed in the project version creation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateNameRequiredError": "A version needs a name.",
+  "@projectVersionCreateNameRequiredError": {
+    "description": "Error shown when the project version creation dialog is submitted with no name",
+    "context": "Displayed under the name field of the project version creation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateNoteLabel": "Note (optional)",
+  "@projectVersionCreateNoteLabel": {
+    "description": "Label of the note field of the project version creation dialog",
+    "context": "Displayed in the project version creation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateCancelAction": "Cancel",
+  "@projectVersionCreateCancelAction": {
+    "description": "Action cancelling the project version creation",
+    "context": "Displayed in the project version creation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreateConfirmAction": "Create",
+  "@projectVersionCreateConfirmAction": {
+    "description": "Action confirming the project version creation",
+    "context": "Displayed in the project version creation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionCreationError": "The version could not be created.",
+  "@projectVersionCreationError": {
+    "description": "Error shown when capturing the project as a new version failed",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionDeletionError": "The version could not be deleted.",
+  "@projectVersionDeletionError": {
+    "description": "Error shown when deleting a project version failed",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionPreviewUnsavedChangesError": "Save your changes before viewing another version.",
+  "@projectVersionPreviewUnsavedChangesError": {
+    "description": "Error shown when a version can't be previewed because a mode still holds unsaved changes",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionPreviewUnsupportedFormatError": "This version was created by a newer version of the application: update it to open this version.",
+  "@projectVersionPreviewUnsupportedFormatError": {
+    "description": "Error shown when a version's payload was written by a later build of the app",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionPreviewError": "This version could not be opened.",
+  "@projectVersionPreviewError": {
+    "description": "Error shown when a version's payload can't be read or hydrated",
+    "context": "Displayed as a SnackBar over the workspace",
+    "type": "text",
+    "placeholders": {}
   }
 }

@@ -357,10 +357,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   drag so it never emits a bloc state per frame; the bloc only sees one
   `OcptEditorDockFractionsChangedEvent` on `onHorizontalDragEnd`. The right dock
   (`OcptEditorRightDock`, still under `lib/ui/pages/editor/widgets/`) is tabbed
-  (`OcptEditorRightDockTab { preview, syntax, inspector, metadata }`); its tab row is itself
-  clickable (`onTabSelected`), while the toolbar's preview/syntax buttons — **raw mode only**, the
-  styled mode reaches every tab through the tab row alone — additionally *open* a closed dock on
-  their tab (inspector/metadata have no toolbar button in either mode). The shell's own right-dock
+  (`OcptEditorRightDockTab { preview, syntax, inspector, metadata, versions }`); its tab row is
+  itself clickable (`onTabSelected`), while the toolbar's preview/syntax buttons — **raw mode
+  only**, the styled mode reaches every tab through the tab row alone — additionally *open* a closed
+  dock on their tab (inspector/metadata/versions have no toolbar button in either mode). The shell's
+  own right-dock
   toggle closes the dock whichever tab it shows, and reopens it on `lastRightDockTab` (the last
   tab explicitly selected, never null, `preview` by default), falling back to `syntax` when that
   tab is `preview` and the styled mode is active. Switching to styled mode auto-closes an open
@@ -373,6 +374,21 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptEditorMetadataPanel` shows the title-page fields and the script-wide statistics, read-only,
   with an "Edit…" button opening the existing title-page dialog through `OcptRouterManager`. Both
   are recomputed on the editor's existing 150 ms parse debounce, never per keystroke.
+- The `Versions` dock tab (`OcptProjectVersionsPanel`/`OcptProjectVersionCard`/
+  `OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is the one panel of the dock
+  that is about the **project** rather than the mode showing it, so it is hosted by every mode's
+  dock (`OcptEditorRightDockTab.versions` and `OcptShotListRightDockTab.versions`) and built from
+  `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
+  `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
+  `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
+  tab by mixing both in and answering the two hooks the mixin can't know —
+  `flushPendingProjectWrites` (a pending autosave/field edit must reach the working copy *before* a
+  preview swaps the database out, or it would land in the previewed version's in-memory one) and
+  `reloadFromProjectDatabase` (entering or leaving a preview replaces
+  `OcptOpenProjectModel.database`, so whatever the mode shows is read again from it). A card is
+  clicked to enter a version's read-only preview and clicked again to leave it, deletion confirms
+  inline inside the card, and `Create a version` is refused while a preview is up (the capture reads
+  the project file, i.e. a state the user isn't looking at). `Restore this version` isn't there yet.
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
   `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes (the *panel* is

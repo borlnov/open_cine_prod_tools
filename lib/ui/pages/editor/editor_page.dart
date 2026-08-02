@@ -25,10 +25,14 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_saved_t
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_title_page_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
 /// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
@@ -361,10 +365,54 @@ class _EditorViewState extends State<_EditorView> {
         statistics: state.statistics,
         onEditTitlePage: () => _requestTitlePage(context),
       ),
+      versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptEditorBloc>().add(
         OcptEditorRightDockTabSelectedEvent(tab: tab),
       ),
       onClose: () => context.read<OcptEditorBloc>().add(const OcptEditorRightDockClosedEvent()),
+    );
+  }
+
+  /// Builds the right dock's `Versions` tab: the project's named versions, the same panel every
+  /// production mode's dock hosts, wired to the events `MixinOcptProjectVersionsBloc` handles.
+  ///
+  /// `Create a version` is disabled while one is being previewed: the capture reads the project
+  /// file, so it would record a state the user isn't looking at.
+  Widget _buildVersionsPanel(BuildContext context, OcptEditorState state) =>
+      OcptProjectVersionsPanel(
+        versions: state.projectVersions,
+        previewedVersionId: state.previewedVersionId,
+        versionPendingDeletionId: state.versionPendingDeletionId,
+        onCreateRequested: state.isPreviewingVersion
+            ? null
+            : () => _requestVersionCreation(context),
+        onPreviewRequested: (versionId) => context.read<OcptEditorBloc>().add(
+          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
+        ),
+        onPreviewExitRequested: () => context.read<OcptEditorBloc>().add(
+          const OcptProjectVersionPreviewExitRequestedEvent(),
+        ),
+        onDeleteRequested: (versionId) => context.read<OcptEditorBloc>().add(
+          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
+        ),
+        onDeleteCancelled: () => context.read<OcptEditorBloc>().add(
+          const OcptProjectVersionDeletionCancelledEvent(),
+        ),
+        onDeleteConfirmed: (versionId) => context.read<OcptEditorBloc>().add(
+          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
+        ),
+      );
+
+  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
+  Future<void> _requestVersionCreation(BuildContext context) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final fields = await OcptProjectVersionCreateDialog.show(context);
+    if (fields == null) {
+      return;
+    }
+
+    bloc.add(
+      OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note),
     );
   }
 
@@ -562,6 +610,16 @@ class _EditorViewState extends State<_EditorView> {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
       context.read<OcptEditorBloc>().add(const OcptEditorIoNoticeDismissedEvent());
+    }
+
+    final versionNotice = state.projectVersionNotice;
+    if (versionNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
+        );
+      context.read<OcptEditorBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
   }
 

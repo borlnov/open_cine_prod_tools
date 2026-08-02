@@ -24,6 +24,11 @@ class OcptShotListRightDock extends StatelessWidget {
   /// The built metadata panel, shown when [activeTab] is [OcptShotListRightDockTab.metadata].
   final Widget metadataChild;
 
+  /// The built project versions panel, shown when [activeTab] is
+  /// [OcptShotListRightDockTab.versions]. The very same widget the screenplay editor's own dock
+  /// hosts: a version covers the whole project, not the shot list alone.
+  final Widget versionsChild;
+
   /// Called with a tab when its label in the tab row is clicked.
   final ValueChanged<OcptShotListRightDockTab> onTabSelected;
 
@@ -36,6 +41,7 @@ class OcptShotListRightDock extends StatelessWidget {
     required this.activeTab,
     required this.inspectorChild,
     required this.metadataChild,
+    required this.versionsChild,
     required this.onTabSelected,
     required this.onClose,
   });
@@ -66,6 +72,8 @@ class OcptShotListRightDock extends StatelessWidget {
                             tr.shotListRightDockInspectorTabLabel,
                           OcptShotListRightDockTab.metadata =>
                             tr.shotListRightDockMetadataTabLabel,
+                          OcptShotListRightDockTab.versions =>
+                            tr.shotListRightDockVersionsTabLabel,
                         },
                         isActive: activeTab == tab,
                         onTap: () => onTabSelected(tab),
@@ -87,6 +95,7 @@ class OcptShotListRightDock extends StatelessWidget {
           child: switch (activeTab) {
             OcptShotListRightDockTab.inspector => inspectorChild,
             OcptShotListRightDockTab.metadata => metadataChild,
+            OcptShotListRightDockTab.versions => versionsChild,
           },
         ),
       ],

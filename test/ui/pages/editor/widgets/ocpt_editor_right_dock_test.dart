@@ -35,6 +35,7 @@ Widget _dock({
   previewChild: const Text('preview body'),
   inspectorChild: const Text('inspector body'),
   metadataChild: const Text('metadata body'),
+  versionsChild: const Text('versions body'),
   onTabSelected: selected.add,
   onClose: () => closed.add(null),
 );
@@ -54,6 +55,7 @@ void main() {
     expect(find.text(tr.editorRightDockSyntaxTabLabel), findsOneWidget);
     expect(find.text(tr.editorRightDockInspectorTabLabel), findsOneWidget);
     expect(find.text(tr.editorRightDockMetadataTabLabel), findsOneWidget);
+    expect(find.text(tr.editorRightDockVersionsTabLabel), findsOneWidget);
   });
 
   testWidgets('the preview tab is skipped in styled mode (isPreviewTabAvailable: false)', (
@@ -87,6 +89,7 @@ void main() {
     expect(find.text('inspector body'), findsOneWidget);
     expect(find.text('metadata body'), findsNothing);
     expect(find.text('preview body'), findsNothing);
+    expect(find.text('versions body'), findsNothing);
   });
 
   testWidgets('tapping a tab label dispatches its selection', (tester) async {

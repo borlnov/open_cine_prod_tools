@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -24,10 +25,13 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
@@ -409,12 +413,54 @@ class _ShotListViewState extends State<_ShotListView> {
         sequenceDisplayNumber: sequenceDisplayNumber,
         sequenceHeading: sequenceHeading,
       ),
+      versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptShotListBloc>().add(
         OcptShotListRightDockTabSelectedEvent(tab: tab),
       ),
       onClose: () =>
           context.read<OcptShotListBloc>().add(const OcptShotListRightDockClosedEvent()),
     );
+  }
+
+  /// Builds the right dock's `Versions` tab: the project's named versions, the same panel the
+  /// screenplay mode's dock hosts, wired to the events `MixinOcptProjectVersionsBloc` handles.
+  ///
+  /// `Create a version` is disabled while one is being previewed: the capture reads the project
+  /// file, so it would record a state the user isn't looking at.
+  Widget _buildVersionsPanel(BuildContext context, OcptShotListState state) =>
+      OcptProjectVersionsPanel(
+        versions: state.projectVersions,
+        previewedVersionId: state.previewedVersionId,
+        versionPendingDeletionId: state.versionPendingDeletionId,
+        onCreateRequested: state.isPreviewingVersion
+            ? null
+            : () => _requestVersionCreation(context),
+        onPreviewRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
+        ),
+        onPreviewExitRequested: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionPreviewExitRequestedEvent(),
+        ),
+        onDeleteRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
+        ),
+        onDeleteCancelled: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionDeletionCancelledEvent(),
+        ),
+        onDeleteConfirmed: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
+        ),
+      );
+
+  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
+  Future<void> _requestVersionCreation(BuildContext context) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final fields = await OcptProjectVersionCreateDialog.show(context);
+    if (fields == null) {
+      return;
+    }
+
+    bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
   /// The display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
@@ -564,6 +610,16 @@ class _ShotListViewState extends State<_ShotListView> {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
       context.read<OcptShotListBloc>().add(const OcptShotListIoNoticeDismissedEvent());
+    }
+
+    final versionNotice = state.projectVersionNotice;
+    if (versionNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
+        );
+      context.read<OcptShotListBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
   }
 
