@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:path/path.dart' as p;
@@ -444,6 +445,111 @@ void main() {
 
       await expectLater(manager.exitPreview(), completes);
       expect(manager.currentProject!.isReadOnly, isFalse);
+    });
+
+    test('restoring puts the project back on the version, and leaves the preview', () async {
+      final version = await createDivergedProject();
+      await manager.previewVersion(version.id);
+
+      final status = await manager.restoreProjectVersion(
+        versionId: version.id,
+        safetyVersionName: "Before restoring v1 — First read",
+      );
+
+      expect(status, OcptProjectRestoreStatus.ok);
+      expect(manager.currentProject!.isReadOnly, isFalse);
+      expect(await readTextThroughFile(), "INT. HOUSE - DAY\n\nCLARA enters.");
+
+      // The state the restore replaced is a version of its own, and the project descends from the
+      // one it was put back on.
+      final versions = await manager.listProjectVersions();
+      expect(
+        versions.map((entry) => entry.name),
+        containsAll(["Before restoring v1 — First read", "v1 — First read"]),
+      );
+      expect(versions.singleWhere((entry) => entry.id == version.id).isCurrent, isTrue);
+    });
+
+    test('restoring writes the version page margins back, once it has committed', () async {
+      const versionMargins = FountainPageMargins(
+        leftInches: 1.75,
+        rightInches: 0.75,
+        topInches: 0.5,
+        bottomInches: 0.5,
+      );
+      const workingCopyMargins = FountainPageMargins(
+        leftInches: 1.5,
+        rightInches: 1,
+        topInches: 1,
+        bottomInches: 1,
+      );
+
+      await propertiesManager.pageMargins.store(versionMargins);
+      final version = await createDivergedProject();
+      await propertiesManager.pageMargins.store(workingCopyMargins);
+
+      await manager.restoreProjectVersion(versionId: version.id, safetyVersionName: "Before");
+
+      // The margins are an app-wide preference rather than project data, so they are the one part
+      // of a restore that lives outside its transaction — written only once that has committed.
+      expect(await propertiesManager.pageMargins.load(), versionMargins);
+    });
+
+    test('a restore that fails changes neither the project nor the margins', () async {
+      const workingCopyMargins = FountainPageMargins(
+        leftInches: 1.5,
+        rightInches: 1,
+        topInches: 1,
+        bottomInches: 1,
+      );
+
+      await createDivergedProject();
+      await propertiesManager.pageMargins.store(workingCopyMargins);
+
+      final status = await manager.restoreProjectVersion(
+        versionId: "no-such-version",
+        safetyVersionName: "Before",
+      );
+
+      expect(status, OcptProjectRestoreStatus.versionNotFound);
+      expect(await readTextThroughFile(), "EXT. STREET - NIGHT\n\nThe rewrite.");
+      expect(await propertiesManager.pageMargins.load(), workingCopyMargins);
+    });
+
+    test('forking restores the version and marks the branch it starts', () async {
+      final version = await createDivergedProject();
+      await manager.previewVersion(version.id);
+
+      final status = await manager.forkProjectVersion(
+        versionId: version.id,
+        safetyVersionName: "Before restoring v1 — First read",
+        forkName: "From v1 — First read",
+        forkNote: "",
+      );
+
+      expect(status, OcptProjectRestoreStatus.ok);
+      expect(manager.currentProject!.isReadOnly, isFalse);
+      expect(await readTextThroughCurrentDatabase(), "INT. HOUSE - DAY\n\nCLARA enters.");
+
+      final versions = await manager.listProjectVersions();
+      expect(versions.first.name, "From v1 — First read");
+      expect(versions.first.isCurrent, isTrue);
+    });
+
+    test('restoring with no project open reports it rather than throwing', () async {
+      expect(
+        await manager.restoreProjectVersion(versionId: "any", safetyVersionName: "Before"),
+        OcptProjectRestoreStatus.noProjectOpen,
+      );
+      expect(
+        await manager.forkProjectVersion(
+          versionId: "any",
+          safetyVersionName: "Before",
+          forkName: "From",
+          forkNote: "",
+        ),
+        OcptProjectRestoreStatus.noProjectOpen,
+      );
     });
 
     test('closing the project while previewing disposes both of its databases', () async {

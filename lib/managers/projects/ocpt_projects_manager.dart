@@ -21,10 +21,12 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:path/path.dart' as p;
@@ -370,8 +372,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       note: note,
       appVersion: _appVersion,
       deviceId: await _propertiesManager.loadOrCreateDeviceId(),
-      pageMargins:
-          await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      pageMargins: await _loadPageMargins(),
     );
   }
 
@@ -398,6 +399,93 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     await projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
   }
+
+  /// Puts the [currentProject] back into the state the version [versionId] captured, keeping the
+  /// state it leaves behind as a version of its own named [safetyVersionName].
+  ///
+  /// A preview is left first, whichever version it was showing: the working copy is about to become
+  /// something else, and a preview outliving that would go on describing a project that no longer
+  /// exists. The project model is re-emitted once the restore has committed, so every mode reloads
+  /// what it shows from the restored database.
+  ///
+  /// The page setup travels with the version (see
+  /// [OcptProjectVersionsService.restoreVersion]): the format is written by the restore's own
+  /// transaction, and the **margins are written here, after it has committed**, because they are an
+  /// app-wide preference rather than project data and cannot be rolled back with the transaction
+  /// that would have written them.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<OcptProjectRestoreStatus> restoreProjectVersion({
+    required String versionId,
+    required String safetyVersionName,
+  }) => _restore(
+    (project) async => projectVersionsService.restoreVersion(
+      database: project.fileDatabase,
+      id: versionId,
+      safetyVersionName: safetyVersionName,
+      appVersion: _appVersion,
+      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
+      pageMargins: await _loadPageMargins(),
+    ),
+  );
+
+  /// Restores the version [versionId] over the [currentProject] exactly as
+  /// [restoreProjectVersion] does, then marks the branch it starts as a new version named
+  /// [forkName], with the user's [forkNote].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<OcptProjectRestoreStatus> forkProjectVersion({
+    required String versionId,
+    required String safetyVersionName,
+    required String forkName,
+    required String forkNote,
+  }) => _restore(
+    (project) async => projectVersionsService.forkFromVersion(
+      database: project.fileDatabase,
+      id: versionId,
+      safetyVersionName: safetyVersionName,
+      forkName: forkName,
+      forkNote: forkNote,
+      appVersion: _appVersion,
+      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
+      pageMargins: await _loadPageMargins(),
+    ),
+  );
+
+  /// Runs [restoreOperation] over the [currentProject], with everything a restore and a fork share:
+  /// leaving any preview first, writing the restored margins once the transaction has committed,
+  /// and re-emitting the project so every mode reloads from it.
+  Future<OcptProjectRestoreStatus> _restore(
+    Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> Function(
+      OcptOpenProjectModel project,
+    )
+    restoreOperation,
+  ) async {
+    if (currentProject == null) {
+      return OcptProjectRestoreStatus.noProjectOpen;
+    }
+
+    await exitPreview();
+
+    final project = currentProject!;
+    final result = await restoreOperation(project);
+
+    final restoredPageSetup = result.value;
+    if (restoredPageSetup == null) {
+      return result.status;
+    }
+
+    await _propertiesManager.pageMargins.store(restoredPageSetup.margins);
+
+    _currentProject.value = project.workingCopy;
+
+    return result.status;
+  }
+
+  /// The app-wide page margins a version is measured and restored against, falling back to the
+  /// standard ones while the user has never set any.
+  Future<FountainPageMargins> _loadPageMargins() async =>
+      await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
 
   /// Registers [reporter], which answers whether the caller holds changes that haven't reached the
   /// database yet, and returns the callback that unregisters it.
