@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -12,6 +13,10 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 void main() {
+  // Refusing a write on a previewed version logs through appLogger(), which requires a global
+  // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
+  setUpAll(() => OcptGlobalManager.instance);
+
   const screenplayId = "screenplay-1";
   const service = OcptScreenplayService(
     sceneIndexService: OcptSceneIndexService(),
@@ -146,5 +151,37 @@ void main() {
     expect(pruned, hasLength(35 - OcptScreenplayService.maxSnapshotsPerScreenplay));
     // Pruning exists to bound the file's size, so a pruned row keeps nothing but its marker.
     expect(pruned.every((row) => row.fountainText.isEmpty), isTrue);
+  });
+
+  test('a write handed the read-only database of a previewed version is refused', () async {
+    final preview = OcptProjectDatabase.memory(isPreview: true);
+    addTearDown(preview.close);
+
+    await preview
+        .into(preview.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: "Draft",
+            fountainText: const Value("INT. HOUSE - DAY"),
+            updatedAt: DateTime.now(),
+          ),
+        );
+
+    await service.saveScreenplayText(
+      database: preview,
+      screenplayId: screenplayId,
+      fountainText: "EXT. STREET - NIGHT",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    await service.snapshotOnProjectOpen(database: preview, screenplayId: screenplayId);
+
+    // The user may not edit a version they are only reading, and the UI having hidden the
+    // affordance isn't what makes that true: the service refuses the write itself.
+    expect(
+      await service.loadScreenplayText(database: preview, screenplayId: screenplayId),
+      "INT. HOUSE - DAY",
+    );
+    expect(await preview.select(preview.ocptScreenplaySnapshotsTable).get(), isEmpty);
   });
 }

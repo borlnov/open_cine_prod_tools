@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -19,6 +20,10 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 FountainDocument _parse(String source) => const FountainParser().parse(source);
 
 void main() {
+  // Refusing a write on a previewed version logs through appLogger(), which requires a global
+  // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
+  setUpAll(() => OcptGlobalManager.instance);
+
   const shotListService = OcptShotListService();
   const sceneIndexService = OcptSceneIndexService();
   const screenplayService = OcptScreenplayService(
@@ -89,16 +94,16 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstId = await shotListService.createShot(
+      final firstId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
-      final secondId = await shotListService.createShot(
+      ))!;
+      final secondId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
+      ))!;
 
       final shots = await readShots();
       expect(shots, hasLength(2));
@@ -113,21 +118,21 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstId = await shotListService.createShot(
+      final firstId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
-      final secondId = await shotListService.createShot(
+      ))!;
+      final secondId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
-      final thirdId = await shotListService.createShot(
+      ))!;
+      final thirdId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
+      ))!;
 
       final keysBefore = await readSortKeys();
       await shotListService.deleteShot(database: database, shotId: firstId);
@@ -153,21 +158,21 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstId = await shotListService.createShot(
+      final firstId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
-      final secondId = await shotListService.createShot(
+      ))!;
+      final secondId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
-      final thirdId = await shotListService.createShot(
+      ))!;
+      final thirdId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
+      ))!;
 
       // Moves the first shot to the end: expected new order is second, third, first.
       final keysBefore = await readSortKeys();
@@ -193,11 +198,11 @@ Action.
 
       final ids = [
         for (var i = 0; i < 4; i++)
-          await shotListService.createShot(
+          (await shotListService.createShot(
             database: database,
             screenplayId: screenplayId,
             sceneId: sceneId,
-          ),
+          ))!,
       ];
 
       // To the head, from the tail.
@@ -221,11 +226,11 @@ INT. HOUSE - DAY
 Action.
 ''');
       final sceneId = scenes.single.id;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
+      ))!;
 
       await shotListService.updateShot(
         database: database,
@@ -250,11 +255,11 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
-      );
+      ))!;
 
       await shotListService.attachCharacter(
         database: database,
@@ -273,11 +278,11 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
-      );
+      ))!;
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Clara");
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Marc");
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Théo");
@@ -298,16 +303,16 @@ EXT. STREET - NIGHT
 
 Action.
 ''');
-      final shotA = await shotListService.createShot(
+      final shotA = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes[0].id,
-      );
-      final shotB = await shotListService.createShot(
+      ))!;
+      final shotB = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes[1].id,
-      );
+      ))!;
       await shotListService.attachCharacter(database: database, shotId: shotA, characterName: "Clara");
       await shotListService.attachCharacter(database: database, shotId: shotB, characterName: "Clara");
       await shotListService.attachCharacter(database: database, shotId: shotB, characterName: "Marc");
@@ -329,11 +334,11 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
-      );
+      ))!;
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Clara");
 
       await shotListService.replaceCharacterEverywhere(
@@ -353,11 +358,11 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
-      );
+      ))!;
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Clara");
       await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Julie");
 
@@ -380,11 +385,11 @@ INT. HOUSE - DAY #5#
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
-      );
+      ))!;
       await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
@@ -409,11 +414,11 @@ EXT. STREET - NIGHT
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes[1].id,
-      );
+      ))!;
 
       final snapshot = await shotListService.loadShotList(database: database, screenplayId: screenplayId);
       final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
@@ -474,11 +479,11 @@ Action two.
               .get();
       final streetScene = scenesBefore.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
 
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: streetScene.id,
-      );
+      ))!;
       await database
           .into(database.ocptShotCoveragesTable)
           .insert(
@@ -535,16 +540,16 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final keptId = await shotListService.createShot(
+      final keptId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
-      final deletedId = await shotListService.createShot(
+      ))!;
+      final deletedId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
-      );
+      ))!;
 
       await shotListService.attachCharacter(
         database: database,
@@ -611,11 +616,11 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
-      );
+      ))!;
 
       await shotListService.attachCharacter(
         database: database,
@@ -693,5 +698,73 @@ Action one.
       expect(sequences, hasLength(1));
       expect((sequences.single as OcptSceneShotSequence).heading, "INT. HOUSE - DAY");
     });
+  });
+
+  test('every write handed the read-only database of a previewed version is refused', () async {
+    final preview = OcptProjectDatabase.memory(isPreview: true);
+    addTearDown(preview.close);
+
+    await preview
+        .into(preview.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: "Draft",
+            updatedAt: DateTime.now(),
+          ),
+        );
+    await preview
+        .into(preview.ocptScenesTable)
+        .insert(
+          OcptScenesTableCompanion.insert(
+            id: "scene-1",
+            screenplayId: screenplayId,
+            position: 0,
+            heading: "INT. HOUSE - DAY",
+            charStart: 0,
+            charEnd: 16,
+          ),
+        );
+    await preview
+        .into(preview.ocptShotsTable)
+        .insert(
+          OcptShotsTableCompanion.insert(
+            id: "shot-1",
+            screenplayId: screenplayId,
+            sceneId: const Value("scene-1"),
+            position: 0,
+            sortKey: const Value("V"),
+            framing: const Value("Low angle"),
+          ),
+        );
+
+    final createdId = await shotListService.createShot(
+      database: preview,
+      screenplayId: screenplayId,
+      sceneId: "scene-1",
+    );
+    await shotListService.updateShot(
+      database: preview,
+      shotId: "shot-1",
+      framing: const Value("Close up"),
+    );
+    await shotListService.reorderShot(database: preview, shotId: "shot-1", newPosition: 3);
+    await shotListService.attachCharacter(
+      database: preview,
+      shotId: "shot-1",
+      characterName: "CLARA",
+    );
+    await shotListService.deleteShot(database: preview, shotId: "shot-1");
+
+    // A version the user is only reading isn't editable, and it is the service that says so: a UI
+    // bug must not be able to write a preview's shot list.
+    expect(createdId, isNull);
+
+    final shots = await preview.select(preview.ocptShotsTable).get();
+    expect(shots, hasLength(1));
+    expect(shots.single.framing, "Low angle");
+    expect(shots.single.sortKey, "V");
+    expect(shots.single.isDeleted, isFalse);
+    expect(await preview.select(preview.ocptShotCharactersTable).get(), isEmpty);
   });
 }

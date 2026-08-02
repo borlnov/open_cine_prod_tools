@@ -176,11 +176,20 @@ class OcptShotListService {
 
   /// Creates a new shot in scene [sceneId] of screenplay [screenplayId] in [database], appended at
   /// the end of the scene's current shots, and returns its freshly generated id.
-  Future<String> createShot({
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  ///
+  /// The refusal is what makes the returned id nullable: null means no shot was created, and the
+  /// caller has nothing to select.
+  Future<String?> createShot({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String sceneId,
   }) async {
+    if (database.refusesUserWrite("createShot")) {
+      return null;
+    }
+
     final existing = await _shotRowsOfGroup(
       database: database,
       screenplayId: screenplayId,
@@ -208,6 +217,8 @@ class OcptShotListService {
   /// Updates the fields of the shot [shotId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches [shotId]'s `sortKey`, `sceneId` or `orphanedHeading`: those are
   /// only ever changed by [reorderShot] and [detachShotsFromDeletedScenes].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateShot({
     required OcptProjectDatabase database,
     required String shotId,
@@ -231,6 +242,10 @@ class OcptShotListService {
     Value<bool> needsCheck = const Value.absent(),
     Value<OcptShotCheckReason?> checkReason = const Value.absent(),
   }) async {
+    if (database.refusesUserWrite("updateShot")) {
+      return;
+    }
+
     await (database.update(
       database.ocptShotsTable,
     )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).write(
@@ -265,7 +280,13 @@ class OcptShotListService {
   ///
   /// The shots left in the group keep the `sortKey` they had: removing one from an ascending run
   /// leaves the rest ascending, so a deletion writes only what it deletes.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> deleteShot({required OcptProjectDatabase database, required String shotId}) async {
+    if (database.refusesUserWrite("deleteShot")) {
+      return;
+    }
+
     await database.transaction(() async {
       await (database.update(
         database.ocptShotCoveragesTable,
@@ -291,11 +312,17 @@ class OcptShotListService {
   /// This writes **exactly one row**, whatever the size of the group and however far the shot
   /// moves. [newPosition] is clamped to the group's bounds, so moving a shot "to the end" can be
   /// expressed with any position at or beyond the group's current shot count.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> reorderShot({
     required OcptProjectDatabase database,
     required String shotId,
     required int newPosition,
   }) async {
+    if (database.refusesUserWrite("reorderShot")) {
+      return;
+    }
+
     await database.transaction(() async {
       final shot = await _getShotRow(database: database, shotId: shotId);
       final others =
@@ -328,11 +355,17 @@ class OcptShotListService {
   /// A character detached earlier left a tombstone behind, and the table's primary key is
   /// `{shotId, characterName}`: re-attaching it therefore lifts that tombstone rather than
   /// inserting a second row, which the key would refuse anyway.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String characterName,
   }) async {
+    if (database.refusesUserWrite("attachCharacter")) {
+      return;
+    }
+
     final normalized = normalizeCharacterName(characterName);
 
     await database.transaction(() async {
@@ -380,11 +413,17 @@ class OcptShotListService {
   /// Detaches [characterName] (normalised the same way [attachCharacter] does) from shot [shotId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String characterName,
   }) async {
+    if (database.refusesUserWrite("detachCharacter")) {
+      return;
+    }
+
     final normalized = normalizeCharacterName(characterName);
 
     await (database.update(database.ocptShotCharactersTable)..where(
@@ -399,11 +438,17 @@ class OcptShotListService {
   /// Only the characters that actually have to move are written: `ocptFractionalKeyRekeyPlan`
   /// leaves the longest run already in ascending order alone, so moving a single character writes
   /// a single row.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> reorderCharacters({
     required OcptProjectDatabase database,
     required String shotId,
     required List<String> orderedCharacterNames,
   }) async {
+    if (database.refusesUserWrite("reorderCharacters")) {
+      return;
+    }
+
     await database.transaction(() async {
       final rows = await _characterRowsOfShot(database: database, shotId: shotId);
       final sortKeyByName = {for (final row in rows) row.characterName: row.sortKey};
@@ -431,11 +476,17 @@ class OcptShotListService {
   /// shot" action.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> removeCharacterFromEveryShot({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String characterName,
   }) async {
+    if (database.refusesUserWrite("removeCharacterFromEveryShot")) {
+      return;
+    }
+
     final normalized = normalizeCharacterName(characterName);
     final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
     if (shotIds.isEmpty) {
@@ -457,12 +508,18 @@ class OcptShotListService {
   /// [oldCharacterName] instead of attaching a duplicate (the table's primary key is
   /// `{shotId, characterName}`), and one that only has it as a tombstone lifts that tombstone
   /// rather than inserting against the same key.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> replaceCharacterEverywhere({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String oldCharacterName,
     required String newCharacterName,
   }) async {
+    if (database.refusesUserWrite("replaceCharacterEverywhere")) {
+      return;
+    }
+
     final normalizedOld = normalizeCharacterName(oldCharacterName);
     final normalizedNew = normalizeCharacterName(newCharacterName);
     if (normalizedOld == normalizedNew) {
@@ -537,10 +594,16 @@ class OcptShotListService {
   /// any extra grouping logic at read time.
   ///
   /// Called inside `reconcile`'s own transaction: this method does not open one of its own.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> detachShotsFromDeletedScenes({
     required OcptProjectDatabase database,
     required List<OcptSceneRow> scenesAboutToBeDeleted,
   }) async {
+    if (database.refusesUserWrite("detachShotsFromDeletedScenes")) {
+      return;
+    }
+
     if (scenesAboutToBeDeleted.isEmpty) {
       return;
     }

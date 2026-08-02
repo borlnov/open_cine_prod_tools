@@ -66,10 +66,16 @@ class OcptScreenplayService {
   /// Takes the project-open safety snapshot of the screenplay [screenplayId] in [database].
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> snapshotOnProjectOpen({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
+    if (database.refusesUserWrite("snapshotOnProjectOpen")) {
+      return;
+    }
+
     final currentText = await loadScreenplayText(database: database, screenplayId: screenplayId);
 
     await database.transaction(() async {
@@ -98,12 +104,18 @@ class OcptScreenplayService {
   /// `charStart`/`charEnd` as the new text has just redefined them.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
   }) async {
+    if (database.refusesUserWrite("saveScreenplayText")) {
+      return;
+    }
+
     await database.transaction(() async {
       final previousText = await loadScreenplayText(
         database: database,

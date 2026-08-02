@@ -517,11 +517,11 @@ John walks in.
       layout.blocks.last.words.last,
     );
 
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: scene.id,
-    );
+    ))!;
 
     // Must not throw: a range built from two of the layout's words is exactly the shape addRange
     // expects, whether the two words sit in one block or in two.

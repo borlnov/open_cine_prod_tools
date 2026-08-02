@@ -55,7 +55,11 @@ class OcptShotCoverageService {
   /// The surviving range is a **new** row covering the whole span, its digest stamped from that
   /// span's current text; the rows it absorbed are tombstoned, ids included — nothing outside this
   /// table references a range by id, so no caller can be left holding a stale one.
-  Future<String> addRange({
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  ///
+  /// The refusal is what makes the returned id nullable: null means no range was added.
+  Future<String?> addRange({
     required OcptProjectDatabase database,
     required String shotId,
     required String sceneId,
@@ -63,6 +67,10 @@ class OcptShotCoverageService {
     required int endOffset,
     required String sceneText,
   }) async {
+    if (database.refusesUserWrite("addRange")) {
+      return null;
+    }
+
     if (startOffset < 0 || endOffset <= startOffset) {
       throw ArgumentError(
         "A coverage range must be non-empty and start at or after 0 "
@@ -164,24 +172,42 @@ class OcptShotCoverageService {
   /// Removes the single coverage range [rangeId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
-  Future<void> removeRange({required OcptProjectDatabase database, required String rangeId}) =>
-      (database.update(
-        database.ocptShotCoveragesTable,
-      )..where((table) => table.id.equals(rangeId))).write(
-        const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-      );
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> removeRange({
+    required OcptProjectDatabase database,
+    required String rangeId,
+  }) async {
+    if (database.refusesUserWrite("removeRange")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.id.equals(rangeId))).write(
+      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
+    );
+  }
 
   /// Removes every coverage range of shot [shotId]: the inspector's `Clear all` action.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> clearRangesOfShot({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.update(
-    database.ocptShotCoveragesTable,
-  )..where((table) => table.shotId.equals(shotId))).write(
-    const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
-  );
+  }) async {
+    if (database.refusesUserWrite("clearRangesOfShot")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.shotId.equals(shotId))).write(
+      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
+    );
+  }
 
   /// Re-checks every coverage range of screenplay [screenplayId] against [currentFountainText] (the
   /// text just saved, after `OcptSceneIndexService.reconcile` has refreshed the scenes'
@@ -200,11 +226,17 @@ class OcptShotCoverageService {
   /// has been pulled back inside its scene it fits again, so a later save would only ever see the
   /// digest mismatch, and without this rule would quietly downgrade a still-unaddressed
   /// [OcptShotCheckReason.coverageOutOfBounds] to [OcptShotCheckReason.coveredTextChanged].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> refreshStaleness({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String currentFountainText,
   }) async {
+    if (database.refusesUserWrite("refreshStaleness")) {
+      return;
+    }
+
     final shotRows =
         await (database.select(database.ocptShotsTable)..where(
               (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
@@ -292,11 +324,17 @@ class OcptShotCoverageService {
 
   /// Clears `needsCheck`/`checkReason` on shot [shotId] and re-stamps every one of its coverage
   /// ranges' digests to [currentFountainText], so the shot goes quiet until the next real change.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> markAsChecked({
     required OcptProjectDatabase database,
     required String shotId,
     required String currentFountainText,
   }) async {
+    if (database.refusesUserWrite("markAsChecked")) {
+      return;
+    }
+
     await database.transaction(() async {
       final ranges =
           await (database.select(database.ocptShotCoveragesTable)..where(
