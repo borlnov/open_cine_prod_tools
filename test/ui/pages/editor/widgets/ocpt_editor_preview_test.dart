@@ -350,6 +350,43 @@ void main() {
   );
 
   testWidgets(
+    "a simulated page's content stays inside its own sheet, blank separator lines included",
+    (tester) async {
+      final tallPanelHeight = layout.pageHeight + 200;
+      _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
+      // Enough one-line paragraphs to overrun a page several times over. Each of them renders with
+      // one blank line of trailing space, exactly like the separator `FountainScriptComposer` emits
+      // between two blocks: the paginator used to pack pages counting the text lines alone, so a
+      // page of ~27 paragraphs took twice its own height and half of it rendered below the sheet,
+      // on the panel's backdrop.
+      final document = const FountainParser().parse(
+        List.generate(120, (index) => "Action line $index.").join("\n\n"),
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: true,
+          ),
+          width: unscaledPanelWidth,
+          height: tallPanelHeight,
+        ),
+      );
+      await tester.pump();
+
+      // The first page's block column, whose height is the page's rendered content: it must fit the
+      // printable area the sheet reserves for it — its own trailing blank line aside, which falls
+      // harmlessly into the bottom margin.
+      final contentHeight = tester.getSize(find.byType(Column).first).height;
+      final printableHeight = layout.metrics.linesPerPage * layout.lineHeight;
+      expect(contentHeight, lessThanOrEqualTo(printableHeight + layout.blockSpacing + 0.5));
+    },
+  );
+
+  testWidgets(
     "a forced page break starts a fresh sheet even when the content alone would fit one page",
     (tester) async {
       final tallPanelHeight = layout.pageHeight * 2 + 200;
