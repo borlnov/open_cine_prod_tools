@@ -26,14 +26,42 @@ final String _longSampleText = List.generate(
 ///
 /// [theme] defaults to [ocptTheme]'s light variant: the preview reads its backdrop color from an
 /// [OcptSpecificColors] theme extension, which only a theme built from [ocptTheme] carries.
-Widget _wrap(Widget child, {required double width, double height = 600, ThemeData? theme}) =>
-    MaterialApp(
-      theme: theme ?? ocptTheme.lightThemeData,
-      home: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(width: width, height: height, child: child),
-      ),
-    );
+///
+/// [textScaler] stands in for the platform's font-scaling preference, which the desktop hands the
+/// app through `MediaQuery`.
+Widget _wrap(
+  Widget child, {
+  required double width,
+  double height = 600,
+  ThemeData? theme,
+  TextScaler textScaler = TextScaler.noScaling,
+}) => MaterialApp(
+  theme: theme ?? ocptTheme.lightThemeData,
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+    child: child!,
+  ),
+  home: Align(
+    alignment: Alignment.topLeft,
+    child: SizedBox(width: width, height: height, child: child),
+  ),
+);
+
+/// An action line of exactly [columns] characters, made of short lower-case words so it has plenty
+/// of wrap opportunities — and so the parser reads it as action rather than as a character cue,
+/// which an all-upper-case line would be.
+///
+/// A line this long is the interesting case for the tests below: it fills the action element's box
+/// to the very last column, so it renders on a single line if (and only if) the preview typesets it
+/// at the same fixed pitch [OcptEditorPreviewLayout] measured that box with.
+String _actionLineOfColumns(int columns) {
+  final characters = List.generate(columns, (index) => (index + 1) % 5 == 0 ? " " : "m");
+  // Never end on the space of the last group: a trailing space is trimmed at wrap time, so it
+  // would quietly make the line one column shorter than asked for.
+  characters[columns - 1] = "m";
+
+  return characters.join();
+}
 
 /// Widens the test surface well past [unscaledPanelWidth], so a `SizedBox`-constrained panel of
 /// that width actually gets it: the default 800x600 test surface would otherwise clamp it first
@@ -174,6 +202,71 @@ void main() {
     final actualGap = sheetRect.right - contentRect.right;
     expect(actualGap, closeTo(expectedGap, layout.glyphWidth * 2));
   });
+
+  testWidgets(
+    "a line filling the element's box to its last column still renders on a single line",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      // The regression this guards: the base style used to inherit, so `Text.rich` merged it onto
+      // the ambient `DefaultTextStyle` — Material's `bodyMedium`, whose `letterSpacing` widened
+      // every glyph past the fixed pitch the page's columns are measured at. This line then no
+      // longer fitted its own box and wrapped onto a second line that
+      // `OcptEditorPreviewLayout.estimatedLineCount` (which counts columns, not pixels) never
+      // counted, so with page simulation on each page rendered taller than its simulated sheet and
+      // spilled out under it.
+      final columns = layout.metrics.action.maxWidthColumns;
+      final document = const FountainParser().parse(_actionLineOfColumns(columns));
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+          ),
+          width: unscaledPanelWidth,
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.getSize(find.byType(RichText).first).height,
+        closeTo(layout.lineHeight, 1),
+      );
+    },
+  );
+
+  testWidgets(
+    "the platform's font-scaling preference never grows the page's own type",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      // Same line, same box, but with the desktop asking for larger text: the page is a simulation
+      // of paper, so its type size is the page's own. Scaling the glyphs without scaling the page
+      // would wrap and overflow it exactly the way the inherited `letterSpacing` above did.
+      final columns = layout.metrics.action.maxWidthColumns;
+      final document = const FountainParser().parse(_actionLineOfColumns(columns));
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+          ),
+          width: unscaledPanelWidth,
+          textScaler: const TextScaler.linear(1.6),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.getSize(find.byType(RichText).first).height,
+        closeTo(layout.lineHeight, 1),
+      );
+    },
+  );
 
   testWidgets(
     "caret scroll-sync still scrolls to the current line's block when the page is scaled",
