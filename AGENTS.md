@@ -17,9 +17,9 @@ read the same guide. Edit `AGENTS.md`; never replace the symlink with a copy.
 
 Open Cine Prod Tools is an **open-source suite of film-production tools** (Apache-2.0,
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
-long-term roadmap adds, in priority order: découpage technique (shot lists), scenario coverage
-per shot, shooting schedule, call sheets, budget, script supervisor reports, storyboard,
-breakdown, and a casting tracker.
+découpage technique (shot lists) and the scenario coverage per shot ship alongside it, and the
+long-term roadmap adds, in priority order: shooting schedule, call sheets, budget, script
+supervisor reports, storyboard, breakdown, and a casting tracker.
 
 - Target platforms: **Linux + Windows first**, then Android, iOS, macOS.
 - Storage: **local only** for now — one SQLite file per project (`.ocpt`, via drift), with the
@@ -84,6 +84,7 @@ breakdown, and a casting tracker.
 | 21 | Shot list mode (découpage technique, issue #19): schema v2 (`shots`, `shot_characters`, `shot_coverages`) with the first `MigrationStrategy` and the `foreign_keys` pragma, sequence panel + shot table + shot inspector, scenario coverage per shot with staleness detection (`coveredTextDigest` / `needsCheck`), XLSX export through `excel_community` | ✅ |
 | 22 | Collaboration & sync M1 — sync-ready data model (ADR 0010): schema v3 (`isDeleted` tombstones on every synchronised table, `sortKey` fractional indexes beside `position` with their backfill, the `row_field_versions` sidecar), every hard `delete()` turned into a tombstone and every read filtering them out, `deviceId` in `OcptPropertiesManager` | ✅ |
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
+| 23 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
 
 ## Ways of working
 
@@ -154,9 +155,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's
   own `toolbarActions` sit before that group. The screenplay mode is
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
-  before this refactor), the other three are stateless `OcptBudgetMode`/`OcptScheduleMode`/
-  `OcptShotListMode` widgets rendering a shared empty state — no bloc, no data, "coming in a
-  future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
+  before this refactor), the shot list mode is `OcptShotListMode`
+  (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), and the two remaining
+  ones are stateless `OcptBudgetMode`/`OcptScheduleMode` widgets rendering a shared empty state —
+  no bloc, no data, "coming in a future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
   `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
   primitives every mode's shell reuses; `OcptWorkspaceModeSwitcher` is the bottom band that
   selects the mode (all four entries always selectable, unimplemented ones only discreetly
@@ -206,10 +208,17 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   wear).
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
+- Source provenance (ADR 0012): every printed line `FountainScriptComposer` emits carries a nullable
+  `FountainScriptLine.sourceRange` — the union of its runs' own `FountainStyledRun.sourceRange`s,
+  anchored into `FountainDocument.sourceText` — plus `isSynthetic` for the `(MORE)` token and the
+  repeated `NAME (CONT'D)` cue. It is what maps a stored source offset onto a printed row, and it is
+  **best effort**: a line the composer cannot anchor verbatim gets no range rather than a wrong one,
+  so every consumer bridges over an unanchored line instead of assuming one. A position *inside* a
+  run is interpolated, never counted (`toUpperCase()` and `\`-escapes are not length-preserving).
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v3 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v4 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, `row_field_versions`), `storeDateTimeAsText: true`, scene
   reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -225,15 +234,39 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   service counts off, not that column. `row_field_versions` holds the per-column version stamps a
   merge resolves conflicts with; nothing writes to it yet (M3 of the collaboration plan does).
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
-- `OcptExportManager` (`lib/managers/export/`) owns getting a screenplay in and out of the app as
-  a plain `.fountain` file or a PDF: the native open dialog, and three services it owns (RFL18) —
-  `OcptFountainIoService` (bytes ↔ text, suggested file names), `OcptPdfExportService` (the PDF
-  renderer) and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`, a **direct**
-  dependency kept in sync with the version `act_file_transfer_manager` already resolves
-  transitively, for the native "save as" dialog both exports go through — no export ever writes
-  to a default location silently). The home page's "Import a screenplay…" action and the editor's
-  `⋮` export / export-to-PDF / import-and-replace menu all go through the manager; the screenplay
-  text itself is always written through `OcptScreenplayService.saveScreenplayText`, never by hand.
+- `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
+  app: the native open dialog, and five services it owns (RFL18) — `OcptFountainIoService`
+  (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
+  `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
+  annotated coverage PDF) and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
+  a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
+  transitively, for the native "save as" dialog every export goes through — no export ever writes
+  to a default location silently). The two PDF services share one `OcptCourierPrimeFontsLoader`
+  (handed to both by the manager, so the 4 embedded TTFs are decoded once) and one
+  `OcptScriptPagePainter`, which owns the positioned line drawing both of them start from. The home
+  page's "Import a screenplay…" action and the editor's `⋮` export / export-to-PDF /
+  import-and-replace menu all go through the manager; the screenplay text itself is always written
+  through `OcptScreenplayService.saveScreenplayText`, never by hand.
+- Scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
+  alongside every passage a shot covers. `OcptScenarioCoverageLayout.of(...)`
+  (`lib/models/ocpt_scenario_coverage_layout.dart`, pure Dart, no `pdf` and no Flutter) holds every
+  rule and every test — resolving each range's source offsets onto rows through the paginator's
+  provenance, bridging unanchored lines, emitting one `OcptCoverageBarSegment` per (range × page it
+  appears on), assigning lanes by a greedy interval colouring that fills the left margin then the
+  right and shrinks its pitch before it lets bars share the outermost lane, ticking a boundary that
+  falls mid-line, washing the passages no shot covers (`OcptCoverageGap`), and building the legend
+  and summary rows. A shot's colour is `ocptCoverageColorAt(rank)` over the 16-entry
+  `ocptCoveragePalette` (`lib/constants/`, ARGB ints so the palette stays usable on screen later),
+  ranked **within its sequence**, so an export is deterministic and no two shots of one sequence
+  share a colour. `OcptScenarioCoveragePdfService` only draws. Bar labels are
+  `<abbreviation><code>`, the abbreviation being `shots.abbreviation` — deduced from the initials
+  of the shot size's words the first time a shot size is committed while it is still empty, never
+  overwritten afterwards. The `⋮` entry opens `OcptScenarioCoverageExportDialog` (page format,
+  title page, scene numbers, legend page, summary page) through `OcptRouterManager`, and
+  `OcptShotListScenarioCoverageExportRequestedEvent` flushes pending edits before handing the
+  snapshot and the parsed document to the manager. Every heading the two extra pages print comes in
+  as an `OcptScenarioCoverageLabels`, exactly as `OcptShotListXlsxLabels` does for the workbook —
+  the manager and its services never see a `Tr`.
 - Editor: super_editor styled mode keeps **one `ParagraphNode` per non-blank Fountain source
   line**; a blank source line carries no node of its own, folded into the following node's
   `ocptBlankLinesBefore` metadata instead. Other node metadata: `blockType` (the line's

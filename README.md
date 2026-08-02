@@ -79,6 +79,9 @@ What the app does today:
   about. Each shot can be tied to the passages of the screenplay it covers, and a shot whose
   covered text has changed since is flagged for re-checking rather than silently going stale.
   Exports to XLSX.
+- A scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
+  alongside every passage each shot covers, the passages no shot covers washed grey, and optional
+  legend and summary pages - so you can see, page by page, what your découpage still leaves out.
 - `.fountain` import and export.
 - PDF export with an options dialog, page numbers, optional scene numbers, and embedded Courier
   Prime.
