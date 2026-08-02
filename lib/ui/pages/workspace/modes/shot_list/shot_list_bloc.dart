@@ -51,6 +51,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// immediately whenever the selected shot or sequence changes, when the workspace is left, and
 /// (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode
 /// leaves the widget tree for any other reason, so a pending edit is never silently dropped.
+/// Committing a shot size additionally deduces the shot's abbreviation from it while the shot has
+/// none of its own ([_deduceAbbreviationIfEmpty]), which is the only write this bloc performs that
+/// the user didn't type themselves.
 ///
 /// A shot's scenario coverage ranges are a further set of discrete, immediately-written actions:
 /// [_onCoverageWordClicked] resolves a word click against
@@ -690,19 +693,65 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
 
   /// Writes every entry of [pending] through `OcptShotListService.updateShot`, translating each
   /// field into the matching named argument (see `OcptShotListEditableField`'s own doc comment
-  /// for the mapping).
+  /// for the mapping), and deduces an abbreviation alongside every shot size committed here (see
+  /// [_deduceAbbreviationIfEmpty]).
+  ///
+  /// A shot whose abbreviation is being typed in the very same flush is left out of the deduction:
+  /// what the user is writing wins over what the shot size would have suggested, whichever of the
+  /// two entries this loop happens to reach first.
   Future<void> _writeAllPendingFields({
     required OcptOpenProjectModel project,
     required Map<(String, OcptShotListEditableField), String> pending,
   }) async {
     for (final entry in pending.entries) {
+      final (shotId, field) = entry.key;
+
       await _writeField(
         database: project.database,
-        shotId: entry.key.$1,
-        field: entry.key.$2,
+        shotId: shotId,
+        field: field,
         rawValue: entry.value,
       );
+
+      if (field == OcptShotListEditableField.shotSize &&
+          !pending.containsKey((shotId, OcptShotListEditableField.abbreviation))) {
+        await _deduceAbbreviationIfEmpty(
+          database: project.database,
+          shotId: shotId,
+          shotSize: entry.value,
+        );
+      }
     }
+  }
+
+  /// Writes onto shot [shotId] the abbreviation [ocptDeduceShotAbbreviation] reads out of the
+  /// [shotSize] just committed, unless the shot already carries one.
+  ///
+  /// Deduced once, at that moment only: an abbreviation the user has typed — or one deduced from
+  /// an earlier shot size — is never overwritten by a later edit of the shot size, and clearing
+  /// the field leaves it empty until the shot size is committed again. A shot size with no
+  /// initials to read at all (blank, or punctuation alone) deduces nothing rather than emptying
+  /// what the shot holds.
+  Future<void> _deduceAbbreviationIfEmpty({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required String shotSize,
+  }) async {
+    final stored = state.snapshot?.shotsById[shotId]?.abbreviation ?? "";
+    if (stored.trim().isNotEmpty) {
+      return;
+    }
+
+    final deduced = ocptDeduceShotAbbreviation(shotSize);
+    if (deduced.isEmpty) {
+      return;
+    }
+
+    await _shotListService.updateShot(
+      database: database,
+      shotId: shotId,
+      abbreviation: Value(deduced),
+    );
   }
 
   /// Writes a single field edit through `OcptShotListService.updateShot`.
@@ -721,6 +770,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           database: database,
           shotId: shotId,
           shotSize: Value(rawValue),
+        );
+      case OcptShotListEditableField.abbreviation:
+        await _shotListService.updateShot(
+          database: database,
+          shotId: shotId,
+          abbreviation: Value(rawValue),
         );
       case OcptShotListEditableField.framing:
         await _shotListService.updateShot(

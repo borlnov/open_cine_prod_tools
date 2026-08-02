@@ -7,9 +7,10 @@
 /// Unlike `OcptShotListColumn`, which only models the table columns the user can *hide*, this
 /// enumerates every column the spreadsheet carries: the workbook is what leaves the app, so it
 /// always writes the whole shot rather than whichever columns the table happens to show. The
-/// first fourteen values are the shot table's own columns, in its own layout order, so a reader
-/// who knows the table finds the same sheet in front of them; [notes] and [locationNotes] follow
-/// them, holding the two free-text fields the table has no room for at all.
+/// values follow the shot table's own layout order, so a reader who knows the table finds the same
+/// sheet in front of them, with [abbreviation] inserted beside the shot size it abbreviates (the
+/// table has no column of its own for it); [notes] and [locationNotes] close the sheet, holding
+/// the two free-text fields the table has no room for at all.
 enum OcptShotListXlsxColumn {
   /// The shot's derived `<scene number>/<rank>` code.
   shot,
@@ -23,6 +24,10 @@ enum OcptShotListXlsxColumn {
 
   /// The shot size ("valeur de plan").
   shotSize,
+
+  /// The short abbreviation of the shot size (`PM`, `GP`), which the scenario coverage export
+  /// labels its bars with.
+  abbreviation,
 
   /// The framing and composition.
   framing,

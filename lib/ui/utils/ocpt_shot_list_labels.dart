@@ -53,6 +53,7 @@ String ocptShotListXlsxColumnLabel(Tr tr, OcptShotListXlsxColumn column) => swit
   OcptShotListXlsxColumn.characters => tr.shotListColumnCharacters,
   OcptShotListXlsxColumn.set => tr.shotListColumnSet,
   OcptShotListXlsxColumn.shotSize => tr.shotListColumnShotSize,
+  OcptShotListXlsxColumn.abbreviation => tr.shotListColumnAbbreviation,
   OcptShotListXlsxColumn.framing => tr.shotListColumnFraming,
   OcptShotListXlsxColumn.cameraMove => tr.shotListColumnCameraMove,
   OcptShotListXlsxColumn.lens => tr.shotListColumnLens,
@@ -188,6 +189,31 @@ int? ocptParseShotDuration(String input) {
   }
 
   return (minutes * Duration.secondsPerMinute + seconds) * Duration.millisecondsPerSecond;
+}
+
+/// Deduces the short abbreviation of the shot size [shotSize]: the initials of its words, upper
+/// cased (`Plan moyen` → `PM`, `Gros plan` → `GP`, `Close-up` → `C`).
+///
+/// A "word" is whatever whitespace separates, so a hyphenated shot size counts as one — which is
+/// what makes `Close-up` a `C` rather than a `CU`, matching how a French crew writes the same
+/// abbreviations. A word carrying no letter or digit at all (a lone dash, a bracket) contributes
+/// nothing, and a shot size made of nothing but those deduces to an empty abbreviation, which the
+/// caller reads as "nothing to deduce" rather than writing it.
+///
+/// Only ever applied to a shot whose abbreviation is still empty, and only at the moment its shot
+/// size is committed: an abbreviation the user has typed is theirs, and editing the shot size
+/// afterwards never overwrites it.
+String ocptDeduceShotAbbreviation(String shotSize) {
+  final initials = StringBuffer();
+
+  for (final word in shotSize.split(RegExp(r"\s+"))) {
+    final initial = RegExp(r"[\p{L}\p{N}]", unicode: true).firstMatch(word)?.group(0);
+    if (initial != null) {
+      initials.write(initial.toUpperCase());
+    }
+  }
+
+  return initials.toString();
 }
 
 /// The formatters the shot inspector's estimated-duration field is built with: what `mm:ss` is

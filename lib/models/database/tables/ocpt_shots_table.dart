@@ -90,6 +90,16 @@ class OcptShotsTable extends Table {
   /// The shot size ("valeur de plan"), free text.
   TextColumn get shotSize => text().withDefault(const Constant(''))();
 
+  /// The short abbreviation of [shotSize] (`PM` for a "Plan moyen", `GP` for a "Gros plan"), free
+  /// text, empty until deduced or typed.
+  ///
+  /// It exists because [shotSize] is deliberately free text and the shot **code** is only
+  /// `<scene number>/<rank>`: neither of them gives the two or three characters a document
+  /// annotating the screenplay in its margins has room for. The scenario coverage export labels
+  /// each of its bars `<abbreviation><code>` (`PM1/1`) when a shot has one, and `<code>` alone
+  /// when it hasn't.
+  TextColumn get abbreviation => text().withDefault(const Constant(''))();
+
   /// The framing and composition ("angle et composition du cadre"), free text.
   TextColumn get framing => text().withDefault(const Constant(''))();
 

@@ -412,6 +412,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
     return switch (field) {
       OcptShotListEditableField.shotSize => shot.shotSize,
+      OcptShotListEditableField.abbreviation => shot.abbreviation,
       OcptShotListEditableField.framing => shot.framing,
       OcptShotListEditableField.cameraMove => shot.cameraMove,
       OcptShotListEditableField.lens => shot.lens,

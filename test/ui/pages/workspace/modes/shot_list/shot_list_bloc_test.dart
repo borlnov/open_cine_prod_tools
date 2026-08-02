@@ -626,6 +626,69 @@ void main() {
     await bloc.close();
   });
 
+  test('committing a shot size deduces the abbreviation once, then never again', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Plan moyen",
+      ),
+    );
+    var state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Plan moyen");
+    expect(state.selectedShot!.abbreviation, "PM");
+
+    // A later shot size never overwrites the abbreviation the shot already carries.
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Gros plan",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Gros plan");
+    expect(state.selectedShot!.abbreviation, "PM");
+
+    await bloc.close();
+  });
+
+  test('an abbreviation typed in the same flush wins over the deduced one', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = created.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Plan moyen",
+      ),
+    );
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.abbreviation,
+        rawValue: "PMS",
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Plan moyen");
+    expect(state.selectedShot!.abbreviation, "PMS");
+
+    await bloc.close();
+  });
+
   test('selecting another shot flushes a pending field edit immediately', () async {
     await writeScreenplay(twoSceneText);
 

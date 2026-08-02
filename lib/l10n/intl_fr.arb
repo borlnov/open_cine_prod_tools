@@ -198,6 +198,7 @@
   "shotListColumnCharacters": "Personnages",
   "shotListColumnSet": "Décor",
   "shotListColumnShotSize": "Valeur de plan",
+  "shotListColumnAbbreviation": "Abréviation",
   "shotListColumnFraming": "Cadre et composition",
   "shotListColumnCameraMove": "Mouvement d'appareil",
   "shotListColumnLens": "Focale",

@@ -139,6 +139,7 @@ class OcptShotListXlsxExportService {
     OcptShotListXlsxColumn.characters => _textOrNull(shot.characters.join(", ")),
     OcptShotListXlsxColumn.set => _textOrNull(_setOf(sequence: sequence, shot: shot)),
     OcptShotListXlsxColumn.shotSize => _textOrNull(shot.shotSize),
+    OcptShotListXlsxColumn.abbreviation => _textOrNull(shot.abbreviation),
     OcptShotListXlsxColumn.framing => _textOrNull(shot.framing),
     OcptShotListXlsxColumn.cameraMove => _textOrNull(shot.cameraMove),
     OcptShotListXlsxColumn.lens => _textOrNull(shot.lens),

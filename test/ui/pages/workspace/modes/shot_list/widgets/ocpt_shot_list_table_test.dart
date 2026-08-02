@@ -57,6 +57,7 @@ OcptShot _buildShot({
   orphanedHeading: null,
   position: 0,
   shotSize: shotSize,
+  abbreviation: "",
   framing: "Eye level",
   cameraMove: "Static",
   lens: lens,

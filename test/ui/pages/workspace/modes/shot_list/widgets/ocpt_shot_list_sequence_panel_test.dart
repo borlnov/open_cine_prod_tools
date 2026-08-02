@@ -40,6 +40,7 @@ OcptShot _buildShot({
   orphanedHeading: orphanedHeading,
   position: 0,
   shotSize: shotSize,
+  abbreviation: "",
   framing: "",
   cameraMove: "",
   lens: "",

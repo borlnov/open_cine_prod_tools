@@ -231,11 +231,13 @@ Action.
         database: database,
         shotId: shotId,
         shotSize: const Value("CU"),
+        abbreviation: const Value("GP"),
         notes: const Value("Watch the eyeline."),
       );
 
       final shot = (await readShots()).single;
       expect(shot.shotSize, "CU");
+      expect(shot.abbreviation, "GP");
       expect(shot.notes, "Watch the eyeline.");
       expect(shot.framing, ""); // untouched, still its column default
     });

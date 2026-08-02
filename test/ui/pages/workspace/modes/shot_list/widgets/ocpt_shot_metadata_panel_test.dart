@@ -31,6 +31,7 @@ OcptShot _buildShot({List<String> characters = const [], String? shootingDay, in
       orphanedHeading: null,
       position: 0,
       shotSize: "Wide shot",
+      abbreviation: "WS",
       framing: "Eye level",
       cameraMove: "Static",
       lens: "35 mm",

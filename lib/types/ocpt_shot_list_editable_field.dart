@@ -19,6 +19,10 @@ enum OcptShotListEditableField {
   /// Maps to `updateShot`'s `shotSize`.
   shotSize,
 
+  /// Maps to `updateShot`'s `abbreviation`. Deduced from [shotSize] the first time that field is
+  /// committed while this one is still empty, see `ocptDeduceShotAbbreviation`.
+  abbreviation,
+
   /// Maps to `updateShot`'s `framing`.
   framing,
 

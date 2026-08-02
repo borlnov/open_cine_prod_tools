@@ -1484,6 +1484,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListColumnAbbreviation": "Abbreviation",
+  "@shotListColumnAbbreviation": {
+    "description": "Header of the shot size abbreviation column",
+    "context": "Displayed in the shot inspector and in the exported shot list workbook",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListColumnFraming": "Framing & composition",
   "@shotListColumnFraming": {
     "description": "Header of the framing and composition column",
