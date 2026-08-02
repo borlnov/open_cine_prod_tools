@@ -374,9 +374,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // i.e. on top of the white page in the page-simulation branch below. Suppressing it here and
     // painting a single explicit `Scrollbar` around the whole panel instead (both branches, so the
     // behaviour is identical with page simulation on or off) keeps the thumb in the panel's gutter.
-    final editorWithoutImplicitScrollbar = ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: editor,
+    //
+    // `withNoTextScaling` pins the page's type size to the page's own: `SuperText` otherwise falls
+    // back to `MediaQuery.textScalerOf`, so a desktop font-scaling preference would grow every
+    // glyph without growing the page it is typeset on — the lines would wrap early and grow taller
+    // than the `OcptEditorPreviewLayout` metrics `computeOcptStyledPagination` sized each simulated
+    // sheet with, spilling out under its bottom edge. The raw preview pins it the same way, for the
+    // same reason (see `OcptEditorPreviewBlock`).
+    final editorWithoutImplicitScrollbar = MediaQuery.withNoTextScaling(
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: editor,
+      ),
     );
 
     if (!widget.isPageSimulationEnabled) {
@@ -415,10 +424,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       controller: _pageScrollController,
       child: ColoredBox(
         color: theme.colorScheme.surface,
-        child: Center(
-          child: SizedBox(
-            width: layout.pageWidth,
-            child: Stack(
+        child: LayoutBuilder(
+          builder: (context, constraints) => _scaledToFit(
+            constraints: constraints,
+            pageWidth: layout.pageWidth,
+            page: Stack(
               children: [
                 Positioned.fill(
                   child: ListenableBuilder(
@@ -454,6 +464,46 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Lays [page] out at its true [pageWidth] and, when [constraints] are narrower than that, scales
+  /// the whole thing down to fit rather than letting it be squeezed.
+  ///
+  /// A page whose width is squeezed is not a smaller page: every block's `Styles.maxWidth` is an
+  /// absolute pixel width taken from the page metrics, so a narrower box makes each line wrap several
+  /// columns early, and those surplus lines make every simulated page render taller than the sheet
+  /// `computeOcptStyledPagination` sized for it — the text then runs out under the sheet's bottom
+  /// edge, page after page. Scaling instead keeps the page's proportions, its margins and its wrap
+  /// points exactly right at any panel width, which is what the raw preview already does
+  /// (`OcptEditorPreview`, whose doc comment explains why fitting beats cropping here).
+  ///
+  /// [BoxConstraints.maxHeight] is divided by the same scale so the scaled-down viewport still fills
+  /// the panel vertically, and this must be a [FittedBox] rather than a [Transform.scale] around a
+  /// wide [SizedBox]: under the tight width constraint the panel hands down, a plain [SizedBox]
+  /// silently clamps back to that width instead of achieving the page's own (see `OcptEditorPreview`
+  /// for the same trap).
+  Widget _scaledToFit({
+    required BoxConstraints constraints,
+    required double pageWidth,
+    required Widget page,
+  }) {
+    final sizedPage = SizedBox(width: pageWidth, child: page);
+    if (constraints.maxWidth >= pageWidth) {
+      return Center(child: sizedPage);
+    }
+
+    final scale = constraints.maxWidth / pageWidth;
+    return FittedBox(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: pageWidth,
+        // Only when the panel actually bounds this editor's height, which is what a workspace dock
+        // row does; left to the child otherwise, since dividing an unbounded height by the scale
+        // would size the box to infinity.
+        height: constraints.hasBoundedHeight ? constraints.maxHeight / scale : null,
+        child: sizedPage,
       ),
     );
   }

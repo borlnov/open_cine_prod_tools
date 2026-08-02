@@ -556,6 +556,36 @@ void main() {
       expect(leftGap, closeTo(layout.marginLeft, 0.5));
       expect(rightGap, closeTo(layout.marginRight, 0.5));
     });
+
+    testWidgets("a panel narrower than the page scales the page down instead of squeezing it", (
+      tester,
+    ) async {
+      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+      // Narrower than the page on purpose — what the centre panel actually is once both workspace
+      // docks are open. The regression this guards: the page used to be laid out at whatever width
+      // the panel offered, and since every element's `Styles.maxWidth` is an absolute pixel width
+      // taken from the page metrics, each line then wrapped several columns early. Those surplus
+      // lines made every page render taller than the sheet `computeOcptStyledPagination` sized for
+      // it, and the text ran out under the sheet's bottom edge, page after page.
+      final narrowPanelWidth = layout.pageWidth / 2;
+      tester.view.physicalSize = Size(narrowPanelWidth, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpStandaloneEditor(tester, "Some action text.", isPageSimulationEnabled: true);
+
+      // The editor's own box keeps the page's geometry (`getSize` reports it before the scale),
+      // while its on-screen bounds (`getRect`, after it) fit inside the narrow panel.
+      const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+      final unscaledWidth = layout.pageWidth - layout.marginRight + inset * 2;
+      expect(tester.getSize(find.byType(SuperEditor)).width, closeTo(unscaledWidth, 0.5));
+      expect(
+        tester.getRect(find.byType(SuperEditor)).width,
+        closeTo(unscaledWidth / 2, 0.5),
+      );
+      expect(tester.getRect(find.byType(SuperEditor)).right, lessThanOrEqualTo(narrowPanelWidth + 0.5));
+    });
   });
 
   group("title page", () {
