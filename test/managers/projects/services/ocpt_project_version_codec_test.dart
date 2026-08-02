@@ -270,6 +270,130 @@ void main() {
     });
   });
 
+  group('OcptProjectVersionCodec contentDigest', () {
+    test('is stable across two captures of the same unchanged state', () {
+      expect(codec.contentDigest(buildRichPayload()), codec.contentDigest(buildRichPayload()));
+    });
+
+    test('is insensitive to the order SQLite happened to return rows in', () {
+      final payload = buildRichPayload();
+      final reordered = OcptProjectVersionPayload(
+        screenplays: payload.screenplays.reversed.toList(),
+        scenes: payload.scenes.reversed.toList(),
+        shots: payload.shots.reversed.toList(),
+        shotCharacters: payload.shotCharacters.reversed.toList(),
+        shotCoverages: payload.shotCoverages.reversed.toList(),
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+      );
+
+      expect(codec.contentDigest(payload), codec.contentDigest(reordered));
+    });
+
+    test('ignores rowFieldVersions: the per-column stamps play no part in the content', () {
+      final payload = buildRichPayload();
+      final withDifferentStamps = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        rowFieldVersions: const [
+          OcptRowFieldVersionRow(
+            targetTableName: "shots",
+            rowId: "shot-1",
+            columnName: "framing",
+            version: 99,
+            deviceId: "device-9",
+          ),
+        ],
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+      );
+
+      expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
+    });
+
+    test('ignores the page margins: only the page format is project content', () {
+      final payload = buildRichPayload();
+      final withDifferentMargins = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: OcptPageSetup(
+          format: payload.pageSetup.format,
+          margins: const FountainPageMargins(
+            leftInches: 2,
+            rightInches: 2,
+            topInches: 2,
+            bottomInches: 2,
+          ),
+        ),
+        settingsJson: payload.settingsJson,
+      );
+
+      expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
+    });
+
+    test('changes when a screenplay is edited', () {
+      final payload = buildRichPayload();
+      final edited = OcptProjectVersionPayload(
+        screenplays: [
+          payload.screenplays.first.copyWith(fountainText: "INT. HOUSE - DAY\n\nCLARA leaves."),
+          payload.screenplays.last,
+        ],
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
+    });
+
+    test('changes when a row is tombstoned', () {
+      final payload = buildRichPayload();
+      final tombstoned = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: [payload.shots.first.copyWith(isDeleted: true), payload.shots.last],
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
+    });
+
+    test('changes when the page format changes', () {
+      final payload = buildRichPayload();
+      final reformatted = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: OcptPageSetup(
+          format: OcptPageFormat.usLetter,
+          margins: payload.pageSetup.margins,
+        ),
+        settingsJson: payload.settingsJson,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
+    });
+  });
+
   group('OcptProjectVersionCodec format handling', () {
     /// The encoded rich payload, with its declared format replaced by [payloadFormat].
     String encodedWithFormat(int payloadFormat) {

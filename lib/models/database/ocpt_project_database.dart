@@ -148,7 +148,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
-  /// current declarations, so they carry both generations of columns already.
+  /// current declarations, so they carry both generations of columns already. The v5 step needs no
+  /// such guard: [OcptProjectVersionsTable] has never existed in a build a user could have run, so
+  /// it is always created here rather than altered, and `project_info` has existed since version 1,
+  /// so it can always be given its new pointer.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise

@@ -72,6 +72,20 @@ class OcptProjectVersionsTable extends Table {
   /// on every version already stored in users' files.
   TextColumn get createdByDeviceId => text()();
 
+  /// The SHA-256 hex digest `OcptProjectVersionCodec.contentDigest` computed over [payload] at
+  /// capture time — the primitive both "is the working copy the same as this version?" and a
+  /// restore's deduplicated safety version rest on.
+  ///
+  /// Deliberately **not part of [payload]**: it describes the payload, and recomputing it from the
+  /// stored bytes is one call away whenever it is needed, so keeping a second copy inside the JSON
+  /// itself would only be one more place for the two to drift apart.
+  ///
+  /// Null on every version created before this column existed — [payloadFormat] didn't change, so
+  /// nothing upgrades an old row to carry one. A null digest reads as "unknown", which resolves to
+  /// *modified* wherever it is compared: the fail-safe direction, and it costs one redundant safety
+  /// version at most, once, per pre-existing project.
+  TextColumn get contentDigest => text().nullable()();
+
   /// {@macro drift.Table.primaryKey}
   @override
   Set<Column> get primaryKey => {id};

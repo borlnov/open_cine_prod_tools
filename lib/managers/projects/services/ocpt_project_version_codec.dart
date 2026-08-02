@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:crypto/crypto.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -14,6 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// The single place that knows the shape of `project_versions.payload`: it turns an
 /// [OcptProjectVersionPayload] into the JSON text stored in a version's row, and back.
@@ -297,6 +300,71 @@ class OcptProjectVersionCodec {
       appLogger().e("The project version payload isn't valid JSON: $error");
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     }
+  }
+
+  /// The SHA-256 hex digest of [payload]'s canonical *content* — the primitive
+  /// `OcptProjectVersionsService` builds both "is the working copy the same as this version?" and
+  /// a restore's deduplicated safety version on top of. Stored on the row as
+  /// `project_versions.contentDigest`, never inside [payload] itself: it describes the payload
+  /// rather than being part of it, so keeping a second copy of it in the JSON would only be one
+  /// more place for the two to drift apart.
+  ///
+  /// What goes in and what is left out, and why — matching `OcptProjectVersionsTable.contentDigest`
+  /// exactly:
+  ///
+  /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages` — every column
+  ///   of each — plus `pageSetup.format` and `settingsJson`. This is "the project", as a user
+  ///   would describe it;
+  /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
+  ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
+  ///   project state.
+  ///
+  /// **Canonical.** `OcptProjectVersionsService._capturePayload` issues its `select`s with no
+  /// `orderBy`, so SQLite's row order is never something either side of a comparison may rely on —
+  /// and sorting happens here, rather than in that capture, precisely so the bytes actually stored
+  /// in `project_versions.payload` stay untouched. Each table's rows are sorted by primary key (a
+  /// composite one, `shotCharacters`', joined the same way [ocptCompositeRowStampKey] joins a
+  /// version stamp's `rowId`), and each row's own JSON map has its keys sorted too, so two
+  /// captures of the same state always hash the same regardless of the order SQLite happened to
+  /// return rows in.
+  String contentDigest(OcptProjectVersionPayload payload) {
+    final canonical = <String, Object?>{
+      _screenplaysKey: _canonicalRows(
+        payload.screenplays,
+        primaryKeyOf: (row) => row.id,
+        toJson: _screenplayToJson,
+      ),
+      _scenesKey: _canonicalRows(payload.scenes, primaryKeyOf: (row) => row.id, toJson: _sceneToJson),
+      _shotsKey: _canonicalRows(payload.shots, primaryKeyOf: (row) => row.id, toJson: _shotToJson),
+      _shotCharactersKey: _canonicalRows(
+        payload.shotCharacters,
+        primaryKeyOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
+        toJson: _shotCharacterToJson,
+      ),
+      _shotCoveragesKey: _canonicalRows(
+        payload.shotCoverages,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shotCoverageToJson,
+      ),
+      _pageFormatKey: payload.pageSetup.format.name,
+      _settingsJsonKey: payload.settingsJson,
+    };
+
+    return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
+  }
+
+  /// [rows], sorted by [primaryKeyOf] and each turned into a JSON map (through the same
+  /// `_screenplayToJson`-shaped serializer [encode] itself uses, so an enum column comes out as
+  /// the plain string `jsonEncode` can write rather than the `TypeConverter`'s own Dart value)
+  /// whose keys are themselves sorted — the two orderings [contentDigest] needs to be canonical.
+  static List<Map<String, dynamic>> _canonicalRows<D>(
+    List<D> rows, {
+    required String Function(D row) primaryKeyOf,
+    required Map<String, dynamic> Function(D row) toJson,
+  }) {
+    final sortedRows = [...rows]..sort((a, b) => primaryKeyOf(a).compareTo(primaryKeyOf(b)));
+
+    return [for (final row in sortedRows) SplayTreeMap<String, dynamic>.of(toJson(row))];
   }
 
   /// Replays the [_payloadUpgrades] steps that take [json], written in [payloadFormat], up to

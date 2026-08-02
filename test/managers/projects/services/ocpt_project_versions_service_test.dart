@@ -240,6 +240,17 @@ void main() {
       expect(payload.pageSetup.margins, margins);
       expect(payload.settingsJson, '{"someSetting":true}');
     });
+
+    test("stamps the row with the content digest of the payload it just captured", () async {
+      await insertScene(id: "scene-1");
+      await insertShot(id: "shot-1", sceneId: "scene-1");
+
+      final version = await createVersion();
+      final payload = await readPayload(version.id);
+
+      final row = await database.select(database.ocptProjectVersionsTable).getSingle();
+      expect(row.contentDigest, codec.contentDigest(payload));
+    });
   });
 
   group("listVersions", () {

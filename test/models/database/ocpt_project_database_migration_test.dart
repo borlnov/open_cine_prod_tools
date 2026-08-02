@@ -50,6 +50,22 @@ CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFER
 CREATE TABLE "row_field_versions" ("table_name" TEXT NOT NULL, "row_id" TEXT NOT NULL, "column_name" TEXT NOT NULL, "version" INTEGER NOT NULL, "device_id" TEXT NOT NULL, PRIMARY KEY ("table_name", "row_id", "column_name"));
 ''';
 
+// And for schema version 4: every table of version 3, `shots` gaining the `abbreviation` column at
+// the end, where `ALTER TABLE … ADD COLUMN` puts it. This is the shape `v0.1.0-alpha.2` shipped and
+// stamped `PRAGMA user_version = 4` into: version 4 belongs to the scenario coverage export's
+// abbreviation, and never to the project versions, which land in version 5 whatever the file
+// carried before.
+const _v4Ddl = '''
+CREATE TABLE "project_info" ("id" INTEGER NOT NULL DEFAULT 1, "name" TEXT NOT NULL, "created_at" TEXT NOT NULL, "app_version_at_creation" TEXT NOT NULL, "page_format" TEXT NOT NULL, "settings_json" TEXT NULL, PRIMARY KEY ("id"));
+CREATE TABLE "screenplays" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "fountain_text" TEXT NOT NULL DEFAULT '', "updated_at" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "screenplay_snapshots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "created_at" TEXT NOT NULL, "reason" TEXT NOT NULL, "fountain_text" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "scenes" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "position" INTEGER NOT NULL, "heading" TEXT NOT NULL, "scene_number" TEXT NULL, "char_start" INTEGER NOT NULL, "char_end" INTEGER NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "scene_id" TEXT NULL REFERENCES scenes (id), "orphaned_heading" TEXT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "shot_size" TEXT NOT NULL DEFAULT '', "framing" TEXT NOT NULL DEFAULT '', "camera_move" TEXT NOT NULL DEFAULT '', "lens" TEXT NOT NULL DEFAULT '', "recording_format" TEXT NOT NULL DEFAULT '', "estimated_duration_ms" INTEGER NULL, "shooting_day" TEXT NULL, "planned_takes" INTEGER NULL, "sound" TEXT NOT NULL DEFAULT '', "status" TEXT NOT NULL DEFAULT 'toShoot', "difficulty_set" INTEGER NOT NULL DEFAULT 1, "difficulty_camera" INTEGER NOT NULL DEFAULT 1, "difficulty_acting" INTEGER NOT NULL DEFAULT 1, "difficulty_sound" INTEGER NOT NULL DEFAULT 1, "notes" TEXT NOT NULL DEFAULT '', "location_notes" TEXT NOT NULL DEFAULT '', "needs_check" INTEGER NOT NULL DEFAULT 0 CHECK ("needs_check" IN (0, 1)), "check_reason" TEXT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "abbreviation" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("shot_id", "character_name"));
+CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFERENCES shots (id), "scene_id" TEXT NOT NULL REFERENCES scenes (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "covered_text_digest" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "row_field_versions" ("table_name" TEXT NOT NULL, "row_id" TEXT NOT NULL, "column_name" TEXT NOT NULL, "version" INTEGER NOT NULL, "device_id" TEXT NOT NULL, PRIMARY KEY ("table_name", "row_id", "column_name"));
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -124,8 +140,9 @@ void main() {
   }
 
   /// Asserts that the version 5 shape is in place and usable in [database]: the `project_versions`
-  /// table accepts a row, and `project_info.current_version_id` — added by the same step — accepts
-  /// a pointer to it.
+  /// table accepts a row, `project_info.current_version_id` — added by the same step — accepts a
+  /// pointer to it, and the version's `content_digest` defaults to null for a freshly inserted row
+  /// that didn't set it.
   Future<void> expectProjectVersionsAreUsable(OcptProjectDatabase database) async {
     await database
         .into(database.ocptProjectVersionsTable)
@@ -149,6 +166,7 @@ void main() {
     final version = await database.select(database.ocptProjectVersionsTable).getSingle();
     expect(version.name, "v1 — First read");
     expect(version.note, "");
+    expect(version.contentDigest, isNull);
 
     final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
     expect(projectInfo.currentVersionId, "version1");
@@ -415,6 +433,40 @@ void main() {
     expect(projectInfoBefore.currentVersionId, isNull);
 
     // (d) the version 5 shape is in place and usable, and the file now says version 5.
+    await expectProjectVersionsAreUsable(database);
+    expect(await readSchemaVersion(database), 5);
+
+    await database.close();
+  });
+
+  test('a v4 database written by the alpha still opens, gaining the project versions', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v4.ocpt');
+
+    // The file `v0.1.0-alpha.2` leaves behind: the abbreviation column is what its version 4 means,
+    // and it has never heard of the project versions. Opening it must run the version 5 step alone,
+    // creating `project_versions` rather than altering a table that isn't there.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v4Ddl);
+    legacyDb.execute('PRAGMA user_version = 4;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute(
+      "INSERT INTO shots (id, screenplay_id, scene_id, position, sort_key, shot_size, "
+      "abbreviation) VALUES ('shot-a', 's1', 'scene1', 0, 'V', 'Plan moyen', 'PM');",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived, its abbreviation included: the version 4 step
+    // is skipped, so nothing tries to add a column the file already carries.
+    await expectCommonRowsSurvived(database);
+
+    final shot = await database.select(database.ocptShotsTable).getSingle();
+    expect(shot.id, "shot-a");
+    expect(shot.shotSize, "Plan moyen");
+    expect(shot.abbreviation, "PM");
+
+    // (b) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
     expect(await readSchemaVersion(database), 5);
 

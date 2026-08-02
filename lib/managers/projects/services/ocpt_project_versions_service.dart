@@ -87,7 +87,10 @@ class OcptProjectVersionsService {
   ///
   /// [appVersion] and [deviceId] are recorded on the row for provenance; [pageMargins] completes
   /// the page setup the version is measured and, later, restored against — the format is project
-  /// data, the margins are the app-wide preference, and only the caller knows the latter.
+  /// data, the margins are the app-wide preference, and only the caller knows the latter. The row
+  /// is also stamped with `OcptProjectVersionCodec.contentDigest` of the very payload it stores,
+  /// so a later caller can tell whether the working copy has drifted from this version without
+  /// decoding its payload back out.
   ///
   /// The capture, the insertion and the pointer update all happen in one transaction, so a version
   /// can never describe a project state that never existed.
@@ -119,6 +122,7 @@ class OcptProjectVersionsService {
               payload: _codec.encode(payload),
               summaryJson: jsonEncode(summary.toJson()),
               createdByDeviceId: deviceId,
+              contentDigest: Value(_codec.contentDigest(payload)),
             ),
           );
 
