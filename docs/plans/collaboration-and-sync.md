@@ -105,8 +105,9 @@ connection except while a version is being previewed, and that difference is the
 changeset arriving while the user reads an old version belongs to the working copy, not to the
 read-only replica on screen. For the same reason, the `isReadOnly` guards in the domain services
 are scoped to user edits and must never swallow an incoming merge — see
-`docs/plans/project-versions.md` §4.3.1 and §4.4. If versions have not shipped yet, both slots
-exist and are the same connection, and nothing here changes.
+`OcptProjectDatabase.refusesUserWrite`, which asks "was this call handed the preview database?"
+rather than "is this project read-only?". Both slots already exist and are the same connection
+outside a preview, so nothing here changes.
 
 ### 3.3 Schema v3
 
@@ -115,26 +116,25 @@ ones, the `row_field_versions` sidecar table, and a `deviceId` in `OcptPropertie
 migration is additive, as ADR 0007 requires, and backfills `sortKey` from the existing `position`
 ordering.
 
-**This claims schema v3, and `docs/plans/project-versions.md` claims v4.** Both plans originally
-claimed v3; M1 here ships first, for the reasons that plan's §0 gives, so it keeps the number. If
-that order ever changes, the numbers swap with it — the two are a single sequence, and nothing else
-about either plan depends on which is which.
+**This claims schema v3; project versions took v4 on top of it.** M1 here shipped first, so it
+keeps the number: the version payload codec freezes a column list into files on users' disks, and a
+restore has to be written against tombstones and version stamps rather than against a bulk delete —
+both would have been written twice in the other order.
 
 ### 3.4 What synchronising does *not* cover
 
 Two tables are named here so no agent has to guess later.
 
-`scenes` is derived and recomputed, never synchronised (ADR 0010). `project_versions`, once
-`docs/plans/project-versions.md` ships, is **local to a replica**: a version is one person's
-working history, its payload is hundreds of kilobytes, and pushing those through the changeset log
-would dominate the traffic for no collaborative gain (decision 10 of that plan). `project_info`'s
-`currentVersionId` is local for the same reason — a restore on one machine must not move another
-machine's pointer.
+`scenes` is derived and recomputed, never synchronised (ADR 0010). `project_versions` is **local
+to a replica**: a version is one person's working history, its payload is hundreds of kilobytes, and
+pushing those through the changeset log would dominate the traffic for no collaborative gain.
+`project_info`'s `currentVersionId` is local for the same reason — a restore on one machine must not
+move another machine's pointer.
 
-A restore is the one operation from that plan this one has to know about. It rewrites most of the
-project in a single transaction, and it is written — from its own first milestone, before any sync
-code exists — as tombstones plus per-column stamps rather than a delete-and-reinsert, so it merges
-like any other edit. Two later hooks follow from it:
+A restore is the one project-versions operation this plan has to know about. It rewrites most of the
+project in a single transaction, and it is already written — before any sync code exists — as
+tombstones plus per-column stamps rather than a delete-and-reinsert, so it merges like any other
+edit. Two later hooks follow from it:
 
 - **M3** must have a test for it: a restore on one replica converging correctly against a replica
   that was offline throughout, including rows the restore tombstoned.
@@ -175,9 +175,9 @@ a reorder writing exactly one row.
 No sync, no network, no UI. This milestone is worth shipping on its own even if nothing after it
 is ever built.
 
-**It also gates `docs/plans/project-versions.md` entirely** (that plan's §0): the version payload
-codec freezes a column list into files on users' disks, and a restore is a bulk delete — both would
-have to be written twice if versions shipped first, and the payloads already stored would need
+**It also gated the project versions step entirely**: the version payload codec freezes a column
+list into files on users' disks, and a restore would have been a bulk delete — both would have had
+to be written twice in the other order, and the payloads already stored would have needed
 migrating.
 
 ### M2 — The app on a tablet

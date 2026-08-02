@@ -430,10 +430,9 @@ class OcptProjectVersionsService {
   /// Reads the version stamps of the rows the payload carries.
   ///
   /// Scoped by table rather than row by row, which comes to the same thing: a capture takes every
-  /// row of [_payloadTableNames], so every stamp of those tables describes a row the payload holds.
-  /// Scoping by row id would additionally need the encoding `shot_characters`' composite key is
-  /// written with, which belongs to the changeset engine that writes stamps — and which doesn't
-  /// exist yet.
+  /// row of [_payloadTableNames], so every stamp of those tables describes a row the payload holds
+  /// — and it saves matching each stamp's [OcptRowFieldVersionRow.rowId] against a composite key
+  /// rebuilt through [ocptCompositeRowStampKey].
   Future<List<OcptRowFieldVersionRow>> _captureRowFieldVersions({
     required OcptProjectDatabase database,
   }) => (database.select(
