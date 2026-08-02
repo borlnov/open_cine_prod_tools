@@ -25,8 +25,10 @@ class OcptShotCharacterChips extends StatelessWidget {
   /// This shot's own attached characters, normalised, in whatever order they were attached.
   final List<String> attachedCharacters;
 
-  /// Called with a character's name when its chip is clicked.
-  final ValueChanged<String> onToggled;
+  /// Called with a character's name when its chip is clicked, or null while the cast may not be
+  /// changed (a project version being previewed read-only): the chips then read out who is in the
+  /// shot without reacting to a click.
+  final ValueChanged<String>? onToggled;
 
   /// Class constructor
   const OcptShotCharacterChips({
@@ -54,6 +56,8 @@ class OcptShotCharacterChips extends StatelessWidget {
       );
     }
 
+    final onToggled = this.onToggled;
+
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -63,7 +67,7 @@ class OcptShotCharacterChips extends StatelessWidget {
             name: name,
             isAttached: attachedCharacters.contains(name),
             isRemoved: removed.contains(name),
-            onTap: () => onToggled(name),
+            onTap: onToggled == null ? null : () => onToggled(name),
           ),
       ],
     );
@@ -81,8 +85,8 @@ class _OcptCharacterChip extends StatelessWidget {
   /// Whether [name] no longer speaks anywhere in the screenplay.
   final bool isRemoved;
 
-  /// Called when this chip is clicked.
-  final VoidCallback onTap;
+  /// Called when this chip is clicked, or null when the chip may not be toggled at all.
+  final VoidCallback? onTap;
 
   /// Class constructor
   const _OcptCharacterChip({
@@ -106,7 +110,7 @@ class _OcptCharacterChip extends StatelessWidget {
             )
           : null,
       selected: isAttached,
-      onSelected: (_) => onTap(),
+      onSelected: onTap == null ? null : (_) => onTap!(),
     );
   }
 }

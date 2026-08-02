@@ -195,6 +195,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The workspace route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stops loading
   /// with no snapshot at all.
+  ///
+  /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
+  /// which version is being previewed alongside the shot list it just read: what it read comes from
+  /// that very version's in-memory database, and the two must reach the mode together (see the
+  /// hook's own doc comment).
   Future<void> _onLoadRequested(
     OcptShotListLoadRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -221,13 +226,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           rightDockFraction: rightDockFraction,
           visibleColumns: visibleColumns,
           lastRightDockTab: lastRightDockTab,
+          clearPreviewedVersionId: true,
         ),
       );
       return;
     }
 
+    final previewedVersion = project.previewedVersion;
     final screenplayText = await _loadScreenplayText(project);
-    final pageSetup = await _loadPageSetup();
+    final pageSetup = await _loadPageSetup(project);
     final snapshot = await _loadSnapshot(project);
     final screenplayCharacters = _screenplayCharactersOf(screenplayText);
     final suggestions = await _loadSuggestions(project);
@@ -236,6 +243,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       state.copyWith(
         isLoading: false,
         title: project.name,
+        previewedVersionId: previewedVersion?.id,
+        clearPreviewedVersionId: previewedVersion == null,
         snapshot: snapshot,
         pageSetup: pageSetup,
         screenplayText: screenplayText,
@@ -272,10 +281,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Reads the page setup the screenplay is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc
   /// pairs them. The scenario coverage dialog's simulated paper sheet is laid out with it.
-  Future<OcptPageSetup> _loadPageSetup() async => OcptPageSetup(
-    format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-    margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-  );
+  ///
+  /// A version being previewed is laid out with the setup it was written against instead, which
+  /// travels on the open project model and is never written anywhere — again exactly as the
+  /// screenplay editor's own bloc does it.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
 
   /// Parses [screenplayText] and delegates to `fountain_kit`'s `screenplayCharactersOf`, whose
   /// normalisation matches `shot_characters.characterName`'s own (both go through

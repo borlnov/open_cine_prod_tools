@@ -30,12 +30,19 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
 /// selected sequence's shot table in the centre, and the tabbed shot inspector on the right.
+///
+/// While a project version is being previewed, the mode shows that version's shot list instead of
+/// the working copy's, and shows it read-only: everything that would write — `+ Shot`, the orphan
+/// group's delete buttons, every inspector control, the deleted-character banners' two ways out —
+/// is withheld, and the shell carries the band naming the version. Browsing the sequences, reading
+/// a shot and exporting the workbook all stay available: none of them touches the project.
 class OcptShotListMode extends StatelessWidget {
   /// Creates the shot list mode.
   const OcptShotListMode({super.key});
@@ -100,6 +107,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
+        isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
         overflowEntries: _buildOverflowEntries(context, state),
@@ -111,6 +119,7 @@ class _ShotListViewState extends State<_ShotListView> {
         onToggleRightDock: () => context.read<OcptShotListBloc>().add(
           const OcptShotListRightDockToggledEvent(),
         ),
+        banner: _buildReadOnlyBanner(context, state),
         leftPanel: _buildSequencePanel(context, state),
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
@@ -201,6 +210,8 @@ class _ShotListViewState extends State<_ShotListView> {
   ///
   /// `+ Shot` is wired only when the selected sequence is a real screenplay scene: the orphan
   /// group is where shots land when their scene disappears, never where new ones are authored.
+  /// Neither it nor the orphan group's delete buttons are wired at all while a version is being
+  /// previewed: the tree is then a way of reading that version, not of changing it.
   Widget? _buildSequencePanel(BuildContext context, OcptShotListState state) {
     if (!state.isSequencePanelVisible) {
       return null;
@@ -217,12 +228,14 @@ class _ShotListViewState extends State<_ShotListView> {
       onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
         OcptShotListShotSelectedEvent(shotId: shotId),
       ),
-      onShotCreated: state.selectedSequence is OcptSceneShotSequence
+      onShotCreated: state.selectedSequence is OcptSceneShotSequence && !state.isPreviewingVersion
           ? () => context.read<OcptShotListBloc>().add(
               const OcptShotListShotCreationRequestedEvent(),
             )
           : null,
-      onOrphanedShotDeleted: (shotId) => _handleOrphanedShotDeletion(context, state, shotId),
+      onOrphanedShotDeleted: state.isPreviewingVersion
+          ? null
+          : (shotId) => _handleOrphanedShotDeletion(context, state, shotId),
     );
   }
 
@@ -274,6 +287,7 @@ class _ShotListViewState extends State<_ShotListView> {
         child: OcptShotListRemovedCharacterBanner(
           alert: alert,
           replacementCandidates: state.screenplayCharacters,
+          isReadOnly: state.isPreviewingVersion,
           onRemoveFromEveryShot: () => context.read<OcptShotListBloc>().add(
             OcptShotListRemovedCharacterDroppedEvent(characterName: alert.characterName),
           ),
@@ -407,6 +421,7 @@ class _ShotListViewState extends State<_ShotListView> {
         onDeleteRequested: selectedShot == null
             ? null
             : () => _handleDeleteRequested(context, selectedShot),
+        isReadOnly: state.isPreviewingVersion,
       ),
       metadataChild: OcptShotMetadataPanel(
         shot: selectedShot,
@@ -419,6 +434,26 @@ class _ShotListViewState extends State<_ShotListView> {
       ),
       onClose: () =>
           context.read<OcptShotListBloc>().add(const OcptShotListRightDockClosedEvent()),
+    );
+  }
+
+  /// Builds the band naming the version being previewed, the shell's `banner`, or null while the
+  /// working copy is on screen.
+  ///
+  /// Null too — the banner is simply not drawn — in the narrow window where the previewed version
+  /// isn't in the list the panel was drawn from any more: the refresh ending every version handler
+  /// resolves it on its own, and a band that named nothing would say less than no band at all.
+  Widget? _buildReadOnlyBanner(BuildContext context, OcptShotListState state) {
+    final previewedVersion = state.previewedVersion;
+    if (previewedVersion == null) {
+      return null;
+    }
+
+    return OcptWorkspaceReadOnlyBanner(
+      version: previewedVersion,
+      onExitPreview: () => context.read<OcptShotListBloc>().add(
+        const OcptProjectVersionPreviewExitRequestedEvent(),
+      ),
     );
   }
 

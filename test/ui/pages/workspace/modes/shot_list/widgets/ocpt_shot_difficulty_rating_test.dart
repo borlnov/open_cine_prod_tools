@@ -63,4 +63,15 @@ void main() {
 
     expect(reported, 1);
   });
+
+  testWidgets("a row with no onChanged draws its dots without making them clickable", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(const OcptShotDifficultyRating(label: "Sound", value: 3, onChanged: null)),
+    );
+
+    expect(find.text("3"), findsOneWidget);
+    expect(find.byType(InkWell), findsNothing);
+  });
 }

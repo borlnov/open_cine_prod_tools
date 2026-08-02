@@ -93,4 +93,25 @@ void main() {
     expect(find.text("No speaking characters yet."), findsOneWidget);
     expect(find.byType(FilterChip), findsNothing);
   });
+
+  testWidgets("chips with no onToggled read the cast out without reacting to a click", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        const OcptShotCharacterChips(
+          screenplayCharacters: ["LÉA", "MARC"],
+          attachedCharacters: ["LÉA"],
+          onToggled: null,
+        ),
+      ),
+    );
+
+    expect(find.byType(FilterChip), findsNWidgets(2));
+    expect(tester.widget<FilterChip>(find.byType(FilterChip).first).onSelected, isNull);
+
+    // Tapping is a no-op rather than an error: a disabled chip simply doesn't report anything.
+    await tester.tap(find.text("MARC"));
+    await tester.pump();
+  });
 }

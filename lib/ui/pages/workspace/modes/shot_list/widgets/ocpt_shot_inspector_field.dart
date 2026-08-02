@@ -78,8 +78,11 @@ class OcptShotInspectorField extends StatefulWidget {
   /// whatever this holds, so a narrow box never wraps its own label.
   final double? fieldWidth;
 
-  /// Called with the field's raw text on every keystroke, and when a suggestion is picked.
-  final ValueChanged<String> onChanged;
+  /// Called with the field's raw text on every keystroke, and when a suggestion is picked, or null
+  /// while the field may not be written to (a project version being previewed read-only): it then
+  /// reads its value out — selectable, so it can still be copied — with no autocomplete overlay of
+  /// its own, since there is nothing left to complete.
+  final ValueChanged<String>? onChanged;
 
   /// Class constructor
   const OcptShotInspectorField({
@@ -169,11 +172,12 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
     );
   }
 
-  /// Builds the field itself: a plain [TextField] when there is nothing to suggest, or one bound
-  /// through [RawAutocomplete] otherwise.
+  /// Builds the field itself: a plain [TextField] when there is nothing to suggest (or nothing to
+  /// type at all), or one bound through [RawAutocomplete] otherwise.
   Widget _buildField(BuildContext context) {
     final suggestions = widget.suggestions;
-    if (suggestions == null || suggestions.isEmpty) {
+    final onChanged = widget.onChanged;
+    if (onChanged == null || suggestions == null || suggestions.isEmpty) {
       return _textField(_controller, _focusNode);
     }
 
@@ -187,7 +191,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
         }
         return suggestions.where((option) => option.toLowerCase().contains(query));
       },
-      onSelected: widget.onChanged,
+      onSelected: onChanged,
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
           _textField(controller, focusNode),
       optionsViewBuilder: (context, onSelected, options) => _OcptShotInspectorFieldOptions(
@@ -207,6 +211,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
   Widget _textField(TextEditingController controller, FocusNode focusNode) => TextField(
     controller: controller,
     focusNode: focusNode,
+    readOnly: widget.onChanged == null,
     onChanged: widget.onChanged,
     maxLines: widget.multiline ? null : 1,
     minLines: widget.multiline ? _multilineMinLines : 1,

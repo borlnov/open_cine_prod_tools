@@ -42,6 +42,12 @@ const double _abbreviationFieldWidth = 96;
 /// ([onMarkAsChecked]). Scenario coverage is its own section, [OcptShotCoverageSummary], between
 /// the character chips and the Image section: a read-only list of the extracts the shot covers,
 /// the selecting itself happening in the dialog [onSelectCoverageRequested] opens.
+///
+/// [isReadOnly] turns the whole panel into a read-out: the fields still show their values (and stay
+/// selectable, so they can be copied), and every control that would write — the chips, the
+/// difficulty dots, the coverage actions, `Mark as checked`, `Delete shot` — is withheld. It is the
+/// panel rather than its caller that hands each part its null callback, so a control added later
+/// cannot be forgotten in one place and gated in the other.
 class OcptShotInspectorPanel extends StatelessWidget {
   /// The selected shot, or null while none is (the empty state).
   final OcptShot? shot;
@@ -101,6 +107,10 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// shot selected).
   final VoidCallback? onDeleteRequested;
 
+  /// Whether what the mode shows is a project version being previewed read-only, which no callback
+  /// of this panel may write through.
+  final bool isReadOnly;
+
   /// Class constructor
   const OcptShotInspectorPanel({
     super.key,
@@ -120,6 +130,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.onCoverageClearAll,
     required this.onMarkAsChecked,
     required this.onDeleteRequested,
+    this.isReadOnly = false,
   });
 
   @override
@@ -162,7 +173,10 @@ class OcptShotInspectorPanel extends StatelessWidget {
         const SizedBox(height: 16),
 
         if (shot.needsCheck && shot.checkReason != null) ...[
-          _OcptShotNeedsCheckCallout(reason: shot.checkReason!, onMarkAsChecked: onMarkAsChecked),
+          _OcptShotNeedsCheckCallout(
+            reason: shot.checkReason!,
+            onMarkAsChecked: isReadOnly ? null : onMarkAsChecked,
+          ),
           const SizedBox(height: 16),
         ],
 
@@ -171,7 +185,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         OcptShotCharacterChips(
           screenplayCharacters: screenplayCharacters,
           attachedCharacters: shot.characters,
-          onToggled: onCharacterToggled,
+          onToggled: isReadOnly ? null : onCharacterToggled,
         ),
         const SizedBox(height: 16),
 
@@ -182,8 +196,8 @@ class OcptShotInspectorPanel extends StatelessWidget {
           ownRanges: shot.coverageRanges,
           otherShotsRanges: otherShotsCoverageRanges,
           staleRangeIds: staleCoverageRangeIds,
-          onSelectRequested: onSelectCoverageRequested,
-          onClearAll: onCoverageClearAll,
+          onSelectRequested: isReadOnly ? null : onSelectCoverageRequested,
+          onClearAll: isReadOnly ? null : onCoverageClearAll,
         ),
         const SizedBox(height: 16),
 
@@ -194,14 +208,14 @@ class OcptShotInspectorPanel extends StatelessWidget {
           label: tr.shotListColumnShotSize,
           value: fieldValueOf(OcptShotListEditableField.shotSize),
           suggestions: suggestions.shotSizes,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.shotSize, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.shotSize),
         ),
         OcptShotInspectorField(
           shotId: shot.id,
           label: tr.shotListColumnAbbreviation,
           value: fieldValueOf(OcptShotListEditableField.abbreviation),
           fieldWidth: _abbreviationFieldWidth,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.abbreviation, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.abbreviation),
         ),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -209,7 +223,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           value: fieldValueOf(OcptShotListEditableField.framing),
           suggestions: suggestions.framings,
           multiline: true,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.framing, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.framing),
         ),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -217,21 +231,21 @@ class OcptShotInspectorPanel extends StatelessWidget {
           value: fieldValueOf(OcptShotListEditableField.cameraMove),
           suggestions: suggestions.cameraMoves,
           multiline: true,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.cameraMove, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.cameraMove),
         ),
         OcptShotInspectorField(
           shotId: shot.id,
           label: tr.shotListColumnLens,
           value: fieldValueOf(OcptShotListEditableField.lens),
           suggestions: suggestions.lenses,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.lens, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.lens),
         ),
         OcptShotInspectorField(
           shotId: shot.id,
           label: tr.shotListColumnFormat,
           value: fieldValueOf(OcptShotListEditableField.recordingFormat),
           suggestions: suggestions.recordingFormats,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.recordingFormat, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.recordingFormat),
         ),
         const SizedBox(height: 8),
 
@@ -245,22 +259,22 @@ class OcptShotInspectorPanel extends StatelessWidget {
         OcptShotDifficultyRating(
           label: tr.shotListColumnSet,
           value: shot.difficultySet,
-          onChanged: (value) => onDifficultyChanged(OcptShotDifficultyAxis.set, value),
+          onChanged: _onDifficultyChangedOrNull(OcptShotDifficultyAxis.set),
         ),
         OcptShotDifficultyRating(
           label: tr.shotListColumnCameraMove,
           value: shot.difficultyCamera,
-          onChanged: (value) => onDifficultyChanged(OcptShotDifficultyAxis.camera, value),
+          onChanged: _onDifficultyChangedOrNull(OcptShotDifficultyAxis.camera),
         ),
         OcptShotDifficultyRating(
           label: tr.shotListDifficultyAxisActing,
           value: shot.difficultyActing,
-          onChanged: (value) => onDifficultyChanged(OcptShotDifficultyAxis.acting, value),
+          onChanged: _onDifficultyChangedOrNull(OcptShotDifficultyAxis.acting),
         ),
         OcptShotDifficultyRating(
           label: tr.shotListColumnSound,
           value: shot.difficultySound,
-          onChanged: (value) => onDifficultyChanged(OcptShotDifficultyAxis.sound, value),
+          onChanged: _onDifficultyChangedOrNull(OcptShotDifficultyAxis.sound),
         ),
         const SizedBox(height: 16),
 
@@ -273,7 +287,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           value: fieldValueOf(OcptShotListEditableField.sound),
           suggestions: suggestions.sounds,
           multiline: true,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.sound, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.sound),
         ),
         OcptShotInspectorReadOnlyField(
           label: tr.shotListInspectorSequenceLabel,
@@ -288,7 +302,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           label: "",
           value: fieldValueOf(OcptShotListEditableField.notes),
           multiline: true,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.notes, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.notes),
         ),
         const SizedBox(height: 8),
 
@@ -299,21 +313,33 @@ class OcptShotInspectorPanel extends StatelessWidget {
           label: "",
           value: fieldValueOf(OcptShotListEditableField.locationNotes),
           multiline: true,
-          onChanged: (value) => onFieldChanged(OcptShotListEditableField.locationNotes, value),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.locationNotes),
         ),
         const SizedBox(height: 20),
 
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: onDeleteRequested,
-            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-            child: Text(tr.shotListDeleteShotAction),
+        if (!isReadOnly)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: onDeleteRequested,
+              style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+              child: Text(tr.shotListDeleteShotAction),
+            ),
           ),
-        ),
       ],
     );
   }
+
+  /// The `onChanged` an editable field of [field] is given: the one reporting to [onFieldChanged],
+  /// or null while [isReadOnly], which is what makes the field read out its value instead of
+  /// accepting a new one.
+  ValueChanged<String>? _onFieldChangedOrNull(OcptShotListEditableField field) =>
+      isReadOnly ? null : (value) => onFieldChanged(field, value);
+
+  /// The `onChanged` a difficulty row of [axis] is given, null under the same condition as
+  /// [_onFieldChangedOrNull] and with the same effect: the dots then only read the axis out.
+  ValueChanged<int>? _onDifficultyChangedOrNull(OcptShotDifficultyAxis axis) =>
+      isReadOnly ? null : (value) => onDifficultyChanged(axis, value);
 
   /// The estimated duration field of [shot]: the one field of the panel whose value is not free
   /// text but a `mm:ss` duration, so it is the one built here rather than inline.
@@ -335,7 +361,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
           ? null
           : tr.shotListInspectorEstimatedDurationError,
       inputFormatters: ocptShotDurationInputFormatters,
-      onChanged: (value) => onFieldChanged(OcptShotListEditableField.estimatedDuration, value),
+      onChanged: _onFieldChangedOrNull(OcptShotListEditableField.estimatedDuration),
     );
   }
 
@@ -357,8 +383,10 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
   /// Why the shot needs checking.
   final OcptShotCheckReason reason;
 
-  /// Called when the `Mark as checked` button is clicked.
-  final VoidCallback onMarkAsChecked;
+  /// Called when the `Mark as checked` button is clicked, or null while the shot may not be marked
+  /// (a project version being previewed read-only) — the warning is then stated with no answer to
+  /// it, which is exactly what a read-only view can offer.
+  final VoidCallback? onMarkAsChecked;
 
   /// Class constructor
   const _OcptShotNeedsCheckCallout({required this.reason, required this.onMarkAsChecked});
@@ -386,23 +414,25 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_reasonLabel(tr), style: theme.textTheme.bodySmall?.copyWith(color: color)),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton(
-                    onPressed: onMarkAsChecked,
-                    // Filled with the callout's own warning colour rather than the accent, so it
-                    // reads as the answer to the warning it sits in; the label takes the theme's
-                    // `surface` because the two warning colours are built to carry against it —
-                    // near-black under the light amber of the dark theme, near-white under the
-                    // darkened amber of the light one.
-                    style: FilledButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: theme.colorScheme.surface,
+                if (onMarkAsChecked != null) ...[
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton(
+                      onPressed: onMarkAsChecked,
+                      // Filled with the callout's own warning colour rather than the accent, so it
+                      // reads as the answer to the warning it sits in; the label takes the theme's
+                      // `surface` because the two warning colours are built to carry against it —
+                      // near-black under the light amber of the dark theme, near-white under the
+                      // darkened amber of the light one.
+                      style: FilledButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: theme.colorScheme.surface,
+                      ),
+                      child: Text(tr.shotListNeedsCheckMarkAsCheckedAction),
                     ),
-                    child: Text(tr.shotListNeedsCheckMarkAsCheckedAction),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -105,6 +105,7 @@ Widget _buildPanel({
   VoidCallback? onMarkAsChecked,
   VoidCallback? onSelectCoverageRequested,
   VoidCallback? onDeleteRequested,
+  bool isReadOnly = false,
 }) => OcptShotInspectorPanel(
   shot: shot,
   sequenceHeading: "INT. LÉA'S FLAT - NIGHT",
@@ -122,9 +123,48 @@ Widget _buildPanel({
   onCoverageClearAll: () {},
   onMarkAsChecked: onMarkAsChecked ?? () {},
   onDeleteRequested: onDeleteRequested,
+  isReadOnly: isReadOnly,
 );
 
 void main() {
+  testWidgets("a read-only panel reads the shot out and withholds every control", (tester) async {
+    await _useTallSurface(tester);
+    final toggled = <String>[];
+    final rated = <int>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildPanel(
+          shot: _buildShot(needsCheck: true, checkReason: OcptShotCheckReason.coveredTextChanged),
+          onCharacterToggled: toggled.add,
+          onDifficultyChanged: (axis, value) => rated.add(value),
+          onDeleteRequested: () {},
+          isReadOnly: true,
+        ),
+      ),
+    );
+
+    // What the shot *is* stays on screen, warning included.
+    expect(find.text("Shot 1/1"), findsOneWidget);
+    expect(find.text("LÉA"), findsOneWidget);
+    expect(
+      find.text("The screenplay text one of this shot's coverage ranges covers has changed."),
+      findsOneWidget,
+    );
+
+    // Nothing that would write is left.
+    expect(find.text("Delete shot"), findsNothing);
+    expect(find.text("Mark as checked"), findsNothing);
+    expect(_durationFieldOf(tester).readOnly, isTrue);
+
+    await tester.tap(find.text("LÉA"));
+    await tester.tap(find.byType(OcptShotDifficultyRating).first);
+    await tester.pump();
+
+    expect(toggled, isEmpty);
+    expect(rated, isEmpty);
+  });
+
   testWidgets("shows the empty hint when no shot is selected", (tester) async {
     await tester.pumpWidget(_wrapInApp(_buildPanel()));
 

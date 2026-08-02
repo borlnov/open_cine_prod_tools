@@ -94,6 +94,7 @@ void main() {
     required String? selectedSequenceId,
     List<OcptShotSequence>? sequences,
     VoidCallback? onShotCreated,
+    bool canDeleteOrphanedShots = true,
   }) async {
     final selectedSequences = <String>[];
     final selectedShots = <String>[];
@@ -109,7 +110,7 @@ void main() {
           onSequenceSelected: selectedSequences.add,
           onShotSelected: selectedShots.add,
           onShotCreated: onShotCreated,
-          onOrphanedShotDeleted: deletedShots.add,
+          onOrphanedShotDeleted: canDeleteOrphanedShots ? deletedShots.add : null,
         ),
       ),
     );
@@ -235,5 +236,23 @@ void main() {
     await tester.pump();
 
     expect(selections.deletedShots, ["shot-4"]);
+  });
+
+  testWidgets("no orphaned shot carries a delete button while no shot may be deleted", (
+    tester,
+  ) async {
+    await pumpPanel(
+      tester,
+      selectedSequenceId: OcptOrphanShotSequence.sequenceId,
+      sequences: [
+        OcptOrphanShotSequence(
+          shots: [_buildShot(id: "shot-4", code: "—/1", orphanedHeading: "INT. OLD KITCHEN - DAY")],
+        ),
+      ],
+      canDeleteOrphanedShots: false,
+    );
+
+    expect(find.text("—/1"), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
   });
 }

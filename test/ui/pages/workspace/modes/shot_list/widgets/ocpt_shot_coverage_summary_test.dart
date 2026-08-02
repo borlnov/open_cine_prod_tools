@@ -63,13 +63,14 @@ Widget _buildSummary({
   Set<String> staleRangeIds = const {},
   VoidCallback? onSelectRequested,
   VoidCallback? onClearAll,
+  bool isReadOnly = false,
 }) => OcptShotCoverageSummary(
   layout: layout,
   ownRanges: ownRanges,
   otherShotsRanges: otherShotsRanges,
   staleRangeIds: staleRangeIds,
-  onSelectRequested: onSelectRequested ?? () {},
-  onClearAll: onClearAll ?? () {},
+  onSelectRequested: isReadOnly ? null : (onSelectRequested ?? () {}),
+  onClearAll: isReadOnly ? null : (onClearAll ?? () {}),
 );
 
 void main() {
@@ -276,5 +277,23 @@ void main() {
     await tester.pump();
 
     expect(cleared, isTrue);
+  });
+
+  testWidgets("a read-only summary quotes the extracts with neither Select… nor Clear all", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildSummary(
+          layout: _buildLayout(),
+          ownRanges: [_buildRange(startOffset: 0, endOffset: 16)],
+          isReadOnly: true,
+        ),
+      ),
+    );
+
+    expect(find.textContaining("INT. HOUSE - DAY"), findsWidgets);
+    expect(find.text("Select…"), findsNothing);
+    expect(find.text("Clear all"), findsNothing);
   });
 }

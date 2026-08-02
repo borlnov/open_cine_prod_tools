@@ -23,6 +23,10 @@ const _shotCodeSeparator = " · ";
 /// Painted in the error colour, the same one the inspector's chips strike the character through
 /// with, rather than the warning colour a stale coverage range wears: a character the screenplay
 /// dropped is a mismatch to resolve, not a range to re-read.
+///
+/// [isReadOnly] keeps the report and drops both ways out of it: a project version being previewed
+/// states the mismatch it was captured with — which is part of what that version was — without
+/// offering to resolve it in a project the user isn't looking at.
 class OcptShotListRemovedCharacterBanner extends StatelessWidget {
   /// The character reported, and the shots still carrying it.
   final OcptShotRemovedCharacterAlert alert;
@@ -37,6 +41,10 @@ class OcptShotListRemovedCharacterBanner extends StatelessWidget {
   /// Called with a replacement's name when one of the replacement chips is clicked.
   final ValueChanged<String> onReplaced;
 
+  /// Whether what the mode shows is a project version being previewed read-only, which neither
+  /// action may write to.
+  final bool isReadOnly;
+
   /// Class constructor
   const OcptShotListRemovedCharacterBanner({
     super.key,
@@ -44,6 +52,7 @@ class OcptShotListRemovedCharacterBanner extends StatelessWidget {
     required this.replacementCandidates,
     required this.onRemoveFromEveryShot,
     required this.onReplaced,
+    this.isReadOnly = false,
   });
 
   @override
@@ -76,8 +85,10 @@ class OcptShotListRemovedCharacterBanner extends StatelessWidget {
                   ),
                   style: theme.textTheme.bodySmall?.copyWith(color: color),
                 ),
-                const SizedBox(height: 6),
-                _buildActions(context, tr, color),
+                if (!isReadOnly) ...[
+                  const SizedBox(height: 6),
+                  _buildActions(context, tr, color),
+                ],
               ],
             ),
           ),
