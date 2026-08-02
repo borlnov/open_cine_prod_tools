@@ -188,6 +188,49 @@ void main() {
     await bloc.close();
   });
 
+  test("no emitted state ever carries a version's data without saying it is a preview", () async {
+    await writeScreenplay(firstText);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.text == firstText);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: "First cut"));
+    final created = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = created.projectVersions.single.id;
+
+    await writeScreenplay(secondText);
+    bloc.add(const OcptEditorLoadRequestedEvent());
+    await waitForState(bloc, (state) => state.text == secondText);
+
+    // Every state the preview and its exit go through, so the read-only flag can be checked
+    // against what each of them shows rather than only against the last one: a mode drawing one
+    // frame of a version's data with its editing affordances still on would be invisible
+    // otherwise.
+    final emitted = <OcptEditorState>[];
+    final subscription = bloc.stream.listen(emitted.add);
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.previewedVersionId != null);
+    bloc.add(const OcptProjectVersionPreviewExitRequestedEvent());
+    await waitForState(bloc, (state) => state.previewedVersionId == null && state.text == secondText);
+
+    await subscription.cancel();
+
+    for (final state in emitted) {
+      expect(
+        state.text == firstText,
+        state.isPreviewingVersion,
+        reason: "a state showing '${state.text}' reported isPreviewingVersion="
+            "${state.isPreviewingVersion}",
+      );
+    }
+
+    // The previewed version is resolved from the list the panel is drawn from, so the banner can
+    // name it without a second copy of the row.
+    expect(emitted.firstWhere((state) => state.isPreviewingVersion).previewedVersion?.name, "v1");
+
+    await bloc.close();
+  });
+
   test('previewing flushes the unsaved screenplay into the working copy first', () async {
     await writeScreenplay(firstText);
     final bloc = buildBloc();

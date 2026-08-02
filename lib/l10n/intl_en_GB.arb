@@ -2335,5 +2335,37 @@
     "context": "Displayed as a SnackBar over the workspace",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceReadOnlyPill": "Read only",
+  "@workspaceReadOnlyPill": {
+    "description": "Pill telling that what the workspace shows may not be edited",
+    "context": "Displayed in the workspace toolbar, next to the project name, while a version is being previewed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceReadOnlyTooltip": "This version is shown read-only; the project itself is unchanged",
+  "@workspaceReadOnlyTooltip": {
+    "description": "Tooltip of the workspace toolbar's read-only pill",
+    "context": "Shown on hover over the read-only pill of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceReadOnlyBannerTitle": "Read only — {versionName}",
+  "@workspaceReadOnlyBannerTitle": {
+    "description": "Headline of the banner shown while a project version is being previewed",
+    "context": "Displayed between the workspace toolbar and the docks row, followed by the version's note",
+    "type": "text",
+    "placeholders": {
+      "versionName": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceReadOnlyBannerExitAction": "Back to the current version",
+  "@workspaceReadOnlyBannerExitAction": {
+    "description": "Action leaving a version's read-only preview",
+    "context": "Displayed in the read-only banner of the workspace",
+    "type": "text",
+    "placeholders": {}
   }
 }

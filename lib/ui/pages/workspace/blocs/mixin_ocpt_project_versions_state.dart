@@ -44,7 +44,30 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   OcptProjectVersionNoticeKind? get projectVersionNotice;
 
   /// Whether a version is currently being previewed read-only.
+  ///
+  /// This is what every mode gates its editing affordances on: `OcptOpenProjectModel.isReadOnly` is
+  /// the source of truth, and this is the copy of it the widgets are built from.
   bool get isPreviewingVersion => previewedVersionId != null;
+
+  /// The version [previewedVersionId] names, or null while the working copy is on screen (or while
+  /// the list hasn't caught up with a version that has just gone).
+  ///
+  /// Resolved from [projectVersions] rather than stored beside the id: the list already carries
+  /// every version, the previewed one included, so a second copy could only ever disagree with it.
+  OcptProjectVersion? get previewedVersion {
+    final previewedVersionId = this.previewedVersionId;
+    if (previewedVersionId == null) {
+      return null;
+    }
+
+    for (final version in projectVersions) {
+      if (version.id == previewedVersionId) {
+        return version;
+      }
+    }
+
+    return null;
+  }
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   /// This is the copyWith method for the mixin.

@@ -54,6 +54,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   /// leaving a preview replaced it.
   ///
   /// Normally the mode's own load handler, called directly with the current handler's `emitter`.
+  ///
+  /// It must emit [MixinOcptProjectVersionsState.previewedVersionId] — read from
+  /// `OcptProjectsManager.currentProject`, the source of truth — in the very same state as the data
+  /// it just read, since that data comes from whichever database the id names. Emitting the two
+  /// separately would leave one frame showing a version's content with every editing affordance of
+  /// the working copy still on it.
   /// {@endtemplate}
   @protected
   Future<void> reloadFromProjectDatabase(Emitter<S> emitter);
@@ -155,6 +161,18 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   ///
   /// A failed preview leaves the working copy on screen (the manager guarantees it) and reports
   /// why through a notice.
+  ///
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadCarriesThePreview}
+  /// [reloadFromProjectDatabase] is what emits the version's own data, and it emits the preview
+  /// state along with it (both being read from `OcptProjectsManager.currentProject`, see the hook's
+  /// own doc comment): the two must land in the *same* state, or the mode would draw one frame of a
+  /// version's data with every editing affordance still on it.
+  ///
+  /// Which is also why neither of these two handlers ends on [_emitVersions], unlike every other
+  /// one here: entering or leaving a preview changes nothing about the version *list* — it is read
+  /// from the project file, which a preview never touches — so re-reading it would only add a
+  /// second, later emission that could land after whatever the user did next.
+  /// {@endtemplate}
   Future<void> _onVersionPreviewRequested(
     OcptProjectVersionPreviewRequestedEvent event,
     Emitter<S> emitter,
@@ -168,10 +186,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     }
 
     await reloadFromProjectDatabase(emitter);
-    await _emitVersions(emitter);
+    emitter(state.copyProjectVersionsState(clearVersionPendingDeletionId: true));
   }
 
   /// Leaves the read-only preview and reloads everything the mode shows from the working copy.
+  ///
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadCarriesThePreview}
   Future<void> _onVersionPreviewExitRequested(
     OcptProjectVersionPreviewExitRequestedEvent event,
     Emitter<S> emitter,
@@ -179,7 +199,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await projectsManager.exitPreview();
 
     await reloadFromProjectDatabase(emitter);
-    await _emitVersions(emitter);
+    emitter(state.copyProjectVersionsState(clearVersionPendingDeletionId: true));
   }
 
   /// Clears the transient version notice currently shown, if any.

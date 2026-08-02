@@ -3,15 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_summary_line.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-
-/// The separator joining a version's creation date and its counters, matching the one every other
-/// summary line of the workspace joins with.
-const _summarySeparator = " · ";
 
 /// One entry of the `Versions` dock tab: a project version the user created, with what it holds
 /// and what can be done with it.
@@ -86,7 +82,7 @@ class OcptProjectVersionCard extends StatelessWidget {
               _buildHeader(context, theme, tr),
               const SizedBox(height: 6),
               Text(
-                _summaryLine(context, tr),
+                ocptProjectVersionSummaryLine(context, version),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -213,19 +209,6 @@ class OcptProjectVersionCard extends StatelessWidget {
 
     return version.isCurrent ? tr.projectVersionCurrentBadge : null;
   }
-
-  /// The card's second line: the creation date, then the counters measured when the version was
-  /// created.
-  ///
-  /// The date is absolute rather than relative (unlike a home-page project card's own): a version
-  /// is production history, read months later, where "3 days ago" says nothing.
-  String _summaryLine(BuildContext context, Tr tr) => [
-    DateFormat.yMMMd(
-      Localizations.localeOf(context).toString(),
-    ).add_Hm().format(version.createdAt),
-    tr.editorStatsPages(version.summary.pageCount),
-    tr.projectVersionSequencesBrokenDown(version.summary.brokenDownSequenceCount),
-  ].join(_summarySeparator);
 }
 
 /// The small pill naming what a card is — `Current` or `Preview` — tinted with the card's own
