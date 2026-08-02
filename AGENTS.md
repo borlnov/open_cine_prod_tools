@@ -157,7 +157,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
   (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
   mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's
-  own `toolbarActions` sit before that group. The screenplay mode is
+  own `toolbarActions` sit before that group. Two further slots serve the read-only preview of a
+  project version: `isReadOnly`, which swaps the unsaved-changes dot for the `Read only` pill, and
+  `banner`, a full-width widget between the toolbar and the docks row (`OcptWorkspaceReadOnlyBanner`
+  fills it) — everything else a preview withholds is each mode's own job, since only a mode knows
+  what its affordances are. The screenplay mode is
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
   before this refactor), the shot list mode is `OcptShotListMode`
   (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), and the two remaining
@@ -385,10 +389,34 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `flushPendingProjectWrites` (a pending autosave/field edit must reach the working copy *before* a
   preview swaps the database out, or it would land in the previewed version's in-memory one) and
   `reloadFromProjectDatabase` (entering or leaving a preview replaces
-  `OcptOpenProjectModel.database`, so whatever the mode shows is read again from it). A card is
+  `OcptOpenProjectModel.database`, so whatever the mode shows is read again from it — and that
+  reload **must** emit `previewedVersionId`, read from `OcptProjectsManager.currentProject`, in the
+  same state as the data it just read, or the mode draws one frame of a version's content with the
+  working copy's editing affordances still on it). A card is
   clicked to enter a version's read-only preview and clicked again to leave it, deletion confirms
   inline inside the card, and `Create a version` is refused while a preview is up (the capture reads
   the project file, i.e. a state the user isn't looking at). `Restore this version` isn't there yet.
+- Read-only preview across the app: `OcptOpenProjectModel.isReadOnly` is the source of truth, and
+  `MixinOcptProjectVersionsState.isPreviewingVersion` is the copy of it every mode's widgets are
+  built from (`previewedVersion` resolves the row itself out of the list already in state, so the
+  banner names it without a second copy). A previewed version is laid out with
+  `OcptOpenProjectModel.previewedPageSetup` — the setup it was captured against, rendered with and
+  **never written**, since the margins half of it is an app-wide preference. The screenplay mode
+  renders `OcptEditorPreview` in the centre in *both* editing modes rather than a read-only editor
+  (decision 7 of the versions plan: a second super_editor rendering path would have to be maintained
+  forever), so the right dock's preview tab doesn't exist then either — `OcptEditorState
+  .isPreviewTabAvailable` is the single predicate for "the centre already is the formatted
+  screenplay", true of the styled mode and of a preview alike, and the existing auto-close/restore
+  dock transition follows it. Every affordance that writes is withheld rather than disabled where it
+  can be: the save control, the format controls, the `⋮` entries that rewrite (import & replace,
+  page setup, title page), the metadata panel's "Edit…", the shot list's `+ Shot`, its orphan delete
+  buttons, its inspector controls and its deleted-character banner actions. What only reads stays:
+  the exports, the scene/sequence panels, the statistics, and the app-wide display preferences.
+  Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
+  Flutter's own "no callback, no affordance" idiom); the two composite panels
+  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`) take an `isReadOnly` flag instead
+  and hand their own parts the null callbacks, so a control added later can't be gated in one place
+  and forgotten in the other.
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
   `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes (the *panel* is
