@@ -238,11 +238,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v4 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, `row_field_versions`), `storeDateTimeAsText: true`, scene
-  reconciliation in 3 passes (explicit scene number → exact heading → relative order).
+- Persistence: drift schema v5 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, `row_field_versions`, `project_versions`), `storeDateTimeAsText:
+  true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
-- Sync-ready data model (ADR 0010): **no service ever deletes a row**. Every synchronised table
+- Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
+  named, permanent checkpoints of the **whole** project, not to be confused with
+  `screenplay_snapshots` (automatic, screenplay-only, pruned past 30). The table is **local and
+  never synchronised** — no tombstone, no `sortKey`, no stamps, and `OcptProjectVersionsService`
+  deletes a row for real, the one place in the app that may.
+  `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the five
+  synchronised tables verbatim (primary keys, tombstones and `row_field_versions` stamps included)
+  plus the page setup, in a JSON format versioned by `payloadFormat` — independent of the schema
+  version, upgraded on decode when older, refused when newer. Counters shown on a card
+  (`OcptProjectVersionSummary`) are measured once, at creation.
+- Sync-ready data model (ADR 0010): **no service ever deletes a synchronised row** (the local
+  `project_versions` above is the single exception). Every synchronised table
   carries `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out —
   including `scenes`, which is never synchronised but whose rows are referenced by two tables that
   are. Ordering is `sortKey`, a fractional index (`lib/utils/ocpt_fractional_key.dart`,

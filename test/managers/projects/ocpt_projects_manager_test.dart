@@ -160,4 +160,39 @@ void main() {
     );
     expect(manager.currentProject, isNull);
   });
+
+  test('createProjectVersion captures the open project, listProjectVersions reads it back', () async {
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+
+    final created = await manager.createProjectVersion(
+      name: "v1 — First read",
+      note: "Before the rewrite",
+    );
+
+    expect(created?.name, "v1 — First read");
+    expect(created?.isCurrent, isTrue);
+
+    final versions = await manager.listProjectVersions();
+    expect(versions.map((version) => version.id), [created?.id]);
+    expect(versions.single.note, "Before the rewrite");
+
+    // The manager is what fills in the facts a version records but the service can't know: the
+    // replica's device id is minted through the properties manager on the way.
+    expect(await propertiesManager.deviceId.load(), isNotEmpty);
+  });
+
+  test('deleteProjectVersion removes the version from the open project', () async {
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    final created = await manager.createProjectVersion(name: "v1", note: "");
+
+    await manager.deleteProjectVersion(created!.id);
+
+    expect(await manager.listProjectVersions(), isEmpty);
+  });
+
+  test('the version operations are no-ops when no project is open', () async {
+    expect(await manager.listProjectVersions(), isEmpty);
+    expect(await manager.createProjectVersion(name: "v1", note: ""), isNull);
+    await expectLater(manager.deleteProjectVersion("no-such-version"), completes);
+  });
 }

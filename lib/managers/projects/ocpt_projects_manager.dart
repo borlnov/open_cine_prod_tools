@@ -11,13 +11,17 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -42,10 +46,13 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// Every Open Cine Prod Tools project is a single `.ocpt` SQLite file (an [OcptProjectDatabase]);
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
-/// index or its shot list is delegated to [screenplayService], [sceneIndexService],
-/// [shotListService] and [shotCoverageService], the four services this manager owns and wires
-/// together (RFL18): this manager itself is only responsible for the lifecycle of the project file
-/// (create/open/close) and for keeping the properties manager's recent-projects list in sync.
+/// index, its shot list or its named versions is delegated to [screenplayService],
+/// [sceneIndexService], [shotListService], [shotCoverageService] and [projectVersionsService], the
+/// five services this manager owns and wires together (RFL18): this manager itself is only
+/// responsible for the lifecycle of the project file (create/open/close), for keeping the
+/// properties manager's recent-projects list in sync, and for handing those services the facts only
+/// it holds — the open project's database, the app version, this replica's device id and the
+/// app-wide page margins.
 class OcptProjectsManager extends AbsWithLifeCycle {
   /// The name of the folder created inside the platform's documents directory to hold projects
   /// created/saved without the user picking a different location.
@@ -76,6 +83,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The service used to add/remove/check a shot's scenario coverage ranges.
   final OcptShotCoverageService shotCoverageService;
 
+  /// The service used to create, list and delete the project's named versions.
+  final OcptProjectVersionsService projectVersionsService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -92,6 +102,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       sceneIndexService = const OcptSceneIndexService(),
       shotListService = const OcptShotListService(),
       shotCoverageService = const OcptShotCoverageService(),
+      projectVersionsService = const OcptProjectVersionsService(
+        codec: OcptProjectVersionCodec(),
+      ),
       screenplayService = const OcptScreenplayService(
         sceneIndexService: OcptSceneIndexService(),
         shotListService: OcptShotListService(),
@@ -295,6 +308,58 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.database
         .update(project.database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
+  }
+
+  /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
+  ///
+  /// {@template open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  /// The version operations live here rather than being called on [projectVersionsService]
+  /// directly, because the service is handed facts only this manager holds: the open project's
+  /// database, the app version, this replica's device id and the app-wide page margins.
+  /// {@endtemplate}
+  Future<List<OcptProjectVersion>> listProjectVersions() async {
+    final project = currentProject;
+    if (project == null) {
+      return const [];
+    }
+
+    return projectVersionsService.listVersions(database: project.database);
+  }
+
+  /// Captures the [currentProject] as a new version named [name], with the user's [note], and
+  /// returns it. Returns null if no project is open.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<OcptProjectVersion?> createProjectVersion({
+    required String name,
+    required String note,
+  }) async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    return projectVersionsService.createVersion(
+      database: project.database,
+      name: name,
+      note: note,
+      appVersion: _appVersion,
+      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
+      pageMargins:
+          await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+    );
+  }
+
+  /// Deletes the version [versionId] of the [currentProject]. Does nothing if no project is open.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<void> deleteProjectVersion(String versionId) async {
+    final project = currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await projectVersionsService.deleteVersion(database: project.database, id: versionId);
   }
 
   /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
