@@ -172,6 +172,172 @@ jobs:
           path: ${{ steps.installer.outputs.installer-path }}
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
+  build-macos:
+    name: macOS build
+    runs-on: macos-latest
+    timeout-minutes: 45
+    needs: get-version
+    # macOS builds follow the Windows gating: release tags, main pushes and manual
+    # dispatches only, to keep the common case cheap.
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    env:
+      # The bundle's base name, PRODUCT_NAME in macos/Runner/Configs/AppInfo.xcconfig.
+      MACOS_APP_NAME: Open Cine Prod Tools
+      MACOS_BUILD_DIR: build/macos/Build/Products/Release
+      # Signing and notarization stay dormant until these secrets exist. A secret cannot be
+      # read from an 'if:', so they are mapped to environment variables here and the two steps
+      # below key on those: with no certificate configured, the app keeps the ad-hoc signature
+      # the Xcode project already asks for and the disk image ships unnotarized.
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          submodules: recursive
+
+      - name: Set up Flutter and dependencies
+        uses: ./.github/actions/flutter-setup
+
+      - name: Generate translations and database code
+        run: |
+          flutter pub get
+          dart run intl_utils:generate
+          dart run build_runner build
+
+      - name: Split the version for the bundle
+        id: bundle-version
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ needs.get-version.outputs.version }}"
+
+          # A bundle spells its version in two keys with narrow formats:
+          # CFBundleShortVersionString only accepts dotted numbers, CFBundleVersion a build
+          # counter. git describe gives neither on its own ('0.1.0-1-g87a9b8d'), so it is split:
+          # the numeric prefix becomes --build-name, the commit distance - absent when the build
+          # sits exactly on a tag - becomes --build-number. The full descriptive version is left
+          # untouched for the disk image's file name.
+          BUILD_NAME="${VERSION%%-*}"
+          BUILD_NUMBER=$(printf '%s' "${VERSION}" | \
+            sed -n 's/.*-\([0-9][0-9]*\)-g[0-9a-f][0-9a-f]*$/\1/p')
+
+          echo "build-name=${BUILD_NAME}" >> "$GITHUB_OUTPUT"
+          echo "build-number=${BUILD_NUMBER:-0}" >> "$GITHUB_OUTPUT"
+          echo "Building bundle version ${BUILD_NAME} (${BUILD_NUMBER:-0})"
+
+      - name: Build for macOS
+        uses: ./.github/actions/flutter-build
+        with:
+          target-platform: macos
+          build-args: >-
+            --build-name=${{ steps.bundle-version.outputs.build-name }}
+            --build-number=${{ steps.bundle-version.outputs.build-number }}
+
+      - name: Sign the application bundle
+        if: env.APPLE_CERTIFICATE != ''
+        run: |
+          set -euo pipefail
+
+          KEYCHAIN_PATH="${RUNNER_TEMP}/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          CERTIFICATE_PATH="${RUNNER_TEMP}/certificate.p12"
+
+          # The certificate travels as base64 in the secret, and lands in a keychain of this
+          # run's own so nothing is left behind on the runner.
+          printf '%s' "${APPLE_CERTIFICATE}" | base64 --decode -o "${CERTIFICATE_PATH}"
+
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERTIFICATE_PATH}" -P "${APPLE_CERTIFICATE_PASSWORD}" \
+            -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security list-keychain -d user -s "${KEYCHAIN_PATH}" login.keychain
+
+          rm -f "${CERTIFICATE_PATH}"
+
+          # The hardened runtime and the secure timestamp are what notarization requires, and
+          # what an ad-hoc signature cannot carry - hence only on this path.
+          codesign --deep --force --options runtime --timestamp \
+            --sign "${APPLE_SIGNING_IDENTITY}" \
+            "${MACOS_BUILD_DIR}/${MACOS_APP_NAME}.app"
+
+      - name: Build macOS disk image
+        id: dmg
+        uses: ./.github/actions/macos-dmg
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          app-name: ${{ env.MACOS_APP_NAME }}
+          app-build-directory: ${{ env.MACOS_BUILD_DIR }}
+          output-name: OpenCineProdTools
+
+      - name: Notarize the disk image
+        if: env.APPLE_CERTIFICATE != ''
+        run: |
+          set -euo pipefail
+
+          xcrun notarytool submit "${{ steps.dmg.outputs.dmg-path }}" \
+            --apple-id "${APPLE_ID}" \
+            --password "${APPLE_APP_PASSWORD}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --wait
+
+          # Stapling the ticket onto the image is what lets a first launch succeed offline.
+          xcrun stapler staple "${{ steps.dmg.outputs.dmg-path }}"
+
+      - name: Check the application bundle and the disk image
+        run: |
+          set -euo pipefail
+
+          APP_BUNDLE="${MACOS_BUILD_DIR}/${MACOS_APP_NAME}.app"
+          DMG_PATH="${{ steps.dmg.outputs.dmg-path }}"
+
+          echo "=== Architectures ==="
+          lipo -archs "${APP_BUNDLE}/Contents/MacOS/${MACOS_APP_NAME}"
+
+          echo ""
+          echo "=== Signature ==="
+          codesign -dv --verbose=2 "${APP_BUNDLE}"
+
+          echo ""
+          echo "=== Info.plist ==="
+          plutil -lint "${APP_BUNDLE}/Contents/Info.plist"
+
+          echo ""
+          echo "=== Disk image contents ==="
+          MOUNT_POINT=$(mktemp -d)
+          hdiutil attach "${DMG_PATH}" -readonly -nobrowse -mountpoint "${MOUNT_POINT}"
+          ls -l "${MOUNT_POINT}"
+
+          # The volume must hold what the user is asked to drag, and what to drag it onto.
+          # Detach either way, so a failure here never leaves the image mounted.
+          STATUS=0
+          test -d "${MOUNT_POINT}/${MACOS_APP_NAME}.app" || STATUS=1
+          test -L "${MOUNT_POINT}/Applications" || STATUS=1
+
+          hdiutil detach "${MOUNT_POINT}"
+
+          if [ "${STATUS}" -ne 0 ]; then
+              echo "Error: the disk image does not hold the expected drag-to-install layout"
+          fi
+
+          exit "${STATUS}"
+
+      - name: Upload macOS disk image
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_macos_dmg
+          path: ${{ steps.dmg.outputs.dmg-path }}
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
   test-deb:
     name: Check .deb installation
     runs-on: ubuntu-latest
@@ -220,6 +386,7 @@ jobs:
       - get-version
       - build-linux
       - build-windows
+      - build-macos
 
     steps:
       - name: Download Debian package
@@ -232,6 +399,12 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_win64_setup
+          path: release-assets/
+
+      - name: Download macOS disk image
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_macos_dmg
           path: release-assets/
 
       - name: Compute checksums
