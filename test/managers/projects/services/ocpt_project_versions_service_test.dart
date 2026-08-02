@@ -151,7 +151,7 @@ void main() {
 
       expect(version.name, "v1 — First read");
       expect(version.note, "Before the rewrite");
-      expect(version.isCurrent, isTrue);
+      expect(version.isBase, isTrue);
       expect(version.summary.pageCount, 1);
       expect(version.summary.brokenDownSequenceCount, 1);
 
@@ -268,7 +268,7 @@ void main() {
       final versions = await service.listVersions(database: database);
 
       expect(versions.map((version) => version.id), [third.id, second.id, first.id]);
-      expect(versions.map((version) => version.isCurrent), [false, true, false]);
+      expect(versions.map((version) => version.isBase), [false, true, false]);
     });
 
     test("renders a version whose stored counters can't be read rather than hiding it", () async {
@@ -311,7 +311,7 @@ void main() {
       expect(version?.note, "Seq. 1 to 3");
       expect(version?.createdAt, second.createdAt);
       expect(version?.summary, second.summary);
-      expect(version?.isCurrent, isTrue);
+      expect(version?.isBase, isTrue);
     });
 
     test("returns null for a version this project doesn't have", () async {
@@ -625,8 +625,8 @@ void main() {
 
       // The project descends from the version it was put back on, not from the safety copy taken
       // on the way there.
-      expect(versions.singleWhere((entry) => entry.id == version.id).isCurrent, isTrue);
-      expect(safety.isCurrent, isFalse);
+      expect(versions.singleWhere((entry) => entry.id == version.id).isBase, isTrue);
+      expect(safety.isBase, isFalse);
 
       // Undoing the restore is restoring the safety version, and it brings the whole diverged
       // state back.
@@ -635,6 +635,54 @@ void main() {
       expect((await readShot("shot-1"))?.framing, "High angle");
       expect((await readShot("shot-2"))?.isDeleted, isFalse);
       expect(await readCurrentVersionId(), safety.id);
+    });
+
+    test("a restore from a dirty working copy adds exactly one safety version", () async {
+      final version = await createDivergedProject();
+
+      await restore(version.id);
+
+      final versions = await service.listVersions(database: database);
+      expect(versions.map((entry) => entry.name), ["Before restoring", "v1 — First read"]);
+    });
+
+    test("a restore from a clean working copy adds no version", () async {
+      await insertScene(id: "scene-1");
+      final first = await createVersion(name: "v1");
+      // Nothing changed since v1, so a second capture right after it is content-identical: this is
+      // what lets the working copy stay "clean" against a base other than the one being restored.
+      final second = await createVersion(name: "v2");
+
+      final result = await restore(first.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // The list is exactly what it was — no safety version — apart from the pointer, which now
+      // names the version just restored instead of the one the working copy stood on beforehand.
+      final versions = await service.listVersions(database: database);
+      expect(versions.map((entry) => entry.id), unorderedEquals([first.id, second.id]));
+      expect(await readCurrentVersionId(), first.id);
+    });
+
+    test("a restore whose base version has no stored digest adds one anyway", () async {
+      await insertScene(id: "scene-1");
+      final version = await createVersion();
+
+      // A version written before schema v5 carries no digest: unknown reads as "modified" so a
+      // restore doesn't wrongly assume it matches the untouched working copy.
+      await (database.update(
+        database.ocptProjectVersionsTable,
+      )..where((table) => table.id.equals(version.id))).write(
+        const OcptProjectVersionsTableCompanion(contentDigest: Value(null)),
+      );
+
+      await restore(version.id);
+
+      final versions = await service.listVersions(database: database);
+      expect(
+        versions.map((entry) => entry.name),
+        containsAll(["v1 — First read", "Before restoring"]),
+      );
     });
 
     test("a restore that fails leaves the project exactly as it was", () async {
@@ -719,47 +767,68 @@ void main() {
     });
   });
 
-  group("forkFromVersion", () {
-    test("restores the version, then marks the branch it starts as its own version", () async {
+  group("renameVersion", () {
+    test("updates the name and the note, and nothing else", () async {
+      final version = await createVersion(name: "v1", note: "First cut");
+
+      await service.renameVersion(
+        database: database,
+        id: version.id,
+        name: "v1 bis",
+        note: "Renamed",
+      );
+
+      final row = await database.select(database.ocptProjectVersionsTable).getSingle();
+      expect(row.name, "v1 bis");
+      expect(row.note, "Renamed");
+      expect(row.id, version.id);
+      expect(row.createdAt, version.createdAt);
+      expect(row.payload, isNotEmpty);
+    });
+
+    test("is allowed while a version is being previewed", () async {
+      // Renaming reads nothing about the project's data, so nothing here has to stand in for a
+      // preview to prove that: the same call this service is asked to make from either state.
+      final version = await createVersion(name: "v1");
+
+      await expectLater(
+        service.renameVersion(database: database, id: version.id, name: "v1 bis", note: ""),
+        completes,
+      );
+    });
+  });
+
+  group("captureWorkingCopyState", () {
+    test("reports no divergence when the working copy matches its base", () async {
       await insertScene(id: "scene-1");
+      final version = await createVersion();
+
+      final state = await service.captureWorkingCopyState(database: database, pageMargins: margins);
+
+      expect(state.baseVersionId, version.id);
+      expect(state.isModifiedSinceBase, isFalse);
+      expect(state.contentDigest, codec.contentDigest(await readPayload(version.id)));
+      expect(state.summary.pageCount, 1);
+    });
+
+    test("reports a divergence once the working copy has changed", () async {
       final version = await createVersion();
 
       await database
           .update(database.ocptScreenplaysTable)
-          .write(
-            const OcptScreenplaysTableCompanion(
-              fountainText: Value("EXT. STREET - NIGHT\n\nThe rewrite."),
-            ),
-          );
+          .write(const OcptScreenplaysTableCompanion(fountainText: Value("EXT. STREET - NIGHT")));
 
-      final result = await service.forkFromVersion(
-        database: database,
-        id: version.id,
-        safetyVersionName: "Before restoring v1 — First read",
-        forkName: "From v1 — First read",
-        forkNote: "New branch",
-        appVersion: appVersion,
-        deviceId: deviceId,
-        pageMargins: margins,
-      );
+      final state = await service.captureWorkingCopyState(database: database, pageMargins: margins);
 
-      expect(result.status, OcptProjectRestoreStatus.ok);
+      expect(state.baseVersionId, version.id);
+      expect(state.isModifiedSinceBase, isTrue);
+    });
 
-      final versions = await service.listVersions(database: database);
-      expect(
-        versions.map((entry) => entry.name),
-        containsAll(["From v1 — First read", "Before restoring v1 — First read"]),
-      );
+    test("reads as modified when the project has never had a base version", () async {
+      final state = await service.captureWorkingCopyState(database: database, pageMargins: margins);
 
-      // The branch point is where the project now stands: the fork's own capture is the current
-      // version, and it describes the restored state rather than the one that was on screen.
-      final fork = versions.firstWhere((entry) => entry.name == "From v1 — First read");
-      expect(fork.isCurrent, isTrue);
-      expect(fork.note, "New branch");
-      expect(
-        (await readPayload(fork.id)).screenplays.single.fountainText,
-        "INT. HOUSE - DAY\n\nCLARA enters.",
-      );
+      expect(state.baseVersionId, isNull);
+      expect(state.isModifiedSinceBase, isTrue);
     });
   });
 
@@ -781,7 +850,7 @@ void main() {
 
       final versions = await service.listVersions(database: database);
       expect(versions.map((version) => version.id), [second.id]);
-      expect(versions.single.isCurrent, isTrue);
+      expect(versions.single.isBase, isTrue);
       expect(await readCurrentVersionId(), second.id);
     });
 

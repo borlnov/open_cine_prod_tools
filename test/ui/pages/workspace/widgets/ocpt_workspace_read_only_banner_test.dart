@@ -30,7 +30,7 @@ OcptProjectVersion _version({String note = "Before the seq. 1 rewrite"}) => Ocpt
   note: note,
   createdAt: DateTime(2026, 3, 12, 18, 42),
   summary: const OcptProjectVersionSummary(pageCount: 41, brokenDownSequenceCount: 3),
-  isCurrent: false,
+  isBase: false,
 );
 
 void main() {

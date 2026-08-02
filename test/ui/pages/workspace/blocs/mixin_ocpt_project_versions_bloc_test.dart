@@ -127,7 +127,7 @@ void main() {
     expect(state.projectVersions, hasLength(1));
     expect(state.projectVersions.single.name, "v1");
     expect(state.projectVersions.single.note, "First cut");
-    expect(state.projectVersions.single.isCurrent, isTrue);
+    expect(state.projectVersions.single.isBase, isTrue);
     expect(state.projectVersions.single.summary.pageCount, 1);
 
     await bloc.close();
@@ -323,7 +323,7 @@ void main() {
     // to it: the state it replaced is a card of its own, and the `Current` badge has moved.
     expect(restored.text, firstText);
     expect(
-      restored.projectVersions.singleWhere((version) => version.id == versionId).isCurrent,
+      restored.projectVersions.singleWhere((version) => version.id == versionId).isBase,
       isTrue,
     );
     expect(restored.versionPendingRestoreId, isNull);
@@ -410,7 +410,7 @@ void main() {
     expect(projectsManager.currentProject!.isReadOnly, isFalse);
     expect(forked.text, firstText);
     expect(forked.projectVersions.first.name, "From v1");
-    expect(forked.projectVersions.first.isCurrent, isTrue);
+    expect(forked.projectVersions.first.isBase, isTrue);
 
     await bloc.close();
   });

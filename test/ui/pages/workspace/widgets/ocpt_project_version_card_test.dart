@@ -22,12 +22,12 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
-/// Builds a version named [name], with [note], [isCurrent] and the given counters.
+/// Builds a version named [name], with [note], [isBase] and the given counters.
 OcptProjectVersion _version({
   String id = "version-1",
   String name = "v3 — Before the seq. 1 rewrite",
   String note = "",
-  bool isCurrent = false,
+  bool isBase = false,
   int pageCount = 41,
   int brokenDownSequenceCount = 3,
 }) => OcptProjectVersion(
@@ -39,7 +39,7 @@ OcptProjectVersion _version({
     pageCount: pageCount,
     brokenDownSequenceCount: brokenDownSequenceCount,
   ),
-  isCurrent: isCurrent,
+  isBase: isBase,
 );
 
 void main() {
@@ -77,7 +77,7 @@ void main() {
     await tester.pumpWidget(
       _wrapWithLocalization(
         OcptProjectVersionCard(
-          version: _version(isCurrent: true),
+          version: _version(isBase: true),
           isPreviewed: false,
           isConfirmingDeletion: false,
           isConfirmingRestore: false,
@@ -238,7 +238,7 @@ void main() {
     await tester.pumpWidget(
       _wrapWithLocalization(
         OcptProjectVersionCard(
-          version: _version(isCurrent: true),
+          version: _version(isBase: true),
           isPreviewed: false,
           isConfirmingDeletion: false,
           isConfirmingRestore: false,

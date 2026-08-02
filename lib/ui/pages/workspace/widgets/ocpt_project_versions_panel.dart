@@ -133,7 +133,7 @@ class OcptProjectVersionsPanel extends StatelessWidget {
       isPreviewed: isPreviewed,
       isConfirmingDeletion: version.id == versionPendingDeletionId,
       isConfirmingRestore: version.id == versionPendingRestoreId,
-      onTap: switch ((version.isCurrent, isPreviewed)) {
+      onTap: switch ((version.isBase, isPreviewed)) {
         (true, _) => null,
         (_, true) => onPreviewExitRequested,
         _ => () => onPreviewRequested(version.id),
@@ -141,10 +141,10 @@ class OcptProjectVersionsPanel extends StatelessWidget {
       // Restoring the version being previewed is legitimate — it is the obvious next move once the
       // user has read it — where deleting it is not: the preview reads from a database hydrated out
       // of that very row.
-      onRestoreRequested: version.isCurrent ? null : () => onRestoreRequested(version.id),
+      onRestoreRequested: version.isBase ? null : () => onRestoreRequested(version.id),
       onRestoreConfirmed: () => onRestoreConfirmed(version),
       onRestoreCancelled: onRestoreCancelled,
-      onDeleteRequested: version.isCurrent || isPreviewed
+      onDeleteRequested: version.isBase || isPreviewed
           ? null
           : () => onDeleteRequested(version.id),
       onDeleteConfirmed: () => onDeleteConfirmed(version.id),

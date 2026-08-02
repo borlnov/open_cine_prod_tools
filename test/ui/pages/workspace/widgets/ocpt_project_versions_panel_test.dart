@@ -24,13 +24,13 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 /// Builds the version [id], named after it.
-OcptProjectVersion _version(String id, {bool isCurrent = false}) => OcptProjectVersion(
+OcptProjectVersion _version(String id, {bool isBase = false}) => OcptProjectVersion(
   id: id,
   name: "Version $id",
   note: "",
   createdAt: DateTime(2026, 7, 12, 18, 42),
   summary: const OcptProjectVersionSummary(pageCount: 12, brokenDownSequenceCount: 1),
-  isCurrent: isCurrent,
+  isBase: isBase,
 );
 
 /// The recorded calls of one panel's callbacks.
@@ -108,7 +108,7 @@ void main() {
     await tester.pumpWidget(
       _wrapWithLocalization(
         _panel(
-          versions: [_version("b", isCurrent: true), _version("a")],
+          versions: [_version("b", isBase: true), _version("a")],
           calls: _PanelCalls(),
         ),
       ),
@@ -146,7 +146,7 @@ void main() {
     await tester.pumpWidget(
       _wrapWithLocalization(
         _panel(
-          versions: [_version("b", isCurrent: true), _version("a")],
+          versions: [_version("b", isBase: true), _version("a")],
           calls: calls,
         ),
       ),
@@ -158,7 +158,7 @@ void main() {
     await tester.pumpWidget(
       _wrapWithLocalization(
         _panel(
-          versions: [_version("b", isCurrent: true), _version("a")],
+          versions: [_version("b", isBase: true), _version("a")],
           calls: calls,
           previewedVersionId: "a",
         ),
@@ -174,7 +174,7 @@ void main() {
 
   testWidgets('deleting goes through the card that asked, and only that one', (tester) async {
     final calls = _PanelCalls();
-    final versions = [_version("b", isCurrent: true), _version("a"), _version("c")];
+    final versions = [_version("b", isBase: true), _version("a"), _version("c")];
 
     await tester.pumpWidget(_wrapWithLocalization(_panel(versions: versions, calls: calls)));
 
@@ -204,7 +204,7 @@ void main() {
     tester,
   ) async {
     final calls = _PanelCalls();
-    final versions = [_version("b", isCurrent: true), _version("a")];
+    final versions = [_version("b", isBase: true), _version("a")];
 
     await tester.pumpWidget(_wrapWithLocalization(_panel(versions: versions, calls: calls)));
 

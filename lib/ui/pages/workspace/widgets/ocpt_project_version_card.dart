@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 ///
 /// Three states, exactly one at a time:
 ///
-/// - **current** — the working copy descends from this version. It carries the `Current` badge,
+/// - **base** — the working copy descends from this version. It carries the `Current` badge,
 ///   says so plainly, and is neither clickable, restorable nor deletable: there is nothing to
 ///   preview or to restore (it is what is on screen) and deleting it would leave the project
 ///   descending from nothing.
@@ -41,12 +41,12 @@ class OcptProjectVersionCard extends StatelessWidget {
   /// Whether this card currently shows its inline restore confirmation instead of its actions.
   final bool isConfirmingRestore;
 
-  /// Called when the card is clicked, or null when clicking it does nothing (the current
+  /// Called when the card is clicked, or null when clicking it does nothing (the base
   /// version's card).
   final VoidCallback? onTap;
 
   /// Called when `Restore this version` is clicked, which only asks for confirmation; null on a
-  /// card there is nothing to restore from (the current version's).
+  /// card there is nothing to restore from (the base version's).
   final VoidCallback? onRestoreRequested;
 
   /// Called when the inline confirmation's `Restore` is clicked, which rewrites the project.
@@ -164,7 +164,7 @@ class OcptProjectVersionCard extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        switch ((version.isCurrent, isPreviewed)) {
+        switch ((version.isBase, isPreviewed)) {
           (true, _) => tr.projectVersionCurrentHint,
           (_, true) => tr.projectVersionPreviewedHint,
           _ => tr.projectVersionPreviewHint,
@@ -253,26 +253,26 @@ class OcptProjectVersionCard extends StatelessWidget {
     ],
   );
 
-  /// The card's own colour: the accent for the current version, the workspace's warning colour
+  /// The card's own colour: the accent for the base version, the workspace's warning colour
   /// while this version is the one being previewed, and a muted outline for every other one.
   Color _accentColor(BuildContext context, ThemeData theme) {
     if (isPreviewed) {
       return ocptWarningColor(context);
     }
 
-    return version.isCurrent ? theme.colorScheme.primary : theme.colorScheme.outline;
+    return version.isBase ? theme.colorScheme.primary : theme.colorScheme.outline;
   }
 
   /// The badge this card carries, or null when it carries none.
   ///
-  /// Previewing wins over being current, since the two can legitimately coincide for a moment (a
+  /// Previewing wins over being the base, since the two can legitimately coincide for a moment (a
   /// version created and immediately previewed): the badge answers "what am I looking at?".
   String? _badgeLabel(Tr tr) {
     if (isPreviewed) {
       return tr.projectVersionPreviewBadge;
     }
 
-    return version.isCurrent ? tr.projectVersionCurrentBadge : null;
+    return version.isBase ? tr.projectVersionCurrentBadge : null;
   }
 }
 

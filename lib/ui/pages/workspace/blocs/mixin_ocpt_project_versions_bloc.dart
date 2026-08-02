@@ -217,7 +217,14 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   }
 
   /// Starts a new branch from a version: restores it, then marks the branch point with a version of
-  /// its own.
+  /// its own named [OcptProjectVersionForkRequestedEvent.forkName].
+  ///
+  /// Composed from [OcptProjectsManager.restoreProjectVersion] and
+  /// [OcptProjectsManager.createProjectVersion] rather than a single manager call: a restore that
+  /// fails leaves the project untouched, and this handler stops there without naming anything — the
+  /// second call runs only once the first has actually committed. A restore that succeeds but whose
+  /// branch-point capture then fails still leaves the restore in place: the project is simply
+  /// restored without a card marking where the branch started.
   ///
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.restoreReloadsEverything}
   Future<void> _onVersionForkRequested(
@@ -226,14 +233,16 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   ) async {
     await flushPendingProjectWrites(emitter);
 
-    final status = await projectsManager.forkProjectVersion(
+    final status = await projectsManager.restoreProjectVersion(
       versionId: event.versionId,
       safetyVersionName: event.safetyVersionName,
-      forkName: event.forkName,
+    );
+
+    if (status.isSuccess) {
       // The branch point is named, never described: what it is a branch from is the whole of what
       // there is to say about it, and the name already says it.
-      forkNote: "",
-    );
+      await projectsManager.createProjectVersion(name: event.forkName, note: "");
+    }
 
     await _applyRestoreOutcome(status, emitter);
   }

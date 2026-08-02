@@ -37,7 +37,7 @@ class OcptProjectVersion extends Equatable {
   ///
   /// This is a read-time property rather than a stored column: the pointer lives in the project
   /// header, and the loading service resolves it once for the whole list.
-  final bool isCurrent;
+  final bool isBase;
 
   /// Class constructor
   const OcptProjectVersion({
@@ -46,29 +46,29 @@ class OcptProjectVersion extends Equatable {
     required this.note,
     required this.createdAt,
     required this.summary,
-    required this.isCurrent,
+    required this.isBase,
   });
 
-  /// Builds the version described by [row], flagged [isCurrent] by the caller, which is the one
+  /// Builds the version described by [row], flagged [isBase] by the caller, which is the one
   /// that knows the project header's pointer.
   factory OcptProjectVersion.fromRow({
     required OcptProjectVersionRow row,
-    required bool isCurrent,
+    required bool isBase,
   }) => OcptProjectVersion(
     id: row.id,
     name: row.name,
     note: row.note,
     createdAt: row.createdAt,
     summary: OcptProjectVersionSummary.parse(row.summaryJson),
-    isCurrent: isCurrent,
+    isBase: isBase,
   );
 
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptProjectVersion(id: $id, name: $name, createdAt: $createdAt, isCurrent: $isCurrent)";
+      "OcptProjectVersion(id: $id, name: $name, createdAt: $createdAt, isBase: $isBase)";
 
   /// Object properties
   @override
-  List<Object?> get props => [id, name, note, createdAt, summary, isCurrent];
+  List<Object?> get props => [id, name, note, createdAt, summary, isBase];
 }

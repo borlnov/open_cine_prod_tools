@@ -175,7 +175,7 @@ void main() {
     );
 
     expect(created?.name, "v1 — First read");
-    expect(created?.isCurrent, isTrue);
+    expect(created?.isBase, isTrue);
 
     final versions = await manager.listProjectVersions();
     expect(versions.map((version) => version.id), [created?.id]);
@@ -195,10 +195,36 @@ void main() {
     expect(await manager.listProjectVersions(), isEmpty);
   });
 
+  test('renameProjectVersion renames a version of the open project', () async {
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    final created = await manager.createProjectVersion(name: "v1", note: "First cut");
+
+    await manager.renameProjectVersion(versionId: created!.id, name: "v1 bis", note: "Renamed");
+
+    final versions = await manager.listProjectVersions();
+    expect(versions.single.name, "v1 bis");
+    expect(versions.single.note, "Renamed");
+  });
+
+  test('captureWorkingCopyState reads the open project, null with none open', () async {
+    expect(await manager.captureWorkingCopyState(), isNull);
+
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    final version = await manager.createProjectVersion(name: "v1", note: "");
+
+    final clean = await manager.captureWorkingCopyState();
+    expect(clean?.baseVersionId, version?.id);
+    expect(clean?.isModifiedSinceBase, isFalse);
+  });
+
   test('the version operations are no-ops when no project is open', () async {
     expect(await manager.listProjectVersions(), isEmpty);
     expect(await manager.createProjectVersion(name: "v1", note: ""), isNull);
     await expectLater(manager.deleteProjectVersion("no-such-version"), completes);
+    await expectLater(
+      manager.renameProjectVersion(versionId: "no-such-version", name: "v1", note: ""),
+      completes,
+    );
   });
 
   group("previewVersion", () {
@@ -467,7 +493,14 @@ void main() {
         versions.map((entry) => entry.name),
         containsAll(["Before restoring v1 — First read", "v1 — First read"]),
       );
-      expect(versions.singleWhere((entry) => entry.id == version.id).isCurrent, isTrue);
+      expect(versions.singleWhere((entry) => entry.id == version.id).isBase, isTrue);
+    });
+
+    test('captureWorkingCopyState is null while a version is being previewed', () async {
+      final version = await createDivergedProject();
+      await manager.previewVersion(version.id);
+
+      expect(await manager.captureWorkingCopyState(), isNull);
     });
 
     test('restoring writes the version page margins back, once it has committed', () async {
@@ -516,38 +549,9 @@ void main() {
       expect(await propertiesManager.pageMargins.load(), workingCopyMargins);
     });
 
-    test('forking restores the version and marks the branch it starts', () async {
-      final version = await createDivergedProject();
-      await manager.previewVersion(version.id);
-
-      final status = await manager.forkProjectVersion(
-        versionId: version.id,
-        safetyVersionName: "Before restoring v1 — First read",
-        forkName: "From v1 — First read",
-        forkNote: "",
-      );
-
-      expect(status, OcptProjectRestoreStatus.ok);
-      expect(manager.currentProject!.isReadOnly, isFalse);
-      expect(await readTextThroughCurrentDatabase(), "INT. HOUSE - DAY\n\nCLARA enters.");
-
-      final versions = await manager.listProjectVersions();
-      expect(versions.first.name, "From v1 — First read");
-      expect(versions.first.isCurrent, isTrue);
-    });
-
     test('restoring with no project open reports it rather than throwing', () async {
       expect(
         await manager.restoreProjectVersion(versionId: "any", safetyVersionName: "Before"),
-        OcptProjectRestoreStatus.noProjectOpen,
-      );
-      expect(
-        await manager.forkProjectVersion(
-          versionId: "any",
-          safetyVersionName: "Before",
-          forkName: "From",
-          forkNote: "",
-        ),
         OcptProjectRestoreStatus.noProjectOpen,
       );
     });

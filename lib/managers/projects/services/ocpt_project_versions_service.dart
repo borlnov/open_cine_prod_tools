@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -78,7 +79,7 @@ class OcptProjectVersionsService {
 
     return [
       for (final row in rows)
-        OcptProjectVersion.fromRow(row: row, isCurrent: row.id == info?.currentVersionId),
+        OcptProjectVersion.fromRow(row: row, isBase: row.id == info?.currentVersionId),
     ];
   }
 
@@ -101,44 +102,84 @@ class OcptProjectVersionsService {
     required String appVersion,
     required String deviceId,
     required FountainPageMargins pageMargins,
-  }) {
+  }) => database.transaction(
+    () async => _insertVersion(
+      database: database,
+      payload: await _capturePayload(database: database, pageMargins: pageMargins),
+      name: name,
+      note: note,
+      appVersion: appVersion,
+      deviceId: deviceId,
+    ),
+  );
+
+  /// Writes [payload] as a new version row named [name], with the user's [note], and makes it the
+  /// version the working copy descends from.
+  ///
+  /// The half of [createVersion] that doesn't capture: shared with [restoreVersion]'s safety
+  /// version, which has to capture the working copy anyway to decide whether it even needs one (see
+  /// [captureWorkingCopyState]), so writing that same payload here spares it from capturing the
+  /// whole project a second time. The caller owns the transaction.
+  Future<OcptProjectVersion> _insertVersion({
+    required OcptProjectDatabase database,
+    required OcptProjectVersionPayload payload,
+    required String name,
+    required String note,
+    required String appVersion,
+    required String deviceId,
+  }) async {
     final id = const Uuid().v4();
     final createdAt = DateTime.now();
+    final summary = OcptProjectVersionSummary.of(payload);
 
-    return database.transaction(() async {
-      final payload = await _capturePayload(database: database, pageMargins: pageMargins);
-      final summary = OcptProjectVersionSummary.of(payload);
+    await database
+        .into(database.ocptProjectVersionsTable)
+        .insert(
+          OcptProjectVersionsTableCompanion.insert(
+            id: id,
+            name: name,
+            note: Value(note),
+            createdAt: createdAt,
+            appVersion: appVersion,
+            payloadFormat: OcptProjectVersionCodec.currentPayloadFormat,
+            payload: _codec.encode(payload),
+            summaryJson: jsonEncode(summary.toJson()),
+            createdByDeviceId: deviceId,
+            contentDigest: Value(_codec.contentDigest(payload)),
+          ),
+        );
 
-      await database
-          .into(database.ocptProjectVersionsTable)
-          .insert(
-            OcptProjectVersionsTableCompanion.insert(
-              id: id,
-              name: name,
-              note: Value(note),
-              createdAt: createdAt,
-              appVersion: appVersion,
-              payloadFormat: OcptProjectVersionCodec.currentPayloadFormat,
-              payload: _codec.encode(payload),
-              summaryJson: jsonEncode(summary.toJson()),
-              createdByDeviceId: deviceId,
-              contentDigest: Value(_codec.contentDigest(payload)),
-            ),
-          );
+    await database
+        .update(database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(currentVersionId: Value(id)));
 
-      await database
-          .update(database.ocptProjectInfoTable)
-          .write(OcptProjectInfoTableCompanion(currentVersionId: Value(id)));
+    return OcptProjectVersion(
+      id: id,
+      name: name,
+      note: note,
+      createdAt: createdAt,
+      summary: summary,
+      isBase: true,
+    );
+  }
 
-      return OcptProjectVersion(
-        id: id,
-        name: name,
-        note: note,
-        createdAt: createdAt,
-        summary: summary,
-        isCurrent: true,
-      );
-    });
+  /// Renames the version [id] of the project in [database] to [name], replacing its [note].
+  ///
+  /// A plain update of the two columns, unlike every other version operation: it reads nothing
+  /// about the project's *data*, only writes to the version's own row, so — unlike restoring or
+  /// deleting — it stays available while a preview is up. Renaming the card the user happens to be
+  /// looking at, or any other, changes nothing about what a preview reads.
+  Future<void> renameVersion({
+    required OcptProjectDatabase database,
+    required String id,
+    required String name,
+    required String note,
+  }) async {
+    await (database.update(
+      database.ocptProjectVersionsTable,
+    )..where((table) => table.id.equals(id))).write(
+      OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)),
+    );
   }
 
   /// Loads the single version [id] of the project in [database], or null if it has no such
@@ -171,8 +212,27 @@ class OcptProjectVersionsService {
       note: row.read(table.note)!,
       createdAt: row.read(table.createdAt)!,
       summary: OcptProjectVersionSummary.parse(row.read(table.summaryJson)!),
-      isCurrent: info?.currentVersionId == id,
+      isBase: info?.currentVersionId == id,
     );
+  }
+
+  /// Reads the `contentDigest` column alone of the version [id] of the project in [database], or
+  /// null when that version doesn't exist, or exists but carries no digest — a version created
+  /// before schema v5, which [restoreVersion] and [captureWorkingCopyState] both treat as "unknown"
+  /// rather than assume it matches anything.
+  Future<String?> _loadContentDigest({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    final table = database.ocptProjectVersionsTable;
+
+    final row =
+        await (database.selectOnly(table)
+              ..addColumns([table.contentDigest])
+              ..where(table.id.equals(id)))
+            .getSingleOrNull();
+
+    return row?.read(table.contentDigest);
   }
 
   /// Reads and decodes the payload of the version [id] of the project in [database].
@@ -238,13 +298,59 @@ class OcptProjectVersionsService {
     });
   });
 
+  /// Measures the working copy of the project in [database] exactly as a stored version would be,
+  /// at [pageMargins], without writing anything: the counters a working-copy card shows, and
+  /// whether that content actually differs from the version it descends from.
+  ///
+  /// One capture answers both, which matters because it isn't a cheap one: it reads the same
+  /// tables [createVersion] does. [restoreVersion] needs the very same two facts to decide whether
+  /// it owes a safety version, and reuses this method's private half so it never pays for that
+  /// read twice.
+  Future<OcptProjectWorkingCopyState> captureWorkingCopyState({
+    required OcptProjectDatabase database,
+    required FountainPageMargins pageMargins,
+  }) async => (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state;
+
+  /// The shared half of [captureWorkingCopyState]: everything it reports, plus the payload it was
+  /// measured from, which only [restoreVersion] needs — to write it out as a safety version without
+  /// capturing the project a second time.
+  Future<_OcptWorkingCopySnapshot> _captureWorkingCopySnapshot({
+    required OcptProjectDatabase database,
+    required FountainPageMargins pageMargins,
+  }) async {
+    final payload = await _capturePayload(database: database, pageMargins: pageMargins);
+    final digest = _codec.contentDigest(payload);
+
+    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
+    final baseVersionId = info?.currentVersionId;
+    final baseDigest = baseVersionId == null
+        ? null
+        : await _loadContentDigest(database: database, id: baseVersionId);
+
+    return _OcptWorkingCopySnapshot(
+      payload: payload,
+      state: OcptProjectWorkingCopyState(
+        summary: OcptProjectVersionSummary.of(payload),
+        contentDigest: digest,
+        baseVersionId: baseVersionId,
+        isModifiedSinceBase: baseDigest == null || baseDigest != digest,
+      ),
+    );
+  }
+
   /// Puts the project in [database] back into the state the version [id] captured, and makes it
   /// the version the working copy descends from.
   ///
   /// This is the one destructive operation of the app that isn't a file deletion, so everything it
-  /// does happens inside a single transaction, and it starts by capturing the working copy as a
-  /// version of its own named [safetyVersionName] — a restore can itself be undone. A failure at any
-  /// point rolls the whole thing back, the safety version included.
+  /// does happens inside a single transaction. It starts by weighing whether the working copy it is
+  /// about to overwrite needs protecting at all: [_captureWorkingCopySnapshot] reads it and compares
+  /// its digest against the version it currently descends from, and only when the two differ — or
+  /// there is no base to compare against, or that base's digest is unknown — does the transaction
+  /// also capture it as a version of its own named [safetyVersionName]. Restoring a working copy
+  /// that already matches its base would otherwise mint a byte-for-byte duplicate of a card already
+  /// in the list. Either way, **a restore can itself be undone**: when no safety version is taken,
+  /// the state it replaces is exactly the base version's, which is still there. A failure at any
+  /// point rolls the whole thing back, the safety version included when one was taken.
   ///
   /// The value returned on success is the page setup the version was captured with, which the
   /// caller **must** finish restoring: the format half of it has just been written to the project
@@ -295,6 +401,11 @@ class OcptProjectVersionsService {
       );
     }
 
+    final workingCopy = await _captureWorkingCopySnapshot(
+      database: database,
+      pageMargins: pageMargins,
+    );
+
     try {
       await database.transaction(() async {
         // The payload's rows legitimately arrive in an order that violates a foreign key part way
@@ -302,14 +413,16 @@ class OcptProjectVersionsService {
         // deferred to the commit rather than run statement by statement.
         await database.customStatement('PRAGMA defer_foreign_keys = ON');
 
-        await createVersion(
-          database: database,
-          name: safetyVersionName,
-          note: "",
-          appVersion: appVersion,
-          deviceId: deviceId,
-          pageMargins: pageMargins,
-        );
+        if (workingCopy.state.isModifiedSinceBase) {
+          await _insertVersion(
+            database: database,
+            payload: workingCopy.payload,
+            name: safetyVersionName,
+            note: "",
+            appVersion: appVersion,
+            deviceId: deviceId,
+          );
+        }
 
         await _applyPayload(database: database, payload: payload, deviceId: deviceId);
 
@@ -329,53 +442,6 @@ class OcptProjectVersionsService {
     }
 
     return ResultWithStatus(status: OcptProjectRestoreStatus.ok, value: payload.pageSetup);
-  }
-
-  /// Restores the version [id] over the project in [database], then captures the result as a new
-  /// version named [forkName] with the user's [forkNote]: the branch the user starts from an older
-  /// state is itself a named entry of the list rather than an unmarked rewrite.
-  ///
-  /// The fork's own capture is measured against the page setup the restore has just put back, not
-  /// the one the app was showing a moment ago — the state it describes is the restored one.
-  ///
-  /// Everything [restoreVersion] guarantees holds here: a fork that fails leaves the project
-  /// untouched. A fork whose *capture* fails leaves the restore in place, since that transaction has
-  /// committed by then — the project is then simply restored without a card marking the branch, and
-  /// the safety version is still there.
-  Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> forkFromVersion({
-    required OcptProjectDatabase database,
-    required String id,
-    required String safetyVersionName,
-    required String forkName,
-    required String forkNote,
-    required String appVersion,
-    required String deviceId,
-    required FountainPageMargins pageMargins,
-  }) async {
-    final restored = await restoreVersion(
-      database: database,
-      id: id,
-      safetyVersionName: safetyVersionName,
-      appVersion: appVersion,
-      deviceId: deviceId,
-      pageMargins: pageMargins,
-    );
-
-    final restoredPageSetup = restored.value;
-    if (restoredPageSetup == null) {
-      return restored;
-    }
-
-    await createVersion(
-      database: database,
-      name: forkName,
-      note: forkNote,
-      appVersion: appVersion,
-      deviceId: deviceId,
-      pageMargins: restoredPageSetup.margins,
-    );
-
-    return restored;
   }
 
   /// Deletes the version [id] of the project in [database], clearing the project header's pointer
@@ -720,4 +786,24 @@ class _OcptRestoreStamps {
       (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
     );
   }
+}
+
+/// The payload [OcptProjectVersionsService._captureWorkingCopySnapshot] captures, paired with the
+/// state derived from it.
+///
+/// A private pairing rather than putting the payload on [OcptProjectWorkingCopyState] itself: the
+/// public state is meant for a working-copy card and for a dedupe check alike, neither of which
+/// has any business holding hundreds of kilobytes of row data — only
+/// [OcptProjectVersionsService.restoreVersion]'s safety version does, and only for as long as its
+/// own capture stays in scope.
+class _OcptWorkingCopySnapshot {
+  /// The payload captured from the working copy.
+  final OcptProjectVersionPayload payload;
+
+  /// What [payload] says about the working copy: its counters, its digest, and whether it differs
+  /// from the version it descends from.
+  final OcptProjectWorkingCopyState state;
+
+  /// Class constructor
+  const _OcptWorkingCopySnapshot({required this.payload, required this.state});
 }
