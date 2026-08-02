@@ -36,7 +36,9 @@ CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFER
 
 // The same, for schema version 3: every table carrying its sync-ready columns (`is_deleted`
 // everywhere, `sort_key` on the two ordered tables) and the `row_field_versions` sidecar, but the
-// `shots` table still without the `abbreviation` column version 4 adds.
+// `shots` table still without the `abbreviation` column version 4 adds, and no `project_versions`
+// table nor the `project_info.current_version_id` column pointing into it, both of which version 5
+// adds.
 const _v3Ddl = '''
 CREATE TABLE "project_info" ("id" INTEGER NOT NULL DEFAULT 1, "name" TEXT NOT NULL, "created_at" TEXT NOT NULL, "app_version_at_creation" TEXT NOT NULL, "page_format" TEXT NOT NULL, "settings_json" TEXT NULL, PRIMARY KEY ("id"));
 CREATE TABLE "screenplays" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "fountain_text" TEXT NOT NULL DEFAULT '', "updated_at" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
@@ -119,6 +121,37 @@ void main() {
     expect(scene.charStart, 0);
     expect(scene.charEnd, 18);
     expect(scene.isDeleted, isFalse);
+  }
+
+  /// Asserts that the version 5 shape is in place and usable in [database]: the `project_versions`
+  /// table accepts a row, and `project_info.current_version_id` — added by the same step — accepts
+  /// a pointer to it.
+  Future<void> expectProjectVersionsAreUsable(OcptProjectDatabase database) async {
+    await database
+        .into(database.ocptProjectVersionsTable)
+        .insert(
+          OcptProjectVersionsTableCompanion.insert(
+            id: "version1",
+            name: "v1 — First read",
+            createdAt: DateTime.utc(2026, 2, 1, 10),
+            appVersion: "0.1.0",
+            payloadFormat: 1,
+            payload: '{"payloadFormat":1}',
+            summaryJson: '{"pageCount":41}',
+            createdByDeviceId: "device-1",
+          ),
+        );
+
+    await database
+        .update(database.ocptProjectInfoTable)
+        .write(const OcptProjectInfoTableCompanion(currentVersionId: Value("version1")));
+
+    final version = await database.select(database.ocptProjectVersionsTable).getSingle();
+    expect(version.name, "v1 — First read");
+    expect(version.note, "");
+
+    final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+    expect(projectInfo.currentVersionId, "version1");
   }
 
   /// The `user_version` pragma [database]'s file now carries.
@@ -205,8 +238,11 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
 
-    // (d) the schema version stored in the file is now 4.
-    expect(await readSchemaVersion(database), 4);
+    // (d) so do the version 5 project versions, pointed at by the project header.
+    await expectProjectVersionsAreUsable(database);
+
+    // (e) the schema version stored in the file is now 5.
+    expect(await readSchemaVersion(database), 5);
 
     await database.close();
   });
@@ -309,7 +345,8 @@ void main() {
     expect([for (final row in characters) row.characterName], ['CLARA', 'MARC', 'THÉO']);
     expect(characters.every((row) => row.sortKey.isNotEmpty && !row.isDeleted), isTrue);
 
-    // (e) the sidecar table was created, and the file now says version 3.
+    // (e) the sidecar table was created, the project versions are usable, and the file now says
+    // version 5.
     await database
         .into(database.ocptRowFieldVersionsTable)
         .insert(
@@ -322,12 +359,13 @@ void main() {
           ),
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
-    expect(await readSchemaVersion(database), 4);
+    await expectProjectVersionsAreUsable(database);
+    expect(await readSchemaVersion(database), 5);
 
     await database.close();
   });
 
-  test('a v3 database migrates to v4, gaining an empty abbreviation on every shot', () async {
+  test('a v3 database migrates on, gaining an abbreviation and the project versions', () async {
     final filePath = p.join(tempDir.path, 'legacy_v3.ocpt');
 
     final legacyDb = sqlite3.sqlite3.open(filePath);
@@ -335,15 +373,19 @@ void main() {
     legacyDb.execute('PRAGMA user_version = 3;');
     seedCommonRows(legacyDb);
     legacyDb.execute(
-      "INSERT INTO shots (id, screenplay_id, scene_id, position, sort_key, shot_size, framing) "
-      "VALUES ('shot-a', 's1', 'scene1', 0, 'V', 'Gros plan', 'framing of shot-a');",
+      "INSERT INTO shots (id, screenplay_id, scene_id, position, sort_key, shot_size, framing, "
+      "is_deleted) VALUES ('shot-a', 's1', 'scene1', 0, 'V', 'Gros plan', 'framing of shot-a', 0);",
+    );
+    legacyDb.execute(
+      "INSERT INTO row_field_versions (table_name, row_id, column_name, version, device_id) "
+      "VALUES ('shots', 'shot-a', 'framing', 7, 'device-0');",
     );
     legacyDb.dispose();
 
     final database = OcptProjectDatabase(File(filePath));
 
-    // (a) every original row survived, the shot included: the step is a plain `ADD COLUMN`, so
-    // nothing the file already held is rewritten.
+    // (a) every row the file already held survived, the shot and the version 3 ones included:
+    // these steps only add columns and a table, and touch nothing else.
     await expectCommonRowsSurvived(database);
 
     final shot = await database.select(database.ocptShotsTable).getSingle();
@@ -353,8 +395,13 @@ void main() {
     expect(shot.sortKey, "V");
     expect(shot.isDeleted, isFalse);
 
-    // (b) the new column is there, holding its default rather than being deduced retroactively:
-    // an abbreviation is only ever written when a shot size is committed from the inspector.
+    final stamp = await database.select(database.ocptRowFieldVersionsTable).getSingle();
+    expect(stamp.rowId, "shot-a");
+    expect(stamp.version, 7);
+
+    // (b) the version 4 column is there, holding its default rather than being deduced
+    // retroactively: an abbreviation is only ever written when a shot size is committed from the
+    // inspector.
     expect(shot.abbreviation, "");
 
     await database
@@ -362,8 +409,14 @@ void main() {
         .write(const OcptShotsTableCompanion(abbreviation: Value("GP")));
     expect((await database.select(database.ocptShotsTable).getSingle()).abbreviation, "GP");
 
-    // (c) the file now says version 4.
-    expect(await readSchemaVersion(database), 4);
+    // (c) the project header kept its own values, and its new pointer starts empty: a project that
+    // predates this version has never had a version of its own.
+    final projectInfoBefore = await database.select(database.ocptProjectInfoTable).getSingle();
+    expect(projectInfoBefore.currentVersionId, isNull);
+
+    // (d) the version 5 shape is in place and usable, and the file now says version 5.
+    await expectProjectVersionsAreUsable(database);
+    expect(await readSchemaVersion(database), 5);
 
     await database.close();
   });

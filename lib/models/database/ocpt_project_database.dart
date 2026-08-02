@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_row_field_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snapshots_table.dart';
@@ -34,7 +35,8 @@ part 'ocpt_project_database.g.dart';
 /// text ([OcptScreenplaySnapshotsTable]), the reconciled scene index ([OcptScenesTable]) and, from
 /// schema version 2 onwards, the shot list built on top of that index ([OcptShotsTable],
 /// [OcptShotCharactersTable], [OcptShotCoveragesTable]). From schema version 3 it also holds the
-/// per-column version stamps a merge resolves conflicts with ([OcptRowFieldVersionsTable]).
+/// per-column version stamps a merge resolves conflicts with ([OcptRowFieldVersionsTable]), and
+/// from schema version 5 the user's named project versions ([OcptProjectVersionsTable]).
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -46,6 +48,7 @@ part 'ocpt_project_database.g.dart';
     OcptShotCharactersTable,
     OcptShotCoveragesTable,
     OcptRowFieldVersionsTable,
+    OcptProjectVersionsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -58,7 +61,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// The database options used by this database.
   ///
@@ -81,9 +84,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// every synchronised table, a `sortKey` fractional index beside `position` on the two ordered
   /// ones — creates [OcptRowFieldVersionsTable], and backfills the new keys from the order
   /// `position` already held (see [_backfillSortKeys]). From 3 to 4 it adds `shots.abbreviation`,
-  /// the short label the scenario coverage export marks its bars with. Every step is additive, as
-  /// ADR 0007 requires: every new column carries a default, so the rows a project already had stay
-  /// valid without being rewritten.
+  /// the short label the scenario coverage export marks its bars with. From 4 to 5 it creates
+  /// [OcptProjectVersionsTable] and adds the `project_info.currentVersionId` column pointing into
+  /// it. Every step is additive, as ADR 0007 requires: every new column carries a default (or is
+  /// nullable), so the rows a project already had stay valid without being rewritten.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -121,6 +125,11 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 4 && from >= 2) {
         await m.addColumn(ocptShotsTable, ocptShotsTable.abbreviation);
+      }
+
+      if (from < 5) {
+        await m.createTable(ocptProjectVersionsTable);
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currentVersionId);
       }
     },
     beforeOpen: (details) async {
