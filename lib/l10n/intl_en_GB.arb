@@ -2189,8 +2189,44 @@
       }
     }
   },
-  "projectVersionCurrentBadge": "Current",
-  "@projectVersionCurrentBadge": {
+  "projectWorkingCopyTitle": "Work in progress",
+  "@projectWorkingCopyTitle": {
+    "description": "Title of the working copy's own card, above the sealed versions",
+    "context": "Displayed in the versions tab of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectWorkingCopyIdenticalHint": "Identical to \"{baseVersionName}\"",
+  "@projectWorkingCopyIdenticalHint": {
+    "description": "Line telling that the working copy's content still matches the version it descends from",
+    "context": "Displayed on the working copy's own card",
+    "type": "text",
+    "placeholders": {
+      "baseVersionName": {
+        "type": "String"
+      }
+    }
+  },
+  "projectWorkingCopyModifiedHint": "Modified since \"{baseVersionName}\"",
+  "@projectWorkingCopyModifiedHint": {
+    "description": "Line telling that the working copy has drifted from the version it descends from",
+    "context": "Displayed on the working copy's own card",
+    "type": "text",
+    "placeholders": {
+      "baseVersionName": {
+        "type": "String"
+      }
+    }
+  },
+  "projectWorkingCopyNoBaseHint": "Not based on any version",
+  "@projectWorkingCopyNoBaseHint": {
+    "description": "Line telling that the working copy descends from no version at all",
+    "context": "Displayed on the working copy's own card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionBaseBadge": "Base",
+  "@projectVersionBaseBadge": {
     "description": "Badge of the version the working copy descends from",
     "context": "Displayed on a version card in the versions tab of the right dock",
     "type": "text",
@@ -2203,17 +2239,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectVersionCurrentHint": "State loaded in the editor",
-  "@projectVersionCurrentHint": {
-    "description": "Line telling that the current version is what the workspace already shows",
-    "context": "Displayed on the current version's card",
+  "projectVersionBaseHint": "Your work in progress started from this version.",
+  "@projectVersionBaseHint": {
+    "description": "Line explaining what the base badge means, on the card of the version the working copy descends from",
+    "context": "Displayed on the base version's card",
     "type": "text",
     "placeholders": {}
   },
   "projectVersionPreviewHint": "Click the card to view this version read-only",
   "@projectVersionPreviewHint": {
     "description": "Line telling what clicking a version card does",
-    "context": "Displayed on every version card that is neither the current nor the previewed one",
+    "context": "Displayed on every version card that is neither the base nor the previewed one",
     "type": "text",
     "placeholders": {}
   },
@@ -2249,6 +2285,41 @@
   "@projectVersionDeleteCancelAction": {
     "description": "Action cancelling the deletion of a project version",
     "context": "Displayed in the inline confirmation of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRenameAction": "Rename",
+  "@projectVersionRenameAction": {
+    "description": "Action asking to rename a project version, which only opens its inline rename form",
+    "context": "Displayed on a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRenameNameLabel": "Name",
+  "@projectVersionRenameNameLabel": {
+    "description": "Label of the name field of the inline rename form",
+    "context": "Displayed in the inline rename form of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRenameNoteLabel": "Note (optional)",
+  "@projectVersionRenameNoteLabel": {
+    "description": "Label of the note field of the inline rename form",
+    "context": "Displayed in the inline rename form of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRenameCancelAction": "Cancel",
+  "@projectVersionRenameCancelAction": {
+    "description": "Action cancelling the inline rename form without saving it",
+    "context": "Displayed in the inline rename form of a version card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectVersionRenameConfirmAction": "Save",
+  "@projectVersionRenameConfirmAction": {
+    "description": "Action saving the inline rename form's name and note",
+    "context": "Displayed in the inline rename form of a version card",
     "type": "text",
     "placeholders": {}
   },
@@ -2374,17 +2445,6 @@
   "projectVersionRestoreSafetyName": "Before restoring {versionName}",
   "@projectVersionRestoreSafetyName": {
     "description": "Name of the version automatically created to keep the state a restore replaces",
-    "context": "Shown as a version card of its own, in the versions tab of the right dock",
-    "type": "text",
-    "placeholders": {
-      "versionName": {
-        "type": "String"
-      }
-    }
-  },
-  "projectVersionForkName": "From {versionName}",
-  "@projectVersionForkName": {
-    "description": "Name of the version marking the branch point a fork starts",
     "context": "Shown as a version card of its own, in the versions tab of the right dock",
     "type": "text",
     "placeholders": {

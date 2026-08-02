@@ -469,20 +469,18 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Builds the right dock's `Versions` tab: the project's named versions, the same panel the
-  /// screenplay mode's dock hosts, wired to the events `MixinOcptProjectVersionsBloc` handles.
-  ///
-  /// `Create a version` is disabled while one is being previewed: the capture reads the project
-  /// file, so it would record a state the user isn't looking at.
+  /// Builds the right dock's `Versions` tab: the working copy's own card and the project's named
+  /// versions, the same panel the screenplay mode's dock hosts, wired to the events
+  /// `MixinOcptProjectVersionsBloc` handles.
   Widget _buildVersionsPanel(BuildContext context, OcptShotListState state) =>
       OcptProjectVersionsPanel(
         versions: state.projectVersions,
         previewedVersionId: state.previewedVersionId,
+        workingCopy: state.workingCopy,
         versionPendingDeletionId: state.versionPendingDeletionId,
         versionPendingRestoreId: state.versionPendingRestoreId,
-        onCreateRequested: state.isPreviewingVersion
-            ? null
-            : () => _requestVersionCreation(context),
+        versionPendingRenameId: state.versionPendingRenameId,
+        onCreateRequested: () => _requestVersionCreation(context),
         onPreviewRequested: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
         ),
@@ -509,6 +507,15 @@ class _ShotListViewState extends State<_ShotListView> {
         ),
         onDeleteConfirmed: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
+        ),
+        onRenameRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
+        ),
+        onRenameCancelled: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionRenameCancelledEvent(),
+        ),
+        onRenameConfirmed: (versionId, name, note) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
         ),
       );
 

@@ -42,24 +42,47 @@ OcptProjectVersion _version({
   isBase: isBase,
 );
 
+/// Builds a card over [version], with every callback a no-op unless overridden, and every inline
+/// mode closed unless [isConfirmingDeletion], [isConfirmingRestore] or [isConfirmingRename] says
+/// otherwise.
+Widget _card({
+  required OcptProjectVersion version,
+  bool isPreviewed = false,
+  bool isConfirmingDeletion = false,
+  bool isConfirmingRestore = false,
+  bool isConfirmingRename = false,
+  VoidCallback? onTap,
+  VoidCallback? onRestoreRequested,
+  VoidCallback? onRestoreConfirmed,
+  VoidCallback? onRestoreCancelled,
+  VoidCallback? onDeleteRequested,
+  VoidCallback? onDeleteConfirmed,
+  VoidCallback? onDeleteCancelled,
+  VoidCallback? onRenameRequested,
+  void Function(String name, String note)? onRenameConfirmed,
+  VoidCallback? onRenameCancelled,
+}) => OcptProjectVersionCard(
+  version: version,
+  isPreviewed: isPreviewed,
+  isConfirmingDeletion: isConfirmingDeletion,
+  isConfirmingRestore: isConfirmingRestore,
+  isConfirmingRename: isConfirmingRename,
+  onTap: onTap ?? () {},
+  onRestoreRequested: onRestoreRequested ?? () {},
+  onRestoreConfirmed: onRestoreConfirmed ?? () {},
+  onRestoreCancelled: onRestoreCancelled ?? () {},
+  onDeleteRequested: onDeleteRequested,
+  onDeleteConfirmed: onDeleteConfirmed ?? () {},
+  onDeleteCancelled: onDeleteCancelled ?? () {},
+  onRenameRequested: onRenameRequested ?? () {},
+  onRenameConfirmed: onRenameConfirmed ?? (name, note) {},
+  onRenameCancelled: onRenameCancelled ?? () {},
+);
+
 void main() {
   testWidgets('shows the name, the counters and the note of the version', (tester) async {
     await tester.pumpWidget(
-      _wrapWithLocalization(
-        OcptProjectVersionCard(
-          version: _version(note: "Everything before the rewrite"),
-          isPreviewed: false,
-          isConfirmingDeletion: false,
-          isConfirmingRestore: false,
-          onTap: () {},
-          onRestoreRequested: () {},
-          onRestoreConfirmed: () {},
-          onRestoreCancelled: () {},
-          onDeleteRequested: () {},
-          onDeleteConfirmed: () {},
-          onDeleteCancelled: () {},
-        ),
-      ),
+      _wrapWithLocalization(_card(version: _version(note: "Everything before the rewrite"))),
     );
 
     final context = tester.element(find.byType(OcptProjectVersionCard));
@@ -71,23 +94,19 @@ void main() {
     expect(find.textContaining(tr.projectVersionSequencesBrokenDown(3)), findsOneWidget);
   });
 
-  testWidgets('the current version wears its badge and offers neither preview nor delete', (
+  testWidgets('the base version wears its badge and offers preview, restore and delete', (
     tester,
   ) async {
+    var previewed = 0;
+    var restoreRequested = 0;
+    var deleteRequested = 0;
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptProjectVersionCard(
+        _card(
           version: _version(isBase: true),
-          isPreviewed: false,
-          isConfirmingDeletion: false,
-          isConfirmingRestore: false,
-          onTap: null,
-          onRestoreRequested: null,
-          onRestoreConfirmed: () {},
-          onRestoreCancelled: () {},
-          onDeleteRequested: null,
-          onDeleteConfirmed: () {},
-          onDeleteCancelled: () {},
+          onTap: () => previewed++,
+          onRestoreRequested: () => restoreRequested++,
+          onDeleteRequested: () => deleteRequested++,
         ),
       ),
     );
@@ -95,9 +114,17 @@ void main() {
     final context = tester.element(find.byType(OcptProjectVersionCard));
     final tr = Tr.of(context);
 
-    expect(find.text(tr.projectVersionCurrentBadge), findsOneWidget);
-    expect(find.text(tr.projectVersionCurrentHint), findsOneWidget);
-    expect(find.text(tr.projectVersionDeleteAction), findsNothing);
+    expect(find.text(tr.projectVersionBaseBadge), findsOneWidget);
+    expect(find.text(tr.projectVersionBaseHint), findsOneWidget);
+
+    await tester.tap(find.byType(OcptProjectVersionCard));
+    expect(previewed, 1);
+
+    await tester.tap(find.text(tr.projectVersionRestoreAction));
+    expect(restoreRequested, 1);
+
+    await tester.tap(find.text(tr.projectVersionDeleteAction));
+    expect(deleteRequested, 1);
   });
 
   testWidgets('the previewed version wears the preview badge and offers going back', (
@@ -106,19 +133,7 @@ void main() {
     var exited = 0;
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptProjectVersionCard(
-          version: _version(),
-          isPreviewed: true,
-          isConfirmingDeletion: false,
-          isConfirmingRestore: false,
-          onTap: () => exited++,
-          onRestoreRequested: () {},
-          onRestoreConfirmed: () {},
-          onRestoreCancelled: () {},
-          onDeleteRequested: null,
-          onDeleteConfirmed: () {},
-          onDeleteCancelled: () {},
-        ),
+        _card(version: _version(), isPreviewed: true, onTap: () => exited++),
       ),
     );
 
@@ -127,6 +142,8 @@ void main() {
 
     expect(find.text(tr.projectVersionPreviewBadge), findsOneWidget);
     expect(find.text(tr.projectVersionPreviewedHint), findsOneWidget);
+    // The preview reads from a database hydrated out of this very row: deleting it is refused.
+    expect(find.text(tr.projectVersionDeleteAction), findsNothing);
 
     await tester.tap(find.byType(OcptProjectVersionCard));
     expect(exited, 1);
@@ -135,21 +152,7 @@ void main() {
   testWidgets('clicking any other card asks for its preview', (tester) async {
     var previewed = 0;
     await tester.pumpWidget(
-      _wrapWithLocalization(
-        OcptProjectVersionCard(
-          version: _version(),
-          isPreviewed: false,
-          isConfirmingDeletion: false,
-          isConfirmingRestore: false,
-          onTap: () => previewed++,
-          onRestoreRequested: () {},
-          onRestoreConfirmed: () {},
-          onRestoreCancelled: () {},
-          onDeleteRequested: () {},
-          onDeleteConfirmed: () {},
-          onDeleteCancelled: () {},
-        ),
-      ),
+      _wrapWithLocalization(_card(version: _version(), onTap: () => previewed++)),
     );
 
     final context = tester.element(find.byType(OcptProjectVersionCard));
@@ -166,16 +169,9 @@ void main() {
     var cancelled = 0;
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptProjectVersionCard(
+        _card(
           version: _version(),
-          isPreviewed: false,
           isConfirmingDeletion: true,
-          isConfirmingRestore: false,
-          onTap: () {},
-          onRestoreRequested: () {},
-          onRestoreConfirmed: () {},
-          onRestoreCancelled: () {},
-          onDeleteRequested: () {},
           onDeleteConfirmed: () => confirmed++,
           onDeleteCancelled: () => cancelled++,
         ),
@@ -202,18 +198,11 @@ void main() {
     var cancelled = 0;
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptProjectVersionCard(
+        _card(
           version: _version(),
-          isPreviewed: false,
-          isConfirmingDeletion: false,
           isConfirmingRestore: true,
-          onTap: () {},
-          onRestoreRequested: () {},
           onRestoreConfirmed: () => confirmed++,
           onRestoreCancelled: () => cancelled++,
-          onDeleteRequested: () {},
-          onDeleteConfirmed: () {},
-          onDeleteCancelled: () {},
         ),
       ),
     );
@@ -234,27 +223,91 @@ void main() {
     expect(confirmed, 1);
   });
 
-  testWidgets('a card with nothing to restore from shows no restore action', (tester) async {
+  testWidgets('clicking Rename asks to open the inline rename form', (tester) async {
+    var requested = 0;
+    await tester.pumpWidget(
+      _wrapWithLocalization(_card(version: _version(), onRenameRequested: () => requested++)),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionCard));
+    final tr = Tr.of(context);
+
+    await tester.tap(find.text(tr.projectVersionRenameAction));
+    expect(requested, 1);
+  });
+
+  testWidgets('the inline rename form is pre-filled from the version', (tester) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptProjectVersionCard(
-          version: _version(isBase: true),
-          isPreviewed: false,
-          isConfirmingDeletion: false,
-          isConfirmingRestore: false,
-          onTap: null,
-          onRestoreRequested: null,
-          onRestoreConfirmed: () {},
-          onRestoreCancelled: () {},
-          onDeleteRequested: null,
-          onDeleteConfirmed: () {},
-          onDeleteCancelled: () {},
+        _card(version: _version(note: "Everything kept"), isConfirmingRename: true),
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionCard));
+    final tr = Tr.of(context);
+
+    expect(_fieldText(tester, tr.projectVersionRenameNameLabel), "v3 — Before the seq. 1 rewrite");
+    expect(_fieldText(tester, tr.projectVersionRenameNoteLabel), "Everything kept");
+  });
+
+  testWidgets('Save is disabled once the name field is emptied', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithLocalization(_card(version: _version(), isConfirmingRename: true)),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionCard));
+    final tr = Tr.of(context);
+
+    expect(_saveButton(tester, tr).onPressed, isNotNull);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.projectVersionRenameNameLabel),
+      "",
+    );
+    await tester.pump();
+
+    expect(_saveButton(tester, tr).onPressed, isNull);
+  });
+
+  testWidgets('Save reports the trimmed name and note, Cancel reports nothing', (tester) async {
+    (String, String)? saved;
+    var cancelled = 0;
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _card(
+          version: _version(),
+          isConfirmingRename: true,
+          onRenameConfirmed: (name, note) => saved = (name, note),
+          onRenameCancelled: () => cancelled++,
         ),
       ),
     );
 
     final context = tester.element(find.byType(OcptProjectVersionCard));
+    final tr = Tr.of(context);
 
-    expect(find.text(Tr.of(context).projectVersionRestoreAction), findsNothing);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.projectVersionRenameNameLabel),
+      "  Renamed  ",
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.projectVersionRenameNoteLabel),
+      "  A note  ",
+    );
+    await tester.pump();
+
+    await tester.tap(find.text(tr.projectVersionRenameConfirmAction));
+    expect(saved, ("Renamed", "A note"));
+
+    await tester.tap(find.text(tr.projectVersionRenameCancelAction));
+    expect(cancelled, 1);
   });
 }
+
+/// The current text of the [TextFormField] labelled [label].
+String? _fieldText(WidgetTester tester, String label) =>
+    tester.widget<TextFormField>(find.widgetWithText(TextFormField, label)).controller?.text;
+
+/// The `Save` button of the inline rename form.
+FilledButton _saveButton(WidgetTester tester, Tr tr) =>
+    tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.projectVersionRenameConfirmAction));

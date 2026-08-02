@@ -91,7 +91,11 @@ class OcptWorkspaceReadOnlyBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  ocptProjectVersionSummaryLine(context, version),
+                  ocptProjectVersionSummaryLine(
+                    context,
+                    summary: version.summary,
+                    createdAt: version.createdAt,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(

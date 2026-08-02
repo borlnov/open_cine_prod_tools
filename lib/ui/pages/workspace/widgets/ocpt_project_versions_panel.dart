@@ -5,10 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_working_copy_card.dart';
 
-/// The `Versions` tab of the right dock: the project's named versions, newest first, with the
-/// action that creates one.
+/// The `Versions` tab of the right dock: the working copy on top, then the project's named
+/// versions underneath, newest first.
 ///
 /// Shown in **every** production mode's dock and built from
 /// `MixinOcptProjectVersionsState` alone, because a version covers the whole project rather than
@@ -25,6 +27,9 @@ class OcptProjectVersionsPanel extends StatelessWidget {
   /// on screen.
   final String? previewedVersionId;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.workingCopy}
+  final OcptProjectWorkingCopyState? workingCopy;
+
   /// The id of the version whose card shows its inline delete confirmation, or null while none
   /// does.
   final String? versionPendingDeletionId;
@@ -33,9 +38,11 @@ class OcptProjectVersionsPanel extends StatelessWidget {
   /// does.
   final String? versionPendingRestoreId;
 
-  /// Called when `Create a version` is clicked; null while creating one is refused (a version is
-  /// being previewed, so the capture would record a state the user isn't looking at).
-  final VoidCallback? onCreateRequested;
+  /// The id of the version whose card shows its inline rename form, or null while none does.
+  final String? versionPendingRenameId;
+
+  /// Called when the working copy card's `Create a version` is clicked.
+  final VoidCallback onCreateRequested;
 
   /// Called with a version's id when its card is clicked to enter its read-only preview.
   final ValueChanged<String> onPreviewRequested;
@@ -66,13 +73,26 @@ class OcptProjectVersionsPanel extends StatelessWidget {
   /// Called with a version's id when its inline delete confirmation is confirmed.
   final ValueChanged<String> onDeleteConfirmed;
 
+  /// Called with a version's id when its `Rename` is clicked, which only opens its inline rename
+  /// form.
+  final ValueChanged<String> onRenameRequested;
+
+  /// Called when an inline rename form is cancelled.
+  final VoidCallback onRenameCancelled;
+
+  /// Called with a version's id, its new name and its new note when its inline rename form's
+  /// `Save` is clicked.
+  final void Function(String versionId, String name, String note) onRenameConfirmed;
+
   /// Class constructor
   const OcptProjectVersionsPanel({
     super.key,
     required this.versions,
     required this.previewedVersionId,
+    required this.workingCopy,
     required this.versionPendingDeletionId,
     required this.versionPendingRestoreId,
+    required this.versionPendingRenameId,
     required this.onCreateRequested,
     required this.onPreviewRequested,
     required this.onPreviewExitRequested,
@@ -82,12 +102,16 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     required this.onDeleteRequested,
     required this.onDeleteCancelled,
     required this.onDeleteConfirmed,
+    required this.onRenameRequested,
+    required this.onRenameCancelled,
+    required this.onRenameConfirmed,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final workingCopy = this.workingCopy;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -102,15 +126,12 @@ class OcptProjectVersionsPanel extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: onCreateRequested,
-            icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-            label: Text(tr.projectVersionsCreateAction),
+        if (workingCopy != null)
+          OcptProjectWorkingCopyCard(
+            workingCopy: workingCopy,
+            baseVersionName: _baseVersionName(workingCopy.baseVersionId),
+            onCreateRequested: onCreateRequested,
           ),
-        ),
-        const SizedBox(height: 12),
         if (versions.isEmpty)
           Text(
             tr.projectVersionsEmptyHint,
@@ -122,8 +143,25 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     );
   }
 
-  /// Builds [version]'s card, wiring the actions that depend on which of the three states it is in
-  /// (see [OcptProjectVersionCard]'s own doc comment).
+  /// The name of the version [baseVersionId] names, resolved out of [versions] — the list already
+  /// carries every version, the base included, so a second lookup path could only ever disagree
+  /// with it. Null when [baseVersionId] is null, or names a version no longer in the list.
+  String? _baseVersionName(String? baseVersionId) {
+    if (baseVersionId == null) {
+      return null;
+    }
+
+    for (final version in versions) {
+      if (version.id == baseVersionId) {
+        return version.name;
+      }
+    }
+
+    return null;
+  }
+
+  /// Builds [version]'s card, wiring the actions that depend on which of its states it is in (see
+  /// [OcptProjectVersionCard]'s own doc comment).
   Widget _buildCard(OcptProjectVersion version) {
     final isPreviewed = version.id == previewedVersionId;
 
@@ -133,22 +171,20 @@ class OcptProjectVersionsPanel extends StatelessWidget {
       isPreviewed: isPreviewed,
       isConfirmingDeletion: version.id == versionPendingDeletionId,
       isConfirmingRestore: version.id == versionPendingRestoreId,
-      onTap: switch ((version.isBase, isPreviewed)) {
-        (true, _) => null,
-        (_, true) => onPreviewExitRequested,
-        _ => () => onPreviewRequested(version.id),
-      },
+      isConfirmingRename: version.id == versionPendingRenameId,
+      onTap: isPreviewed ? onPreviewExitRequested : () => onPreviewRequested(version.id),
+      onRestoreRequested: () => onRestoreRequested(version.id),
+      onRestoreConfirmed: () => onRestoreConfirmed(version),
+      onRestoreCancelled: onRestoreCancelled,
       // Restoring the version being previewed is legitimate — it is the obvious next move once the
       // user has read it — where deleting it is not: the preview reads from a database hydrated out
       // of that very row.
-      onRestoreRequested: version.isBase ? null : () => onRestoreRequested(version.id),
-      onRestoreConfirmed: () => onRestoreConfirmed(version),
-      onRestoreCancelled: onRestoreCancelled,
-      onDeleteRequested: version.isBase || isPreviewed
-          ? null
-          : () => onDeleteRequested(version.id),
+      onDeleteRequested: isPreviewed ? null : () => onDeleteRequested(version.id),
       onDeleteConfirmed: () => onDeleteConfirmed(version.id),
       onDeleteCancelled: onDeleteCancelled,
+      onRenameRequested: () => onRenameRequested(version.id),
+      onRenameConfirmed: (name, note) => onRenameConfirmed(version.id, name, note),
+      onRenameCancelled: onRenameCancelled,
     );
   }
 }

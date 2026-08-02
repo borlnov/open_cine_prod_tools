@@ -8,8 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_working_copy_card.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
@@ -31,6 +33,17 @@ OcptProjectVersion _version(String id, {bool isBase = false}) => OcptProjectVers
   createdAt: DateTime(2026, 7, 12, 18, 42),
   summary: const OcptProjectVersionSummary(pageCount: 12, brokenDownSequenceCount: 1),
   isBase: isBase,
+);
+
+/// Builds a working copy state descending from [baseVersionId].
+OcptProjectWorkingCopyState _workingCopy({
+  String? baseVersionId,
+  bool isModifiedSinceBase = false,
+}) => OcptProjectWorkingCopyState(
+  summary: const OcptProjectVersionSummary(pageCount: 13, brokenDownSequenceCount: 1),
+  contentDigest: "digest",
+  baseVersionId: baseVersionId,
+  isModifiedSinceBase: isModifiedSinceBase,
 );
 
 /// The recorded calls of one panel's callbacks.
@@ -59,6 +72,15 @@ class _PanelCalls {
   /// How many times the panel cancelled a restore.
   int restoreCancelled = 0;
 
+  /// The ids the panel asked to open the inline rename form of.
+  final renameRequested = <String>[];
+
+  /// How many times the panel cancelled a rename.
+  int renameCancelled = 0;
+
+  /// The `(id, name, note)` triples the panel confirmed the rename of.
+  final renameConfirmed = <(String, String, String)>[];
+
   /// How many times the panel asked to create a version.
   int created = 0;
 }
@@ -68,15 +90,18 @@ Widget _panel({
   required List<OcptProjectVersion> versions,
   required _PanelCalls calls,
   String? previewedVersionId,
+  OcptProjectWorkingCopyState? workingCopy,
   String? versionPendingDeletionId,
   String? versionPendingRestoreId,
-  bool canCreate = true,
+  String? versionPendingRenameId,
 }) => OcptProjectVersionsPanel(
   versions: versions,
   previewedVersionId: previewedVersionId,
+  workingCopy: workingCopy,
   versionPendingDeletionId: versionPendingDeletionId,
   versionPendingRestoreId: versionPendingRestoreId,
-  onCreateRequested: canCreate ? () => calls.created++ : null,
+  versionPendingRenameId: versionPendingRenameId,
+  onCreateRequested: () => calls.created++,
   onPreviewRequested: calls.previewed.add,
   onPreviewExitRequested: () => calls.exited++,
   onRestoreRequested: calls.restoreRequested.add,
@@ -85,9 +110,23 @@ Widget _panel({
   onDeleteRequested: calls.deleteRequested.add,
   onDeleteCancelled: () => calls.deleteCancelled++,
   onDeleteConfirmed: calls.deleteConfirmed.add,
+  onRenameRequested: calls.renameRequested.add,
+  onRenameCancelled: () => calls.renameCancelled++,
+  onRenameConfirmed: (id, name, note) => calls.renameConfirmed.add((id, name, note)),
 );
 
 void main() {
+  /// Grows the test surface past the panel's own 700px-tall wrapper: three actions in a card's
+  /// footer (`Rename`, `Restore this version`, `Delete`) wrap onto two lines at this width, tall
+  /// enough that the default 800×600 test surface would otherwise cut a lower card's confirmation
+  /// off before any scrolling could reach it.
+  Future<void> growTestSurface(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(360, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
   testWidgets('shows the header, the explanation line and the empty hint with no version', (
     tester,
   ) async {
@@ -102,6 +141,53 @@ void main() {
     expect(find.text(tr.projectVersionsPanelSubtitle), findsOneWidget);
     expect(find.text(tr.projectVersionsEmptyHint), findsOneWidget);
     expect(find.byType(OcptProjectVersionCard), findsNothing);
+    // No capture has landed yet: there is nothing to show as the working copy's own card.
+    expect(find.byType(OcptProjectWorkingCopyCard), findsNothing);
+  });
+
+  testWidgets('the working copy card sits above the version list, in order', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _panel(
+          versions: [_version("b", isBase: true), _version("a")],
+          calls: _PanelCalls(),
+          workingCopy: _workingCopy(baseVersionId: "b"),
+        ),
+      ),
+    );
+
+    expect(find.byType(OcptProjectWorkingCopyCard), findsOneWidget);
+    expect(find.byType(OcptProjectVersionCard), findsNWidgets(2));
+
+    final workingCopyTop = tester.getTopLeft(find.byType(OcptProjectWorkingCopyCard)).dy;
+    final bTop = tester.getTopLeft(find.text("Version b")).dy;
+    final aTop = tester.getTopLeft(find.text("Version a")).dy;
+
+    expect(workingCopyTop, lessThan(bTop));
+    expect(bTop, lessThan(aTop));
+  });
+
+  testWidgets('the working copy card names its base and reports Create a version', (
+    tester,
+  ) async {
+    final calls = _PanelCalls();
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _panel(
+          versions: [_version("b", isBase: true)],
+          calls: calls,
+          workingCopy: _workingCopy(baseVersionId: "b", isModifiedSinceBase: true),
+        ),
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionsPanel));
+    final tr = Tr.of(context);
+
+    expect(find.text(tr.projectWorkingCopyModifiedHint("Version b")), findsOneWidget);
+
+    await tester.tap(find.text(tr.projectVersionsCreateAction));
+    expect(calls.created, 1);
   });
 
   testWidgets('renders one card per version, in the order given', (tester) async {
@@ -121,25 +207,7 @@ void main() {
     );
   });
 
-  testWidgets('creating a version is refused while one is being previewed', (tester) async {
-    final calls = _PanelCalls();
-    await tester.pumpWidget(
-      _wrapWithLocalization(
-        _panel(versions: [_version("a")], calls: calls, canCreate: false),
-      ),
-    );
-
-    final context = tester.element(find.byType(OcptProjectVersionsPanel));
-    final tr = Tr.of(context);
-
-    final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, tr.projectVersionsCreateAction),
-    );
-    expect(button.onPressed, isNull);
-    expect(calls.created, 0);
-  });
-
-  testWidgets('clicking a card previews it, and clicking the previewed one leaves the preview', (
+  testWidgets('clicking any card, base included, previews it, and the previewed one leaves it', (
     tester,
   ) async {
     final calls = _PanelCalls();
@@ -155,6 +223,9 @@ void main() {
     await tester.tap(find.text("Version a"));
     expect(calls.previewed, ["a"]);
 
+    await tester.tap(find.text("Version b"));
+    expect(calls.previewed, ["a", "b"]);
+
     await tester.pumpWidget(
       _wrapWithLocalization(
         _panel(
@@ -167,9 +238,6 @@ void main() {
 
     await tester.tap(find.text("Version a"));
     expect(calls.exited, 1);
-    // The current version's card stays inert: it is what the working copy already shows.
-    await tester.tap(find.text("Version b"));
-    expect(calls.previewed, ["a"]);
   });
 
   testWidgets('deleting goes through the card that asked, and only that one', (tester) async {
@@ -182,7 +250,7 @@ void main() {
     final tr = Tr.of(context);
 
     await tester.tap(find.text(tr.projectVersionDeleteAction).first);
-    expect(calls.deleteRequested, ["a"]);
+    expect(calls.deleteRequested, ["b"]);
 
     await tester.pumpWidget(
       _wrapWithLocalization(
@@ -200,9 +268,8 @@ void main() {
     expect(calls.deleteConfirmed, ["a"]);
   });
 
-  testWidgets('restoring goes through the card that asked, and carries the version itself', (
-    tester,
-  ) async {
+  testWidgets('restoring goes through the card that asked, base included', (tester) async {
+    await growTestSurface(tester);
     final calls = _PanelCalls();
     final versions = [_version("b", isBase: true), _version("a")];
 
@@ -211,12 +278,11 @@ void main() {
     final context = tester.element(find.byType(OcptProjectVersionsPanel));
     final tr = Tr.of(context);
 
-    // Only the versions the project could go back to offer it: the current one is what is already
-    // on screen.
-    expect(find.text(tr.projectVersionRestoreAction), findsOneWidget);
+    // Every version, base included, now offers it.
+    expect(find.text(tr.projectVersionRestoreAction), findsNWidgets(2));
 
-    await tester.tap(find.text(tr.projectVersionRestoreAction));
-    expect(calls.restoreRequested, ["a"]);
+    await tester.tap(find.text(tr.projectVersionRestoreAction).first);
+    expect(calls.restoreRequested, ["b"]);
 
     await tester.pumpWidget(
       _wrapWithLocalization(
@@ -252,5 +318,49 @@ void main() {
 
     await tester.tap(find.text(tr.projectVersionRestoreAction));
     expect(calls.restoreRequested, ["a"]);
+  });
+
+  testWidgets('renaming goes through the card that asked, and carries its id, name and note', (
+    tester,
+  ) async {
+    final calls = _PanelCalls();
+    final versions = [_version("a"), _version("b")];
+
+    await tester.pumpWidget(_wrapWithLocalization(_panel(versions: versions, calls: calls)));
+
+    final context = tester.element(find.byType(OcptProjectVersionsPanel));
+    final tr = Tr.of(context);
+
+    await tester.tap(find.text(tr.projectVersionRenameAction).first);
+    expect(calls.renameRequested, ["a"]);
+  });
+
+  testWidgets("opening one card's rename form closes another card's open confirmation", (
+    tester,
+  ) async {
+    final calls = _PanelCalls();
+    final versions = [_version("a"), _version("b")];
+
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _panel(versions: versions, calls: calls, versionPendingDeletionId: "a"),
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptProjectVersionsPanel));
+    final tr = Tr.of(context);
+
+    expect(find.text(tr.projectVersionDeleteConfirmMessage), findsOneWidget);
+
+    // The state guarantees only one pending id is ever set: rebuilding with `b`'s rename pending
+    // is what the bloc does once the user clicks `Rename` on `b` while `a`'s confirmation was up.
+    await tester.pumpWidget(
+      _wrapWithLocalization(
+        _panel(versions: versions, calls: calls, versionPendingRenameId: "b"),
+      ),
+    );
+
+    expect(find.text(tr.projectVersionDeleteConfirmMessage), findsNothing);
+    expect(find.text(tr.projectVersionRenameConfirmAction), findsOneWidget);
   });
 }
