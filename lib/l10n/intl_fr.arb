@@ -420,6 +420,7 @@
   "resourcesUnavailabilityToLabel": "au",
   "resourcesUnavailabilityReasonLabel": "Motif",
   "resourcesUnavailabilityReasonHint": "Pourquoi cette personne est indisponible",
+  "resourcesAddUnavailabilitySlotTooltip": "Ajouter un créneau sur ces dates",
   "resourcesRemoveUnavailabilityTooltip": "Retirer l'indisponibilité",
   "resourcesMealsHealthTitle": "Repas, santé, compétences",
   "resourcesDietaryNotesLabel": "Régime alimentaire",

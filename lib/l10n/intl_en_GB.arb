@@ -3157,6 +3157,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesAddUnavailabilitySlotTooltip": "Add another slot on these dates",
+  "@resourcesAddUnavailabilitySlotTooltip": {
+    "description": "Tooltip of the button adding a second time slot over an unavailability's own dates",
+    "context": "Displayed on hover over the + button of an unavailability row",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesRemoveUnavailabilityTooltip": "Remove unavailability",
   "@resourcesRemoveUnavailabilityTooltip": {
     "description": "Tooltip of an unavailability row's remove button",

@@ -152,7 +152,14 @@ Widget _buildSheet({
   ValueChanged<String>? onPositionRemoved,
   ValueChanged<String>? onSkillAdded,
   ValueChanged<String>? onSkillRemoved,
-  ValueChanged<DateTime>? onUnavailabilityAdded,
+  void Function({
+    required DateTime startDate,
+    required DateTime endDate,
+    required OcptUnavailabilitySlot slot,
+    required int? startMinute,
+    required int? endMinute,
+  })?
+  onUnavailabilityAdded,
   void Function(
     String id, {
     required DateTime startDate,
@@ -181,7 +188,15 @@ Widget _buildSheet({
     onPositionRemoved: onPositionRemoved ?? (_) {},
     onSkillAdded: onSkillAdded ?? (_) {},
     onSkillRemoved: onSkillRemoved ?? (_) {},
-    onUnavailabilityAdded: onUnavailabilityAdded ?? (_) {},
+    onUnavailabilityAdded:
+        onUnavailabilityAdded ??
+        ({
+          required startDate,
+          required endDate,
+          required slot,
+          required startMinute,
+          required endMinute,
+        }) {},
     onUnavailabilityUpdated:
         onUnavailabilityUpdated ??
         (
@@ -545,6 +560,58 @@ void main() {
       expect(reportedSlot, OcptUnavailabilitySlot.custom);
       expect(reportedStartMinute, 9 * 60);
       expect(reportedEndMinute, 18 * 60);
+    });
+
+    testWidgets("a row's + adds a second slot over the same dates", (tester) async {
+      await _useTallSurface(tester);
+      DateTime? reportedStart;
+      DateTime? reportedEnd;
+      OcptUnavailabilitySlot? reportedSlot;
+      int? reportedStartMinute;
+
+      await tester.pumpWidget(
+        _buildSheet(
+          person: _person(
+            unavailabilities: [
+              OcptPersonUnavailability(
+                id: "u1",
+                personId: "p1",
+                startDate: DateTime(2026, 8, 15),
+                endDate: DateTime(2026, 8, 15),
+                slot: OcptUnavailabilitySlot.morning,
+                startMinute: null,
+                endMinute: null,
+                reason: "",
+              ),
+            ],
+          ),
+          onUnavailabilityAdded:
+              ({
+                required startDate,
+                required endDate,
+                required slot,
+                required startMinute,
+                required endMinute,
+              }) {
+                reportedStart = startDate;
+                reportedEnd = endDate;
+                reportedSlot = slot;
+                reportedStartMinute = startMinute;
+              },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+      await tester.tap(find.byTooltip(tr.resourcesAddUnavailabilitySlotTooltip));
+      await tester.pumpAndSettle();
+
+      // The same dates, as a window the user then narrows: an afternoon conflict on a day that
+      // already carries a morning one is a second row, never an edit of the first.
+      expect(reportedStart, DateTime(2026, 8, 15));
+      expect(reportedEnd, DateTime(2026, 8, 15));
+      expect(reportedSlot, OcptUnavailabilitySlot.custom);
+      expect(reportedStartMinute, 9 * 60);
     });
 
     testWidgets("the window is shown for a custom slot and hidden for the others", (tester) async {

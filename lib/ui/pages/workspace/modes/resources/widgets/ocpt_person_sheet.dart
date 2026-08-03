@@ -82,10 +82,17 @@ class OcptPersonSheet extends StatelessWidget {
   /// Called with a skill's id when its chip's remove control is clicked.
   final ValueChanged<String> onSkillRemoved;
 
-  /// Called with the date picked once `+ Add an unavailability` opens the date picker: the new
-  /// unavailability starts as that one full day with no reason, all of it then editable on the row
-  /// it creates.
-  final ValueChanged<DateTime> onUnavailabilityAdded;
+  /// Called with a new unavailability's whole shape: one full day when `+ Add an unavailability`
+  /// picked a date, a second `custom` slot over an existing row's dates when that row's `+` was
+  /// clicked. Its reason always starts empty, editable on the row it creates.
+  final void Function({
+    required DateTime startDate,
+    required DateTime endDate,
+    required OcptUnavailabilitySlot slot,
+    required int? startMinute,
+    required int? endMinute,
+  })
+  onUnavailabilityAdded;
 
   /// Called with an unavailability's id and its current fields once a local edit or a discrete
   /// change is ready to be written.

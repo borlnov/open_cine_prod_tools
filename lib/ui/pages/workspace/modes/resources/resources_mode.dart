@@ -9,7 +9,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -215,17 +214,24 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onSkillAdded: (label) =>
           bloc.add(OcptResourcesSkillAddedEvent(personId: selectedPerson.id, label: label)),
       onSkillRemoved: (id) => bloc.add(OcptResourcesSkillRemovedEvent(id: id)),
-      onUnavailabilityAdded: (date) => bloc.add(
-        OcptResourcesUnavailabilityAddedEvent(
-          personId: selectedPerson.id,
-          startDate: date,
-          endDate: date,
-          slot: OcptUnavailabilitySlot.fullDay,
-          startMinute: null,
-          endMinute: null,
-          reason: "",
-        ),
-      ),
+      onUnavailabilityAdded:
+          ({
+            required startDate,
+            required endDate,
+            required slot,
+            required startMinute,
+            required endMinute,
+          }) => bloc.add(
+            OcptResourcesUnavailabilityAddedEvent(
+              personId: selectedPerson.id,
+              startDate: startDate,
+              endDate: endDate,
+              slot: slot,
+              startMinute: startMinute,
+              endMinute: endMinute,
+              reason: "",
+            ),
+          ),
       onUnavailabilityUpdated:
           (
             id, {

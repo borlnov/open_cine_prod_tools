@@ -21,10 +21,10 @@ const Duration _localFieldDebounce = Duration(milliseconds: 500);
 /// The window a row falls back to the first time it is switched to
 /// [OcptUnavailabilitySlot.custom]: an ordinary working day, so the user narrows a plausible
 /// window rather than building one from midnight.
-const int _defaultCustomStartMinute = 9 * 60;
+const int ocptDefaultUnavailabilityStartMinute = 9 * 60;
 
-/// The end of the window described by [_defaultCustomStartMinute].
-const int _defaultCustomEndMinute = 18 * 60;
+/// The end of the window described by [ocptDefaultUnavailabilityStartMinute].
+const int ocptDefaultUnavailabilityEndMinute = 18 * 60;
 
 /// The number of lines a reason field is tall before it grows with what is typed into it.
 const int _reasonMinLines = 2;
@@ -36,8 +36,11 @@ const int _reasonMinLines = 2;
 /// directly (a new unavailability always starts as one full day with no reason, all of it then
 /// editable on the row it creates).
 ///
-/// Two windows in one day are said with two rows: this is a set of constraints rather than a
-/// calendar with one entry per date, and nothing here has to be merged or de-duplicated.
+/// **Two windows in one day are two rows**: this is a set of constraints rather than a calendar
+/// with one entry per date, so nothing here has to be merged or de-duplicated. Each row therefore
+/// carries its own `+` control, which adds a second row over the very same dates already set to
+/// [OcptUnavailabilitySlot.custom] — going back through the date picker to re-enter a date the
+/// sheet is already showing would be the same answer, typed twice.
 class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
   /// The person's unavailabilities, in start-date order.
   final List<OcptPersonUnavailability> unavailabilities;
@@ -59,9 +62,18 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
   /// may not be removed.
   final ValueChanged<String>? onRemoved;
 
-  /// Called with the date picked once `+ Add an unavailability` opens the date picker and the user
-  /// actually picks one, or null while none may be added.
-  final ValueChanged<DateTime>? onAdded;
+  /// Called with a new unavailability's whole shape, or null while none may be added.
+  ///
+  /// Two affordances report through it: `+ Add an unavailability`, which opens the date picker and
+  /// reports one full day, and a row's own `+`, which reports a second slot over that row's dates.
+  final void Function({
+    required DateTime startDate,
+    required DateTime endDate,
+    required OcptUnavailabilitySlot slot,
+    required int? startMinute,
+    required int? endMinute,
+  })?
+  onAdded;
 
   /// Class constructor
   const OcptPersonSheetUnavailabilitiesCard({
@@ -117,6 +129,15 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
                         reason: reason,
                       ),
                 onRemoved: onRemoved == null ? null : () => onRemoved!(unavailability.id),
+                onSlotAdded: onAdded == null
+                    ? null
+                    : (startDate, endDate) => onAdded(
+                        startDate: startDate,
+                        endDate: endDate,
+                        slot: OcptUnavailabilitySlot.custom,
+                        startMinute: ocptDefaultUnavailabilityStartMinute,
+                        endMinute: ocptDefaultUnavailabilityEndMinute,
+                      ),
               ),
           if (onAdded != null)
             SizedBox(
@@ -131,9 +152,19 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     );
   }
 
-  /// Opens the platform date picker, reporting the pick to [onAdded]; does nothing if it is
-  /// dismissed with no pick.
-  Future<void> _handleAddRequested(BuildContext context, ValueChanged<DateTime> onAdded) async {
+  /// Opens the platform date picker, reporting the pick to [onAdded] as one full day; does nothing
+  /// if it is dismissed with no pick.
+  Future<void> _handleAddRequested(
+    BuildContext context,
+    void Function({
+      required DateTime startDate,
+      required DateTime endDate,
+      required OcptUnavailabilitySlot slot,
+      required int? startMinute,
+      required int? endMinute,
+    })
+    onAdded,
+  ) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -143,7 +174,13 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     );
 
     if (picked != null) {
-      onAdded(picked);
+      onAdded(
+        startDate: picked,
+        endDate: picked,
+        slot: OcptUnavailabilitySlot.fullDay,
+        startMinute: null,
+        endMinute: null,
+      );
     }
   }
 }
@@ -169,12 +206,17 @@ class _OcptUnavailabilityRow extends StatefulWidget {
   /// Called when this row's remove button is clicked, or null while it may not be removed.
   final VoidCallback? onRemoved;
 
+  /// Called with this row's current dates when its `+` is clicked, adding a second slot over them,
+  /// or null while none may be added.
+  final void Function(DateTime startDate, DateTime endDate)? onSlotAdded;
+
   /// Class constructor
   const _OcptUnavailabilityRow({
     super.key,
     required this.unavailability,
     required this.onUpdated,
     required this.onRemoved,
+    required this.onSlotAdded,
   });
 
   @override
@@ -320,8 +362,8 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     setState(() {
       _slot = slot;
       if (slot == OcptUnavailabilitySlot.custom) {
-        _startMinute ??= _defaultCustomStartMinute;
-        _endMinute ??= _defaultCustomEndMinute;
+        _startMinute ??= ocptDefaultUnavailabilityStartMinute;
+        _endMinute ??= ocptDefaultUnavailabilityEndMinute;
       } else {
         _startMinute = null;
         _endMinute = null;
@@ -335,7 +377,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   Future<void> _pickTime({required bool isStart}) async {
     final currentMinute =
         (isStart ? _startMinute : _endMinute) ??
-        (isStart ? _defaultCustomStartMinute : _defaultCustomEndMinute);
+        (isStart ? ocptDefaultUnavailabilityStartMinute : ocptDefaultUnavailabilityEndMinute);
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: currentMinute ~/ 60, minute: currentMinute % 60),
@@ -348,12 +390,12 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     setState(() {
       if (isStart) {
         _startMinute = pickedMinute;
-        if ((_endMinute ?? _defaultCustomEndMinute) < pickedMinute) {
+        if ((_endMinute ?? ocptDefaultUnavailabilityEndMinute) < pickedMinute) {
           _endMinute = pickedMinute;
         }
       } else {
         _endMinute = pickedMinute;
-        if (pickedMinute < (_startMinute ?? _defaultCustomStartMinute)) {
+        if (pickedMinute < (_startMinute ?? ocptDefaultUnavailabilityStartMinute)) {
           _startMinute = pickedMinute;
         }
       }
@@ -381,6 +423,12 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
           Row(
             children: [
               Expanded(child: _buildDateRange(context, tr, isReadOnly: isReadOnly)),
+              if (widget.onSlotAdded != null)
+                IconButton(
+                  icon: const Icon(Icons.add, size: 16),
+                  tooltip: tr.resourcesAddUnavailabilitySlotTooltip,
+                  onPressed: () => widget.onSlotAdded!(_startDate, _endDate),
+                ),
               if (widget.onRemoved != null)
                 IconButton(
                   icon: const Icon(Icons.close, size: 16),
@@ -488,7 +536,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   }) {
     final theme = Theme.of(context);
     final resolvedMinute =
-        minute ?? (isStart ? _defaultCustomStartMinute : _defaultCustomEndMinute);
+        minute ?? (isStart ? ocptDefaultUnavailabilityStartMinute : ocptDefaultUnavailabilityEndMinute);
     final label = Text(
       MaterialLocalizations.of(context).formatTimeOfDay(
         TimeOfDay(hour: resolvedMinute ~/ 60, minute: resolvedMinute % 60),
