@@ -146,7 +146,7 @@ Where this plan and the mock-up differ, **this plan wins**; the differences are 
 | Tab | Left dock | Centre sheet |
 | --- | --------- | ------------ |
 | **People** | Avatar + name + role chips + positions + day count | Photo slot, contact grid (structured postal address, §4.2.1), "functions on the film" (roles then positions, their scope read-only), meals/health/skills, logistics, HMC card (measurements, sizes, notes), image-rights card, unavailabilities, notes |
-| **Roles** | Role name + cast member + other roles held | A table of the whole cast: n°, role, actor, other roles held — clicking a row opens that person's sheet |
+| **Roles** | Role name + cast member + other roles held, an orphaned role flagged | The selected role's sheet: name, cast member and its `↗` to that person, kind, rank, casting notes, and the removed-role alert when it is the orphaned one |
 | **Locations** | Location name, colour bar, permit badge | Address + GPS + contact, filming permit card, sets in this location, parking / power / facilities, noise and schedule constraints, scouting photos, shooting days |
 | **Elements** | Grouped by category | Code, name, detail line, days — the whole catalogue as grouped cards |
 
@@ -450,7 +450,7 @@ controller.
 - **Left dock** — `OcptResourcesTabBar` (the four-tab segmented control),
   `OcptResourcesListPanel` dispatching to `OcptPeopleList` / `OcptRolesList` /
   `OcptLocationsList` / `OcptElementsList`. A search field filters the active list.
-- **Centre** — `OcptPersonSheet`, `OcptRolesTable`, `OcptLocationSheet`, `OcptElementsBoard`. Every
+- **Centre** — `OcptPersonSheet`, `OcptRoleSheet`, `OcptLocationSheet`, `OcptElementsBoard`. Every
   sheet edits in place with the same debounce-and-flush discipline the shot inspector uses; nothing
   opens a modal to edit a field. A field may **flag** what it holds without refusing it
   (decision 11): `ocptEmailFormatError` is the shared check, the field shows its message once it
@@ -637,8 +637,8 @@ migration test move with them.
 
 ### M3 — Roles and casting
 
-`OcptRoleIndexService` on the save path, the roles list and table, casting a person to a role,
-hand-added silent and extra roles, and the removed-role banner.
+`OcptRoleIndexService` on the save path, the roles list and the role sheet, casting a person to a
+role, hand-added silent and extra roles, and the removed-role alert.
 
 ### M4 — Locations and sets
 
