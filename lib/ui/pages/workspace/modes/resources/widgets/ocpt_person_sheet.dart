@@ -14,9 +14,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_logistics_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_meals_health_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_minor_callout.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_notes_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_positions_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_unavailabilities_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_notes_card.dart';
 
 /// The resources mode's centre, once a person is selected: the whole person sheet, a single
 /// scrolling column edited in place — the header (photo slot, name, minor badge, contact grid),
@@ -182,9 +182,9 @@ class OcptPersonSheet extends StatelessWidget {
             onAdded: isReadOnly ? null : onUnavailabilityAdded,
           ),
           const SizedBox(height: 12),
-          OcptPersonSheetNotesCard(
+          OcptResourcesNotesCard(
             title: tr.resourcesNotesTitle,
-            personId: person.id,
+            ownerId: person.id,
             value: fieldValueOf(OcptPersonField.notes),
             onChanged: isReadOnly ? null : (value) => onFieldChanged(OcptPersonField.notes, value),
           ),

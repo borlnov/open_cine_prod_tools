@@ -7,9 +7,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -20,6 +22,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
@@ -35,17 +38,17 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
 /// left, the selected item's editable sheet in the centre, and the shared `Versions` dock tab on
 /// the right.
 ///
-/// This milestone gives the people, roles and locations tabs real content — creating, editing and
-/// erasing a person; casting, kind, casting notes and hand-added roles; a location's address,
-/// permit, sets, logistics and referenced photos — while the elements tab shows a discreet
-/// placeholder line. Every tab answers the same gesture: a record is picked on the left and edited
-/// in the centre, through `OcptPersonSheet`, `OcptRoleSheet` and `OcptLocationSheet` respectively.
+/// All four tabs answer the same gesture: a record is picked on the left and edited in the centre,
+/// through `OcptPersonSheet`, `OcptRoleSheet`, `OcptLocationSheet` and `OcptElementSheet`
+/// respectively — the address book, the cast, the locations with their sets, and the catalogue of
+/// everything that must be on set and is not a person.
 /// While a project version is being previewed, the mode shows that version's catalogue instead of
 /// the working copy's, and shows it read-only: everything that would write — the `+ Add …`
 /// buttons and every field, picker and delete action of the three sheets — is withheld, and the
@@ -208,11 +211,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Builds the shell's `centre`: the selected role's sheet on [OcptResourcesTab.roles], the
-  /// selected person's sheet on [OcptResourcesTab.people] (each with its own empty state while
-  /// none is selected), and the shared placeholder on the two tabs with no content yet — handled
-  /// by `OcptResourcesListPanel`'s own placeholder for the list, but the centre also has nothing
-  /// of its own to show for them, so it reuses the same empty state.
+  /// Builds the shell's `centre`: the selected record's sheet, whichever tab is active, each tab
+  /// with its own empty state while nothing is selected there.
   Widget _buildCentre(BuildContext context, OcptResourcesState state) {
     if (state.activeTab == OcptResourcesTab.roles) {
       return _buildRolesCentre(context, state);
@@ -220,6 +220,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     if (state.activeTab == OcptResourcesTab.locations) {
       return _buildLocationsCentre(context, state);
+    }
+
+    if (state.activeTab == OcptResourcesTab.elements) {
+      return _buildElementsCentre(context, state);
     }
 
     final selectedPerson = state.selectedPerson;
@@ -546,6 +550,117 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onDeleteRequested: () =>
           bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id)),
     );
+  }
+
+  /// Builds the elements tab's centre: the selected element's sheet, or the empty state — the one
+  /// inviting a first element while the catalogue is empty, the one asking for a selection
+  /// otherwise.
+  Widget _buildElementsCentre(BuildContext context, OcptResourcesState state) {
+    final tr = Tr.of(context);
+    final selectedElement = state.selectedElement;
+
+    if (selectedElement == null) {
+      return OcptWorkspaceEmptyMode(
+        icon: Icons.inventory_2_outlined,
+        message: state.elements.isEmpty
+            ? tr.resourcesElementsEmptyHint
+            : tr.resourcesNoElementSelectedHint,
+      );
+    }
+
+    final bloc = context.read<OcptResourcesBloc>();
+
+    return OcptElementSheet(
+      key: ValueKey(selectedElement.id),
+      element: selectedElement,
+      owner: _personOf(state, selectedElement.ownerPersonId),
+      bringer: _personOf(state, selectedElement.broughtByPersonId),
+      people: state.people,
+      scenes: state.scenes,
+      isReadOnly: state.isPreviewingVersion,
+      fieldValueOf: (field) => _elementFieldValueOf(state, selectedElement, field),
+      onFieldChanged: (field, rawValue) => bloc.add(
+        OcptResourcesElementFieldChangedEvent(
+          elementId: selectedElement.id,
+          field: field,
+          rawValue: rawValue,
+        ),
+      ),
+      onCategoryChanged: (category) => bloc.add(
+        OcptResourcesElementCategoryChangedEvent(
+          elementId: selectedElement.id,
+          category: category,
+        ),
+      ),
+      onSourceKindChanged: (sourceKind) => bloc.add(
+        OcptResourcesElementSourceKindChangedEvent(
+          elementId: selectedElement.id,
+          sourceKind: sourceKind,
+        ),
+      ),
+      onOwnerChanged: (personId) => bloc.add(
+        OcptResourcesElementOwnerChangedEvent(
+          elementId: selectedElement.id,
+          personId: personId,
+        ),
+      ),
+      onBringerChanged: (personId) => bloc.add(
+        OcptResourcesElementBringerChangedEvent(
+          elementId: selectedElement.id,
+          personId: personId,
+        ),
+      ),
+      onTrackingFlagChanged: (flag, {required value}) => bloc.add(
+        OcptResourcesElementTrackingFlagChangedEvent(
+          elementId: selectedElement.id,
+          flag: flag,
+          value: value,
+        ),
+      ),
+      onSceneAssigned: (sceneId) => bloc.add(
+        OcptResourcesSceneAssignedToElementEvent(
+          sceneId: sceneId,
+          elementId: selectedElement.id,
+        ),
+      ),
+      onLinkUpdated: (id, {required quantity, required notes}) => bloc.add(
+        OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes),
+      ),
+      onLinkRemoved: (id) => bloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
+      onDeleteRequested: () =>
+          bloc.add(OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id)),
+      onPersonSheetOpenRequested: (personId) =>
+          bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+    );
+  }
+
+  /// [element]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// takes priority over the element's own stored value, so typing is never overwritten by an
+  /// unrelated reload. Mirrors [_fieldValueOf].
+  ///
+  /// The cost is the field whose stored value is not a string: it is written back as the plain
+  /// amount `ocptCostCentsOf` reads, so a field showing `12.50` holds 1250 cents.
+  String _elementFieldValueOf(
+    OcptResourcesState state,
+    OcptElement element,
+    OcptElementField field,
+  ) {
+    final pending = state.pendingElementFieldEdits[(element.id, field)];
+    if (pending != null) {
+      return pending;
+    }
+
+    return switch (field) {
+      OcptElementField.name => element.name,
+      OcptElementField.code => element.code,
+      OcptElementField.subCategory => element.subCategory,
+      OcptElementField.quantity => element.quantity,
+      OcptElementField.ownerNotes => element.ownerNotes,
+      OcptElementField.storageNotes => element.storageNotes,
+      OcptElementField.cost => ocptCostTextOf(element.cost),
+      OcptElementField.purposeNotes => element.purposeNotes,
+      OcptElementField.notes => element.notes,
+    };
   }
 
   /// The ids of every scene already shot in a set, of this location or of another.

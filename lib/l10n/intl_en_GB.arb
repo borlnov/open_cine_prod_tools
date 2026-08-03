@@ -4234,5 +4234,201 @@
     "context": "Displayed in the resources mode's element sheet",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesElementCodeLabel": "Code",
+  "@resourcesElementCodeLabel": {
+    "description": "Label of the element sheet's short code field",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNameHint": "Name of the element",
+  "@resourcesElementNameHint": {
+    "description": "Placeholder shown in the element sheet's name field while it is empty",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryFieldLabel": "Category",
+  "@resourcesElementCategoryFieldLabel": {
+    "description": "Label of the element sheet's category picker",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSubCategoryLabel": "Sub-category",
+  "@resourcesElementSubCategoryLabel": {
+    "description": "Label of the element sheet's free sub-category field",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementQuantityLabel": "Quantity",
+  "@resourcesElementQuantityLabel": {
+    "description": "Label of the element sheet's quantity field, free text like the sheets it comes from",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourcingCardTitle": "Where it comes from",
+  "@resourcesElementSourcingCardTitle": {
+    "description": "Title of the element sheet's card holding the provenance, the owner and the cost",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceKindFieldLabel": "Provenance",
+  "@resourcesElementSourceKindFieldLabel": {
+    "description": "Label of the element sheet's provenance picker",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementOwnerLabel": "Owner",
+  "@resourcesElementOwnerLabel": {
+    "description": "Label of the element sheet's owner picker over the address book",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNoOwner": "Nobody in the address book",
+  "@resourcesElementNoOwner": {
+    "description": "Shown by the element sheet's owner picker while no person of the address book owns it",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementOwnerNotesLabel": "Or an organisation",
+  "@resourcesElementOwnerNotesLabel": {
+    "description": "Label of the element sheet's free-text owner field, for an owner who is not a person",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementBringerLabel": "Brought to set by",
+  "@resourcesElementBringerLabel": {
+    "description": "Label of the element sheet's picker naming who brings the element to set",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNoBringer": "Nobody yet",
+  "@resourcesElementNoBringer": {
+    "description": "Shown by the element sheet's bringer picker while nobody is named",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCostLabel": "Cost",
+  "@resourcesElementCostLabel": {
+    "description": "Label of the element sheet's cost field",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCostFormatError": "Not an amount: no cost will be recorded",
+  "@resourcesElementCostFormatError": {
+    "description": "Message shown under the element sheet's cost field when what it holds is not an amount",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingCardTitle": "Tracking",
+  "@resourcesElementTrackingCardTitle": {
+    "description": "Title of the element sheet's card holding the three tracking flags and where it is stored",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSecuredLabel": "Secured",
+  "@resourcesElementSecuredLabel": {
+    "description": "Label of the element sheet's checkbox saying the production has the element",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementReadyLabel": "Ready for the shoot",
+  "@resourcesElementReadyLabel": {
+    "description": "Label of the element sheet's checkbox saying the element is prepared",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementReturnedLabel": "Returned",
+  "@resourcesElementReturnedLabel": {
+    "description": "Label of the element sheet's checkbox saying the element went back after the shoot",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementStorageNotesLabel": "Stored where?",
+  "@resourcesElementStorageNotesLabel": {
+    "description": "Label of the element sheet's field saying where the element waits until the shoot",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementScenesCardTitle": "Scenes needing it",
+  "@resourcesElementScenesCardTitle": {
+    "description": "Title of the element sheet's card holding the breakdown links onto scenes",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNoSceneHint": "No scene yet.",
+  "@resourcesElementNoSceneHint": {
+    "description": "Hint shown in the element sheet's scenes card while the element is linked to no scene",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSceneToElementAction": "+ Scene",
+  "@resourcesAddSceneToElementAction": {
+    "description": "Label of the element sheet's picker adding a scene needing the element",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveSceneFromElementTooltip": "This scene doesn't need it",
+  "@resourcesRemoveSceneFromElementTooltip": {
+    "description": "Tooltip of the control unlinking a scene from an element",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSceneElementQuantityLabel": "In this scene",
+  "@resourcesSceneElementQuantityLabel": {
+    "description": "Label of the per-scene quantity field, overriding the element's own",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSceneElementNotesLabel": "Note for this scene",
+  "@resourcesSceneElementNotesLabel": {
+    "description": "Label of the per-scene notes field of a breakdown link",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementPurposeLabel": "Why it is needed",
+  "@resourcesElementPurposeLabel": {
+    "description": "Label of the element sheet's field saying what the element is for",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteElementAction": "Delete this element",
+  "@resourcesDeleteElementAction": {
+    "description": "Label of the element sheet's destructive action, at the very bottom",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteElementConfirm": "Delete this element? The scenes it was linked to lose it too.",
+  "@resourcesDeleteElementConfirm": {
+    "description": "Question the element sheet's inline delete confirmation asks",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
   }
 }

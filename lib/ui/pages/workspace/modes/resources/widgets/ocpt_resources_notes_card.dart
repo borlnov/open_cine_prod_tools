@@ -7,14 +7,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// A card holding a single multi-line free-text field, with no label of its own row since the
-/// card's own title already says what it is: shared by the HMC notes card and the notes card,
-/// exactly as the shot inspector's own Notes section needs no field label either.
-class OcptPersonSheetNotesCard extends StatelessWidget {
+/// card's own title already says what it is: the person sheet's notes and the element sheet's
+/// alike, exactly as the shot inspector's own Notes section needs no field label either.
+class OcptResourcesNotesCard extends StatelessWidget {
   /// The card's title.
   final String title;
 
-  /// The id of the person this field belongs to.
-  final String personId;
+  /// The id of the record this field belongs to — a person, an element — watched so switching
+  /// sheets reseeds the field (see `OcptResourcesSheetField.ownerId`).
+  final String ownerId;
 
   /// The field's current authoritative value.
   final String value;
@@ -24,10 +25,10 @@ class OcptPersonSheetNotesCard extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   /// Class constructor
-  const OcptPersonSheetNotesCard({
+  const OcptResourcesNotesCard({
     super.key,
     required this.title,
-    required this.personId,
+    required this.ownerId,
     required this.value,
     required this.onChanged,
   });
@@ -36,7 +37,7 @@ class OcptPersonSheetNotesCard extends StatelessWidget {
   Widget build(BuildContext context) => OcptResourcesSheetCard(
     title: title,
     child: OcptResourcesSheetField(
-      ownerId: personId,
+      ownerId: ownerId,
       label: "",
       value: value,
       multiline: true,
