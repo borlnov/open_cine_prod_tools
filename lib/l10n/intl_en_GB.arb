@@ -2505,5 +2505,421 @@
     "context": "Displayed in the read-only banner of the workspace",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceModeResources": "Resources",
+  "@workspaceModeResources": {
+    "description": "Short label of the resources production mode",
+    "context": "Displayed under the mode's icon in the workspace's bottom mode switcher",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelResources": "Resources",
+  "@workspaceModeLabelResources": {
+    "description": "Label of the resources production mode",
+    "context": "Displayed in the workspace toolbar, between the mode's own toolbar actions and the shell's own chrome",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabPeople": "People",
+  "@resourcesTabPeople": {
+    "description": "Label of the resources mode's people tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabRoles": "Roles",
+  "@resourcesTabRoles": {
+    "description": "Label of the resources mode's roles tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabLocations": "Locations",
+  "@resourcesTabLocations": {
+    "description": "Label of the resources mode's locations tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabElements": "Elements",
+  "@resourcesTabElements": {
+    "description": "Label of the resources mode's elements tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesStatsPeople": "{count, plural, one{{count} person} other{{count} people}}",
+  "@resourcesStatsPeople": {
+    "description": "Number of people in the address book",
+    "context": "Displayed in the resources mode's status bar and in its left dock's people tab header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsRoles": "{count, plural, one{{count} role} other{{count} roles}}",
+  "@resourcesStatsRoles": {
+    "description": "Number of roles in the cast",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsPositions": "{count, plural, one{{count} position} other{{count} positions}}",
+  "@resourcesStatsPositions": {
+    "description": "Total number of crew position assignments across every person",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsLocations": "{count, plural, one{{count} location} other{{count} locations}}",
+  "@resourcesStatsLocations": {
+    "description": "Number of locations",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsElements": "{count, plural, one{{count} element} other{{count} elements}}",
+  "@resourcesStatsElements": {
+    "description": "Number of elements in the physical elements catalogue",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesAddPersonAction": "+ Add a person",
+  "@resourcesAddPersonAction": {
+    "description": "Action creating a new, blank person at the end of the address book",
+    "context": "Displayed in the footer of the resources mode's left dock, on the people tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnnamedPerson": "Unnamed person",
+  "@resourcesUnnamedPerson": {
+    "description": "Placeholder shown in place of a person's display name while it is empty",
+    "context": "Displayed in the resources mode's people list and person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPeopleEmptyHint": "No people yet. Add one to get started.",
+  "@resourcesPeopleEmptyHint": {
+    "description": "Hint shown in place of the people list while the address book holds nobody",
+    "context": "Displayed in the resources mode's left dock, on the people tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNoPersonSelectedHint": "Select a person to see their sheet.",
+  "@resourcesNoPersonSelectedHint": {
+    "description": "Hint shown in the centre area while no person is selected",
+    "context": "Displayed centred in the resources mode's main area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesWriteError": "The change could not be saved.",
+  "@resourcesWriteError": {
+    "description": "Error shown when a resources change couldn't be written to the project",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteConfirmTitle": "Delete this person?",
+  "@resourcesDeleteConfirmTitle": {
+    "description": "Title of the person deletion confirmation dialog",
+    "context": "Displayed after clicking the delete action of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteConfirmMessage": "This permanently erases {personName}'s personal details — contact information, address, and notes. This can't be undone.",
+  "@resourcesDeleteConfirmMessage": {
+    "description": "Message of the person deletion confirmation dialog, naming the person and stating the deletion is an erasure",
+    "context": "Displayed after clicking the delete action of the person sheet",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesDeleteConfirmCancelAction": "Cancel",
+  "@resourcesDeleteConfirmCancelAction": {
+    "description": "Action cancelling the person deletion",
+    "context": "Displayed in the person deletion confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteConfirmDeleteAction": "Delete",
+  "@resourcesDeleteConfirmDeleteAction": {
+    "description": "Action confirming the person deletion",
+    "context": "Displayed in the person deletion confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesResetPanelLayoutAction": "Reset panel layout",
+  "@resourcesResetPanelLayoutAction": {
+    "description": "Action restoring the resources mode's two dock fractions to their defaults",
+    "context": "Displayed in the resources mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRightDockVersionsTabLabel": "Versions",
+  "@resourcesRightDockVersionsTabLabel": {
+    "description": "Label of the resources mode's right dock's single tab",
+    "context": "Displayed in the resources mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRightDockCloseTooltip": "Close panel",
+  "@resourcesRightDockCloseTooltip": {
+    "description": "Tooltip of the resources mode's right dock close button",
+    "context": "Displayed on hover over the × button of the resources mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionDirector": "Director",
+  "@resourcesCrewPositionDirector": {
+    "description": "Label of the director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstAssistantDirector": "First assistant director",
+  "@resourcesCrewPositionFirstAssistantDirector": {
+    "description": "Label of the first assistant director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionScriptSupervisor": "Script supervisor",
+  "@resourcesCrewPositionScriptSupervisor": {
+    "description": "Label of the script supervisor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionDirectorOfPhotography": "Director of photography",
+  "@resourcesCrewPositionDirectorOfPhotography": {
+    "description": "Label of the director of photography crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCameraOperator": "Camera operator",
+  "@resourcesCrewPositionCameraOperator": {
+    "description": "Label of the camera operator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstAssistantCamera": "First assistant camera",
+  "@resourcesCrewPositionFirstAssistantCamera": {
+    "description": "Label of the first assistant camera crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionGaffer": "Gaffer",
+  "@resourcesCrewPositionGaffer": {
+    "description": "Label of the gaffer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionElectrician": "Electrician",
+  "@resourcesCrewPositionElectrician": {
+    "description": "Label of the electrician crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionGrip": "Grip",
+  "@resourcesCrewPositionGrip": {
+    "description": "Label of the grip crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSoundEngineer": "Sound engineer",
+  "@resourcesCrewPositionSoundEngineer": {
+    "description": "Label of the sound engineer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionBoomOperator": "Boom operator",
+  "@resourcesCrewPositionBoomOperator": {
+    "description": "Label of the boom operator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetDecorator": "Set decorator",
+  "@resourcesCrewPositionSetDecorator": {
+    "description": "Label of the set decorator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPropsMaster": "Props master",
+  "@resourcesCrewPositionPropsMaster": {
+    "description": "Label of the props master crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetDresser": "Set dresser",
+  "@resourcesCrewPositionSetDresser": {
+    "description": "Label of the set dresser crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionMakeupArtist": "Make-up artist",
+  "@resourcesCrewPositionMakeupArtist": {
+    "description": "Label of the make-up artist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionHairStylist": "Hair stylist",
+  "@resourcesCrewPositionHairStylist": {
+    "description": "Label of the hair stylist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeDesigner": "Costume designer",
+  "@resourcesCrewPositionCostumeDesigner": {
+    "description": "Label of the costume designer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionManager": "Production manager",
+  "@resourcesCrewPositionProductionManager": {
+    "description": "Label of the production manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionAssistant": "Production assistant",
+  "@resourcesCrewPositionProductionAssistant": {
+    "description": "Label of the production assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionLineProducer": "Line producer",
+  "@resourcesCrewPositionLineProducer": {
+    "description": "Label of the line producer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentDirection": "Direction",
+  "@resourcesCrewDepartmentDirection": {
+    "description": "Label of the direction crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentImage": "Image",
+  "@resourcesCrewDepartmentImage": {
+    "description": "Label of the image (camera) crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentSound": "Sound",
+  "@resourcesCrewDepartmentSound": {
+    "description": "Label of the sound crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentArtDepartment": "Art department",
+  "@resourcesCrewDepartmentArtDepartment": {
+    "description": "Label of the art department crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentHmc": "Hair, make-up & costume",
+  "@resourcesCrewDepartmentHmc": {
+    "description": "Label of the hair, make-up and costume crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentProduction": "Production",
+  "@resourcesCrewDepartmentProduction": {
+    "description": "Label of the production crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesHalfDayFull": "Full day",
+  "@resourcesHalfDayFull": {
+    "description": "Label of the full-day half-day coverage of an unavailability",
+    "context": "Displayed wherever a person's unavailabilities are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesHalfDayMorning": "Morning",
+  "@resourcesHalfDayMorning": {
+    "description": "Label of the morning half-day coverage of an unavailability",
+    "context": "Displayed wherever a person's unavailabilities are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesHalfDayAfternoon": "Afternoon",
+  "@resourcesHalfDayAfternoon": {
+    "description": "Label of the afternoon half-day coverage of an unavailability",
+    "context": "Displayed wherever a person's unavailabilities are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsNotApplicable": "Not applicable",
+  "@resourcesImageRightsNotApplicable": {
+    "description": "Label of the not-applicable image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsToGenerate": "To generate",
+  "@resourcesImageRightsToGenerate": {
+    "description": "Label of the to-generate image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsGenerated": "Generated",
+  "@resourcesImageRightsGenerated": {
+    "description": "Label of the generated image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsSigned": "Signed",
+  "@resourcesImageRightsSigned": {
+    "description": "Label of the signed image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
   }
 }
