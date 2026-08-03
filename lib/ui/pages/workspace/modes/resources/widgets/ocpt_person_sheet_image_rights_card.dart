@@ -13,7 +13,14 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// "Image rights": [OcptImageRightsStatus] as a tinted badge doubling as its own selector, and the
-/// date it last changed.
+/// date that status was reached.
+///
+/// The date's label **is** its meaning, so it follows the status: `Generated on` for a release
+/// that has been drafted, `Signed on` for one that has come back signed. A bare `Date` beside a
+/// status said nothing about which of the two it held. The field is not shown at all for the two
+/// statuses that date nothing yet — nothing has happened for [OcptImageRightsStatus.notApplicable]
+/// and nothing has happened *yet* for [OcptImageRightsStatus.toGenerate] — while a date already
+/// stored survives untouched, so flipping the status back shows it again.
 ///
 /// Deliberately holds no upload button and no "Generate the document" action: the asset picker and
 /// document generation are both out of scope this milestone, and a control that would do nothing
@@ -45,6 +52,7 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final dateLabel = _dateLabelOf(tr, status);
 
     return OcptPersonSheetCard(
       title: tr.resourcesImageRightsTitle,
@@ -52,16 +60,22 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _OcptImageRightsStatusBadge(status: status, onChanged: onStatusChanged),
-          const SizedBox(height: 10),
-          OcptPersonSheetDateField(
-            label: tr.resourcesImageRightsDateLabel,
-            value: date,
-            onChanged: onDateChanged,
-          ),
+          if (dateLabel != null) ...[
+            const SizedBox(height: 10),
+            OcptPersonSheetDateField(label: dateLabel, value: date, onChanged: onDateChanged),
+          ],
         ],
       ),
     );
   }
+
+  /// What [status] dates, or null when it dates nothing: the label of the date field, and the
+  /// answer to whether that field is shown at all.
+  String? _dateLabelOf(Tr tr, OcptImageRightsStatus status) => switch (status) {
+    OcptImageRightsStatus.notApplicable || OcptImageRightsStatus.toGenerate => null,
+    OcptImageRightsStatus.generated => tr.resourcesImageRightsGeneratedOnLabel,
+    OcptImageRightsStatus.signed => tr.resourcesImageRightsSignedOnLabel,
+  };
 }
 
 /// The tinted badge naming the current [OcptImageRightsStatus], doubling as a [PopupMenuButton]

@@ -192,7 +192,13 @@ class OcptPeopleTable extends Table {
       .map(const OcptImageRightsStatusConverter())
       .withDefault(const Constant('notApplicable'))();
 
-  /// The date [imageRightsStatus] last changed (e.g. the date the release was signed), or null.
+  /// The date [imageRightsStatus] was reached — the day the release was drafted while it is
+  /// `generated`, the day it came back signed once it is `signed` — or null while nobody has
+  /// recorded one.
+  ///
+  /// One column rather than one per status: a release is drafted once and signed once, and the
+  /// only date a call sheet or a rights audit ever asks for is the one attached to where it stands
+  /// now. The sheet labels it after the current status rather than showing a bare `Date`.
   DateTimeColumn get imageRightsDate => dateTime().nullable()();
 
   /// The signed release document, or null while there is none. → [OcptAssetsTable]

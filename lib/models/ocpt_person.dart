@@ -211,7 +211,8 @@ class OcptPerson extends Equatable {
   /// Where this person's image rights release stands.
   final OcptImageRightsStatus imageRightsStatus;
 
-  /// The date [imageRightsStatus] last changed, or null.
+  /// The date [imageRightsStatus] was reached (drafted, then signed), or null. See
+  /// `OcptPeopleTable.imageRightsDate`.
   final DateTime? imageRightsDate;
 
   /// The signed release document, or null while there is none. → `OcptAssetRef`

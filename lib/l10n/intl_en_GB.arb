@@ -3311,9 +3311,16 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesImageRightsDateLabel": "Date",
-  "@resourcesImageRightsDateLabel": {
-    "description": "Label of the person sheet's image rights date field",
+  "resourcesImageRightsGeneratedOnLabel": "Generated on",
+  "@resourcesImageRightsGeneratedOnLabel": {
+    "description": "Label of the image rights date field while the release has been drafted",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsSignedOnLabel": "Signed on",
+  "@resourcesImageRightsSignedOnLabel": {
+    "description": "Label of the image rights date field while the release has come back signed",
     "context": "Displayed on the person sheet's image rights card",
     "type": "text",
     "placeholders": {}
