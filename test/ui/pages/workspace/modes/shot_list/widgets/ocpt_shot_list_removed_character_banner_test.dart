@@ -32,6 +32,7 @@ void main() {
   Future<({List<String> removals, List<String> replacements})> pumpBanner(
     WidgetTester tester, {
     List<String> replacementCandidates = const ["LÉA", "MARC"],
+    bool isReadOnly = false,
   }) async {
     final removals = <String>[];
     final replacements = <String>[];
@@ -43,6 +44,7 @@ void main() {
           replacementCandidates: replacementCandidates,
           onRemoveFromEveryShot: () => removals.add(alert.characterName),
           onReplaced: replacements.add,
+          isReadOnly: isReadOnly,
         ),
       ),
     );
@@ -92,5 +94,20 @@ void main() {
     expect(find.byType(ActionChip), findsNothing);
     // The way out that always exists stays offered.
     expect(find.text("Remove from every shot"), findsOneWidget);
+  });
+
+  testWidgets("a read-only banner still reports the mismatch, with no way out of it", (
+    tester,
+  ) async {
+    await pumpBanner(tester, isReadOnly: true);
+
+    expect(
+      find.text(
+        "CLARA was removed from the screenplay but still appears in 3 shots: 1/4 · 3/1 · 3/2.",
+      ),
+      findsOneWidget,
+    );
+    expect(find.text("Remove from every shot"), findsNothing);
+    expect(find.byType(ActionChip), findsNothing);
   });
 }

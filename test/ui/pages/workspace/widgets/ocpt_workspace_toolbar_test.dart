@@ -80,6 +80,44 @@ void main() {
     expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsOneWidget);
   });
 
+  testWidgets("the read-only pill replaces the unsaved-changes dot while previewing", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          // Deliberately dirty as well: a preview has nothing to save, so what may not be edited
+          // is what the toolbar has to say.
+          isDirty: true,
+          isReadOnly: true,
+          onBack: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceToolbar)));
+
+    expect(find.text(tr.workspaceReadOnlyPill), findsOneWidget);
+    expect(find.byTooltip(tr.workspaceReadOnlyTooltip), findsOneWidget);
+    expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsNothing);
+  });
+
+  testWidgets("no read-only pill is shown outside a preview", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceToolbar)));
+
+    expect(find.text(tr.workspaceReadOnlyPill), findsNothing);
+    expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsOneWidget);
+  });
+
   testWidgets("the mode label is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(

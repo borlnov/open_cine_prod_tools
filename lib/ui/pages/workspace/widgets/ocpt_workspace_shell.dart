@@ -10,7 +10,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 
 /// The persistent application chrome around a production mode's own content: a toolbar, an
-/// optional pair of resizable side docks around a centre area, and an optional status bar.
+/// optional full-width [banner] under it, an optional pair of resizable side docks around a centre
+/// area, and an optional status bar.
 ///
 /// A mode contributes its own [toolbarActions]/[overflowEntries] (mode-specific controls) and its
 /// [leftPanel]/[centre]/[rightPanel]/[statusBar] content; this widget only assembles the layout
@@ -39,6 +40,14 @@ class OcptWorkspaceShell extends StatelessWidget {
 
   /// Whether there are unsaved changes, shown as a dot next to the title.
   final bool isDirty;
+
+  /// Whether what the mode shows is a project version being previewed read-only.
+  ///
+  /// The shell's own answer to it is deliberately minimal — the toolbar shows the `Read only` pill
+  /// in place of the unsaved-changes dot, since a preview has nothing to save — and every editing
+  /// affordance beyond that is each mode's own to withhold: only the mode knows what its
+  /// affordances are. The band naming the previewed version is handed in through [banner].
+  final bool isReadOnly;
 
   /// The back action; the mode decides what flushing it implies.
   final VoidCallback onBack;
@@ -74,6 +83,14 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// Whether a save is in flight: the save control then shows a spinner in place of its button.
   final bool isSaving;
 
+  /// The full-width band shown between the toolbar and the docks row, or null when there is
+  /// nothing to announce.
+  ///
+  /// `OcptWorkspaceReadOnlyBanner` is what fills it today, and the slot is deliberately a plain
+  /// widget rather than that type: the shell announces whatever the mode hands it, and doesn't have
+  /// to learn about project versions to lay a band out.
+  final Widget? banner;
+
   /// The left dock's content, or null when the mode has no left dock (no divider is shown either).
   final Widget? leftPanel;
 
@@ -103,6 +120,7 @@ class OcptWorkspaceShell extends StatelessWidget {
     super.key,
     required this.title,
     required this.isDirty,
+    this.isReadOnly = false,
     required this.onBack,
     this.toolbarActions = const [],
     this.modeLabel,
@@ -113,6 +131,7 @@ class OcptWorkspaceShell extends StatelessWidget {
     this.onToggleRightDock,
     this.onSave,
     this.isSaving = false,
+    this.banner,
     this.leftPanel,
     this.rightPanel,
     required this.centre,
@@ -130,6 +149,7 @@ class OcptWorkspaceShell extends StatelessWidget {
       OcptWorkspaceToolbar(
         title: title,
         isDirty: isDirty,
+        isReadOnly: isReadOnly,
         onBack: onBack,
         actions: toolbarActions,
         modeLabel: modeLabel,
@@ -137,6 +157,7 @@ class OcptWorkspaceShell extends StatelessWidget {
         saveAction: _buildSaveAction(context),
         overflowEntries: overflowEntries,
       ),
+      if (banner != null) banner!,
       Expanded(child: _buildDocksRow()),
       if (statusBar != null) statusBar!,
     ],

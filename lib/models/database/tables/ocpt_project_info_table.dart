@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 /// Converts a [OcptPageFormat] to and from the text stored in the `project_info.pageFormat`
@@ -47,6 +48,15 @@ class OcptProjectInfoTable extends Table {
 
   /// Free-form project settings, stored as a JSON object, or null if there are none yet.
   TextColumn get settingsJson => text().nullable()();
+
+  /// The project version the working copy descends from, or null in a project which never had one.
+  ///
+  /// This is what tells the `Versions` panel which of its cards is the current one: it is set when
+  /// a version is created and when one is restored, and cleared when the version it points at is
+  /// deleted. Like [OcptProjectVersionsTable] itself, it is **local and never synchronised** — a
+  /// restore performed on one machine must not silently move another machine's pointer.
+  TextColumn get currentVersionId =>
+      text().nullable().references(OcptProjectVersionsTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override

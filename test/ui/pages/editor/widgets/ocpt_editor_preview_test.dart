@@ -26,14 +26,42 @@ final String _longSampleText = List.generate(
 ///
 /// [theme] defaults to [ocptTheme]'s light variant: the preview reads its backdrop color from an
 /// [OcptSpecificColors] theme extension, which only a theme built from [ocptTheme] carries.
-Widget _wrap(Widget child, {required double width, double height = 600, ThemeData? theme}) =>
-    MaterialApp(
-      theme: theme ?? ocptTheme.lightThemeData,
-      home: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(width: width, height: height, child: child),
-      ),
-    );
+///
+/// [textScaler] stands in for the platform's font-scaling preference, which the desktop hands the
+/// app through `MediaQuery`.
+Widget _wrap(
+  Widget child, {
+  required double width,
+  double height = 600,
+  ThemeData? theme,
+  TextScaler textScaler = TextScaler.noScaling,
+}) => MaterialApp(
+  theme: theme ?? ocptTheme.lightThemeData,
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+    child: child!,
+  ),
+  home: Align(
+    alignment: Alignment.topLeft,
+    child: SizedBox(width: width, height: height, child: child),
+  ),
+);
+
+/// An action line of exactly [columns] characters, made of short lower-case words so it has plenty
+/// of wrap opportunities — and so the parser reads it as action rather than as a character cue,
+/// which an all-upper-case line would be.
+///
+/// A line this long is the interesting case for the tests below: it fills the action element's box
+/// to the very last column, so it renders on a single line if (and only if) the preview typesets it
+/// at the same fixed pitch [OcptEditorPreviewLayout] measured that box with.
+String _actionLineOfColumns(int columns) {
+  final characters = List.generate(columns, (index) => (index + 1) % 5 == 0 ? " " : "m");
+  // Never end on the space of the last group: a trailing space is trimmed at wrap time, so it
+  // would quietly make the line one column shorter than asked for.
+  characters[columns - 1] = "m";
+
+  return characters.join();
+}
 
 /// Widens the test surface well past [unscaledPanelWidth], so a `SizedBox`-constrained panel of
 /// that width actually gets it: the default 800x600 test surface would otherwise clamp it first
@@ -174,6 +202,71 @@ void main() {
     final actualGap = sheetRect.right - contentRect.right;
     expect(actualGap, closeTo(expectedGap, layout.glyphWidth * 2));
   });
+
+  testWidgets(
+    "a line filling the element's box to its last column still renders on a single line",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      // The regression this guards: the base style used to inherit, so `Text.rich` merged it onto
+      // the ambient `DefaultTextStyle` — Material's `bodyMedium`, whose `letterSpacing` widened
+      // every glyph past the fixed pitch the page's columns are measured at. This line then no
+      // longer fitted its own box and wrapped onto a second line that
+      // `OcptEditorPreviewLayout.estimatedLineCount` (which counts columns, not pixels) never
+      // counted, so with page simulation on each page rendered taller than its simulated sheet and
+      // spilled out under it.
+      final columns = layout.metrics.action.maxWidthColumns;
+      final document = const FountainParser().parse(_actionLineOfColumns(columns));
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+          ),
+          width: unscaledPanelWidth,
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.getSize(find.byType(RichText).first).height,
+        closeTo(layout.lineHeight, 1),
+      );
+    },
+  );
+
+  testWidgets(
+    "the platform's font-scaling preference never grows the page's own type",
+    (tester) async {
+      _widenTestSurface(tester, unscaledPanelWidth);
+      // Same line, same box, but with the desktop asking for larger text: the page is a simulation
+      // of paper, so its type size is the page's own. Scaling the glyphs without scaling the page
+      // would wrap and overflow it exactly the way the inherited `letterSpacing` above did.
+      final columns = layout.metrics.action.maxWidthColumns;
+      final document = const FountainParser().parse(_actionLineOfColumns(columns));
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+          ),
+          width: unscaledPanelWidth,
+          textScaler: const TextScaler.linear(1.6),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.getSize(find.byType(RichText).first).height,
+        closeTo(layout.lineHeight, 1),
+      );
+    },
+  );
 
   testWidgets(
     "caret scroll-sync still scrolls to the current line's block when the page is scaled",
@@ -346,6 +439,43 @@ void main() {
       await tester.pump();
 
       expect(find.byType(Material), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "a simulated page's content stays inside its own sheet, blank separator lines included",
+    (tester) async {
+      final tallPanelHeight = layout.pageHeight + 200;
+      _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
+      // Enough one-line paragraphs to overrun a page several times over. Each of them renders with
+      // one blank line of trailing space, exactly like the separator `FountainScriptComposer` emits
+      // between two blocks: the paginator used to pack pages counting the text lines alone, so a
+      // page of ~27 paragraphs took twice its own height and half of it rendered below the sheet,
+      // on the panel's backdrop.
+      final document = const FountainParser().parse(
+        List.generate(120, (index) => "Action line $index.").join("\n\n"),
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptEditorPreview(
+            document: document,
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: true,
+          ),
+          width: unscaledPanelWidth,
+          height: tallPanelHeight,
+        ),
+      );
+      await tester.pump();
+
+      // The first page's block column, whose height is the page's rendered content: it must fit the
+      // printable area the sheet reserves for it — its own trailing blank line aside, which falls
+      // harmlessly into the bottom margin.
+      final contentHeight = tester.getSize(find.byType(Column).first).height;
+      final printableHeight = layout.metrics.linesPerPage * layout.lineHeight;
+      expect(contentHeight, lessThanOrEqualTo(printableHeight + layout.blockSpacing + 0.5));
     },
   );
 

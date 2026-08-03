@@ -82,10 +82,17 @@ class OcptFountainEditorStylesheet {
     final onSurface = isPageSimulationEnabled ? Colors.black : colorScheme.onSurface;
     final onSurfaceVariant = isPageSimulationEnabled ? Colors.black54 : colorScheme.onSurfaceVariant;
     final accent = isPageSimulationEnabled ? Colors.black : colorScheme.primary;
+    // `letterSpacing` is pinned to zero rather than left unset: the page's columns are measured at
+    // the font's bare fixed pitch (see `OcptEditorPreviewLayout`), so any spacing added between
+    // glyphs — by this style, or by an ambient one merged into it — makes a full-width line wrap a
+    // couple of columns early, and the surplus lines push each page's content past the bottom of
+    // the sheet `computeOcptStyledPagination` sized for it. The raw preview neutralises the very
+    // same leak (see `OcptEditorPreviewBlock`).
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
       fontSize: OcptEditorPreviewLayout.fontSize,
       height: layout.lineHeightFactor,
+      letterSpacing: 0,
       color: onSurface,
     );
 

@@ -17,7 +17,9 @@ const String _dash = '—';
 ///
 /// Editing stays the existing title-page dialog's job: [onEditTitlePage] opens it, through
 /// `EditorPage`'s own router-manager call, exactly like the toolbar's "Title page…" overflow
-/// entry does.
+/// entry does. A null [onEditTitlePage] renders no "Edit…" button at all: what this panel reads out
+/// is worth showing whether or not it may be changed, which is what makes it usable as-is while a
+/// project version is being previewed read-only.
 class OcptEditorMetadataPanel extends StatelessWidget {
   /// The screenplay's title page, or null if it has none.
   final FountainTitlePage? titlePage;
@@ -25,8 +27,9 @@ class OcptEditorMetadataPanel extends StatelessWidget {
   /// The script-wide statistics, already computed for the status bar.
   final FountainScriptStatistics statistics;
 
-  /// Called when the "Edit…" button is clicked.
-  final VoidCallback onEditTitlePage;
+  /// Called when the "Edit…" button is clicked, or null when the title page may not be edited —
+  /// the button is then not rendered at all.
+  final VoidCallback? onEditTitlePage;
 
   /// Class constructor
   const OcptEditorMetadataPanel({
@@ -81,13 +84,14 @@ class OcptEditorMetadataPanel extends StatelessWidget {
             Text(tr.editorStatsSigns(statistics.signCount), style: theme.textTheme.bodySmall),
           ],
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: onEditTitlePage,
-            child: Text(tr.editorMetadataEditTitlePageButtonLabel),
+        if (onEditTitlePage != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: onEditTitlePage,
+              child: Text(tr.editorMetadataEditTitlePageButtonLabel),
+            ),
           ),
-        ),
       ],
     );
   }

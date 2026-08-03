@@ -5,8 +5,9 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -20,6 +21,10 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 String _digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
 
 void main() {
+  // Refusing a write on a previewed version logs through appLogger(), which requires a global
+  // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
+  setUpAll(() => OcptGlobalManager.instance);
+
   const coverageService = OcptShotCoverageService();
   const shotListService = OcptShotListService();
   const sceneIndexService = OcptSceneIndexService();
@@ -81,25 +86,25 @@ Action one.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
 
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
       final wordOffset = sceneText.indexOf("one");
 
-      final rangeId = await coverageService.addRange(
+      final rangeId = (await coverageService.addRange(
         database: database,
         shotId: shotId,
         sceneId: scene.id,
         startOffset: wordOffset,
         endOffset: wordOffset + "one".length,
         sceneText: sceneText,
-      );
+      ))!;
 
       final range = await readSingleRange();
       expect(range.id, rangeId);
@@ -118,11 +123,11 @@ Action one.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
@@ -131,14 +136,14 @@ Action one.
       // interaction closes a range wherever the second click lands, so nothing rejects this.
       final startOffset = sceneText.indexOf("HOUSE");
       final endOffset = sceneText.indexOf("one.") + "one.".length;
-      final rangeId = await coverageService.addRange(
+      final rangeId = (await coverageService.addRange(
         database: database,
         shotId: shotId,
         sceneId: scene.id,
         startOffset: startOffset,
         endOffset: endOffset,
         sceneText: sceneText,
-      );
+      ))!;
 
       final range = await (database.select(
         database.ocptShotCoveragesTable,
@@ -161,11 +166,11 @@ Action one two three.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
@@ -208,11 +213,11 @@ Action one two three.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
@@ -252,11 +257,11 @@ Action one two three four.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
@@ -309,11 +314,11 @@ Action one two three.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
@@ -352,16 +357,16 @@ Action one two.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotA = await shotListService.createShot(
+      final shotA = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
-      final shotB = await shotListService.createShot(
+      ))!;
+      final shotB = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);
@@ -402,11 +407,11 @@ Action one.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: scene.id,
-      );
+      ))!;
 
       expect(
         () => coverageService.addRange(
@@ -444,11 +449,11 @@ Action two three.
       final streetScene = (await readScenes()).firstWhere(
         (row) => row.heading == "EXT. STREET - NIGHT",
       );
-      final shotId = await shotListService.createShot(
+      final shotId = (await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: streetScene.id,
-      );
+      ))!;
 
       final sceneTextBefore = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
@@ -518,11 +523,11 @@ Action two three.
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
     );
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: streetScene.id,
-    );
+    ))!;
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
         .substring(streetScene.charStart, streetScene.charEnd);
@@ -580,11 +585,11 @@ Action one two.
     );
 
     final scene = (await readScenes()).single;
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: scene.id,
-    );
+    ))!;
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
         .substring(scene.charStart, scene.charEnd);
@@ -636,11 +641,11 @@ Action two three.
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
     );
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: streetScene.id,
-    );
+    ))!;
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
         .substring(streetScene.charStart, streetScene.charEnd);
@@ -703,11 +708,11 @@ Action two three four.
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
     );
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: streetScene.id,
-    );
+    ))!;
 
     final sceneTextBefore = (await database.select(database.ocptScreenplaysTable).getSingle())
         .fountainText
@@ -778,11 +783,11 @@ Action two three.
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
     );
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: streetScene.id,
-    );
+    ))!;
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
         .substring(streetScene.charStart, streetScene.charEnd);
@@ -855,16 +860,16 @@ Action one two three.
     );
 
     final scene = (await readScenes()).single;
-    final shotA = await shotListService.createShot(
+    final shotA = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: scene.id,
-    );
-    final shotB = await shotListService.createShot(
+    ))!;
+    final shotB = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: scene.id,
-    );
+    ))!;
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
         .substring(scene.charStart, scene.charEnd);
@@ -932,11 +937,11 @@ Action one two three.
     );
 
     final scene = (await readScenes()).single;
-    final shotId = await shotListService.createShot(
+    final shotId = (await shotListService.createShot(
       database: database,
       screenplayId: screenplayId,
       sceneId: scene.id,
-    );
+    ))!;
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
         .substring(scene.charStart, scene.charEnd);
 
@@ -1025,5 +1030,92 @@ Action four five six.
 
       expect(OcptShotCoverageService.isRangeStale(range: range, sceneText: shorterText), isTrue);
     });
+  });
+
+  test('every write handed the read-only database of a previewed version is refused', () async {
+    final preview = OcptProjectDatabase.memory(isPreview: true);
+    addTearDown(preview.close);
+
+    await preview
+        .into(preview.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: "Draft",
+            updatedAt: DateTime.now(),
+          ),
+        );
+    await preview
+        .into(preview.ocptScenesTable)
+        .insert(
+          OcptScenesTableCompanion.insert(
+            id: "scene-1",
+            screenplayId: screenplayId,
+            position: 0,
+            heading: "INT. HOUSE - DAY",
+            charStart: 0,
+            charEnd: 16,
+          ),
+        );
+    await preview
+        .into(preview.ocptShotsTable)
+        .insert(
+          OcptShotsTableCompanion.insert(
+            id: "shot-1",
+            screenplayId: screenplayId,
+            sceneId: const Value("scene-1"),
+            position: 0,
+            sortKey: const Value("V"),
+            needsCheck: const Value(true),
+            checkReason: const Value(OcptShotCheckReason.coveredTextChanged),
+          ),
+        );
+    await preview
+        .into(preview.ocptShotCoveragesTable)
+        .insert(
+          OcptShotCoveragesTableCompanion.insert(
+            id: "coverage-1",
+            shotId: "shot-1",
+            sceneId: "scene-1",
+            startOffset: 0,
+            endOffset: 5,
+            coveredTextDigest: "digest",
+          ),
+        );
+
+    final addedId = await coverageService.addRange(
+      database: preview,
+      shotId: "shot-1",
+      sceneId: "scene-1",
+      startOffset: 6,
+      endOffset: 9,
+      sceneText: "INT. HOUSE - DAY",
+    );
+    await coverageService.removeRange(database: preview, rangeId: "coverage-1");
+    await coverageService.clearRangesOfShot(database: preview, shotId: "shot-1");
+    await coverageService.markAsChecked(
+      database: preview,
+      shotId: "shot-1",
+      currentFountainText: "INT. HOUSE - DAY",
+    );
+    await coverageService.refreshStaleness(
+      database: preview,
+      screenplayId: screenplayId,
+      currentFountainText: "EXT. STREET - NIGHT",
+    );
+
+    // A version the user is only reading isn't editable, and it is the service that says so: a UI
+    // bug must not be able to write a preview's coverage.
+    expect(addedId, isNull);
+
+    final ranges = await preview.select(preview.ocptShotCoveragesTable).get();
+    expect(ranges, hasLength(1));
+    expect(ranges.single.id, "coverage-1");
+    expect(ranges.single.isDeleted, isFalse);
+    expect(ranges.single.coveredTextDigest, "digest");
+
+    final shot = await preview.select(preview.ocptShotsTable).getSingle();
+    expect(shot.needsCheck, isTrue);
+    expect(shot.checkReason, OcptShotCheckReason.coveredTextChanged);
   });
 }

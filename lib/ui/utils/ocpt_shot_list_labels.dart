@@ -151,13 +151,6 @@ Color ocptShotStatusColor(BuildContext context, OcptShotStatus status) {
   };
 }
 
-/// The colour the shot list marks everything needing attention with: a shot's ⚠, and a difficulty
-/// at or above [ocptShotListDifficultyWarningThreshold].
-Color ocptShotListWarningColor(BuildContext context) {
-  final theme = Theme.of(context);
-  return theme.extension<OcptSpecificColors>()?.shotStatusRetake ?? theme.colorScheme.error;
-}
-
 /// Formats the difficulty [value] with a single decimal, in the locale [context] resolves to (so
 /// French reads `1,8` where English reads `1.8`).
 String ocptFormatShotDifficulty(BuildContext context, double value) =>

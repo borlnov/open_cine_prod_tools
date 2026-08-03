@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -24,14 +25,24 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
 /// selected sequence's shot table in the centre, and the tabbed shot inspector on the right.
+///
+/// While a project version is being previewed, the mode shows that version's shot list instead of
+/// the working copy's, and shows it read-only: everything that would write — `+ Shot`, the orphan
+/// group's delete buttons, every inspector control, the deleted-character banners' two ways out —
+/// is withheld, and the shell carries the band naming the version. Browsing the sequences, reading
+/// a shot and exporting the workbook all stay available: none of them touches the project.
 class OcptShotListMode extends StatelessWidget {
   /// Creates the shot list mode.
   const OcptShotListMode({super.key});
@@ -96,6 +107,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
+        isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
         overflowEntries: _buildOverflowEntries(context, state),
@@ -107,6 +119,7 @@ class _ShotListViewState extends State<_ShotListView> {
         onToggleRightDock: () => context.read<OcptShotListBloc>().add(
           const OcptShotListRightDockToggledEvent(),
         ),
+        banner: _buildReadOnlyBanner(context, state),
         leftPanel: _buildSequencePanel(context, state),
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
@@ -197,6 +210,8 @@ class _ShotListViewState extends State<_ShotListView> {
   ///
   /// `+ Shot` is wired only when the selected sequence is a real screenplay scene: the orphan
   /// group is where shots land when their scene disappears, never where new ones are authored.
+  /// Neither it nor the orphan group's delete buttons are wired at all while a version is being
+  /// previewed: the tree is then a way of reading that version, not of changing it.
   Widget? _buildSequencePanel(BuildContext context, OcptShotListState state) {
     if (!state.isSequencePanelVisible) {
       return null;
@@ -213,12 +228,14 @@ class _ShotListViewState extends State<_ShotListView> {
       onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
         OcptShotListShotSelectedEvent(shotId: shotId),
       ),
-      onShotCreated: state.selectedSequence is OcptSceneShotSequence
+      onShotCreated: state.selectedSequence is OcptSceneShotSequence && !state.isPreviewingVersion
           ? () => context.read<OcptShotListBloc>().add(
               const OcptShotListShotCreationRequestedEvent(),
             )
           : null,
-      onOrphanedShotDeleted: (shotId) => _handleOrphanedShotDeletion(context, state, shotId),
+      onOrphanedShotDeleted: state.isPreviewingVersion
+          ? null
+          : (shotId) => _handleOrphanedShotDeletion(context, state, shotId),
     );
   }
 
@@ -270,6 +287,7 @@ class _ShotListViewState extends State<_ShotListView> {
         child: OcptShotListRemovedCharacterBanner(
           alert: alert,
           replacementCandidates: state.screenplayCharacters,
+          isReadOnly: state.isPreviewingVersion,
           onRemoveFromEveryShot: () => context.read<OcptShotListBloc>().add(
             OcptShotListRemovedCharacterDroppedEvent(characterName: alert.characterName),
           ),
@@ -403,18 +421,113 @@ class _ShotListViewState extends State<_ShotListView> {
         onDeleteRequested: selectedShot == null
             ? null
             : () => _handleDeleteRequested(context, selectedShot),
+        isReadOnly: state.isPreviewingVersion,
       ),
       metadataChild: OcptShotMetadataPanel(
         shot: selectedShot,
         sequenceDisplayNumber: sequenceDisplayNumber,
         sequenceHeading: sequenceHeading,
       ),
+      versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptShotListBloc>().add(
         OcptShotListRightDockTabSelectedEvent(tab: tab),
       ),
       onClose: () =>
           context.read<OcptShotListBloc>().add(const OcptShotListRightDockClosedEvent()),
     );
+  }
+
+  /// Builds the band naming the version being previewed, the shell's `banner`, or null while the
+  /// working copy is on screen.
+  ///
+  /// Null too — the banner is simply not drawn — in the narrow window where the previewed version
+  /// isn't in the list the panel was drawn from any more: the refresh ending every version handler
+  /// resolves it on its own, and a band that named nothing would say less than no band at all.
+  Widget? _buildReadOnlyBanner(BuildContext context, OcptShotListState state) {
+    final previewedVersion = state.previewedVersion;
+    if (previewedVersion == null) {
+      return null;
+    }
+
+    final tr = Tr.of(context);
+
+    return OcptWorkspaceReadOnlyBanner(
+      version: previewedVersion,
+      // `Start from this version` is a plain restore of the version being previewed:
+      // `OcptProjectsManager.restoreProjectVersion` leaves the preview on its own before writing
+      // anything, so the handler needs nothing beyond the same event a version's own card
+      // dispatches.
+      onForkRequested: () => context.read<OcptShotListBloc>().add(
+        OcptProjectVersionRestoreConfirmedEvent(
+          versionId: previewedVersion.id,
+          safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
+        ),
+      ),
+      onExitPreview: () => context.read<OcptShotListBloc>().add(
+        const OcptProjectVersionPreviewExitRequestedEvent(),
+      ),
+    );
+  }
+
+  /// Builds the right dock's `Versions` tab: the working copy's own card and the project's named
+  /// versions, the same panel the screenplay mode's dock hosts, wired to the events
+  /// `MixinOcptProjectVersionsBloc` handles.
+  Widget _buildVersionsPanel(BuildContext context, OcptShotListState state) =>
+      OcptProjectVersionsPanel(
+        versions: state.projectVersions,
+        previewedVersionId: state.previewedVersionId,
+        workingCopy: state.workingCopy,
+        versionPendingDeletionId: state.versionPendingDeletionId,
+        versionPendingRestoreId: state.versionPendingRestoreId,
+        versionPendingRenameId: state.versionPendingRenameId,
+        onCreateRequested: () => _requestVersionCreation(context),
+        onPreviewRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
+        ),
+        onPreviewExitRequested: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionPreviewExitRequestedEvent(),
+        ),
+        onRestoreRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
+        ),
+        onRestoreCancelled: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionRestoreCancelledEvent(),
+        ),
+        onRestoreConfirmed: (version) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRestoreConfirmedEvent(
+            versionId: version.id,
+            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
+          ),
+        ),
+        onDeleteRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
+        ),
+        onDeleteCancelled: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionDeletionCancelledEvent(),
+        ),
+        onDeleteConfirmed: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
+        ),
+        onRenameRequested: (versionId) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
+        ),
+        onRenameCancelled: () => context.read<OcptShotListBloc>().add(
+          const OcptProjectVersionRenameCancelledEvent(),
+        ),
+        onRenameConfirmed: (versionId, name, note) => context.read<OcptShotListBloc>().add(
+          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
+        ),
+      );
+
+  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
+  Future<void> _requestVersionCreation(BuildContext context) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final fields = await OcptProjectVersionCreateDialog.show(context);
+    if (fields == null) {
+      return;
+    }
+
+    bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
   /// The display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
@@ -564,6 +677,16 @@ class _ShotListViewState extends State<_ShotListView> {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
       context.read<OcptShotListBloc>().add(const OcptShotListIoNoticeDismissedEvent());
+    }
+
+    final versionNotice = state.projectVersionNotice;
+    if (versionNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
+        );
+      context.read<OcptShotListBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
   }
 

@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -20,6 +22,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
@@ -41,7 +45,18 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 /// When the bloc closes (the user leaves the page), any pending unsaved change is flushed with a
 /// best-effort save: the debounce timers are cancelled and the save runs directly against the
 /// service, so no edit is lost by navigating away right after typing.
-class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
+///
+/// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
+/// `Versions` tab does: the project's versions are a property of the *project*, so that tab and
+/// its state are shared with every other production mode rather than reimplemented here. The two
+/// hooks the mixin needs are answered by [flushPendingProjectWrites] (a pending autosave must
+/// reach the working copy before a preview swaps the database out) and
+/// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_saveCurrentText` each dispatch
+/// [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a save landing
+/// while it is already open — the two moments the mixin's working-copy card is worth a fresh,
+/// throttled read.
+class OcptEditorBloc extends BlocForMixin<OcptEditorState>
+    with MixinOcptProjectVersionsBloc<OcptEditorState> {
   /// The default delay between the last edit and the re-parse of the source text.
   static const defaultParseDebounce = Duration(milliseconds: 150);
 
@@ -94,6 +109,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// The id given to the next [OcptEditorJumpRequest], increased after each one.
   int _nextJumpRequestId = 0;
 
+  /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
+  late final void Function() _unregisterUnsavedChangesReporter;
+
   /// Class constructor
   ///
   /// [parseDebounce], [autosaveDebounce] and [statisticsDebounce] are only meant to be overridden
@@ -118,6 +136,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
        _autosaveDebounce = autosaveDebounce,
        _statisticsDebounce = statisticsDebounce,
        super(const OcptEditorState.init()) {
+    // The screenplay is the one thing in the app that lives in memory between two writes (the
+    // autosave debounce), so this is the mode that has an answer to give when the projects manager
+    // asks whether it may swap the database under everyone to preview a version.
+    _unregisterUnsavedChangesReporter = _projectsManager.registerUnsavedChangesReporter(
+      () => state.isDirty,
+    );
+
     add(const OcptEditorLoadRequestedEvent());
   }
 
@@ -151,12 +176,43 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     on<OcptEditorTitlePageChangedEvent>(_onTitlePageChanged);
   }
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// Saves the screenplay if it holds unsaved changes, so a preview about to swap the database
+  /// can't send the text sitting in the autosave debounce into the previewed version instead.
+  ///
+  /// Tagged [OcptSnapshotReason.manual] like every other save the user's own action triggers: from
+  /// the screenplay's point of view, clicking a version card is as deliberate as pressing Ctrl+S.
+  @protected
+  @override
+  Future<void> flushPendingProjectWrites(Emitter<OcptEditorState> emitter) async {
+    if (!state.isDirty) {
+      return;
+    }
+
+    await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
+  @protected
+  @override
+  Future<void> reloadFromProjectDatabase(Emitter<OcptEditorState> emitter) =>
+      _onLoadRequested(const OcptEditorLoadRequestedEvent(), emitter);
+
   /// Loads the current project's screenplay text, title and page format, and parses the text,
   /// together with the persisted preferred editor mode.
   ///
   /// The editor route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stays in its
   /// init form with an empty document.
+  ///
+  /// This is also `MixinOcptProjectVersionsBloc`'s [reloadFromProjectDatabase] hook, so it emits
+  /// which version is being previewed alongside the text it just read: what it read comes from that
+  /// very version's in-memory database, and the two must reach the page together (see the hook's
+  /// own doc comment).
   Future<void> _onLoadRequested(
     OcptEditorLoadRequestedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -170,6 +226,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final rightDockFraction =
         await _propertiesManager.editorRightDockFraction.load() ?? OcptWorkspaceDock.rightDefaultFraction;
 
+    final project = _projectsManager.currentProject;
+    final previewedVersion = project?.previewedVersion;
+
     // Applies the same raw/styled right-dock transition the mode toggle itself applies (see
     // `_rightDockTransitionFor`), now that the persisted mode is known: e.g. an editor that was
     // left in styled mode last session starts with its (session-local, always-preview-by-default)
@@ -177,11 +236,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     // immediately forbids.
     final dockTabTransition = _rightDockTransitionFor(
       newMode: mode,
+      isReadOnly: project?.isReadOnly ?? false,
       rightDockTab: state.rightDockTab,
       autoClosedRightDockTab: state.autoClosedRightDockTab,
     );
 
-    final project = _projectsManager.currentProject;
     if (project == null) {
       final document = _fountainParser.parse("");
       emitter(
@@ -189,6 +248,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           isLoading: false,
           document: document,
           mode: mode,
+          clearPreviewedVersionId: true,
           isPageSimulationEnabled: isPageSimulationEnabled,
           areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
           leftDockFraction: leftDockFraction,
@@ -208,13 +268,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
       database: project.database,
       screenplayId: project.primaryScreenplayId,
     );
-    final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
-    final margins = await _propertiesManager.pageMargins.load();
     final document = _fountainParser.parse(text);
-    final pageSetup = OcptPageSetup(
-      format: pageFormat ?? OcptPageFormat.usLetter,
-      margins: margins ?? const FountainPageMargins.standard(),
-    );
+    final pageSetup = await _loadPageSetup(project);
     final sceneStats = _sceneStatisticsFor(
       document,
       pageSetup,
@@ -226,6 +281,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         isLoading: false,
         title: project.name,
         mode: mode,
+        previewedVersionId: previewedVersion?.id,
+        clearPreviewedVersionId: previewedVersion == null,
         text: text,
         document: document,
         pageSetup: pageSetup,
@@ -244,6 +301,21 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     );
   }
 
+  /// Reads the page setup [project] is typeset with: the version's own while one is being
+  /// previewed, and the project's page format paired with the app-wide margins preference
+  /// otherwise.
+  ///
+  /// A previewed version is laid out with the setup it was written against — that is what keeps the
+  /// page count shown on its card true — and that setup travels on the open project model alone: a
+  /// preview never writes it anywhere, since its margins half is an app-wide preference that has
+  /// nothing to do with this project.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
+
   /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
   FountainScriptStatistics _statisticsFor(FountainDocument document, OcptPageSetup pageSetup) =>
       FountainScriptStatistics.of(document, pageSetup.toMetrics());
@@ -261,10 +333,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
   /// [_onLoadRequested] once the persisted mode is known.
   ///
-  /// - switching to styled while the preview tab is active closes the dock and remembers that tab
-  ///   in [autoClosedRightDockTab] (decision 4: styled mode has no preview tab at all);
-  /// - switching to raw with the dock closed and a tab remembered reopens it on that tab and
-  ///   forgets it;
+  /// - becoming a mode with no preview tab while that tab is active closes the dock and remembers
+  ///   it in [autoClosedRightDockTab] (decision 4: styled mode has no preview tab at all, and
+  ///   neither has a read-only preview, whose whole centre already *is* the formatted screenplay);
+  /// - becoming a mode that has one again, with the dock closed and a tab remembered, reopens it on
+  ///   that tab and forgets it;
   /// - any other combination (the syntax tab active, the dock already closed with nothing
   ///   remembered, switching to the mode it's already in, …) is left untouched — in particular,
   ///   this never touches a dock the user closed by hand (which never leaves anything in
@@ -277,10 +350,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
   })
   _rightDockTransitionFor({
     required OcptEditorMode newMode,
+    required bool isReadOnly,
     required OcptEditorRightDockTab? rightDockTab,
     required OcptEditorRightDockTab? autoClosedRightDockTab,
   }) {
-    if (newMode == OcptEditorMode.styled && rightDockTab == OcptEditorRightDockTab.preview) {
+    final isPreviewTabAvailable = OcptEditorState.isPreviewTabAvailableFor(
+      mode: newMode,
+      isReadOnly: isReadOnly,
+    );
+
+    if (!isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview) {
       return (
         rightDockTab: null,
         clearRightDockTab: true,
@@ -288,7 +367,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         clearAutoClosedRightDockTab: false,
       );
     }
-    if (newMode == OcptEditorMode.raw && rightDockTab == null && autoClosedRightDockTab != null) {
+    if (isPreviewTabAvailable && rightDockTab == null && autoClosedRightDockTab != null) {
       return (
         rightDockTab: autoClosedRightDockTab,
         clearRightDockTab: false,
@@ -451,6 +530,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
           lastSavedAt: DateTime.now(),
         ),
       );
+
+      // The other of the two moments the working-copy card needs a fresh read for (see
+      // `_onRightDockTabSelected`): a save that lands while the tab showing it is already open.
+      if (state.rightDockTab == OcptEditorRightDockTab.versions) {
+        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+      }
     } catch (error) {
       appLogger().e("A problem occurred when tried to save the screenplay of the project at "
           "${project.path}: $error");
@@ -517,17 +602,24 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
         clearAutoClosedRightDockTab: true,
       ),
     );
+
+    // Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
+    // working-copy card needs a fresh read for: the other is a save landing while it is already
+    // the one showing (see `_saveCurrentText`).
+    if (!isAlreadyActive && event.tab == OcptEditorRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
   }
 
   /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on [OcptEditorState.lastRightDockTab], and clears
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   ///
-  /// Reopening applies the styled mode's own rule on the remembered tab: that mode has no preview
-  /// tab at all (the same rule [_rightDockTransitionFor] enforces on a mode switch), so a
-  /// remembered preview tab falls back to the syntax guide there rather than reopening a dock with
-  /// nothing to show. The memory itself is left untouched, so going back to raw mode still brings
-  /// the preview back.
+  /// Reopening applies the same rule on the remembered tab as [_rightDockTransitionFor] does on a
+  /// mode switch: the styled mode and a version's read-only preview both have no preview tab at
+  /// all, so a remembered preview tab falls back to the syntax guide there rather than reopening a
+  /// dock with nothing to show. The memory itself is left untouched, so going back to raw mode (or
+  /// leaving the preview) still brings the preview back.
   Future<void> _onRightDockToggled(
     OcptEditorRightDockToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -538,8 +630,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     }
 
     final isPreviewForbidden =
-        state.mode == OcptEditorMode.styled &&
-        state.lastRightDockTab == OcptEditorRightDockTab.preview;
+        !state.isPreviewTabAvailable && state.lastRightDockTab == OcptEditorRightDockTab.preview;
 
     emitter(
       state.copyWith(
@@ -602,6 +693,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     final newMode = state.mode == OcptEditorMode.styled ? OcptEditorMode.raw : OcptEditorMode.styled;
     final dockTabTransition = _rightDockTransitionFor(
       newMode: newMode,
+      isReadOnly: state.isPreviewingVersion,
       rightDockTab: state.rightDockTab,
       autoClosedRightDockTab: state.autoClosedRightDockTab,
     );
@@ -916,6 +1008,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState> {
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
     _statisticsTimer?.cancel();
+    _unregisterUnsavedChangesReporter();
 
     final project = _projectsManager.currentProject;
     if (project != null && state.isDirty && !state.isSaving) {

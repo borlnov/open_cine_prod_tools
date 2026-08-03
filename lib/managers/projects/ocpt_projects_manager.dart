@@ -11,16 +11,24 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
@@ -42,10 +50,18 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// Every Open Cine Prod Tools project is a single `.ocpt` SQLite file (an [OcptProjectDatabase]);
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
-/// index or its shot list is delegated to [screenplayService], [sceneIndexService],
-/// [shotListService] and [shotCoverageService], the four services this manager owns and wires
-/// together (RFL18): this manager itself is only responsible for the lifecycle of the project file
-/// (create/open/close) and for keeping the properties manager's recent-projects list in sync.
+/// index, its shot list or its named versions is delegated to [screenplayService],
+/// [sceneIndexService], [shotListService], [shotCoverageService] and [projectVersionsService], the
+/// five services this manager owns and wires together (RFL18): this manager itself is only
+/// responsible for the lifecycle of the project file (create/open/close), for keeping the
+/// properties manager's recent-projects list in sync, and for handing those services the facts only
+/// it holds — the open project's database, the app version, this replica's device id and the
+/// app-wide page margins.
+///
+/// It also owns the read-only **preview** of a version ([previewVersion] / [exitPreview]), which is
+/// a state of the open project rather than of the database and so belongs here rather than in
+/// [projectVersionsService]: previewing swaps the database the modes read through for an in-memory
+/// one hydrated from the version's payload, and re-emits the project on [currentProjectStream].
 class OcptProjectsManager extends AbsWithLifeCycle {
   /// The name of the folder created inside the platform's documents directory to hold projects
   /// created/saved without the user picking a different location.
@@ -76,8 +92,17 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The service used to add/remove/check a shot's scenario coverage ranges.
   final OcptShotCoverageService shotCoverageService;
 
+  /// The service used to create, list and delete the project's named versions.
+  final OcptProjectVersionsService projectVersionsService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
+
+  /// The callbacks the modes register to answer, at any moment, whether they hold changes that
+  /// haven't reached the database yet.
+  ///
+  /// See [registerUnsavedChangesReporter] for why this manager has to ask at all.
+  final _unsavedChangesReporters = <bool Function()>[];
 
   /// The project currently open, if any, with a stream to react to it changing.
   ///
@@ -92,6 +117,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       sceneIndexService = const OcptSceneIndexService(),
       shotListService = const OcptShotListService(),
       shotCoverageService = const OcptShotCoverageService(),
+      projectVersionsService = const OcptProjectVersionsService(
+        codec: OcptProjectVersionCodec(),
+        screenplayService: OcptScreenplayService(
+          sceneIndexService: OcptSceneIndexService(),
+          shotListService: OcptShotListService(),
+          shotCoverageService: OcptShotCoverageService(),
+        ),
+      ),
       screenplayService = const OcptScreenplayService(
         sceneIndexService: OcptSceneIndexService(),
         shotListService: OcptShotListService(),
@@ -286,9 +319,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   ///
   /// This is the first write to `project_info` after the project is created: [createProject] seeds
   /// it once, and this is the only path that ever changes it afterwards.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveCurrentProjectPageFormat(OcptPageFormat format) async {
     final project = currentProject;
-    if (project == null) {
+    if (project == null || project.database.refusesUserWrite("saveCurrentProjectPageFormat")) {
       return;
     }
 
@@ -297,16 +332,319 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
   }
 
+  /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
+  ///
+  /// {@template open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  /// The version operations live here rather than being called on [projectVersionsService]
+  /// directly, because the service is handed facts only this manager holds: the open project's
+  /// database, the app version, this replica's device id and the app-wide page margins.
+  ///
+  /// They are also the only operations of the app that go through
+  /// [OcptOpenProjectModel.fileDatabase] rather than [OcptOpenProjectModel.database]: the version
+  /// list belongs to the project file, and stays readable and editable while a preview is on
+  /// screen — deleting a version you happen not to be previewing is perfectly legitimate then.
+  /// {@endtemplate}
+  Future<List<OcptProjectVersion>> listProjectVersions() async {
+    final project = currentProject;
+    if (project == null) {
+      return const [];
+    }
+
+    return projectVersionsService.listVersions(database: project.fileDatabase);
+  }
+
+  /// Captures the [currentProject] as a new version named [name], with the user's [note], and
+  /// returns it. Returns null if no project is open.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<OcptProjectVersion?> createProjectVersion({
+    required String name,
+    required String note,
+  }) async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    return projectVersionsService.createVersion(
+      database: project.fileDatabase,
+      name: name,
+      note: note,
+      appVersion: _appVersion,
+      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
+      pageMargins: await _loadPageMargins(),
+    );
+  }
+
+  /// Renames the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
+  /// nothing if no project is open.
+  ///
+  /// Unlike every other version operation, this one is left available while a version is being
+  /// previewed: `OcptProjectVersionsService.renameVersion` only ever writes the version's own row,
+  /// never reads the project's data, so there is nothing here a preview could make stale.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<void> renameProjectVersion({
+    required String versionId,
+    required String name,
+    required String note,
+  }) async {
+    final project = currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await projectVersionsService.renameVersion(
+      database: project.fileDatabase,
+      id: versionId,
+      name: name,
+      note: note,
+    );
+  }
+
+  /// Measures the [currentProject]'s working copy exactly as
+  /// [OcptProjectVersionsService.captureWorkingCopyState] does, or null if no project is open.
+  ///
+  /// Also null while a version is being previewed, for the same reason [createProjectVersion] is
+  /// refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
+  /// project file underneath whatever the user is actually looking at, so a working-copy card built
+  /// from it during a preview would describe a state that isn't on screen.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+    final project = currentProject;
+    if (project == null || project.isReadOnly) {
+      return null;
+    }
+
+    return projectVersionsService.captureWorkingCopyState(
+      database: project.fileDatabase,
+      pageMargins: await _loadPageMargins(),
+    );
+  }
+
+  /// Deletes the version [versionId] of the [currentProject]. Does nothing if no project is open,
+  /// or if [versionId] is the version currently being previewed.
+  ///
+  /// Refusing to delete the previewed version is a matter of the open project's state rather than
+  /// of the database, which is why it lives here rather than in [projectVersionsService]: the
+  /// preview on screen reads from a database hydrated out of that very row, and pulling it from
+  /// under the user would leave them reading something the project no longer has.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<void> deleteProjectVersion(String versionId) async {
+    final project = currentProject;
+    if (project == null) {
+      return;
+    }
+
+    if (project.previewedVersion?.id == versionId) {
+      appLogger().w("The project version $versionId can't be deleted while it's the one being "
+          "previewed: leave the preview first");
+      return;
+    }
+
+    await projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
+  }
+
+  /// Puts the [currentProject] back into the state the version [versionId] captured, keeping the
+  /// state it leaves behind as a version of its own named [safetyVersionName] — unless that state
+  /// already matches the version the working copy currently descends from, in which case
+  /// [OcptProjectVersionsService.restoreVersion] skips it rather than mint a duplicate of a card
+  /// already in the list.
+  ///
+  /// A preview is left first, whichever version it was showing: the working copy is about to become
+  /// something else, and a preview outliving that would go on describing a project that no longer
+  /// exists. The project model is re-emitted once the restore has committed, so every mode reloads
+  /// what it shows from the restored database.
+  ///
+  /// The page setup travels with the version (see
+  /// [OcptProjectVersionsService.restoreVersion]): the format is written by the restore's own
+  /// transaction, and the **margins are written here, after it has committed**, because they are an
+  /// app-wide preference rather than project data and cannot be rolled back with the transaction
+  /// that would have written them.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  Future<OcptProjectRestoreStatus> restoreProjectVersion({
+    required String versionId,
+    required String safetyVersionName,
+  }) async {
+    if (currentProject == null) {
+      return OcptProjectRestoreStatus.noProjectOpen;
+    }
+
+    await exitPreview();
+
+    final project = currentProject!;
+    final result = await projectVersionsService.restoreVersion(
+      database: project.fileDatabase,
+      id: versionId,
+      safetyVersionName: safetyVersionName,
+      appVersion: _appVersion,
+      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
+      pageMargins: await _loadPageMargins(),
+    );
+
+    final restoredPageSetup = result.value;
+    if (restoredPageSetup == null) {
+      return result.status;
+    }
+
+    await _propertiesManager.pageMargins.store(restoredPageSetup.margins);
+
+    _currentProject.value = project.workingCopy;
+
+    return result.status;
+  }
+
+  /// The app-wide page margins a version is measured and restored against, falling back to the
+  /// standard ones while the user has never set any.
+  Future<FountainPageMargins> _loadPageMargins() async =>
+      await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
+
+  /// Registers [reporter], which answers whether the caller holds changes that haven't reached the
+  /// database yet, and returns the callback that unregisters it.
+  ///
+  /// A mode's bloc registers itself when it mounts and calls the returned callback when it closes.
+  /// This exists for [previewVersion] alone: entering a preview swaps the database every edit is
+  /// written through, so a save still sitting in an autosave debounce would land in the previewed
+  /// version's in-memory database and be lost with it. Rather than let the manager reach into a
+  /// bloc's state, each mode answers for itself.
+  void Function() registerUnsavedChangesReporter(bool Function() reporter) {
+    _unsavedChangesReporters.add(reporter);
+    return () => _unsavedChangesReporters.remove(reporter);
+  }
+
+  /// Whether any mode currently reports changes that haven't reached the database yet.
+  bool get hasUnsavedChanges => _unsavedChangesReporters.any((reporter) => reporter());
+
+  /// Enters the read-only preview of the version [versionId] of the [currentProject]: the version's
+  /// payload is hydrated into an in-memory database, and *that* is what [currentProject] hands the
+  /// modes from now on.
+  ///
+  /// **The project file is never opened for writing by a preview.** It stays open as
+  /// [OcptOpenProjectModel.fileDatabase] — same connection, still writable by everything that
+  /// isn't a user edit — and a crash mid-preview leaves it exactly as it was. Nothing of the
+  /// version is written anywhere either: the page setup it was typeset with travels on
+  /// [OcptOpenProjectModel.previewedPageSetup] and is rendered with, never stored, since the
+  /// margins half of it is an app-wide preference that has nothing to do with this project.
+  ///
+  /// Every mode's bloc already rebuilds on [currentProjectStream], so none of them learns anything
+  /// about versions to display one — that stream emission is the whole of the propagation. It
+  /// works because the emitted model doesn't compare equal to the previous one (see
+  /// [OcptOpenProjectModel.props]).
+  ///
+  /// Refused with [OcptProjectPreviewStatus.unsavedChanges] while any mode reports itself dirty:
+  /// the caller saves first and retries. Refused as a whole on any failure — a preview that can't
+  /// be entered leaves the working copy on screen, untouched.
+  Future<ResultWithStatus<OcptProjectPreviewStatus, OcptOpenProjectModel>> previewVersion(
+    String versionId,
+  ) async {
+    final project = currentProject;
+    if (project == null) {
+      return const ResultWithStatus(status: OcptProjectPreviewStatus.noProjectOpen);
+    }
+
+    if (hasUnsavedChanges) {
+      appLogger().w("The project version $versionId can't be previewed while a mode still holds "
+          "unsaved changes: they must be saved first, or they would be written into the preview");
+      return const ResultWithStatus(status: OcptProjectPreviewStatus.unsavedChanges);
+    }
+
+    final version = await projectVersionsService.loadVersion(
+      database: project.fileDatabase,
+      id: versionId,
+    );
+
+    if (version == null) {
+      appLogger().w("The project version $versionId can't be previewed: no such version in this "
+          "project");
+      return const ResultWithStatus(status: OcptProjectPreviewStatus.versionNotFound);
+    }
+
+    final payloadResult = await projectVersionsService.loadPayload(
+      database: project.fileDatabase,
+      id: versionId,
+    );
+
+    final payload = payloadResult.value;
+    if (payload == null) {
+      return ResultWithStatus(
+        status: switch (payloadResult.status) {
+          OcptProjectVersionPayloadStatus.unsupportedFutureFormat =>
+            OcptProjectPreviewStatus.unsupportedFutureFormat,
+          _ => OcptProjectPreviewStatus.malformedPayload,
+        },
+      );
+    }
+
+    final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
+    try {
+      await projectVersionsService.hydratePreview(
+        database: previewDatabase,
+        projectInfo: await project.fileDatabase
+            .select(project.fileDatabase.ocptProjectInfoTable)
+            .getSingle(),
+        payload: payload,
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to hydrate the preview of the project version "
+          "$versionId: $error");
+      await previewDatabase.close();
+      return const ResultWithStatus(status: OcptProjectPreviewStatus.hydrationFailed);
+    }
+
+    // Only now that the new preview is ready does the previous one go: a preview that failed to
+    // load must leave what was on screen alone.
+    final previousPreviewDatabase = project.isReadOnly ? project.database : null;
+
+    final previewedProject = project.previewing(
+      previewDatabase: previewDatabase,
+      version: version,
+      pageSetup: payload.pageSetup,
+    );
+    _currentProject.value = previewedProject;
+
+    await previousPreviewDatabase?.close();
+
+    return ResultWithStatus(status: OcptProjectPreviewStatus.ok, value: previewedProject);
+  }
+
+  /// Leaves the read-only preview, putting the working copy back on screen. Does nothing if no
+  /// project is open or if none is being previewed.
+  ///
+  /// The model is re-emitted *before* the preview database is closed, so every mode has already
+  /// been told to read from the project file again by the time that connection goes.
+  Future<void> exitPreview() async {
+    final project = currentProject;
+    if (project == null || !project.isReadOnly) {
+      return;
+    }
+
+    final previewDatabase = project.database;
+    _currentProject.value = project.workingCopy;
+
+    await previewDatabase.close();
+  }
+
   /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
+  ///
+  /// A project closed while a version is being previewed disposes both of its connections: the
+  /// in-memory one holding the version, then the project file itself.
   Future<void> closeCurrentProject() async {
     final project = currentProject;
     if (project == null) {
       return;
     }
 
-    await project.database.close();
     _currentProject.value = null;
+
+    if (project.isReadOnly) {
+      await project.database.close();
+    }
+
+    await project.fileDatabase.close();
   }
 
   /// Returns the default [OcptPageFormat] for a newly created project, based on the platform's

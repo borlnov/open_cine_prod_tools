@@ -6,8 +6,12 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
 
@@ -72,7 +76,12 @@ class OcptEditorIoNotice extends Equatable {
 }
 
 /// The state of `OcptEditorBloc`.
-class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
+///
+/// Mixes in [MixinOcptProjectVersionsState], the slice every production mode shares: the project's
+/// versions belong to the project, not to the screenplay, so the fields the `Versions` dock tab
+/// reads come from there rather than being declared here.
+class OcptEditorState extends BlocStateForMixin<OcptEditorState>
+    with MixinOcptProjectVersionsState<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
   final bool isLoading;
 
@@ -195,6 +204,51 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
   /// its own 150 ms parse debounce, or when a caret move actually lands on a different scene.
   final FountainSceneStatistics? sceneStatistics;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
+  @override
+  final List<OcptProjectVersion> projectVersions;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.previewedVersionId}
+  @override
+  final String? previewedVersionId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.workingCopy}
+  @override
+  final OcptProjectWorkingCopyState? workingCopy;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
+  @override
+  final String? versionPendingDeletionId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
+  @override
+  final String? versionPendingRestoreId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRenameId}
+  @override
+  final String? versionPendingRenameId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
+  @override
+  final OcptProjectVersionNoticeKind? projectVersionNotice;
+
+  /// Whether the right dock's formatted-preview tab exists at all right now.
+  ///
+  /// Two states have no use for it, for the same reason: what the centre already shows *is* the
+  /// formatted screenplay — the styled block editor, and the read-only preview a project version is
+  /// shown through. `OcptEditorBloc` applies the same predicate to the mode it is about to switch
+  /// to, through [isPreviewTabAvailableFor], so an open preview tab is auto-closed (and remembered)
+  /// rather than left showing nothing.
+  bool get isPreviewTabAvailable =>
+      isPreviewTabAvailableFor(mode: mode, isReadOnly: isPreviewingVersion);
+
+  /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
+  /// [mode], with [isReadOnly] telling whether a project version is being previewed.
+  static bool isPreviewTabAvailableFor({
+    required OcptEditorMode mode,
+    required bool isReadOnly,
+  }) => mode == OcptEditorMode.raw && !isReadOnly;
+
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
@@ -228,6 +282,13 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     required this.ioNotice,
     required this.statistics,
     required this.sceneStatistics,
+    required this.projectVersions,
+    required this.previewedVersionId,
+    required this.workingCopy,
+    required this.versionPendingDeletionId,
+    required this.versionPendingRestoreId,
+    required this.versionPendingRenameId,
+    required this.projectVersionNotice,
   });
 
   /// Init class constructor
@@ -254,7 +315,14 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
       jumpRequest = null,
       ioNotice = null,
       statistics = FountainScriptStatistics.empty,
-      sceneStatistics = null;
+      sceneStatistics = null,
+      projectVersions = const [],
+      previewedVersionId = null,
+      workingCopy = null,
+      versionPendingDeletionId = null,
+      versionPendingRestoreId = null,
+      versionPendingRenameId = null,
+      projectVersionNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -297,6 +365,19 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     FountainScriptStatistics? statistics,
     FountainSceneStatistics? sceneStatistics,
     bool clearSceneStatistics = false,
+    List<OcptProjectVersion>? projectVersions,
+    String? previewedVersionId,
+    bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
+    String? versionPendingDeletionId,
+    bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
+    OcptProjectVersionNoticeKind? projectVersionNotice,
+    bool clearProjectVersionNotice = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -323,6 +404,55 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState> {
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     statistics: statistics ?? this.statistics,
     sceneStatistics: clearSceneStatistics ? null : (sceneStatistics ?? this.sceneStatistics),
+    projectVersions: projectVersions ?? this.projectVersions,
+    previewedVersionId: clearPreviewedVersionId
+        ? null
+        : (previewedVersionId ?? this.previewedVersionId),
+    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
+    versionPendingDeletionId: clearVersionPendingDeletionId
+        ? null
+        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
+    versionPendingRestoreId: clearVersionPendingRestoreId
+        ? null
+        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
+    versionPendingRenameId: clearVersionPendingRenameId
+        ? null
+        : (versionPendingRenameId ?? this.versionPendingRenameId),
+    projectVersionNotice: clearProjectVersionNotice
+        ? null
+        : (projectVersionNotice ?? this.projectVersionNotice),
+  );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
+  @override
+  OcptEditorState copyProjectVersionsState({
+    List<OcptProjectVersion>? projectVersions,
+    String? previewedVersionId,
+    bool clearPreviewedVersionId = false,
+    OcptProjectWorkingCopyState? workingCopy,
+    bool clearWorkingCopy = false,
+    String? versionPendingDeletionId,
+    bool clearVersionPendingDeletionId = false,
+    String? versionPendingRestoreId,
+    bool clearVersionPendingRestoreId = false,
+    String? versionPendingRenameId,
+    bool clearVersionPendingRenameId = false,
+    OcptProjectVersionNoticeKind? projectVersionNotice,
+    bool clearProjectVersionNotice = false,
+  }) => copyWith(
+    projectVersions: projectVersions,
+    previewedVersionId: previewedVersionId,
+    clearPreviewedVersionId: clearPreviewedVersionId,
+    workingCopy: workingCopy,
+    clearWorkingCopy: clearWorkingCopy,
+    versionPendingDeletionId: versionPendingDeletionId,
+    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    versionPendingRestoreId: versionPendingRestoreId,
+    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    versionPendingRenameId: versionPendingRenameId,
+    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    projectVersionNotice: projectVersionNotice,
+    clearProjectVersionNotice: clearProjectVersionNotice,
   );
 
   /// Object properties

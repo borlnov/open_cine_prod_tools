@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The shot list's left dock: the sequence tree, and the `+ Shot` action under it.
 ///
@@ -47,12 +48,13 @@ class OcptShotListSequencePanel extends StatelessWidget {
   /// (no sequence selected, or the orphan group selected) — the button is then disabled.
   final VoidCallback? onShotCreated;
 
-  /// Called with an orphaned shot's id when its delete button is clicked.
+  /// Called with an orphaned shot's id when its delete button is clicked, or null while no shot may
+  /// be deleted (a project version being previewed read-only) — no delete button is rendered then.
   ///
   /// Only the orphan group's shots carry one: a shot of a real scene is deleted from the inspector,
   /// where the whole shot is in view, whereas an orphaned shot has nowhere else to be disposed of
   /// from.
-  final ValueChanged<String> onOrphanedShotDeleted;
+  final ValueChanged<String>? onOrphanedShotDeleted;
 
   /// Class constructor
   const OcptShotListSequencePanel({
@@ -142,8 +144,8 @@ class _SequenceEntry extends StatelessWidget {
   final ValueChanged<String> onShotSelected;
 
   /// Called with an orphaned shot's id when its delete button is clicked; only ever wired on the
-  /// orphan group's own rows.
-  final ValueChanged<String> onOrphanedShotDeleted;
+  /// orphan group's own rows, and null while no shot may be deleted at all.
+  final ValueChanged<String>? onOrphanedShotDeleted;
 
   /// Class constructor
   const _SequenceEntry({
@@ -241,6 +243,7 @@ class _SequenceEntry extends StatelessWidget {
   /// contiguous in position order and a heading row is simply emitted wherever the heading changes.
   List<Widget> _buildShotEntries() {
     final isOrphanGroup = sequence is OcptOrphanShotSequence;
+    final onOrphanedShotDeleted = this.onOrphanedShotDeleted;
     final entries = <Widget>[];
     String? previousHeading;
 
@@ -255,7 +258,9 @@ class _SequenceEntry extends StatelessWidget {
           shot: shot,
           isSelected: shot.id == selectedShotId,
           onTap: () => onShotSelected(shot.id),
-          onDelete: isOrphanGroup ? () => onOrphanedShotDeleted(shot.id) : null,
+          onDelete: isOrphanGroup && onOrphanedShotDeleted != null
+              ? () => onOrphanedShotDeleted(shot.id)
+              : null,
         ),
       );
     }
@@ -350,7 +355,7 @@ class _ShotEntry extends StatelessWidget {
                     child: Icon(
                       Icons.warning_amber_rounded,
                       size: 12,
-                      color: ocptShotListWarningColor(context),
+                      color: ocptWarningColor(context),
                     ),
                   ),
                 ),

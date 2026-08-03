@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The shot inspector's "Scenario coverage" section: a **read-only** list of the extracts the
 /// selected shot covers, one entry per range, in the order they read in the sequence.
@@ -36,11 +36,14 @@ class OcptShotCoverageSummary extends StatelessWidget {
   /// extract as `modified`.
   final Set<String> staleRangeIds;
 
-  /// Called when the `Select…` button is clicked, to open the coverage dialog.
-  final VoidCallback onSelectRequested;
+  /// Called when the `Select…` button is clicked, to open the coverage dialog, or null while a
+  /// shot's coverage may not be changed (a project version being previewed read-only) — the button
+  /// is then not rendered at all.
+  final VoidCallback? onSelectRequested;
 
-  /// Called when the `Clear all` action is clicked.
-  final VoidCallback onClearAll;
+  /// Called when the `Clear all` action is clicked, null under the same condition as
+  /// [onSelectRequested] and with the same effect.
+  final VoidCallback? onClearAll;
 
   /// Class constructor
   const OcptShotCoverageSummary({
@@ -71,15 +74,17 @@ class OcptShotCoverageSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: onSelectRequested,
-            icon: const Icon(Icons.highlight_alt_outlined, size: 16),
-            label: Text(tr.shotListCoverageSelectAction),
+        if (onSelectRequested != null) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: onSelectRequested,
+              icon: const Icon(Icons.highlight_alt_outlined, size: 16),
+              label: Text(tr.shotListCoverageSelectAction),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         if (ranges.isEmpty)
           Text(
             tr.shotListCoverageEmptyHint,
@@ -99,7 +104,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
           " · ${tr.shotListCoverageRangesCount(ranges.length)}",
           style: theme.textTheme.bodySmall,
         ),
-        if (ranges.isNotEmpty)
+        if (ranges.isNotEmpty && onClearAll != null)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(onPressed: onClearAll, child: Text(tr.shotListCoverageClearAllAction)),
@@ -220,7 +225,7 @@ class _OcptShotCoverageModifiedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final color = ocptShotListWarningColor(context);
+    final color = ocptWarningColor(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),

@@ -66,22 +66,38 @@ class OcptScreenplayService {
   /// Takes the project-open safety snapshot of the screenplay [screenplayId] in [database].
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> snapshotOnProjectOpen({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async {
-    final currentText = await loadScreenplayText(database: database, screenplayId: screenplayId);
+  }) => _snapshotCurrentText(
+    database: database,
+    screenplayId: screenplayId,
+    reason: OcptSnapshotReason.open,
+    operation: "snapshotOnProjectOpen",
+  );
 
-    await database.transaction(() async {
-      await _createSnapshot(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: currentText,
-        reason: OcptSnapshotReason.open,
-      );
-      await _pruneSnapshots(database: database, screenplayId: screenplayId);
-    });
-  }
+  /// Takes the safety snapshot of the screenplay [screenplayId] in [database] that a project
+  /// version's restore owes the merge, right before that restore writes the version's own text
+  /// over it.
+  ///
+  /// Called by `OcptProjectVersionsService.restoreVersion`, from inside the restore's own
+  /// transaction, and by nothing else: unlike every other snapshot here, this one is not about
+  /// recovering from a mistake — see [OcptSnapshotReason.restore] for what it is about.
+  ///
+  /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> snapshotBeforeRestore({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) => _snapshotCurrentText(
+    database: database,
+    screenplayId: screenplayId,
+    reason: OcptSnapshotReason.restore,
+    operation: "snapshotBeforeRestore",
+  );
 
   /// Saves [fountainText] as the new text of the screenplay [screenplayId] in [database].
   ///
@@ -98,12 +114,18 @@ class OcptScreenplayService {
   /// `charStart`/`charEnd` as the new text has just redefined them.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
   }) async {
+    if (database.refusesUserWrite("saveScreenplayText")) {
+      return;
+    }
+
     await database.transaction(() async {
       final previousText = await loadScreenplayText(
         database: database,
@@ -143,6 +165,33 @@ class OcptScreenplayService {
         currentFountainText: fountainText,
       );
 
+      await _pruneSnapshots(database: database, screenplayId: screenplayId);
+    });
+  }
+
+  /// Snapshots the text the screenplay [screenplayId] currently holds in [database], tagged
+  /// [reason], and prunes the older snapshots — both within one transaction.
+  ///
+  /// [operation] is what the preview guard names in the log when it refuses the write.
+  Future<void> _snapshotCurrentText({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+    required OcptSnapshotReason reason,
+    required String operation,
+  }) async {
+    if (database.refusesUserWrite(operation)) {
+      return;
+    }
+
+    final currentText = await loadScreenplayText(database: database, screenplayId: screenplayId);
+
+    await database.transaction(() async {
+      await _createSnapshot(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: currentText,
+        reason: reason,
+      );
       await _pruneSnapshots(database: database, screenplayId: screenplayId);
     });
   }

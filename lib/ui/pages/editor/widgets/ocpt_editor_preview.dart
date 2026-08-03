@@ -297,12 +297,21 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// Splits [_blocks] into [_pages] and computes [_blockOffsets] for the paginated rendering.
   ///
   /// Blocks are greedily packed onto the current page while the running sum of
-  /// [OcptEditorPreviewLayout.estimatedLineCount] stays within [FountainLayoutMetrics
-  /// .linesPerPage]; a [FountainPageBreak] always starts a fresh page (and isn't itself added as
-  /// page content). Each page is assumed to occupy exactly [OcptEditorPreviewLayout.pageHeight]
-  /// plus [_pageGap] of scroll extent: an approximation (a page whose content estimate is close to
-  /// the limit may render slightly shorter or taller than that), acceptable since block offsets
-  /// only ever drive the caret scroll sync, not pixel-exact placement.
+  /// [OcptEditorPreviewLayout.estimatedLineCount] — **plus the blank line that separates two
+  /// consecutive blocks** — stays within [FountainLayoutMetrics.linesPerPage]; a
+  /// [FountainPageBreak] always starts a fresh page (and isn't itself added as page content).
+  ///
+  /// Counting that separator is what keeps a page's content inside its sheet: every block renders
+  /// with one [OcptEditorPreviewLayout.blockSpacing] of trailing space, exactly like the blank line
+  /// [FountainScriptComposer] emits between two blocks when it paginates the very same screenplay
+  /// for the PDF. Packing on the text lines alone let a page take on one extra line per block it
+  /// held — a dozen lines, inches of them — so the tail of every page rendered below its simulated
+  /// sheet, on the panel's backdrop.
+  ///
+  /// Each page is assumed to occupy exactly [OcptEditorPreviewLayout.pageHeight] plus [_pageGap] of
+  /// scroll extent: an approximation (a page whose content estimate is close to the limit may
+  /// render slightly shorter or taller than that), acceptable since block offsets only ever drive
+  /// the caret scroll sync, not pixel-exact placement.
   void _refreshPaginatedCaches(OcptEditorPreviewLayout layout) {
     final pages = <List<FountainBlock>>[];
     final offsets = List<double>.filled(_blocks.length, 0);
@@ -327,16 +336,20 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       }
 
       final lines = layout.estimatedLineCount(block);
-      if (currentPage.isNotEmpty && currentLines + lines > layout.metrics.linesPerPage) {
+      // The blank line separating this block from the one above it, which only exists once the
+      // page already holds something.
+      var separatorLines = currentPage.isEmpty ? 0 : 1;
+      if (currentPage.isNotEmpty && currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
         pages.add(currentPage);
         currentPage = [];
         currentLines = 0;
+        separatorLines = 0;
         withinPageOffset = layout.marginTop;
       }
 
       offsets[index] = offsetOfCurrentPage() + withinPageOffset;
       currentPage.add(block);
-      currentLines += lines;
+      currentLines += separatorLines + lines;
       withinPageOffset += layout.estimateBlockHeight(block);
     }
     if (currentPage.isNotEmpty) {

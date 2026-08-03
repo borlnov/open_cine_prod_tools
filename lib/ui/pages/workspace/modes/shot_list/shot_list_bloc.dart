@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -27,6 +28,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -67,12 +70,23 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
 ///
+/// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
+/// `Versions` tab does: the project's versions are a property of the *project*, so that tab and
+/// its state are shared with the screenplay mode rather than reimplemented here. The two hooks the
+/// mixin needs are answered by [flushPendingProjectWrites] (a field edit still sitting in the
+/// debounce must reach the working copy before a preview swaps the database out) and
+/// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_flushPendingFieldEdits` each
+/// dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a
+/// field edit landing while it is already open — the two moments the mixin's working-copy card is
+/// worth a fresh, throttled read.
+///
 /// The two actions that read the shot list rather than writing to it are its exports — the XLSX
 /// workbook ([_onXlsxExportRequested]) and the scenario coverage PDF
 /// ([_onScenarioCoverageExportRequested]): both flush whatever is still pending, then hand the
 /// loaded snapshot to [OcptExportManager], which owns both the document building and the native
 /// save dialog.
-class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
+class OcptShotListBloc extends BlocForMixin<OcptShotListState>
+    with MixinOcptProjectVersionsBloc<OcptShotListState> {
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -161,12 +175,35 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
     on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
   }
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
+  /// swap the database can't send it into the previewed version instead.
+  @protected
+  @override
+  Future<void> flushPendingProjectWrites(Emitter<OcptShotListState> emitter) =>
+      _flushPendingFieldEdits(emitter);
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
+  @protected
+  @override
+  Future<void> reloadFromProjectDatabase(Emitter<OcptShotListState> emitter) =>
+      _onLoadRequested(const OcptShotListLoadRequestedEvent(), emitter);
+
   /// Loads the persisted preferences and the current project's shot list, selecting its first
   /// sequence.
   ///
   /// The workspace route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stops loading
   /// with no snapshot at all.
+  ///
+  /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
+  /// which version is being previewed alongside the shot list it just read: what it read comes from
+  /// that very version's in-memory database, and the two must reach the mode together (see the
+  /// hook's own doc comment).
   Future<void> _onLoadRequested(
     OcptShotListLoadRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -193,13 +230,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
           rightDockFraction: rightDockFraction,
           visibleColumns: visibleColumns,
           lastRightDockTab: lastRightDockTab,
+          clearPreviewedVersionId: true,
         ),
       );
       return;
     }
 
+    final previewedVersion = project.previewedVersion;
     final screenplayText = await _loadScreenplayText(project);
-    final pageSetup = await _loadPageSetup();
+    final pageSetup = await _loadPageSetup(project);
     final snapshot = await _loadSnapshot(project);
     final screenplayCharacters = _screenplayCharactersOf(screenplayText);
     final suggestions = await _loadSuggestions(project);
@@ -208,6 +247,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       state.copyWith(
         isLoading: false,
         title: project.name,
+        previewedVersionId: previewedVersion?.id,
+        clearPreviewedVersionId: previewedVersion == null,
         snapshot: snapshot,
         pageSetup: pageSetup,
         screenplayText: screenplayText,
@@ -244,10 +285,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
   /// Reads the page setup the screenplay is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc
   /// pairs them. The scenario coverage dialog's simulated paper sheet is laid out with it.
-  Future<OcptPageSetup> _loadPageSetup() async => OcptPageSetup(
-    format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-    margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-  );
+  ///
+  /// A version being previewed is laid out with the setup it was written against instead, which
+  /// travels on the open project model and is never written anywhere — again exactly as the
+  /// screenplay editor's own bloc does it.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
 
   /// Parses [screenplayText] and delegates to `fountain_kit`'s `screenplayCharactersOf`, whose
   /// normalisation matches `shot_characters.characterName`'s own (both go through
@@ -416,6 +463,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
   /// or switches to it) and records it as the tab the toolbar's toggle reopens the dock on.
+  ///
+  /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
+  /// working-copy card needs a fresh read for: the other is a field edit flushing while it is
+  /// already the one showing (see `_flushPendingFieldEdits`).
   Future<void> _onRightDockTabSelected(
     OcptShotListRightDockTabSelectedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -430,6 +481,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
         lastRightDockTab: event.tab,
       ),
     );
+
+    if (!isAlreadyActive && event.tab == OcptShotListRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
   }
 
   /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
@@ -712,6 +767,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState> {
       emitter(
         state.copyWith(snapshot: snapshot, suggestions: suggestions, pendingFieldEdits: const {}),
       );
+
+      // The other of the two moments the working-copy card needs a fresh read for (see
+      // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
+      if (state.rightDockTab == OcptShotListRightDockTab.versions) {
+        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+      }
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending shot list field edit of "
           "the project at ${project.path}: $error");

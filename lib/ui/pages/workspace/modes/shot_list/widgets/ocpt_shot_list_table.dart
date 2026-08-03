@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The width of the leading gutter every row starts with, carrying the ⚠ of a shot that needs
 /// checking.
@@ -385,7 +386,7 @@ class OcptShotListRow extends StatelessWidget {
                         child: Icon(
                           Icons.warning_amber_rounded,
                           size: 12,
-                          color: ocptShotListWarningColor(context),
+                          color: ocptWarningColor(context),
                         ),
                       )
                     : null,
@@ -429,7 +430,7 @@ class OcptShotListRow extends StatelessWidget {
       OcptShotListTableColumn.difficulty => baseStyle?.copyWith(
         fontWeight: FontWeight.w600,
         color: shot.averageDifficulty >= ocptShotListDifficultyWarningThreshold
-            ? ocptShotListWarningColor(context)
+            ? ocptWarningColor(context)
             : null,
       ),
       OcptShotListTableColumn.status => baseStyle?.copyWith(

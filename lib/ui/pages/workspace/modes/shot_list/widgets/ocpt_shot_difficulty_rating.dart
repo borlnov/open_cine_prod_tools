@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The number of dots a rating row draws, one per value of the 0-5 scale a difficulty axis is
 /// rated on.
@@ -35,8 +36,10 @@ class OcptShotDifficultyRating extends StatelessWidget {
   /// The axis's current value, 0-5.
   final int value;
 
-  /// Called with the value of the dot clicked.
-  final ValueChanged<int> onChanged;
+  /// Called with the value of the dot clicked, or null while the axis may not be rated (a project
+  /// version being previewed read-only): the dots are then drawn exactly as they are, without
+  /// reacting to a click at all.
+  final ValueChanged<int>? onChanged;
 
   /// Class constructor
   const OcptShotDifficultyRating({
@@ -64,26 +67,7 @@ class OcptShotDifficultyRating extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
-          for (var dot = 0; dot < _dotCount; dot++)
-            InkWell(
-              customBorder: const CircleBorder(),
-              mouseCursor: ocptClickableCursor,
-              onTap: () => onChanged(dot),
-              child: SizedBox(
-                width: _dotHitSize,
-                height: _dotHitSize,
-                child: Center(
-                  child: Container(
-                    width: _dotSize,
-                    height: _dotSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: dot <= value ? color : theme.colorScheme.outlineVariant,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          for (var dot = 0; dot < _dotCount; dot++) _buildDot(theme: theme, color: color, dot: dot),
           const SizedBox(width: 4),
           Text(
             "$value",
@@ -91,6 +75,38 @@ class OcptShotDifficultyRating extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Builds the [dot]-th dot of the row: filled with [color] when the axis is at least that high,
+  /// and clickable only while the row has an [onChanged] to report to.
+  Widget _buildDot({required ThemeData theme, required Color color, required int dot}) {
+    final onChanged = this.onChanged;
+
+    final circle = SizedBox(
+      width: _dotHitSize,
+      height: _dotHitSize,
+      child: Center(
+        child: Container(
+          width: _dotSize,
+          height: _dotSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dot <= value ? color : theme.colorScheme.outlineVariant,
+          ),
+        ),
+      ),
+    );
+
+    if (onChanged == null) {
+      return circle;
+    }
+
+    return InkWell(
+      customBorder: const CircleBorder(),
+      mouseCursor: ocptClickableCursor,
+      onTap: () => onChanged(dot),
+      child: circle,
     );
   }
 
@@ -102,7 +118,7 @@ class OcptShotDifficultyRating extends StatelessWidget {
       return theme.colorScheme.error;
     }
     if (value >= 3) {
-      return ocptShotListWarningColor(context);
+      return ocptWarningColor(context);
     }
     return theme.colorScheme.primary;
   }

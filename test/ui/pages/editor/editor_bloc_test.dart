@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -53,6 +54,24 @@ class _FailingScreenplayService extends OcptScreenplayService {
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
   }) async => throw StateError("save intentionally failed for the test");
+}
+
+/// A projects manager that counts how many times a working-copy capture actually reads the whole
+/// project, so a dispatch that only *requests* one (rather than always performing it) can be told
+/// apart from one that the throttle skipped.
+class _CountingProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
+    : super(propertiesManager: propertiesManager);
+
+  /// How many times [captureWorkingCopyState] actually ran.
+  int captureCount = 0;
+
+  @override
+  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+    captureCount++;
+    return super.captureWorkingCopyState();
+  }
 }
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
@@ -221,13 +240,15 @@ void main() {
   ///
   /// [exportManager] defaults to a [_FakeExportManager] whose export/import calls both cancel
   /// (return null): every test not exercising the export/import paths gets a bloc that never
-  /// touches a real file dialog.
+  /// touches a real file dialog. [overrideProjectsManager] lets a test swap in a manager of its
+  /// own (already holding an open project), for the one that needs to observe its calls.
   OcptEditorBloc buildBloc({
     OcptScreenplayService? screenplayService,
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
+    OcptProjectsManager? overrideProjectsManager,
   }) => OcptEditorBloc(
-    projectsManager: projectsManager,
+    projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     screenplayService: screenplayService,
@@ -593,6 +614,42 @@ void main() {
     expect(state.rightDockTab, OcptEditorRightDockTab.syntax);
 
     await bloc.close();
+  });
+
+  test('opening the Versions tab, and a save landing while it is open, each capture the working '
+      'copy afresh', () async {
+    final countingManager = _CountingProjectsManager(propertiesManager: propertiesManager);
+    await countingManager.initLifeCycle();
+    final created = await countingManager.createProject(
+      name: "Working Copy Movie",
+      filePath: p.join(tempDir.path, "working_copy.ocpt"),
+    );
+    expect(created.status.isSuccess, isTrue);
+
+    final bloc = buildBloc(overrideProjectsManager: countingManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+    // The initial refresh on mount already captured the working copy once, unthrottled.
+    expect(countingManager.captureCount, 1);
+
+    // Past the mixin's throttle window, so opening the tab below is guaranteed to actually
+    // capture rather than be silently skipped.
+    await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
+
+    bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.versions));
+    await waitForState(bloc, (state) => state.rightDockTab == OcptEditorRightDockTab.versions);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(countingManager.captureCount, 2);
+
+    // Clear the throttle again, then save while the tab opened above is still the active one.
+    await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
+    bloc.add(const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nAction.\n"));
+    bloc.add(const OcptEditorSaveRequestedEvent(isManual: true));
+    await waitForState(bloc, (state) => !state.isDirty && !state.isSaving);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(countingManager.captureCount, 3);
+
+    await bloc.close();
+    await countingManager.disposeLifeCycle();
   });
 
   test("the dock's own close button closes it regardless of the active tab", () async {

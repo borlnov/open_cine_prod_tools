@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 
 /// The size of the accent-filled square carrying the back action, small enough to sit inside the
@@ -19,10 +20,10 @@ const double _backActionIconSize = 16;
 const double _dirtyMarkerSize = 6;
 
 /// The workspace shell's thin, discreet toolbar: the back action leading to the projects list, the
-/// open project's title (with a dot marking unsaved changes), a trailing slot for the active
-/// mode's own controls ([actions]), then the shell's own chrome — the active mode's name
-/// ([modeLabel]), the [dockToggles], the [saveAction] and an overflow `⋮` menu built from
-/// [overflowEntries].
+/// open project's title (with a dot marking unsaved changes, or the `Read only` pill while
+/// [isReadOnly]), a trailing slot for the active mode's own controls ([actions]), then the shell's
+/// own chrome — the active mode's name ([modeLabel]), the [dockToggles], the [saveAction] and an
+/// overflow `⋮` menu built from [overflowEntries].
 ///
 /// Everything mode-specific (format controls, tab selectors, an editing-mode toggle, export
 /// entries…) is the active mode's own job to build and hand in through [actions] /
@@ -35,6 +36,14 @@ class OcptWorkspaceToolbar extends StatelessWidget {
 
   /// Whether there are unsaved changes, shown as a dot next to the title.
   final bool isDirty;
+
+  /// Whether what the workspace shows is a project version being previewed read-only, shown as the
+  /// `Read only` pill in place of the unsaved-changes dot.
+  ///
+  /// The two can never legitimately be true at once — a preview is only entered once every mode
+  /// has flushed what it held — but the pill wins if they ever were: what may not be edited is the
+  /// more important of the two things to say.
+  final bool isReadOnly;
 
   /// Called when the back action is clicked.
   final VoidCallback onBack;
@@ -72,6 +81,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     super.key,
     required this.title,
     required this.isDirty,
+    this.isReadOnly = false,
     required this.onBack,
     this.actions = const [],
     this.modeLabel,
@@ -106,7 +116,10 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                         style: theme.textTheme.titleMedium,
                       ),
                     ),
-                    if (isDirty) _buildDirtyMarker(theme: theme, tr: tr),
+                    if (isReadOnly)
+                      _buildReadOnlyPill(context: context, theme: theme, tr: tr)
+                    else if (isDirty)
+                      _buildDirtyMarker(theme: theme, tr: tr),
                     const Spacer(),
                     ...actions,
                     if (modeLabel != null)
@@ -170,6 +183,32 @@ class OcptWorkspaceToolbar extends StatelessWidget {
       ),
     ),
   );
+
+  /// Builds the pill telling that what is on screen may not be edited, in place of the
+  /// unsaved-changes dot, tinted with the same warning colour the read-only banner under the
+  /// toolbar wears so the two read as one state.
+  Widget _buildReadOnlyPill({
+    required BuildContext context,
+    required ThemeData theme,
+    required Tr tr,
+  }) {
+    final color = ocptWarningColor(context);
+
+    return Tooltip(
+      message: tr.workspaceReadOnlyTooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: ocptSelectedStateAlpha),
+          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        ),
+        child: Text(
+          tr.workspaceReadOnlyPill,
+          style: theme.textTheme.labelSmall?.copyWith(color: color),
+        ),
+      ),
+    );
+  }
 
   /// Builds the dot marking unsaved changes, next to the title.
   Widget _buildDirtyMarker({required ThemeData theme, required Tr tr}) => Tooltip(

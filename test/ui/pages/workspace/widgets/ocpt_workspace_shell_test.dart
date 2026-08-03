@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve (the shell's own
 /// toolbar reads them for its tooltips), and a wide test surface so the docks row has room for
@@ -88,6 +89,63 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PopupMenuButton<void>), findsOneWidget);
+  });
+
+  testWidgets("the banner sits between the toolbar and the docks row, and only when given", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("banner"), findsNothing);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          isReadOnly: true,
+          onBack: () {},
+          centre: const Text("centre"),
+          banner: const Text("banner"),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final toolbarBottom = tester.getBottomLeft(find.byType(OcptWorkspaceToolbar)).dy;
+    final bannerTop = tester.getTopLeft(find.text("banner")).dy;
+    final centreTop = tester.getTopLeft(find.text("centre")).dy;
+
+    expect(bannerTop, greaterThanOrEqualTo(toolbarBottom));
+    expect(centreTop, greaterThan(bannerTop));
+  });
+
+  testWidgets("the shell's read-only flag reaches its own toolbar", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          isReadOnly: true,
+          onBack: () {},
+          centre: const Text("centre"),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    expect(find.text(tr.workspaceReadOnlyPill), findsOneWidget);
   });
 
   testWidgets("a dock toggle is rendered only for the side that wired a callback", (tester) async {

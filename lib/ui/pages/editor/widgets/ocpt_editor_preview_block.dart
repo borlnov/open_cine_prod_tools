@@ -18,6 +18,16 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The inline parser used to resolve emphasis markers into styled spans.
   static const _inlineParser = FountainInlineParser();
 
+  /// The text scaler every run of the page is laid out with: none.
+  ///
+  /// This is a simulation of printed paper, whose type size is the page's own (12-point Courier
+  /// rendered at [OcptEditorPreviewLayout.fontSize]), not a UI type size. Letting the platform's
+  /// font-scaling preference through would grow the glyphs without growing the page, and the
+  /// content would then overflow its simulated sheet exactly the way an inherited `letterSpacing`
+  /// does (see [_baseStyle]). The panel scales the whole page down instead when it is too narrow
+  /// for it, which keeps the paper readable without ever putting text outside it.
+  static const TextScaler _textScaler = TextScaler.noScaling;
+
   /// The block to render.
   final FountainBlock block;
 
@@ -34,10 +44,23 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The base text style every preview run derives from: Courier Prime, black on the white page,
   /// rendered at exactly [layout]'s [OcptEditorPreviewLayout.lineHeight] (not a fixed factor: see
   /// that getter's own doc comment for why estimate and render must always agree).
+  ///
+  /// `inherit: false` is load-bearing, not tidiness: an inheriting style is merged onto the
+  /// ambient [DefaultTextStyle] (Material's `bodyMedium`) by [Text.rich], and that style's
+  /// `letterSpacing` then widens every glyph past the fixed pitch [OcptEditorPreviewLayout]
+  /// measured the page's columns with. A full-width line stopped fitting its own box two or three
+  /// columns early, so it wrapped onto an extra line that [OcptEditorPreviewLayout
+  /// .estimatedLineCount] — which counts columns, not pixels — never counted: with page simulation
+  /// on, the surplus lines of every page piled up past the bottom edge of its simulated sheet and
+  /// were painted on the panel's backdrop, between two sheets. Every field the page's typography
+  /// needs is therefore given explicitly here, including the [TextLeadingDistribution] the app's
+  /// typography would otherwise have supplied.
   TextStyle get _baseStyle => TextStyle(
+    inherit: false,
     fontFamily: OcptEditorPreviewLayout.fontFamily,
     fontSize: OcptEditorPreviewLayout.fontSize,
     height: layout.lineHeightFactor,
+    leadingDistribution: TextLeadingDistribution.even,
     color: Colors.black,
   );
 
@@ -157,6 +180,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     ),
     style: style,
     textAlign: _textAlign,
+    textScaler: _textScaler,
   );
 
   /// Renders [text] as one text widget, resolving its inline emphasis.
@@ -164,7 +188,9 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     TextSpan(children: _inlineSpans(text, style)),
     style: style,
     textAlign: _textAlign,
+    textScaler: _textScaler,
   );
+
 
   /// The horizontal text alignment of [block]'s element.
   TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {

@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The shot list's status band: how many sequences and shots the list holds, how many of them are
 /// already filmed, and how many need checking.
@@ -55,7 +55,7 @@ class OcptShotListStatusBar extends StatelessWidget {
       trailing: Text(
         toCheckText,
         style: theme.textTheme.labelSmall?.copyWith(
-          color: shotsToCheckCount == 0 ? null : ocptShotListWarningColor(context),
+          color: shotsToCheckCount == 0 ? null : ocptWarningColor(context),
         ),
       ),
     );

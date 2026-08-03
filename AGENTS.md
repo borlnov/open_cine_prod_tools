@@ -89,6 +89,8 @@ supervisor reports, storyboard, breakdown, and a casting tracker.
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
 | 23 | macOS build (issue #40): the bundle named "Open Cine Prod Tools", the App Sandbox dropped from both entitlements files (ADR 0011), the SDK's `Podfile` tracked, a `macos-dmg` composite action building a drag-to-`Applications` disk image with `hdiutil`, and a `build-macos` job gated like the Windows one, signing and notarization wired but dormant | ✅ (untested on a real Mac) |
 | 24 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
+| 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
+| 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 
 ## Ways of working
 
@@ -157,7 +159,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
   (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
   mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's
-  own `toolbarActions` sit before that group. The screenplay mode is
+  own `toolbarActions` sit before that group. Two further slots serve the read-only preview of a
+  project version: `isReadOnly`, which swaps the unsaved-changes dot for the `Read only` pill, and
+  `banner`, a full-width widget between the toolbar and the docks row (`OcptWorkspaceReadOnlyBanner`
+  fills it) — everything else a preview withholds is each mode's own job, since only a mode knows
+  what its affordances are. The screenplay mode is
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
   before this refactor), the shot list mode is `OcptShotListMode`
   (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), and the two remaining
@@ -238,11 +244,56 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v4 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, `row_field_versions`), `storeDateTimeAsText: true`, scene
-  reconciliation in 3 passes (explicit scene number → exact heading → relative order).
+- Persistence: drift schema v5 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, `row_field_versions`, `project_versions`), `storeDateTimeAsText:
+  true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
-- Sync-ready data model (ADR 0010): **no service ever deletes a row**. Every synchronised table
+- Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
+  named, permanent checkpoints of the **whole** project, not to be confused with
+  `screenplay_snapshots` (automatic, screenplay-only, pruned past 30). The table is **local and
+  never synchronised** — no tombstone, no `sortKey`, no stamps, and `OcptProjectVersionsService`
+  deletes a row for real, the one place in the app that may.
+  `project_info.currentVersionId` is the **base**: the version the working copy descends from, not
+  a version that is somehow "current" — the working copy itself is never a row of this table, and
+  the moment the user types, it has drifted from its base. `OcptProjectVersion.isBase` is that
+  pointer seen from a card, and the base's card is an ordinary one in every other respect
+  (previewable, restorable, deletable).
+  `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the five
+  synchronised tables verbatim (primary keys, tombstones and `row_field_versions` stamps included)
+  plus the page setup, in a JSON format versioned by `payloadFormat` — independent of the schema
+  version, upgraded on decode when older, refused when newer. Counters shown on a card
+  (`OcptProjectVersionSummary`) are measured once, at creation.
+  The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
+  by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
+  out, since the stamps change on every restore and the margins are an app-wide preference. It is
+  stored beside the payload (`project_versions.contentDigest`, nullable so a version whose digest
+  was never computed stays readable: a null digest reads as "unknown", i.e. *modified*, which is the
+  fail-safe direction) and it answers the app's one recurring question about a version — is this
+  the same project state as that one? `OcptProjectVersionsService.captureWorkingCopyState` reads
+  the working copy once and answers both users of it: the counters the working-copy card shows, and
+  whether the working copy has drifted from its base.
+  `restoreVersion` is the app's one destructive operation that isn't a file deletion, and it is an
+  **edit, not a reset** (`OcptProjectRestoreStatus`): in a single transaction opened with
+  `PRAGMA defer_foreign_keys = ON`, it captures the state it is about to replace as a version of its
+  own (`Before restoring <name>`, so a restore can be undone) — but **only when that state has
+  drifted from its base**, compared by content digest, since restoring an untouched working copy
+  would otherwise mint a byte-for-byte duplicate of the base's card; the promise holds either way,
+  the state replaced then being exactly the base version's, still in the list. It snapshots every
+  screenplay whose text
+  it changes (`OcptSnapshotReason.restore` — the merge base a three-way screenplay merge looks for),
+  then inserts/updates/**tombstones** row by row and stamps, in `row_field_versions`, every column
+  whose value actually changed, at a version strictly above what that column held and under the
+  local `deviceId`. A hard delete would be re-inserted by an offline replica, and an unstamped
+  rewrite would be undone by the next merge; a column already matching the payload is left
+  unstamped, so a restore never stomps a concurrent edit that agreed with it. `scenes` is the
+  exception that carries no stamp (never merged) but still goes back verbatim, ids included.
+  There is no fork operation: starting from an older state *is* restoring it, after which the
+  working copy descends from it and the user names their branch when they seal it — a dedicated
+  fork only ever added a card whose content duplicated the version it branched from. The margins
+  half of the restored page setup is written by `OcptProjectsManager` **after** the transaction
+  commits, since a preference can't be rolled back with it.
+- Sync-ready data model (ADR 0010): **no service ever deletes a synchronised row** (the local
+  `project_versions` above is the single exception). Every synchronised table
   carries `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out —
   including `scenes`, which is never synchronised but whose rows are referenced by two tables that
   are. Ordering is `sortKey`, a fractional index (`lib/utils/ocpt_fractional_key.dart`,
@@ -252,7 +303,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   a move writes exactly one row. `position` survives as a legacy column stamped once at insertion
   and never renumbered — nothing reads it, and `OcptShot.position` is a read-time rank the loading
   service counts off, not that column. `row_field_versions` holds the per-column version stamps a
-  merge resolves conflicts with; nothing writes to it yet (M3 of the collaboration plan does).
+  merge resolves conflicts with; the only writer so far is a version restore (above), and M3 of the
+  collaboration plan is what will stamp every other edit — a composite primary key is rendered into
+  `rowId` through `ocptCompositeRowStampKey` (`lib/utils/ocpt_row_stamp_key.dart`), the app's single
+  encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
   app: the native open dialog, and five services it owns (RFL18) — `OcptFountainIoService`
@@ -346,10 +400,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   drag so it never emits a bloc state per frame; the bloc only sees one
   `OcptEditorDockFractionsChangedEvent` on `onHorizontalDragEnd`. The right dock
   (`OcptEditorRightDock`, still under `lib/ui/pages/editor/widgets/`) is tabbed
-  (`OcptEditorRightDockTab { preview, syntax, inspector, metadata }`); its tab row is itself
-  clickable (`onTabSelected`), while the toolbar's preview/syntax buttons — **raw mode only**, the
-  styled mode reaches every tab through the tab row alone — additionally *open* a closed dock on
-  their tab (inspector/metadata have no toolbar button in either mode). The shell's own right-dock
+  (`OcptEditorRightDockTab { preview, syntax, inspector, metadata, versions }`); its tab row is
+  itself clickable (`onTabSelected`), while the toolbar's preview/syntax buttons — **raw mode
+  only**, the styled mode reaches every tab through the tab row alone — additionally *open* a closed
+  dock on their tab (inspector/metadata/versions have no toolbar button in either mode). The shell's
+  own right-dock
   toggle closes the dock whichever tab it shows, and reopens it on `lastRightDockTab` (the last
   tab explicitly selected, never null, `preview` by default), falling back to `syntax` when that
   tab is `preview` and the styled mode is active. Switching to styled mode auto-closes an open
@@ -362,6 +417,68 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptEditorMetadataPanel` shows the title-page fields and the script-wide statistics, read-only,
   with an "Edit…" button opening the existing title-page dialog through `OcptRouterManager`. Both
   are recomputed on the editor's existing 150 ms parse debounce, never per keystroke.
+- The `Versions` dock tab (`OcptProjectVersionsPanel`/`OcptProjectWorkingCopyCard`/
+  `OcptProjectVersionCard`/
+  `OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is the one panel of the dock
+  that is about the **project** rather than the mode showing it, so it is hosted by every mode's
+  dock (`OcptEditorRightDockTab.versions` and `OcptShotListRightDockTab.versions`) and built from
+  `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
+  `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
+  `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
+  tab by mixing both in and answering the two hooks the mixin can't know —
+  `flushPendingProjectWrites` (a pending autosave/field edit must reach the working copy *before* a
+  preview swaps the database out, or it would land in the previewed version's in-memory one) and
+  `reloadFromProjectDatabase` (entering or leaving a preview replaces
+  `OcptOpenProjectModel.database`, so whatever the mode shows is read again from it — and that
+  reload **must** emit `previewedVersionId`, read from `OcptProjectsManager.currentProject`, in the
+  same state as the data it just read, or the mode draws one frame of a version's content with the
+  working copy's editing affordances still on it). A mode also decides *when* the working copy is
+  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — both modes do it
+  on opening the `Versions` tab and on a save landing while it is already open, and the mixin
+  throttles that path to one capture every 2 s, since it reads the whole project; the captures that
+  follow an operation which just changed the project are never throttled.
+  The panel reads top-down as **the present, then the sealed history**: `OcptProjectWorkingCopyCard`
+  is the first entry and is not a `project_versions` row at all — the live counters, whether the
+  content still matches the base version, and `Create a version`, which is the working copy's own
+  action rather than the panel's. It is absent while a preview is up (`workingCopy` is null then,
+  and a capture is refused: it would read the project file, i.e. a state the user isn't looking at).
+  Underneath, a version card is
+  clicked to enter a version's read-only preview and clicked again to leave it. The three answers a
+  card can ask for — `Delete`, `Restore this version` and `Rename` —
+  are given **inline inside the card** rather than through a dialog, one at a time
+  (`versionPendingDeletionId`, `versionPendingRestoreId`, `versionPendingRenameId`); the restore's
+  question is the one place
+  saying the page setup comes back too and the replaced state is kept. The previewed version's card
+  may be restored (the obvious next move after reading it) but not deleted (the preview reads a
+  database hydrated out of that very row). Restoring flushes the mode's pending writes first, then
+  reloads the mode *and* the list, since a restore changes both. The one name it mints
+  (`Before restoring <name>`) is
+  localized by the page and travels on the event: no bloc or manager here has a `Tr`.
+- Read-only preview across the app: `OcptOpenProjectModel.isReadOnly` is the source of truth, and
+  `MixinOcptProjectVersionsState.isPreviewingVersion` is the copy of it every mode's widgets are
+  built from (`previewedVersion` resolves the row itself out of the list already in state, so the
+  banner names it without a second copy). A previewed version is laid out with
+  `OcptOpenProjectModel.previewedPageSetup` — the setup it was captured against, rendered with and
+  **never written**, since the margins half of it is an app-wide preference. The screenplay mode
+  renders `OcptEditorPreview` in the centre in *both* editing modes rather than a read-only editor
+  (a second super_editor rendering path — `SuperReader`, its own stylesheet, its own title-page
+  components — would have to be maintained forever), so the right dock's preview tab doesn't exist
+  then either — `OcptEditorState.isPreviewTabAvailable` is the single predicate for "the centre
+  already is the formatted screenplay", true of the styled mode and of a preview alike, and the
+  existing auto-close/restore dock transition follows it. Every affordance that writes is withheld
+  rather than disabled where it can be: the save control, the format controls, the `⋮` entries
+  that rewrite (import & replace, page setup, title page), the metadata panel's "Edit…", the shot
+  list's `+ Shot`, its orphan delete buttons, its inspector controls and its deleted-character
+  banner actions. What only reads stays: the exports, the scene/sequence panels, the statistics,
+  and the app-wide display preferences.
+  Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
+  Flutter's own "no callback, no affordance" idiom); the two composite panels
+  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`) take an `isReadOnly` flag instead
+  and hand their own parts the null callbacks, so a control added later can't be gated in one place
+  and forgotten in the other. `OcptWorkspaceReadOnlyBanner` carries the two ways out of a preview:
+  `Start from this version` (a plain restore of the version being read, which asks nothing further —
+  the banner is that question, and `OcptProjectsManager.restoreProjectVersion` leaves the preview on
+  its own before writing anything) and the filled `Back to the current version`.
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
   `OcptFountainSyntaxTopic`) as read-only snippets in both editing modes (the *panel* is
@@ -425,6 +542,14 @@ minimum before each commit):
 8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md' ':!docs/plans'` → empty
    (the two extra exclusions are the files that *describe* this gate, which would otherwise
    always match their own search string)
+9. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
+   gate is about the documentation rather than the code, so it is the one to run before pushing
+   a docs-only change, which the other eight would say nothing about. The `markdown_lint`
+   workflow runs the real `markdownlint-cli2`, which needs a Node runtime the devcontainer does
+   not carry; the script re-implements the rules that need no markdown parsing (line length,
+   trailing spaces, hard tabs, final newline), so an over-long paragraph is caught here instead
+   of by a red build. It is a pre-flight, not a replacement: passing it does not prove the
+   workflow will pass, but a failure it reports is always real.
 
 ## Known pitfalls
 

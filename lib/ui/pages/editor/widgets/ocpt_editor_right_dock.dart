@@ -15,8 +15,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_
 /// The tab row itself is clickable: tapping a label dispatches [onTabSelected] with that tab,
 /// toggling it exactly like the workspace toolbar's own preview/syntax buttons do (selecting the
 /// tab already active closes the dock). Preview and syntax are also reachable from those toolbar
-/// buttons, which additionally double as a way to open a closed dock; inspector and metadata have
-/// no toolbar button of their own and are reachable from this row only. Only the × here acts on
+/// buttons, which additionally double as a way to open a closed dock; inspector, metadata and
+/// versions have no toolbar button of their own and are reachable from this row only. Only the × here acts on
 /// the dock directly, via [onClose]. In styled mode the preview tab doesn't exist at all (its own
 /// layout already is the formatted screenplay), so the row skips it then.
 class OcptEditorRightDock extends StatelessWidget {
@@ -37,6 +37,11 @@ class OcptEditorRightDock extends StatelessWidget {
   /// The built metadata panel, shown when [activeTab] is [OcptEditorRightDockTab.metadata].
   final Widget metadataChild;
 
+  /// The built project versions panel, shown when [activeTab] is
+  /// [OcptEditorRightDockTab.versions]. The very same widget the shot list's own dock hosts: a
+  /// version covers the whole project, not the screenplay alone.
+  final Widget versionsChild;
+
   /// Called with a tab when its label in the tab row is clicked.
   final ValueChanged<OcptEditorRightDockTab> onTabSelected;
 
@@ -51,6 +56,7 @@ class OcptEditorRightDock extends StatelessWidget {
     required this.previewChild,
     required this.inspectorChild,
     required this.metadataChild,
+    required this.versionsChild,
     required this.onTabSelected,
     required this.onClose,
   });
@@ -95,6 +101,11 @@ class OcptEditorRightDock extends StatelessWidget {
                       isActive: activeTab == OcptEditorRightDockTab.metadata,
                       onTap: () => onTabSelected(OcptEditorRightDockTab.metadata),
                     ),
+                    _OcptRightDockTabLabel(
+                      label: tr.editorRightDockVersionsTabLabel,
+                      isActive: activeTab == OcptEditorRightDockTab.versions,
+                      onTap: () => onTabSelected(OcptEditorRightDockTab.versions),
+                    ),
                   ],
                 ),
               ),
@@ -114,6 +125,7 @@ class OcptEditorRightDock extends StatelessWidget {
             OcptEditorRightDockTab.syntax => const OcptEditorSyntaxGuidePanel(),
             OcptEditorRightDockTab.inspector => inspectorChild,
             OcptEditorRightDockTab.metadata => metadataChild,
+            OcptEditorRightDockTab.versions => versionsChild,
           },
         ),
       ],

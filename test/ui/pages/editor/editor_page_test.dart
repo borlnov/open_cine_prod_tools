@@ -33,7 +33,10 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_d
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 import 'package:path/path.dart' as p;
@@ -969,6 +972,80 @@ void main() {
 
       final toolbarTopAfter = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
       expect(toolbarTopAfter, toolbarTopBefore, reason: "toolbar must not move when the editor scrolls");
+    },
+  );
+
+  testWidgets(
+    "a previewed version is shown read-only: no editor, no save, no entry that would rewrite it",
+    (tester) async {
+      // Wide enough for the whole toolbar, so the ⋮ menu and the chrome around it are all built.
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final version = await projectsManager.createProjectVersion(
+        name: "v1",
+        note: "Before the rewrite",
+      );
+      expect(version, isNotNull);
+
+      // The working copy moves on, so what the preview shows and what the project holds differ.
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "EXT. ROOFTOP - DAWN\n\nThe rewrite.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+      // The working copy is what the editor edits, until a version is previewed.
+      expect(find.byType(OcptEditorSourceField), findsOneWidget);
+      expect(find.text(tr.workspaceReadOnlyPill), findsNothing);
+
+      final bloc = BlocProvider.of<OcptEditorBloc>(tester.element(find.byType(OcptWorkspaceShell)));
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+      await tester.pumpAndSettle();
+
+      // Decision 7: the centre is the formatted preview of the version, not an editor of any kind.
+      expect(find.byType(OcptEditorSourceField), findsNothing);
+      expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
+      expect(find.byType(OcptEditorPreview), findsOneWidget);
+      expect(find.text("INT. KITCHEN - DAY", findRichText: true), findsWidgets);
+      expect(find.text("The rewrite.", findRichText: true), findsNothing);
+
+      // The shell says so, and has nothing left to save.
+      expect(find.text(tr.workspaceReadOnlyPill), findsOneWidget);
+      expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);
+      expect(find.byType(OcptWorkspaceReadOnlyBanner), findsOneWidget);
+      expect(find.textContaining("Before the rewrite"), findsOneWidget);
+
+      // The ⋮ menu keeps what only reads the screenplay and drops what would rewrite it.
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.editorExportAction), findsOneWidget);
+      expect(find.text(tr.editorExportPdfAction), findsOneWidget);
+      expect(find.text(tr.editorImportAndReplaceAction), findsNothing);
+      expect(find.text(tr.editorPageSetupAction), findsNothing);
+      expect(find.text(tr.editorTitlePageAction), findsNothing);
+
+      await tester.tapAt(const Offset(700, 500));
+      await tester.pumpAndSettle();
+
+      // The banner is the way back to the working copy, which is editable again.
+      await tester.tap(find.text(tr.workspaceReadOnlyBannerExitAction));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptWorkspaceReadOnlyBanner), findsNothing);
+      expect(find.text(tr.workspaceReadOnlyPill), findsNothing);
+      expect(find.byType(OcptEditorSourceField), findsOneWidget);
+      expect(find.byTooltip(tr.editorSaveTooltip), findsOneWidget);
     },
   );
 }
