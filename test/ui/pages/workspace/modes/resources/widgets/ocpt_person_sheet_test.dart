@@ -126,7 +126,7 @@ Widget _buildSheet({
   bool isReadOnly = false,
   void Function(OcptPersonField field, String rawValue)? onFieldChanged,
   VoidCallback? onPositionAdded,
-  void Function(String id, {required String positionId, required String customLabel, required String scopeNotes})?
+  void Function(String id, {required String positionId, required String customLabel})?
   onPositionUpdated,
   ValueChanged<String>? onPositionRemoved,
   ValueChanged<String>? onSkillAdded,
@@ -146,7 +146,7 @@ Widget _buildSheet({
     onImageRightsStatusChanged: (_) {},
     onImageRightsDateChanged: (_) {},
     onPositionAdded: onPositionAdded ?? () {},
-    onPositionUpdated: onPositionUpdated ?? (id, {required positionId, required customLabel, required scopeNotes}) {},
+    onPositionUpdated: onPositionUpdated ?? (id, {required positionId, required customLabel}) {},
     onPositionRemoved: onPositionRemoved ?? (_) {},
     onSkillAdded: onSkillAdded ?? (_) {},
     onSkillRemoved: onSkillRemoved ?? (_) {},
@@ -174,7 +174,6 @@ void main() {
               personId: "p1",
               positionId: "director",
               customLabel: "",
-              scopeNotes: "Whole shoot",
             ),
           ],
         ),
@@ -186,7 +185,7 @@ void main() {
     expect(find.text("Martin"), findsOneWidget);
     expect(find.text("lea@example.com"), findsOneWidget);
     expect(find.text("Director"), findsOneWidget);
-    expect(find.text("Whole shoot"), findsOneWidget);
+    expect(find.text("defined in the schedule"), findsOneWidget);
     expect(find.text("Végétarienne"), findsOneWidget);
     expect(find.text("Ponctuelle"), findsOneWidget);
   });
@@ -259,7 +258,7 @@ void main() {
     expect(deleteRequested, isTrue);
   });
 
-  testWidgets("clicking + Add a position (with its scope) reports it", (tester) async {
+  testWidgets("clicking + Add a function reports it", (tester) async {
     await _useTallSurface(tester);
     var added = false;
 
@@ -286,7 +285,6 @@ void main() {
               personId: "p1",
               positionId: "director",
               customLabel: "",
-              scopeNotes: "",
             ),
           ],
         ),
@@ -355,8 +353,7 @@ void main() {
                 personId: "p1",
                 positionId: "director",
                 customLabel: "",
-                scopeNotes: "",
-              ),
+                ),
             ],
             unavailabilities: [
               OcptPersonUnavailability(

@@ -317,10 +317,6 @@ class OcptProjectVersionCodec {
   /// JSON object
   static const _customLabelKey = "customLabel";
 
-  /// This is the key used to stringify or parse a person position's `scopeNotes` column from a
-  /// JSON object
-  static const _scopeNotesKey = "scopeNotes";
-
   /// This is the key used to stringify or parse a `label` column (`person_skills.label` or
   /// `assets.label`) from a JSON object
   static const _labelKey = "label";
@@ -1006,7 +1002,6 @@ class OcptProjectVersionCodec {
     _personIdKey: row.personId,
     _positionIdKey: row.positionId,
     _customLabelKey: row.customLabel,
-    _scopeNotesKey: row.scopeNotes,
     _sortKeyKey: row.sortKey,
     _isDeletedKey: row.isDeleted,
   };
@@ -1018,7 +1013,6 @@ class OcptProjectVersionCodec {
         personId: _string(json, _personIdKey),
         positionId: _string(json, _positionIdKey),
         customLabel: _string(json, _customLabelKey),
-        scopeNotes: _string(json, _scopeNotesKey),
         sortKey: _string(json, _sortKeyKey),
         isDeleted: _bool(json, _isDeletedKey),
       );

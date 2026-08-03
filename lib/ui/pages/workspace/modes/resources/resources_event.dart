@@ -226,23 +226,19 @@ class OcptResourcesPositionAddedEvent extends OcptResourcesEvent {
   /// fits.
   final String customLabel;
 
-  /// Free text describing when this assignment applies.
-  final String scopeNotes;
-
   /// Class constructor
   const OcptResourcesPositionAddedEvent({
     required this.personId,
     required this.positionId,
     required this.customLabel,
-    required this.scopeNotes,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, personId, positionId, customLabel, scopeNotes];
+  List<Object?> get props => [...super.props, personId, positionId, customLabel];
 }
 
-/// Updates position assignment [id]'s fields, written immediately, replacing all three at once.
+/// Updates position assignment [id]'s fields, written immediately, replacing both at once.
 class OcptResourcesPositionUpdatedEvent extends OcptResourcesEvent {
   /// The id of the position assignment to update.
   final String id;
@@ -253,20 +249,16 @@ class OcptResourcesPositionUpdatedEvent extends OcptResourcesEvent {
   /// The new free-text position label.
   final String customLabel;
 
-  /// The new scope notes.
-  final String scopeNotes;
-
   /// Class constructor
   const OcptResourcesPositionUpdatedEvent({
     required this.id,
     required this.positionId,
     required this.customLabel,
-    required this.scopeNotes,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, id, positionId, customLabel, scopeNotes];
+  List<Object?> get props => [...super.props, id, positionId, customLabel];
 }
 
 /// Removes position assignment [id], written immediately.

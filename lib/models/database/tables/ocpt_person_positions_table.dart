@@ -8,10 +8,13 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 /// The crew positions a person holds on the film, assigned at **project level** rather than per
 /// time slot.
 ///
-/// The mock-up assigns positions inside the planning's per-day time slots, but the schedule mode
-/// this plan defers to (§6) doesn't exist yet, so a row here instead carries [scopeNotes] — free
-/// text such as "whole shoot" or "mornings only" — which the schedule mode later refines into real
-/// per-slot assignments without this table changing shape.
+/// A row says *that* a person holds a function, never *when*: **there is deliberately no scope
+/// column**. The scope belongs to the schedule mode, which assigns positions inside the planning's
+/// per-day time slots exactly as the mock-up does, and it is the only place that can express what
+/// a production routinely needs — one person on sound in the morning and another in the afternoon,
+/// or one person holding two functions over the same slot (script supervisor *and* general
+/// assistant). A single free-text scope on this row could say neither, so the person sheet shows
+/// the scope as a read-only column until the schedule mode fills it.
 @DataClassName('OcptPersonPositionRow')
 class OcptPersonPositionsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptPersonPositionsTable}
@@ -35,11 +38,6 @@ class OcptPersonPositionsTable extends Table {
   /// A free-text position label, used instead of [positionId] when the catalogue has nothing that
   /// fits. Empty when [positionId] is set.
   TextColumn get customLabel => text().withDefault(const Constant(''))();
-
-  /// Free text describing when this assignment applies (e.g. "whole shoot", "mornings only"). Not
-  /// decoration: a reference call sheet has one person on sound in the morning and another in the
-  /// afternoon, and a model with no scope cannot say that until the schedule mode exists.
-  TextColumn get scopeNotes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();

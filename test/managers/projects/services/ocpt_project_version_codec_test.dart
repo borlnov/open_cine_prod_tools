@@ -222,7 +222,6 @@ void main() {
         personId: "person-1",
         positionId: "director",
         customLabel: "",
-        scopeNotes: "Whole shoot",
         sortKey: "V",
         isDeleted: false,
       ),
@@ -231,7 +230,6 @@ void main() {
         personId: "person-1",
         positionId: "",
         customLabel: "Régie",
-        scopeNotes: "",
         sortKey: "k",
         isDeleted: true,
       ),
@@ -531,7 +529,6 @@ void main() {
       final position = roundTripped.personPositions.first;
       expect(position.personId, "person-1");
       expect(position.positionId, "director");
-      expect(position.scopeNotes, "Whole shoot");
 
       final skill = roundTripped.personSkills.first;
       expect(skill.label, "Permis B");

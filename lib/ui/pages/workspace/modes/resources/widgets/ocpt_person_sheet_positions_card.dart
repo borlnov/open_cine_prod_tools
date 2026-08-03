@@ -13,8 +13,8 @@ import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
-/// How long a position row waits after the last keystroke in its label or scope field before
-/// dispatching the update — this card's own local debounce, distinct from
+/// How long a position row waits after the last keystroke in its label field before dispatching
+/// the update — this card's own local debounce, distinct from
 /// `OcptResourcesState.pendingFieldEdits` (which only covers a person's own columns, not this
 /// sub-list).
 const Duration _localFieldDebounce = Duration(milliseconds: 500);
@@ -23,16 +23,22 @@ const Duration _localFieldDebounce = Duration(milliseconds: 500);
 /// since no component theme states it.
 const double _departmentColumnWidth = 132;
 
-/// The width of a position row's scope field.
-const double _scopeFieldWidth = 150;
+/// The width of a position row's scope column, the read-only one the schedule mode will fill.
+const double _scopeColumnWidth = 150;
 
 /// The sentinel value the position picker menu uses for its "free label" entry, never a real
 /// `ocptCrewPositions` id.
 const String _customPositionOption = "__custom__";
 
-/// "Functions on the film": one row per [OcptPersonPosition], each editable in place — a position
-/// picked from `ocptCrewPositions` (grouped by [OcptCrewDepartment]) or a free label, and a
-/// free-text scope — plus the `+ Add a position (with its scope)` action.
+/// "Functions on the film": one row per [OcptPersonPosition] — a position picked from
+/// `ocptCrewPositions` (grouped by [OcptCrewDepartment]) or a free label, editable in place — plus
+/// the `+ Add a function` action.
+///
+/// A row's **scope is read-only** and stays empty until the schedule mode exists: a position is
+/// held over the time slots the planning assigns, and a person may hold two of them over one slot,
+/// neither of which a field on this row could answer (see `OcptPersonPositionsTable`'s own doc
+/// comment). The column is shown rather than hidden so the sheet says where that answer will come
+/// from instead of silently omitting the question.
 ///
 /// Roles (the cast, reconciled from the screenplay) are a later milestone: this card only ever
 /// shows crew position assignments, never a role row.
@@ -43,18 +49,18 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
   /// The person's crew position assignments, in display order.
   final List<OcptPersonPosition> positions;
 
-  /// Called with a position's id and its three fields once a local edit is ready to be written, or
+  /// Called with a position's id and its two fields once a local edit is ready to be written, or
   /// null while the sheet may not be written to (a project version being previewed read-only): no
-  /// row is then editable and the `+ Add a position` action disappears.
-  final void Function(String id, {required String positionId, required String customLabel, required String scopeNotes})?
+  /// row is then editable and the `+ Add a function` action disappears.
+  final void Function(String id, {required String positionId, required String customLabel})?
   onUpdated;
 
   /// Called with a position's id when its row's remove button is clicked, or null while it may not
   /// be removed.
   final ValueChanged<String>? onRemoved;
 
-  /// Called when `+ Add a position (with its scope)` is clicked, appending a new, blank
-  /// assignment, or null while none may be added.
+  /// Called when `+ Add a function` is clicked, appending a new, blank assignment, or null while
+  /// none may be added.
   final VoidCallback? onAdded;
 
   /// Class constructor
@@ -95,13 +101,8 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
                 position: position,
                 onUpdated: onUpdated == null
                     ? null
-                    : ({required positionId, required customLabel, required scopeNotes}) =>
-                          onUpdated!(
-                            position.id,
-                            positionId: positionId,
-                            customLabel: customLabel,
-                            scopeNotes: scopeNotes,
-                          ),
+                    : ({required positionId, required customLabel}) =>
+                          onUpdated!(position.id, positionId: positionId, customLabel: customLabel),
                 onRemoved: onRemoved == null ? null : () => onRemoved!(position.id),
               ),
           if (onAdded != null)
@@ -119,15 +120,15 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
 }
 
 /// One row of [OcptPersonSheetPositionsCard]: the department (derived, read-only), the position
-/// label (free text, with a picker menu shortcut into `ocptCrewPositions`) and the scope (free
-/// text), each local edit debounced by [_localFieldDebounce] before being reported.
+/// label (free text, with a picker menu shortcut into `ocptCrewPositions`) and the scope
+/// (read-only, the schedule mode's answer), a local label edit debounced by [_localFieldDebounce]
+/// before being reported.
 class _OcptPersonPositionRow extends StatefulWidget {
   /// The position assignment this row shows.
   final OcptPersonPosition position;
 
-  /// Called with the row's three current fields once ready to write, or null while read-only.
-  final void Function({required String positionId, required String customLabel, required String scopeNotes})?
-  onUpdated;
+  /// Called with the row's two current fields once ready to write, or null while read-only.
+  final void Function({required String positionId, required String customLabel})? onUpdated;
 
   /// Called when this row's remove button is clicked, or null while it may not be removed.
   final VoidCallback? onRemoved;
@@ -139,7 +140,7 @@ class _OcptPersonPositionRow extends StatefulWidget {
   State<_OcptPersonPositionRow> createState() => _OcptPersonPositionRowState();
 }
 
-/// The state of [_OcptPersonPositionRow]: the row's own local copies of its three fields, and the
+/// The state of [_OcptPersonPositionRow]: the row's own local copies of its two fields, and the
 /// debounce that turns typing into an [OcptPersonSheetPositionsCard.onUpdated] call.
 ///
 /// A fresh instance of this state is created for every distinct position id (the card keys each
@@ -157,16 +158,8 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
         : widget.position.customLabel,
   );
 
-  /// The scope field's own controller.
-  late final TextEditingController _scopeController = TextEditingController(
-    text: widget.position.scopeNotes,
-  );
-
   /// The label field's own focus node, flushing a pending edit the moment it loses focus.
   final FocusNode _labelFocusNode = FocusNode();
-
-  /// The scope field's own focus node, flushing a pending edit the moment it loses focus.
-  final FocusNode _scopeFocusNode = FocusNode();
 
   /// The running local debounce timer, if any.
   Timer? _debounce;
@@ -178,7 +171,6 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
   void initState() {
     super.initState();
     _labelFocusNode.addListener(_flushOnFocusLost);
-    _scopeFocusNode.addListener(_flushOnFocusLost);
   }
 
   @override
@@ -186,16 +178,14 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     _flushIfDirty();
     _debounce?.cancel();
     _labelFocusNode.dispose();
-    _scopeFocusNode.dispose();
     _labelController.dispose();
-    _scopeController.dispose();
     super.dispose();
   }
 
-  /// Flushes a pending edit the moment either field loses focus, so a click elsewhere in the sheet
-  /// never silently drops it.
+  /// Flushes a pending edit the moment the label field loses focus, so a click elsewhere in the
+  /// sheet never silently drops it.
   void _flushOnFocusLost() {
-    if (!_labelFocusNode.hasFocus && !_scopeFocusNode.hasFocus) {
+    if (!_labelFocusNode.hasFocus) {
       _flushIfDirty();
     }
   }
@@ -208,20 +198,14 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     _restartDebounce();
   }
 
-  /// Records that the scope field changed and (re)starts the debounce.
-  void _onScopeChanged(String text) {
-    _isDirty = true;
-    _restartDebounce();
-  }
-
   /// (Re)starts the local debounce, cancelling whatever was still running.
   void _restartDebounce() {
     _debounce?.cancel();
     _debounce = Timer(_localFieldDebounce, _flushIfDirty);
   }
 
-  /// Reports the row's three current fields, if a local edit is actually waiting; a no-op
-  /// otherwise, so a focus change with nothing typed never triggers a redundant write.
+  /// Reports the row's two current fields, if a local edit is actually waiting; a no-op otherwise,
+  /// so a focus change with nothing typed never triggers a redundant write.
   void _flushIfDirty() {
     _debounce?.cancel();
     if (!_isDirty) {
@@ -231,7 +215,6 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     widget.onUpdated?.call(
       positionId: _positionId,
       customLabel: _positionId.isEmpty ? _labelController.text : "",
-      scopeNotes: _scopeController.text,
     );
   }
 
@@ -244,7 +227,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
       _positionId = positionId;
       _labelController.text = ocptCrewPositionLabel(Tr.of(context), positionId);
     });
-    widget.onUpdated?.call(positionId: positionId, customLabel: "", scopeNotes: _scopeController.text);
+    widget.onUpdated?.call(positionId: positionId, customLabel: "");
   }
 
   /// Switches this row to a free label, keeping whatever text the label field already shows:
@@ -254,7 +237,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     _debounce?.cancel();
     _isDirty = false;
     setState(() => _positionId = "");
-    widget.onUpdated?.call(positionId: "", customLabel: _labelController.text, scopeNotes: _scopeController.text);
+    widget.onUpdated?.call(positionId: "", customLabel: _labelController.text);
   }
 
   @override
@@ -310,18 +293,15 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: _scopeFieldWidth,
-            child: TextField(
-              controller: _scopeController,
-              focusNode: _scopeFocusNode,
-              readOnly: isReadOnly,
-              onChanged: isReadOnly ? null : _onScopeChanged,
+            width: _scopeColumnWidth,
+            child: Text(
+              tr.resourcesPositionScopePlaceholder,
               textAlign: TextAlign.end,
-              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                hintText: tr.resourcesPositionScopeHint,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
               ),
             ),
           ),

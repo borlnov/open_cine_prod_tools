@@ -77,7 +77,6 @@ void main() {
                   personId: "p1",
                   positionId: "director",
                   customLabel: "",
-                  scopeNotes: "",
                 ),
               ],
             ),

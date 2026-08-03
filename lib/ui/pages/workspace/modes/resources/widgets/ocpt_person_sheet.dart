@@ -59,13 +59,12 @@ class OcptPersonSheet extends StatelessWidget {
   /// Called with the newly picked image rights date, or null to clear it.
   final ValueChanged<DateTime?> onImageRightsDateChanged;
 
-  /// Called when `+ Add a position (with its scope)` is clicked, appending a new, blank
-  /// assignment.
+  /// Called when `+ Add a function` is clicked, appending a new, blank assignment.
   final VoidCallback onPositionAdded;
 
-  /// Called with a position's id and its three current fields once a local edit is ready to be
+  /// Called with a position's id and its two current fields once a local edit is ready to be
   /// written.
-  final void Function(String id, {required String positionId, required String customLabel, required String scopeNotes})
+  final void Function(String id, {required String positionId, required String customLabel})
   onPositionUpdated;
 
   /// Called with a position's id when its row's remove button is clicked.

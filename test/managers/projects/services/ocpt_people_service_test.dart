@@ -175,7 +175,6 @@ void main() {
         personId: id,
         positionId: "soundEngineer",
         customLabel: "",
-        scopeNotes: "mornings only",
       );
       await peopleService.addSkill(database: database, personId: id, label: "Permis B, allemand");
       await peopleService.addUnavailability(
@@ -211,7 +210,6 @@ void main() {
       // A crew position describes the production rather than the person, and identifies nobody once
       // the row it hangs off holds no name, so it survives as it stood.
       expect(positions.single.positionId, "soundEngineer");
-      expect(positions.single.scopeNotes, "mornings only");
     });
 
     test("deletePerson records the erasure in local_erasures", () async {
@@ -247,14 +245,12 @@ void main() {
         personId: personId,
         positionId: "director",
         customLabel: "",
-        scopeNotes: "whole shoot",
       );
       await peopleService.addPosition(
         database: database,
         personId: personId,
         positionId: "",
         customLabel: "Régie",
-        scopeNotes: "",
       );
 
       final people = await peopleService.loadPeople(database: database);
@@ -270,7 +266,6 @@ void main() {
         personId: personId,
         positionId: "director",
         customLabel: "",
-        scopeNotes: "",
       ))!;
 
       await peopleService.removePosition(database: database, id: positionId);
@@ -288,8 +283,7 @@ void main() {
             personId: personId,
             positionId: "position$i",
             customLabel: "",
-            scopeNotes: "",
-          ))!,
+              ))!,
       ];
 
       await peopleService.reorderPositions(

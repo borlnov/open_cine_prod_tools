@@ -206,20 +206,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
         OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
       ),
       onPositionAdded: () => bloc.add(
-        OcptResourcesPositionAddedEvent(
-          personId: selectedPerson.id,
-          positionId: "",
-          customLabel: "",
-          scopeNotes: "",
-        ),
+        OcptResourcesPositionAddedEvent(personId: selectedPerson.id, positionId: "", customLabel: ""),
       ),
-      onPositionUpdated: (id, {required positionId, required customLabel, required scopeNotes}) => bloc.add(
-        OcptResourcesPositionUpdatedEvent(
-          id: id,
-          positionId: positionId,
-          customLabel: customLabel,
-          scopeNotes: scopeNotes,
-        ),
+      onPositionUpdated: (id, {required positionId, required customLabel}) => bloc.add(
+        OcptResourcesPositionUpdatedEvent(id: id, positionId: positionId, customLabel: customLabel),
       ),
       onPositionRemoved: (id) => bloc.add(OcptResourcesPositionRemovedEvent(id: id)),
       onSkillAdded: (label) =>

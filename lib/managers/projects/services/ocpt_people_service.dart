@@ -234,9 +234,9 @@ class OcptPeopleService {
   /// them any more would make the erasure a lie the moment anybody opens the file with anything
   /// else.
   ///
-  /// `person_positions` is tombstoned but **not** blanked: a crew position and its scope ("sound",
-  /// "mornings only") describe the production rather than the person, and once the row they hang
-  /// off holds no name they identify nobody.
+  /// `person_positions` is tombstoned but **not** blanked: a crew position ("sound") describes the
+  /// production rather than the person, and once the row it hangs off holds no name it identifies
+  /// nobody.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> deletePerson({
@@ -328,7 +328,6 @@ class OcptPeopleService {
     required String personId,
     required String positionId,
     required String customLabel,
-    required String scopeNotes,
   }) async {
     if (database.refusesUserWrite("addPosition")) {
       return null;
@@ -345,7 +344,6 @@ class OcptPeopleService {
             personId: personId,
             positionId: Value(positionId),
             customLabel: Value(customLabel),
-            scopeNotes: Value(scopeNotes),
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),
@@ -364,7 +362,6 @@ class OcptPeopleService {
     required String id,
     Value<String> positionId = const Value.absent(),
     Value<String> customLabel = const Value.absent(),
-    Value<String> scopeNotes = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updatePosition")) {
       return;
@@ -373,11 +370,7 @@ class OcptPeopleService {
     await (database.update(
       database.ocptPersonPositionsTable,
     )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptPersonPositionsTableCompanion(
-        positionId: positionId,
-        customLabel: customLabel,
-        scopeNotes: scopeNotes,
-      ),
+      OcptPersonPositionsTableCompanion(positionId: positionId, customLabel: customLabel),
     );
   }
 

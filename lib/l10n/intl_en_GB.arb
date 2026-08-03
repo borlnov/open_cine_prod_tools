@@ -3003,7 +3003,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesPositionsHint": "A function may cover a single slot",
+  "resourcesPositionsHint": "A person may hold several, even over one slot",
   "@resourcesPositionsHint": {
     "description": "Hint explaining that a position's scope may be partial, e.g. a single time slot",
     "context": "Displayed at the top of the person sheet's crew positions card",
@@ -3017,7 +3017,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddPositionAction": "+ Add a position (with its scope)",
+  "resourcesAddPositionAction": "+ Add a function",
   "@resourcesAddPositionAction": {
     "description": "Action adding a new, blank crew position assignment to the selected person",
     "context": "Displayed at the bottom of the person sheet's crew positions card",
@@ -3038,9 +3038,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesPositionScopeHint": "e.g. whole shoot, mornings only",
-  "@resourcesPositionScopeHint": {
-    "description": "Placeholder of a position row's scope field while it is empty",
+  "resourcesPositionScopePlaceholder": "defined in the schedule",
+  "@resourcesPositionScopePlaceholder": {
+    "description": "Read-only scope column of a function row, which the schedule mode will fill",
     "context": "Displayed on the person sheet's crew positions card",
     "type": "text",
     "placeholders": {}

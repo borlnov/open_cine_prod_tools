@@ -683,7 +683,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         personId: event.personId,
         positionId: event.positionId,
         customLabel: event.customLabel,
-        scopeNotes: event.scopeNotes,
       );
     },
   );
@@ -700,7 +699,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       id: event.id,
       positionId: Value(event.positionId),
       customLabel: Value(event.customLabel),
-      scopeNotes: Value(event.scopeNotes),
     ),
   );
 
