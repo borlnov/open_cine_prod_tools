@@ -462,14 +462,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   **never written**, since the margins half of it is an app-wide preference. The screenplay mode
   renders `OcptEditorPreview` in the centre in *both* editing modes rather than a read-only editor
   (a second super_editor rendering path — `SuperReader`, its own stylesheet, its own title-page
-  components — would have to be maintained forever), so the right dock's preview tab doesn't exist then either — `OcptEditorState
-  .isPreviewTabAvailable` is the single predicate for "the centre already is the formatted
-  screenplay", true of the styled mode and of a preview alike, and the existing auto-close/restore
-  dock transition follows it. Every affordance that writes is withheld rather than disabled where it
-  can be: the save control, the format controls, the `⋮` entries that rewrite (import & replace,
-  page setup, title page), the metadata panel's "Edit…", the shot list's `+ Shot`, its orphan delete
-  buttons, its inspector controls and its deleted-character banner actions. What only reads stays:
-  the exports, the scene/sequence panels, the statistics, and the app-wide display preferences.
+  components — would have to be maintained forever), so the right dock's preview tab doesn't exist
+  then either — `OcptEditorState.isPreviewTabAvailable` is the single predicate for "the centre
+  already is the formatted screenplay", true of the styled mode and of a preview alike, and the
+  existing auto-close/restore dock transition follows it. Every affordance that writes is withheld
+  rather than disabled where it can be: the save control, the format controls, the `⋮` entries
+  that rewrite (import & replace, page setup, title page), the metadata panel's "Edit…", the shot
+  list's `+ Shot`, its orphan delete buttons, its inspector controls and its deleted-character
+  banner actions. What only reads stays: the exports, the scene/sequence panels, the statistics,
+  and the app-wide display preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
   Flutter's own "no callback, no affordance" idiom); the two composite panels
   (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`) take an `isReadOnly` flag instead
