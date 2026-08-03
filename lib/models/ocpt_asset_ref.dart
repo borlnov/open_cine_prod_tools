@@ -10,10 +10,11 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 /// doc comment and `docs/adr/0013-binary-assets-referenced-by-path.md` for why this never carries
 /// bytes.
 ///
-/// No service of this step loads or writes `assets` rows yet: the four services this step ships
-/// (people, roles, locations, elements) only carry the nullable asset ids their own table already
-/// has (`OcptPerson.photoAssetId`, `OcptLocation.permitAssetId`, …). This model exists so a later
-/// milestone's asset picker and thumbnails have a shape to build on without inventing one then.
+/// `OcptLocationsService` is so far the only service that loads and writes `assets` rows — a
+/// location's scouting photos and its permit document. A person's headshot
+/// (`OcptPerson.photoAssetId`) and an element's photo (`OcptElement.photoAssetId`) still carry
+/// nothing but their nullable id: their own tabs reference a file the day they offer a picker for
+/// one, on the shape this model already fixes.
 class OcptAssetRef extends Equatable {
   /// The stable, unique id of this asset (a UUID).
   final String id;

@@ -7,16 +7,17 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 
 /// The whole resources mode's read, in one object: [people], [roles], [locations] and [elements],
-/// plus the five counts the mode's status bar shows — `N people · N roles · N positions ·
-/// N locations · N elements`.
+/// the [scenes] a set is picked from, plus the five counts the mode's status bar shows —
+/// `N people · N roles · N positions · N locations · N elements`.
 ///
 /// Built the same way `OcptShotListSnapshot.build` is: a pure function of already-loaded lists,
 /// with no database access of its own. Each list comes from its own service
 /// (`OcptPeopleService.loadPeople`, `OcptRoleIndexService.loadRoles`,
-/// `OcptLocationsService.loadLocations`, `OcptElementsService.loadElements`); combining the four
-/// calls into this one object is the job of whichever mode reads them, once it exists.
+/// `OcptLocationsService.loadLocations` and `.loadScenes`, `OcptElementsService.loadElements`);
+/// combining the calls into this one object is the job of the mode that reads them.
 class OcptResourcesSnapshot extends Equatable {
   /// The whole address book, in display order.
   final List<OcptPerson> people;
@@ -29,6 +30,13 @@ class OcptResourcesSnapshot extends Equatable {
 
   /// Every element of the catalogue, in display order.
   final List<OcptElement> elements;
+
+  /// Every scene of the project's primary screenplay, in source order.
+  ///
+  /// Not a resource of its own: it is what the locations tab picks from when it says which scene a
+  /// set is shot in, and what names the scenes a set already holds. No count of it is shown — the
+  /// status bar counts what this mode owns, and the screenplay's scenes belong to the screenplay.
+  final List<OcptSceneRef> scenes;
 
   /// `people.length`.
   final int peopleCount;
@@ -51,6 +59,7 @@ class OcptResourcesSnapshot extends Equatable {
     required this.roles,
     required this.locations,
     required this.elements,
+    required this.scenes,
     required this.peopleCount,
     required this.roleCount,
     required this.positionCount,
@@ -58,18 +67,20 @@ class OcptResourcesSnapshot extends Equatable {
     required this.elementCount,
   });
 
-  /// Builds an [OcptResourcesSnapshot] from [people], [roles], [locations] and [elements],
-  /// deriving the five counts from them.
+  /// Builds an [OcptResourcesSnapshot] from [people], [roles], [locations], [elements] and
+  /// [scenes], deriving the five counts from them.
   factory OcptResourcesSnapshot.build({
     required List<OcptPerson> people,
     required List<OcptRole> roles,
     required List<OcptLocation> locations,
     required List<OcptElement> elements,
+    required List<OcptSceneRef> scenes,
   }) => OcptResourcesSnapshot(
     people: people,
     roles: roles,
     locations: locations,
     elements: elements,
+    scenes: scenes,
     peopleCount: people.length,
     roleCount: roles.length,
     positionCount: people.fold(0, (sum, person) => sum + person.positions.length),
@@ -91,6 +102,7 @@ class OcptResourcesSnapshot extends Equatable {
     roles,
     locations,
     elements,
+    scenes,
     peopleCount,
     roleCount,
     positionCount,

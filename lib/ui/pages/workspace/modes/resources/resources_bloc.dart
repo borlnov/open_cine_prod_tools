@@ -259,12 +259,17 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
     final locations = await _locationsService.loadLocations(database: database);
     final elements = await _elementsService.loadElements(database: database);
+    final scenes = await _locationsService.loadScenes(
+      database: database,
+      screenplayId: project.primaryScreenplayId,
+    );
 
     return OcptResourcesSnapshot.build(
       people: people,
       roles: roles,
       locations: locations,
       elements: elements,
+      scenes: scenes,
     );
   }
 

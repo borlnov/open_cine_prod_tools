@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 
@@ -80,6 +81,14 @@ class OcptLocation extends Equatable {
   /// The sets ("décors") of this location, in display order.
   final List<OcptSet> sets;
 
+  /// The scouting photos of this location, in display order, each a path this app never copies
+  /// (see [OcptAssetRef]). Empty while none was referenced.
+  final List<OcptAssetRef> photos;
+
+  /// The document [permitAssetId] names, or null while there is none — or while the row it names
+  /// is gone, which reads exactly the same way: no document to open.
+  final OcptAssetRef? permitDocument;
+
   /// Class constructor
   const OcptLocation({
     required this.id,
@@ -105,10 +114,18 @@ class OcptLocation extends Equatable {
     required this.constraintsNotes,
     required this.notes,
     required this.sets,
+    required this.photos,
+    required this.permitDocument,
   });
 
-  /// Builds an [OcptLocation] from its stored [row] and its already-ordered [sets].
-  factory OcptLocation.fromRow({required OcptLocationRow row, required List<OcptSet> sets}) =>
+  /// Builds an [OcptLocation] from its stored [row], its already-ordered [sets] and [photos], and
+  /// the [permitDocument] its `permitAssetId` resolved to.
+  factory OcptLocation.fromRow({
+    required OcptLocationRow row,
+    required List<OcptSet> sets,
+    required List<OcptAssetRef> photos,
+    required OcptAssetRef? permitDocument,
+  }) =>
       OcptLocation(
         id: row.id,
         name: row.name,
@@ -133,6 +150,8 @@ class OcptLocation extends Equatable {
         constraintsNotes: row.constraintsNotes,
         notes: row.notes,
         sets: sets,
+        photos: photos,
+        permitDocument: permitDocument,
       );
 
   /// Object string representation, useful for debugging and logging.
@@ -165,5 +184,7 @@ class OcptLocation extends Equatable {
     constraintsNotes,
     notes,
     sets,
+    photos,
+    permitDocument,
   ];
 }

@@ -23,6 +23,13 @@ class OcptSet extends Equatable {
   /// Free-form notes about this set.
   final String notes;
 
+  /// The ids of the scenes shot in this set, in the screenplay's own order.
+  ///
+  /// The `scene_sets` links seen from the set they point at. A scene belongs to **at most one**
+  /// set (see `OcptLocationsService.assignSceneToSet`), so nothing here can name the same scene
+  /// twice, and no set list needs to explain what two sets claiming one scene would mean.
+  final List<String> sceneIds;
+
   /// Class constructor
   const OcptSet({
     required this.id,
@@ -30,15 +37,17 @@ class OcptSet extends Equatable {
     required this.code,
     required this.name,
     required this.notes,
+    required this.sceneIds,
   });
 
-  /// Builds an [OcptSet] from its stored [row].
-  factory OcptSet.fromRow(OcptSetRow row) => OcptSet(
+  /// Builds an [OcptSet] from its stored [row] and the ids of the [sceneIds] shot in it.
+  factory OcptSet.fromRow({required OcptSetRow row, required List<String> sceneIds}) => OcptSet(
     id: row.id,
     locationId: row.locationId,
     code: row.code,
     name: row.name,
     notes: row.notes,
+    sceneIds: sceneIds,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -47,5 +56,5 @@ class OcptSet extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [id, locationId, code, name, notes];
+  List<Object?> get props => [id, locationId, code, name, notes, sceneIds];
 }
