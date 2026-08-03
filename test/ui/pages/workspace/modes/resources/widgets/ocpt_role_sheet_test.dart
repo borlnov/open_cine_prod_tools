@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
 OcptPerson _person({required String id, String firstName = "", String lastName = ""}) => OcptPerson(
@@ -74,6 +75,11 @@ OcptRole _role({
   castingNotes: castingNotes,
   number: number,
 );
+
+/// Finds [text] inside the header alone: the cast member's name and the not-cast placeholder both
+/// appear a second time in the casting card's own picker.
+Finder _inHeader(String text) =>
+    find.descendant(of: find.byType(OcptRoleSheetHeader), matching: find.text(text));
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -322,27 +328,35 @@ void main() {
     expect(find.byIcon(Icons.person_off_outlined), findsNothing);
   });
 
-  testWidgets("the ↗ affordance dispatches the cast member's id, and is absent while uncast", (
-    tester,
-  ) async {
-    String? openedPersonId;
+  testWidgets("the whole cast member line opens their sheet, name included", (tester) async {
+    final opened = <String>[];
 
     await tester.pumpWidget(
       _buildSheet(
         role: _role(personId: "p1"),
         castMember: _person(id: "p1", firstName: "Léa", lastName: "Martin"),
-        onPersonSheetOpenRequested: (personId) => openedPersonId = personId,
+        onPersonSheetOpenRequested: opened.add,
       ),
     );
     await tester.pumpAndSettle();
 
+    // The name is the target one actually aims at, not only the 14 px arrow beside it.
+    await tester.tap(_inHeader("Léa Martin"));
+    await tester.pumpAndSettle();
+    expect(opened, ["p1"]);
+
     await tester.tap(find.byIcon(Icons.north_east));
     await tester.pumpAndSettle();
-    expect(openedPersonId, "p1");
+    expect(opened, ["p1", "p1"]);
+  });
 
+  testWidgets("an uncast role offers nothing to open", (tester) async {
     await tester.pumpWidget(_buildSheet(role: _role()));
     await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
     expect(find.byIcon(Icons.north_east), findsNothing);
+    expect(_inHeader(tr.resourcesRoleNotCast), findsOneWidget);
   });
 
   testWidgets("every write affordance disappears when read-only", (tester) async {

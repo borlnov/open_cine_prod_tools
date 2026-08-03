@@ -81,7 +81,7 @@ class OcptRoleSheet extends StatelessWidget {
   /// Called when the orphaned role's alert is answered `Keep as a silent role`.
   final VoidCallback onOrphanedRoleKept;
 
-  /// Called with a person's id when an `↗` affordance is clicked.
+  /// Called with a person's id when the header's cast member line is clicked.
   final ValueChanged<String> onPersonSheetOpenRequested;
 
   /// Class constructor

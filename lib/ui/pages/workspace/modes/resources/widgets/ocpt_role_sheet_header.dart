@@ -18,8 +18,8 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 const double _avatarRadius = 26;
 
 /// The role sheet's header: the cast member's avatar on the left, and on the right the role's name
-/// as a title, the cast member's name under it with the `↗` opening their own sheet, the kind
-/// picker, and the role's rank in the cast as a badge.
+/// as a title, the cast member's line under it — name and `↗` together, the whole line opening
+/// their own sheet — the kind picker, and the role's rank in the cast as a badge.
 ///
 /// The name is a title-styled [OcptResourcesSheetField] for a hand-added role and plain text for a
 /// role reconciled from the screenplay, whose name `OcptRoleIndexService.reconcile` owns and would
@@ -27,8 +27,9 @@ const double _avatarRadius = 26;
 /// as a disabled field, so nothing ever looks editable that isn't. The same reasoning governs the
 /// delete action `OcptRoleSheet` puts at the bottom of the sheet.
 ///
-/// The `↗` lives here rather than beside the casting card's picker: this line is the "who plays
-/// this part" answer, and a jump button next to a dropdown would compete with it.
+/// The jump to the cast member lives here rather than beside the casting card's picker: this line
+/// is the "who plays this part" answer, and a jump target next to a dropdown would compete with
+/// it.
 class OcptRoleSheetHeader extends StatelessWidget {
   /// The role this header shows.
   final OcptRole role;
@@ -47,8 +48,8 @@ class OcptRoleSheetHeader extends StatelessWidget {
   /// Called with the newly picked kind, or null while it may not be changed.
   final ValueChanged<OcptRoleKind>? onKindChanged;
 
-  /// Called with the cast member's id when the `↗` affordance is clicked. Never null: reading a
-  /// cast member's sheet is not a write.
+  /// Called with the cast member's id when their line is clicked. Never null: reading a cast
+  /// member's sheet is not a write.
   final ValueChanged<String> onPersonSheetOpenRequested;
 
   /// Class constructor
@@ -152,37 +153,58 @@ class OcptRoleSheetHeader extends StatelessWidget {
     );
   }
 
-  /// Builds the cast member line: their name, or a muted italic "Not cast", and the `↗` opening
-  /// their own sheet while there is one.
+  /// Builds the cast member line: their name and the `↗`, the whole line being what opens their own
+  /// sheet, or a muted italic "Not cast" — plain text, since there is no sheet to open then.
+  ///
+  /// The name and the arrow are one target rather than a label beside a 14 px icon button: the name
+  /// *is* the person, so it is what one aims at, and the arrow only says that clicking leads
+  /// somewhere.
   Widget _buildCastMemberLine(BuildContext context, Tr tr) {
     final theme = Theme.of(context);
     final castMember = this.castMember;
 
-    return Row(
-      children: [
-        Flexible(
-          child: Text(
-            castMember == null
-                ? tr.resourcesRoleNotCast
-                : (castMember.displayName.isEmpty
-                      ? tr.resourcesUnnamedPerson
-                      : castMember.displayName),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: castMember == null ? theme.colorScheme.onSurfaceVariant : null,
-              fontStyle: castMember == null ? FontStyle.italic : FontStyle.normal,
+    if (castMember == null) {
+      return Text(
+        tr.resourcesRoleNotCast,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Tooltip(
+        message: tr.resourcesOpenPersonSheetTooltip,
+        child: InkWell(
+          onTap: () => onPersonSheetOpenRequested(castMember.id),
+          mouseCursor: ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    castMember.displayName.isEmpty
+                        ? tr.resourcesUnnamedPerson
+                        : castMember.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.north_east, size: 14),
+              ],
             ),
           ),
         ),
-        if (castMember != null)
-          IconButton(
-            icon: const Icon(Icons.north_east, size: 14),
-            tooltip: tr.resourcesOpenPersonSheetTooltip,
-            visualDensity: VisualDensity.compact,
-            onPressed: () => onPersonSheetOpenRequested(castMember.id),
-          ),
-      ],
+      ),
     );
   }
 
