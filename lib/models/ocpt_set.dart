@@ -25,9 +25,9 @@ class OcptSet extends Equatable {
 
   /// The ids of the scenes shot in this set, in the screenplay's own order.
   ///
-  /// The `scene_sets` links seen from the set they point at. A scene belongs to **at most one**
-  /// set (see `OcptLocationsService.assignSceneToSet`), so nothing here can name the same scene
-  /// twice, and no set list needs to explain what two sets claiming one scene would mean.
+  /// The `scene_sets` links seen from the set they point at. A scene may be shot in **several**
+  /// sets (see `OcptLocationsService.assignSceneToSet`), so the same scene id may well appear in
+  /// two sets' lists; what cannot happen is one list naming the same scene twice.
   final List<String> sceneIds;
 
   /// Class constructor

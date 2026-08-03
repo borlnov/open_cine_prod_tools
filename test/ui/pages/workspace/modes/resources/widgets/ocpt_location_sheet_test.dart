@@ -367,6 +367,33 @@ void main() {
     expect(assignedSceneId, "sc1");
   });
 
+  testWidgets("a scene already shot in another set is still offered", (tester) async {
+    String? assignedSceneId;
+
+    await pumpSheet(
+      tester,
+      location: _location(sets: [_set()]),
+      scenes: [_scene()],
+      assignedSceneIds: const {"sc1"},
+      onSceneAssigned: (sceneId, setId) => assignedSceneId = sceneId,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.ensureVisible(find.text(tr.resourcesAddSceneToSetAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.resourcesAddSceneToSetAction));
+    await tester.pumpAndSettle();
+
+    // A scene is regularly covered in two sets, so the picker says where it already is rather than
+    // hiding it — and picking it adds this set beside the one it has.
+    expect(find.text(tr.resourcesScenesInAnotherSetLabel), findsOneWidget);
+
+    await tester.tap(find.text("1 · CUISINE"));
+    await tester.pumpAndSettle();
+
+    expect(assignedSceneId, "sc1");
+  });
+
   testWidgets("the sets card withholds every control when read-only", (tester) async {
     await pumpSheet(
       tester,

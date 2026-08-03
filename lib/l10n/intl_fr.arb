@@ -520,7 +520,7 @@
   "resourcesSetScenesLabel": "Séquences tournées ici",
   "resourcesAddSceneToSetAction": "Séquence",
   "resourcesSceneSuggestedOption": "{scene} — suggérée",
-  "resourcesScenesInAnotherSetLabel": "Déjà dans un autre décor",
+  "resourcesScenesInAnotherSetLabel": "Tournées aussi dans un autre décor",
   "resourcesLocationPermitDocumentLabel": "Document",
   "resourcesReferenceDocumentAction": "Référencer un document…",
   "resourcesReplaceDocumentAction": "Référencer un autre document…",

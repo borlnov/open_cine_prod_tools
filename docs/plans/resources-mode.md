@@ -355,7 +355,8 @@ amperage exists, whether there is a toilet, and what the neighbours will tolerat
 sheet has, and the mock-up's `decors` list.
 
 **`scene_sets`**: `id`, `sceneId`, `setId`, `isDeleted`. Which scene is shot in which set,
-many-to-one. §4.5 explains where the suggestion comes from.
+many-to-many — one scene most often means one set, but a continuous action is regularly covered in
+two. §4.5 explains where the suggestion comes from.
 
 #### 4.2.5 `assets`
 
@@ -652,8 +653,11 @@ role, hand-added silent and extra roles, and the removed-role alert.
 The locations list and sheet, sets inside a location, the permit card, the `scene_sets` links with
 the §4.5 suggestion, and the asset references for scouting photos and the permit document.
 
-A scene is shot in **one** set, so `OcptLocationsService.assignSceneToSet` moves it rather than
-linking it twice, and a set reads its scenes back in the screenplay's own order. The suggestion is
+A scene may be shot in **several** sets, so `OcptLocationsService.assignSceneToSet` adds a link
+beside the ones the scene already has (reviving a dropped one rather than duplicating it) and
+`removeSceneFromSet` is the only thing that ever unlinks; a set reads its scenes back in the
+screenplay's own order. The picker offers the scenes already shot elsewhere under their own heading
+rather than hiding them. The suggestion is
 `ocptSceneSetSuggestionOf` (`lib/utils/`, pure Dart, tested on its own): a heading is reduced to the
 place it names, matched against the sets and then the locations, and the best hit is *offered* at
 the top of the scene picker — never applied. `OcptSceneRef` is how a scene is named outside the

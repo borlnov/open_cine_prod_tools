@@ -13,16 +13,16 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// CRUD over `locations`, their `sets`, the `scene_sets` links between a scene and the set it is
+/// CRUD over `locations`, their `sets`, the `scene_sets` links between a scene and the sets it is
 /// shot in, and the `assets` rows a location owns (its scouting photos and its permit document).
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
 /// **Order is `sortKey`, never `position`**, for `locations`, `sets` and a location's photos — see
-/// `OcptShotListService`'s own doc comment. `scene_sets` carries no `sortKey` at all: a scene
-/// belongs to at most one set, so there is no list of them to reorder (see [assignSceneToSet] and
-/// `OcptSceneSetsTable`'s own doc comment), and the scenes read back for a set are ordered by the
-/// screenplay's own scene order instead.
+/// `OcptShotListService`'s own doc comment. `scene_sets` carries no `sortKey` at all: a scene's
+/// sets are an unordered set of answers rather than a list the user reorders (see
+/// [assignSceneToSet] and `OcptSceneSetsTable`'s own doc comment), and the scenes read back for a
+/// set are ordered by the screenplay's own scene order instead.
 ///
 /// This service does not decide *which* set a scene's heading suggests — §4.5 of the plan this
 /// service ships under is explicit that the suggestion is never applied automatically, only
@@ -405,14 +405,16 @@ class OcptLocationsService {
     });
   }
 
-  /// Makes set [setId] **the** set scene [sceneId] is shot in, and returns the id of the link.
+  /// Says scene [sceneId] is also shot in set [setId], and returns the id of the link.
   ///
-  /// A scene is shot in one set: a scene heading names one place, and the two tables that will read
-  /// this link — the schedule mode's shooting days and a call sheet's location line — each need one
-  /// answer, not a list to arbitrate. So this tombstones whatever set the scene was linked to
-  /// before, in the same transaction, rather than adding a second link beside it. Re-assigning the
-  /// scene to the set it already sits in revives nothing and writes nothing new: the existing link's
-  /// id comes back.
+  /// A scene may be shot in **several** sets (see `OcptSceneSetsTable`), so this adds a link beside
+  /// the ones the scene already carries rather than moving it: dropping a set is
+  /// [removeSceneFromSet]'s job, and saying "also here" must never silently answer "no longer
+  /// there".
+  ///
+  /// Saying the same thing twice writes nothing new — the live link's id comes back — and a link
+  /// the user had dropped is revived rather than duplicated, so a scene never ends up holding two
+  /// rows that say the same thing.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> assignSceneToSet({
@@ -427,20 +429,27 @@ class OcptLocationsService {
     return database.transaction(() async {
       final existingLinks =
           await (database.select(database.ocptSceneSetsTable)..where(
-                (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
+                (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
               ))
               .get();
 
+      OcptSceneSetRow? droppedLink;
       for (final link in existingLinks) {
-        if (link.setId == setId) {
+        if (!link.isDeleted) {
           return link.id;
         }
 
+        droppedLink ??= link;
+      }
+
+      if (droppedLink != null) {
         await (database.update(
           database.ocptSceneSetsTable,
-        )..where((table) => table.id.equals(link.id))).write(
-          const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
+        )..where((table) => table.id.equals(droppedLink!.id))).write(
+          const OcptSceneSetsTableCompanion(isDeleted: Value(false)),
         );
+
+        return droppedLink.id;
       }
 
       final id = const Uuid().v4();
@@ -454,8 +463,8 @@ class OcptLocationsService {
     });
   }
 
-  /// Removes the link saying scene [sceneId] is shot in set [setId], leaving the scene with no set
-  /// at all. A no-op when there is no such live link.
+  /// Removes the link saying scene [sceneId] is shot in set [setId], leaving whatever other sets
+  /// that scene is shot in alone. A no-op when there is no such live link.
   ///
   /// Takes the two ids the caller has rather than the link's own: the set sheet lists a scene, and
   /// "this scene is not shot here" is what the user answers — the row carrying it is an

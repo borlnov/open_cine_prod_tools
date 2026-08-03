@@ -3877,7 +3877,7 @@
       }
     }
   },
-  "resourcesScenesInAnotherSetLabel": "Already in another set",
+  "resourcesScenesInAnotherSetLabel": "Also shot in another set",
   "@resourcesScenesInAnotherSetLabel": {
     "description": "Heading of the scene picker's group of scenes already shot in another set",
     "context": "Displayed in the resources mode's location sheet",

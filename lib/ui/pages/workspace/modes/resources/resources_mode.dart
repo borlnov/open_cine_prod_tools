@@ -493,9 +493,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// The ids of every scene already shot in a set, of this location or of another.
   ///
-  /// Read across the **whole** project rather than the selected location alone: a scene belongs to
-  /// one set, so the sets card has to tell "not placed yet" from "placed somewhere else" to know
-  /// which of the two answers picking it would give.
+  /// Read across the **whole** project rather than the selected location alone: a scene may be shot
+  /// in several sets, so this does not say what picking one would do — it says which scenes are
+  /// still waiting for a set of their own, which is what the picker sorts by and what a suggestion
+  /// is offered for.
   Set<String> _assignedSceneIdsOf(OcptResourcesState state) => {
     for (final location in state.locations)
       for (final set in location.sets) ...set.sceneIds,

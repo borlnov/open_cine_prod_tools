@@ -325,7 +325,7 @@ void main() {
       expect(await sceneIdsOfSet(setId), ["scene-1", "scene-2"]);
     });
 
-    test("assigning a scene to another set moves it rather than linking it twice", () async {
+    test("a scene may be shot in several sets at once", () async {
       final firstSetId = await createSetInNewLocation("Cuisine");
       final secondSetId = await createSetInNewLocation("Hangar");
 
@@ -340,8 +340,58 @@ void main() {
         setId: secondSetId,
       );
 
+      // Assigning adds; it never answers "no longer there" on the user's behalf.
+      expect(await sceneIdsOfSet(firstSetId), ["scene-1"]);
+      expect(await sceneIdsOfSet(secondSetId), ["scene-1"]);
+    });
+
+    test("dropping one of a scene's sets leaves the others alone", () async {
+      final firstSetId = await createSetInNewLocation("Cuisine");
+      final secondSetId = await createSetInNewLocation("Hangar");
+      await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: firstSetId,
+      );
+      await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: secondSetId,
+      );
+
+      await locationsService.removeSceneFromSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: firstSetId,
+      );
+
       expect(await sceneIdsOfSet(firstSetId), isEmpty);
       expect(await sceneIdsOfSet(secondSetId), ["scene-1"]);
+    });
+
+    test("re-assigning a dropped link revives it rather than adding a second one", () async {
+      final setId = await createSetInNewLocation("Cuisine");
+      final firstLinkId = await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      );
+      await locationsService.removeSceneFromSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      );
+
+      final revivedLinkId = await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      );
+
+      expect(revivedLinkId, firstLinkId);
+      expect(await sceneIdsOfSet(setId), ["scene-1"]);
+      final links = await database.select(database.ocptSceneSetsTable).get();
+      expect(links.length, 1);
     });
 
     test("assigning a scene to the set it already sits in keeps the same link", () async {

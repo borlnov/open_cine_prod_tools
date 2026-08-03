@@ -23,8 +23,9 @@ const double _codeFieldWidth = 72;
 /// known: the user is looking at "Cuisine" and knows scene 12 happens in it. The picker offers the
 /// scenes with no set of their own first, the ones this very set is *suggested* for at the top of
 /// that group (`ocptSceneSetSuggestionOf`, never applied on its own — `INT. CUISINE` in two houses
-/// is two sets), and the scenes already shot in another set last, under their own heading: picking
-/// one of those moves it, which is how a mis-assignment is repaired.
+/// is two sets), and the scenes already shot in another set last, under their own heading — those
+/// are offered rather than hidden because a scene is regularly covered in two sets, and picking one
+/// **adds** this set to it. Dropping the wrong set is its chip's own control.
 class OcptLocationSheetSetsCard extends StatelessWidget {
   /// The sets of the location this card belongs to, in display order.
   final List<OcptSet> sets;
@@ -202,8 +203,9 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     );
   }
 
-  /// The `+ Scene` picker of [set]: the unassigned scenes first, this set's suggested ones at the
-  /// top of them, then the scenes already shot elsewhere under their own heading.
+  /// The `+ Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
+  /// at the top of them, then the scenes already shot elsewhere under their own heading — picking
+  /// one of those adds this set beside the ones it already has.
   Widget _buildScenePicker(BuildContext context, Tr tr, OcptSet set) {
     final onSceneAssigned = this.onSceneAssigned!;
 

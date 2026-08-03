@@ -774,9 +774,9 @@ class OcptResourcesSetRemovedEvent extends OcptResourcesEvent {
 
 /// Says scene [sceneId] is shot in set [setId], written immediately.
 ///
-/// A scene is shot in one set, so this **moves** the scene when it already sat in another one (see
-/// `OcptLocationsService.assignSceneToSet`) — including from a set of another location, which is
-/// exactly what repairing a mis-assignment looks like.
+/// A scene may be shot in several sets, so this **adds** to whatever sets it already has (see
+/// `OcptLocationsService.assignSceneToSet`) rather than moving it — a mis-assignment is repaired by
+/// dropping the wrong set from its own chip, which says so explicitly.
 class OcptResourcesSceneAssignedToSetEvent extends OcptResourcesEvent {
   /// The id of the scene being assigned.
   final String sceneId;
@@ -792,8 +792,8 @@ class OcptResourcesSceneAssignedToSetEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
-/// Says scene [sceneId] is no longer shot in set [setId], leaving it with no set at all, written
-/// immediately.
+/// Says scene [sceneId] is no longer shot in set [setId], leaving the other sets it is shot in
+/// alone, written immediately.
 class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesEvent {
   /// The id of the scene being unassigned.
   final String sceneId;
