@@ -5,9 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_hmc_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_image_rights_card.dart';
@@ -88,7 +88,7 @@ class OcptPersonSheet extends StatelessWidget {
   final void Function({
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
   })
@@ -100,7 +100,7 @@ class OcptPersonSheet extends StatelessWidget {
     String id, {
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
     required String reason,

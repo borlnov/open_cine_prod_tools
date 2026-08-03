@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
@@ -32,11 +33,12 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
 // OcptPermitStatusConverter, OcptElementCategoryConverter, OcptElementSourceKindConverter,
-// OcptAssetKindConverter, OcptUnavailabilitySlotConverter), but the generated
+// OcptAssetKindConverter, OcptDayPartSlotConverter), but the generated
 // ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -46,7 +48,6 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 
 part 'ocpt_project_database.g.dart';

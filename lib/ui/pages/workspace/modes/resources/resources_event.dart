@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -12,7 +13,6 @@ import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// The events handled by `OcptResourcesBloc`.
 sealed class OcptResourcesEvent extends BlocEventForMixin {
@@ -336,14 +336,14 @@ class OcptResourcesUnavailabilityAddedEvent extends OcptResourcesEvent {
   final DateTime endDate;
 
   /// Which part of each covered day this unavailability takes.
-  final OcptUnavailabilitySlot slot;
+  final OcptDayPartSlot slot;
 
   /// The start of the window in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   final int? startMinute;
 
   /// The end of the window in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   final int? endMinute;
 
   /// Why this person is unavailable, free multi-line text.
@@ -386,14 +386,14 @@ class OcptResourcesUnavailabilityUpdatedEvent extends OcptResourcesEvent {
   final DateTime endDate;
 
   /// The new slot within each covered day.
-  final OcptUnavailabilitySlot slot;
+  final OcptDayPartSlot slot;
 
   /// The new window start in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   final int? startMinute;
 
   /// The new window end in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   final int? endMinute;
 
   /// The new reason.

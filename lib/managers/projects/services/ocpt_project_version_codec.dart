@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -22,7 +23,6 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// The single place that knows the shape of `project_versions.payload`: it turns an
@@ -1115,7 +1115,7 @@ class OcptProjectVersionCodec {
         personId: _string(json, _personIdKey),
         startDate: _dateTime(json, _startDateKey),
         endDate: _dateTime(json, _endDateKey),
-        slot: _enum(json, _slotKey, OcptUnavailabilitySlot.values.asNameMap()),
+        slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
         startMinute: _nullableInt(json, _startMinuteKey),
         endMinute: _nullableInt(json, _endMinuteKey),
         reason: _string(json, _reasonKey),

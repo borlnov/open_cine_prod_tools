@@ -9,7 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 const Duration _localFieldDebounce = Duration(milliseconds: 500);
 
 /// The window a row falls back to the first time it is switched to
-/// [OcptUnavailabilitySlot.custom]: an ordinary working day, so the user narrows a plausible
+/// [OcptDayPartSlot.custom]: an ordinary working day, so the user narrows a plausible
 /// window rather than building one from midnight.
 const int ocptDefaultUnavailabilityStartMinute = 9 * 60;
 
@@ -30,8 +30,8 @@ const int ocptDefaultUnavailabilityEndMinute = 18 * 60;
 const int _reasonMinLines = 2;
 
 /// "Unavailabilities": one row per [OcptPersonUnavailability] — the date range it spans, the
-/// [OcptUnavailabilitySlot] it takes of each of those days (with an explicit window when that slot
-/// is [OcptUnavailabilitySlot.custom]) and its free-text reason, each editable in place, plus a
+/// [OcptDayPartSlot] it takes of each of those days (with an explicit window when that slot
+/// is [OcptDayPartSlot.custom]) and its free-text reason, each editable in place, plus a
 /// remove control — and the `+ Add an unavailability` action, which opens the platform date picker
 /// directly (a new unavailability always starts as one full day with no reason, all of it then
 /// editable on the row it creates).
@@ -39,7 +39,7 @@ const int _reasonMinLines = 2;
 /// **Two windows in one day are two rows**: this is a set of constraints rather than a calendar
 /// with one entry per date, so nothing here has to be merged or de-duplicated. Each row therefore
 /// carries its own `+` control, which adds a second row over the very same dates already set to
-/// [OcptUnavailabilitySlot.custom] — going back through the date picker to re-enter a date the
+/// [OcptDayPartSlot.custom] — going back through the date picker to re-enter a date the
 /// sheet is already showing would be the same answer, typed twice.
 class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
   /// The person's unavailabilities, in start-date order.
@@ -51,7 +51,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     String id, {
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
     required String reason,
@@ -69,7 +69,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
   final void Function({
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
   })?
@@ -134,7 +134,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
                     : (startDate, endDate) => onAdded(
                         startDate: startDate,
                         endDate: endDate,
-                        slot: OcptUnavailabilitySlot.custom,
+                        slot: OcptDayPartSlot.custom,
                         startMinute: ocptDefaultUnavailabilityStartMinute,
                         endMinute: ocptDefaultUnavailabilityEndMinute,
                       ),
@@ -159,7 +159,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     void Function({
       required DateTime startDate,
       required DateTime endDate,
-      required OcptUnavailabilitySlot slot,
+      required OcptDayPartSlot slot,
       required int? startMinute,
       required int? endMinute,
     })
@@ -177,7 +177,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
       onAdded(
         startDate: picked,
         endDate: picked,
-        slot: OcptUnavailabilitySlot.fullDay,
+        slot: OcptDayPartSlot.fullDay,
         startMinute: null,
         endMinute: null,
       );
@@ -196,7 +196,7 @@ class _OcptUnavailabilityRow extends StatefulWidget {
   final void Function({
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
     required String reason,
@@ -238,14 +238,14 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   late DateTime _endDate = widget.unavailability.endDate;
 
   /// The slot taken of each covered day, held locally.
-  late OcptUnavailabilitySlot _slot = widget.unavailability.slot;
+  late OcptDayPartSlot _slot = widget.unavailability.slot;
 
   /// The window's start in minutes from midnight, null unless [_slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   late int? _startMinute = widget.unavailability.startMinute;
 
   /// The window's end in minutes from midnight, null unless [_slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   late int? _endMinute = widget.unavailability.endMinute;
 
   /// The reason field's own controller.
@@ -351,17 +351,17 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
 
   /// Sets this unavailability's slot, written immediately.
   ///
-  /// Switching to [OcptUnavailabilitySlot.custom] seeds a plausible working-day window when the
+  /// Switching to [OcptDayPartSlot.custom] seeds a plausible working-day window when the
   /// row has none yet; switching away from it drops the window, since the three other slots say
   /// everything themselves and a leftover pair of minutes would only ever come back wrong.
-  void _setSlot(OcptUnavailabilitySlot slot) {
+  void _setSlot(OcptDayPartSlot slot) {
     if (slot == _slot) {
       return;
     }
 
     setState(() {
       _slot = slot;
-      if (slot == OcptUnavailabilitySlot.custom) {
+      if (slot == OcptDayPartSlot.custom) {
         _startMinute ??= ocptDefaultUnavailabilityStartMinute;
         _endMinute ??= ocptDefaultUnavailabilityEndMinute;
       } else {
@@ -438,8 +438,8 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
             ],
           ),
           const SizedBox(height: 6),
-          _OcptUnavailabilitySlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
-          if (_slot == OcptUnavailabilitySlot.custom) ...[
+          _OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
+          if (_slot == OcptDayPartSlot.custom) ...[
             const SizedBox(height: 6),
             _buildTimeWindow(context, isReadOnly: isReadOnly),
           ],
@@ -515,7 +515,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   }
 
   /// The `09:00 → 18:00` pair of time buttons, shown only while the slot is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   Widget _buildTimeWindow(BuildContext context, {required bool isReadOnly}) => Row(
     children: [
       _buildTimeButton(context, _startMinute, isReadOnly: isReadOnly, isStart: true),
@@ -558,18 +558,18 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
 }
 
 /// The selector an unavailability row uses to pick which part of a day it takes: one compact pill
-/// per [OcptUnavailabilitySlot], the active one tinted `primary`, matching `OcptResourcesTabBar`'s
+/// per [OcptDayPartSlot], the active one tinted `primary`, matching `OcptResourcesTabBar`'s
 /// own segmented look.
-class _OcptUnavailabilitySlotSelector extends StatelessWidget {
+class _OcptDayPartSlotSelector extends StatelessWidget {
   /// The currently selected slot.
-  final OcptUnavailabilitySlot value;
+  final OcptDayPartSlot value;
 
   /// Called with the slot picked, or null while it may not be changed: the pills then read the
   /// current value out with no reaction to a tap.
-  final ValueChanged<OcptUnavailabilitySlot>? onChanged;
+  final ValueChanged<OcptDayPartSlot>? onChanged;
 
   /// Class constructor
-  const _OcptUnavailabilitySlotSelector({required this.value, required this.onChanged});
+  const _OcptDayPartSlotSelector({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -579,14 +579,14 @@ class _OcptUnavailabilitySlotSelector extends StatelessWidget {
       spacing: 4,
       runSpacing: 4,
       children: [
-        for (final slot in OcptUnavailabilitySlot.values)
-          _buildPill(context, slot, ocptUnavailabilitySlotLabel(tr, slot)),
+        for (final slot in OcptDayPartSlot.values)
+          _buildPill(context, slot, ocptDayPartSlotLabel(tr, slot)),
       ],
     );
   }
 
   /// Builds one pill of the selector.
-  Widget _buildPill(BuildContext context, OcptUnavailabilitySlot slot, String label) {
+  Widget _buildPill(BuildContext context, OcptDayPartSlot slot, String label) {
     final theme = Theme.of(context);
     final isSelected = slot == value;
     final onChanged = this.onChanged;

@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -190,7 +190,7 @@ void main() {
         personId: id,
         startDate: DateTime(2026, 8, 14),
         endDate: DateTime(2026, 8, 14),
-        slot: OcptUnavailabilitySlot.fullDay,
+        slot: OcptDayPartSlot.fullDay,
         reason: "Mariage de sa sœur",
       );
 
@@ -344,14 +344,14 @@ void main() {
         personId: personId,
         startDate: DateTime(2026, 8, 10),
         endDate: DateTime(2026, 8, 12),
-        slot: OcptUnavailabilitySlot.fullDay,
+        slot: OcptDayPartSlot.fullDay,
         reason: "Tournage d'un autre film",
       ))!;
 
       await peopleService.updateUnavailability(
         database: database,
         id: id,
-        slot: const Value(OcptUnavailabilitySlot.custom),
+        slot: const Value(OcptDayPartSlot.custom),
         startMinute: const Value(14 * 60),
         endMinute: const Value(17 * 60 + 30),
       );
@@ -360,7 +360,7 @@ void main() {
       final unavailability = people.single.unavailabilities.single;
       expect(unavailability.startDate, DateTime(2026, 8, 10));
       expect(unavailability.endDate, DateTime(2026, 8, 12));
-      expect(unavailability.slot, OcptUnavailabilitySlot.custom);
+      expect(unavailability.slot, OcptDayPartSlot.custom);
       expect(unavailability.startMinute, 14 * 60);
       expect(unavailability.endMinute, 17 * 60 + 30);
       expect(unavailability.reason, "Tournage d'un autre film");

@@ -5,8 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// A single skill of a person: a driving licence, a language, an instrument — a chip on the person
 /// sheet, and the thing an assistant director searches on.
@@ -57,14 +57,14 @@ class OcptPersonUnavailability extends Equatable {
   final DateTime endDate;
 
   /// Which part of each covered day this unavailability takes.
-  final OcptUnavailabilitySlot slot;
+  final OcptDayPartSlot slot;
 
   /// The start of the window in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   final int? startMinute;
 
   /// The end of the window in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   final int? endMinute;
 
   /// Why this person is unavailable, free multi-line text.

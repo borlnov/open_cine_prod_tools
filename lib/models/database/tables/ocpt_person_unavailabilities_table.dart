@@ -3,23 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
-
-/// Converts a [OcptUnavailabilitySlot] to and from the text stored in the
-/// `person_unavailabilities.slot` column.
-class OcptUnavailabilitySlotConverter extends TypeConverter<OcptUnavailabilitySlot, String> {
-  /// Class constructor
-  const OcptUnavailabilitySlotConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptUnavailabilitySlot fromSql(String fromDb) => OcptUnavailabilitySlot.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptUnavailabilitySlot value) => value.name;
-}
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 
 /// A stretch of time a person is known to be unavailable, with a reason.
 ///
@@ -55,15 +41,15 @@ class OcptPersonUnavailabilitiesTable extends Table {
   DateTimeColumn get endDate => dateTime()();
 
   /// Which part of each covered day this unavailability takes.
-  // The stored literal below must match `OcptUnavailabilitySlot.fullDay.name` exactly, for the
+  // The stored literal below must match `OcptDayPartSlot.fullDay.name` exactly, for the
   // same reason `shots.status`'s default does: an enum's `.name` getter isn't a compile-time
-  // constant expression, so it can't be written as `Constant(OcptUnavailabilitySlot.fullDay)`.
+  // constant expression, so it can't be written as `Constant(OcptDayPartSlot.fullDay)`.
   TextColumn get slot => text()
-      .map(const OcptUnavailabilitySlotConverter())
+      .map(const OcptDayPartSlotConverter())
       .withDefault(const Constant('fullDay'))();
 
   /// The start of the window, in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom].
+  /// [OcptDayPartSlot.custom].
   ///
   /// Minutes rather than a `DateTime`, because this is a time of day repeated over every date of
   /// the range rather than one instant: a stored timestamp would carry a date that contradicts
@@ -71,7 +57,7 @@ class OcptPersonUnavailabilitiesTable extends Table {
   IntColumn get startMinute => integer().nullable()();
 
   /// The end of the window, in minutes from midnight, or null unless [slot] is
-  /// [OcptUnavailabilitySlot.custom]. See [startMinute].
+  /// [OcptDayPartSlot.custom]. See [startMinute].
   IntColumn get endMinute => integer().nullable()();
 
   /// Why this person is unavailable, free multi-line text.

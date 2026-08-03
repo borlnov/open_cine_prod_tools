@@ -8,9 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
@@ -155,7 +155,7 @@ Widget _buildSheet({
   void Function({
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
   })?
@@ -164,7 +164,7 @@ Widget _buildSheet({
     String id, {
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     required int? startMinute,
     required int? endMinute,
     required String reason,
@@ -475,7 +475,7 @@ void main() {
                 personId: "p1",
                 startDate: DateTime(2026, 8, 15),
                 endDate: DateTime(2026, 8, 15),
-                slot: OcptUnavailabilitySlot.fullDay,
+                slot: OcptDayPartSlot.fullDay,
                 startMinute: null,
                 endMinute: null,
                 reason: "",
@@ -520,7 +520,7 @@ void main() {
       personId: "p1",
       startDate: DateTime(2026, 8, 15),
       endDate: DateTime(2026, 8, 15),
-      slot: OcptUnavailabilitySlot.fullDay,
+      slot: OcptDayPartSlot.fullDay,
       startMinute: null,
       endMinute: null,
       reason: "",
@@ -528,7 +528,7 @@ void main() {
 
     testWidgets("picking the custom slot reports it with a working-day window", (tester) async {
       await _useTallSurface(tester);
-      OcptUnavailabilitySlot? reportedSlot;
+      OcptDayPartSlot? reportedSlot;
       int? reportedStartMinute;
       int? reportedEndMinute;
 
@@ -557,7 +557,7 @@ void main() {
       await tester.tap(find.text(tr.resourcesSlotCustom));
       await tester.pumpAndSettle();
 
-      expect(reportedSlot, OcptUnavailabilitySlot.custom);
+      expect(reportedSlot, OcptDayPartSlot.custom);
       expect(reportedStartMinute, 9 * 60);
       expect(reportedEndMinute, 18 * 60);
     });
@@ -566,7 +566,7 @@ void main() {
       await _useTallSurface(tester);
       DateTime? reportedStart;
       DateTime? reportedEnd;
-      OcptUnavailabilitySlot? reportedSlot;
+      OcptDayPartSlot? reportedSlot;
       int? reportedStartMinute;
 
       await tester.pumpWidget(
@@ -578,7 +578,7 @@ void main() {
                 personId: "p1",
                 startDate: DateTime(2026, 8, 15),
                 endDate: DateTime(2026, 8, 15),
-                slot: OcptUnavailabilitySlot.morning,
+                slot: OcptDayPartSlot.morning,
                 startMinute: null,
                 endMinute: null,
                 reason: "",
@@ -610,7 +610,7 @@ void main() {
       // already carries a morning one is a second row, never an edit of the first.
       expect(reportedStart, DateTime(2026, 8, 15));
       expect(reportedEnd, DateTime(2026, 8, 15));
-      expect(reportedSlot, OcptUnavailabilitySlot.custom);
+      expect(reportedSlot, OcptDayPartSlot.custom);
       expect(reportedStartMinute, 9 * 60);
     });
 
@@ -630,7 +630,7 @@ void main() {
                 personId: "p1",
                 startDate: DateTime(2026, 8, 15),
                 endDate: DateTime(2026, 8, 17),
-                slot: OcptUnavailabilitySlot.custom,
+                slot: OcptDayPartSlot.custom,
                 startMinute: 14 * 60,
                 endMinute: 17 * 60 + 30,
                 reason: "Examen",

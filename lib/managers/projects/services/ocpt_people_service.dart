@@ -6,8 +6,8 @@ import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
@@ -555,7 +555,7 @@ class OcptPeopleService {
     required String personId,
     required DateTime startDate,
     required DateTime endDate,
-    required OcptUnavailabilitySlot slot,
+    required OcptDayPartSlot slot,
     int? startMinute,
     int? endMinute,
     required String reason,
@@ -593,7 +593,7 @@ class OcptPeopleService {
     required String id,
     Value<DateTime> startDate = const Value.absent(),
     Value<DateTime> endDate = const Value.absent(),
-    Value<OcptUnavailabilitySlot> slot = const Value.absent(),
+    Value<OcptDayPartSlot> slot = const Value.absent(),
     Value<int?> startMinute = const Value.absent(),
     Value<int?> endMinute = const Value.absent(),
     Value<String> reason = const Value.absent(),
