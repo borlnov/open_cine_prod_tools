@@ -8,16 +8,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_removed_role_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -28,14 +33,16 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
-/// left, the selected item's editable sheet in the centre, and the shared `Versions` dock tab on
-/// the right.
+/// left, the selected item's editable sheet (or, on the roles tab, the whole cast's table) in the
+/// centre, and the shared `Versions` dock tab on the right.
 ///
-/// This milestone gives only the people tab real content — creating, editing and erasing a person
-/// — while the other three tabs show a shared, discreet placeholder line. While a project version
-/// is being previewed, the mode shows that version's catalogue instead of the working copy's, and
-/// shows it read-only: everything that would write — the `+ Add a person` button, the person
-/// sheet's own fields — is withheld, and the shell carries the band naming the version.
+/// This milestone gives the people and roles tabs real content — creating, editing and erasing a
+/// person; casting, kind, casting notes and hand-added roles; the removed-role banner — while the
+/// other two tabs show a shared, discreet placeholder line. While a project version is being
+/// previewed, the mode shows that version's catalogue instead of the working copy's, and shows it
+/// read-only: everything that would write — the `+ Add a person`/`+ Add a role` buttons, the
+/// person sheet's own fields, the roles table's cast/kind/notes/delete — is withheld, and the
+/// shell carries the band naming the version.
 class OcptResourcesMode extends StatelessWidget {
   /// Creates the resources mode.
   const OcptResourcesMode({super.key});
@@ -175,9 +182,16 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Builds the shell's `centre`: the selected person's sheet, or the empty state while none is
-  /// selected.
+  /// Builds the shell's `centre`: the roles tab's banners and table on
+  /// [OcptResourcesTab.roles], the selected person's sheet on [OcptResourcesTab.people] (or the
+  /// empty state while none is selected), and the shared placeholder on the two tabs with no
+  /// content yet — handled by `OcptResourcesListPanel`'s own placeholder for the list, but the
+  /// centre also has nothing of its own to show for them, so it reuses the same empty state.
   Widget _buildCentre(BuildContext context, OcptResourcesState state) {
+    if (state.activeTab == OcptResourcesTab.roles) {
+      return _buildRolesCentre(context, state);
+    }
+
     final selectedPerson = state.selectedPerson;
     if (selectedPerson == null) {
       return OcptWorkspaceEmptyMode(
@@ -320,6 +334,94 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
 
     bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: person.id));
+  }
+
+  /// Builds the roles tab's centre: the removed-role banners over the cast table, or the empty
+  /// state (mirroring `resourcesNoPersonSelectedHint`'s tone) while the cast itself is empty.
+  Widget _buildRolesCentre(BuildContext context, OcptResourcesState state) {
+    final banners = _buildRemovedRoleBanners(context, state);
+
+    if (state.roles.isEmpty) {
+      return OcptWorkspaceEmptyMode(
+        icon: Icons.theater_comedy_outlined,
+        message: Tr.of(context).resourcesRolesEmptyHint,
+      );
+    }
+
+    final bloc = context.read<OcptResourcesBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    final table = OcptRolesTable(
+      roles: state.roles,
+      people: state.people,
+      selectedRoleId: state.selectedRoleId,
+      isReadOnly: isReadOnly,
+      fieldValueOf: (role, field) => _roleFieldValueOf(state, role, field),
+      onRoleSelected: (roleId) => bloc.add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
+      onFieldChanged: (roleId, field, rawValue) => bloc.add(
+        OcptResourcesRoleFieldChangedEvent(roleId: roleId, field: field, rawValue: rawValue),
+      ),
+      onCastChanged: (roleId, personId) =>
+          bloc.add(OcptResourcesRoleCastChangedEvent(roleId: roleId, personId: personId)),
+      onKindChanged: (roleId, kind) =>
+          bloc.add(OcptResourcesRoleKindChangedEvent(roleId: roleId, kind: kind)),
+      onDeleteRequested: (roleId) =>
+          bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: roleId)),
+      onPersonSheetOpenRequested: (personId) =>
+          bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+    );
+
+    if (banners.isEmpty) {
+      return Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 20), child: table);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Column(children: banners),
+          const SizedBox(height: 10),
+          Expanded(child: table),
+        ],
+      ),
+    );
+  }
+
+  /// Builds one `OcptRemovedRoleBanner` per alert the state derives, or an empty list when no role
+  /// is orphaned.
+  List<Widget> _buildRemovedRoleBanners(BuildContext context, OcptResourcesState state) {
+    final bloc = context.read<OcptResourcesBloc>();
+
+    return [
+      for (final alert in state.removedRoleAlerts)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: OcptRemovedRoleBanner(
+            alert: alert,
+            isReadOnly: state.isPreviewingVersion,
+            onDeleteRequested: () =>
+                bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: alert.roleId)),
+            onKeepRequested: () =>
+                bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: alert.roleId)),
+          ),
+        ),
+    ];
+  }
+
+  /// [role]'s current value for [field]: a pending edit still sitting in the bloc's debounce takes
+  /// priority over the role's own stored value, so typing is never overwritten by an unrelated
+  /// reload. Mirrors [_fieldValueOf].
+  String _roleFieldValueOf(OcptResourcesState state, OcptRole role, OcptRoleField field) {
+    final pending = state.pendingRoleFieldEdits[(role.id, field)];
+    if (pending != null) {
+      return pending;
+    }
+
+    return switch (field) {
+      OcptRoleField.name => role.name,
+      OcptRoleField.castingNotes => role.castingNotes,
+    };
   }
 
   /// Builds the right dock, the shell's `rightPanel`, or null while the dock is closed.
