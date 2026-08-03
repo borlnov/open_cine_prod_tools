@@ -3412,5 +3412,138 @@
     "context": "Displayed in the resources mode's `+ Add a role` menu",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesRolesColumnNumber": "N°",
+  "@resourcesRolesColumnNumber": {
+    "description": "Header of the roles table's rank column",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesColumnRole": "Role",
+  "@resourcesRolesColumnRole": {
+    "description": "Header of the roles table's role name column",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesColumnCastMember": "Cast member",
+  "@resourcesRolesColumnCastMember": {
+    "description": "Header of the roles table's cast member column, and the label of the expanded row's cast member picker",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesColumnOtherRoles": "Other roles held",
+  "@resourcesRolesColumnOtherRoles": {
+    "description": "Header of the roles table's other-roles-held column",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesTableTitle": "Cast",
+  "@resourcesRolesTableTitle": {
+    "description": "Title over the roles table",
+    "context": "Displayed in the resources mode's centre area, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesTableSubtitle": "One actor may hold several roles, and a crew member may act too — use ↗ to open a cast member's sheet.",
+  "@resourcesRolesTableSubtitle": {
+    "description": "Subtitle explaining the roles table's own quirks",
+    "context": "Displayed under the roles table's title, in the resources mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindSpeaking": "Speaking",
+  "@resourcesRoleKindSpeaking": {
+    "description": "Label of a speaking role, reconciled from the screenplay",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindSilent": "Silent",
+  "@resourcesRoleKindSilent": {
+    "description": "Label of a silent (non-speaking) role, added by hand",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindExtra": "Extra",
+  "@resourcesRoleKindExtra": {
+    "description": "Label of an extra role, added by hand",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindFieldLabel": "Kind",
+  "@resourcesRoleKindFieldLabel": {
+    "description": "Label of the expanded row's role kind picker",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCastingNotesLabel": "Casting notes",
+  "@resourcesRoleCastingNotesLabel": {
+    "description": "Label of a role's casting notes field",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCastingNotesHint": "Availability, agent contact, audition notes…",
+  "@resourcesRoleCastingNotesHint": {
+    "description": "Placeholder shown in a role's empty casting notes field",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameLabel": "Name",
+  "@resourcesRoleNameLabel": {
+    "description": "Label of a role's name field, or of its read-only note for a role reconciled from the screenplay",
+    "context": "Displayed in the resources mode's roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameFromScreenplayNote": "This name comes from the screenplay",
+  "@resourcesRoleNameFromScreenplayNote": {
+    "description": "Note explaining why a role's name field is withheld, shown in its place",
+    "context": "Displayed in the resources mode's roles table, for a role reconciled from the screenplay",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesOpenPersonSheetTooltip": "Open this person's sheet",
+  "@resourcesOpenPersonSheetTooltip": {
+    "description": "Tooltip of the roles table's ↗ affordance, opening the cast member's own sheet",
+    "context": "Displayed on hover over the roles table's cast member cell",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteAction": "Delete this role",
+  "@resourcesRoleDeleteAction": {
+    "description": "Action opening the role's inline delete confirmation",
+    "context": "Displayed in the roles table's expanded row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteConfirmMessage": "This permanently deletes this role. This can't be undone.",
+  "@resourcesRoleDeleteConfirmMessage": {
+    "description": "Message of the role's inline delete confirmation",
+    "context": "Displayed in the roles table's expanded row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteCancelAction": "Cancel",
+  "@resourcesRoleDeleteCancelAction": {
+    "description": "Action cancelling the role's inline delete confirmation",
+    "context": "Displayed in the roles table's expanded row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteConfirmAction": "Delete",
+  "@resourcesRoleDeleteConfirmAction": {
+    "description": "Action confirming the role's inline delete confirmation",
+    "context": "Displayed in the roles table's expanded row",
+    "type": "text",
+    "placeholders": {}
   }
 }

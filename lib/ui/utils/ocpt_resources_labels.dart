@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// The placeholder shown in place of a resources field that has no value yet.
@@ -102,4 +103,11 @@ String ocptResourcesTabLabel(Tr tr, OcptResourcesTab tab) => switch (tab) {
   OcptResourcesTab.roles => tr.resourcesTabRoles,
   OcptResourcesTab.locations => tr.resourcesTabLocations,
   OcptResourcesTab.elements => tr.resourcesTabElements,
+};
+
+/// The display label of [kind], what kind of character a role is.
+String ocptRoleKindLabel(Tr tr, OcptRoleKind kind) => switch (kind) {
+  OcptRoleKind.speaking => tr.resourcesRoleKindSpeaking,
+  OcptRoleKind.silent => tr.resourcesRoleKindSilent,
+  OcptRoleKind.extra => tr.resourcesRoleKindExtra,
 };
