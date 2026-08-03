@@ -124,6 +124,9 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a shot's `shotSize` column from a JSON object
   static const _shotSizeKey = "shotSize";
 
+  /// This is the key used to stringify or parse a shot's `abbreviation` column from a JSON object
+  static const _abbreviationKey = "abbreviation";
+
   /// This is the key used to stringify or parse a shot's `framing` column from a JSON object
   static const _framingKey = "framing";
 
@@ -466,6 +469,7 @@ class OcptProjectVersionCodec {
     _positionKey: row.position,
     _sortKeyKey: row.sortKey,
     _shotSizeKey: row.shotSize,
+    _abbreviationKey: row.abbreviation,
     _framingKey: row.framing,
     _cameraMoveKey: row.cameraMove,
     _lensKey: row.lens,
@@ -495,6 +499,7 @@ class OcptProjectVersionCodec {
     position: _int(json, _positionKey),
     sortKey: _string(json, _sortKeyKey),
     shotSize: _string(json, _shotSizeKey),
+    abbreviation: _string(json, _abbreviationKey),
     framing: _string(json, _framingKey),
     cameraMove: _string(json, _cameraMoveKey),
     lens: _string(json, _lensKey),

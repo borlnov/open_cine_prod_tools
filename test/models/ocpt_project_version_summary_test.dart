@@ -56,6 +56,7 @@ void main() {
         position: 0,
         sortKey: "V",
         shotSize: "",
+        abbreviation: "",
         framing: "",
         cameraMove: "",
         lens: "",

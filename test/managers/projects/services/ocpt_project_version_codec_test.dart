@@ -76,6 +76,7 @@ void main() {
         position: 0,
         sortKey: "V",
         shotSize: "Wide",
+        abbreviation: "WS",
         framing: "Low angle",
         cameraMove: "Dolly in",
         lens: "35mm",
@@ -102,6 +103,7 @@ void main() {
         position: 1,
         sortKey: "k",
         shotSize: "",
+        abbreviation: "",
         framing: "",
         cameraMove: "",
         lens: "",
@@ -219,6 +221,15 @@ void main() {
       expect(roundTripped.rowFieldVersions.first.version, 7);
       expect(roundTripped.rowFieldVersions.last.rowId, "shot-1/THÉO");
       expect(roundTripped.rowFieldVersions.last.deviceId, "device-2");
+    });
+
+    test("a shot's abbreviation survives, so a restore keeps the coverage bar labels", () {
+      final roundTripped = roundTrip(buildRichPayload());
+
+      // The codec is a hand-written mirror of the schema, so every column it forgets is a column
+      // a restore silently blanks. This one degrades the scenario coverage export's bar labels
+      // from «WS1/1» back to «1/1», which nothing else would catch.
+      expect(roundTripped.shots.map((row) => row.abbreviation), ["WS", ""]);
     });
 
     test('scene ids come back identical, and every reference to them still resolves', () {
