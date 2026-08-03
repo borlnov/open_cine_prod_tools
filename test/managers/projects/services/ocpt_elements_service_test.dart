@@ -144,6 +144,18 @@ void main() {
               charEnd: 10,
             ),
           );
+      await database
+          .into(database.ocptScenesTable)
+          .insert(
+            OcptScenesTableCompanion.insert(
+              id: "scene-2",
+              screenplayId: "screenplay-1",
+              position: 1,
+              heading: "EXT. RUE - NIGHT",
+              charStart: 11,
+              charEnd: 20,
+            ),
+          );
     });
 
     test("addSceneElement links a scene to an element", () async {
@@ -220,6 +232,95 @@ void main() {
         sceneId: "scene-1",
       );
       expect(links, isEmpty);
+    });
+    test("loadElements joins the links in the screenplay's own scene order", () async {
+      final elementId = await createElement("Valise");
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-2",
+        elementId: elementId,
+        quantity: "1",
+      );
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+        quantity: "2",
+        notes: "Sur la table",
+      );
+
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.sceneLinks.map((link) => link.sceneId), ["scene-1", "scene-2"]);
+      expect(element.sceneLinks.first.quantity, "2");
+      expect(element.sceneLinks.first.notes, "Sur la table");
+    });
+
+    test("a link onto a tombstoned scene is left out of the element it points at", () async {
+      final elementId = await createElement("Valise");
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+      );
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-2",
+        elementId: elementId,
+      );
+
+      await (database.update(
+        database.ocptScenesTable,
+      )..where((row) => row.id.equals("scene-1"))).write(
+        const OcptScenesTableCompanion(isDeleted: Value(true)),
+      );
+
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.sceneLinks.map((link) => link.sceneId), ["scene-2"]);
+    });
+
+    test("addSceneElement on a scene already linked returns the link it already has", () async {
+      final elementId = await createElement("Valise");
+      final firstId = await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+        quantity: "2",
+      );
+
+      final secondId = await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+      );
+
+      expect(secondId, firstId);
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.sceneLinks, hasLength(1));
+      expect(element.sceneLinks.single.quantity, "2");
+    });
+
+    test("addSceneElement revives a removed link rather than duplicating it", () async {
+      final elementId = await createElement("Valise");
+      final linkId = (await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+        quantity: "2",
+        notes: "Sur la table",
+      ))!;
+      await elementsService.removeSceneElement(database: database, id: linkId);
+
+      final revivedId = await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+      );
+
+      expect(revivedId, linkId);
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.sceneLinks, hasLength(1));
+      expect(element.sceneLinks.single.quantity, "2");
+      expect(element.sceneLinks.single.notes, "Sur la table");
     });
   });
 }

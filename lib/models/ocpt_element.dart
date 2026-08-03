@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 
@@ -69,6 +70,14 @@ class OcptElement extends Equatable {
   /// This element's photo, or null while there is none. → `OcptAssetRef`
   final String? photoAssetId;
 
+  /// The scenes this element is needed in, in the screenplay's own order.
+  ///
+  /// The `scene_elements` links seen from the element they point at, each carrying the quantity and
+  /// the notes that scene alone has for it. A link onto a scene the screenplay no longer has is
+  /// left out rather than shown (see `OcptElementsService.loadElements`), exactly as a set's own
+  /// scenes are.
+  final List<OcptSceneElementLink> sceneLinks;
+
   /// Class constructor
   const OcptElement({
     required this.id,
@@ -89,10 +98,14 @@ class OcptElement extends Equatable {
     required this.purposeNotes,
     required this.notes,
     required this.photoAssetId,
+    required this.sceneLinks,
   });
 
-  /// Builds an [OcptElement] from its stored [row].
-  factory OcptElement.fromRow(OcptElementRow row) => OcptElement(
+  /// Builds an [OcptElement] from its stored [row] and the [sceneLinks] pointing at it.
+  factory OcptElement.fromRow({
+    required OcptElementRow row,
+    required List<OcptSceneElementLink> sceneLinks,
+  }) => OcptElement(
     id: row.id,
     category: row.category,
     subCategory: row.subCategory,
@@ -111,6 +124,7 @@ class OcptElement extends Equatable {
     purposeNotes: row.purposeNotes,
     notes: row.notes,
     photoAssetId: row.photoAssetId,
+    sceneLinks: sceneLinks,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -138,5 +152,6 @@ class OcptElement extends Equatable {
     purposeNotes,
     notes,
     photoAssetId,
+    sceneLinks,
   ];
 }
