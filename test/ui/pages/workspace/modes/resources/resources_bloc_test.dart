@@ -12,6 +12,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -274,6 +276,118 @@ void main() {
     expect(previewing.previewedVersionId, versionId);
     expect(previewing.peopleCount, 1);
     expect(previewing.isPreviewingVersion, isTrue);
+
+    await bloc.close();
+  });
+
+  test("creating a silent role appends it to the cast and selects it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    final state = await waitForState(bloc, (state) => state.roleCount == 1);
+
+    expect(state.selectedRoleId, isNotNull);
+    expect(state.selectedRole, isNotNull);
+    expect(state.roles.single.id, state.selectedRoleId);
+    expect(state.roles.single.kind, OcptRoleKind.silent);
+    expect(state.roles.single.isFromScreenplay, isFalse);
+
+    await bloc.close();
+  });
+
+  test("casting a person to a role and changing its kind both land in the database", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = withPerson.selectedPersonId!;
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+    final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+    final roleId = withRole.selectedRoleId!;
+
+    bloc.add(OcptResourcesRoleCastChangedEvent(roleId: roleId, personId: personId));
+    var state = await waitForState(
+      bloc,
+      (state) => state.roles.single.personId == personId,
+    );
+    expect(state.roles.single.kind, OcptRoleKind.extra);
+
+    bloc.add(OcptResourcesRoleKindChangedEvent(roleId: roleId, kind: OcptRoleKind.silent));
+    state = await waitForState(bloc, (state) => state.roles.single.kind == OcptRoleKind.silent);
+    expect(state.roles.single.personId, personId);
+
+    await bloc.close();
+  });
+
+  test("a debounced role name edit is written and flushed by a selection change", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    final created = await waitForState(bloc, (state) => state.roleCount == 1);
+    final roleId = created.selectedRoleId!;
+
+    bloc.add(
+      OcptResourcesRoleFieldChangedEvent(
+        roleId: roleId,
+        field: OcptRoleField.name,
+        rawValue: "Passerby",
+      ),
+    );
+    var state = await waitForState(
+      bloc,
+      (state) => state.pendingRoleFieldEdits[(roleId, OcptRoleField.name)] == "Passerby",
+    );
+    // Not written yet: still the field's default empty value.
+    expect(state.selectedRole!.name, isEmpty);
+
+    // Selecting the role away (collapsing it) flushes the pending edit rather than losing it.
+    bloc.add(OcptResourcesRoleSelectedEvent(roleId: roleId));
+    state = await waitForState(bloc, (state) => state.selectedRoleId == null);
+    expect(state.pendingRoleFieldEdits, isEmpty);
+
+    final roles = await waitForState(bloc, (state) => state.roles.single.name == "Passerby");
+    expect(roles.roles.single.name, "Passerby");
+
+    await bloc.close();
+  });
+
+  test("deleting the selected role clears the selection", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+    var state = await waitForState(bloc, (state) => state.roleCount == 1);
+    final roleId = state.selectedRoleId!;
+
+    bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: roleId));
+    state = await waitForState(bloc, (state) => state.roleCount == 0);
+
+    expect(state.selectedRoleId, isNull);
+    expect(state.roles, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("opening a person's sheet from the roles tab selects them on the people tab at once",
+      () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = withPerson.selectedPersonId!;
+
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.roles));
+    await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
+
+    bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId));
+    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
+
+    expect(state.selectedPersonId, personId);
 
     await bloc.close();
   });

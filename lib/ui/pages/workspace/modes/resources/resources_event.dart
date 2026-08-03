@@ -7,6 +7,8 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// The events handled by `OcptResourcesBloc`.
@@ -33,9 +35,9 @@ class OcptResourcesBackRequestedEvent extends OcptResourcesEvent {
 
 /// Selects the left dock's tab [tab], dispatched by `OcptResourcesTabBar`.
 ///
-/// Clears the selected person when [tab] actually differs from the one already active: a tab
-/// switch shows a different list, none of whose rows the previous selection belonged to (and only
-/// [OcptResourcesTab.people] has a selectable row at all, this milestone).
+/// Clears the selected person and the selected role when [tab] actually differs from the one
+/// already active: a tab switch shows a different list, none of whose rows the previous selection
+/// belonged to.
 class OcptResourcesTabSelectedEvent extends OcptResourcesEvent {
   /// The tab to select.
   final OcptResourcesTab tab;
@@ -430,6 +432,150 @@ class OcptResourcesUnavailabilityRemovedEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, id];
+}
+
+/// Selects role [roleId], dispatched by a row of `OcptRolesTable`: the row expands in place into
+/// its inline editor (cast member, kind, casting notes, delete). There is no role sheet or dialog.
+///
+/// Selecting the already-selected role clears the selection instead, collapsing the row the same
+/// way it was expanded.
+class OcptResourcesRoleSelectedEvent extends OcptResourcesEvent {
+  /// The id of the role to select.
+  final String roleId;
+
+  /// Class constructor
+  const OcptResourcesRoleSelectedEvent({required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId];
+}
+
+/// Requests adding a hand-added role of [kind] at the end of the cast, then selecting it: the
+/// left dock's `+ Add a role` action, offering `silent` and `extra` (never `speaking`, which only
+/// `OcptRoleIndexService.reconcile` ever creates).
+class OcptResourcesRoleCreationRequestedEvent extends OcptResourcesEvent {
+  /// The kind of the role to create, never [OcptRoleKind.speaking].
+  final OcptRoleKind kind;
+
+  /// Class constructor
+  const OcptResourcesRoleCreationRequestedEvent({required this.kind});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, kind];
+}
+
+/// Records the raw text just typed into [field] of role [roleId], dispatched by the roles table's
+/// expanded row on every keystroke.
+///
+/// Rides the same field-edit autosave debounce as `OcptResourcesPersonFieldChangedEvent`: the
+/// typed value becomes visible immediately as a pending edit in
+/// `OcptResourcesState.pendingRoleFieldEdits`, and (re)starts the debounce that eventually writes
+/// it.
+class OcptResourcesRoleFieldChangedEvent extends OcptResourcesEvent {
+  /// The id of the role whose field was edited.
+  final String roleId;
+
+  /// The field edited.
+  final OcptRoleField field;
+
+  /// The raw text now sitting in the field, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptResourcesRoleFieldChangedEvent({
+    required this.roleId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, field, rawValue];
+}
+
+/// Casts person [personId] to role [roleId] (or uncasts it, when [personId] is null), written
+/// immediately: picking a cast member from a menu is a single discrete action, not typing.
+class OcptResourcesRoleCastChangedEvent extends OcptResourcesEvent {
+  /// The id of the role being cast.
+  final String roleId;
+
+  /// The id of the person now cast in this role, or null to uncast it.
+  final String? personId;
+
+  /// Class constructor
+  const OcptResourcesRoleCastChangedEvent({required this.roleId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, personId];
+}
+
+/// Sets role [roleId]'s kind to [kind], written immediately: picking a kind from a menu is a
+/// single discrete action, not typing.
+class OcptResourcesRoleKindChangedEvent extends OcptResourcesEvent {
+  /// The id of the role whose kind changed.
+  final String roleId;
+
+  /// The new kind.
+  final OcptRoleKind kind;
+
+  /// Class constructor
+  const OcptResourcesRoleKindChangedEvent({required this.roleId, required this.kind});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, kind];
+}
+
+/// Requests deleting role [roleId]: the expanded row's own delete action. Tombstones the role,
+/// clears the selection when it was the selected role, and drops any pending field edit that
+/// still targeted it.
+class OcptResourcesRoleDeletionRequestedEvent extends OcptResourcesEvent {
+  /// The id of the role to delete.
+  final String roleId;
+
+  /// Class constructor
+  const OcptResourcesRoleDeletionRequestedEvent({required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId];
+}
+
+/// The removed-role banner's "keep it" action for role [roleId]: it stops being owned by
+/// `OcptRoleIndexService.reconcile` and becomes a hand-added `silent` role, its casting and notes
+/// untouched.
+class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesEvent {
+  /// The id of the orphaned role to keep.
+  final String roleId;
+
+  /// Class constructor
+  const OcptResourcesOrphanedRoleKeptEvent({required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId];
+}
+
+/// Requests opening person [personId]'s sheet, dispatched by the roles table's dedicated `↗`
+/// affordance in the cast-member cell (a plain row click only *selects* the role).
+///
+/// Flushes any pending field edit first, then switches the left dock to
+/// [OcptResourcesTab.people] and selects [personId] in one state — deliberately **not** by
+/// dispatching `OcptResourcesTabSelectedEvent`, which clears the selection on every tab change: the
+/// sheet this event was asked to open would be deselected again in the very same frame.
+class OcptResourcesPersonSheetOpenRequestedEvent extends OcptResourcesEvent {
+  /// The id of the person whose sheet to open.
+  final String personId;
+
+  /// Class constructor
+  const OcptResourcesPersonSheetOpenRequestedEvent({required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId];
 }
 
 /// Toggles the visibility of the left (list) dock.
