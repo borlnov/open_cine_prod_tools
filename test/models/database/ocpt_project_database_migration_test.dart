@@ -178,6 +178,90 @@ void main() {
     return row.data['user_version'];
   }
 
+  /// The shape of every table [database] holds: the table name mapped to its columns, each read
+  /// from `PRAGMA table_info` as its name, declared type, nullability, default and primary key
+  /// rank.
+  ///
+  /// A table's columns are gathered into a set rather than a list because the two ways a table can
+  /// reach the current version disagree on their *order* and on nothing else: `createTable` writes
+  /// them in the order the Dart declaration lists them, while `ALTER TABLE … ADD COLUMN` can only
+  /// append. Which columns exist, and what each of them is, is what an upgraded file and a fresh
+  /// one have to agree on for the rest of the app to treat them alike.
+  Future<Map<String, Set<String>>> readSchemaShape(OcptProjectDatabase database) async {
+    final tables = await database
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' "
+          "ORDER BY name",
+        )
+        .get();
+
+    final shape = <String, Set<String>>{};
+    for (final table in tables) {
+      final tableName = table.read<String>('name');
+      final columns = await database.customSelect('PRAGMA table_info("$tableName")').get();
+      shape[tableName] = {
+        for (final column in columns)
+          "${column.read<String>('name')} ${column.read<String>('type')} "
+          "notNull=${column.read<int>('notnull')} "
+          "default=${column.data['dflt_value']} pk=${column.read<int>('pk')}",
+      };
+    }
+
+    return shape;
+  }
+
+  test('a database created from scratch has the shape every upgrade path lands on', () async {
+    // The reference: a file drift creates itself, through `onCreate` alone, never having been
+    // anything but version 5.
+    final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
+    final freshShape = await readSchemaShape(freshDatabase);
+    expect(await readSchemaVersion(freshDatabase), 5);
+    await freshDatabase.close();
+
+    // Naming the tables rather than counting them: two empty shapes would compare equal below and
+    // prove nothing at all, and this is also where a table added later without a migration step
+    // shows up.
+    expect(freshShape.keys, {
+      'project_info',
+      'project_versions',
+      'row_field_versions',
+      'scenes',
+      'screenplay_snapshots',
+      'screenplays',
+      'shot_characters',
+      'shot_coverages',
+      'shots',
+    });
+
+    // And every file an earlier version could have left behind, brought up by `onUpgrade`: each
+    // must land on that same shape, whichever generation of columns it already carried.
+    for (final (fileName, ddl, userVersion) in [
+      ('upgraded_from_v1.ocpt', _v1Ddl, 1),
+      ('upgraded_from_v2.ocpt', _v2Ddl, 2),
+      ('upgraded_from_v3.ocpt', _v3Ddl, 3),
+      ('upgraded_from_v4.ocpt', _v4Ddl, 4),
+    ]) {
+      final filePath = p.join(tempDir.path, fileName);
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(ddl);
+      legacyDb.execute('PRAGMA user_version = $userVersion;');
+      seedCommonRows(legacyDb);
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+      expect(
+        await readSchemaShape(database),
+        freshShape,
+        reason: "a file coming from version $userVersion must end up on the very shape `onCreate` "
+            "writes",
+      );
+      expect(await readSchemaVersion(database), 5);
+
+      await database.close();
+    }
+  });
+
   test('a v1 database migrates to the current schema, preserving every existing row', () async {
     final filePath = p.join(tempDir.path, 'legacy_v1.ocpt');
 
