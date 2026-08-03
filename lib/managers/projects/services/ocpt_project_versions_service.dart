@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -45,6 +46,17 @@ class OcptProjectVersionsService {
     'shots',
     'shot_characters',
     'shot_coverages',
+    'people',
+    'person_positions',
+    'person_skills',
+    'person_unavailabilities',
+    'roles',
+    'locations',
+    'sets',
+    'scene_sets',
+    'elements',
+    'scene_elements',
+    'assets',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -293,6 +305,17 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShotsTable, payload.shots)
         ..insertAll(database.ocptShotCharactersTable, payload.shotCharacters)
         ..insertAll(database.ocptShotCoveragesTable, payload.shotCoverages)
+        ..insertAll(database.ocptPeopleTable, payload.people)
+        ..insertAll(database.ocptPersonPositionsTable, payload.personPositions)
+        ..insertAll(database.ocptPersonSkillsTable, payload.personSkills)
+        ..insertAll(database.ocptPersonUnavailabilitiesTable, payload.personUnavailabilities)
+        ..insertAll(database.ocptRolesTable, payload.roles)
+        ..insertAll(database.ocptLocationsTable, payload.locations)
+        ..insertAll(database.ocptSetsTable, payload.sets)
+        ..insertAll(database.ocptSceneSetsTable, payload.sceneSets)
+        ..insertAll(database.ocptElementsTable, payload.elements)
+        ..insertAll(database.ocptSceneElementsTable, payload.sceneElements)
+        ..insertAll(database.ocptAssetsTable, payload.assets)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -490,6 +513,17 @@ class OcptProjectVersionsService {
       shots: await database.select(database.ocptShotsTable).get(),
       shotCharacters: await database.select(database.ocptShotCharactersTable).get(),
       shotCoverages: await database.select(database.ocptShotCoveragesTable).get(),
+      people: await database.select(database.ocptPeopleTable).get(),
+      personPositions: await database.select(database.ocptPersonPositionsTable).get(),
+      personSkills: await database.select(database.ocptPersonSkillsTable).get(),
+      personUnavailabilities: await database.select(database.ocptPersonUnavailabilitiesTable).get(),
+      roles: await database.select(database.ocptRolesTable).get(),
+      locations: await database.select(database.ocptLocationsTable).get(),
+      sets: await database.select(database.ocptSetsTable).get(),
+      sceneSets: await database.select(database.ocptSceneSetsTable).get(),
+      elements: await database.select(database.ocptElementsTable).get(),
+      sceneElements: await database.select(database.ocptSceneElementsTable).get(),
+      assets: await database.select(database.ocptAssetsTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -520,23 +554,44 @@ class OcptProjectVersionsService {
   /// doesn't carry is tombstoned rather than deleted, for the reason `OcptScenesTable.isDeleted`
   /// gives — the tombstoned shots and coverages still left over from the working copy reference it,
   /// and `PRAGMA foreign_keys` is on.
+  ///
+  /// The eleven resources tables follow, in the same dependency order the schema's own migration
+  /// creates them in: `people` (and its `person_positions`/`person_skills`/
+  /// `person_unavailabilities` siblings, each pointing at it) before `roles` (which may cast one),
+  /// before `locations` (whose contact may be one) before the `sets` inside them, before
+  /// `scene_sets` linking a scene to one, before `elements` (whose owner and bringer may be a
+  /// person) before `scene_elements` linking a scene to one, and `assets` last, since a person, a
+  /// location or an element may name one as its photo or document before that row itself exists.
+  /// That last point is also where the ordering stops being fully satisfiable: `people`,
+  /// `locations` and `elements` each reference `assets` (a photo, a permit, a document) while
+  /// `assets` references all three back (whose photo or document it is) — a genuine foreign-key
+  /// cycle, the same one `OcptAssetsTable`'s own doc comment describes for `CREATE TABLE`. No
+  /// statement-by-statement ordering can satisfy every reference in a cycle, which is exactly why
+  /// [restoreVersion] runs this under `PRAGMA defer_foreign_keys = ON`: every constraint is only
+  /// checked at the transaction's commit, by which point every table above has been written in
+  /// full.
+  ///
+  /// [payload] is scrubbed of every erased person before any of this runs — see
+  /// [_scrubErasedPeople] — so an erasure survives a restore of a version captured before it.
   Future<void> _applyPayload({
     required OcptProjectDatabase database,
     required OcptProjectVersionPayload payload,
     required String deviceId,
   }) async {
+    final scrubbedPayload = await _scrubErasedPeople(database: database, payload: payload);
+
     final stamps = await _OcptRestoreStamps.of(
       database: database,
-      payload: payload,
+      payload: scrubbedPayload,
       deviceId: deviceId,
     );
 
-    await _snapshotScreenplaysAboutToChange(database: database, payload: payload);
+    await _snapshotScreenplaysAboutToChange(database: database, payload: scrubbedPayload);
 
     await _restoreTable(
       database: database,
       table: database.ocptScreenplaysTable,
-      payloadRows: payload.screenplays,
+      payloadRows: scrubbedPayload.screenplays,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -545,7 +600,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptScenesTable,
-      payloadRows: payload.scenes,
+      payloadRows: scrubbedPayload.scenes,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: null,
@@ -554,7 +609,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptShotsTable,
-      payloadRows: payload.shots,
+      payloadRows: scrubbedPayload.shots,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -563,7 +618,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptShotCharactersTable,
-      payloadRows: payload.shotCharacters,
+      payloadRows: scrubbedPayload.shotCharacters,
       rowIdOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -572,7 +627,106 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptShotCoveragesTable,
-      payloadRows: payload.shotCoverages,
+      payloadRows: scrubbedPayload.shotCoverages,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptPeopleTable,
+      payloadRows: scrubbedPayload.people,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptPersonPositionsTable,
+      payloadRows: scrubbedPayload.personPositions,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptPersonSkillsTable,
+      payloadRows: scrubbedPayload.personSkills,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptPersonUnavailabilitiesTable,
+      payloadRows: scrubbedPayload.personUnavailabilities,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptRolesTable,
+      payloadRows: scrubbedPayload.roles,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptLocationsTable,
+      payloadRows: scrubbedPayload.locations,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptSetsTable,
+      payloadRows: scrubbedPayload.sets,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptSceneSetsTable,
+      payloadRows: scrubbedPayload.sceneSets,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptElementsTable,
+      payloadRows: scrubbedPayload.elements,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptSceneElementsTable,
+      payloadRows: scrubbedPayload.sceneElements,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptAssetsTable,
+      payloadRows: scrubbedPayload.assets,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -580,6 +734,117 @@ class OcptProjectVersionsService {
 
     await stamps.flush(database);
   }
+
+  /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
+  /// `person_unavailabilities` rows hanging off them — for every person `local_erasures` names in
+  /// [database], so [_applyPayload] can never write an erased person back.
+  ///
+  /// A version is captured before knowing about an erasure made later, so its stored payload still
+  /// holds that person's personal data verbatim, forever: a version is never rewritten once
+  /// captured (`OcptProjectVersionCodec`'s own doc comment). `local_erasures` is what lets this
+  /// replica remember the erasure happened without the payload that predates it ever having to
+  /// become untruthful about the moment it captured — decode-time scrubbing, not a rewrite on disk
+  /// (§4.9 of the plan this ships under, option 3). It is read fresh from [database] rather than
+  /// from [payload] on purpose: that is what lets a restore of an *old* version still honour an
+  /// erasure recorded strictly after that version was taken, and `local_erasures` itself is never
+  /// part of a payload — carrying it there would let this very restore rewind the fact that the
+  /// erasure ever happened.
+  ///
+  /// Every erased person's row is put back through exactly the blanking-and-tombstoning
+  /// [_erasedPersonRow] performs — chosen over dropping the row outright, since nothing in this
+  /// schema is ever hard-deleted, and other rows this same payload may carry (`roles.personId`,
+  /// `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`, `locations.contactPersonId`)
+  /// can still reference the id: the row they point at must keep existing, merely empty, or the
+  /// restore's own `PRAGMA defer_foreign_keys` commit would have nothing to resolve them against.
+  /// **This must be kept in step with `OcptPeopleService.deletePerson` by hand** — the two
+  /// implement the very same erasure from two different starting points (a live row there, a
+  /// captured one here), and a column blanked by one but not the other reopens exactly the leak
+  /// this method exists to close.
+  Future<OcptProjectVersionPayload> _scrubErasedPeople({
+    required OcptProjectDatabase database,
+    required OcptProjectVersionPayload payload,
+  }) async {
+    final erasedPersonIds = {
+      for (final row in await database.select(database.ocptLocalErasuresTable).get()) row.personId,
+    };
+
+    if (erasedPersonIds.isEmpty) {
+      return payload;
+    }
+
+    return OcptProjectVersionPayload(
+      screenplays: payload.screenplays,
+      scenes: payload.scenes,
+      shots: payload.shots,
+      shotCharacters: payload.shotCharacters,
+      shotCoverages: payload.shotCoverages,
+      people: [
+        for (final row in payload.people)
+          erasedPersonIds.contains(row.id) ? _erasedPersonRow(row) : row,
+      ],
+      personPositions: [
+        for (final row in payload.personPositions)
+          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true) : row,
+      ],
+      // person_skills.label and person_unavailabilities.reason are blanked along with the
+      // tombstone, exactly as OcptPeopleService.deletePerson blanks them: both routinely hold
+      // something personal about the person (a driving licence, a language, why they were away on
+      // a date), and an erasure is about what the file stops holding, not only what a screen stops
+      // showing.
+      personSkills: [
+        for (final row in payload.personSkills)
+          erasedPersonIds.contains(row.personId)
+              ? row.copyWith(isDeleted: true, label: '')
+              : row,
+      ],
+      personUnavailabilities: [
+        for (final row in payload.personUnavailabilities)
+          erasedPersonIds.contains(row.personId)
+              ? row.copyWith(isDeleted: true, reason: '')
+              : row,
+      ],
+      roles: payload.roles,
+      locations: payload.locations,
+      sets: payload.sets,
+      sceneSets: payload.sceneSets,
+      elements: payload.elements,
+      sceneElements: payload.sceneElements,
+      assets: payload.assets,
+      rowFieldVersions: payload.rowFieldVersions,
+      pageSetup: payload.pageSetup,
+      settingsJson: payload.settingsJson,
+    );
+  }
+
+  /// [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live row:
+  /// every column held something about the person except `id`, `sortKey`, `isDeleted` (set to true
+  /// here rather than left alone) and `colorIndex`. See [_scrubErasedPeople] for why the two must
+  /// stay in step by hand.
+  static OcptPersonRow _erasedPersonRow(OcptPersonRow row) => row.copyWith(
+    isDeleted: true,
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    birthDate: const Value(null),
+    minorNotes: '',
+    isTransportAutonomous: const Value(null),
+    accommodationNotes: '',
+    travelNotes: '',
+    dietaryNotes: '',
+    allergies: '',
+    sizeTop: '',
+    sizeBottom: '',
+    sizeShoes: '',
+    hmcNotes: '',
+    imageRightsStatus: OcptImageRightsStatus.notApplicable,
+    imageRightsDate: const Value(null),
+    imageRightsAssetId: const Value(null),
+    photoAssetId: const Value(null),
+    notes: '',
+  );
 
   /// Snapshots the text of every screenplay [payload] is about to overwrite in [database].
   ///

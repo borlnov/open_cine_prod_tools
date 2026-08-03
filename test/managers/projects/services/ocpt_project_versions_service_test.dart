@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
@@ -29,6 +30,7 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const codec = OcptProjectVersionCodec();
+  const peopleService = OcptPeopleService();
   const service = OcptProjectVersionsService(
     codec: codec,
     screenplayService: OcptScreenplayService(
@@ -709,6 +711,17 @@ void main() {
                   shots: [payload.shots.first.copyWith(screenplayId: "no-such-screenplay")],
                   shotCharacters: payload.shotCharacters,
                   shotCoverages: payload.shotCoverages,
+                  people: payload.people,
+                  personPositions: payload.personPositions,
+                  personSkills: payload.personSkills,
+                  personUnavailabilities: payload.personUnavailabilities,
+                  roles: payload.roles,
+                  locations: payload.locations,
+                  sets: payload.sets,
+                  sceneSets: payload.sceneSets,
+                  elements: payload.elements,
+                  sceneElements: payload.sceneElements,
+                  assets: payload.assets,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -765,6 +778,177 @@ void main() {
       );
       expect(await readScreenplayText(), rewrittenText);
     });
+
+    test("inserts, updates and tombstones resources rows, like any other table", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured person is edited, and a second one is added since.
+      await (database.update(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-1"))).write(
+        const OcptPeopleTableCompanion(firstName: Value("Edited")),
+      );
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(id: "person-2", firstName: const Value("Later")),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final restoredPerson1 = await (database.select(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-1"))).getSingle();
+      expect(restoredPerson1.firstName, "Clara");
+
+      // The person the version never held is tombstoned, not deleted, exactly like a shot.
+      final restoredPerson2 = await (database.select(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-2"))).getSingle();
+      expect(restoredPerson2.isDeleted, isTrue);
+    });
+
+    test("stamps a resources column it changed, above what it already held", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
+          );
+      final version = await createVersion();
+
+      await (database.update(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-1"))).write(
+        const OcptPeopleTableCompanion(firstName: Value("Edited")),
+      );
+
+      // As if the edit had already been stamped by the changeset engine.
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "people",
+              rowId: "person-1",
+              columnName: "firstName",
+              version: 4,
+              deviceId: "device-0",
+            ),
+          );
+
+      await restore(version.id);
+
+      final stamps = await readStamps();
+      expect(stamps["people/person-1/firstName"]?.version, 5);
+      expect(stamps["people/person-1/firstName"]?.deviceId, deviceId);
+    });
+
+    test("restoring a format-1 payload tombstones the resources the working copy has", () async {
+      // A literal fixture of a version captured before the resources mode existed: none of the
+      // eleven resources keys are present at all, matching exactly what a real payload written in
+      // that format looked like on disk.
+      await database
+          .into(database.ocptProjectVersionsTable)
+          .insert(
+            OcptProjectVersionsTableCompanion.insert(
+              id: "version-format1",
+              name: "v0 — Before resources",
+              createdAt: DateTime.utc(2026),
+              appVersion: "0.1.0",
+              payloadFormat: 1,
+              payload:
+                  '{"payloadFormat":1,"screenplays":[{"id":"$screenplayId","title":"Draft",'
+                  '"fountainText":"${capturedText.replaceAll('\n', r'\n')}",'
+                  '"updatedAt":"2026-01-05T00:00:00.000Z",'
+                  '"isDeleted":false}],"scenes":[],"shots":[],"shotCharacters":[],'
+                  '"shotCoverages":[],"rowFieldVersions":[],'
+                  '"projectSettings":{"pageFormat":"a4","settingsJson":null},'
+                  '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
+                  '"bottomInches":1.25}}',
+              summaryJson: "{}",
+              createdByDeviceId: deviceId,
+            ),
+          );
+
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
+          );
+
+      final result = await restore("version-format1");
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // The format-1 payload says "this project had no resources" — a truthful statement about
+      // that moment — so the restore tombstones what the working copy has, rather than leaving it.
+      final person = await (database.select(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-1"))).getSingle();
+      expect(person.isDeleted, isTrue);
+    });
+
+    test(
+      "restoring a version captured before an erasure does not resurrect the erased person",
+      () async {
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(
+              OcptPeopleTableCompanion.insert(
+                id: "person-1",
+                firstName: const Value("Clara"),
+                lastName: const Value("Martin"),
+                email: const Value("clara@example.com"),
+                phone: const Value("0102030405"),
+              ),
+            );
+        await database
+            .into(database.ocptPersonSkillsTable)
+            .insert(
+              OcptPersonSkillsTableCompanion.insert(
+                id: "skill-1",
+                personId: "person-1",
+                label: const Value("Permis B"),
+              ),
+            );
+
+        final version = await createVersion();
+
+        // The erasure itself is other work (OcptPeopleService.deletePerson); this only checks that
+        // a restore of a version captured before it can't undo it.
+        await peopleService.deletePerson(database: database, personId: "person-1");
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        final person = await (database.select(
+          database.ocptPeopleTable,
+        )..where((table) => table.id.equals("person-1"))).getSingle();
+        expect(person.isDeleted, isTrue);
+        expect(person.firstName, isEmpty);
+        expect(person.lastName, isEmpty);
+        expect(person.email, isEmpty);
+        expect(person.phone, isEmpty);
+
+        final skill = await (database.select(
+          database.ocptPersonSkillsTable,
+        )..where((table) => table.id.equals("skill-1"))).getSingle();
+        expect(skill.isDeleted, isTrue);
+        expect(skill.label, isEmpty);
+
+        // The erasure itself is never rewound: it is recorded outside any payload, on purpose.
+        final erasures = await database.select(database.ocptLocalErasuresTable).get();
+        expect(erasures.map((row) => row.personId), contains("person-1"));
+      },
+    );
   });
 
   group("renameVersion", () {
