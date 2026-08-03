@@ -7,7 +7,13 @@ import 'dart:io';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -64,6 +70,25 @@ CREATE TABLE "shots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENC
 CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("shot_id", "character_name"));
 CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFERENCES shots (id), "scene_id" TEXT NOT NULL REFERENCES scenes (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "covered_text_digest" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 CREATE TABLE "row_field_versions" ("table_name" TEXT NOT NULL, "row_id" TEXT NOT NULL, "column_name" TEXT NOT NULL, "version" INTEGER NOT NULL, "device_id" TEXT NOT NULL, PRIMARY KEY ("table_name", "row_id", "column_name"));
+''';
+
+// And for schema version 5: `project_versions` created with `content_digest` already declared on
+// it (the v4/v5 collision described in `docs/adr/0007-schema-migration-policy.md` was folded into
+// a single version 5 rather than shipped as two separate steps), plus `project_info` gaining its
+// `current_version_id` pointer. This is the shape `onCreate` produced for every schema version 5
+// build (captured through a real `OcptProjectDatabase`, not hand-written, for the same reason the
+// column order of every fixture above matters), and it still lacks every resources table version 6
+// adds.
+const _v5Ddl = '''
+CREATE TABLE "project_info" ("id" INTEGER NOT NULL DEFAULT 1, "name" TEXT NOT NULL, "created_at" TEXT NOT NULL, "app_version_at_creation" TEXT NOT NULL, "page_format" TEXT NOT NULL, "settings_json" TEXT NULL, "current_version_id" TEXT NULL REFERENCES project_versions (id), PRIMARY KEY ("id"));
+CREATE TABLE "project_versions" ("id" TEXT NOT NULL, "name" TEXT NOT NULL, "note" TEXT NOT NULL DEFAULT '', "created_at" TEXT NOT NULL, "app_version" TEXT NOT NULL, "payload_format" INTEGER NOT NULL, "payload" TEXT NOT NULL, "summary_json" TEXT NOT NULL, "created_by_device_id" TEXT NOT NULL, "content_digest" TEXT NULL, PRIMARY KEY ("id"));
+CREATE TABLE "row_field_versions" ("table_name" TEXT NOT NULL, "row_id" TEXT NOT NULL, "column_name" TEXT NOT NULL, "version" INTEGER NOT NULL, "device_id" TEXT NOT NULL, PRIMARY KEY ("table_name", "row_id", "column_name"));
+CREATE TABLE "scenes" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "position" INTEGER NOT NULL, "heading" TEXT NOT NULL, "scene_number" TEXT NULL, "char_start" INTEGER NOT NULL, "char_end" INTEGER NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "screenplay_snapshots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "created_at" TEXT NOT NULL, "reason" TEXT NOT NULL, "fountain_text" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "screenplays" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "fountain_text" TEXT NOT NULL DEFAULT '', "updated_at" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("shot_id", "character_name"));
+CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFERENCES shots (id), "scene_id" TEXT NOT NULL REFERENCES scenes (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "covered_text_digest" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "scene_id" TEXT NULL REFERENCES scenes (id), "orphaned_heading" TEXT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "shot_size" TEXT NOT NULL DEFAULT '', "abbreviation" TEXT NOT NULL DEFAULT '', "framing" TEXT NOT NULL DEFAULT '', "camera_move" TEXT NOT NULL DEFAULT '', "lens" TEXT NOT NULL DEFAULT '', "recording_format" TEXT NOT NULL DEFAULT '', "estimated_duration_ms" INTEGER NULL, "shooting_day" TEXT NULL, "planned_takes" INTEGER NULL, "sound" TEXT NOT NULL DEFAULT '', "status" TEXT NOT NULL DEFAULT 'toShoot', "difficulty_set" INTEGER NOT NULL DEFAULT 1, "difficulty_camera" INTEGER NOT NULL DEFAULT 1, "difficulty_acting" INTEGER NOT NULL DEFAULT 1, "difficulty_sound" INTEGER NOT NULL DEFAULT 1, "notes" TEXT NOT NULL DEFAULT '', "location_notes" TEXT NOT NULL DEFAULT '', "needs_check" INTEGER NOT NULL DEFAULT 0 CHECK ("needs_check" IN (0, 1)), "check_reason" TEXT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 ''';
 
 void main() {
@@ -212,10 +237,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 5.
+    // anything but version 6.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 5);
+    expect(await readSchemaVersion(freshDatabase), 6);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -231,6 +256,18 @@ void main() {
       'shot_characters',
       'shot_coverages',
       'shots',
+      'people',
+      'person_positions',
+      'person_skills',
+      'person_unavailabilities',
+      'roles',
+      'locations',
+      'sets',
+      'scene_sets',
+      'elements',
+      'scene_elements',
+      'assets',
+      'local_erasures',
     });
 
     // And every file an earlier version could have left behind, brought up by `onUpgrade`: each
@@ -240,6 +277,7 @@ void main() {
       ('upgraded_from_v2.ocpt', _v2Ddl, 2),
       ('upgraded_from_v3.ocpt', _v3Ddl, 3),
       ('upgraded_from_v4.ocpt', _v4Ddl, 4),
+      ('upgraded_from_v5.ocpt', _v5Ddl, 5),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -256,7 +294,7 @@ void main() {
         reason: "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 5);
+      expect(await readSchemaVersion(database), 6);
 
       await database.close();
     }
@@ -344,7 +382,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 5.
-    expect(await readSchemaVersion(database), 5);
+    expect(await readSchemaVersion(database), 6);
 
     await database.close();
   });
@@ -462,7 +500,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 5);
+    expect(await readSchemaVersion(database), 6);
 
     await database.close();
   });
@@ -518,7 +556,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 5);
+    expect(await readSchemaVersion(database), 6);
 
     await database.close();
   });
@@ -552,7 +590,152 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 5);
+    expect(await readSchemaVersion(database), 6);
+
+    await database.close();
+  });
+
+  test('a v5 database migrates on, gaining the resources tables', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v5.ocpt');
+
+    // The shape PR #44 shipped: `project_versions` (with `content_digest` already on it) and
+    // `project_info.current_version_id`, but none of the resources mode's twelve tables.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute('PRAGMA user_version = 5;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute(
+      "INSERT INTO project_versions (id, name, note, created_at, app_version, payload_format, "
+      "payload, summary_json, created_by_device_id, content_digest) VALUES ('version1', "
+      "'v1 — First read', '', '${DateTime.utc(2026, 2, 1, 10).toIso8601String()}', '0.1.0', 1, "
+      "'{\"payloadFormat\":1}', '{\"pageCount\":41}', 'device-1', 'digest1');",
+    );
+    legacyDb.execute(
+      "UPDATE project_info SET current_version_id = 'version1' WHERE id = 1;",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived untouched: this step only creates tables, it
+    // touches nothing that exists.
+    await expectCommonRowsSurvived(database);
+
+    final version = await database.select(database.ocptProjectVersionsTable).getSingle();
+    expect(version.id, "version1");
+    expect(version.contentDigest, "digest1");
+
+    final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+    expect(projectInfo.currentVersionId, "version1");
+
+    // (b) the twelve resources tables exist and are usable, referencing each other and the rows
+    // the file already held.
+    await database
+        .into(database.ocptPeopleTable)
+        .insert(
+          OcptPeopleTableCompanion.insert(
+            id: "person1",
+            firstName: const Value("Clara"),
+            lastName: const Value("Dupont"),
+          ),
+        );
+
+    await database
+        .into(database.ocptRolesTable)
+        .insert(
+          OcptRolesTableCompanion.insert(
+            id: "role1",
+            screenplayId: "s1",
+            name: "CLARA",
+            kind: OcptRoleKind.speaking,
+            personId: const Value("person1"),
+          ),
+        );
+
+    await database
+        .into(database.ocptLocationsTable)
+        .insert(
+          OcptLocationsTableCompanion.insert(
+            id: "location1",
+            name: "La maison des Pains",
+            contactPersonId: const Value("person1"),
+          ),
+        );
+
+    await database
+        .into(database.ocptSetsTable)
+        .insert(
+          OcptSetsTableCompanion.insert(id: "set1", locationId: "location1", name: "Cuisine"),
+        );
+
+    await database
+        .into(database.ocptElementsTable)
+        .insert(
+          OcptElementsTableCompanion.insert(
+            id: "element1",
+            category: OcptElementCategory.prop,
+            name: "Valise",
+            sourceKind: OcptElementSourceKind.owned,
+            ownerPersonId: const Value("person1"),
+          ),
+        );
+
+    await database
+        .into(database.ocptAssetsTable)
+        .insert(
+          OcptAssetsTableCompanion.insert(
+            id: "asset1",
+            kind: OcptAssetKind.personPhoto,
+            path: "/tmp/clara.jpg",
+            addedAt: DateTime.utc(2026, 2, 2),
+            personId: const Value("person1"),
+          ),
+        );
+
+    await database
+        .into(database.ocptLocalErasuresTable)
+        .insert(
+          OcptLocalErasuresTableCompanion.insert(
+            personId: "person1",
+            erasedAt: DateTime.utc(2026, 2, 3),
+          ),
+        );
+
+    final person = await database.select(database.ocptPeopleTable).getSingle();
+    expect(person.id, "person1");
+    expect(person.firstName, "Clara");
+    expect(person.imageRightsStatus, OcptImageRightsStatus.notApplicable);
+
+    final role = await database.select(database.ocptRolesTable).getSingle();
+    expect(role.personId, "person1");
+    expect(role.kind, OcptRoleKind.speaking);
+
+    final location = await database.select(database.ocptLocationsTable).getSingle();
+    expect(location.contactPersonId, "person1");
+    expect(location.permitStatus, OcptPermitStatus.toRequest);
+
+    final setRow = await database.select(database.ocptSetsTable).getSingle();
+    expect(setRow.locationId, "location1");
+
+    final element = await database.select(database.ocptElementsTable).getSingle();
+    expect(element.ownerPersonId, "person1");
+    expect(element.category, OcptElementCategory.prop);
+
+    final asset = await database.select(database.ocptAssetsTable).getSingle();
+    expect(asset.personId, "person1");
+    expect(asset.kind, OcptAssetKind.personPhoto);
+
+    final erasure = await database.select(database.ocptLocalErasuresTable).getSingle();
+    expect(erasure.personId, "person1");
+
+    // (c) `local_erasures` is the one table of this schema whose rows may be deleted for real.
+    await (database.delete(
+      database.ocptLocalErasuresTable,
+    )..where((table) => table.personId.equals("person1"))).go();
+    expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
+
+    // (d) the file now says version 6.
+    expect(await readSchemaVersion(database), 6);
 
     await database.close();
   });
