@@ -2873,24 +2873,31 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesHalfDayFull": "Full day",
-  "@resourcesHalfDayFull": {
-    "description": "Label of the full-day half-day coverage of an unavailability",
-    "context": "Displayed wherever a person's unavailabilities are listed",
+  "resourcesSlotFullDay": "Full day",
+  "@resourcesSlotFullDay": {
+    "description": "Label of the unavailability slot covering the whole of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesHalfDayMorning": "Morning",
-  "@resourcesHalfDayMorning": {
-    "description": "Label of the morning half-day coverage of an unavailability",
-    "context": "Displayed wherever a person's unavailabilities are listed",
+  "resourcesSlotMorning": "Morning",
+  "@resourcesSlotMorning": {
+    "description": "Label of the unavailability slot covering the morning of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesHalfDayAfternoon": "Afternoon",
-  "@resourcesHalfDayAfternoon": {
-    "description": "Label of the afternoon half-day coverage of an unavailability",
-    "context": "Displayed wherever a person's unavailabilities are listed",
+  "resourcesSlotAfternoon": "Afternoon",
+  "@resourcesSlotAfternoon": {
+    "description": "Label of the unavailability slot covering the afternoon of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSlotCustom": "Time slot",
+  "@resourcesSlotCustom": {
+    "description": "Label of the unavailability slot covering an explicit time window of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
     "type": "text",
     "placeholders": {}
   },
@@ -3108,14 +3115,35 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddUnavailabilityAction": "+ Add a date or a half-day",
+  "resourcesAddUnavailabilityAction": "+ Add an unavailability",
   "@resourcesAddUnavailabilityAction": {
     "description": "Action adding a new unavailability to the selected person",
     "context": "Displayed at the bottom of the person sheet's unavailabilities card",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesUnavailabilityReasonHint": "Reason",
+  "resourcesUnavailabilityFromLabel": "from",
+  "@resourcesUnavailabilityFromLabel": {
+    "description": "Word introducing the first date of an unavailability's range",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityToLabel": "to",
+  "@resourcesUnavailabilityToLabel": {
+    "description": "Word introducing the last date of an unavailability's range",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityReasonLabel": "Reason",
+  "@resourcesUnavailabilityReasonLabel": {
+    "description": "Label of an unavailability's reason field",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityReasonHint": "Why this person is unavailable",
   "@resourcesUnavailabilityReasonHint": {
     "description": "Placeholder of an unavailability row's reason field while it is empty",
     "context": "Displayed on the person sheet's unavailabilities card",

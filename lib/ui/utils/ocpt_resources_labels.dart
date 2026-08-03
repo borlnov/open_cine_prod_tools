@@ -5,9 +5,9 @@
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// The placeholder shown in place of a resources field that has no value yet.
 ///
@@ -77,11 +77,13 @@ String ocptCrewDepartmentLabel(Tr tr, OcptCrewDepartment department) => switch (
   OcptCrewDepartment.production => tr.resourcesCrewDepartmentProduction,
 };
 
-/// The display label of [halfDay], how much of a day a `person_unavailabilities` row covers.
-String ocptHalfDayLabel(Tr tr, OcptHalfDay halfDay) => switch (halfDay) {
-  OcptHalfDay.full => tr.resourcesHalfDayFull,
-  OcptHalfDay.morning => tr.resourcesHalfDayMorning,
-  OcptHalfDay.afternoon => tr.resourcesHalfDayAfternoon,
+/// The display label of [slot], which part of each covered day a `person_unavailabilities` row
+/// takes.
+String ocptUnavailabilitySlotLabel(Tr tr, OcptUnavailabilitySlot slot) => switch (slot) {
+  OcptUnavailabilitySlot.fullDay => tr.resourcesSlotFullDay,
+  OcptUnavailabilitySlot.morning => tr.resourcesSlotMorning,
+  OcptUnavailabilitySlot.afternoon => tr.resourcesSlotAfternoon,
+  OcptUnavailabilitySlot.custom => tr.resourcesSlotCustom,
 };
 
 /// The display label of [status], where a person's image rights release stands.

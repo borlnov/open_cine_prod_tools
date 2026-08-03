@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -218,14 +218,34 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onUnavailabilityAdded: (date) => bloc.add(
         OcptResourcesUnavailabilityAddedEvent(
           personId: selectedPerson.id,
-          date: date,
-          halfDay: OcptHalfDay.full,
+          startDate: date,
+          endDate: date,
+          slot: OcptUnavailabilitySlot.fullDay,
+          startMinute: null,
+          endMinute: null,
           reason: "",
         ),
       ),
-      onUnavailabilityUpdated: (id, {required date, required halfDay, required reason}) => bloc.add(
-        OcptResourcesUnavailabilityUpdatedEvent(id: id, date: date, halfDay: halfDay, reason: reason),
-      ),
+      onUnavailabilityUpdated:
+          (
+            id, {
+            required startDate,
+            required endDate,
+            required slot,
+            required startMinute,
+            required endMinute,
+            required reason,
+          }) => bloc.add(
+            OcptResourcesUnavailabilityUpdatedEvent(
+              id: id,
+              startDate: startDate,
+              endDate: endDate,
+              slot: slot,
+              startMinute: startMinute,
+              endMinute: endMinute,
+              reason: reason,
+            ),
+          ),
       onUnavailabilityRemoved: (id) => bloc.add(OcptResourcesUnavailabilityRemovedEvent(id: id)),
       onDeleteRequested: () => _handleDeletePersonRequested(context, selectedPerson),
     );

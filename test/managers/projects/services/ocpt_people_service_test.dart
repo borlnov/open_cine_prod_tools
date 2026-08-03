@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -188,8 +188,9 @@ void main() {
       await peopleService.addUnavailability(
         database: database,
         personId: id,
-        date: DateTime(2026, 8, 14),
-        halfDay: OcptHalfDay.full,
+        startDate: DateTime(2026, 8, 14),
+        endDate: DateTime(2026, 8, 14),
+        slot: OcptUnavailabilitySlot.fullDay,
         reason: "Mariage de sa sœur",
       );
 
@@ -341,20 +342,27 @@ void main() {
       final id = (await peopleService.addUnavailability(
         database: database,
         personId: personId,
-        date: DateTime(2026, 8, 10),
-        halfDay: OcptHalfDay.full,
+        startDate: DateTime(2026, 8, 10),
+        endDate: DateTime(2026, 8, 12),
+        slot: OcptUnavailabilitySlot.fullDay,
         reason: "Tournage d'un autre film",
       ))!;
 
       await peopleService.updateUnavailability(
         database: database,
         id: id,
-        halfDay: const Value(OcptHalfDay.morning),
+        slot: const Value(OcptUnavailabilitySlot.custom),
+        startMinute: const Value(14 * 60),
+        endMinute: const Value(17 * 60 + 30),
       );
 
       var people = await peopleService.loadPeople(database: database);
       final unavailability = people.single.unavailabilities.single;
-      expect(unavailability.halfDay, OcptHalfDay.morning);
+      expect(unavailability.startDate, DateTime(2026, 8, 10));
+      expect(unavailability.endDate, DateTime(2026, 8, 12));
+      expect(unavailability.slot, OcptUnavailabilitySlot.custom);
+      expect(unavailability.startMinute, 14 * 60);
+      expect(unavailability.endMinute, 17 * 60 + 30);
       expect(unavailability.reason, "Tournage d'un autre film");
 
       await peopleService.removeUnavailability(database: database, id: id);

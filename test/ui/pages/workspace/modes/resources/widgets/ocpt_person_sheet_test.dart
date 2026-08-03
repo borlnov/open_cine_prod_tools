@@ -8,9 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
 
@@ -140,6 +140,16 @@ Widget _buildSheet({
   ValueChanged<String>? onSkillAdded,
   ValueChanged<String>? onSkillRemoved,
   ValueChanged<DateTime>? onUnavailabilityAdded,
+  void Function(
+    String id, {
+    required DateTime startDate,
+    required DateTime endDate,
+    required OcptUnavailabilitySlot slot,
+    required int? startMinute,
+    required int? endMinute,
+    required String reason,
+  })?
+  onUnavailabilityUpdated,
   ValueChanged<String>? onUnavailabilityRemoved,
   VoidCallback? onDeleteRequested,
 }) => _wrapInApp(
@@ -159,7 +169,17 @@ Widget _buildSheet({
     onSkillAdded: onSkillAdded ?? (_) {},
     onSkillRemoved: onSkillRemoved ?? (_) {},
     onUnavailabilityAdded: onUnavailabilityAdded ?? (_) {},
-    onUnavailabilityUpdated: (id, {required date, required halfDay, required reason}) {},
+    onUnavailabilityUpdated:
+        onUnavailabilityUpdated ??
+        (
+          id, {
+          required startDate,
+          required endDate,
+          required slot,
+          required startMinute,
+          required endMinute,
+          required reason,
+        }) {},
     onUnavailabilityRemoved: onUnavailabilityRemoved ?? (_) {},
     onDeleteRequested: onDeleteRequested ?? () {},
   ),
@@ -367,8 +387,11 @@ void main() {
               OcptPersonUnavailability(
                 id: "u1",
                 personId: "p1",
-                date: DateTime(2026, 8, 15),
-                halfDay: OcptHalfDay.full,
+                startDate: DateTime(2026, 8, 15),
+                endDate: DateTime(2026, 8, 15),
+                slot: OcptUnavailabilitySlot.fullDay,
+                startMinute: null,
+                endMinute: null,
                 reason: "",
               ),
             ],
@@ -401,6 +424,91 @@ void main() {
         find.widgetWithText(TextField, "Léa"),
       );
       expect(firstNameField.readOnly, isTrue);
+    });
+  });
+
+  group("unavailabilities", () {
+    /// One unavailability of person `p1`, a single full day with no window.
+    OcptPersonUnavailability fullDay() => OcptPersonUnavailability(
+      id: "u1",
+      personId: "p1",
+      startDate: DateTime(2026, 8, 15),
+      endDate: DateTime(2026, 8, 15),
+      slot: OcptUnavailabilitySlot.fullDay,
+      startMinute: null,
+      endMinute: null,
+      reason: "",
+    );
+
+    testWidgets("picking the custom slot reports it with a working-day window", (tester) async {
+      await _useTallSurface(tester);
+      OcptUnavailabilitySlot? reportedSlot;
+      int? reportedStartMinute;
+      int? reportedEndMinute;
+
+      await tester.pumpWidget(
+        _buildSheet(
+          person: _person(unavailabilities: [fullDay()]),
+          onUnavailabilityUpdated:
+              (
+                id, {
+                required startDate,
+                required endDate,
+                required slot,
+                required startMinute,
+                required endMinute,
+                required reason,
+              }) {
+                reportedSlot = slot;
+                reportedStartMinute = startMinute;
+                reportedEndMinute = endMinute;
+              },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+      await tester.tap(find.text(tr.resourcesSlotCustom));
+      await tester.pumpAndSettle();
+
+      expect(reportedSlot, OcptUnavailabilitySlot.custom);
+      expect(reportedStartMinute, 9 * 60);
+      expect(reportedEndMinute, 18 * 60);
+    });
+
+    testWidgets("the window is shown for a custom slot and hidden for the others", (tester) async {
+      await _useTallSurface(tester);
+
+      await tester.pumpWidget(_buildSheet(person: _person(unavailabilities: [fullDay()])));
+      await tester.pumpAndSettle();
+      expect(find.text("→"), findsNothing);
+
+      await tester.pumpWidget(
+        _buildSheet(
+          person: _person(
+            unavailabilities: [
+              OcptPersonUnavailability(
+                id: "u2",
+                personId: "p1",
+                startDate: DateTime(2026, 8, 15),
+                endDate: DateTime(2026, 8, 17),
+                slot: OcptUnavailabilitySlot.custom,
+                startMinute: 14 * 60,
+                endMinute: 17 * 60 + 30,
+                reason: "Examen",
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text("→"), findsOneWidget);
+      expect(find.text("Examen"), findsOneWidget);
+      // Both ends of the range are shown, even when they differ by two days.
+      final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+      expect(find.text(tr.resourcesUnavailabilityFromLabel), findsOneWidget);
+      expect(find.text(tr.resourcesUnavailabilityToLabel), findsOneWidget);
     });
   });
 }

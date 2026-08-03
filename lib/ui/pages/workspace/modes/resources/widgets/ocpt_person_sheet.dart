@@ -5,9 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_image_rights_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_logistics_card.dart';
@@ -20,8 +20,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 /// The resources mode's centre, once a person is selected: the whole person sheet, a single
 /// scrolling column edited in place — the header (photo slot, name, minor badge, contact grid),
 /// the crew positions card, the legal-hours callout (only while the person is a minor), a
-/// two-column grid of cards (unavailabilities; meals/health/skills; logistics; image rights), the
-/// HMC notes card, the notes card, and `Delete this person` at the very bottom.
+/// two-column grid of cards (meals/health/skills; logistics; image rights; HMC notes), the
+/// full-width unavailabilities card, the notes card, and `Delete this person` at the very bottom.
+///
+/// The unavailabilities are the one card outside the grid: a date range, a slot selector and a
+/// multi-line reason do not fit half a sheet's width, and cramming them there is what made the
+/// reason field a single line in the first place.
 ///
 /// Every callback is always given by the caller (the mode always has a person selected while this
 /// widget is built, exactly as `OcptShotInspectorPanel` is always given `onDeleteRequested` while a
@@ -76,13 +80,22 @@ class OcptPersonSheet extends StatelessWidget {
   /// Called with a skill's id when its chip's remove control is clicked.
   final ValueChanged<String> onSkillRemoved;
 
-  /// Called with the date picked once `+ Add a date or a half-day` opens the date picker: the new
-  /// unavailability starts as a full day with no reason, both then editable on the row it creates.
+  /// Called with the date picked once `+ Add an unavailability` opens the date picker: the new
+  /// unavailability starts as that one full day with no reason, all of it then editable on the row
+  /// it creates.
   final ValueChanged<DateTime> onUnavailabilityAdded;
 
-  /// Called with an unavailability's id and its three current fields once a local edit or a
-  /// discrete change is ready to be written.
-  final void Function(String id, {required DateTime date, required OcptHalfDay halfDay, required String reason})
+  /// Called with an unavailability's id and its current fields once a local edit or a discrete
+  /// change is ready to be written.
+  final void Function(
+    String id, {
+    required DateTime startDate,
+    required DateTime endDate,
+    required OcptUnavailabilitySlot slot,
+    required int? startMinute,
+    required int? endMinute,
+    required String reason,
+  })
   onUnavailabilityUpdated;
 
   /// Called with an unavailability's id when its row's remove button is clicked.
@@ -153,11 +166,11 @@ class OcptPersonSheet extends StatelessWidget {
           const SizedBox(height: 12),
           _buildCardGrid(context),
           const SizedBox(height: 12),
-          OcptPersonSheetNotesCard(
-            title: tr.resourcesHmcNotesTitle,
-            personId: person.id,
-            value: fieldValueOf(OcptPersonField.hmcNotes),
-            onChanged: isReadOnly ? null : (value) => onFieldChanged(OcptPersonField.hmcNotes, value),
+          OcptPersonSheetUnavailabilitiesCard(
+            unavailabilities: person.unavailabilities,
+            onUpdated: isReadOnly ? null : onUnavailabilityUpdated,
+            onRemoved: isReadOnly ? null : onUnavailabilityRemoved,
+            onAdded: isReadOnly ? null : onUnavailabilityAdded,
           ),
           const SizedBox(height: 12),
           OcptPersonSheetNotesCard(
@@ -182,58 +195,65 @@ class OcptPersonSheet extends StatelessWidget {
     );
   }
 
-  /// The two-column grid of cards: unavailabilities, meals/health/skills, logistics, image rights.
-  Widget _buildCardGrid(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: OcptPersonSheetUnavailabilitiesCard(
-              unavailabilities: person.unavailabilities,
-              onUpdated: isReadOnly ? null : onUnavailabilityUpdated,
-              onRemoved: isReadOnly ? null : onUnavailabilityRemoved,
-              onAdded: isReadOnly ? null : onUnavailabilityAdded,
+  /// The two-column grid of cards: meals/health/skills beside logistics, then image rights beside
+  /// the HMC notes.
+  Widget _buildCardGrid(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: OcptPersonSheetMealsHealthCard(
+                personId: person.id,
+                skills: person.skills,
+                fieldValueOf: fieldValueOf,
+                onFieldChanged: isReadOnly ? null : onFieldChanged,
+                onSkillAdded: isReadOnly ? null : onSkillAdded,
+                onSkillRemoved: isReadOnly ? null : onSkillRemoved,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OcptPersonSheetMealsHealthCard(
-              personId: person.id,
-              skills: person.skills,
-              fieldValueOf: fieldValueOf,
-              onFieldChanged: isReadOnly ? null : onFieldChanged,
-              onSkillAdded: isReadOnly ? null : onSkillAdded,
-              onSkillRemoved: isReadOnly ? null : onSkillRemoved,
+            const SizedBox(width: 12),
+            Expanded(
+              child: OcptPersonSheetLogisticsCard(
+                personId: person.id,
+                isTransportAutonomous: person.isTransportAutonomous,
+                fieldValueOf: fieldValueOf,
+                onFieldChanged: isReadOnly ? null : onFieldChanged,
+                onTransportAutonomyChanged: isReadOnly ? null : onTransportAutonomyChanged,
+              ),
             ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: OcptPersonSheetLogisticsCard(
-              personId: person.id,
-              isTransportAutonomous: person.isTransportAutonomous,
-              fieldValueOf: fieldValueOf,
-              onFieldChanged: isReadOnly ? null : onFieldChanged,
-              onTransportAutonomyChanged: isReadOnly ? null : onTransportAutonomyChanged,
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: OcptPersonSheetImageRightsCard(
+                status: person.imageRightsStatus,
+                date: person.imageRightsDate,
+                onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
+                onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OcptPersonSheetImageRightsCard(
-              status: person.imageRightsStatus,
-              date: person.imageRightsDate,
-              onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
-              onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
+            const SizedBox(width: 12),
+            Expanded(
+              child: OcptPersonSheetNotesCard(
+                title: tr.resourcesHmcNotesTitle,
+                personId: person.id,
+                value: fieldValueOf(OcptPersonField.hmcNotes),
+                onChanged: isReadOnly
+                    ? null
+                    : (value) => onFieldChanged(OcptPersonField.hmcNotes, value),
+              ),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
+          ],
+        ),
+      ],
+    );
+  }
 }

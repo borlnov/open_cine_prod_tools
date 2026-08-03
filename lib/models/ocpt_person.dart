@@ -5,8 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// A single skill of a person: a driving licence, a language, an instrument — a chip on the person
 /// sheet, and the thing an assistant director searches on.
@@ -40,8 +40,9 @@ class OcptPersonSkill extends Equatable {
   List<Object?> get props => [id, personId, label];
 }
 
-/// A date a person is known to be unavailable, with a reason. See [OcptPersonSkill]'s doc comment
-/// for why this has no file of its own either.
+/// A stretch of time a person is known to be unavailable, with a reason. See [OcptPersonSkill]'s
+/// doc comment for why this has no file of its own either, and
+/// `OcptPersonUnavailabilitiesTable`'s for why it is a date range crossed with a slot.
 class OcptPersonUnavailability extends Equatable {
   /// The stable, unique id of this unavailability (a UUID).
   final String id;
@@ -49,21 +50,35 @@ class OcptPersonUnavailability extends Equatable {
   /// The person who is unavailable.
   final String personId;
 
-  /// The date this unavailability covers.
-  final DateTime date;
+  /// The first date this unavailability covers.
+  final DateTime startDate;
 
-  /// How much of [date] this unavailability covers.
-  final OcptHalfDay halfDay;
+  /// The last date this unavailability covers, inclusive; the same as [startDate] for one day.
+  final DateTime endDate;
 
-  /// Why this person is unavailable, free text.
+  /// Which part of each covered day this unavailability takes.
+  final OcptUnavailabilitySlot slot;
+
+  /// The start of the window in minutes from midnight, or null unless [slot] is
+  /// [OcptUnavailabilitySlot.custom].
+  final int? startMinute;
+
+  /// The end of the window in minutes from midnight, or null unless [slot] is
+  /// [OcptUnavailabilitySlot.custom].
+  final int? endMinute;
+
+  /// Why this person is unavailable, free multi-line text.
   final String reason;
 
   /// Class constructor
   const OcptPersonUnavailability({
     required this.id,
     required this.personId,
-    required this.date,
-    required this.halfDay,
+    required this.startDate,
+    required this.endDate,
+    required this.slot,
+    required this.startMinute,
+    required this.endMinute,
     required this.reason,
   });
 
@@ -72,18 +87,31 @@ class OcptPersonUnavailability extends Equatable {
       OcptPersonUnavailability(
         id: row.id,
         personId: row.personId,
-        date: row.date,
-        halfDay: row.halfDay,
+        startDate: row.startDate,
+        endDate: row.endDate,
+        slot: row.slot,
+        startMinute: row.startMinute,
+        endMinute: row.endMinute,
         reason: row.reason,
       );
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptPersonUnavailability(id: $id, date: $date, halfDay: $halfDay)";
+  String toString() =>
+      "OcptPersonUnavailability(id: $id, startDate: $startDate, endDate: $endDate, slot: $slot)";
 
   /// Object properties
   @override
-  List<Object?> get props => [id, personId, date, halfDay, reason];
+  List<Object?> get props => [
+    id,
+    personId,
+    startDate,
+    endDate,
+    slot,
+    startMinute,
+    endMinute,
+    reason,
+  ];
 }
 
 /// The address book: one row per human involved in the production, joined with their

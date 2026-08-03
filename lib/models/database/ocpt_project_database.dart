@@ -32,13 +32,13 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
 // OcptPermitStatusConverter, OcptElementCategoryConverter, OcptElementSourceKindConverter,
-// OcptAssetKindConverter, OcptHalfDayConverter), but the generated ocpt_project_database.g.dart
+// OcptAssetKindConverter, OcptUnavailabilitySlotConverter), but the generated
+// ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 
 part 'ocpt_project_database.g.dart';

@@ -785,8 +785,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       await _peopleService.addUnavailability(
         database: project.database,
         personId: event.personId,
-        date: event.date,
-        halfDay: event.halfDay,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        slot: event.slot,
+        startMinute: event.startMinute,
+        endMinute: event.endMinute,
         reason: event.reason,
       );
     },
@@ -802,8 +805,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     action: (project) => _peopleService.updateUnavailability(
       database: project.database,
       id: event.id,
-      date: Value(event.date),
-      halfDay: Value(event.halfDay),
+      startDate: Value(event.startDate),
+      endDate: Value(event.endDate),
+      slot: Value(event.slot),
+      startMinute: Value(event.startMinute),
+      endMinute: Value(event.endMinute),
       reason: Value(event.reason),
     ),
   );

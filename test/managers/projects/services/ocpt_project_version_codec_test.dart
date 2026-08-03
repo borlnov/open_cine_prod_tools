@@ -14,7 +14,6 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -22,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 void main() {
   // The codec logs through appLogger(), which requires a global manager instance to be set; merely
@@ -256,16 +256,20 @@ void main() {
       OcptPersonUnavailabilityRow(
         id: "unavailability-1",
         personId: "person-1",
-        date: DateTime.utc(2026, 3),
-        halfDay: OcptHalfDay.morning,
+        startDate: DateTime.utc(2026, 3),
+        endDate: DateTime.utc(2026, 3, 5),
+        slot: OcptUnavailabilitySlot.custom,
+        startMinute: 14 * 60,
+        endMinute: 17 * 60 + 30,
         reason: "Wedding",
         isDeleted: false,
       ),
       OcptPersonUnavailabilityRow(
         id: "unavailability-2",
         personId: "person-1",
-        date: DateTime.utc(2026, 3, 2),
-        halfDay: OcptHalfDay.full,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+        slot: OcptUnavailabilitySlot.fullDay,
         reason: "",
         isDeleted: true,
       ),
@@ -558,8 +562,13 @@ void main() {
       expect(skill.label, "Permis B");
 
       final unavailability = roundTripped.personUnavailabilities.first;
-      expect(unavailability.date, DateTime.utc(2026, 3));
-      expect(unavailability.halfDay, OcptHalfDay.morning);
+      expect(unavailability.startDate, DateTime.utc(2026, 3));
+      expect(unavailability.endDate, DateTime.utc(2026, 3, 5));
+      expect(unavailability.slot, OcptUnavailabilitySlot.custom);
+      expect(unavailability.startMinute, 14 * 60);
+      expect(unavailability.endMinute, 17 * 60 + 30);
+      // The window of the second row is null, not zero: only a custom slot carries one.
+      expect(roundTripped.personUnavailabilities.last.startMinute, isNull);
       expect(unavailability.reason, "Wedding");
 
       final role = roundTripped.roles.first;

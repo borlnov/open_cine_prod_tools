@@ -6,8 +6,8 @@ import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
@@ -18,8 +18,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Order is `sortKey`, never `position`** — see `OcptShotListService`'s own doc comment, which
 /// this service follows exactly, including for `person_positions` and `person_skills`
-/// (`person_unavailabilities` carries no `sortKey`: it is an unordered set of dates, not a list a
-/// user reorders — see `OcptPersonUnavailabilitiesTable`'s own doc comment).
+/// (`person_unavailabilities` carries no `sortKey`: it is an unordered set of constraints, not a
+/// list a user reorders — see `OcptPersonUnavailabilitiesTable`'s own doc comment).
 ///
 /// **[deletePerson] is an erasure, not a plain tombstone** — decision 6 of the plan this service
 /// ships under. See its own doc comment for exactly which columns are blanked.
@@ -95,7 +95,7 @@ class OcptPeopleService {
         ? const <OcptPersonUnavailabilityRow>[]
         : await (database.select(database.ocptPersonUnavailabilitiesTable)
                 ..where((table) => table.personId.isIn(personIds) & table.isDeleted.not())
-                ..orderBy([(table) => OrderingTerm.asc(table.date)]))
+                ..orderBy([(table) => OrderingTerm.asc(table.startDate)]))
               .get();
 
     final positionsByPersonId = <String, List<OcptPersonPosition>>{};
@@ -533,12 +533,18 @@ class OcptPeopleService {
 
   /// Adds an unavailability to person [personId], and returns its freshly generated id.
   ///
+  /// [endDate] is clamped up to [startDate] rather than refused: a range that ends before it
+  /// starts is a slip of a date picker, and the caller has nothing useful to do with an error.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addUnavailability({
     required OcptProjectDatabase database,
     required String personId,
-    required DateTime date,
-    required OcptHalfDay halfDay,
+    required DateTime startDate,
+    required DateTime endDate,
+    required OcptUnavailabilitySlot slot,
+    int? startMinute,
+    int? endMinute,
     required String reason,
   }) async {
     if (database.refusesUserWrite("addUnavailability")) {
@@ -553,8 +559,11 @@ class OcptPeopleService {
           OcptPersonUnavailabilitiesTableCompanion.insert(
             id: id,
             personId: personId,
-            date: date,
-            halfDay: halfDay,
+            startDate: startDate,
+            endDate: endDate.isBefore(startDate) ? startDate : endDate,
+            slot: Value(slot),
+            startMinute: Value(startMinute),
+            endMinute: Value(endMinute),
             reason: Value(reason),
           ),
         );
@@ -569,8 +578,11 @@ class OcptPeopleService {
   Future<void> updateUnavailability({
     required OcptProjectDatabase database,
     required String id,
-    Value<DateTime> date = const Value.absent(),
-    Value<OcptHalfDay> halfDay = const Value.absent(),
+    Value<DateTime> startDate = const Value.absent(),
+    Value<DateTime> endDate = const Value.absent(),
+    Value<OcptUnavailabilitySlot> slot = const Value.absent(),
+    Value<int?> startMinute = const Value.absent(),
+    Value<int?> endMinute = const Value.absent(),
     Value<String> reason = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateUnavailability")) {
@@ -580,7 +592,14 @@ class OcptPeopleService {
     await (database.update(
       database.ocptPersonUnavailabilitiesTable,
     )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
-      OcptPersonUnavailabilitiesTableCompanion(date: date, halfDay: halfDay, reason: reason),
+      OcptPersonUnavailabilitiesTableCompanion(
+        startDate: startDate,
+        endDate: endDate,
+        slot: slot,
+        startMinute: startMinute,
+        endMinute: endMinute,
+        reason: reason,
+      ),
     );
   }
 

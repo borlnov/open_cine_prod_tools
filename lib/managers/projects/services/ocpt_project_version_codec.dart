@@ -15,7 +15,6 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -23,6 +22,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// The single place that knows the shape of `project_versions.payload`: it turns an
@@ -337,13 +337,25 @@ class OcptProjectVersionCodec {
   /// `assets.label`) from a JSON object
   static const _labelKey = "label";
 
-  /// This is the key used to stringify or parse an unavailability's `date` column from a JSON
-  /// object
-  static const _dateKey = "date";
+  /// This is the key used to stringify or parse an unavailability's `startDate` column from a
+  /// JSON object
+  static const _startDateKey = "startDate";
 
-  /// This is the key used to stringify or parse an unavailability's `halfDay` column from a JSON
+  /// This is the key used to stringify or parse an unavailability's `endDate` column from a JSON
   /// object
-  static const _halfDayKey = "halfDay";
+  static const _endDateKey = "endDate";
+
+  /// This is the key used to stringify or parse an unavailability's `slot` column from a JSON
+  /// object
+  static const _slotKey = "slot";
+
+  /// This is the key used to stringify or parse an unavailability's `startMinute` column from a
+  /// JSON object
+  static const _startMinuteKey = "startMinute";
+
+  /// This is the key used to stringify or parse an unavailability's `endMinute` column from a JSON
+  /// object
+  static const _endMinuteKey = "endMinute";
 
   /// This is the key used to stringify or parse an unavailability's `reason` column from a JSON
   /// object
@@ -1063,8 +1075,11 @@ class OcptProjectVersionCodec {
   static Map<String, dynamic> _personUnavailabilityToJson(OcptPersonUnavailabilityRow row) => {
     _idKey: row.id,
     _personIdKey: row.personId,
-    _dateKey: row.date.toIso8601String(),
-    _halfDayKey: row.halfDay.name,
+    _startDateKey: row.startDate.toIso8601String(),
+    _endDateKey: row.endDate.toIso8601String(),
+    _slotKey: row.slot.name,
+    _startMinuteKey: row.startMinute,
+    _endMinuteKey: row.endMinute,
     _reasonKey: row.reason,
     _isDeletedKey: row.isDeleted,
   };
@@ -1074,8 +1089,11 @@ class OcptProjectVersionCodec {
       OcptPersonUnavailabilityRow(
         id: _string(json, _idKey),
         personId: _string(json, _personIdKey),
-        date: _dateTime(json, _dateKey),
-        halfDay: _enum(json, _halfDayKey, OcptHalfDay.values.asNameMap()),
+        startDate: _dateTime(json, _startDateKey),
+        endDate: _dateTime(json, _endDateKey),
+        slot: _enum(json, _slotKey, OcptUnavailabilitySlot.values.asNameMap()),
+        startMinute: _nullableInt(json, _startMinuteKey),
+        endMinute: _nullableInt(json, _endMinuteKey),
         reason: _string(json, _reasonKey),
         isDeleted: _bool(json, _isDeletedKey),
       );

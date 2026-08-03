@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
-import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// The events handled by `OcptResourcesBloc`.
 sealed class OcptResourcesEvent extends BlocEventForMixin {
@@ -324,38 +324,72 @@ class OcptResourcesUnavailabilityAddedEvent extends OcptResourcesEvent {
   /// The id of the person the unavailability is added to.
   final String personId;
 
-  /// The date this unavailability covers.
-  final DateTime date;
+  /// The first date this unavailability covers.
+  final DateTime startDate;
 
-  /// How much of [date] this unavailability covers.
-  final OcptHalfDay halfDay;
+  /// The last date this unavailability covers, inclusive.
+  final DateTime endDate;
 
-  /// Why this person is unavailable, free text.
+  /// Which part of each covered day this unavailability takes.
+  final OcptUnavailabilitySlot slot;
+
+  /// The start of the window in minutes from midnight, or null unless [slot] is
+  /// [OcptUnavailabilitySlot.custom].
+  final int? startMinute;
+
+  /// The end of the window in minutes from midnight, or null unless [slot] is
+  /// [OcptUnavailabilitySlot.custom].
+  final int? endMinute;
+
+  /// Why this person is unavailable, free multi-line text.
   final String reason;
 
   /// Class constructor
   const OcptResourcesUnavailabilityAddedEvent({
     required this.personId,
-    required this.date,
-    required this.halfDay,
+    required this.startDate,
+    required this.endDate,
+    required this.slot,
+    required this.startMinute,
+    required this.endMinute,
     required this.reason,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, personId, date, halfDay, reason];
+  List<Object?> get props => [
+    ...super.props,
+    personId,
+    startDate,
+    endDate,
+    slot,
+    startMinute,
+    endMinute,
+    reason,
+  ];
 }
 
-/// Updates unavailability [id]'s fields, written immediately, replacing all three at once.
+/// Updates unavailability [id]'s fields, written immediately, replacing all of them at once.
 class OcptResourcesUnavailabilityUpdatedEvent extends OcptResourcesEvent {
   /// The id of the unavailability to update.
   final String id;
 
-  /// The new date.
-  final DateTime date;
+  /// The new first date.
+  final DateTime startDate;
 
-  /// The new half-day coverage.
-  final OcptHalfDay halfDay;
+  /// The new last date, inclusive.
+  final DateTime endDate;
+
+  /// The new slot within each covered day.
+  final OcptUnavailabilitySlot slot;
+
+  /// The new window start in minutes from midnight, or null unless [slot] is
+  /// [OcptUnavailabilitySlot.custom].
+  final int? startMinute;
+
+  /// The new window end in minutes from midnight, or null unless [slot] is
+  /// [OcptUnavailabilitySlot.custom].
+  final int? endMinute;
 
   /// The new reason.
   final String reason;
@@ -363,14 +397,26 @@ class OcptResourcesUnavailabilityUpdatedEvent extends OcptResourcesEvent {
   /// Class constructor
   const OcptResourcesUnavailabilityUpdatedEvent({
     required this.id,
-    required this.date,
-    required this.halfDay,
+    required this.startDate,
+    required this.endDate,
+    required this.slot,
+    required this.startMinute,
+    required this.endMinute,
     required this.reason,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, id, date, halfDay, reason];
+  List<Object?> get props => [
+    ...super.props,
+    id,
+    startDate,
+    endDate,
+    slot,
+    startMinute,
+    endMinute,
+    reason,
+  ];
 }
 
 /// Removes unavailability [id], written immediately.
