@@ -4038,5 +4038,201 @@
     "context": "Displayed in the platform's own open dialog",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesElementCategoryProp": "Props",
+  "@resourcesElementCategoryProp": {
+    "description": "Label of the element category holding the objects a character handles",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategorySetDressing": "Set dressing",
+  "@resourcesElementCategorySetDressing": {
+    "description": "Label of the element category holding what furnishes a set",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryCostume": "Costumes",
+  "@resourcesElementCategoryCostume": {
+    "description": "Label of the element category holding what a character wears",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryMakeup": "Make-up & prosthetics",
+  "@resourcesElementCategoryMakeup": {
+    "description": "Label of the element category holding make-up, hair and prosthetics material",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryVehicle": "Vehicles",
+  "@resourcesElementCategoryVehicle": {
+    "description": "Label of the element category holding vehicles",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryAnimal": "Animals",
+  "@resourcesElementCategoryAnimal": {
+    "description": "Label of the element category holding animals",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategorySpecialEquipment": "Special equipment",
+  "@resourcesElementCategorySpecialEquipment": {
+    "description": "Label of the element category holding harnesses, wires, pyrotechnics and weapons",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryCamera": "Camera",
+  "@resourcesElementCategoryCamera": {
+    "description": "Label of the element category holding camera department equipment",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryLighting": "Lighting & grip",
+  "@resourcesElementCategoryLighting": {
+    "description": "Label of the element category holding lighting and grip equipment",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategorySound": "Sound",
+  "@resourcesElementCategorySound": {
+    "description": "Label of the element category holding sound recording equipment",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryProduction": "Production",
+  "@resourcesElementCategoryProduction": {
+    "description": "Label of the element category holding walkies, generators, tents and signage",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryCatering": "Catering",
+  "@resourcesElementCategoryCatering": {
+    "description": "Label of the element category holding catering and craft services material",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryExtras": "Extras",
+  "@resourcesElementCategoryExtras": {
+    "description": "Label of the element category holding a block of extras tracked as one item",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryOther": "Other",
+  "@resourcesElementCategoryOther": {
+    "description": "Label of the element category holding whatever the others don't fit",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceOwned": "Owned",
+  "@resourcesElementSourceOwned": {
+    "description": "Label of the element provenance meaning the production already owns it",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceBorrowed": "Borrowed",
+  "@resourcesElementSourceBorrowed": {
+    "description": "Label of the element provenance meaning it is borrowed and expected back",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceRented": "Rented",
+  "@resourcesElementSourceRented": {
+    "description": "Label of the element provenance meaning it is rented",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceToBuy": "To buy",
+  "@resourcesElementSourceToBuy": {
+    "description": "Label of the element provenance meaning it still has to be bought",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceToMake": "To make",
+  "@resourcesElementSourceToMake": {
+    "description": "Label of the element provenance meaning it still has to be built",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceAlreadyOnSet": "Already on set",
+  "@resourcesElementSourceAlreadyOnSet": {
+    "description": "Label of the element provenance meaning nothing has to be brought",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingToSecure": "To secure",
+  "@resourcesElementTrackingToSecure": {
+    "description": "Tracking status of an element the production doesn't have yet",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingSecured": "Secured",
+  "@resourcesElementTrackingSecured": {
+    "description": "Tracking status of an element the production has but hasn't prepared yet",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingReady": "Ready",
+  "@resourcesElementTrackingReady": {
+    "description": "Tracking status of an element prepared and ready to go to set",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingReturned": "Returned",
+  "@resourcesElementTrackingReturned": {
+    "description": "Tracking status of an element given back after the shoot",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddElementAction": "+ Add an element",
+  "@resourcesAddElementAction": {
+    "description": "Label of the left dock footer button creating an element, opening the category menu",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementsEmptyHint": "Nothing yet. Add the props, vehicles, animals and equipment the shoot needs.",
+  "@resourcesElementsEmptyHint": {
+    "description": "Hint shown in place of the elements list while the catalogue is empty",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementUnnamed": "Unnamed element",
+  "@resourcesElementUnnamed": {
+    "description": "Placeholder shown in place of an element's name while it is still empty",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNoElementSelectedHint": "Pick an element on the left to open its sheet.",
+  "@resourcesNoElementSelectedHint": {
+    "description": "Hint shown in the centre of the elements tab while no element is selected",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
   }
 }

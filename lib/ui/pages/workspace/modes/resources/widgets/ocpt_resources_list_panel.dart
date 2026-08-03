@@ -4,11 +4,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_elements_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_locations_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_people_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_tab_bar.dart';
@@ -16,15 +19,16 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
 /// The resources mode's left dock body: the tab bar, a header row (the active tab's title on the
-/// left, its count on the right), the scrolling list, and — on [OcptResourcesTab.people] and
-/// [OcptResourcesTab.roles] — a full-width footer action, contextual to whichever tab is active.
+/// left, its count on the right), the scrolling list, and a full-width footer action, contextual to
+/// whichever tab is active.
 ///
 /// The people and locations tabs' footers create a record outright; the roles tab's opens a small
 /// menu offering `Silent role` and `Extra` — `speaking` is never offered, since only
 /// `OcptRoleIndexService.reconcile` ever creates one, from the screenplay's own speaking
-/// characters. Every footer is withheld — no button at all, rather than a disabled one — while a
-/// project version is being previewed read-only. [OcptResourcesTab.elements] shows a discreet
-/// "coming in a future version" placeholder line instead of a list, and has nothing to add yet.
+/// characters — and the elements tab's opens the same kind of menu over the categories, because an
+/// element with no category would have nowhere to appear in a list whose only structure is the
+/// category headings. Every footer is withheld — no button at all, rather than a disabled one —
+/// while a project version is being previewed read-only.
 class OcptResourcesListPanel extends StatelessWidget {
   /// The left dock's currently active tab.
   final OcptResourcesTab activeTab;
@@ -51,6 +55,13 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// The id of the selected location, or null if none is.
   final String? selectedLocationId;
 
+  /// Every element of the catalogue, in display order — read regardless of [activeTab] for the same
+  /// reason [people] is.
+  final List<OcptElement> elements;
+
+  /// The id of the selected element, or null if none is.
+  final String? selectedElementId;
+
   /// Called with the tab tapped in the tab bar.
   final ValueChanged<OcptResourcesTab> onTabSelected;
 
@@ -62,6 +73,9 @@ class OcptResourcesListPanel extends StatelessWidget {
 
   /// Called with a location's id when its row is clicked.
   final ValueChanged<String> onLocationSelected;
+
+  /// Called with an element's id when its row is clicked.
+  final ValueChanged<String> onElementSelected;
 
   /// Called when the footer's `+ Add a person` button is clicked, or null while it may not be used
   /// (a project version being previewed read-only) — no button is rendered at all then.
@@ -75,6 +89,10 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// used — no button is rendered at all then.
   final VoidCallback? onAddLocationRequested;
 
+  /// Called with the category picked from the footer's `+ Add an element` menu, or null while it
+  /// may not be used — no button is rendered at all then.
+  final ValueChanged<OcptElementCategory>? onAddElementRequested;
+
   /// Class constructor
   const OcptResourcesListPanel({
     super.key,
@@ -85,13 +103,17 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.selectedRoleId,
     required this.locations,
     required this.selectedLocationId,
+    required this.elements,
+    required this.selectedElementId,
     required this.onTabSelected,
     required this.onPersonSelected,
     required this.onRoleSelected,
     required this.onLocationSelected,
+    required this.onElementSelected,
     required this.onAddPersonRequested,
     required this.onAddRoleRequested,
     required this.onAddLocationRequested,
+    required this.onAddElementRequested,
   });
 
   @override
@@ -101,6 +123,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     final isPeopleTab = activeTab == OcptResourcesTab.people;
     final isRolesTab = activeTab == OcptResourcesTab.roles;
     final isLocationsTab = activeTab == OcptResourcesTab.locations;
+    final isElementsTab = activeTab == OcptResourcesTab.elements;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,11 +156,18 @@ class OcptResourcesListPanel extends StatelessWidget {
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
+                )
+              else if (isElementsTab)
+                Text(
+                  tr.resourcesStatsElements(elements.length),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
             ],
           ),
         ),
-        Expanded(child: _buildBody(context, tr)),
+        Expanded(child: _buildBody(tr)),
         if (isPeopleTab && onAddPersonRequested != null) ...[
           Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
           Padding(
@@ -162,15 +192,20 @@ class OcptResourcesListPanel extends StatelessWidget {
               child: Text(tr.resourcesAddLocationAction),
             ),
           ),
+        ] else if (isElementsTab && onAddElementRequested != null) ...[
+          Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: _OcptAddElementButton(onCategoryPicked: onAddElementRequested!),
+          ),
         ],
       ],
     );
   }
 
   /// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
-  /// [OcptLocationsList] on the locations tab, or a discreet muted placeholder line on the one tab
-  /// with no content yet.
-  Widget _buildBody(BuildContext context, Tr tr) {
+  /// [OcptLocationsList] on the locations tab and [OcptElementsList] on the elements tab.
+  Widget _buildBody(Tr tr) {
     if (activeTab == OcptResourcesTab.people) {
       return OcptPeopleList(
         people: people,
@@ -196,14 +231,10 @@ class OcptResourcesListPanel extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        tr.workspaceEmptyModeMessage(ocptResourcesTabLabel(tr, activeTab)),
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-      ),
+    return OcptElementsList(
+      elements: elements,
+      selectedElementId: selectedElementId,
+      onElementSelected: onElementSelected,
     );
   }
 }
@@ -241,6 +272,45 @@ class _OcptAddRoleButton extends StatelessWidget {
         child: FilledButton(
           onPressed: () => controller.isOpen ? controller.close() : controller.open(),
           child: Text(tr.resourcesAddRoleAction),
+        ),
+      ),
+    );
+  }
+}
+
+/// The elements tab's footer button: a full-width `+ Add an element` action opening a menu of the
+/// categories the catalogue is grouped by.
+///
+/// The category is asked for up front rather than picked afterwards on the sheet: the list has no
+/// place to show an element that belongs to no category, and one appearing under a heading only to
+/// jump to another the moment it is classified would be worse than one question.
+///
+/// Built on [MenuAnchor]/[MenuItemButton] like the roles tab's own footer button, so picking an
+/// entry closes the menu for free.
+class _OcptAddElementButton extends StatelessWidget {
+  /// Called with the category picked.
+  final ValueChanged<OcptElementCategory> onCategoryPicked;
+
+  /// Class constructor
+  const _OcptAddElementButton({required this.onCategoryPicked});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return MenuAnchor(
+      menuChildren: [
+        for (final category in OcptElementCategory.values)
+          MenuItemButton(
+            onPressed: () => onCategoryPicked(category),
+            child: Text(ocptElementCategoryLabel(tr, category)),
+          ),
+      ],
+      builder: (context, controller, child) => SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+          child: Text(tr.resourcesAddElementAction),
         ),
       ),
     );

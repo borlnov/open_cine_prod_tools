@@ -5,9 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -133,6 +136,78 @@ Color ocptPermitStatusColor(BuildContext context, OcptPermitStatus status) {
       theme.extension<OcptSpecificColors>()?.shotStatusShot ?? theme.colorScheme.primary,
     OcptPermitStatus.refused => theme.colorScheme.error,
   };
+}
+
+/// The display label of [category], the top-level grouping the elements list is organised by.
+String ocptElementCategoryLabel(Tr tr, OcptElementCategory category) => switch (category) {
+  OcptElementCategory.prop => tr.resourcesElementCategoryProp,
+  OcptElementCategory.setDressing => tr.resourcesElementCategorySetDressing,
+  OcptElementCategory.costume => tr.resourcesElementCategoryCostume,
+  OcptElementCategory.makeup => tr.resourcesElementCategoryMakeup,
+  OcptElementCategory.vehicle => tr.resourcesElementCategoryVehicle,
+  OcptElementCategory.animal => tr.resourcesElementCategoryAnimal,
+  OcptElementCategory.specialEquipment => tr.resourcesElementCategorySpecialEquipment,
+  OcptElementCategory.camera => tr.resourcesElementCategoryCamera,
+  OcptElementCategory.lighting => tr.resourcesElementCategoryLighting,
+  OcptElementCategory.sound => tr.resourcesElementCategorySound,
+  OcptElementCategory.production => tr.resourcesElementCategoryProduction,
+  OcptElementCategory.catering => tr.resourcesElementCategoryCatering,
+  OcptElementCategory.extras => tr.resourcesElementCategoryExtras,
+  OcptElementCategory.other => tr.resourcesElementCategoryOther,
+};
+
+/// The display label of [sourceKind], where an element comes from or is going to.
+String ocptElementSourceKindLabel(Tr tr, OcptElementSourceKind sourceKind) => switch (sourceKind) {
+  OcptElementSourceKind.owned => tr.resourcesElementSourceOwned,
+  OcptElementSourceKind.borrowed => tr.resourcesElementSourceBorrowed,
+  OcptElementSourceKind.rented => tr.resourcesElementSourceRented,
+  OcptElementSourceKind.toBuy => tr.resourcesElementSourceToBuy,
+  OcptElementSourceKind.toMake => tr.resourcesElementSourceToMake,
+  OcptElementSourceKind.alreadyOnSet => tr.resourcesElementSourceAlreadyOnSet,
+};
+
+/// How far along [element] is, read off its three tracking flags: the one thing about an item that
+/// decides whether it is still a problem.
+///
+/// Derived rather than stored, exactly as a person's age is: the flags are the answers the user
+/// gives, and this is the sentence they add up to. They are read **in the order the shoot goes
+/// through them** and the last one ticked wins, so an item that came back reads as returned rather
+/// than as ready, whatever the earlier boxes still say.
+String ocptElementTrackingLabel(Tr tr, OcptElement element) {
+  if (element.isReturned) {
+    return tr.resourcesElementTrackingReturned;
+  }
+  if (element.isReadyForShoot) {
+    return tr.resourcesElementTrackingReady;
+  }
+  if (element.isSecured) {
+    return tr.resourcesElementTrackingSecured;
+  }
+
+  return tr.resourcesElementTrackingToSecure;
+}
+
+/// The colour [ocptElementTrackingLabel]'s answer is painted with, in the left dock's list and on
+/// the element sheet's own badge alike.
+///
+/// Follows the permit status' own scale, for the same reason it does: an item still to secure is
+/// the workspace's warning colour — it is the one that loses a shooting day — a ready one is the
+/// "already shot" green, and the two states either side of them are neutral. Nothing here is an
+/// error: an element the production simply has not found yet is an ordinary Tuesday.
+Color ocptElementTrackingColor(BuildContext context, OcptElement element) {
+  final theme = Theme.of(context);
+
+  if (element.isReturned) {
+    return theme.colorScheme.onSurfaceVariant;
+  }
+  if (element.isReadyForShoot) {
+    return theme.extension<OcptSpecificColors>()?.shotStatusShot ?? theme.colorScheme.primary;
+  }
+  if (element.isSecured) {
+    return theme.colorScheme.onSurfaceVariant;
+  }
+
+  return ocptWarningColor(context);
 }
 
 /// The display label of the left dock tab [tab], shared by `OcptResourcesTabBar` (the tab strip

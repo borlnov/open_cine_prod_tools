@@ -6,9 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -111,15 +114,44 @@ OcptLocation _location({required String id, required String name}) => OcptLocati
   availabilities: const [],
 );
 
+/// A test element, of [category] and named [name].
+OcptElement _element({
+  required String id,
+  required String name,
+  OcptElementCategory category = OcptElementCategory.prop,
+}) => OcptElement(
+  id: id,
+  category: category,
+  subCategory: "",
+  name: name,
+  code: "",
+  quantity: "",
+  sourceKind: OcptElementSourceKind.owned,
+  ownerPersonId: null,
+  ownerNotes: "",
+  broughtByPersonId: null,
+  storageNotes: "",
+  isSecured: false,
+  isReadyForShoot: false,
+  isReturned: false,
+  cost: null,
+  purposeNotes: "",
+  notes: "",
+  photoAssetId: null,
+  sceneLinks: const [],
+);
+
 void main() {
-  /// Pumps the panel on [activeTab], with the three contextual creation callbacks a tab may carry.
+  /// Pumps the panel on [activeTab], with the four contextual creation callbacks a tab may carry.
   Future<void> pumpPanel(
     WidgetTester tester, {
     OcptResourcesTab activeTab = OcptResourcesTab.people,
     VoidCallback? onAddPersonRequested,
     ValueChanged<OcptRoleKind>? onAddRoleRequested,
     VoidCallback? onAddLocationRequested,
+    ValueChanged<OcptElementCategory>? onAddElementRequested,
     ValueChanged<String>? onLocationSelected,
+    ValueChanged<String>? onElementSelected,
   }) async {
     await tester.pumpWidget(
       _wrapInApp(
@@ -131,13 +163,17 @@ void main() {
           selectedRoleId: null,
           locations: [_location(id: "l1", name: "La maison des Pains")],
           selectedLocationId: null,
+          elements: [_element(id: "e1", name: "Vélo de Léa")],
+          selectedElementId: null,
           onTabSelected: (tab) {},
           onPersonSelected: (personId) {},
           onRoleSelected: (roleId) {},
           onLocationSelected: onLocationSelected ?? (locationId) {},
+          onElementSelected: onElementSelected ?? (elementId) {},
           onAddPersonRequested: onAddPersonRequested,
           onAddRoleRequested: onAddRoleRequested,
           onAddLocationRequested: onAddLocationRequested,
+          onAddElementRequested: onAddElementRequested,
         ),
       ),
     );
@@ -227,22 +263,45 @@ void main() {
     expect(find.text("La maison des Pains"), findsOneWidget);
   });
 
-  testWidgets("a tab with no content yet shows a placeholder and no creation button", (
+  testWidgets("the elements tab lists its catalogue and offers the category menu", (
     tester,
   ) async {
+    OcptElementCategory? pickedCategory;
+    String? selectedElementId;
+
     await pumpPanel(
       tester,
       activeTab: OcptResourcesTab.elements,
-      onAddPersonRequested: () {},
-      onAddRoleRequested: (kind) {},
-      onAddLocationRequested: () {},
+      onAddElementRequested: (category) => pickedCategory = category,
+      onElementSelected: (elementId) => selectedElementId = elementId,
     );
 
+    // Only the active tab's own list is shown, whichever lists the panel was given.
     expect(find.text("Sofia Berger"), findsNothing);
     expect(find.text("Le Client"), findsNothing);
     expect(find.text("La maison des Pains"), findsNothing);
-    expect(find.widgetWithText(FilledButton, "+ Add a person"), findsNothing);
-    expect(find.widgetWithText(FilledButton, "+ Add a role"), findsNothing);
-    expect(find.widgetWithText(FilledButton, "+ Add a location"), findsNothing);
+    expect(find.text("Vélo de Léa"), findsOneWidget);
+
+    await tester.tap(find.text("Vélo de Léa"));
+    await tester.pumpAndSettle();
+    expect(selectedElementId, "e1");
+
+    await tester.tap(find.widgetWithText(FilledButton, "+ Add an element"));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
+    await tester.tap(find.text(tr.resourcesElementCategoryVehicle).last);
+    await tester.pumpAndSettle();
+
+    expect(pickedCategory, OcptElementCategory.vehicle);
+  });
+
+  testWidgets("a null add-element callback draws no button at all, not a disabled one", (
+    tester,
+  ) async {
+    await pumpPanel(tester, activeTab: OcptResourcesTab.elements);
+
+    expect(find.widgetWithText(FilledButton, "+ Add an element"), findsNothing);
+    expect(find.text("Vélo de Léa"), findsOneWidget);
   });
 }

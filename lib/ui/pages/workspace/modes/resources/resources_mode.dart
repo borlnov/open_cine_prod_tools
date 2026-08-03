@@ -155,9 +155,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.
   ///
-  /// `+ Add a person` and `+ Add a role` are both withheld — a null `onAddPersonRequested` /
-  /// `onAddRoleRequested` — while a project version is being previewed: the list is then a way of
-  /// reading that version, not of changing it.
+  /// Every `+ Add …` action is withheld — a null callback — while a project version is being
+  /// previewed: the list is then a way of reading that version, not of changing it.
   Widget? _buildListPanel(BuildContext context, OcptResourcesState state) {
     if (!state.isListPanelVisible) {
       return null;
@@ -171,6 +170,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       selectedRoleId: state.selectedRoleId,
       locations: state.locations,
       selectedLocationId: state.selectedLocationId,
+      elements: state.elements,
+      selectedElementId: state.selectedElementId,
       onTabSelected: (tab) =>
           context.read<OcptResourcesBloc>().add(OcptResourcesTabSelectedEvent(tab: tab)),
       onPersonSelected: (personId) => context.read<OcptResourcesBloc>().add(
@@ -180,6 +181,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
           context.read<OcptResourcesBloc>().add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
       onLocationSelected: (locationId) => context.read<OcptResourcesBloc>().add(
         OcptResourcesLocationSelectedEvent(locationId: locationId),
+      ),
+      onElementSelected: (elementId) => context.read<OcptResourcesBloc>().add(
+        OcptResourcesElementSelectedEvent(elementId: elementId),
       ),
       onAddPersonRequested: state.isPreviewingVersion
           ? null
@@ -195,6 +199,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
           ? null
           : () => context.read<OcptResourcesBloc>().add(
               const OcptResourcesLocationCreationRequestedEvent(),
+            ),
+      onAddElementRequested: state.isPreviewingVersion
+          ? null
+          : (category) => context.read<OcptResourcesBloc>().add(
+              OcptResourcesElementCreationRequestedEvent(category: category),
             ),
     );
   }
