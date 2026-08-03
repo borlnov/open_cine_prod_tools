@@ -7,11 +7,14 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_address_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_permit_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_sets_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_action.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
@@ -26,9 +29,9 @@ const int _permitCardFlex = 10;
 
 /// The resources mode's centre, once a location is selected: the whole location sheet, a single
 /// scrolling column edited in place — the header (colour, name, permit status), the address and
-/// permit cards side by side, the three logistics cards (parking, power, facilities), the
-/// noise-and-schedule constraints callout, the notes, and `Delete this location` at the very
-/// bottom.
+/// permit cards side by side, the sets of the location and the scenes shot in them, the three
+/// logistics cards (parking, power, facilities), the noise-and-schedule constraints callout, the
+/// notes, and `Delete this location` at the very bottom.
 ///
 /// It is `OcptPersonSheet`'s and `OcptRoleSheet`'s sibling and follows the same grammar: the tabs of
 /// the resources mode all answer one gesture — pick a record on the left, edit it in the centre —
@@ -58,6 +61,16 @@ class OcptLocationSheet extends StatelessWidget {
   /// The whole address book, offered by the contact picker.
   final List<OcptPerson> people;
 
+  /// Every scene of the project's screenplay, in source order, offered by the sets card's own
+  /// scene picker.
+  final List<OcptSceneRef> scenes;
+
+  /// The ids of the scenes already shot in some set, this location's or another's.
+  final Set<String> assignedSceneIds;
+
+  /// The id of the set each scene is suggested for, keyed by scene id.
+  final Map<String, String> suggestedSetIdBySceneId;
+
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
   /// of this sheet may write through.
   final bool isReadOnly;
@@ -84,6 +97,25 @@ class OcptLocationSheet extends StatelessWidget {
   /// Called with a person's id when the contact's `↗` is clicked.
   final ValueChanged<String> onPersonSheetOpenRequested;
 
+  /// A set's current value for `field`: a pending edit still in the bloc's debounce, or the set's
+  /// own stored value.
+  final String Function(String setId, OcptSetField field) setFieldValueOf;
+
+  /// Called with a set field's raw text on every keystroke.
+  final void Function(String setId, OcptSetField field, String rawValue) onSetFieldChanged;
+
+  /// Called when a set is added to this location.
+  final VoidCallback onSetAdded;
+
+  /// Called with a set's id when its remove control is clicked.
+  final ValueChanged<String> onSetRemoved;
+
+  /// Called with a scene and the set it is now shot in.
+  final void Function(String sceneId, String setId) onSceneAssigned;
+
+  /// Called with a scene and the set it is no longer shot in.
+  final void Function(String sceneId, String setId) onSceneRemoved;
+
   /// Called once the inline delete confirmation is answered `Delete`.
   final VoidCallback onDeleteRequested;
 
@@ -93,6 +125,9 @@ class OcptLocationSheet extends StatelessWidget {
     required this.location,
     required this.contact,
     required this.people,
+    required this.scenes,
+    required this.assignedSceneIds,
+    required this.suggestedSetIdBySceneId,
     this.isReadOnly = false,
     required this.fieldValueOf,
     required this.onFieldChanged,
@@ -101,6 +136,12 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onPermitDateChanged,
     required this.onContactChanged,
     required this.onPersonSheetOpenRequested,
+    required this.setFieldValueOf,
+    required this.onSetFieldChanged,
+    required this.onSetAdded,
+    required this.onSetRemoved,
+    required this.onSceneAssigned,
+    required this.onSceneRemoved,
     required this.onDeleteRequested,
   });
 
@@ -148,6 +189,19 @@ class OcptLocationSheet extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          OcptLocationSheetSetsCard(
+            sets: location.sets,
+            scenes: scenes,
+            assignedSceneIds: assignedSceneIds,
+            suggestedSetIdBySceneId: suggestedSetIdBySceneId,
+            fieldValueOf: setFieldValueOf,
+            onSetFieldChanged: isReadOnly ? null : onSetFieldChanged,
+            onSetAdded: isReadOnly ? null : onSetAdded,
+            onSetRemoved: isReadOnly ? null : onSetRemoved,
+            onSceneAssigned: isReadOnly ? null : onSceneAssigned,
+            onSceneRemoved: isReadOnly ? null : onSceneRemoved,
           ),
           const SizedBox(height: 12),
           _buildLogisticsRow(context, tr),

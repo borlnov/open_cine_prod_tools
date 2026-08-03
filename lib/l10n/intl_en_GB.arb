@@ -3802,5 +3802,86 @@
     "context": "Displayed at the bottom of the resources mode's location sheet",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesLocationSetsCardTitle": "Sets in this location",
+  "@resourcesLocationSetsCardTitle": {
+    "description": "Title of the card holding a location's sets and the scenes shot in them",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationNoSetHint": "No set yet in this location.",
+  "@resourcesLocationNoSetHint": {
+    "description": "Hint shown while a location holds no set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSetAction": "+ Add a set in this location",
+  "@resourcesAddSetAction": {
+    "description": "Action adding a new, blank set to a location",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveSetTooltip": "Remove this set",
+  "@resourcesRemoveSetTooltip": {
+    "description": "Tooltip of the control removing a set and the scenes' links to it",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetCodeLabel": "Code",
+  "@resourcesSetCodeLabel": {
+    "description": "Label of a set's short code field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetNameLabel": "Set",
+  "@resourcesSetNameLabel": {
+    "description": "Label of a set's name field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetNotesLabel": "Notes",
+  "@resourcesSetNotesLabel": {
+    "description": "Label of a set's own notes field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetScenesLabel": "Scenes shot here",
+  "@resourcesSetScenesLabel": {
+    "description": "Label of the scenes linked to a set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSceneToSetAction": "Scene",
+  "@resourcesAddSceneToSetAction": {
+    "description": "Action opening the picker adding a scene to a set",
+    "context": "Displayed on a chip in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSceneSuggestedOption": "{scene} — suggested",
+  "@resourcesSceneSuggestedOption": {
+    "description": "Entry of the scene picker whose heading matches this set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {
+      "scene": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesScenesInAnotherSetLabel": "Already in another set",
+  "@resourcesScenesInAnotherSetLabel": {
+    "description": "Heading of the scene picker's group of scenes already shot in another set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
   }
 }

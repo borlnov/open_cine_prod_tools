@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -33,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
 /// left, the selected item's editable sheet in the centre, and the shared `Versions` dock tab on
@@ -423,6 +425,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       location: selectedLocation,
       contact: _personOf(state, selectedLocation.contactPersonId),
       people: state.people,
+      scenes: state.scenes,
+      assignedSceneIds: _assignedSceneIdsOf(state),
+      suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _locationFieldValueOf(state, selectedLocation, field),
       onFieldChanged: (field, rawValue) => bloc.add(
@@ -455,9 +460,79 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      setFieldValueOf: (setId, field) => _setFieldValueOf(state, setId, field),
+      onSetFieldChanged: (setId, field, rawValue) => bloc.add(
+        OcptResourcesSetFieldChangedEvent(setId: setId, field: field, rawValue: rawValue),
+      ),
+      onSetAdded: () => bloc.add(OcptResourcesSetAddedEvent(locationId: selectedLocation.id)),
+      onSetRemoved: (setId) => bloc.add(OcptResourcesSetRemovedEvent(setId: setId)),
+      onSceneAssigned: (sceneId, setId) =>
+          bloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
+      onSceneRemoved: (sceneId, setId) =>
+          bloc.add(OcptResourcesSceneRemovedFromSetEvent(sceneId: sceneId, setId: setId)),
       onDeleteRequested: () =>
           bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id)),
     );
+  }
+
+  /// The ids of every scene already shot in a set, of this location or of another.
+  ///
+  /// Read across the **whole** project rather than the selected location alone: a scene belongs to
+  /// one set, so the sets card has to tell "not placed yet" from "placed somewhere else" to know
+  /// which of the two answers picking it would give.
+  Set<String> _assignedSceneIdsOf(OcptResourcesState state) => {
+    for (final location in state.locations)
+      for (final set in location.sets) ...set.sceneIds,
+  };
+
+  /// The set each still-unplaced scene is suggested for, keyed by scene id.
+  ///
+  /// Computed once per build rather than per scene and per set: the suggestion is a property of a
+  /// scene's heading against the whole project, not of the set that happens to be drawing it.
+  /// Scenes already placed are left out — a suggestion is an offer to fill a hole, never a remark
+  /// about an answer the user has already given.
+  Map<String, String> _suggestedSetIdsOf(OcptResourcesState state) {
+    final assignedSceneIds = _assignedSceneIdsOf(state);
+    final suggestions = <String, String>{};
+
+    for (final scene in state.scenes) {
+      if (assignedSceneIds.contains(scene.id)) {
+        continue;
+      }
+
+      final setId = ocptSceneSetSuggestionOf(
+        heading: scene.heading,
+        locations: state.locations,
+      );
+      if (setId != null) {
+        suggestions[scene.id] = setId;
+      }
+    }
+
+    return suggestions;
+  }
+
+  /// Set [setId]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// takes priority over the set's own stored value, exactly as it does for a location's fields.
+  String _setFieldValueOf(OcptResourcesState state, String setId, OcptSetField field) {
+    final pending = state.pendingSetFieldEdits[(setId, field)];
+    if (pending != null) {
+      return pending;
+    }
+
+    for (final location in state.locations) {
+      for (final set in location.sets) {
+        if (set.id == setId) {
+          return switch (field) {
+            OcptSetField.code => set.code,
+            OcptSetField.name => set.name,
+            OcptSetField.notes => set.notes,
+          };
+        }
+      }
+    }
+
+    return "";
   }
 
   /// [location]'s current value for [field]: a pending edit still sitting in the bloc's debounce

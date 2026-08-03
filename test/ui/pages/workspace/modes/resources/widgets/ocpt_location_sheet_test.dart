@@ -8,9 +8,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
@@ -59,6 +62,7 @@ OcptLocation _location({
   String? contactPersonId,
   OcptPermitStatus permitStatus = OcptPermitStatus.toRequest,
   DateTime? permitDate,
+  List<OcptSet> sets = const [],
 }) => OcptLocation(
   id: id,
   name: name,
@@ -82,10 +86,24 @@ OcptLocation _location({
   facilitiesNotes: "",
   constraintsNotes: "",
   notes: "",
-  sets: const [],
+  sets: sets,
   photos: const [],
   permitDocument: null,
 );
+
+/// Builds a minimal [OcptSet] for these tests.
+OcptSet _set({
+  String id = "s1",
+  String name = "Cuisine",
+  List<String> sceneIds = const [],
+}) => OcptSet(id: id, locationId: "l1", code: "", name: name, notes: "", sceneIds: sceneIds);
+
+/// Builds a minimal [OcptSceneRef] for these tests.
+OcptSceneRef _scene({
+  String id = "sc1",
+  int position = 0,
+  String heading = "INT. CUISINE - JOUR",
+}) => OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null);
 
 void main() {
   /// The values the pumped sheet answers `fieldValueOf` with, and the edits it records.
@@ -103,7 +121,13 @@ void main() {
     OcptLocation? location,
     OcptPerson? contact,
     List<OcptPerson> people = const [],
+    List<OcptSceneRef> scenes = const [],
+    Set<String> assignedSceneIds = const {},
+    Map<String, String> suggestedSetIdBySceneId = const {},
     bool isReadOnly = false,
+    void Function(String sceneId, String setId)? onSceneAssigned,
+    void Function(String sceneId, String setId)? onSceneRemoved,
+    VoidCallback? onSetAdded,
     ValueChanged<int>? onColorChanged,
     ValueChanged<OcptPermitStatus>? onPermitStatusChanged,
     ValueChanged<String?>? onContactChanged,
@@ -127,6 +151,9 @@ void main() {
               location: location ?? _location(),
               contact: contact,
               people: people,
+              scenes: scenes,
+              assignedSceneIds: assignedSceneIds,
+              suggestedSetIdBySceneId: suggestedSetIdBySceneId,
               isReadOnly: isReadOnly,
               fieldValueOf: (field) => fieldValues[field] ?? "",
               onFieldChanged: (field, rawValue) => fieldEdits.add((field, rawValue)),
@@ -135,6 +162,16 @@ void main() {
               onPermitDateChanged: (date) {},
               onContactChanged: onContactChanged ?? (personId) {},
               onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
+              setFieldValueOf: (setId, field) => switch (field) {
+                OcptSetField.code => "",
+                OcptSetField.name => "Cuisine",
+                OcptSetField.notes => "",
+              },
+              onSetFieldChanged: (setId, field, rawValue) {},
+              onSetAdded: onSetAdded ?? () {},
+              onSetRemoved: (setId) {},
+              onSceneAssigned: onSceneAssigned ?? (sceneId, setId) {},
+              onSceneRemoved: onSceneRemoved ?? (sceneId, setId) {},
               onDeleteRequested: onDeleteRequested ?? () {},
             ),
           ),
@@ -253,5 +290,69 @@ void main() {
     for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
       expect(field.readOnly, isTrue);
     }
+  });
+
+  testWidgets("a set lists the scenes shot in it, and drops one", (tester) async {
+    String? removedSceneId;
+
+    await pumpSheet(
+      tester,
+      location: _location(sets: [_set(sceneIds: const ["sc1"])]),
+      scenes: [_scene(), _scene(id: "sc2", position: 1, heading: "EXT. JARDIN - NUIT")],
+      assignedSceneIds: const {"sc1"},
+      onSceneRemoved: (sceneId, setId) => removedSceneId = sceneId,
+    );
+
+    expect(find.text("1 · CUISINE"), findsOneWidget);
+
+    await tester.ensureVisible(find.byIcon(Icons.cancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.cancel));
+    await tester.pumpAndSettle();
+
+    expect(removedSceneId, "sc1");
+  });
+
+  testWidgets("the scene picker marks the suggested scene and reports the pick", (tester) async {
+    String? assignedSceneId;
+
+    await pumpSheet(
+      tester,
+      location: _location(sets: [_set()]),
+      scenes: [_scene(), _scene(id: "sc2", position: 1, heading: "EXT. JARDIN - NUIT")],
+      suggestedSetIdBySceneId: const {"sc1": "s1"},
+      onSceneAssigned: (sceneId, setId) => assignedSceneId = sceneId,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.ensureVisible(find.text(tr.resourcesAddSceneToSetAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.resourcesAddSceneToSetAction));
+    await tester.pumpAndSettle();
+
+    // The suggestion is offered, and offered first: it is never applied on its own.
+    expect(find.text(tr.resourcesSceneSuggestedOption("1 · CUISINE")), findsOneWidget);
+
+    await tester.tap(find.text(tr.resourcesSceneSuggestedOption("1 · CUISINE")));
+    await tester.pumpAndSettle();
+
+    expect(assignedSceneId, "sc1");
+  });
+
+  testWidgets("the sets card withholds every control when read-only", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(sets: [_set(sceneIds: const ["sc1"])]),
+      scenes: [_scene()],
+      assignedSceneIds: const {"sc1"},
+      isReadOnly: true,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text(tr.resourcesAddSetAction), findsNothing);
+    expect(find.text(tr.resourcesAddSceneToSetAction), findsNothing);
+    expect(find.byIcon(Icons.cancel), findsNothing);
+    // What only reads stays.
+    expect(find.text("1 · CUISINE"), findsOneWidget);
   });
 }

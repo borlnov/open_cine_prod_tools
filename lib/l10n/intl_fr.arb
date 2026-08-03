@@ -509,5 +509,16 @@
   "resourcesLocationConstraintsTitle": "Contraintes de bruit et d'horaires",
   "resourcesLocationConstraintsHint": "Horaires autorisés, limites de bruit, voisins à prévenir…",
   "resourcesLocationDeleteAction": "Supprimer ce lieu",
-  "resourcesLocationDeleteConfirmMessage": "Le lieu, ses décors et les liens des séquences vers eux seront supprimés. Cette action est irréversible."
+  "resourcesLocationDeleteConfirmMessage": "Le lieu, ses décors et les liens des séquences vers eux seront supprimés. Cette action est irréversible.",
+  "resourcesLocationSetsCardTitle": "Décors dans ce lieu",
+  "resourcesLocationNoSetHint": "Aucun décor dans ce lieu pour l'instant.",
+  "resourcesAddSetAction": "+ Ajouter un décor dans ce lieu",
+  "resourcesRemoveSetTooltip": "Retirer ce décor",
+  "resourcesSetCodeLabel": "Code",
+  "resourcesSetNameLabel": "Décor",
+  "resourcesSetNotesLabel": "Notes",
+  "resourcesSetScenesLabel": "Séquences tournées ici",
+  "resourcesAddSceneToSetAction": "Séquence",
+  "resourcesSceneSuggestedOption": "{scene} — suggérée",
+  "resourcesScenesInAnotherSetLabel": "Déjà dans un autre décor"
 }
