@@ -470,6 +470,22 @@ class _ResourcesViewState extends State<_ResourcesView> {
           bloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
       onSceneRemoved: (sceneId, setId) =>
           bloc.add(OcptResourcesSceneRemovedFromSetEvent(sceneId: sceneId, setId: setId)),
+      onPhotoAddRequested: () => bloc.add(
+        OcptResourcesLocationPhotoAddRequestedEvent(
+          locationId: selectedLocation.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoRemoved: (assetId) => bloc.add(OcptResourcesAssetRemovedEvent(assetId: assetId)),
+      onPermitDocumentPickRequested: () => bloc.add(
+        OcptResourcesPermitDocumentPickRequestedEvent(
+          locationId: selectedLocation.id,
+          fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
+        ),
+      ),
+      onPermitDocumentCleared: () => bloc.add(
+        OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
+      ),
       onDeleteRequested: () =>
           bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id)),
     );

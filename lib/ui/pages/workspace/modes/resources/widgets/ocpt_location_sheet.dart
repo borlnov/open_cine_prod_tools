@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_address_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_permit_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_photos_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_sets_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_action.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
@@ -31,7 +32,7 @@ const int _permitCardFlex = 10;
 /// scrolling column edited in place — the header (colour, name, permit status), the address and
 /// permit cards side by side, the sets of the location and the scenes shot in them, the three
 /// logistics cards (parking, power, facilities), the noise-and-schedule constraints callout, the
-/// notes, and `Delete this location` at the very bottom.
+/// scouting photos, the notes, and `Delete this location` at the very bottom.
 ///
 /// It is `OcptPersonSheet`'s and `OcptRoleSheet`'s sibling and follows the same grammar: the tabs of
 /// the resources mode all answer one gesture — pick a record on the left, edit it in the centre —
@@ -116,6 +117,18 @@ class OcptLocationSheet extends StatelessWidget {
   /// Called with a scene and the set it is no longer shot in.
   final void Function(String sceneId, String setId) onSceneRemoved;
 
+  /// Called when a scouting photo is to be referenced.
+  final VoidCallback onPhotoAddRequested;
+
+  /// Called with a photo's asset id when its remove control is clicked.
+  final ValueChanged<String> onPhotoRemoved;
+
+  /// Called when the permit document is to be referenced or replaced.
+  final VoidCallback onPermitDocumentPickRequested;
+
+  /// Called when the permit document's reference is to be dropped.
+  final VoidCallback onPermitDocumentCleared;
+
   /// Called once the inline delete confirmation is answered `Delete`.
   final VoidCallback onDeleteRequested;
 
@@ -142,6 +155,10 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onSetRemoved,
     required this.onSceneAssigned,
     required this.onSceneRemoved,
+    required this.onPhotoAddRequested,
+    required this.onPhotoRemoved,
+    required this.onPermitDocumentPickRequested,
+    required this.onPermitDocumentCleared,
     required this.onDeleteRequested,
   });
 
@@ -183,9 +200,12 @@ class OcptLocationSheet extends StatelessWidget {
                 child: OcptLocationSheetPermitCard(
                   locationId: location.id,
                   permitDate: location.permitDate,
+                  permitDocument: location.permitDocument,
                   fieldValueOf: fieldValueOf,
                   onFieldChanged: isReadOnly ? null : onFieldChanged,
                   onPermitDateChanged: isReadOnly ? null : onPermitDateChanged,
+                  onPermitDocumentPickRequested: isReadOnly ? null : onPermitDocumentPickRequested,
+                  onPermitDocumentCleared: isReadOnly ? null : onPermitDocumentCleared,
                 ),
               ),
             ],
@@ -207,6 +227,12 @@ class OcptLocationSheet extends StatelessWidget {
           _buildLogisticsRow(context, tr),
           const SizedBox(height: 12),
           _buildConstraintsCallout(context, tr),
+          const SizedBox(height: 12),
+          OcptLocationSheetPhotosCard(
+            photos: location.photos,
+            onPhotoAddRequested: isReadOnly ? null : onPhotoAddRequested,
+            onPhotoRemoved: isReadOnly ? null : onPhotoRemoved,
+          ),
           const SizedBox(height: 12),
           OcptResourcesSheetCard(
             title: tr.resourcesNotesTitle,

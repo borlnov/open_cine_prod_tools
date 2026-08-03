@@ -3883,5 +3883,86 @@
     "context": "Displayed in the resources mode's location sheet",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesLocationPermitDocumentLabel": "Document",
+  "@resourcesLocationPermitDocumentLabel": {
+    "description": "Label of the referenced filming permit document",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReferenceDocumentAction": "Reference a document…",
+  "@resourcesReferenceDocumentAction": {
+    "description": "Action opening the picker referencing a document by path",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReplaceDocumentAction": "Reference another document…",
+  "@resourcesReplaceDocumentAction": {
+    "description": "Action opening the picker replacing the document a location references",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveDocumentTooltip": "Drop this reference",
+  "@resourcesRemoveDocumentTooltip": {
+    "description": "Tooltip of the control dropping a referenced document, leaving the file untouched",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPhotosCardTitle": "Scouting photos",
+  "@resourcesLocationPhotosCardTitle": {
+    "description": "Title of the card holding a location's referenced scouting photos",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPhotosCount": "{count, plural, one{{count} photo} other{{count} photos}}",
+  "@resourcesLocationPhotosCount": {
+    "description": "Number of photos referenced for a location",
+    "context": "Displayed beside the scouting photos card's own title",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesAddPhotoAction": "+ Reference a photo",
+  "@resourcesAddPhotoAction": {
+    "description": "Action opening the picker referencing a photo by path",
+    "context": "Displayed on the empty tile of the scouting photos grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovePhotoTooltip": "Drop this reference",
+  "@resourcesRemovePhotoTooltip": {
+    "description": "Tooltip of the control dropping a referenced photo, leaving the file untouched",
+    "context": "Displayed over a tile of the scouting photos grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAssetFileMissing": "File not found",
+  "@resourcesAssetFileMissing": {
+    "description": "Marker shown for a referenced file whose path no longer resolves to anything",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageFileTypeLabel": "Images",
+  "@resourcesImageFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when referencing a photo",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDocumentFileTypeLabel": "Documents",
+  "@resourcesDocumentFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when referencing a document",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
   }
 }

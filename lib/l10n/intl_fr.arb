@@ -520,5 +520,16 @@
   "resourcesSetScenesLabel": "Séquences tournées ici",
   "resourcesAddSceneToSetAction": "Séquence",
   "resourcesSceneSuggestedOption": "{scene} — suggérée",
-  "resourcesScenesInAnotherSetLabel": "Déjà dans un autre décor"
+  "resourcesScenesInAnotherSetLabel": "Déjà dans un autre décor",
+  "resourcesLocationPermitDocumentLabel": "Document",
+  "resourcesReferenceDocumentAction": "Référencer un document…",
+  "resourcesReplaceDocumentAction": "Référencer un autre document…",
+  "resourcesRemoveDocumentTooltip": "Retirer cette référence",
+  "resourcesLocationPhotosCardTitle": "Photos de repérage",
+  "resourcesLocationPhotosCount": "{count, plural, one{{count} photo} other{{count} photos}}",
+  "resourcesAddPhotoAction": "+ Référencer une photo",
+  "resourcesRemovePhotoTooltip": "Retirer cette référence",
+  "resourcesAssetFileMissing": "Fichier introuvable",
+  "resourcesImageFileTypeLabel": "Images",
+  "resourcesDocumentFileTypeLabel": "Documents"
 }

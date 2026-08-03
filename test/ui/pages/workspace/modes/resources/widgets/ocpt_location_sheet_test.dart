@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -63,6 +65,8 @@ OcptLocation _location({
   OcptPermitStatus permitStatus = OcptPermitStatus.toRequest,
   DateTime? permitDate,
   List<OcptSet> sets = const [],
+  List<OcptAssetRef> photos = const [],
+  OcptAssetRef? permitDocument,
 }) => OcptLocation(
   id: id,
   name: name,
@@ -87,8 +91,25 @@ OcptLocation _location({
   constraintsNotes: "",
   notes: "",
   sets: sets,
-  photos: const [],
-  permitDocument: null,
+  photos: photos,
+  permitDocument: permitDocument,
+);
+
+/// Builds an [OcptAssetRef] pointing at [path] — a path these tests deliberately never create, so
+/// the widgets under test show their own "file not found" state.
+OcptAssetRef _asset({
+  String id = "a1",
+  OcptAssetKind kind = OcptAssetKind.locationPhoto,
+  String path = "/nowhere/repérage.jpg",
+}) => OcptAssetRef(
+  id: id,
+  kind: kind,
+  path: path,
+  label: "",
+  addedAt: DateTime(2026, 8, 3),
+  personId: null,
+  locationId: "l1",
+  elementId: null,
 );
 
 /// Builds a minimal [OcptSet] for these tests.
@@ -128,6 +149,9 @@ void main() {
     void Function(String sceneId, String setId)? onSceneAssigned,
     void Function(String sceneId, String setId)? onSceneRemoved,
     VoidCallback? onSetAdded,
+    VoidCallback? onPhotoAddRequested,
+    ValueChanged<String>? onPhotoRemoved,
+    VoidCallback? onPermitDocumentPickRequested,
     ValueChanged<int>? onColorChanged,
     ValueChanged<OcptPermitStatus>? onPermitStatusChanged,
     ValueChanged<String?>? onContactChanged,
@@ -172,6 +196,10 @@ void main() {
               onSetRemoved: (setId) {},
               onSceneAssigned: onSceneAssigned ?? (sceneId, setId) {},
               onSceneRemoved: onSceneRemoved ?? (sceneId, setId) {},
+              onPhotoAddRequested: onPhotoAddRequested ?? () {},
+              onPhotoRemoved: onPhotoRemoved ?? (assetId) {},
+              onPermitDocumentPickRequested: onPermitDocumentPickRequested ?? () {},
+              onPermitDocumentCleared: () {},
               onDeleteRequested: onDeleteRequested ?? () {},
             ),
           ),
@@ -354,5 +382,93 @@ void main() {
     expect(find.byIcon(Icons.cancel), findsNothing);
     // What only reads stays.
     expect(find.text("1 · CUISINE"), findsOneWidget);
+  });
+
+  testWidgets("a photo whose file is gone keeps its reference and says so", (tester) async {
+    String? removedAssetId;
+
+    await pumpSheet(
+      tester,
+      location: _location(photos: [_asset()]),
+      onPhotoRemoved: (assetId) => removedAssetId = assetId,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.resourcesAssetFileMissing), findsOneWidget);
+    expect(find.text(tr.resourcesLocationPhotosCount(1)), findsOneWidget);
+
+    await tester.ensureVisible(find.byTooltip(tr.resourcesRemovePhotoTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.resourcesRemovePhotoTooltip));
+    await tester.pumpAndSettle();
+
+    expect(removedAssetId, "a1");
+  });
+
+  testWidgets("referencing a photo is asked for through the picker", (tester) async {
+    var addCount = 0;
+
+    await pumpSheet(tester, onPhotoAddRequested: () => addCount++);
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.ensureVisible(find.text(tr.resourcesAddPhotoAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.resourcesAddPhotoAction));
+    await tester.pumpAndSettle();
+
+    expect(addCount, 1);
+  });
+
+  testWidgets("a referenced permit document reads by its file name", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(
+        permitDocument: _asset(
+          id: "d1",
+          kind: OcptAssetKind.document,
+          path: "/nowhere/autorisation.pdf",
+        ),
+      ),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text("autorisation.pdf"), findsOneWidget);
+    // The file is not there: the reference is kept and the line says so.
+    expect(find.text(tr.resourcesAssetFileMissing), findsOneWidget);
+    expect(find.text(tr.resourcesReplaceDocumentAction), findsOneWidget);
+  });
+
+  testWidgets("a location with no document offers to reference one", (tester) async {
+    var pickCount = 0;
+
+    await pumpSheet(tester, onPermitDocumentPickRequested: () => pickCount++);
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.tap(find.text(tr.resourcesReferenceDocumentAction));
+    await tester.pumpAndSettle();
+
+    expect(pickCount, 1);
+  });
+
+  testWidgets("the referenced files offer nothing to change when read-only", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(
+        photos: [_asset()],
+        permitDocument: _asset(id: "d1", kind: OcptAssetKind.document, path: "/nowhere/a.pdf"),
+      ),
+      isReadOnly: true,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.resourcesAddPhotoAction), findsNothing);
+    expect(find.text(tr.resourcesReferenceDocumentAction), findsNothing);
+    expect(find.text(tr.resourcesReplaceDocumentAction), findsNothing);
+    expect(find.byTooltip(tr.resourcesRemovePhotoTooltip), findsNothing);
+    expect(find.byTooltip(tr.resourcesRemoveDocumentTooltip), findsNothing);
+    // What only reads stays: the reference itself is still named.
+    expect(find.text("a.pdf"), findsOneWidget);
   });
 }

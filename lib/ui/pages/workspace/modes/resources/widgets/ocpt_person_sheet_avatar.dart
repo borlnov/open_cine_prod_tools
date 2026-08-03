@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dashed_rounded_rect_painter.dart';
 
 /// The width and height of the person sheet's photo slot.
 const Size _slotSize = Size(104, 130);
@@ -49,7 +50,7 @@ class OcptPersonSheetAvatar extends StatelessWidget {
     );
 
     final slot = CustomPaint(
-      painter: _OcptDashedRoundedRectPainter(color: theme.colorScheme.outline),
+      painter: OcptDashedRoundedRectPainter(color: theme.colorScheme.outline),
       child: Container(
         width: _slotSize.width,
         height: _slotSize.height,
@@ -136,45 +137,4 @@ class _OcptPersonAvatarColorMenu extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Paints a dashed rounded-rectangle outline, the photo slot's own affordance (the mock-up's own
-/// "drop a photo here" styling) that neither [BoxDecoration] nor any existing dependency draws:
-/// Flutter has no stock dashed border, and this is a small enough shape to paint directly rather
-/// than pull in a package for it.
-class _OcptDashedRoundedRectPainter extends CustomPainter {
-  /// The length, in logical pixels, of one dash and of the gap following it.
-  static const double _dashLength = 5;
-
-  /// The colour of the dashes.
-  final Color color;
-
-  /// Class constructor
-  const _OcptDashedRoundedRectPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(ocptRadiusLarge),
-    );
-    final path = Path()..addRRect(rrect);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = distance + _dashLength;
-        canvas.drawPath(metric.extractPath(distance, next.clamp(0, metric.length)), paint);
-        distance = next + _dashLength;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _OcptDashedRoundedRectPainter oldDelegate) =>
-      oldDelegate.color != color;
 }
