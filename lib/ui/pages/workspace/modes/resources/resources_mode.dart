@@ -7,8 +7,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
@@ -16,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
@@ -35,15 +38,15 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 /// left, the selected item's editable sheet in the centre, and the shared `Versions` dock tab on
 /// the right.
 ///
-/// This milestone gives the people and roles tabs real content — creating, editing and erasing a
-/// person; casting, kind, casting notes and hand-added roles; the removed-role banner — while the
-/// other two tabs show a shared, discreet placeholder line. Both tabs answer the same gesture: a
-/// record is picked on the left and edited in the centre, through `OcptPersonSheet` and
-/// `OcptRoleSheet` respectively. While a project version is being previewed, the mode shows that
-/// version's catalogue instead of the working copy's, and shows it read-only: everything that would
-/// write — the `+ Add a person`/`+ Add a role` buttons, the person sheet's own fields, the role
-/// sheet's cast/kind/notes/delete — is withheld, and the shell carries the band naming the
-/// version.
+/// This milestone gives the people, roles and locations tabs real content — creating, editing and
+/// erasing a person; casting, kind, casting notes and hand-added roles; a location's address,
+/// permit, sets, logistics and referenced photos — while the elements tab shows a discreet
+/// placeholder line. Every tab answers the same gesture: a record is picked on the left and edited
+/// in the centre, through `OcptPersonSheet`, `OcptRoleSheet` and `OcptLocationSheet` respectively.
+/// While a project version is being previewed, the mode shows that version's catalogue instead of
+/// the working copy's, and shows it read-only: everything that would write — the `+ Add …`
+/// buttons and every field, picker and delete action of the three sheets — is withheld, and the
+/// shell carries the band naming the version.
 class OcptResourcesMode extends StatelessWidget {
   /// Creates the resources mode.
   const OcptResourcesMode({super.key});
@@ -201,6 +204,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
   Widget _buildCentre(BuildContext context, OcptResourcesState state) {
     if (state.activeTab == OcptResourcesTab.roles) {
       return _buildRolesCentre(context, state);
+    }
+
+    if (state.activeTab == OcptResourcesTab.locations) {
+      return _buildLocationsCentre(context, state);
     }
 
     final selectedPerson = state.selectedPerson;
@@ -392,6 +399,101 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
     );
+  }
+
+  /// Builds the locations tab's centre: the selected location's sheet, or the empty state — the one
+  /// inviting a first location while there is none, the one asking for a selection otherwise.
+  Widget _buildLocationsCentre(BuildContext context, OcptResourcesState state) {
+    final tr = Tr.of(context);
+    final selectedLocation = state.selectedLocation;
+
+    if (selectedLocation == null) {
+      return OcptWorkspaceEmptyMode(
+        icon: Icons.place_outlined,
+        message: state.locations.isEmpty
+            ? tr.resourcesLocationsEmptyHint
+            : tr.resourcesNoLocationSelectedHint,
+      );
+    }
+
+    final bloc = context.read<OcptResourcesBloc>();
+
+    return OcptLocationSheet(
+      key: ValueKey(selectedLocation.id),
+      location: selectedLocation,
+      contact: _personOf(state, selectedLocation.contactPersonId),
+      people: state.people,
+      isReadOnly: state.isPreviewingVersion,
+      fieldValueOf: (field) => _locationFieldValueOf(state, selectedLocation, field),
+      onFieldChanged: (field, rawValue) => bloc.add(
+        OcptResourcesLocationFieldChangedEvent(
+          locationId: selectedLocation.id,
+          field: field,
+          rawValue: rawValue,
+        ),
+      ),
+      onColorChanged: (colorIndex) => bloc.add(
+        OcptResourcesLocationColorChangedEvent(
+          locationId: selectedLocation.id,
+          colorIndex: colorIndex,
+        ),
+      ),
+      onPermitStatusChanged: (status) => bloc.add(
+        OcptResourcesLocationPermitStatusChangedEvent(
+          locationId: selectedLocation.id,
+          status: status,
+        ),
+      ),
+      onPermitDateChanged: (date) => bloc.add(
+        OcptResourcesLocationPermitDateChangedEvent(locationId: selectedLocation.id, date: date),
+      ),
+      onContactChanged: (personId) => bloc.add(
+        OcptResourcesLocationContactChangedEvent(
+          locationId: selectedLocation.id,
+          personId: personId,
+        ),
+      ),
+      onPersonSheetOpenRequested: (personId) =>
+          bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      onDeleteRequested: () =>
+          bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id)),
+    );
+  }
+
+  /// [location]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// takes priority over the location's own stored value, so typing is never overwritten by an
+  /// unrelated reload. Mirrors [_fieldValueOf].
+  ///
+  /// The two coordinates are the fields whose stored value is not a string: they are read back the
+  /// way they were typed rather than reformatted, so a field showing `45.76` was written `45.76`.
+  String _locationFieldValueOf(
+    OcptResourcesState state,
+    OcptLocation location,
+    OcptLocationField field,
+  ) {
+    final pending = state.pendingLocationFieldEdits[(location.id, field)];
+    if (pending != null) {
+      return pending;
+    }
+
+    return switch (field) {
+      OcptLocationField.name => location.name,
+      OcptLocationField.addressLine1 => location.addressLine1,
+      OcptLocationField.addressLine2 => location.addressLine2,
+      OcptLocationField.postalCode => location.postalCode,
+      OcptLocationField.city => location.city,
+      OcptLocationField.region => location.region,
+      OcptLocationField.country => location.country,
+      OcptLocationField.latitude => location.latitude?.toString() ?? "",
+      OcptLocationField.longitude => location.longitude?.toString() ?? "",
+      OcptLocationField.contactNotes => location.contactNotes,
+      OcptLocationField.permitLabel => location.permitLabel,
+      OcptLocationField.parkingNotes => location.parkingNotes,
+      OcptLocationField.powerNotes => location.powerNotes,
+      OcptLocationField.facilitiesNotes => location.facilitiesNotes,
+      OcptLocationField.constraintsNotes => location.constraintsNotes,
+      OcptLocationField.notes => location.notes,
+    };
   }
 
   /// The person [personId] names, or null when it is null or names nobody in the loaded address

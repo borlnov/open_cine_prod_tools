@@ -3641,5 +3641,166 @@
     "context": "Displayed in the resources mode's locations list and location sheet",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesNoLocationSelectedHint": "Select a location to see its sheet.",
+  "@resourcesNoLocationSelectedHint": {
+    "description": "Hint shown in place of a location sheet while none is selected",
+    "context": "Displayed centred in the resources mode's main area, on the locations tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationNameHint": "Location name",
+  "@resourcesLocationNameHint": {
+    "description": "Placeholder of the location name field while it is empty",
+    "context": "Displayed in the header of the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAddressCardTitle": "Address and access",
+  "@resourcesLocationAddressCardTitle": {
+    "description": "Title of the card holding a location's postal address, coordinates and contact",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLatitudeLabel": "Latitude",
+  "@resourcesLatitudeLabel": {
+    "description": "Label of a location's latitude field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLongitudeLabel": "Longitude",
+  "@resourcesLongitudeLabel": {
+    "description": "Label of a location's longitude field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCoordinateFormatError": "This isn't a number: it won't be kept as a coordinate.",
+  "@resourcesCoordinateFormatError": {
+    "description": "Remark shown under a coordinate field holding something that cannot be read as a number",
+    "context": "Displayed in the resources mode's location sheet, once the field loses the focus",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationContactLabel": "Contact",
+  "@resourcesLocationContactLabel": {
+    "description": "Label of the picker naming the person to contact about a location",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationNoContact": "No contact",
+  "@resourcesLocationNoContact": {
+    "description": "Entry of the contact picker leaving a location with no contact",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationContactNotesLabel": "Contact notes",
+  "@resourcesLocationContactNotesLabel": {
+    "description": "Label of the free-text notes about a location's contact",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitCardTitle": "Filming permit",
+  "@resourcesLocationPermitCardTitle": {
+    "description": "Title of the card holding a location's filming permit reference, date and document",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitLabelLabel": "Reference",
+  "@resourcesLocationPermitLabelLabel": {
+    "description": "Label of a filming permit's own reference field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitLabelHint": "Permit reference, issuing authority…",
+  "@resourcesLocationPermitLabelHint": {
+    "description": "Placeholder of a filming permit's reference field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitDateLabel": "Permit date",
+  "@resourcesLocationPermitDateLabel": {
+    "description": "Label of the date a location's filming permit status last changed",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationParkingTitle": "Parking",
+  "@resourcesLocationParkingTitle": {
+    "description": "Title of the card holding where vehicles and the production truck can park",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationParkingHint": "Where the truck and the cars go…",
+  "@resourcesLocationParkingHint": {
+    "description": "Placeholder of the parking notes field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPowerTitle": "Power",
+  "@resourcesLocationPowerTitle": {
+    "description": "Title of the card holding what electrical power is available on site",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPowerHint": "Sockets, amperage, generator needed…",
+  "@resourcesLocationPowerHint": {
+    "description": "Placeholder of the power notes field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationFacilitiesTitle": "Facilities",
+  "@resourcesLocationFacilitiesTitle": {
+    "description": "Title of the card holding what facilities the location offers",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationFacilitiesHint": "Toilets, water, a room to change in…",
+  "@resourcesLocationFacilitiesHint": {
+    "description": "Placeholder of the facilities notes field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationConstraintsTitle": "Noise and schedule constraints",
+  "@resourcesLocationConstraintsTitle": {
+    "description": "Title of the callout holding what the neighbours and the town hall will tolerate",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationConstraintsHint": "Hours allowed, noise limits, neighbours to warn…",
+  "@resourcesLocationConstraintsHint": {
+    "description": "Placeholder of the constraints field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationDeleteAction": "Delete this location",
+  "@resourcesLocationDeleteAction": {
+    "description": "Action deleting a location, its sets and its scene links",
+    "context": "Displayed at the bottom of the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationDeleteConfirmMessage": "This deletes the location, its sets and the scenes' links to them. This can't be undone.",
+  "@resourcesLocationDeleteConfirmMessage": {
+    "description": "Message of the location's inline delete confirmation",
+    "context": "Displayed at the bottom of the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
   }
 }
