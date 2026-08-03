@@ -11,7 +11,6 @@ import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The width of a set's code field: a code is `A`, `B`, `EXT-1` — never a sentence.
 const double _codeFieldWidth = 72;
@@ -193,7 +192,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
             for (final sceneId in set.sceneIds)
               if (sceneById[sceneId] case final scene?)
                 Chip(
-                  label: Text(_sceneLabelOf(scene)),
+                  label: Text(ocptSceneRefLabel(scene)),
                   onDeleted: onSceneRemoved == null ? null : () => onSceneRemoved(scene.id, set.id),
                 ),
             if (onSceneAssigned != null) _buildScenePicker(context, tr, set),
@@ -240,15 +239,15 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
         for (final scene in suggested)
           PopupMenuItem<String>(
             value: scene.id,
-            child: Text(tr.resourcesSceneSuggestedOption(_sceneLabelOf(scene))),
+            child: Text(tr.resourcesSceneSuggestedOption(ocptSceneRefLabel(scene))),
           ),
         for (final scene in unassigned)
-          PopupMenuItem<String>(value: scene.id, child: Text(_sceneLabelOf(scene))),
+          PopupMenuItem<String>(value: scene.id, child: Text(ocptSceneRefLabel(scene))),
         if (assignedElsewhere.isNotEmpty) ...[
           const PopupMenuDivider(),
           PopupMenuItem<String>(enabled: false, child: Text(tr.resourcesScenesInAnotherSetLabel)),
           for (final scene in assignedElsewhere)
-            PopupMenuItem<String>(value: scene.id, child: Text(_sceneLabelOf(scene))),
+            PopupMenuItem<String>(value: scene.id, child: Text(ocptSceneRefLabel(scene))),
         ],
       ],
       child: Chip(
@@ -258,12 +257,4 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     );
   }
 
-  /// How a scene reads on a chip and in the picker: its number, then the place its heading names —
-  /// the interior/exterior prefix and the time of day left out, since neither says *where* and a
-  /// chip has room for one of the three. A heading that names no place at all (a bare `INT.`) keeps
-  /// its own text rather than reading as a number alone.
-  String _sceneLabelOf(OcptSceneRef scene) {
-    final place = ocptSceneHeadingPlaceOf(scene.heading);
-    return "${scene.displayNumber} · ${place.isEmpty ? scene.heading : place}";
-  }
 }

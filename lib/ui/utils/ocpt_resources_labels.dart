@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The placeholder shown in place of a resources field that has no value yet.
 ///
@@ -208,6 +210,18 @@ Color ocptElementTrackingColor(BuildContext context, OcptElement element) {
   }
 
   return ocptWarningColor(context);
+}
+
+/// How [scene] reads wherever the resources mode names one outside the screenplay — on a set's
+/// chips, on an element's own scene rows, and in the pickers adding either: its number, then the
+/// place its heading names.
+///
+/// The interior/exterior prefix and the time of day are left out: neither says *where*, and a chip
+/// has room for one of the three. A heading that names no place at all (a bare `INT.`) keeps its
+/// own text rather than reading as a number alone.
+String ocptSceneRefLabel(OcptSceneRef scene) {
+  final place = ocptSceneHeadingPlaceOf(scene.heading);
+  return "${scene.displayNumber} · ${place.isEmpty ? scene.heading : place}";
 }
 
 /// The display label of the left dock tab [tab], shared by `OcptResourcesTabBar` (the tab strip
