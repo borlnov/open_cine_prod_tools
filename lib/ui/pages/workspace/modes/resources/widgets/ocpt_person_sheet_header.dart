@@ -125,61 +125,63 @@ class OcptPersonSheetHeader extends StatelessWidget {
     );
   }
 
-  /// The two-column contact grid: email, phone, address, city, then the date of birth alone in its
-  /// own row.
-  Widget _buildContactGrid(BuildContext context, Tr tr) {
-    final fields = <Widget>[
-      OcptPersonSheetField(
-        personId: person.id,
-        label: tr.resourcesEmailLabel,
-        value: fieldValueOf(OcptPersonField.email),
-        onChanged: _onFieldChangedOrNull(OcptPersonField.email),
+  /// The contact grid: email and phone, then the two address lines full width, then the postal
+  /// code beside the city and the region beside the country, and last the date of birth.
+  ///
+  /// The address is laid out in the order an international address form uses (street, then the
+  /// locality, then the administrative levels above it) rather than in any one country's own
+  /// printing order: `OcptPeopleTable.addressLine1`'s doc comment is where the six-column shape is
+  /// argued, and printing an address for a given country is a call sheet's job, not a form's.
+  Widget _buildContactGrid(BuildContext context, Tr tr) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _buildFieldRow(
+        first: _buildTextField(tr.resourcesEmailLabel, OcptPersonField.email),
+        second: _buildTextField(tr.resourcesPhoneLabel, OcptPersonField.phone),
       ),
-      OcptPersonSheetField(
-        personId: person.id,
-        label: tr.resourcesPhoneLabel,
-        value: fieldValueOf(OcptPersonField.phone),
-        onChanged: _onFieldChangedOrNull(OcptPersonField.phone),
+      const SizedBox(height: 10),
+      _buildTextField(tr.resourcesAddressLine1Label, OcptPersonField.addressLine1),
+      const SizedBox(height: 10),
+      _buildTextField(tr.resourcesAddressLine2Label, OcptPersonField.addressLine2),
+      const SizedBox(height: 10),
+      _buildFieldRow(
+        first: _buildTextField(tr.resourcesPostalCodeLabel, OcptPersonField.postalCode),
+        second: _buildTextField(tr.resourcesCityLabel, OcptPersonField.city),
       ),
-      OcptPersonSheetField(
-        personId: person.id,
-        label: tr.resourcesAddressLabel,
-        value: fieldValueOf(OcptPersonField.address),
-        onChanged: _onFieldChangedOrNull(OcptPersonField.address),
+      const SizedBox(height: 10),
+      _buildFieldRow(
+        first: _buildTextField(tr.resourcesRegionLabel, OcptPersonField.region),
+        second: _buildTextField(tr.resourcesCountryLabel, OcptPersonField.country),
       ),
-      OcptPersonSheetField(
-        personId: person.id,
-        label: tr.resourcesCityLabel,
-        value: fieldValueOf(OcptPersonField.city),
-        onChanged: _onFieldChangedOrNull(OcptPersonField.city),
-      ),
-      OcptPersonSheetDateField(
-        label: tr.resourcesBirthDateLabel,
-        value: person.birthDate,
-        onChanged: onBirthDateChanged,
-      ),
-    ];
-
-    final rows = <Widget>[];
-    for (var index = 0; index < fields.length; index += 2) {
-      final hasSecond = index + 1 < fields.length;
-      rows.add(
-        Padding(
-          padding: EdgeInsets.only(bottom: index + 2 < fields.length ? 10 : 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: fields[index]),
-              const SizedBox(width: 16),
-              Expanded(child: hasSecond ? fields[index + 1] : const SizedBox.shrink()),
-            ],
-          ),
+      const SizedBox(height: 10),
+      _buildFieldRow(
+        first: OcptPersonSheetDateField(
+          label: tr.resourcesBirthDateLabel,
+          value: person.birthDate,
+          onChanged: onBirthDateChanged,
         ),
-      );
-    }
+        second: const SizedBox.shrink(),
+      ),
+    ],
+  );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
-  }
+  /// One field of the contact grid.
+  Widget _buildTextField(String label, OcptPersonField field) => OcptPersonSheetField(
+    personId: person.id,
+    label: label,
+    value: fieldValueOf(field),
+    onChanged: _onFieldChangedOrNull(field),
+  );
+
+  /// Two fields of the contact grid, side by side and equally wide.
+  Widget _buildFieldRow({required Widget first, required Widget second}) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(child: first),
+      const SizedBox(width: 16),
+      Expanded(child: second),
+    ],
+  );
 
   /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
   /// while the sheet may not be written to, which is what makes the field read out its value

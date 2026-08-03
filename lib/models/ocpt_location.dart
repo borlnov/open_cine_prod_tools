@@ -19,11 +19,24 @@ class OcptLocation extends Equatable {
   /// Indexes `ocptCoveragePalette`, so this location keeps one colour bar everywhere.
   final int colorIndex;
 
+  /// The street part of the location's postal address, free text. See
+  /// `OcptPeopleTable.addressLine1` for why an address is six fields rather than one.
+  final String addressLine1;
+
+  /// The second line of the location's postal address, free text.
+  final String addressLine2;
+
+  /// The location's postal code, free text.
+  final String postalCode;
+
   /// The location's city, free text.
   final String city;
 
-  /// The location's postal address, free text.
-  final String address;
+  /// The location's region, state, province or county, free text.
+  final String region;
+
+  /// The location's country, free text.
+  final String country;
 
   /// The location's latitude, or null while it hasn't been pinned on a map.
   final double? latitude;
@@ -72,8 +85,12 @@ class OcptLocation extends Equatable {
     required this.id,
     required this.name,
     required this.colorIndex,
+    required this.addressLine1,
+    required this.addressLine2,
+    required this.postalCode,
     required this.city,
-    required this.address,
+    required this.region,
+    required this.country,
     required this.latitude,
     required this.longitude,
     required this.contactPersonId,
@@ -96,8 +113,12 @@ class OcptLocation extends Equatable {
         id: row.id,
         name: row.name,
         colorIndex: row.colorIndex,
+        addressLine1: row.addressLine1,
+        addressLine2: row.addressLine2,
+        postalCode: row.postalCode,
         city: row.city,
-        address: row.address,
+        region: row.region,
+        country: row.country,
         latitude: row.latitude,
         longitude: row.longitude,
         contactPersonId: row.contactPersonId,
@@ -124,8 +145,12 @@ class OcptLocation extends Equatable {
     id,
     name,
     colorIndex,
+    addressLine1,
+    addressLine2,
+    postalCode,
     city,
-    address,
+    region,
+    country,
     latitude,
     longitude,
     contactPersonId,

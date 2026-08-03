@@ -172,8 +172,12 @@ void main() {
         lastName: "Martin",
         email: "clara@example.com",
         phone: "0102030405",
-        address: "12 rue des Lilas",
+        addressLine1: "12 rue des Lilas",
+        addressLine2: "Bâtiment B",
+        postalCode: "75011",
         city: "Paris",
+        region: "Île-de-France",
+        country: "France",
         colorIndex: 2,
         minorNotes: "",
         isTransportAutonomous: true,
@@ -198,8 +202,12 @@ void main() {
         lastName: "",
         email: "",
         phone: "",
-        address: "",
+        addressLine1: "",
+        addressLine2: "",
+        postalCode: "",
         city: "",
+        region: "",
+        country: "",
         colorIndex: 0,
         birthDate: DateTime.utc(1990, 5, 12),
         minorNotes: "",
@@ -291,8 +299,12 @@ void main() {
         id: "location-1",
         name: "Maison des Pains",
         colorIndex: 1,
+        addressLine1: "3 rue Victor Hugo",
+        addressLine2: "",
+        postalCode: "69002",
         city: "Lyon",
-        address: "3 rue Victor Hugo",
+        region: "Auvergne-Rhône-Alpes",
+        country: "France",
         latitude: 45.75,
         longitude: 4.85,
         contactPersonId: "person-1",
@@ -312,8 +324,12 @@ void main() {
         id: "location-2",
         name: "",
         colorIndex: 0,
+        addressLine1: "",
+        addressLine2: "",
+        postalCode: "",
         city: "",
-        address: "",
+        region: "",
+        country: "",
         contactNotes: "",
         permitStatus: OcptPermitStatus.toRequest,
         permitLabel: "",
@@ -516,6 +532,14 @@ void main() {
 
       final person = roundTripped.people.first;
       expect(person.firstName, "Clara");
+      // The six address columns travel one by one: a payload that kept only the street would lose
+      // the postcode a call sheet prints and the country an export gives a column of its own.
+      expect(person.addressLine1, "12 rue des Lilas");
+      expect(person.addressLine2, "Bâtiment B");
+      expect(person.postalCode, "75011");
+      expect(person.city, "Paris");
+      expect(person.region, "Île-de-France");
+      expect(person.country, "France");
       expect(person.colorIndex, 2);
       expect(person.birthDate, isNull);
       expect(person.isTransportAutonomous, isTrue);
@@ -549,6 +573,10 @@ void main() {
       expect(orphanedRole.orphanedName, "GHOST");
 
       final location = roundTripped.locations.first;
+      expect(location.addressLine1, "3 rue Victor Hugo");
+      expect(location.postalCode, "69002");
+      expect(location.region, "Auvergne-Rhône-Alpes");
+      expect(location.country, "France");
       expect(location.latitude, 45.75);
       expect(location.longitude, 4.85);
       expect(location.contactPersonId, "person-1");

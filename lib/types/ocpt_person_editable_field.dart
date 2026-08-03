@@ -28,11 +28,23 @@ enum OcptPersonField {
   /// Maps to `updatePerson`'s `phone`.
   phone,
 
-  /// Maps to `updatePerson`'s `address`.
-  address,
+  /// Maps to `updatePerson`'s `addressLine1`.
+  addressLine1,
+
+  /// Maps to `updatePerson`'s `addressLine2`.
+  addressLine2,
+
+  /// Maps to `updatePerson`'s `postalCode`.
+  postalCode,
 
   /// Maps to `updatePerson`'s `city`.
   city,
+
+  /// Maps to `updatePerson`'s `region`.
+  region,
+
+  /// Maps to `updatePerson`'s `country`.
+  country,
 
   /// Maps to `updatePerson`'s `minorNotes`.
   minorNotes,

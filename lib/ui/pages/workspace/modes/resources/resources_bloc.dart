@@ -524,17 +524,41 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           personId: personId,
           phone: Value(rawValue),
         );
-      case OcptPersonField.address:
+      case OcptPersonField.addressLine1:
         await _peopleService.updatePerson(
           database: database,
           personId: personId,
-          address: Value(rawValue),
+          addressLine1: Value(rawValue),
+        );
+      case OcptPersonField.addressLine2:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          addressLine2: Value(rawValue),
+        );
+      case OcptPersonField.postalCode:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          postalCode: Value(rawValue),
         );
       case OcptPersonField.city:
         await _peopleService.updatePerson(
           database: database,
           personId: personId,
           city: Value(rawValue),
+        );
+      case OcptPersonField.region:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          region: Value(rawValue),
+        );
+      case OcptPersonField.country:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          country: Value(rawValue),
         );
       case OcptPersonField.minorNotes:
         await _peopleService.updatePerson(

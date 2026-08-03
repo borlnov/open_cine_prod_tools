@@ -24,6 +24,10 @@ class OcptPermitStatusConverter extends TypeConverter<OcptPermitStatus, String> 
 
 /// A filming location: an address, and everything that decides whether a day there is shootable.
 ///
+/// The six address columns are the same ones `people` carries, and for the same reasons — see
+/// `OcptPeopleTable.addressLine1`'s own doc comment. An address is one shape wherever it appears
+/// in the app, and a location's is the one printed at the top of a call sheet.
+///
 /// [parkingNotes], [powerNotes], [facilitiesNotes] and [constraintsNotes] are not padding: they are
 /// exactly the four things the mock-up's location sheet shows, alongside [contactNotes], and the
 /// four things that decide whether a day is shootable — where the truck goes, what amperage exists,
@@ -44,11 +48,35 @@ class OcptLocationsTable extends Table {
   /// keeps one colour bar wherever it appears in the UI.
   IntColumn get colorIndex => integer().withDefault(const Constant(0))();
 
+  /// The street part of the location's postal address, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get addressLine1 => text().withDefault(const Constant(''))();
+
+  /// The second line of the location's postal address (building, floor, gate), free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get addressLine2 => text().withDefault(const Constant(''))();
+
+  /// The location's postal code, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get postalCode => text().withDefault(const Constant(''))();
+
   /// The location's city, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get city => text().withDefault(const Constant(''))();
 
-  /// The location's postal address, free text.
-  TextColumn get address => text().withDefault(const Constant(''))();
+  /// The location's region, state, province or county, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get region => text().withDefault(const Constant(''))();
+
+  /// The location's country, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get country => text().withDefault(const Constant(''))();
 
   /// The location's latitude, or null while it hasn't been pinned on a map.
   RealColumn get latitude => real().nullable()();

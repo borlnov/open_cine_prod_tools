@@ -114,8 +114,12 @@ void main() {
         lastName: const Value("Martin"),
         email: const Value("clara@example.com"),
         phone: const Value("0600000000"),
-        address: const Value("1 rue de la Paix"),
+        addressLine1: const Value("1 rue de la Paix"),
+        addressLine2: const Value("3e étage"),
+        postalCode: const Value("75002"),
         city: const Value("Paris"),
+        region: const Value("Île-de-France"),
+        country: const Value("France"),
         colorIndex: const Value(3),
         birthDate: Value(DateTime(2000)),
         minorNotes: const Value("n/a"),
@@ -148,8 +152,12 @@ void main() {
       expect(row.lastName, "");
       expect(row.email, "");
       expect(row.phone, "");
-      expect(row.address, "");
+      expect(row.addressLine1, "");
+      expect(row.addressLine2, "");
+      expect(row.postalCode, "");
       expect(row.city, "");
+      expect(row.region, "");
+      expect(row.country, "");
       expect(row.birthDate, isNull);
       expect(row.minorNotes, "");
       expect(row.isTransportAutonomous, isNull);

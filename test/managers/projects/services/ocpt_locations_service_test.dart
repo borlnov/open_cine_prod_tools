@@ -87,7 +87,7 @@ void main() {
       final row = await readLocation(id);
       expect(row.city, "Lyon");
       expect(row.permitStatus, OcptPermitStatus.requested);
-      expect(row.address, ""); // untouched, still its column default
+      expect(row.addressLine1, ""); // untouched, still its column default
     });
 
     test("reorderLocation moves a location by writing exactly one row", () async {

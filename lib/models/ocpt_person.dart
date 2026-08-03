@@ -112,11 +112,24 @@ class OcptPerson extends Equatable {
   /// The person's phone number, free text.
   final String phone;
 
-  /// The person's postal address, free text.
-  final String address;
+  /// The street part of the person's postal address, free text. See `OcptPeopleTable.addressLine1`
+  /// for why an address is six fields rather than one.
+  final String addressLine1;
+
+  /// The second line of the person's postal address, free text.
+  final String addressLine2;
+
+  /// The person's postal code, free text.
+  final String postalCode;
 
   /// The person's city, free text.
   final String city;
+
+  /// The person's region, state, province or county, free text.
+  final String region;
+
+  /// The person's country, free text.
+  final String country;
 
   /// Indexes `ocptCoveragePalette`, so this person keeps one avatar colour everywhere.
   final int colorIndex;
@@ -185,8 +198,12 @@ class OcptPerson extends Equatable {
     required this.lastName,
     required this.email,
     required this.phone,
-    required this.address,
+    required this.addressLine1,
+    required this.addressLine2,
+    required this.postalCode,
     required this.city,
+    required this.region,
+    required this.country,
     required this.colorIndex,
     required this.birthDate,
     required this.minorNotes,
@@ -222,8 +239,12 @@ class OcptPerson extends Equatable {
     lastName: row.lastName,
     email: row.email,
     phone: row.phone,
-    address: row.address,
+    addressLine1: row.addressLine1,
+    addressLine2: row.addressLine2,
+    postalCode: row.postalCode,
     city: row.city,
+    region: row.region,
+    country: row.country,
     colorIndex: row.colorIndex,
     birthDate: row.birthDate,
     minorNotes: row.minorNotes,
@@ -292,8 +313,12 @@ class OcptPerson extends Equatable {
     lastName,
     email,
     phone,
-    address,
+    addressLine1,
+    addressLine2,
+    postalCode,
     city,
+    region,
+    country,
     colorIndex,
     birthDate,
     minorNotes,

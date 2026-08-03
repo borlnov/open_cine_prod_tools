@@ -2957,9 +2957,37 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddressLabel": "Address",
-  "@resourcesAddressLabel": {
-    "description": "Label of the person sheet's postal address field",
+  "resourcesAddressLine1Label": "Address (line 1)",
+  "@resourcesAddressLine1Label": {
+    "description": "Label of the person sheet's first address line field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddressLine2Label": "Address (line 2)",
+  "@resourcesAddressLine2Label": {
+    "description": "Label of the person sheet's second address line field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPostalCodeLabel": "Postcode",
+  "@resourcesPostalCodeLabel": {
+    "description": "Label of the person sheet's postal code field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRegionLabel": "Region / state",
+  "@resourcesRegionLabel": {
+    "description": "Label of the person sheet's region, state, province or county field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCountryLabel": "Country",
+  "@resourcesCountryLabel": {
+    "description": "Label of the person sheet's country field",
     "context": "Displayed in the person sheet's header contact grid",
     "type": "text",
     "placeholders": {}

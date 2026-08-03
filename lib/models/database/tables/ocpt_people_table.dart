@@ -63,11 +63,47 @@ class OcptPeopleTable extends Table {
   /// The person's phone number, free text.
   TextColumn get phone => text().withDefault(const Constant(''))();
 
-  /// The person's postal address, free text.
-  TextColumn get address => text().withDefault(const Constant(''))();
+  /// {@template open_cine_prod_tools.postalAddress}
+  /// The street part of the postal address, free text.
+  ///
+  /// An address is stored as six columns rather than one free-text block — this one,
+  /// [addressLine2], [postalCode], [city], [region] and [country] — which is the field set every
+  /// international address form settles on. A call sheet prints them in the order the destination
+  /// country uses (the postal code before the city in France, after it in the United Kingdom), an
+  /// export gives each its own column, and the postal code is the one part of an address worth
+  /// sorting or searching on. None of that is possible once the whole address is one string.
+  ///
+  /// Every column is free text, and none is required: half an address is a normal state in a
+  /// production's address book, and refusing it would only mean the user keeps it somewhere else.
+  /// {@endtemplate}
+  TextColumn get addressLine1 => text().withDefault(const Constant(''))();
+
+  /// The second line of the postal address (building, floor, care-of), free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get addressLine2 => text().withDefault(const Constant(''))();
+
+  /// The postal code, free text — never a number: leading zeros are meaningful and half the world
+  /// writes letters in theirs.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get postalCode => text().withDefault(const Constant(''))();
 
   /// The person's city, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get city => text().withDefault(const Constant(''))();
+
+  /// The region, state, province or county, free text — empty in the countries that have no such
+  /// level in an address.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get region => text().withDefault(const Constant(''))();
+
+  /// The country, free text.
+  ///
+  /// {@macro open_cine_prod_tools.postalAddress}
+  TextColumn get country => text().withDefault(const Constant(''))();
 
   /// Indexes `ocptCoveragePalette` (`lib/constants/ocpt_coverage_palette.dart`), exactly as a
   /// shot's colour does, so this person keeps one avatar colour wherever they appear in the UI.

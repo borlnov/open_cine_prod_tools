@@ -240,9 +240,25 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a person's `phone` column from a JSON object
   static const _phoneKey = "phone";
 
-  /// This is the key used to stringify or parse an address column (`people.address` or
-  /// `locations.address`) from a JSON object
-  static const _addressKey = "address";
+  /// This is the key used to stringify or parse a first address line column
+  /// (`people.addressLine1` or `locations.addressLine1`) from a JSON object
+  static const _addressLine1Key = "addressLine1";
+
+  /// This is the key used to stringify or parse a second address line column
+  /// (`people.addressLine2` or `locations.addressLine2`) from a JSON object
+  static const _addressLine2Key = "addressLine2";
+
+  /// This is the key used to stringify or parse a postal code column (`people.postalCode` or
+  /// `locations.postalCode`) from a JSON object
+  static const _postalCodeKey = "postalCode";
+
+  /// This is the key used to stringify or parse a region column (`people.region` or
+  /// `locations.region`) from a JSON object
+  static const _regionKey = "region";
+
+  /// This is the key used to stringify or parse a country column (`people.country` or
+  /// `locations.country`) from a JSON object
+  static const _countryKey = "country";
 
   /// This is the key used to stringify or parse a city column (`people.city` or `locations.city`)
   /// from a JSON object
@@ -945,8 +961,12 @@ class OcptProjectVersionCodec {
     _lastNameKey: row.lastName,
     _emailKey: row.email,
     _phoneKey: row.phone,
-    _addressKey: row.address,
+    _addressLine1Key: row.addressLine1,
+    _addressLine2Key: row.addressLine2,
+    _postalCodeKey: row.postalCode,
     _cityKey: row.city,
+    _regionKey: row.region,
+    _countryKey: row.country,
     _colorIndexKey: row.colorIndex,
     _birthDateKey: row.birthDate?.toIso8601String(),
     _minorNotesKey: row.minorNotes,
@@ -975,8 +995,12 @@ class OcptProjectVersionCodec {
     lastName: _string(json, _lastNameKey),
     email: _string(json, _emailKey),
     phone: _string(json, _phoneKey),
-    address: _string(json, _addressKey),
+    addressLine1: _string(json, _addressLine1Key),
+    addressLine2: _string(json, _addressLine2Key),
+    postalCode: _string(json, _postalCodeKey),
     city: _string(json, _cityKey),
+    region: _string(json, _regionKey),
+    country: _string(json, _countryKey),
     colorIndex: _int(json, _colorIndexKey),
     birthDate: _nullableDateTime(json, _birthDateKey),
     minorNotes: _string(json, _minorNotesKey),
@@ -1089,8 +1113,12 @@ class OcptProjectVersionCodec {
     _idKey: row.id,
     _nameKey: row.name,
     _colorIndexKey: row.colorIndex,
+    _addressLine1Key: row.addressLine1,
+    _addressLine2Key: row.addressLine2,
+    _postalCodeKey: row.postalCode,
     _cityKey: row.city,
-    _addressKey: row.address,
+    _regionKey: row.region,
+    _countryKey: row.country,
     _latitudeKey: row.latitude,
     _longitudeKey: row.longitude,
     _contactPersonIdKey: row.contactPersonId,
@@ -1113,8 +1141,12 @@ class OcptProjectVersionCodec {
     id: _string(json, _idKey),
     name: _string(json, _nameKey),
     colorIndex: _int(json, _colorIndexKey),
+    addressLine1: _string(json, _addressLine1Key),
+    addressLine2: _string(json, _addressLine2Key),
+    postalCode: _string(json, _postalCodeKey),
     city: _string(json, _cityKey),
-    address: _string(json, _addressKey),
+    region: _string(json, _regionKey),
+    country: _string(json, _countryKey),
     latitude: _nullableDouble(json, _latitudeKey),
     longitude: _nullableDouble(json, _longitudeKey),
     contactPersonId: _nullableString(json, _contactPersonIdKey),
