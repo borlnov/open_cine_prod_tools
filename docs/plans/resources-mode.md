@@ -147,7 +147,7 @@ Where this plan and the mock-up differ, **this plan wins**; the differences are 
 | --- | --------- | ------------ |
 | **People** | Avatar + name + role chips + positions + day count | Photo slot, contact grid (structured postal address, §4.2.1), "functions on the film" (roles then positions, their scope read-only), meals/health/skills, logistics, HMC card (measurements, sizes, notes), image-rights card, unavailabilities, notes |
 | **Roles** | Role name + cast member + other roles held, an orphaned role flagged | The selected role's sheet: name, cast member and its `↗` to that person, kind, rank, casting notes, and the removed-role alert when it is the orphaned one |
-| **Locations** | Location name, colour bar, permit badge | Address + GPS + contact, filming permit card, sets in this location, parking / power / facilities, noise and schedule constraints, scouting photos, shooting days |
+| **Locations** | Colour bar + name + `city · N sets` + permit status | The selected location's sheet: colour, name and permit status in the header, address + GPS + contact (with its `↗`), the permit card and its referenced document, the sets and the scenes shot in each, parking / power / facilities, noise and schedule constraints, scouting photos, notes. Shooting days are schedule data and are out of scope, exactly as the person sheet's own days are |
 | **Elements** | Grouped by category | Code, name, detail line, days — the whole catalogue as grouped cards |
 
 The status bar reads `N people · N roles · N positions · N locations · N elements`, straight from
@@ -208,6 +208,8 @@ review of the People tab once M2 was built, and amend it. **None of them is an o
 
 ```text
 lib/types/                      ocpt_workspace_mode.dart              (+ resources)
+                                ocpt_location_editable_field.dart
+                                ocpt_set_editable_field.dart
                                 ocpt_crew_department.dart
                                 ocpt_element_category.dart
                                 ocpt_element_source_kind.dart
@@ -219,6 +221,7 @@ lib/types/                      ocpt_workspace_mode.dart              (+ resourc
                                 ocpt_resources_tab.dart
                                 ocpt_resources_right_dock_tab.dart
 lib/constants/                  ocpt_crew_positions.dart
+                                ocpt_asset_file_types.dart
 lib/models/database/tables/     ocpt_people_table.dart
                                 ocpt_person_positions_table.dart
                                 ocpt_person_unavailabilities_table.dart
@@ -233,6 +236,7 @@ lib/models/database/tables/     ocpt_people_table.dart
                                 ocpt_local_erasures_table.dart        (local, never synchronised)
 lib/models/database/            ocpt_project_database.dart            (schema v6 + migration)
 lib/models/                     ocpt_person.dart
+                                ocpt_scene_ref.dart
                                 ocpt_person_position.dart
                                 ocpt_role.dart
                                 ocpt_location.dart
@@ -256,6 +260,7 @@ lib/ui/pages/workspace/modes/resources/
                                 resources_state.dart
                                 widgets/…                              (see §4.6)
 lib/ui/utils/                   ocpt_resources_labels.dart
+lib/utils/                      ocpt_scene_set_suggestion.dart
 ```
 
 ### 4.2 Database — schema v6
@@ -358,7 +363,9 @@ many-to-one. §4.5 explains where the suggestion comes from.
 `label`, `addedAt`, `sortKey`, `isDeleted`, plus a nullable owner column per subject
 (`personId`, `locationId`, `elementId`) so a location can hold its fourteen scouting photos.
 
-See §4.3 for why this holds a path and not bytes.
+See §4.3 for why this holds a path and not bytes. `OcptLocationsService` is so far the only service
+that writes these rows — a location's scouting photos and its permit document, referenced through
+the native picker and never copied — and a location's own deletion tombstones them with it.
 
 #### 4.2.6 `elements`
 
@@ -643,7 +650,17 @@ role, hand-added silent and extra roles, and the removed-role alert.
 ### M4 — Locations and sets
 
 The locations list and sheet, sets inside a location, the permit card, the `scene_sets` links with
-the §4.5 suggestion, and the asset references for scouting photos.
+the §4.5 suggestion, and the asset references for scouting photos and the permit document.
+
+A scene is shot in **one** set, so `OcptLocationsService.assignSceneToSet` moves it rather than
+linking it twice, and a set reads its scenes back in the screenplay's own order. The suggestion is
+`ocptSceneSetSuggestionOf` (`lib/utils/`, pure Dart, tested on its own): a heading is reduced to the
+place it names, matched against the sets and then the locations, and the best hit is *offered* at
+the top of the scene picker — never applied. `OcptSceneRef` is how a scene is named outside the
+screenplay, and `OcptLocationsService.loadScenes` is what reads them.
+
+The two sheets' delete confirmations are one widget (`OcptResourcesDeleteAction`), and so is the
+dashed "drop a file here" outline the person sheet and the photo grid both wear.
 
 ### M5 — Elements
 
