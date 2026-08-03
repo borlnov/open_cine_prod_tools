@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_schedule_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_mode_switcher.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -68,5 +69,6 @@ class _WorkspaceView extends StatelessWidget {
     OcptWorkspaceMode.budget => const OcptBudgetMode(),
     OcptWorkspaceMode.schedule => const OcptScheduleMode(),
     OcptWorkspaceMode.shotList => const OcptShotListMode(),
+    OcptWorkspaceMode.resources => const OcptResourcesMode(),
   };
 }

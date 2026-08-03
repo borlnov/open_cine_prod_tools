@@ -58,17 +58,19 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
 /// The label shown under [mode]'s icon, and used as its tooltip base text.
 String _labelFor(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.screenplay => tr.workspaceModeScreenplay,
-  OcptWorkspaceMode.budget => tr.workspaceModeBudget,
-  OcptWorkspaceMode.schedule => tr.workspaceModeSchedule,
   OcptWorkspaceMode.shotList => tr.workspaceModeShotList,
+  OcptWorkspaceMode.resources => tr.workspaceModeResources,
+  OcptWorkspaceMode.schedule => tr.workspaceModeSchedule,
+  OcptWorkspaceMode.budget => tr.workspaceModeBudget,
 };
 
 /// The icon shown above [mode]'s label.
 IconData _iconFor(OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.screenplay => Icons.description_outlined,
-  OcptWorkspaceMode.budget => Icons.payments_outlined,
-  OcptWorkspaceMode.schedule => Icons.calendar_month_outlined,
   OcptWorkspaceMode.shotList => Icons.movie_filter_outlined,
+  OcptWorkspaceMode.resources => Icons.groups_outlined,
+  OcptWorkspaceMode.schedule => Icons.calendar_month_outlined,
+  OcptWorkspaceMode.budget => Icons.payments_outlined,
 };
 
 /// One clickable entry of [OcptWorkspaceModeSwitcher].
