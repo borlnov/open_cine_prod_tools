@@ -3545,5 +3545,30 @@
     "context": "Displayed in the roles table's expanded row",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesRemovedRoleBanner": "{characterName} was removed from the screenplay, but the role and its casting are kept.",
+  "@resourcesRemovedRoleBanner": {
+    "description": "Alert naming a role no longer speaking in the screenplay, whose casting and notes are kept",
+    "context": "Displayed above the roles table of the resources mode",
+    "type": "text",
+    "placeholders": {
+      "characterName": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesRemovedRoleDeleteAction": "Delete this role",
+  "@resourcesRemovedRoleDeleteAction": {
+    "description": "Action deleting an orphaned role for good",
+    "context": "Displayed in the removed-role banner of the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovedRoleKeepAction": "Keep as a silent role",
+  "@resourcesRemovedRoleKeepAction": {
+    "description": "Action turning an orphaned role into a hand-added silent role",
+    "context": "Displayed in the removed-role banner of the resources mode",
+    "type": "text",
+    "placeholders": {}
   }
 }

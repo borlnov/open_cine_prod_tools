@@ -474,5 +474,8 @@
   "resourcesRoleDeleteAction": "Supprimer ce rôle",
   "resourcesRoleDeleteConfirmMessage": "Ce rôle sera définitivement supprimé. Cette action est irréversible.",
   "resourcesRoleDeleteCancelAction": "Annuler",
-  "resourcesRoleDeleteConfirmAction": "Supprimer"
+  "resourcesRoleDeleteConfirmAction": "Supprimer",
+  "resourcesRemovedRoleBanner": "{characterName} a été retiré du scénario, mais le rôle et sa distribution sont conservés.",
+  "resourcesRemovedRoleDeleteAction": "Supprimer ce rôle",
+  "resourcesRemovedRoleKeepAction": "Conserver comme rôle muet"
 }
