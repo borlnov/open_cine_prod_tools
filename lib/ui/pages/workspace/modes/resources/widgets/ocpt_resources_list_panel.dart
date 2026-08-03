@@ -14,12 +14,12 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 /// left, its count on the right), the scrolling list, and — on the [OcptResourcesTab.people] tab
 /// alone — a full-width accent button at the bottom.
 ///
-/// That button is the mode's only person-creation affordance: Benoit chose the mock-up's placement
-/// over the plan's own toolbar action. It is withheld (a null [onAddPersonRequested], rendered as
-/// no button at all) while a project version is being previewed read-only, and it is only shown on
-/// the people tab in this milestone — [OcptResourcesTab.roles], [OcptResourcesTab.locations] and
-/// [OcptResourcesTab.elements] show a shared, discreet "coming in a future version" placeholder
-/// line instead of a list, and have nothing to add yet.
+/// That button is the mode's only person-creation affordance, and it is withheld — a null
+/// [onAddPersonRequested] draws no button at all, rather than a disabled one — while a project
+/// version is being previewed read-only. It is shown on the people tab alone:
+/// [OcptResourcesTab.roles], [OcptResourcesTab.locations] and [OcptResourcesTab.elements] show a
+/// shared, discreet "coming in a future version" placeholder line instead of a list, and have
+/// nothing to add yet.
 class OcptResourcesListPanel extends StatelessWidget {
   /// The left dock's currently active tab.
   final OcptResourcesTab activeTab;
@@ -80,7 +80,7 @@ class OcptResourcesListPanel extends StatelessWidget {
           ),
         ),
         Expanded(child: _buildBody(context, tr)),
-        if (isPeopleTab) ...[
+        if (isPeopleTab && onAddPersonRequested != null) ...[
           Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
           Padding(
             padding: const EdgeInsets.all(10),
