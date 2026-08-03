@@ -339,8 +339,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// Builds the roles tab's centre: the removed-role banners over the cast table, or the empty
   /// state (mirroring `resourcesNoPersonSelectedHint`'s tone) while the cast itself is empty.
   Widget _buildRolesCentre(BuildContext context, OcptResourcesState state) {
-    final banners = _buildRemovedRoleBanners(context, state);
-
     if (state.roles.isEmpty) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.theater_comedy_outlined,
@@ -348,6 +346,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       );
     }
 
+    // Built after that early return rather than before it: an alert is read off a role's own
+    // `orphanedName`, so an empty cast can never have one to show.
+    final banners = _buildRemovedRoleBanners(context, state);
     final bloc = context.read<OcptResourcesBloc>();
     final isReadOnly = state.isPreviewingVersion;
 
