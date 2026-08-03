@@ -3,16 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-
-/// The sentinel the contact picker uses for its entry that clears the contact, never a real person
-/// id.
-const String _noContactOption = "";
 
 /// "Address and access": the location's postal address in the six fields an address is made of, its
 /// GPS coordinates, and who to contact about it.
@@ -119,7 +115,7 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildContactPicker(context, tr),
+          _buildContactPicker(tr),
           const SizedBox(height: 8),
           _field(context, OcptLocationField.contactNotes, tr.resourcesLocationContactNotesLabel),
         ],
@@ -160,91 +156,14 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
     return tr.resourcesCoordinateFormatError;
   }
 
-  /// Builds the contact line: a label over a badge doubling as a [PopupMenuButton] over the whole
-  /// address book, and — once a contact is set — the `↗` opening their own sheet.
-  Widget _buildContactPicker(BuildContext context, Tr tr) {
-    final theme = Theme.of(context);
-    final contact = this.contact;
-    final onContactChanged = this.onContactChanged;
-    final currentLabel = contact == null
-        ? tr.resourcesLocationNoContact
-        : (contact.displayName.isEmpty ? tr.resourcesUnnamedPerson : contact.displayName);
-
-    final badge = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(
-            currentLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontStyle: contact == null ? FontStyle.italic : FontStyle.normal,
-            ),
-          ),
-        ),
-        if (onContactChanged != null) ...[
-          const SizedBox(width: 4),
-          Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
-        ],
-      ],
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tr.resourcesLocationContactLabel.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            if (onContactChanged == null)
-              Flexible(child: badge)
-            else
-              Flexible(
-                child: PopupMenuButton<String>(
-                  tooltip: "",
-                  onSelected: (value) =>
-                      onContactChanged(value == _noContactOption ? null : value),
-                  itemBuilder: (context) => [
-                    PopupMenuItem<String>(
-                      value: _noContactOption,
-                      child: Text(tr.resourcesLocationNoContact),
-                    ),
-                    const PopupMenuDivider(),
-                    for (final person in people)
-                      PopupMenuItem<String>(
-                        value: person.id,
-                        child: Text(
-                          person.displayName.isEmpty
-                              ? tr.resourcesUnnamedPerson
-                              : person.displayName,
-                        ),
-                      ),
-                  ],
-                  child: badge,
-                ),
-              ),
-            if (contact != null) ...[
-              const SizedBox(width: 6),
-              Tooltip(
-                message: tr.resourcesOpenPersonSheetTooltip,
-                child: InkWell(
-                  onTap: () => onPersonSheetOpenRequested(contact.id),
-                  mouseCursor: ocptClickableCursor,
-                  borderRadius: BorderRadius.circular(ocptRadiusSmall),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(Icons.north_east, size: 14),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
+  /// Builds the contact line: the shared [OcptResourcesPersonPicker] over the whole address book,
+  /// carrying the `↗` that opens the contact's own sheet.
+  Widget _buildContactPicker(Tr tr) => OcptResourcesPersonPicker(
+    people: people,
+    selectedPerson: contact,
+    label: tr.resourcesLocationContactLabel,
+    emptyLabel: tr.resourcesLocationNoContact,
+    onChanged: onContactChanged,
+    onPersonSheetOpenRequested: onPersonSheetOpenRequested,
+  );
 }

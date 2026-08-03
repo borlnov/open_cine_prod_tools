@@ -11,13 +11,10 @@ import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_removed_role_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_action.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
-
-/// The sentinel the cast member picker uses for its entry that uncasts the role, never a real
-/// person id.
-const String _uncastOption = "";
 
 /// The separator joining the names of the other roles a cast member holds.
 const String _otherRolesSeparator = ", ";
@@ -190,7 +187,7 @@ class OcptRoleSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCastPicker(context, tr),
+          _buildCastPicker(tr),
           if (otherRoles.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -209,64 +206,16 @@ class OcptRoleSheet extends StatelessWidget {
     );
   }
 
-  /// Builds the cast member picker: a label over a badge doubling as a [PopupMenuButton] listing
-  /// every person of the address book plus an entry that uncasts, withheld (a plain badge, no
-  /// menu) while the sheet may not be written to.
-  Widget _buildCastPicker(BuildContext context, Tr tr) {
-    final theme = Theme.of(context);
-    final castMember = this.castMember;
-    final currentLabel = castMember == null
-        ? tr.resourcesRoleNotCast
-        : (castMember.displayName.isEmpty ? tr.resourcesUnnamedPerson : castMember.displayName);
-
-    final badge = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(
-            currentLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontStyle: castMember == null ? FontStyle.italic : FontStyle.normal,
-            ),
-          ),
-        ),
-        if (!isReadOnly) ...[
-          const SizedBox(width: 4),
-          Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
-        ],
-      ],
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tr.resourcesRoleCastMemberLabel.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 4),
-        if (isReadOnly)
-          badge
-        else
-          PopupMenuButton<String>(
-            tooltip: "",
-            onSelected: (value) => onCastChanged(value == _uncastOption ? null : value),
-            itemBuilder: (context) => [
-              PopupMenuItem<String>(value: _uncastOption, child: Text(tr.resourcesRoleNotCast)),
-              const PopupMenuDivider(),
-              for (final person in people)
-                PopupMenuItem<String>(
-                  value: person.id,
-                  child: Text(
-                    person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName,
-                  ),
-                ),
-            ],
-            child: badge,
-          ),
-      ],
-    );
-  }
+  /// Builds the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
+  /// book, withheld (a plain badge, no menu) while the sheet may not be written to.
+  ///
+  /// It offers no `↗` of its own: the header's cast member line already is the jump to their sheet,
+  /// and a second arrow next to the drop-down would compete with it (see `OcptRoleSheetHeader`).
+  Widget _buildCastPicker(Tr tr) => OcptResourcesPersonPicker(
+    people: people,
+    selectedPerson: castMember,
+    label: tr.resourcesRoleCastMemberLabel,
+    emptyLabel: tr.resourcesRoleNotCast,
+    onChanged: isReadOnly ? null : onCastChanged,
+  );
 }
