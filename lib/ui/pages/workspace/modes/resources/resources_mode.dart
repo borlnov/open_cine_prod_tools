@@ -141,8 +141,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.
   ///
-  /// `+ Add a person` is withheld — a null `onAddPersonRequested` — while a project version is
-  /// being previewed: the list is then a way of reading that version, not of changing it.
+  /// `+ Add a person` and `+ Add a role` are both withheld — a null `onAddPersonRequested` /
+  /// `onAddRoleRequested` — while a project version is being previewed: the list is then a way of
+  /// reading that version, not of changing it.
   Widget? _buildListPanel(BuildContext context, OcptResourcesState state) {
     if (!state.isListPanelVisible) {
       return null;
@@ -152,15 +153,24 @@ class _ResourcesViewState extends State<_ResourcesView> {
       activeTab: state.activeTab,
       people: state.people,
       selectedPersonId: state.selectedPersonId,
+      roles: state.roles,
+      selectedRoleId: state.selectedRoleId,
       onTabSelected: (tab) =>
           context.read<OcptResourcesBloc>().add(OcptResourcesTabSelectedEvent(tab: tab)),
       onPersonSelected: (personId) => context.read<OcptResourcesBloc>().add(
         OcptResourcesPersonSelectedEvent(personId: personId),
       ),
+      onRoleSelected: (roleId) =>
+          context.read<OcptResourcesBloc>().add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
       onAddPersonRequested: state.isPreviewingVersion
           ? null
           : () => context.read<OcptResourcesBloc>().add(
               const OcptResourcesPersonCreationRequestedEvent(),
+            ),
+      onAddRoleRequested: state.isPreviewingVersion
+          ? null
+          : (kind) => context.read<OcptResourcesBloc>().add(
+              OcptResourcesRoleCreationRequestedEvent(kind: kind),
             ),
     );
   }

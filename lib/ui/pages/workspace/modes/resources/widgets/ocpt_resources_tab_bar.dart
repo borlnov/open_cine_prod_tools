@@ -12,10 +12,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 /// over `surfaceContainerLowest`, each tab sharing the strip's width equally, the active one
 /// tinted `primary` over a soft wash.
 ///
-/// All four tabs are always selectable, including [OcptResourcesTab.roles],
-/// [OcptResourcesTab.locations] and [OcptResourcesTab.elements], which show only a discreet
-/// placeholder line this milestone — a disabled strip would read as a bug, exactly the reasoning
-/// `OcptWorkspaceModeSwitcher` already follows for the modes not implemented yet.
+/// All four tabs are always selectable, including [OcptResourcesTab.locations] and
+/// [OcptResourcesTab.elements], which show only a discreet placeholder line this milestone — a
+/// disabled strip would read as a bug, exactly the reasoning `OcptWorkspaceModeSwitcher` already
+/// follows for the modes not implemented yet.
 class OcptResourcesTabBar extends StatelessWidget {
   /// The currently active tab.
   final OcptResourcesTab activeTab;

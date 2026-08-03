@@ -448,5 +448,12 @@
   "resourcesHmcTitle": "Coiffure, maquillage, costume",
   "resourcesHmcNotesLabel": "Notes de continuité",
   "resourcesNotesTitle": "Notes",
-  "resourcesDeletePersonAction": "Supprimer cette personne"
+  "resourcesDeletePersonAction": "Supprimer cette personne",
+  "resourcesRolesEmptyHint": "Aucun rôle pour l'instant. Ils apparaissent automatiquement à partir des personnages parlants du scénario.",
+  "resourcesRoleUnnamed": "Rôle sans nom",
+  "resourcesRoleNotCast": "Non distribué",
+  "resourcesRolesListOtherRolesLabel": "Joue aussi {names}",
+  "resourcesAddRoleAction": "+ Ajouter un rôle",
+  "resourcesAddRoleSilentOption": "Rôle muet",
+  "resourcesAddRoleExtraOption": "Figurant"
 }

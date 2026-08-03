@@ -20,7 +20,7 @@ enum OcptResourcesTab {
   /// Whether this tab shows real content today, rather than the shared "coming in a future
   /// version" placeholder line.
   ///
-  /// Only [people] ships this milestone; [roles], [locations] and [elements] follow in later
+  /// [people] and [roles] ship this milestone; [locations] and [elements] follow in later
   /// milestones of the same step.
-  bool get hasContent => this == OcptResourcesTab.people;
+  bool get hasContent => this == OcptResourcesTab.people || this == OcptResourcesTab.roles;
 }

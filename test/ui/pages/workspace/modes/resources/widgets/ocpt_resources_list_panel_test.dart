@@ -7,8 +7,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a panel-sized
@@ -64,12 +66,27 @@ OcptPerson _person({required String id, required String firstName, required Stri
       unavailabilities: const [],
     );
 
+/// A role carrying nothing but a name, enough for a row of the list.
+OcptRole _role({required String id, required String name}) => OcptRole(
+  id: id,
+  screenplayId: "screenplay",
+  name: name,
+  personId: null,
+  kind: OcptRoleKind.speaking,
+  isFromScreenplay: true,
+  orphanedName: null,
+  castingNotes: "",
+  number: 1,
+);
+
 void main() {
-  /// Pumps the panel on [activeTab], with [onAddPersonRequested] as its creation callback.
+  /// Pumps the panel on [activeTab], with [onAddPersonRequested]/[onAddRoleRequested] as its two
+  /// contextual creation callbacks.
   Future<void> pumpPanel(
     WidgetTester tester, {
     OcptResourcesTab activeTab = OcptResourcesTab.people,
     VoidCallback? onAddPersonRequested,
+    ValueChanged<OcptRoleKind>? onAddRoleRequested,
   }) async {
     await tester.pumpWidget(
       _wrapInApp(
@@ -77,9 +94,13 @@ void main() {
           activeTab: activeTab,
           people: [_person(id: "p1", firstName: "Sofia", lastName: "Berger")],
           selectedPersonId: null,
-          onTabSelected: (_) {},
-          onPersonSelected: (_) {},
+          roles: [_role(id: "r1", name: "Le Client")],
+          selectedRoleId: null,
+          onTabSelected: (tab) {},
+          onPersonSelected: (personId) {},
+          onRoleSelected: (roleId) {},
           onAddPersonRequested: onAddPersonRequested,
+          onAddRoleRequested: onAddRoleRequested,
         ),
       ),
     );
@@ -104,12 +125,54 @@ void main() {
     expect(find.text("Sofia Berger"), findsOneWidget);
   });
 
+  testWidgets("the roles tab lists its cast and offers the add-role menu", (tester) async {
+    OcptRoleKind? pickedKind;
+
+    await pumpPanel(
+      tester,
+      activeTab: OcptResourcesTab.roles,
+      onAddRoleRequested: (kind) => pickedKind = kind,
+    );
+
+    expect(find.text("Le Client"), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, "+ Add a role"), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, "+ Add a role"));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
+    // `speaking` is never offered: only `OcptRoleIndexService.reconcile` ever creates one.
+    expect(find.text(tr.resourcesAddRoleSilentOption), findsOneWidget);
+    expect(find.text(tr.resourcesAddRoleExtraOption), findsOneWidget);
+
+    await tester.tap(find.text(tr.resourcesAddRoleExtraOption));
+    await tester.pumpAndSettle();
+
+    expect(pickedKind, OcptRoleKind.extra);
+  });
+
+  testWidgets("a null add-role callback draws no button at all, not a disabled one", (
+    tester,
+  ) async {
+    await pumpPanel(tester, activeTab: OcptResourcesTab.roles);
+
+    expect(find.widgetWithText(FilledButton, "+ Add a role"), findsNothing);
+    expect(find.text("Le Client"), findsOneWidget);
+  });
+
   testWidgets("a tab with no content yet shows a placeholder and no creation button", (
     tester,
   ) async {
-    await pumpPanel(tester, activeTab: OcptResourcesTab.roles, onAddPersonRequested: () {});
+    await pumpPanel(
+      tester,
+      activeTab: OcptResourcesTab.locations,
+      onAddPersonRequested: () {},
+      onAddRoleRequested: (kind) {},
+    );
 
     expect(find.text("Sofia Berger"), findsNothing);
+    expect(find.text("Le Client"), findsNothing);
     expect(find.widgetWithText(FilledButton, "+ Add a person"), findsNothing);
+    expect(find.widgetWithText(FilledButton, "+ Add a role"), findsNothing);
   });
 }

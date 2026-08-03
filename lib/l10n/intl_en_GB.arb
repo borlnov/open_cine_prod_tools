@@ -3359,5 +3359,58 @@
     "context": "Displayed at the bottom of the person sheet",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesRolesEmptyHint": "No roles yet. They appear automatically from the screenplay's speaking characters.",
+  "@resourcesRolesEmptyHint": {
+    "description": "Hint shown in place of the roles list, and of the roles table, while the cast is empty",
+    "context": "Displayed in the resources mode's left dock and centre area, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleUnnamed": "Unnamed role",
+  "@resourcesRoleUnnamed": {
+    "description": "Placeholder shown in place of a role's name while it is empty",
+    "context": "Displayed in the resources mode's roles list and roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNotCast": "Not cast",
+  "@resourcesRoleNotCast": {
+    "description": "Shown in place of a cast member's name while a role is uncast, and as the cast member picker's own entry that uncasts a role",
+    "context": "Displayed in the resources mode's roles list and roles table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesListOtherRolesLabel": "Also playing {names}",
+  "@resourcesRolesListOtherRolesLabel": {
+    "description": "Muted line under a cast list row naming this cast member's other roles",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesAddRoleAction": "+ Add a role",
+  "@resourcesAddRoleAction": {
+    "description": "Action opening the menu of the two kinds a role may be hand-added as",
+    "context": "Displayed in the footer of the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddRoleSilentOption": "Silent role",
+  "@resourcesAddRoleSilentOption": {
+    "description": "Menu entry adding a hand-added, silent role",
+    "context": "Displayed in the resources mode's `+ Add a role` menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddRoleExtraOption": "Extra",
+  "@resourcesAddRoleExtraOption": {
+    "description": "Menu entry adding a hand-added extra role",
+    "context": "Displayed in the resources mode's `+ Add a role` menu",
+    "type": "text",
+    "placeholders": {}
   }
 }
