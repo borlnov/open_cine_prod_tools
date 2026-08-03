@@ -8,13 +8,16 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
@@ -89,6 +92,24 @@ CREATE TABLE "screenplays" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "fountain
 CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("shot_id", "character_name"));
 CREATE TABLE "shot_coverages" ("id" TEXT NOT NULL, "shot_id" TEXT NOT NULL REFERENCES shots (id), "scene_id" TEXT NOT NULL REFERENCES scenes (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "covered_text_digest" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 CREATE TABLE "shots" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "scene_id" TEXT NULL REFERENCES scenes (id), "orphaned_heading" TEXT NULL, "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "shot_size" TEXT NOT NULL DEFAULT '', "abbreviation" TEXT NOT NULL DEFAULT '', "framing" TEXT NOT NULL DEFAULT '', "camera_move" TEXT NOT NULL DEFAULT '', "lens" TEXT NOT NULL DEFAULT '', "recording_format" TEXT NOT NULL DEFAULT '', "estimated_duration_ms" INTEGER NULL, "shooting_day" TEXT NULL, "planned_takes" INTEGER NULL, "sound" TEXT NOT NULL DEFAULT '', "status" TEXT NOT NULL DEFAULT 'toShoot', "difficulty_set" INTEGER NOT NULL DEFAULT 1, "difficulty_camera" INTEGER NOT NULL DEFAULT 1, "difficulty_acting" INTEGER NOT NULL DEFAULT 1, "difficulty_sound" INTEGER NOT NULL DEFAULT 1, "notes" TEXT NOT NULL DEFAULT '', "location_notes" TEXT NOT NULL DEFAULT '', "needs_check" INTEGER NOT NULL DEFAULT 0 CHECK ("needs_check" IN (0, 1)), "check_reason" TEXT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+''';
+
+// The twelve tables version 6 added on top of [_v5Ddl]: the resources mode as it first shipped,
+// with no `location_availabilities` — a location could say when it was free only in the free text
+// of its constraints. Captured through a real `OcptProjectDatabase`, like every fixture above.
+const _v6ResourcesDdl = '''
+CREATE TABLE "people" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "first_name" TEXT NOT NULL DEFAULT '', "last_name" TEXT NOT NULL DEFAULT '', "email" TEXT NOT NULL DEFAULT '', "phone" TEXT NOT NULL DEFAULT '', "address_line1" TEXT NOT NULL DEFAULT '', "address_line2" TEXT NOT NULL DEFAULT '', "postal_code" TEXT NOT NULL DEFAULT '', "city" TEXT NOT NULL DEFAULT '', "region" TEXT NOT NULL DEFAULT '', "country" TEXT NOT NULL DEFAULT '', "color_index" INTEGER NOT NULL DEFAULT 0, "birth_date" TEXT NULL, "minor_notes" TEXT NOT NULL DEFAULT '', "is_transport_autonomous" INTEGER NULL CHECK ("is_transport_autonomous" IN (0, 1)), "accommodation_notes" TEXT NOT NULL DEFAULT '', "travel_notes" TEXT NOT NULL DEFAULT '', "dietary_notes" TEXT NOT NULL DEFAULT '', "allergies" TEXT NOT NULL DEFAULT '', "measurement_height" TEXT NOT NULL DEFAULT '', "measurement_chest" TEXT NOT NULL DEFAULT '', "measurement_waist" TEXT NOT NULL DEFAULT '', "measurement_hips" TEXT NOT NULL DEFAULT '', "size_top" TEXT NOT NULL DEFAULT '', "size_bottom" TEXT NOT NULL DEFAULT '', "size_shoes" TEXT NOT NULL DEFAULT '', "hmc_notes" TEXT NOT NULL DEFAULT '', "image_rights_status" TEXT NOT NULL DEFAULT 'notApplicable', "image_rights_date" TEXT NULL, "image_rights_asset_id" TEXT NULL REFERENCES assets (id), "photo_asset_id" TEXT NULL REFERENCES assets (id), "notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+CREATE TABLE "person_positions" ("id" TEXT NOT NULL, "person_id" TEXT NOT NULL REFERENCES people (id), "position_id" TEXT NOT NULL DEFAULT '', "custom_label" TEXT NOT NULL DEFAULT '', "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "person_skills" ("id" TEXT NOT NULL, "person_id" TEXT NOT NULL REFERENCES people (id), "label" TEXT NOT NULL DEFAULT '', "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "person_unavailabilities" ("id" TEXT NOT NULL, "person_id" TEXT NOT NULL REFERENCES people (id), "start_date" TEXT NOT NULL, "end_date" TEXT NOT NULL, "slot" TEXT NOT NULL DEFAULT 'fullDay', "start_minute" INTEGER NULL, "end_minute" INTEGER NULL, "reason" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "roles" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "name" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "person_id" TEXT NULL REFERENCES people (id), "kind" TEXT NOT NULL, "is_from_screenplay" INTEGER NOT NULL DEFAULT 0 CHECK ("is_from_screenplay" IN (0, 1)), "orphaned_name" TEXT NULL, "casting_notes" TEXT NOT NULL DEFAULT '', PRIMARY KEY ("id"));
+CREATE TABLE "locations" ("id" TEXT NOT NULL, "name" TEXT NOT NULL, "color_index" INTEGER NOT NULL DEFAULT 0, "address_line1" TEXT NOT NULL DEFAULT '', "address_line2" TEXT NOT NULL DEFAULT '', "postal_code" TEXT NOT NULL DEFAULT '', "city" TEXT NOT NULL DEFAULT '', "region" TEXT NOT NULL DEFAULT '', "country" TEXT NOT NULL DEFAULT '', "latitude" REAL NULL, "longitude" REAL NULL, "contact_person_id" TEXT NULL, "contact_notes" TEXT NOT NULL DEFAULT '', "permit_status" TEXT NOT NULL DEFAULT 'toRequest', "permit_label" TEXT NOT NULL DEFAULT '', "permit_date" TEXT NULL, "permit_asset_id" TEXT NULL, "parking_notes" TEXT NOT NULL DEFAULT '', "power_notes" TEXT NOT NULL DEFAULT '', "facilities_notes" TEXT NOT NULL DEFAULT '', "constraints_notes" TEXT NOT NULL DEFAULT '', "notes" TEXT NOT NULL DEFAULT '', "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "sets" ("id" TEXT NOT NULL, "location_id" TEXT NOT NULL REFERENCES locations (id), "code" TEXT NOT NULL DEFAULT '', "name" TEXT NOT NULL, "notes" TEXT NOT NULL DEFAULT '', "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "scene_sets" ("id" TEXT NOT NULL, "scene_id" TEXT NOT NULL REFERENCES scenes (id), "set_id" TEXT NOT NULL REFERENCES sets (id), "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "elements" ("id" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "category" TEXT NOT NULL, "sub_category" TEXT NOT NULL DEFAULT '', "name" TEXT NOT NULL, "code" TEXT NOT NULL DEFAULT '', "quantity" TEXT NOT NULL DEFAULT '', "source_kind" TEXT NOT NULL, "owner_person_id" TEXT NULL, "owner_notes" TEXT NOT NULL DEFAULT '', "brought_by_person_id" TEXT NULL, "storage_notes" TEXT NOT NULL DEFAULT '', "is_secured" INTEGER NOT NULL DEFAULT 0 CHECK ("is_secured" IN (0, 1)), "is_ready_for_shoot" INTEGER NOT NULL DEFAULT 0 CHECK ("is_ready_for_shoot" IN (0, 1)), "is_returned" INTEGER NOT NULL DEFAULT 0 CHECK ("is_returned" IN (0, 1)), "cost" INTEGER NULL, "purpose_notes" TEXT NOT NULL DEFAULT '', "notes" TEXT NOT NULL DEFAULT '', "photo_asset_id" TEXT NULL, PRIMARY KEY ("id"));
+CREATE TABLE "scene_elements" ("id" TEXT NOT NULL, "scene_id" TEXT NOT NULL REFERENCES scenes (id), "element_id" TEXT NOT NULL REFERENCES elements (id), "quantity" TEXT NOT NULL DEFAULT '', "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "assets" ("id" TEXT NOT NULL, "kind" TEXT NOT NULL, "path" TEXT NOT NULL, "label" TEXT NOT NULL DEFAULT '', "added_at" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), "person_id" TEXT NULL, "location_id" TEXT NULL REFERENCES locations (id), "element_id" TEXT NULL REFERENCES elements (id), PRIMARY KEY ("id"));
+CREATE TABLE "local_erasures" ("person_id" TEXT NOT NULL REFERENCES people (id), "erased_at" TEXT NOT NULL, PRIMARY KEY ("person_id"));
 ''';
 
 void main() {
@@ -237,10 +258,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 6.
+    // anything but version 7.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 6);
+    expect(await readSchemaVersion(freshDatabase), 7);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -262,6 +283,7 @@ void main() {
       'person_unavailabilities',
       'roles',
       'locations',
+      'location_availabilities',
       'sets',
       'scene_sets',
       'elements',
@@ -278,6 +300,7 @@ void main() {
       ('upgraded_from_v3.ocpt', _v3Ddl, 3),
       ('upgraded_from_v4.ocpt', _v4Ddl, 4),
       ('upgraded_from_v5.ocpt', _v5Ddl, 5),
+      ('upgraded_from_v6.ocpt', '$_v5Ddl$_v6ResourcesDdl', 6),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -294,7 +317,7 @@ void main() {
         reason: "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 6);
+      expect(await readSchemaVersion(database), 7);
 
       await database.close();
     }
@@ -382,7 +405,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 5.
-    expect(await readSchemaVersion(database), 6);
+    expect(await readSchemaVersion(database), 7);
 
     await database.close();
   });
@@ -500,7 +523,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 6);
+    expect(await readSchemaVersion(database), 7);
 
     await database.close();
   });
@@ -556,7 +579,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 6);
+    expect(await readSchemaVersion(database), 7);
 
     await database.close();
   });
@@ -590,7 +613,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 6);
+    expect(await readSchemaVersion(database), 7);
 
     await database.close();
   });
@@ -734,8 +757,59 @@ void main() {
     )..where((table) => table.personId.equals("person1"))).go();
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
-    // (d) the file now says version 6.
-    expect(await readSchemaVersion(database), 6);
+    // (d) the file now says version 7.
+    expect(await readSchemaVersion(database), 7);
+
+    await database.close();
+  });
+
+  test('a v6 database migrates on, gaining the location availabilities', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v6.ocpt');
+
+    // The shape the resources mode first shipped in: every resources table, and no
+    // `location_availabilities` — a location could only say when it was free in free text.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute(_v6ResourcesDdl);
+    legacyDb.execute('PRAGMA user_version = 6;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute(
+      "INSERT INTO locations (id, name, constraints_notes, sort_key) VALUES ('location1', "
+      "'La maison des Pains', 'Free on Mondays', 'V');",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived untouched: this step only creates one table.
+    await expectCommonRowsSurvived(database);
+
+    final location = await database.select(database.ocptLocationsTable).getSingle();
+    expect(location.constraintsNotes, "Free on Mondays");
+
+    // (b) the new table exists, is usable, and carries the defaults a fresh row relies on.
+    await database
+        .into(database.ocptLocationAvailabilitiesTable)
+        .insert(
+          OcptLocationAvailabilitiesTableCompanion.insert(
+            id: "availability1",
+            locationId: "location1",
+            startDate: DateTime.utc(2026, 3, 2),
+            endDate: DateTime.utc(2026, 3, 20),
+          ),
+        );
+
+    final availability = await database
+        .select(database.ocptLocationAvailabilitiesTable)
+        .getSingle();
+    expect(availability.locationId, "location1");
+    expect(availability.weekdays, ocptEveryWeekdayMask);
+    expect(availability.slot, OcptDayPartSlot.fullDay);
+    expect(availability.kind, OcptLocationAvailabilityKind.available);
+    expect(availability.isDeleted, isFalse);
+
+    // (c) the file now says version 7.
+    expect(await readSchemaVersion(database), 7);
 
     await database.close();
   });

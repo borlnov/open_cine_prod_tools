@@ -9,12 +9,16 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `locations`, their `sets`, the `scene_sets` links between a scene and the sets it is
-/// shot in, and the `assets` rows a location owns (its scouting photos and its permit document).
+/// shot in, the `location_availabilities` windows a location may be shot in, and the `assets` rows
+/// a location owns (its scouting photos and its permit document).
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
@@ -34,8 +38,9 @@ class OcptLocationsService {
   const OcptLocationsService();
 
   /// Loads every live location of [database], in `sortKey` order, each joined with its live
-  /// [OcptSet]s and scouting photos (both in `sortKey` order) and with the document its
-  /// `permitAssetId` resolves to.
+  /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
+  /// start-date order, the order they are read in rather than one the user chose) and with the
+  /// document its `permitAssetId` resolves to.
   ///
   /// A set's `sceneIds` name **live scenes only**: a `scene_sets` row whose scene was tombstoned by
   /// the last reconciliation is skipped rather than shown as a scene that no longer exists, and
@@ -71,6 +76,23 @@ class OcptLocationsService {
           .add(OcptSet.fromRow(row: row, sceneIds: sceneIdsBySetId[row.id] ?? const []));
     }
 
+    final availabilityRows = locationIds.isEmpty
+        ? const <OcptLocationAvailabilityRow>[]
+        : await (database.select(database.ocptLocationAvailabilitiesTable)
+                ..where((table) => table.locationId.isIn(locationIds) & table.isDeleted.not())
+                ..orderBy([
+                  (table) => OrderingTerm.asc(table.startDate),
+                  (table) => OrderingTerm.asc(table.endDate),
+                ]))
+              .get();
+
+    final availabilitiesByLocationId = <String, List<OcptLocationAvailability>>{};
+    for (final row in availabilityRows) {
+      availabilitiesByLocationId
+          .putIfAbsent(row.locationId, () => [])
+          .add(OcptLocationAvailability.fromRow(row));
+    }
+
     final photosByLocationId = <String, List<OcptAssetRef>>{};
     final assetsById = <String, OcptAssetRef>{};
     for (final row in assetRows) {
@@ -88,6 +110,7 @@ class OcptLocationsService {
           sets: setsByLocationId[row.id] ?? const [],
           photos: photosByLocationId[row.id] ?? const [],
           permitDocument: row.permitAssetId == null ? null : assetsById[row.permitAssetId],
+          availabilities: availabilitiesByLocationId[row.id] ?? const [],
         ),
     ];
   }
@@ -205,8 +228,8 @@ class OcptLocationsService {
   }
 
   /// Tombstones location [locationId] in [database], its sets, the `scene_sets` links onto those
-  /// sets, and the `assets` rows it owns (its scouting photos and its permit document) along with
-  /// it.
+  /// sets, its availability windows, and the `assets` rows it owns (its scouting photos and its
+  /// permit document) along with it.
   ///
   /// The photo files themselves are never touched: this app only ever holds their paths (see
   /// [addLocationPhoto]), so deleting a location drops its references and nothing else.
@@ -242,6 +265,12 @@ class OcptLocationsService {
           const OcptSetsTableCompanion(isDeleted: Value(true)),
         );
       }
+
+      await (database.update(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((table) => table.locationId.equals(locationId))).write(
+        const OcptLocationAvailabilitiesTableCompanion(isDeleted: Value(true)),
+      );
 
       await (database.update(
         database.ocptAssetsTable,
@@ -486,6 +515,110 @@ class OcptLocationsService {
           (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
         ))
         .write(const OcptSceneSetsTableCompanion(isDeleted: Value(true)));
+  }
+
+  /// Adds an availability window to location [locationId], and returns its freshly generated id.
+  ///
+  /// [endDate] is clamped up to [startDate] rather than refused, and [weekdays] falls back to
+  /// [ocptEveryWeekdayMask] when it covers no day at all: both are slips of a control, and the
+  /// caller has nothing useful to do with an error — the sheet shows what was written, which is
+  /// how the user sees it.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> addAvailability({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required DateTime startDate,
+    required DateTime endDate,
+    int weekdays = ocptEveryWeekdayMask,
+    OcptDayPartSlot slot = OcptDayPartSlot.fullDay,
+    int? startMinute,
+    int? endMinute,
+    OcptLocationAvailabilityKind kind = OcptLocationAvailabilityKind.available,
+    String note = "",
+  }) async {
+    if (database.refusesUserWrite("addAvailability")) {
+      return null;
+    }
+
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptLocationAvailabilitiesTable)
+        .insert(
+          OcptLocationAvailabilitiesTableCompanion.insert(
+            id: id,
+            locationId: locationId,
+            startDate: startDate,
+            endDate: endDate.isBefore(startDate) ? startDate : endDate,
+            weekdays: Value(
+              weekdays & ocptEveryWeekdayMask == 0 ? ocptEveryWeekdayMask : weekdays,
+            ),
+            slot: Value(slot),
+            startMinute: Value(startMinute),
+            endMinute: Value(endMinute),
+            kind: Value(kind),
+            note: Value(note),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Updates the fields of availability window [id] that are passed as something other than
+  /// [Value.absent].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateAvailability({
+    required OcptProjectDatabase database,
+    required String id,
+    Value<DateTime> startDate = const Value.absent(),
+    Value<DateTime> endDate = const Value.absent(),
+    Value<int> weekdays = const Value.absent(),
+    Value<OcptDayPartSlot> slot = const Value.absent(),
+    Value<int?> startMinute = const Value.absent(),
+    Value<int?> endMinute = const Value.absent(),
+    Value<OcptLocationAvailabilityKind> kind = const Value.absent(),
+    Value<String> note = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateAvailability")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptLocationAvailabilitiesTable,
+    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
+      OcptLocationAvailabilitiesTableCompanion(
+        startDate: startDate,
+        endDate: endDate,
+        weekdays: weekdays,
+        slot: slot,
+        startMinute: startMinute,
+        endMinute: endMinute,
+        kind: kind,
+        note: note,
+      ),
+    );
+  }
+
+  /// Removes availability window [id].
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> removeAvailability({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    if (database.refusesUserWrite("removeAvailability")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptLocationAvailabilitiesTable,
+    )..where((table) => table.id.equals(id))).write(
+      const OcptLocationAvailabilitiesTableCompanion(isDeleted: Value(true)),
+    );
   }
 
   /// References the file at [path] as a scouting photo of location [locationId], appended at the

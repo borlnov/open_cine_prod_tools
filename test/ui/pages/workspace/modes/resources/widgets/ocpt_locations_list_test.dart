@@ -67,6 +67,7 @@ OcptLocation _location({
   sets: sets,
   photos: const [],
   permitDocument: null,
+  availabilities: const [],
 );
 
 void main() {

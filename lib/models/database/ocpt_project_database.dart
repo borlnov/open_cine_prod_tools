@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_sl
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_positions_table.dart';
@@ -42,6 +43,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -49,6 +51,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 part 'ocpt_project_database.g.dart';
 
@@ -85,6 +88,7 @@ part 'ocpt_project_database.g.dart';
     OcptPersonUnavailabilitiesTable,
     OcptRolesTable,
     OcptLocationsTable,
+    OcptLocationAvailabilitiesTable,
     OcptSetsTable,
     OcptSceneSetsTable,
     OcptElementsTable,
@@ -159,7 +163,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   /// The database options used by this database.
   ///
@@ -187,8 +191,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// it. From 5 to 6 it creates the twelve tables of the resources mode — the address book, its
   /// positions/skills/unavailabilities, the cast, locations and sets, elements, asset references
   /// and the local erasures record — and nothing else: no table a project already had is altered.
-  /// Every step is additive, as ADR 0007 requires: every new column carries a default (or is
-  /// nullable), so the rows a project already had stay valid without being rewritten.
+  /// From 6 to 7 it creates [OcptLocationAvailabilitiesTable], the dated windows during which a
+  /// location may be shot in. Every step is additive, as ADR 0007 requires: every new column
+  /// carries a default (or is nullable), so the rows a project already had stay valid without being
+  /// rewritten.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -254,6 +260,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         await m.createTable(ocptSceneElementsTable);
         await m.createTable(ocptAssetsTable);
         await m.createTable(ocptLocalErasuresTable);
+      }
+
+      if (from < 7) {
+        await m.createTable(ocptLocationAvailabilitiesTable);
       }
     },
     beforeOpen: (details) async {

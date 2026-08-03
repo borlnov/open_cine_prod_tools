@@ -719,6 +719,7 @@ void main() {
                   personUnavailabilities: payload.personUnavailabilities,
                   roles: payload.roles,
                   locations: payload.locations,
+                  locationAvailabilities: payload.locationAvailabilities,
                   sets: payload.sets,
                   sceneSets: payload.sceneSets,
                   elements: payload.elements,

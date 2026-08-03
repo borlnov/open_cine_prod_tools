@@ -16,12 +16,14 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 void main() {
   // The codec logs through appLogger(), which requires a global manager instance to be set; merely
@@ -355,6 +357,32 @@ void main() {
         isDeleted: true,
       ),
     ],
+    locationAvailabilities: [
+      OcptLocationAvailabilityRow(
+        id: "availability-1",
+        locationId: "location-1",
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 20),
+        weekdays: 0x03,
+        slot: OcptDayPartSlot.custom,
+        startMinute: 8 * 60,
+        endMinute: 19 * 60,
+        kind: OcptLocationAvailabilityKind.conditional,
+        note: "No noise after 22:00",
+        isDeleted: false,
+      ),
+      OcptLocationAvailabilityRow(
+        id: "availability-2",
+        locationId: "location-2",
+        startDate: DateTime.utc(2026, 4, 5),
+        endDate: DateTime.utc(2026, 4, 5),
+        weekdays: ocptEveryWeekdayMask,
+        slot: OcptDayPartSlot.fullDay,
+        kind: OcptLocationAvailabilityKind.available,
+        note: "",
+        isDeleted: true,
+      ),
+    ],
     sets: const [
       OcptSetRow(
         id: "set-1",
@@ -682,6 +710,7 @@ void main() {
         personUnavailabilities: [],
         roles: [],
         locations: [],
+        locationAvailabilities: [],
         sets: [],
         sceneSets: [],
         elements: [],
@@ -721,6 +750,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities.reversed.toList(),
         roles: payload.roles.reversed.toList(),
         locations: payload.locations.reversed.toList(),
+        locationAvailabilities: payload.locationAvailabilities.reversed.toList(),
         sets: payload.sets.reversed.toList(),
         sceneSets: payload.sceneSets.reversed.toList(),
         elements: payload.elements.reversed.toList(),
@@ -748,6 +778,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -783,6 +814,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -821,6 +853,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -848,6 +881,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -875,6 +909,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -904,6 +939,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -931,6 +967,7 @@ void main() {
         personUnavailabilities: payload.personUnavailabilities,
         roles: payload.roles,
         locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
         sets: payload.sets,
         sceneSets: payload.sceneSets,
         elements: payload.elements,
@@ -1035,6 +1072,77 @@ void main() {
       expect(payload.elements, isEmpty);
       expect(payload.sceneElements, isEmpty);
       expect(payload.assets, isEmpty);
+      expect(payload.locationAvailabilities, isEmpty);
+    });
+
+    test('a stored format-2 payload decodes with no availability window', () {
+      // The retired format the resources mode first shipped in: every resources key is there, and
+      // `locationAvailabilities` is the one that isn't — a location could not carry a window yet.
+      const format2Payload = '''
+{
+  "payloadFormat": 2,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [
+    {
+      "id": "location-1",
+      "name": "Maison des Pains",
+      "colorIndex": 1,
+      "addressLine1": "",
+      "addressLine2": "",
+      "postalCode": "",
+      "city": "Lyon",
+      "region": "",
+      "country": "",
+      "latitude": null,
+      "longitude": null,
+      "contactPersonId": null,
+      "contactNotes": "",
+      "permitStatus": "granted",
+      "permitLabel": "",
+      "permitDate": null,
+      "permitAssetId": null,
+      "parkingNotes": "",
+      "powerNotes": "",
+      "facilitiesNotes": "",
+      "constraintsNotes": "",
+      "notes": "",
+      "sortKey": "V",
+      "isDeleted": false
+    }
+  ],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [],
+  "sceneElements": [],
+  "assets": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+      final result = codec.decode(format2Payload);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      final payload = result.value!;
+      expect(payload.locations, hasLength(1));
+      // Truthful rather than unknown: the project had no window to capture, so restoring this
+      // version drops whatever windows the working copy has gathered since.
+      expect(payload.locationAvailabilities, isEmpty);
     });
   });
 

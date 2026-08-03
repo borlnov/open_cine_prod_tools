@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
@@ -51,7 +52,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 2;
+  static const currentPayloadFormat = 3;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -89,6 +90,10 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `locations` rows from a JSON object
   static const _locationsKey = "locations";
+
+  /// This is the key used to stringify or parse the `location_availabilities` rows from a JSON
+  /// object
+  static const _locationAvailabilitiesKey = "locationAvailabilities";
 
   /// This is the key used to stringify or parse the `sets` rows from a JSON object
   static const _setsKey = "sets";
@@ -377,6 +382,12 @@ class OcptProjectVersionCodec {
   /// object
   static const _reasonKey = "reason";
 
+  /// This is the key used to stringify or parse a weekday mask from a JSON object
+  static const _weekdaysKey = "weekdays";
+
+  /// This is the key used to stringify or parse a single note from a JSON object
+  static const _noteKey = "note";
+
   /// This is the key used to stringify or parse a `name` column (`roles`, `locations`, `sets` or
   /// `elements`) from a JSON object
   static const _nameKey = "name";
@@ -561,6 +572,7 @@ class OcptProjectVersionCodec {
   /// guessing.
   static const _payloadUpgrades = <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{
     1: _upgradeFormat1To2,
+    2: _upgradeFormat2To3,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -589,6 +601,18 @@ class OcptProjectVersionCodec {
     _assetsKey: const <dynamic>[],
   };
 
+  /// Turns a format-**2** JSON object into a format-**3** one: `location_availabilities` did not
+  /// exist yet, so this materialises it as an **empty list**, exactly as [_upgradeFormat1To2] does
+  /// for the tables that predate it.
+  ///
+  /// That empty list is truthful: a version written in format 2 was captured when no location could
+  /// carry a window at all. `OcptProjectVersionsService._restoreTable` tombstones, on restore, every
+  /// row the payload doesn't hold, so restoring one correctly drops the windows entered since.
+  static Map<String, dynamic> _upgradeFormat2To3(Map<String, dynamic> json) => {
+    ...json,
+    _locationAvailabilitiesKey: const <dynamic>[],
+  };
+
   /// Class constructor
   const OcptProjectVersionCodec();
 
@@ -609,6 +633,9 @@ class OcptProjectVersionCodec {
     ],
     _rolesKey: [for (final row in payload.roles) _roleToJson(row)],
     _locationsKey: [for (final row in payload.locations) _locationToJson(row)],
+    _locationAvailabilitiesKey: [
+      for (final row in payload.locationAvailabilities) _locationAvailabilityToJson(row),
+    ],
     _setsKey: [for (final row in payload.sets) _setToJson(row)],
     _sceneSetsKey: [for (final row in payload.sceneSets) _sceneSetToJson(row)],
     _elementsKey: [for (final row in payload.elements) _elementToJson(row)],
@@ -735,6 +762,11 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _locationToJson,
       ),
+      _locationAvailabilitiesKey: _canonicalRows(
+        payload.locationAvailabilities,
+        primaryKeyOf: (row) => row.id,
+        toJson: _locationAvailabilityToJson,
+      ),
       _setsKey: _canonicalRows(payload.sets, primaryKeyOf: (row) => row.id, toJson: _setToJson),
       _sceneSetsKey: _canonicalRows(
         payload.sceneSets,
@@ -815,6 +847,9 @@ class OcptProjectVersionCodec {
       ],
       roles: [for (final row in _rows(json, _rolesKey)) _roleFromJson(row)],
       locations: [for (final row in _rows(json, _locationsKey)) _locationFromJson(row)],
+      locationAvailabilities: [
+        for (final row in _rows(json, _locationAvailabilitiesKey)) _locationAvailabilityFromJson(row),
+      ],
       sets: [for (final row in _rows(json, _setsKey)) _setFromJson(row)],
       sceneSets: [for (final row in _rows(json, _sceneSetsKey)) _sceneSetFromJson(row)],
       elements: [for (final row in _rows(json, _elementsKey)) _elementFromJson(row)],
@@ -1205,6 +1240,37 @@ class OcptProjectVersionCodec {
     sortKey: _string(json, _sortKeyKey),
     isDeleted: _bool(json, _isDeletedKey),
   );
+
+  /// Serializes one `location_availabilities` row.
+  static Map<String, dynamic> _locationAvailabilityToJson(OcptLocationAvailabilityRow row) => {
+    _idKey: row.id,
+    _locationIdKey: row.locationId,
+    _startDateKey: row.startDate.toIso8601String(),
+    _endDateKey: row.endDate.toIso8601String(),
+    _weekdaysKey: row.weekdays,
+    _slotKey: row.slot.name,
+    _startMinuteKey: row.startMinute,
+    _endMinuteKey: row.endMinute,
+    _kindKey: row.kind.name,
+    _noteKey: row.note,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `location_availabilities` row.
+  static OcptLocationAvailabilityRow _locationAvailabilityFromJson(Map<String, dynamic> json) =>
+      OcptLocationAvailabilityRow(
+        id: _string(json, _idKey),
+        locationId: _string(json, _locationIdKey),
+        startDate: _dateTime(json, _startDateKey),
+        endDate: _dateTime(json, _endDateKey),
+        weekdays: _int(json, _weekdaysKey),
+        slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
+        startMinute: _nullableInt(json, _startMinuteKey),
+        endMinute: _nullableInt(json, _endMinuteKey),
+        kind: _enum(json, _kindKey, OcptLocationAvailabilityKind.values.asNameMap()),
+        note: _string(json, _noteKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `sets` row.
   static Map<String, dynamic> _setToJson(OcptSetRow row) => {

@@ -64,6 +64,9 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `locations` rows of the project.
   final List<OcptLocationRow> locations;
 
+  /// The `location_availabilities` rows of the project.
+  final List<OcptLocationAvailabilityRow> locationAvailabilities;
+
   /// The `sets` rows of the project.
   final List<OcptSetRow> sets;
 
@@ -114,6 +117,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.personUnavailabilities,
     required this.roles,
     required this.locations,
+    required this.locationAvailabilities,
     required this.sets,
     required this.sceneSets,
     required this.elements,
@@ -151,6 +155,7 @@ class OcptProjectVersionPayload extends Equatable {
     personUnavailabilities,
     roles,
     locations,
+    locationAvailabilities,
     sets,
     sceneSets,
     elements,

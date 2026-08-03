@@ -8,7 +8,10 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -446,6 +449,155 @@ void main() {
 
       expect(scenes.map((scene) => scene.id), ["scene-1", "scene-2"]);
       expect(scenes.map((scene) => scene.displayNumber), ["1", "2"]);
+    });
+  });
+
+  group("availability windows", () {
+    test("addAvailability appends a window and loadLocations reads it back", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 20),
+        weekdays: ocptWeekdayMaskToggled(ocptEveryWeekdayMask, DateTime.sunday),
+        slot: OcptDayPartSlot.custom,
+        startMinute: 8 * 60,
+        endMinute: 19 * 60,
+        kind: OcptLocationAvailabilityKind.conditional,
+        note: "No noise after 22:00",
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.startDate, DateTime.utc(2026, 3, 2));
+      expect(availability.endDate, DateTime.utc(2026, 3, 20));
+      expect(ocptWeekdayMaskContains(availability.weekdays, DateTime.sunday), isFalse);
+      expect(ocptWeekdayMaskContains(availability.weekdays, DateTime.monday), isTrue);
+      expect(availability.slot, OcptDayPartSlot.custom);
+      expect(availability.startMinute, 8 * 60);
+      expect(availability.kind, OcptLocationAvailabilityKind.conditional);
+      expect(availability.note, "No noise after 22:00");
+    });
+
+    test("a window is read in start-date order, whatever order it was entered in", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 5),
+        endDate: DateTime.utc(2026, 5),
+      );
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3),
+        endDate: DateTime.utc(2026, 3),
+      );
+
+      final availabilities = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities;
+      expect(availabilities.map((availability) => availability.startDate), [
+        DateTime.utc(2026, 3),
+        DateTime.utc(2026, 5),
+      ]);
+    });
+
+    test("a range ending before it starts is clamped rather than refused", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 20),
+        endDate: DateTime.utc(2026, 3, 2),
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.endDate, DateTime.utc(2026, 3, 20));
+    });
+
+    test("a window covering no weekday at all falls back to every day", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+        weekdays: 0,
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.weekdays, ocptEveryWeekdayMask);
+    });
+
+    test("updateAvailability writes only what it was passed", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+        note: "Ask for Camille",
+      ))!;
+
+      await locationsService.updateAvailability(
+        database: database,
+        id: id,
+        kind: const Value(OcptLocationAvailabilityKind.conditional),
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.kind, OcptLocationAvailabilityKind.conditional);
+      expect(availability.note, "Ask for Camille");
+    });
+
+    test("removeAvailability tombstones the row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+      ))!;
+
+      await locationsService.removeAvailability(database: database, id: id);
+
+      expect(
+        (await locationsService.loadLocations(database: database)).single.availabilities,
+        isEmpty,
+      );
+      final row = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((row) => row.id.equals(id))).getSingle();
+      expect(row.isDeleted, isTrue);
+    });
+
+    test("deleting a location tombstones its windows too", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+      ))!;
+
+      await locationsService.deleteLocation(database: database, locationId: locationId);
+
+      final row = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((row) => row.id.equals(id))).getSingle();
+      expect(row.isDeleted, isTrue);
     });
   });
 

@@ -34,6 +34,7 @@ void main() {
     personUnavailabilities: const [],
     roles: const [],
     locations: const [],
+    locationAvailabilities: const [],
     sets: const [],
     sceneSets: const [],
     elements: const [],

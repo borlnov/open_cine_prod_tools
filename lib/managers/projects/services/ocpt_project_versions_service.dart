@@ -52,6 +52,7 @@ class OcptProjectVersionsService {
     'person_unavailabilities',
     'roles',
     'locations',
+    'location_availabilities',
     'sets',
     'scene_sets',
     'elements',
@@ -330,6 +331,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptPersonUnavailabilitiesTable, payload.personUnavailabilities)
         ..insertAll(database.ocptRolesTable, payload.roles)
         ..insertAll(database.ocptLocationsTable, payload.locations)
+        ..insertAll(database.ocptLocationAvailabilitiesTable, payload.locationAvailabilities)
         ..insertAll(database.ocptSetsTable, payload.sets)
         ..insertAll(database.ocptSceneSetsTable, payload.sceneSets)
         ..insertAll(database.ocptElementsTable, payload.elements)
@@ -538,6 +540,9 @@ class OcptProjectVersionsService {
       personUnavailabilities: await database.select(database.ocptPersonUnavailabilitiesTable).get(),
       roles: await database.select(database.ocptRolesTable).get(),
       locations: await database.select(database.ocptLocationsTable).get(),
+      locationAvailabilities: await database
+          .select(database.ocptLocationAvailabilitiesTable)
+          .get(),
       sets: await database.select(database.ocptSetsTable).get(),
       sceneSets: await database.select(database.ocptSceneSetsTable).get(),
       elements: await database.select(database.ocptElementsTable).get(),
@@ -706,6 +711,15 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
+      table: database.ocptLocationAvailabilitiesTable,
+      payloadRows: payload.locationAvailabilities,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
       table: database.ocptSetsTable,
       payloadRows: payload.sets,
       rowIdOf: (row) => row.id,
@@ -824,6 +838,7 @@ class OcptProjectVersionsService {
       ],
       roles: payload.roles,
       locations: payload.locations,
+      locationAvailabilities: payload.locationAvailabilities,
       sets: payload.sets,
       sceneSets: payload.sceneSets,
       elements: payload.elements,

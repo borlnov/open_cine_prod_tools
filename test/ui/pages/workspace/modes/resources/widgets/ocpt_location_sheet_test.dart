@@ -67,6 +67,7 @@ OcptLocation _location({
   List<OcptSet> sets = const [],
   List<OcptAssetRef> photos = const [],
   OcptAssetRef? permitDocument,
+  List<OcptLocationAvailability> availabilities = const [],
 }) => OcptLocation(
   id: id,
   name: name,
@@ -93,6 +94,7 @@ OcptLocation _location({
   sets: sets,
   photos: photos,
   permitDocument: permitDocument,
+  availabilities: availabilities,
 );
 
 /// Builds an [OcptAssetRef] pointing at [path] — a path these tests deliberately never create, so

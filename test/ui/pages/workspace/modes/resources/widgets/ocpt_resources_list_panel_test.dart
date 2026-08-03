@@ -108,6 +108,7 @@ OcptLocation _location({required String id, required String name}) => OcptLocati
   sets: const [],
   photos: const [],
   permitDocument: null,
+  availabilities: const [],
 );
 
 void main() {
