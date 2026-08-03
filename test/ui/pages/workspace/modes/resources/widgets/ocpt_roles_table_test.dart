@@ -59,6 +59,7 @@ OcptRole _role({
   String? personId,
   OcptRoleKind kind = OcptRoleKind.speaking,
   bool? isFromScreenplay,
+  String? orphanedName,
   String castingNotes = "",
   int number = 1,
 }) => OcptRole(
@@ -68,7 +69,7 @@ OcptRole _role({
   personId: personId,
   kind: kind,
   isFromScreenplay: isFromScreenplay ?? (kind == OcptRoleKind.speaking),
-  orphanedName: null,
+  orphanedName: orphanedName,
   castingNotes: castingNotes,
   number: number,
 );
@@ -168,6 +169,66 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptRolesTable)));
     expect(find.text(tr.resourcesRoleNameFromScreenplayNote), findsNothing);
     expect(find.widgetWithText(TextField, "Le Client"), findsOneWidget);
+  });
+
+  testWidgets("the delete action is withheld while the screenplay still speaks the role", (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildTable(role: _role(id: "r1"), selectedRoleId: "r1"));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRolesTable)));
+    // Deleting it would cost the casting and the notes without removing anything: the next save's
+    // reconciliation inserts that character right back.
+    expect(find.text(tr.resourcesRoleDeleteAction), findsNothing);
+  });
+
+  testWidgets("an orphaned role keeps the delete action", (tester) async {
+    String? deletedRoleId;
+
+    await tester.pumpWidget(
+      _buildTable(
+        role: _role(id: "r1", orphanedName: "Le Client"),
+        selectedRoleId: "r1",
+        onDeleteRequested: (roleId) => deletedRoleId = roleId,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRolesTable)));
+    await tester.tap(find.text(tr.resourcesRoleDeleteAction));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(tr.resourcesRoleDeleteConfirmAction));
+    await tester.pumpAndSettle();
+
+    expect(deletedRoleId, "r1");
+  });
+
+  testWidgets("a hand-added role is deleted through its inline confirmation", (tester) async {
+    String? deletedRoleId;
+
+    await tester.pumpWidget(
+      _buildTable(
+        role: _role(id: "r1", kind: OcptRoleKind.extra, isFromScreenplay: false),
+        selectedRoleId: "r1",
+        onDeleteRequested: (roleId) => deletedRoleId = roleId,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRolesTable)));
+    await tester.tap(find.text(tr.resourcesRoleDeleteAction));
+    await tester.pumpAndSettle();
+
+    // The question is asked before anything is written.
+    expect(find.text(tr.resourcesRoleDeleteConfirmMessage), findsOneWidget);
+    expect(deletedRoleId, isNull);
+
+    await tester.tap(find.text(tr.resourcesRoleDeleteConfirmAction));
+    await tester.pumpAndSettle();
+
+    expect(deletedRoleId, "r1");
   });
 
   testWidgets("the ↗ affordance dispatches the cast member's id", (tester) async {

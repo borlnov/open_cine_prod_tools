@@ -37,7 +37,10 @@ const int _castingNotesMinLines = 2;
 /// by `OcptRoleIndexService.reconcile` and would be overwritten right back on the next save, so
 /// that field is withheld for it and shown as read-only text instead, never disabled or silently
 /// reverted. Deleting a role is answered inline inside the same expanded row, one confirm at a
-/// time, mirroring how a version card asks its own questions.
+/// time, mirroring how a version card asks its own questions — and it is withheld exactly where it
+/// would not hold: a role the screenplay still speaks would be inserted right back by the next
+/// save, so only a hand-added or an orphaned role carries the action (see
+/// `_OcptRoleTableRowState._canBeDeleted`).
 ///
 /// The `↗` affordance sits in the cast-member cell of the main row, present only while the role is
 /// cast: a plain row click only selects the role (which is what expands its editor), never changes
@@ -290,12 +293,24 @@ class _OcptRoleTableRowState extends State<_OcptRoleTableRow> {
   /// Whether this row currently shows its inline delete confirmation instead of the delete action.
   bool _isConfirmingDelete = false;
 
+  /// Whether deleting this role would actually remove it, which is what decides that the delete
+  /// action exists at all.
+  ///
+  /// False for a role the screenplay still speaks: `OcptRoleIndexService.reconcile` only ever
+  /// reads live rows, so the next save would insert that character right back as a fresh, uncast
+  /// role — the deletion would cost the casting and the notes without removing anything. Its
+  /// existence belongs to the screenplay, exactly as a scene's does to the scene index, so the way
+  /// to remove it is to remove the character's cues. A hand-added role, and an orphaned one (whose
+  /// character is gone, so nothing will re-insert it), are deleted for good and keep the action.
+  bool get _canBeDeleted => !widget.role.isFromScreenplay || widget.role.orphanedName != null;
+
   @override
   void didUpdateWidget(covariant _OcptRoleTableRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Collapsing the row (or a preview turning the table read-only mid-confirmation) always
-    // resets the question: reopening it later should ask again, not resume where it left off.
-    if (!widget.isSelected || widget.isReadOnly) {
+    // Collapsing the row (or a preview turning the table read-only mid-confirmation, or the role
+    // ceasing to be deletable at all because its character came back) always resets the question:
+    // reopening it later should ask again, not resume where it left off.
+    if (!widget.isSelected || widget.isReadOnly || !_canBeDeleted) {
       _isConfirmingDelete = false;
     }
   }
@@ -436,7 +451,7 @@ class _OcptRoleTableRowState extends State<_OcptRoleTableRow> {
                 ? null
                 : (value) => widget.onFieldChanged(OcptRoleField.castingNotes, value),
           ),
-          if (!isReadOnly) ...[
+          if (!isReadOnly && _canBeDeleted) ...[
             const SizedBox(height: 12),
             if (_isConfirmingDelete)
               _buildDeleteConfirmation(context, theme, tr)

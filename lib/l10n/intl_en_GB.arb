@@ -3504,9 +3504,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRoleNameFromScreenplayNote": "This name comes from the screenplay",
+  "resourcesRoleNameFromScreenplayNote": "This role comes from the screenplay: its name and its existence follow the character's cues.",
   "@resourcesRoleNameFromScreenplayNote": {
-    "description": "Note explaining why a role's name field is withheld, shown in its place",
+    "description": "Note explaining why a role's name field and delete action are withheld, shown in the name field's place",
     "context": "Displayed in the resources mode's roles table, for a role reconciled from the screenplay",
     "type": "text",
     "placeholders": {}

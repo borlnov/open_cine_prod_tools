@@ -469,7 +469,7 @@
   "resourcesRoleCastingNotesLabel": "Notes de distribution",
   "resourcesRoleCastingNotesHint": "Disponibilité, contact de l'agent, notes de casting…",
   "resourcesRoleNameLabel": "Nom",
-  "resourcesRoleNameFromScreenplayNote": "Ce nom provient du scénario",
+  "resourcesRoleNameFromScreenplayNote": "Ce rôle provient du scénario : son nom et son existence suivent les répliques du personnage.",
   "resourcesOpenPersonSheetTooltip": "Ouvrir la fiche de cette personne",
   "resourcesRoleDeleteAction": "Supprimer ce rôle",
   "resourcesRoleDeleteConfirmMessage": "Ce rôle sera définitivement supprimé. Cette action est irréversible.",
