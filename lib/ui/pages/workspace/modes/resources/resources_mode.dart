@@ -8,10 +8,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
+import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_delete_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
@@ -164,7 +168,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// Builds the shell's `centre`: the selected person's sheet, or the empty state while none is
   /// selected.
-  // Placeholder centre — the second milestone replaces this with `OcptPersonSheet`.
   Widget _buildCentre(BuildContext context, OcptResourcesState state) {
     final selectedPerson = state.selectedPerson;
     if (selectedPerson == null) {
@@ -174,7 +177,115 @@ class _ResourcesViewState extends State<_ResourcesView> {
       );
     }
 
-    return _OcptPersonSheetPlaceholder(person: selectedPerson);
+    final bloc = context.read<OcptResourcesBloc>();
+
+    return OcptPersonSheet(
+      key: ValueKey(selectedPerson.id),
+      person: selectedPerson,
+      isReadOnly: state.isPreviewingVersion,
+      fieldValueOf: (field) => _fieldValueOf(state, selectedPerson, field),
+      onFieldChanged: (field, rawValue) => bloc.add(
+        OcptResourcesPersonFieldChangedEvent(personId: selectedPerson.id, field: field, rawValue: rawValue),
+      ),
+      onColorChanged: (colorIndex) => bloc.add(
+        OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
+      ),
+      onBirthDateChanged: (date) => bloc.add(
+        OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
+      ),
+      onTransportAutonomyChanged: (isTransportAutonomous) => bloc.add(
+        OcptResourcesPersonTransportAutonomyChangedEvent(
+          personId: selectedPerson.id,
+          isTransportAutonomous: isTransportAutonomous,
+        ),
+      ),
+      onImageRightsStatusChanged: (status) => bloc.add(
+        OcptResourcesPersonImageRightsStatusChangedEvent(personId: selectedPerson.id, status: status),
+      ),
+      onImageRightsDateChanged: (date) => bloc.add(
+        OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
+      ),
+      onPositionAdded: () => bloc.add(
+        OcptResourcesPositionAddedEvent(
+          personId: selectedPerson.id,
+          positionId: "",
+          customLabel: "",
+          scopeNotes: "",
+        ),
+      ),
+      onPositionUpdated: (id, {required positionId, required customLabel, required scopeNotes}) => bloc.add(
+        OcptResourcesPositionUpdatedEvent(
+          id: id,
+          positionId: positionId,
+          customLabel: customLabel,
+          scopeNotes: scopeNotes,
+        ),
+      ),
+      onPositionRemoved: (id) => bloc.add(OcptResourcesPositionRemovedEvent(id: id)),
+      onSkillAdded: (label) =>
+          bloc.add(OcptResourcesSkillAddedEvent(personId: selectedPerson.id, label: label)),
+      onSkillRemoved: (id) => bloc.add(OcptResourcesSkillRemovedEvent(id: id)),
+      onUnavailabilityAdded: (date) => bloc.add(
+        OcptResourcesUnavailabilityAddedEvent(
+          personId: selectedPerson.id,
+          date: date,
+          halfDay: OcptHalfDay.full,
+          reason: "",
+        ),
+      ),
+      onUnavailabilityUpdated: (id, {required date, required halfDay, required reason}) => bloc.add(
+        OcptResourcesUnavailabilityUpdatedEvent(id: id, date: date, halfDay: halfDay, reason: reason),
+      ),
+      onUnavailabilityRemoved: (id) => bloc.add(OcptResourcesUnavailabilityRemovedEvent(id: id)),
+      onDeleteRequested: () => _handleDeletePersonRequested(context, selectedPerson),
+    );
+  }
+
+  /// [person]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// takes priority over the person's own stored value, so typing is never overwritten by an
+  /// unrelated reload. Mirrors `OcptShotListMode._fieldValueOf`.
+  String _fieldValueOf(OcptResourcesState state, OcptPerson person, OcptPersonField field) {
+    final pending = state.pendingFieldEdits[(person.id, field)];
+    if (pending != null) {
+      return pending;
+    }
+
+    return switch (field) {
+      OcptPersonField.firstName => person.firstName,
+      OcptPersonField.lastName => person.lastName,
+      OcptPersonField.email => person.email,
+      OcptPersonField.phone => person.phone,
+      OcptPersonField.address => person.address,
+      OcptPersonField.city => person.city,
+      OcptPersonField.minorNotes => person.minorNotes,
+      OcptPersonField.accommodationNotes => person.accommodationNotes,
+      OcptPersonField.travelNotes => person.travelNotes,
+      OcptPersonField.dietaryNotes => person.dietaryNotes,
+      OcptPersonField.allergies => person.allergies,
+      OcptPersonField.sizeTop => person.sizeTop,
+      OcptPersonField.sizeBottom => person.sizeBottom,
+      OcptPersonField.sizeShoes => person.sizeShoes,
+      OcptPersonField.hmcNotes => person.hmcNotes,
+      OcptPersonField.notes => person.notes,
+    };
+  }
+
+  /// Shows the person deletion confirmation dialog, then dispatches the erasure if the user
+  /// confirmed it. Mirrors `OcptShotListMode._handleDeleteRequested`.
+  Future<void> _handleDeletePersonRequested(BuildContext context, OcptPerson person) async {
+    final bloc = context.read<OcptResourcesBloc>();
+    final tr = Tr.of(context);
+    final name = person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
+
+    final confirmed = await OcptPersonDeleteConfirmDialog.show(context, personName: name);
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: person.id));
   }
 
   /// Builds the right dock, the shell's `rightPanel`, or null while the dock is closed.
@@ -302,32 +413,5 @@ class _ResourcesViewState extends State<_ResourcesView> {
         );
       context.read<OcptResourcesBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
-  }
-}
-
-/// A temporary stand-in for the person sheet: the selected person's display name alone.
-///
-/// Replaced by `OcptPersonSheet` once the person sheet itself is built; every wire it will plug
-/// into — the selection, the read-only flag, and the bloc's discrete-field and sub-list events —
-/// already exists above and on `OcptResourcesBloc` itself.
-/// `OcptPersonDeleteConfirmDialog` (`widgets/ocpt_person_delete_confirm_dialog.dart`) is ready for
-/// the sheet's own delete action: show it, then dispatch
-/// `OcptResourcesPersonDeletionRequestedEvent` if it confirms, exactly as
-/// `OcptShotListMode._handleDeleteRequested` does for a shot.
-class _OcptPersonSheetPlaceholder extends StatelessWidget {
-  /// The person whose name is shown.
-  final OcptPerson person;
-
-  /// Class constructor
-  const _OcptPersonSheetPlaceholder({required this.person});
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final name = person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
-
-    return Center(
-      child: Text(name, style: Theme.of(context).textTheme.headlineSmall),
-    );
   }
 }
