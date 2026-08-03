@@ -542,6 +542,14 @@ minimum before each commit):
 8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md' ':!docs/plans'` → empty
    (the two extra exclusions are the files that *describe* this gate, which would otherwise
    always match their own search string)
+9. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
+   gate is about the documentation rather than the code, so it is the one to run before pushing
+   a docs-only change, which the other eight would say nothing about. The `markdown_lint`
+   workflow runs the real `markdownlint-cli2`, which needs a Node runtime the devcontainer does
+   not carry; the script re-implements the rules that need no markdown parsing (line length,
+   trailing spaces, hard tabs, final newline), so an over-long paragraph is caught here instead
+   of by a red build. It is a pre-flight, not a replacement: passing it does not prove the
+   workflow will pass, but a failure it reports is always real.
 
 ## Known pitfalls
 
