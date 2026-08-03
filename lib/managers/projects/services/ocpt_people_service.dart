@@ -225,10 +225,18 @@ class OcptPeopleService {
   /// once, so a second call is a no-op rather than a second `local_erasures` row or a second write
   /// clobbering columns already blank.
   ///
-  /// This person's `person_positions`/`person_skills`/`person_unavailabilities` rows are left
-  /// untouched: they only ever surface through this person's own sheet, which stops being reachable
-  /// the moment this row is tombstoned, so nothing reads them again. Scrubbing them too would be
-  /// extra writes for no observable effect.
+  /// This person's `person_positions`/`person_skills`/`person_unavailabilities` rows are
+  /// **tombstoned in the same transaction**, and the two that hold free text *about the person* are
+  /// blanked with them: `person_skills.label` (driving licences, languages, what they can do) and
+  /// `person_unavailabilities.reason` (why they were unavailable on a date, which is routinely
+  /// something personal). An erasure is about what the project file stops holding, not about what
+  /// the UI stops showing — leaving those rows readable in the `.ocpt` because no screen reaches
+  /// them any more would make the erasure a lie the moment anybody opens the file with anything
+  /// else.
+  ///
+  /// `person_positions` is tombstoned but **not** blanked: a crew position and its scope ("sound",
+  /// "mornings only") describe the production rather than the person, and once the row they hang
+  /// off holds no name they identify nobody.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> deletePerson({
@@ -251,6 +259,24 @@ class OcptPeopleService {
       await (database.update(
         database.ocptPeopleTable,
       )..where((table) => table.id.equals(personId))).write(_erasureCompanion);
+
+      await (database.update(
+        database.ocptPersonPositionsTable,
+      )..where((table) => table.personId.equals(personId))).write(
+        const OcptPersonPositionsTableCompanion(isDeleted: Value(true)),
+      );
+
+      await (database.update(
+        database.ocptPersonSkillsTable,
+      )..where((table) => table.personId.equals(personId))).write(
+        const OcptPersonSkillsTableCompanion(isDeleted: Value(true), label: Value('')),
+      );
+
+      await (database.update(
+        database.ocptPersonUnavailabilitiesTable,
+      )..where((table) => table.personId.equals(personId))).write(
+        const OcptPersonUnavailabilitiesTableCompanion(isDeleted: Value(true), reason: Value('')),
+      );
 
       await database
           .into(database.ocptLocalErasuresTable)

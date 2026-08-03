@@ -168,6 +168,52 @@ void main() {
       expect(row.notes, "");
     });
 
+    test("deletePerson erases the free text of the rows hanging off the person", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+      await peopleService.addPosition(
+        database: database,
+        personId: id,
+        positionId: "soundEngineer",
+        customLabel: "",
+        scopeNotes: "mornings only",
+      );
+      await peopleService.addSkill(database: database, personId: id, label: "Permis B, allemand");
+      await peopleService.addUnavailability(
+        database: database,
+        personId: id,
+        date: DateTime(2026, 8, 14),
+        halfDay: OcptHalfDay.full,
+        reason: "Mariage de sa sœur",
+      );
+
+      await peopleService.deletePerson(database: database, personId: id);
+
+      // Tombstoned along with the person they hang off: they describe somebody who is gone.
+      final positions = await (database.select(
+        database.ocptPersonPositionsTable,
+      )..where((row) => row.personId.equals(id))).get();
+      final skills = await (database.select(
+        database.ocptPersonSkillsTable,
+      )..where((row) => row.personId.equals(id))).get();
+      final unavailabilities = await (database.select(
+        database.ocptPersonUnavailabilitiesTable,
+      )..where((row) => row.personId.equals(id))).get();
+
+      expect(positions.single.isDeleted, isTrue);
+      expect(skills.single.isDeleted, isTrue);
+      expect(unavailabilities.single.isDeleted, isTrue);
+
+      // And the free text about the person is gone from the file, not merely unreachable: an
+      // erasure is about what the `.ocpt` stops holding, whatever screen still reads it.
+      expect(skills.single.label, "");
+      expect(unavailabilities.single.reason, "");
+
+      // A crew position describes the production rather than the person, and identifies nobody once
+      // the row it hangs off holds no name, so it survives as it stood.
+      expect(positions.single.positionId, "soundEngineer");
+      expect(positions.single.scopeNotes, "mornings only");
+    });
+
     test("deletePerson records the erasure in local_erasures", () async {
       final id = (await peopleService.createPerson(database: database))!;
 

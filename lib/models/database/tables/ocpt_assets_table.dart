@@ -34,6 +34,17 @@ class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
 ///
 /// Exactly one of [personId], [locationId], [elementId] is set, naming this asset's subject; which
 /// one tells a reader what kind of thumbnail to attempt alongside [kind].
+///
+/// **Expect noise from `build_runner`.** Those three columns point back at tables that themselves
+/// point here (`people.photoAssetId`, `locations.permitAssetId`, `elements.photoAssetId`), so the
+/// schema holds a genuine foreign-key cycle. `drift_dev` logs an `Internal error while
+/// deserializing … This is a bug in drift_dev!` for each one, then recovers and emits correct code:
+/// a generation from a cold cache produces a database every test and every migration path passes
+/// against. SQLite has no objection either — it only checks a foreign key at the write that would
+/// violate it, never at `CREATE TABLE`, which is also what lets the migration create these tables in
+/// any order. Do not try to break the cycle by dropping one side: an asset has to know its subject
+/// for a location's fourteen scouting photos to be listable, and a person has to name *which* of
+/// their assets is the headshot.
 @DataClassName('OcptAssetRow')
 class OcptAssetsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptAssetsTable}
