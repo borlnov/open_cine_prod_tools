@@ -12,11 +12,15 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dated_window_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
 OcptPerson _person({required String id, String firstName = "", String lastName = ""}) => OcptPerson(
@@ -128,14 +132,39 @@ OcptSceneRef _scene({
   String heading = "INT. CUISINE - JOUR",
 }) => OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null);
 
+/// An availability window of location `l1`, whole days, free of any condition.
+OcptLocationAvailability _availability({
+  String id = "a1",
+  int weekdays = ocptEveryWeekdayMask,
+  OcptDayPartSlot slot = OcptDayPartSlot.fullDay,
+  OcptLocationAvailabilityKind kind = OcptLocationAvailabilityKind.available,
+  String note = "",
+}) => OcptLocationAvailability(
+  id: id,
+  locationId: "l1",
+  startDate: DateTime(2026, 3, 2),
+  endDate: DateTime(2026, 3, 20),
+  weekdays: weekdays,
+  slot: slot,
+  startMinute: null,
+  endMinute: null,
+  kind: kind,
+  note: note,
+);
+
 void main() {
   /// The values the pumped sheet answers `fieldValueOf` with, and the edits it records.
   late Map<OcptLocationField, String> fieldValues;
   late List<(OcptLocationField, String)> fieldEdits;
 
+  /// The availability updates the pumped sheet reports: the window's id, its weekday mask and its
+  /// kind — the three the tests below actually assert on.
+  late List<(String, int, OcptLocationAvailabilityKind)> availabilityEdits;
+
   setUp(() {
     fieldValues = {};
     fieldEdits = [];
+    availabilityEdits = [];
   });
 
   /// Pumps [location]'s sheet, wide enough for its two- and three-card rows to lay out.
@@ -158,6 +187,7 @@ void main() {
     ValueChanged<OcptPermitStatus>? onPermitStatusChanged,
     ValueChanged<String?>? onContactChanged,
     ValueChanged<String>? onPersonSheetOpenRequested,
+    ValueChanged<String>? onAvailabilityRemoved,
     VoidCallback? onDeleteRequested,
   }) async {
     await tester.pumpWidget(
@@ -202,6 +232,28 @@ void main() {
               onPhotoRemoved: onPhotoRemoved ?? (assetId) {},
               onPermitDocumentPickRequested: onPermitDocumentPickRequested ?? () {},
               onPermitDocumentCleared: () {},
+              onAvailabilityUpdated:
+                  (
+                    id, {
+                    required startDate,
+                    required endDate,
+                    required weekdays,
+                    required slot,
+                    required startMinute,
+                    required endMinute,
+                    required kind,
+                    required note,
+                  }) => availabilityEdits.add((id, weekdays, kind)),
+              onAvailabilityAdded:
+                  ({
+                    required startDate,
+                    required endDate,
+                    required weekdays,
+                    required slot,
+                    required startMinute,
+                    required endMinute,
+                  }) {},
+              onAvailabilityRemoved: onAvailabilityRemoved ?? (id) {},
               onDeleteRequested: onDeleteRequested ?? () {},
             ),
           ),
@@ -411,6 +463,112 @@ void main() {
     expect(find.byIcon(Icons.cancel), findsNothing);
     // What only reads stays.
     expect(find.text("1 · CUISINE"), findsOneWidget);
+  });
+
+  testWidgets("a location with no availability window says so", (tester) async {
+    await pumpSheet(tester);
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    // "Nothing is known yet" rather than "never free": an empty card is an unanswered question.
+    expect(find.text(tr.resourcesLocationAvailabilitiesEmptyHint), findsOneWidget);
+    expect(find.text(tr.resourcesAddLocationAvailabilityAction), findsOneWidget);
+  });
+
+  testWidgets("a window's weekday, once unticked, is reported", (tester) async {
+    await pumpSheet(tester, location: _location(availabilities: [_availability()]));
+    final context = tester.element(find.byType(OcptLocationSheet));
+    // Wednesday, whose narrow name no other day shares in this locale — two days sharing a letter
+    // (Saturday and Sunday in English) would be two matches for one finder.
+    final wednesday = MaterialLocalizations.of(context).narrowWeekdays[DateTime.wednesday % 7];
+
+    await tester.ensureVisible(find.text(wednesday));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(wednesday));
+    await tester.pumpAndSettle();
+
+    expect(availabilityEdits, hasLength(1));
+    final (id, weekdays, _) = availabilityEdits.single;
+    expect(id, "a1");
+    expect(ocptWeekdayMaskContains(weekdays, DateTime.wednesday), isFalse);
+    expect(ocptWeekdayMaskContains(weekdays, DateTime.monday), isTrue);
+  });
+
+  testWidgets("unticking the last weekday of a window changes nothing", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(
+        availabilities: [
+          _availability(weekdays: 1 << (DateTime.wednesday - 1)),
+        ],
+      ),
+    );
+    final context = tester.element(find.byType(OcptLocationSheet));
+    final wednesday = MaterialLocalizations.of(context).narrowWeekdays[DateTime.wednesday % 7];
+
+    await tester.ensureVisible(find.text(wednesday));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(wednesday));
+    await tester.pumpAndSettle();
+
+    // A window covering no day at all would say nothing: the way to drop it is the remove control.
+    expect(availabilityEdits, isEmpty);
+  });
+
+  testWidgets("a window is made conditional from its own pills", (tester) async {
+    await pumpSheet(tester, location: _location(availabilities: [_availability()]));
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.ensureVisible(find.text(tr.resourcesAvailabilityKindConditional));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.resourcesAvailabilityKindConditional));
+    await tester.pumpAndSettle();
+
+    expect(availabilityEdits.single.$3, OcptLocationAvailabilityKind.conditional);
+  });
+
+  testWidgets("a custom slot shows its time window, a whole day doesn't", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(
+        availabilities: [_availability(), _availability(id: "a2", slot: OcptDayPartSlot.custom)],
+      ),
+    );
+
+    expect(find.byType(OcptTimeWindowControl), findsOneWidget);
+  });
+
+  testWidgets("a window is removed from its own control", (tester) async {
+    String? removedId;
+    await pumpSheet(
+      tester,
+      location: _location(availabilities: [_availability()]),
+      onAvailabilityRemoved: (id) => removedId = id,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    final removeButton = find.byTooltip(tr.resourcesRemoveLocationAvailabilityTooltip);
+    await tester.ensureVisible(removeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(removeButton);
+    await tester.pumpAndSettle();
+
+    expect(removedId, "a1");
+  });
+
+  testWidgets("the availability card withholds every control when read-only", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(
+        availabilities: [_availability(note: "No noise after 22:00")],
+      ),
+      isReadOnly: true,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text(tr.resourcesAddLocationAvailabilityAction), findsNothing);
+    expect(find.byTooltip(tr.resourcesRemoveLocationAvailabilityTooltip), findsNothing);
+    // What only reads stays: the window is still there to be read.
+    expect(find.text(tr.resourcesAvailabilityKindAvailable), findsOneWidget);
   });
 
   testWidgets("a photo whose file is gone keeps its reference and says so", (tester) async {

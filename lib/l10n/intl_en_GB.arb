@@ -3108,6 +3108,80 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesLocationAvailabilityCardTitle": "Availability",
+  "@resourcesLocationAvailabilityCardTitle": {
+    "description": "Title of the location sheet's availability card",
+    "context": "Displayed on the location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityCount": "{count,plural, =1{1 window}other{{count} windows}}",
+  "@resourcesLocationAvailabilityCount": {
+    "description": "Number of availability windows a location holds",
+    "context": "Displayed beside the location sheet's availability card title",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesLocationAvailabilitiesEmptyHint": "No window entered — nothing is known yet about when this location is free.",
+  "@resourcesLocationAvailabilitiesEmptyHint": {
+    "description": "Hint shown in place of the availability list while the location has none",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddLocationAvailabilityAction": "+ Add an availability",
+  "@resourcesAddLocationAvailabilityAction": {
+    "description": "Action adding an availability window to a location",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddLocationAvailabilitySlotTooltip": "Add another window over these dates",
+  "@resourcesAddLocationAvailabilitySlotTooltip": {
+    "description": "Tooltip of the control adding a second window over a row's own dates",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveLocationAvailabilityTooltip": "Remove this window",
+  "@resourcesRemoveLocationAvailabilityTooltip": {
+    "description": "Tooltip of the control removing an availability window",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityNoteLabel": "Note",
+  "@resourcesLocationAvailabilityNoteLabel": {
+    "description": "Label of an availability window's free-text note",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityNoteHint": "No noise after 22:00, access through the courtyard…",
+  "@resourcesLocationAvailabilityNoteHint": {
+    "description": "Placeholder of an availability window's free-text note",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAvailabilityKindAvailable": "Available",
+  "@resourcesAvailabilityKindAvailable": {
+    "description": "Label of an availability window the production may use freely",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAvailabilityKindConditional": "With conditions",
+  "@resourcesAvailabilityKindConditional": {
+    "description": "Label of an availability window carrying a condition to respect",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesUnavailabilitiesTitle": "Unavailabilities",
   "@resourcesUnavailabilitiesTitle": {
     "description": "Title of the person sheet's unavailabilities card",

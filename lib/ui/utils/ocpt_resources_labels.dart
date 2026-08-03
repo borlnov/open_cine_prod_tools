@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -82,8 +83,15 @@ String ocptCrewDepartmentLabel(Tr tr, OcptCrewDepartment department) => switch (
   OcptCrewDepartment.production => tr.resourcesCrewDepartmentProduction,
 };
 
-/// The display label of [slot], which part of each covered day a `person_unavailabilities` row
-/// takes.
+/// The display label of [kind], what a location's availability window allows.
+String ocptLocationAvailabilityKindLabel(Tr tr, OcptLocationAvailabilityKind kind) =>
+    switch (kind) {
+      OcptLocationAvailabilityKind.available => tr.resourcesAvailabilityKindAvailable,
+      OcptLocationAvailabilityKind.conditional => tr.resourcesAvailabilityKindConditional,
+    };
+
+/// The display label of [slot], which part of each covered day a dated window takes — a person's
+/// unavailability as much as a location's availability.
 String ocptDayPartSlotLabel(Tr tr, OcptDayPartSlot slot) => switch (slot) {
   OcptDayPartSlot.fullDay => tr.resourcesSlotFullDay,
   OcptDayPartSlot.morning => tr.resourcesSlotMorning,

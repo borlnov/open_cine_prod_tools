@@ -8,10 +8,13 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_address_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_availabilities_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_permit_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet_photos_card.dart';
@@ -129,6 +132,34 @@ class OcptLocationSheet extends StatelessWidget {
   /// Called when the permit document's reference is to be dropped.
   final VoidCallback onPermitDocumentCleared;
 
+  /// Called with an availability window's id and its fields once one of them changed.
+  final void Function(
+    String id, {
+    required DateTime startDate,
+    required DateTime endDate,
+    required int weekdays,
+    required OcptDayPartSlot slot,
+    required int? startMinute,
+    required int? endMinute,
+    required OcptLocationAvailabilityKind kind,
+    required String note,
+  })
+  onAvailabilityUpdated;
+
+  /// Called with a new availability window's whole shape.
+  final void Function({
+    required DateTime startDate,
+    required DateTime endDate,
+    required int weekdays,
+    required OcptDayPartSlot slot,
+    required int? startMinute,
+    required int? endMinute,
+  })
+  onAvailabilityAdded;
+
+  /// Called with an availability window's id when its remove control is clicked.
+  final ValueChanged<String> onAvailabilityRemoved;
+
   /// Called once the inline delete confirmation is answered `Delete`.
   final VoidCallback onDeleteRequested;
 
@@ -159,6 +190,9 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onPhotoRemoved,
     required this.onPermitDocumentPickRequested,
     required this.onPermitDocumentCleared,
+    required this.onAvailabilityUpdated,
+    required this.onAvailabilityAdded,
+    required this.onAvailabilityRemoved,
     required this.onDeleteRequested,
   });
 
@@ -225,6 +259,13 @@ class OcptLocationSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildLogisticsRow(context, tr),
+          const SizedBox(height: 12),
+          OcptLocationSheetAvailabilitiesCard(
+            availabilities: location.availabilities,
+            onUpdated: isReadOnly ? null : onAvailabilityUpdated,
+            onRemoved: isReadOnly ? null : onAvailabilityRemoved,
+            onAdded: isReadOnly ? null : onAvailabilityAdded,
+          ),
           const SizedBox(height: 12),
           _buildConstraintsCallout(context, tr),
           const SizedBox(height: 12),

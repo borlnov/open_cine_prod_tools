@@ -228,6 +228,7 @@ lib/models/database/tables/     ocpt_people_table.dart
                                 ocpt_person_skills_table.dart
                                 ocpt_roles_table.dart
                                 ocpt_locations_table.dart
+                                ocpt_location_availabilities_table.dart
                                 ocpt_sets_table.dart
                                 ocpt_scene_sets_table.dart
                                 ocpt_elements_table.dart
@@ -313,7 +314,8 @@ The address book. One row per human, whatever they do on the film.
 - **`person_skills`** — `personId`, `label`, `sortKey`, `isDeleted`. Driving licences, swimming,
   languages, instruments: chips on the person sheet, and the thing an AD searches on.
 - **`person_unavailabilities`** — `personId`, `startDate`, `endDate`, `slot`
-  (`OcptUnavailabilitySlot { fullDay, morning, afternoon, custom }`), `startMinute`/`endMinute`
+  (`OcptDayPartSlot { fullDay, morning, afternoon, custom }`, shared with
+  `location_availabilities`), `startMinute`/`endMinute`
   (minutes from midnight, both null unless `slot` is `custom`), `reason`, `isDeleted`. A range
   rather than a date because a week away is one answer, not seven; a slot rather than a half-day
   alone because "unavailable from 14:00 to 17:30" is what a real conflict looks like (decision 12).
@@ -349,6 +351,18 @@ requested, granted, refused }`), `permitLabel`, `permitDate`, `permitAssetId`, `
 Those five notes columns are not padding: they are exactly the five things the mock-up's location
 sheet shows and the five things that decide whether a day is shootable — where the truck goes, what
 amperage exists, whether there is a toilet, and what the neighbours will tolerate.
+
+**`location_availabilities`**: `id`, `locationId`, `startDate`, `endDate`, `weekdays` (a bit mask,
+`lib/utils/ocpt_weekday_mask.dart`), `slot` (`OcptDayPartSlot`, the same enum
+`person_unavailabilities` uses), `startMinute`/`endMinute`, `kind`
+(`OcptLocationAvailabilityKind { available, conditional }`), `note`, `isDeleted`. **When** a
+location may be shot in — the mirror image of a person's unavailabilities, and the second half of
+what the schedule mode will cross. One row says "every Monday and Tuesday from 2 to 20 March, 08:00
+to 19:00", so a weekly arrangement is one answer rather than nine, and several rows may cover one
+date. `kind` is what makes the note actionable: "no noise after 22:00" is a window the production
+*may* use, at a price, and refusing it would lose the day — so it is a `conditional` window carrying
+its condition, not a missing one. The free-text `constraintsNotes` above stays for everything that
+isn't a matter of hours.
 
 **`sets`** (décors): `id`, `locationId`, `code` (`A`, `B`), `name`, `notes`, `sortKey`,
 `isDeleted` — the "La maison des Pains / Hangar, Jardin, Escalier, Cuisine" structure the reference
@@ -662,6 +676,13 @@ rather than hiding them. The suggestion is
 place it names, matched against the sets and then the locations, and the best hit is *offered* at
 the top of the scene picker — never applied. `OcptSceneRef` is how a scene is named outside the
 screenplay, and `OcptLocationsService.loadScenes` is what reads them.
+
+A location also says **when** it may be shot in, through `location_availabilities` (§4.2.4): one
+row per window, its dates narrowed to the weekdays it covers, the part of each of those days it
+takes, and whether shooting it is free or conditional on the note it carries. That is the same
+question a person's unavailabilities answer from the other side, so it is edited with the same
+controls (`ocpt_dated_window_controls.dart`, shared by the two sheets) and the same enum
+(`OcptDayPartSlot`). The free-text constraints callout stays for what is not a matter of hours.
 
 The two sheets' delete confirmations are one widget (`OcptResourcesDeleteAction`), and so is the
 dashed "drop a file here" outline the person sheet and the photo grid both wear.

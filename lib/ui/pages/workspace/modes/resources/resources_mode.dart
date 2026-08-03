@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -486,6 +487,53 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onPermitDocumentCleared: () => bloc.add(
         OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
       ),
+      onAvailabilityUpdated:
+          (
+            id, {
+            required startDate,
+            required endDate,
+            required weekdays,
+            required slot,
+            required startMinute,
+            required endMinute,
+            required kind,
+            required note,
+          }) => bloc.add(
+            OcptResourcesLocationAvailabilityUpdatedEvent(
+              id: id,
+              startDate: startDate,
+              endDate: endDate,
+              weekdays: weekdays,
+              slot: slot,
+              startMinute: startMinute,
+              endMinute: endMinute,
+              kind: kind,
+              note: note,
+            ),
+          ),
+      onAvailabilityAdded:
+          ({
+            required startDate,
+            required endDate,
+            required weekdays,
+            required slot,
+            required startMinute,
+            required endMinute,
+          }) => bloc.add(
+            OcptResourcesLocationAvailabilityAddedEvent(
+              locationId: selectedLocation.id,
+              startDate: startDate,
+              endDate: endDate,
+              weekdays: weekdays,
+              slot: slot,
+              startMinute: startMinute,
+              endMinute: endMinute,
+              kind: OcptLocationAvailabilityKind.available,
+              note: "",
+            ),
+          ),
+      onAvailabilityRemoved: (id) =>
+          bloc.add(OcptResourcesLocationAvailabilityRemovedEvent(id: id)),
       onDeleteRequested: () =>
           bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id)),
     );
