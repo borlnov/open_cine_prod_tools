@@ -80,10 +80,9 @@ class OcptProjectVersionsTable extends Table {
   /// stored bytes is one call away whenever it is needed, so keeping a second copy inside the JSON
   /// itself would only be one more place for the two to drift apart.
   ///
-  /// Null on every version created before this column existed — [payloadFormat] didn't change, so
-  /// nothing upgrades an old row to carry one. A null digest reads as "unknown", which resolves to
-  /// *modified* wherever it is compared: the fail-safe direction, and it costs one redundant safety
-  /// version at most, once, per pre-existing project.
+  /// Nullable rather than required so a row that carries no digest stays readable: a null reads as
+  /// "unknown", which resolves to *modified* wherever it is compared — the fail-safe direction, and
+  /// it costs one redundant safety version at most.
   TextColumn get contentDigest => text().nullable()();
 
   /// {@macro drift.Table.primaryKey}

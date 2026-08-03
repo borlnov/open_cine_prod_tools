@@ -217,9 +217,8 @@ class OcptProjectVersionsService {
   }
 
   /// Reads the `contentDigest` column alone of the version [id] of the project in [database], or
-  /// null when that version doesn't exist, or exists but carries no digest — a version created
-  /// before schema v5, which [restoreVersion] and [captureWorkingCopyState] both treat as "unknown"
-  /// rather than assume it matches anything.
+  /// null when that version doesn't exist, or exists but carries no digest, which [restoreVersion]
+  /// and [captureWorkingCopyState] both treat as "unknown" rather than assume it matches anything.
   Future<String?> _loadContentDigest({
     required OcptProjectDatabase database,
     required String id,

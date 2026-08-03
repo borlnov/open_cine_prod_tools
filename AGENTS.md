@@ -86,11 +86,11 @@ supervisor reports, storyboard, breakdown, and a casting tracker.
 | 20 | Devcontainer & tooling modernization: no devcontainer features (gh from GitHub's apt repo, Claude Code from its native installer, no Node runtime), gh login persisted in a named volume, arb-editor schema fix on attach, worktrees moved inside the clone (`worktrees/`, the `.env` mount mode dropped), `tool/prune-gone-branches.sh` + `tool/install-ocpt.sh`, path-filtered lint workflows, `AGENTS.md` with `CLAUDE.md` as a symlink | ✅ |
 | 21 | Shot list mode (découpage technique, issue #19): schema v2 (`shots`, `shot_characters`, `shot_coverages`) with the first `MigrationStrategy` and the `foreign_keys` pragma, sequence panel + shot table + shot inspector, scenario coverage per shot with staleness detection (`coveredTextDigest` / `needsCheck`), XLSX export through `excel_community` | ✅ |
 | 22 | Collaboration & sync M1 — sync-ready data model (ADR 0010): schema v3 (`isDeleted` tombstones on every synchronised table, `sortKey` fractional indexes beside `position` with their backfill, the `row_field_versions` sidecar), every hard `delete()` turned into a tombstone and every read filtering them out, `deviceId` in `OcptPropertiesManager` | ✅ |
-| 23 | Project versions (issue #20): schema v4 (`project_versions`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and restore/fork (safety version, tombstones and version stamps, post-commit margins) | ✅ |
-| 23b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, schema v5's `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 22b | Collaboration & sync M2-M6: the app on a tablet, the changeset engine, the domain-blind relay, live push and presence, the portable on-set server (`docs/adr/0009`, `docs/plans/collaboration-and-sync.md`) | 📝 planned |
 | 23 | macOS build (issue #40): the bundle named "Open Cine Prod Tools", the App Sandbox dropped from both entitlements files (ADR 0011), the SDK's `Podfile` tracked, a `macos-dmg` composite action building a drag-to-`Applications` disk image with `hdiutil`, and a `build-macos` job gated like the Windows one, signing and notarization wired but dormant | ✅ (untested on a real Mac) |
 | 24 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
+| 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
+| 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 
 ## Ways of working
 
@@ -266,8 +266,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
   out, since the stamps change on every restore and the margins are an app-wide preference. It is
-  stored beside the payload (`project_versions.contentDigest`, nullable: versions written before
-  schema v5 have none, and a null digest reads as "unknown", i.e. *modified*, which is the
+  stored beside the payload (`project_versions.contentDigest`, nullable so a version whose digest
+  was never computed stays readable: a null digest reads as "unknown", i.e. *modified*, which is the
   fail-safe direction) and it answers the app's one recurring question about a version — is this
   the same project state as that one? `OcptProjectVersionsService.captureWorkingCopyState` reads
   the working copy once and answers both users of it: the counters the working-copy card shows, and
