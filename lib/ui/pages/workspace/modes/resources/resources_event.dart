@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -877,6 +878,142 @@ class OcptResourcesAssetRemovedEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, assetId];
+}
+
+/// Adds an availability window to location [locationId], written immediately.
+///
+/// The window a location sheet mints is one whole day, every weekday, free of any condition: every
+/// other answer is then given on the row it creates, where it is read beside the others.
+class OcptResourcesLocationAvailabilityAddedEvent extends OcptResourcesEvent {
+  /// The id of the location the window is added to.
+  final String locationId;
+
+  /// The first date this window covers.
+  final DateTime startDate;
+
+  /// The last date this window covers, inclusive.
+  final DateTime endDate;
+
+  /// Which days of the week, inside the range, this window covers, as an `ocptWeekdayMask*` mask.
+  final int weekdays;
+
+  /// Which part of each covered day this window takes.
+  final OcptDayPartSlot slot;
+
+  /// The start of the window in minutes from midnight, or null unless [slot] is
+  /// [OcptDayPartSlot.custom].
+  final int? startMinute;
+
+  /// The end of the window in minutes from midnight, or null unless [slot] is
+  /// [OcptDayPartSlot.custom].
+  final int? endMinute;
+
+  /// Whether the location may be used freely over this window, or under a condition.
+  final OcptLocationAvailabilityKind kind;
+
+  /// What qualifies this window, free multi-line text.
+  final String note;
+
+  /// Class constructor
+  const OcptResourcesLocationAvailabilityAddedEvent({
+    required this.locationId,
+    required this.startDate,
+    required this.endDate,
+    required this.weekdays,
+    required this.slot,
+    required this.startMinute,
+    required this.endMinute,
+    required this.kind,
+    required this.note,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    locationId,
+    startDate,
+    endDate,
+    weekdays,
+    slot,
+    startMinute,
+    endMinute,
+    kind,
+    note,
+  ];
+}
+
+/// Updates availability window [id]'s fields, written immediately, replacing all of them at once.
+class OcptResourcesLocationAvailabilityUpdatedEvent extends OcptResourcesEvent {
+  /// The id of the window to update.
+  final String id;
+
+  /// The new first date.
+  final DateTime startDate;
+
+  /// The new last date, inclusive.
+  final DateTime endDate;
+
+  /// The new weekday mask.
+  final int weekdays;
+
+  /// The new slot within each covered day.
+  final OcptDayPartSlot slot;
+
+  /// The new window start in minutes from midnight, or null unless [slot] is
+  /// [OcptDayPartSlot.custom].
+  final int? startMinute;
+
+  /// The new window end in minutes from midnight, or null unless [slot] is
+  /// [OcptDayPartSlot.custom].
+  final int? endMinute;
+
+  /// The new kind.
+  final OcptLocationAvailabilityKind kind;
+
+  /// The new note.
+  final String note;
+
+  /// Class constructor
+  const OcptResourcesLocationAvailabilityUpdatedEvent({
+    required this.id,
+    required this.startDate,
+    required this.endDate,
+    required this.weekdays,
+    required this.slot,
+    required this.startMinute,
+    required this.endMinute,
+    required this.kind,
+    required this.note,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    id,
+    startDate,
+    endDate,
+    weekdays,
+    slot,
+    startMinute,
+    endMinute,
+    kind,
+    note,
+  ];
+}
+
+/// Removes availability window [id], written immediately.
+class OcptResourcesLocationAvailabilityRemovedEvent extends OcptResourcesEvent {
+  /// The id of the window to remove.
+  final String id;
+
+  /// Class constructor
+  const OcptResourcesLocationAvailabilityRemovedEvent({required this.id});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, id];
 }
 
 /// Toggles the visibility of the left (list) dock.

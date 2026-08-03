@@ -5,26 +5,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dated_window_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
 /// How long an unavailability row waits after the last keystroke in its reason field before
 /// dispatching the update — this card's own local debounce, mirroring
 /// `OcptPersonSheetPositionsCard`'s own.
 const Duration _localFieldDebounce = Duration(milliseconds: 500);
-
-/// The window a row falls back to the first time it is switched to
-/// [OcptDayPartSlot.custom]: an ordinary working day, so the user narrows a plausible
-/// window rather than building one from midnight.
-const int ocptDefaultUnavailabilityStartMinute = 9 * 60;
-
-/// The end of the window described by [ocptDefaultUnavailabilityStartMinute].
-const int ocptDefaultUnavailabilityEndMinute = 18 * 60;
 
 /// The number of lines a reason field is tall before it grows with what is typed into it.
 const int _reasonMinLines = 2;
@@ -135,8 +126,8 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
                         startDate: startDate,
                         endDate: endDate,
                         slot: OcptDayPartSlot.custom,
-                        startMinute: ocptDefaultUnavailabilityStartMinute,
-                        endMinute: ocptDefaultUnavailabilityEndMinute,
+                        startMinute: ocptDefaultWindowStartMinute,
+                        endMinute: ocptDefaultWindowEndMinute,
                       ),
               ),
           if (onAdded != null)
@@ -362,8 +353,8 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     setState(() {
       _slot = slot;
       if (slot == OcptDayPartSlot.custom) {
-        _startMinute ??= ocptDefaultUnavailabilityStartMinute;
-        _endMinute ??= ocptDefaultUnavailabilityEndMinute;
+        _startMinute ??= ocptDefaultWindowStartMinute;
+        _endMinute ??= ocptDefaultWindowEndMinute;
       } else {
         _startMinute = null;
         _endMinute = null;
@@ -377,7 +368,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   Future<void> _pickTime({required bool isStart}) async {
     final currentMinute =
         (isStart ? _startMinute : _endMinute) ??
-        (isStart ? ocptDefaultUnavailabilityStartMinute : ocptDefaultUnavailabilityEndMinute);
+        (isStart ? ocptDefaultWindowStartMinute : ocptDefaultWindowEndMinute);
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: currentMinute ~/ 60, minute: currentMinute % 60),
@@ -390,12 +381,12 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     setState(() {
       if (isStart) {
         _startMinute = pickedMinute;
-        if ((_endMinute ?? ocptDefaultUnavailabilityEndMinute) < pickedMinute) {
+        if ((_endMinute ?? ocptDefaultWindowEndMinute) < pickedMinute) {
           _endMinute = pickedMinute;
         }
       } else {
         _endMinute = pickedMinute;
-        if (pickedMinute < (_startMinute ?? ocptDefaultUnavailabilityStartMinute)) {
+        if (pickedMinute < (_startMinute ?? ocptDefaultWindowStartMinute)) {
           _startMinute = pickedMinute;
         }
       }
@@ -422,7 +413,14 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
         children: [
           Row(
             children: [
-              Expanded(child: _buildDateRange(context, tr, isReadOnly: isReadOnly)),
+              Expanded(
+                child: OcptDateRangeControl(
+                  startDate: _startDate,
+                  endDate: _endDate,
+                  onStartPressed: isReadOnly ? null : () => _pickDate(isStart: true),
+                  onEndPressed: isReadOnly ? null : () => _pickDate(isStart: false),
+                ),
+              ),
               if (widget.onSlotAdded != null)
                 IconButton(
                   icon: const Icon(Icons.add, size: 16),
@@ -438,10 +436,15 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
             ],
           ),
           const SizedBox(height: 6),
-          _OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
+          OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
           if (_slot == OcptDayPartSlot.custom) ...[
             const SizedBox(height: 6),
-            _buildTimeWindow(context, isReadOnly: isReadOnly),
+            OcptTimeWindowControl(
+              startMinute: _startMinute,
+              endMinute: _endMinute,
+              onStartPressed: isReadOnly ? null : () => _pickTime(isStart: true),
+              onEndPressed: isReadOnly ? null : () => _pickTime(isStart: false),
+            ),
           ],
           const SizedBox(height: 8),
           Text(
@@ -464,157 +467,4 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     );
   }
 
-  /// The `from … to …` pair of date buttons. Both ends are always shown, even when they hold the
-  /// same date: a one-day unavailability is the same shape as any other, and hiding the second end
-  /// until it differs would hide the very affordance that makes a range.
-  Widget _buildDateRange(BuildContext context, Tr tr, {required bool isReadOnly}) => Wrap(
-    spacing: 6,
-    runSpacing: 4,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      Text(
-        tr.resourcesUnavailabilityFromLabel,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
-      _buildDateButton(context, _startDate, isReadOnly: isReadOnly, isStart: true),
-      Text(
-        tr.resourcesUnavailabilityToLabel,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
-      _buildDateButton(context, _endDate, isReadOnly: isReadOnly, isStart: false),
-    ],
-  );
-
-  /// One clickable date of the range.
-  Widget _buildDateButton(
-    BuildContext context,
-    DateTime date, {
-    required bool isReadOnly,
-    required bool isStart,
-  }) {
-    final theme = Theme.of(context);
-    final label = Text(
-      DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date),
-      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-    );
-
-    if (isReadOnly) {
-      return label;
-    }
-
-    return InkWell(
-      onTap: () => _pickDate(isStart: isStart),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: label),
-    );
-  }
-
-  /// The `09:00 → 18:00` pair of time buttons, shown only while the slot is
-  /// [OcptDayPartSlot.custom].
-  Widget _buildTimeWindow(BuildContext context, {required bool isReadOnly}) => Row(
-    children: [
-      _buildTimeButton(context, _startMinute, isReadOnly: isReadOnly, isStart: true),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Text("→", style: Theme.of(context).textTheme.labelSmall),
-      ),
-      _buildTimeButton(context, _endMinute, isReadOnly: isReadOnly, isStart: false),
-    ],
-  );
-
-  /// One clickable bound of the custom window.
-  Widget _buildTimeButton(
-    BuildContext context,
-    int? minute, {
-    required bool isReadOnly,
-    required bool isStart,
-  }) {
-    final theme = Theme.of(context);
-    final resolvedMinute =
-        minute ?? (isStart ? ocptDefaultUnavailabilityStartMinute : ocptDefaultUnavailabilityEndMinute);
-    final label = Text(
-      MaterialLocalizations.of(context).formatTimeOfDay(
-        TimeOfDay(hour: resolvedMinute ~/ 60, minute: resolvedMinute % 60),
-      ),
-      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-    );
-
-    if (isReadOnly) {
-      return label;
-    }
-
-    return InkWell(
-      onTap: () => _pickTime(isStart: isStart),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: label),
-    );
-  }
-}
-
-/// The selector an unavailability row uses to pick which part of a day it takes: one compact pill
-/// per [OcptDayPartSlot], the active one tinted `primary`, matching `OcptResourcesTabBar`'s
-/// own segmented look.
-class _OcptDayPartSlotSelector extends StatelessWidget {
-  /// The currently selected slot.
-  final OcptDayPartSlot value;
-
-  /// Called with the slot picked, or null while it may not be changed: the pills then read the
-  /// current value out with no reaction to a tap.
-  final ValueChanged<OcptDayPartSlot>? onChanged;
-
-  /// Class constructor
-  const _OcptDayPartSlotSelector({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-
-    return Wrap(
-      spacing: 4,
-      runSpacing: 4,
-      children: [
-        for (final slot in OcptDayPartSlot.values)
-          _buildPill(context, slot, ocptDayPartSlotLabel(tr, slot)),
-      ],
-    );
-  }
-
-  /// Builds one pill of the selector.
-  Widget _buildPill(BuildContext context, OcptDayPartSlot slot, String label) {
-    final theme = Theme.of(context);
-    final isSelected = slot == value;
-    final onChanged = this.onChanged;
-
-    final pill = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-    );
-
-    if (onChanged == null) {
-      return pill;
-    }
-
-    return InkWell(
-      onTap: () => onChanged(slot),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: pill,
-    );
-  }
 }

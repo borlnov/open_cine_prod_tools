@@ -199,6 +199,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
     on<OcptResourcesPermitDocumentClearedEvent>(_onPermitDocumentCleared);
     on<OcptResourcesAssetRemovedEvent>(_onAssetRemoved);
+    on<OcptResourcesLocationAvailabilityAddedEvent>(_onLocationAvailabilityAdded);
+    on<OcptResourcesLocationAvailabilityUpdatedEvent>(_onLocationAvailabilityUpdated);
+    on<OcptResourcesLocationAvailabilityRemovedEvent>(_onLocationAvailabilityRemoved);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptResourcesRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptResourcesRightDockToggledEvent>(_onRightDockToggled);
@@ -1725,6 +1728,61 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     logContext: "drop the asset reference ${event.assetId}",
     action: (project) =>
         _locationsService.removeAsset(database: project.database, assetId: event.assetId),
+  );
+
+  /// Adds an availability window to location `event.locationId`, written immediately.
+  Future<void> _onLocationAvailabilityAdded(
+    OcptResourcesLocationAvailabilityAddedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "add an availability window to location ${event.locationId}",
+    action: (project) async {
+      await _locationsService.addAvailability(
+        database: project.database,
+        locationId: event.locationId,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        weekdays: event.weekdays,
+        slot: event.slot,
+        startMinute: event.startMinute,
+        endMinute: event.endMinute,
+        kind: event.kind,
+        note: event.note,
+      );
+    },
+  );
+
+  /// Updates availability window `event.id`, written immediately.
+  Future<void> _onLocationAvailabilityUpdated(
+    OcptResourcesLocationAvailabilityUpdatedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "update the availability window ${event.id}",
+    action: (project) => _locationsService.updateAvailability(
+      database: project.database,
+      id: event.id,
+      startDate: Value(event.startDate),
+      endDate: Value(event.endDate),
+      weekdays: Value(event.weekdays),
+      slot: Value(event.slot),
+      startMinute: Value(event.startMinute),
+      endMinute: Value(event.endMinute),
+      kind: Value(event.kind),
+      note: Value(event.note),
+    ),
+  );
+
+  /// Removes availability window `event.id`, written immediately.
+  Future<void> _onLocationAvailabilityRemoved(
+    OcptResourcesLocationAvailabilityRemovedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "remove the availability window ${event.id}",
+    action: (project) =>
+        _locationsService.removeAvailability(database: project.database, id: event.id),
   );
 
   /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
