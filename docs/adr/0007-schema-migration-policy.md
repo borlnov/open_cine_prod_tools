@@ -22,6 +22,16 @@ bump is allowed to do to existing data, or whether the foreign keys the tables a
 (`references()`) are actually enforced by SQLite at runtime - `NativeDatabase` leaves the
 `foreign_keys` pragma at SQLite's own default, which is off.
 
+This record originally said what a migration is allowed to do, and nothing about *when* a version
+number is claimed. That gap surfaced the first time two branches were in flight at once: both cut
+from a `main` at version 3, the scenario coverage export and the project versions feature each took
+4 as "the next free number", and project versions went on to take 5 as well. The coverage export
+merged first and shipped 37 minutes later in `v0.1.0-alpha.2`, which froze that meaning into every
+file those users touched — drift writes `PRAGMA user_version = 4`, and for those files 4 means
+"`shots.abbreviation` exists". Merging the other branch as it stood would have run its 4-to-5 step
+against a table its skipped 3-to-4 step was supposed to create: an `ALTER TABLE` on a table that
+does not exist, throwing during the migration and leaving the project unable to open at all.
+
 ## Decision
 
 `OcptProjectDatabase.schemaVersion` moves to 2, and the database gains its first
@@ -40,6 +50,12 @@ was verified empirically (a plain `sqlite3.openInMemory()` reports `foreign_keys
 pragma is set) rather than assumed, and the full existing test suite passes unchanged with it
 turned on, meaning nothing already relied on inserting orphaned rows.
 
+A schema version number is allocated **at merge time, not at branch time**. A branch that changes
+the schema works against a provisional number and fixes it when it rebases; two branches in flight
+may both need the next one, and whichever merges second renumbers, folding its steps into whatever
+number is actually free by then. What a released build has written into a user's file is what a
+number means, and no decision taken on a branch beforehand can change that after the fact.
+
 ## Consequences
 
 A user's existing `.ocpt` file always opens, gains the three new empty tables the first time it
@@ -53,6 +69,14 @@ orphaned `shot_characters`/`shot_coverages` row fail loudly at the `INSERT` inst
 producing a dangling reference, but it also means any future insert order that violates a
 declared reference (inserting a shot before its screenplay row exists, for instance) now throws
 where it previously would not have.
+
+Renumbering is cheap while a branch is unmerged and impossible once it has shipped, so the whole
+cost of the allocation rule falls on the second branch to merge: it re-reads its own migration
+steps against the schema it is actually landing on, and its tests must cover the upgrade path from
+every released version, the one the other branch shipped included. The project versions branch is
+the worked example — its two steps became a single version 5 creating `project_versions` with
+`contentDigest` already declared on it, which also removed the `if (from >= 4)` guard that made the
+collision fatal rather than merely wrong.
 
 ## Alternatives considered
 
