@@ -5,15 +5,20 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -36,6 +41,31 @@ class _RecordingRouterManager extends OcptRouterManager {
     if (!_popCompleter.isCompleted) {
       _popCompleter.complete();
     }
+  }
+}
+
+/// A file selector manager answering the picker with a file of its own, so a test never opens a
+/// native dialog: [pickedPath] is what the user is pretending to pick, and null is a cancellation.
+class _StubFileSelectorManager extends FileSelectorManager {
+  /// The path the next pick answers with, or null to answer as a cancelled dialog does.
+  final String? pickedPath;
+
+  /// Class constructor
+  const _StubFileSelectorManager({required this.pickedPath});
+
+  /// Answers with [pickedPath] instead of opening the platform's own dialog.
+  @override
+  Future<ResultWithBoolStatus<XFile>> openSelector({
+    required List<String> allowedExtensions,
+    required String label,
+    bool strictOnExtensions = true,
+  }) async {
+    final pickedPath = this.pickedPath;
+    if (pickedPath == null) {
+      return const ResultWithBoolStatus(status: BoolResultStatus.error);
+    }
+
+    return ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
   }
 }
 
@@ -78,11 +108,13 @@ void main() {
   OcptResourcesBloc buildBloc({
     OcptRouterManager? routerManager,
     OcptProjectsManager? overrideProjectsManager,
+    FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
   }) => OcptResourcesBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
+    fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
   );
 
@@ -391,6 +423,227 @@ void main() {
     final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
 
     expect(state.selectedPersonId, personId);
+
+    await bloc.close();
+  });
+
+  test("creating a location appends it to the list, selects it and colours it by rank", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.locationCount == 1);
+    expect(state.selectedLocationId, state.locations.single.id);
+    expect(state.locations.single.colorIndex, 0);
+
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    state = await waitForState(bloc, (state) => state.locationCount == 2);
+    expect(state.locations.last.colorIndex, 1);
+    expect(state.selectedLocationId, state.locations.last.id);
+
+    await bloc.close();
+  });
+
+  test("a typed location field edit is pending until the debounce writes it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(
+      OcptResourcesLocationFieldChangedEvent(
+        locationId: locationId,
+        field: OcptLocationField.city,
+        rawValue: "Lyon",
+      ),
+    );
+    var state = await waitForState(
+      bloc,
+      (state) => state.pendingLocationFieldEdits[(locationId, OcptLocationField.city)] == "Lyon",
+    );
+    expect(state.selectedLocation!.city, isEmpty);
+
+    state = await waitForState(bloc, (state) => state.selectedLocation!.city == "Lyon");
+    expect(state.pendingLocationFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  // "45,76" is the ordinary French way of typing it, and the one a decimal-point parser refuses.
+  test("a coordinate that isn't a number is stored as no coordinate at all", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(
+      OcptResourcesLocationFieldChangedEvent(
+        locationId: locationId,
+        field: OcptLocationField.latitude,
+        rawValue: "45.76",
+      ),
+    );
+    var state = await waitForState(bloc, (state) => state.selectedLocation!.latitude == 45.76);
+
+    bloc.add(
+      OcptResourcesLocationFieldChangedEvent(
+        locationId: locationId,
+        field: OcptLocationField.latitude,
+        rawValue: "45,76",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.selectedLocation!.latitude == null);
+    expect(state.pendingLocationFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("the permit status and its date land in the database at once", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(
+      OcptResourcesLocationPermitStatusChangedEvent(
+        locationId: locationId,
+        status: OcptPermitStatus.granted,
+      ),
+    );
+    await waitForState(
+      bloc,
+      (state) => state.selectedLocation!.permitStatus == OcptPermitStatus.granted,
+    );
+
+    bloc.add(
+      OcptResourcesLocationPermitDateChangedEvent(
+        locationId: locationId,
+        date: DateTime(2026, 8, 13),
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.selectedLocation!.permitDate != null);
+    expect(state.selectedLocation!.permitDate, DateTime(2026, 8, 13));
+
+    await bloc.close();
+  });
+
+  test("a set is added, typed into, and removed with its pending edit", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(OcptResourcesSetAddedEvent(locationId: locationId));
+    var state = await waitForState(bloc, (state) => state.selectedLocation!.sets.length == 1);
+    final setId = state.selectedLocation!.sets.single.id;
+
+    bloc.add(
+      OcptResourcesSetFieldChangedEvent(
+        setId: setId,
+        field: OcptSetField.name,
+        rawValue: "Cuisine",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.selectedLocation!.sets.single.name == "Cuisine");
+    expect(state.pendingSetFieldEdits, isEmpty);
+
+    bloc.add(
+      OcptResourcesSetFieldChangedEvent(setId: setId, field: OcptSetField.code, rawValue: "A"),
+    );
+    await waitForState(bloc, (state) => state.pendingSetFieldEdits.isNotEmpty);
+
+    bloc.add(OcptResourcesSetRemovedEvent(setId: setId));
+    state = await waitForState(bloc, (state) => state.selectedLocation!.sets.isEmpty);
+    expect(state.pendingSetFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("deleting the selected location clears the selection", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = state.selectedLocationId!;
+
+    bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: locationId));
+    state = await waitForState(bloc, (state) => state.locationCount == 0);
+
+    expect(state.selectedLocationId, isNull);
+
+    await bloc.close();
+  });
+
+  test("picking a scouting photo stores the path the picker answered with", () async {
+    final bloc = buildBloc(
+      fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/photos/hangar.jpg"),
+    );
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(
+      OcptResourcesLocationPhotoAddRequestedEvent(
+        locationId: locationId,
+        fileTypeLabel: "Images",
+      ),
+    );
+    var state = await waitForState(bloc, (state) => state.selectedLocation!.photos.isNotEmpty);
+    expect(state.selectedLocation!.photos.single.path, "/photos/hangar.jpg");
+
+    bloc.add(OcptResourcesAssetRemovedEvent(assetId: state.selectedLocation!.photos.single.id));
+    state = await waitForState(bloc, (state) => state.selectedLocation!.photos.isEmpty);
+
+    await bloc.close();
+  });
+
+  test("a cancelled picker references nothing at all", () async {
+    final bloc = buildBloc(
+      fileSelectorManager: const _StubFileSelectorManager(pickedPath: null),
+    );
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(
+      OcptResourcesPermitDocumentPickRequestedEvent(
+        locationId: locationId,
+        fileTypeLabel: "Documents",
+      ),
+    );
+    // Nothing to wait for: the cancellation emits no state at all, so the assertion is that the
+    // location still has no document once the event has certainly been handled.
+    bloc.add(
+      OcptResourcesLocationFieldChangedEvent(
+        locationId: locationId,
+        field: OcptLocationField.name,
+        rawValue: "Le hangar",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.selectedLocation!.name == "Le hangar");
+    expect(state.selectedLocation!.permitDocument, isNull);
+
+    await bloc.close();
+  });
+
+  test("selecting another tab clears the selected location", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.locations));
+    await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.locations);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.selectedLocationId != null);
+
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
+    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
+
+    expect(state.selectedLocationId, isNull);
 
     await bloc.close();
   });

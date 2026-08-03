@@ -4,11 +4,13 @@
 
 import 'dart:async';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -19,10 +21,12 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
@@ -38,25 +42,26 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// `OcptShotListBloc` builds its own snapshot with — and holds the active tab, the selected person,
 /// the dock geometry and the pending field edits on top of it.
 ///
-/// This milestone gives [OcptResourcesTab.people] and [OcptResourcesTab.roles] real content:
-/// [OcptResourcesTab.locations] and [OcptResourcesTab.elements] are read (their counts already feed
-/// the status bar) but nothing here yet creates, edits or deletes a location or an element.
+/// This milestone gives [OcptResourcesTab.people], [OcptResourcesTab.roles] and
+/// [OcptResourcesTab.locations] real content: [OcptResourcesTab.elements] is read (its count
+/// already feeds the status bar) but nothing here yet creates, edits or deletes an element.
 ///
 /// Most of a person's discrete fields (colour, birth date, transport autonomy, image rights status
-/// and date), every sub-list (positions, skills, unavailabilities), and a role's cast member and
-/// kind are written to the project database the moment they change, exactly like a shot's
-/// difficulty axis or its character chips are. A role's name is never written here for an
+/// and date), every sub-list (positions, skills, unavailabilities), a role's cast member and kind,
+/// and a location's colour, permit status and date, contact, sets, scene links and referenced files
+/// are written to the project database the moment they change, exactly like a shot's difficulty
+/// axis or its character chips are. A role's name is never written here for an
 /// `isFromScreenplay` role — [_roleIndexService]'s own reconciliation owns it, and would overwrite
 /// a hand-typed name right back on the next save; withholding that field is the widgets' job, not a
-/// special case here. The two sheets' typed free-text fields ([OcptPersonField],
-/// [OcptRoleField]) are the exception: an edit is held in [OcptResourcesState.pendingFieldEdits] /
-/// [OcptResourcesState.pendingRoleFieldEdits] and written [defaultFieldEditDebounce] after the last
-/// keystroke, mirroring `OcptShotListBloc`'s own autosave convention — both maps ride the very same
-/// debounce timer, so a person's and a role's pending edits are always flushed together. The
-/// debounce is flushed immediately whenever the selected person or role, or the active tab, changes,
-/// when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's own
-/// `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending edit
-/// is never silently dropped.
+/// special case here. The four sheets' typed free-text fields ([OcptPersonField], [OcptRoleField],
+/// [OcptLocationField], [OcptSetField]) are the exception: an edit is held in the matching
+/// `OcptResourcesState.pending…FieldEdits` map and written [defaultFieldEditDebounce] after the last
+/// keystroke, mirroring `OcptShotListBloc`'s own autosave convention — the four maps ride the very
+/// same debounce timer, so pending edits are always flushed together, never one kind without the
+/// others. The debounce is flushed immediately whenever the selected record, or the active tab,
+/// changes, when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's
+/// own `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending
+/// edit is never silently dropped.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
@@ -91,6 +96,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read the physical elements catalogue.
   final OcptElementsService _elementsService;
 
+  /// The manager used to show the native "open" dialog when a photo or a document is referenced,
+  /// or null to resolve it through [globalGetIt] the first time one actually is.
+  ///
+  /// The one manager of this bloc that isn't one of the app's own: referencing a file is a native
+  /// dialog and a path, with no bytes to convert and no project document to write, so it needs
+  /// nothing of what `OcptExportManager` owns around its own dialogs. It is also the one resolved
+  /// lazily rather than in the constructor — a mode that never references a file never asks for it
+  /// at all, which is every use of this bloc but two.
+  final FileSelectorManager? _fileSelectorManager;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -110,6 +125,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptRoleIndexService? roleIndexService,
     OcptLocationsService? locationsService,
     OcptElementsService? elementsService,
+    FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -126,6 +142,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
+       _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptResourcesState.init()) {
     add(const OcptResourcesLoadRequestedEvent());
@@ -165,6 +182,23 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesRoleDeletionRequestedEvent>(_onRoleDeletionRequested);
     on<OcptResourcesOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
     on<OcptResourcesPersonSheetOpenRequestedEvent>(_onPersonSheetOpenRequested);
+    on<OcptResourcesLocationSelectedEvent>(_onLocationSelected);
+    on<OcptResourcesLocationCreationRequestedEvent>(_onLocationCreationRequested);
+    on<OcptResourcesLocationDeletionRequestedEvent>(_onLocationDeletionRequested);
+    on<OcptResourcesLocationFieldChangedEvent>(_onLocationFieldChanged);
+    on<OcptResourcesLocationColorChangedEvent>(_onLocationColorChanged);
+    on<OcptResourcesLocationPermitStatusChangedEvent>(_onLocationPermitStatusChanged);
+    on<OcptResourcesLocationPermitDateChangedEvent>(_onLocationPermitDateChanged);
+    on<OcptResourcesLocationContactChangedEvent>(_onLocationContactChanged);
+    on<OcptResourcesSetAddedEvent>(_onSetAdded);
+    on<OcptResourcesSetFieldChangedEvent>(_onSetFieldChanged);
+    on<OcptResourcesSetRemovedEvent>(_onSetRemoved);
+    on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
+    on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
+    on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
+    on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
+    on<OcptResourcesPermitDocumentClearedEvent>(_onPermitDocumentCleared);
+    on<OcptResourcesAssetRemovedEvent>(_onAssetRemoved);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptResourcesRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptResourcesRightDockToggledEvent>(_onRightDockToggled);
@@ -241,6 +275,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         snapshot: snapshot,
         clearSelectedPersonId: true,
         clearSelectedRoleId: true,
+        clearSelectedLocationId: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
       ),
@@ -300,6 +335,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         activeTab: event.tab,
         clearSelectedPersonId: !isSameTab,
         clearSelectedRoleId: !isSameTab,
+        clearSelectedLocationId: !isSameTab,
       ),
     );
   }
@@ -383,12 +419,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutPerson = Map<(String, OcptPersonField), String>.of(
       state.pendingFieldEdits,
     )..removeWhere((key, _) => key.$1 == event.personId);
-    // The debounce timer is shared with the role fields' own pending edits (see
-    // `_onRoleFieldChanged`), so it is only safe to cancel once nothing of either kind is left.
-    if (pendingWithoutPerson.isEmpty && state.pendingRoleFieldEdits.isEmpty) {
-      _fieldEditTimer?.cancel();
-      _fieldEditTimer = null;
-    }
+    _cancelFieldEditTimerIfIdle(
+      pendingPersonEdits: pendingWithoutPerson,
+      pendingRoleEdits: state.pendingRoleFieldEdits,
+      pendingLocationEdits: state.pendingLocationFieldEdits,
+      pendingSetEdits: state.pendingSetFieldEdits,
+    );
 
     final wasSelected = state.selectedPersonId == event.personId;
 
@@ -419,12 +455,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       ..[(event.personId, event.field)] = event.rawValue;
     emitter(state.copyWith(pendingFieldEdits: pending));
 
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosed) {
-        add(const OcptResourcesFieldEditFlushRequestedEvent());
-      }
-    });
+    _restartFieldEditTimer();
   }
 
   /// Records the raw text just typed into `event.field` of role `event.roleId` as a pending edit,
@@ -439,12 +470,40 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       ..[(event.roleId, event.field)] = event.rawValue;
     emitter(state.copyWith(pendingRoleFieldEdits: pending));
 
+    _restartFieldEditTimer();
+  }
+
+  /// (Re)starts the one field-edit debounce timer every typed field of the mode rides — a person's,
+  /// a role's, a location's and a set's alike — so they are always written together, never one
+  /// without the other.
+  void _restartFieldEditTimer() {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = Timer(_fieldEditDebounce, () {
       if (!isClosed) {
         add(const OcptResourcesFieldEditFlushRequestedEvent());
       }
     });
+  }
+
+  /// Cancels the field-edit debounce timer if, and only if, nothing of any kind is pending any
+  /// more.
+  ///
+  /// Every handler that drops a record also drops the pending edits that targeted it, and the
+  /// timer is shared by all four maps: cancelling it on the strength of one map having emptied
+  /// would strand whatever the other three still hold until the next keystroke.
+  void _cancelFieldEditTimerIfIdle({
+    required Map<(String, OcptPersonField), String> pendingPersonEdits,
+    required Map<(String, OcptRoleField), String> pendingRoleEdits,
+    required Map<(String, OcptLocationField), String> pendingLocationEdits,
+    required Map<(String, OcptSetField), String> pendingSetEdits,
+  }) {
+    if (pendingPersonEdits.isEmpty &&
+        pendingRoleEdits.isEmpty &&
+        pendingLocationEdits.isEmpty &&
+        pendingSetEdits.isEmpty) {
+      _fieldEditTimer?.cancel();
+      _fieldEditTimer = null;
+    }
   }
 
   /// Writes every pending field edit once the field-edit debounce elapses with no further typing.
@@ -470,25 +529,42 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     final pendingPersonEdits = state.pendingFieldEdits;
     final pendingRoleEdits = state.pendingRoleFieldEdits;
-    if (pendingPersonEdits.isEmpty && pendingRoleEdits.isEmpty) {
+    final pendingLocationEdits = state.pendingLocationFieldEdits;
+    final pendingSetEdits = state.pendingSetFieldEdits;
+    if (pendingPersonEdits.isEmpty &&
+        pendingRoleEdits.isEmpty &&
+        pendingLocationEdits.isEmpty &&
+        pendingSetEdits.isEmpty) {
       return;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}, pendingRoleFieldEdits: const {}));
+      emitter(state.copyWith(
+        pendingFieldEdits: const {},
+        pendingRoleFieldEdits: const {},
+        pendingLocationFieldEdits: const {},
+        pendingSetFieldEdits: const {},
+      ));
       return;
     }
 
     try {
       await _writeAllPendingFields(database: project.database, pending: pendingPersonEdits);
       await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
+      await _writeAllPendingLocationFields(
+        database: project.database,
+        pending: pendingLocationEdits,
+      );
+      await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
       final snapshot = await _loadSnapshot(project);
       emitter(
         state.copyWith(
           snapshot: snapshot,
           pendingFieldEdits: const {},
           pendingRoleFieldEdits: const {},
+          pendingLocationFieldEdits: const {},
+          pendingSetFieldEdits: const {},
         ),
       );
 
@@ -505,6 +581,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           hasWriteError: true,
           pendingFieldEdits: const {},
           pendingRoleFieldEdits: const {},
+          pendingLocationFieldEdits: const {},
+          pendingSetFieldEdits: const {},
         ),
       );
     }
@@ -529,7 +607,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     final pendingPersonEdits = state.pendingFieldEdits;
     final pendingRoleEdits = state.pendingRoleFieldEdits;
-    if (pendingPersonEdits.isEmpty && pendingRoleEdits.isEmpty) {
+    final pendingLocationEdits = state.pendingLocationFieldEdits;
+    final pendingSetEdits = state.pendingSetFieldEdits;
+    if (pendingPersonEdits.isEmpty &&
+        pendingRoleEdits.isEmpty &&
+        pendingLocationEdits.isEmpty &&
+        pendingSetEdits.isEmpty) {
       return;
     }
 
@@ -541,6 +624,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     try {
       await _writeAllPendingFields(database: project.database, pending: pendingPersonEdits);
       await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
+      await _writeAllPendingLocationFields(
+        database: project.database,
+        pending: pendingLocationEdits,
+      );
+      await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending resources field edit of "
           "the project at ${project.path}: $error");
@@ -746,6 +834,181 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           database: database,
           roleId: roleId,
           castingNotes: Value(rawValue),
+        );
+    }
+  }
+
+  /// Writes every entry of [pending] through [_writeLocationField].
+  Future<void> _writeAllPendingLocationFields({
+    required OcptProjectDatabase database,
+    required Map<(String, OcptLocationField), String> pending,
+  }) async {
+    for (final entry in pending.entries) {
+      final (locationId, field) = entry.key;
+      await _writeLocationField(
+        database: database,
+        locationId: locationId,
+        field: field,
+        rawValue: entry.value,
+      );
+    }
+  }
+
+  /// Writes a single location field edit through `OcptLocationsService.updateLocation`, translating
+  /// [field] into the matching named argument (see `OcptLocationField`'s own doc comment for the
+  /// mapping).
+  ///
+  /// The two coordinate fields are the only ones not written as typed: what cannot be read as a
+  /// number is written as null rather than refused, so a half-typed `48.` costs nothing and a
+  /// cleared field clears the coordinate. Saying so is the sheet's job, not this one's.
+  Future<void> _writeLocationField({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required OcptLocationField field,
+    required String rawValue,
+  }) async {
+    switch (field) {
+      case OcptLocationField.name:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          name: Value(rawValue),
+        );
+      case OcptLocationField.addressLine1:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          addressLine1: Value(rawValue),
+        );
+      case OcptLocationField.addressLine2:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          addressLine2: Value(rawValue),
+        );
+      case OcptLocationField.postalCode:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          postalCode: Value(rawValue),
+        );
+      case OcptLocationField.city:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          city: Value(rawValue),
+        );
+      case OcptLocationField.region:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          region: Value(rawValue),
+        );
+      case OcptLocationField.country:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          country: Value(rawValue),
+        );
+      case OcptLocationField.latitude:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          latitude: Value(double.tryParse(rawValue.trim())),
+        );
+      case OcptLocationField.longitude:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          longitude: Value(double.tryParse(rawValue.trim())),
+        );
+      case OcptLocationField.contactNotes:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          contactNotes: Value(rawValue),
+        );
+      case OcptLocationField.permitLabel:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          permitLabel: Value(rawValue),
+        );
+      case OcptLocationField.parkingNotes:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          parkingNotes: Value(rawValue),
+        );
+      case OcptLocationField.powerNotes:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          powerNotes: Value(rawValue),
+        );
+      case OcptLocationField.facilitiesNotes:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          facilitiesNotes: Value(rawValue),
+        );
+      case OcptLocationField.constraintsNotes:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          constraintsNotes: Value(rawValue),
+        );
+      case OcptLocationField.notes:
+        await _locationsService.updateLocation(
+          database: database,
+          locationId: locationId,
+          notes: Value(rawValue),
+        );
+    }
+  }
+
+  /// Writes every entry of [pending] through [_writeSetField].
+  Future<void> _writeAllPendingSetFields({
+    required OcptProjectDatabase database,
+    required Map<(String, OcptSetField), String> pending,
+  }) async {
+    for (final entry in pending.entries) {
+      final (setId, field) = entry.key;
+      await _writeSetField(
+        database: database,
+        setId: setId,
+        field: field,
+        rawValue: entry.value,
+      );
+    }
+  }
+
+  /// Writes a single set field edit through `OcptLocationsService.updateSet`, translating [field]
+  /// into the matching named argument (see `OcptSetField`'s own doc comment for the mapping).
+  Future<void> _writeSetField({
+    required OcptProjectDatabase database,
+    required String setId,
+    required OcptSetField field,
+    required String rawValue,
+  }) async {
+    switch (field) {
+      case OcptSetField.code:
+        await _locationsService.updateSet(
+          database: database,
+          setId: setId,
+          code: Value(rawValue),
+        );
+      case OcptSetField.name:
+        await _locationsService.updateSet(
+          database: database,
+          setId: setId,
+          name: Value(rawValue),
+        );
+      case OcptSetField.notes:
+        await _locationsService.updateSet(
+          database: database,
+          setId: setId,
+          notes: Value(rawValue),
         );
     }
   }
@@ -1054,12 +1317,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutRole = Map<(String, OcptRoleField), String>.of(
       state.pendingRoleFieldEdits,
     )..removeWhere((key, _) => key.$1 == event.roleId);
-    // The debounce timer is shared with the person fields' own pending edits (see
-    // `_onPersonFieldChanged`), so it is only safe to cancel once nothing of either kind is left.
-    if (pendingWithoutRole.isEmpty && state.pendingFieldEdits.isEmpty) {
-      _fieldEditTimer?.cancel();
-      _fieldEditTimer = null;
-    }
+    _cancelFieldEditTimerIfIdle(
+      pendingPersonEdits: state.pendingFieldEdits,
+      pendingRoleEdits: pendingWithoutRole,
+      pendingLocationEdits: state.pendingLocationFieldEdits,
+      pendingSetEdits: state.pendingSetFieldEdits,
+    );
 
     final wasSelected = state.selectedRoleId == event.roleId;
 
@@ -1109,8 +1372,387 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         activeTab: OcptResourcesTab.people,
         selectedPersonId: event.personId,
         clearSelectedRoleId: true,
+        clearSelectedLocationId: true,
       ),
     );
+  }
+
+  /// Selects location `event.locationId`.
+  ///
+  /// Flushes any pending field edit first, so switching locations right after typing never loses
+  /// it. A location id that no longer exists in the current snapshot (a stale click on a list
+  /// rebuilt underneath) is ignored rather than selecting nothing, mirroring [_onPersonSelected].
+  Future<void> _onLocationSelected(
+    OcptResourcesLocationSelectedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final exists = state.locations.any((location) => location.id == event.locationId);
+    if (!exists) {
+      return;
+    }
+
+    emitter(state.copyWith(selectedLocationId: event.locationId));
+  }
+
+  /// Creates a new, blank location at the end of the list, reloads the catalogue and selects it.
+  ///
+  /// It is given a colour derived from its rank — `state.locationCount` read *before* the insert —
+  /// for the reason `_onPersonCreationRequested` gives: the column's own default of 0 would make
+  /// every location share one colour bar, and the bar is how a location is told apart in a list of
+  /// names that all start with "La maison…".
+  Future<void> _onLocationCreationRequested(
+    OcptResourcesLocationCreationRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final rank = state.locationCount;
+      final locationId = await _locationsService.createLocation(
+        database: project.database,
+        name: "",
+      );
+      if (locationId == null) {
+        // The write was refused (a version is being previewed read-only); the shell already
+        // withholds the button that dispatches this event, so this is only ever a race.
+        return;
+      }
+
+      await _locationsService.updateLocation(
+        database: project.database,
+        locationId: locationId,
+        colorIndex: Value(rank),
+      );
+
+      final snapshot = await _loadSnapshot(project);
+      emitter(state.copyWith(snapshot: snapshot, selectedLocationId: locationId));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to create a location in the project at "
+          "${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Deletes location `event.locationId`, clearing the selection when it was the selected one, and
+  /// dropping any pending field edit that still targeted it or one of its sets — the rows those
+  /// edits would have written to are gone.
+  Future<void> _onLocationDeletionRequested(
+    OcptResourcesLocationDeletionRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final setIds = {
+      for (final location in state.locations)
+        if (location.id == event.locationId)
+          for (final set in location.sets) set.id,
+    };
+
+    final pendingWithoutLocation = Map<(String, OcptLocationField), String>.of(
+      state.pendingLocationFieldEdits,
+    )..removeWhere((key, _) => key.$1 == event.locationId);
+    final pendingWithoutSets = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
+      ..removeWhere((key, _) => setIds.contains(key.$1));
+    _cancelFieldEditTimerIfIdle(
+      pendingPersonEdits: state.pendingFieldEdits,
+      pendingRoleEdits: state.pendingRoleFieldEdits,
+      pendingLocationEdits: pendingWithoutLocation,
+      pendingSetEdits: pendingWithoutSets,
+    );
+
+    final wasSelected = state.selectedLocationId == event.locationId;
+
+    try {
+      await _locationsService.deleteLocation(
+        database: project.database,
+        locationId: event.locationId,
+      );
+      final snapshot = await _loadSnapshot(project);
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          pendingLocationFieldEdits: pendingWithoutLocation,
+          pendingSetFieldEdits: pendingWithoutSets,
+          clearSelectedLocationId: wasSelected,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to delete location ${event.locationId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Records the raw text just typed into `event.field` of location `event.locationId` as a pending
+  /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
+  Future<void> _onLocationFieldChanged(
+    OcptResourcesLocationFieldChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final pending = Map<(String, OcptLocationField), String>.of(state.pendingLocationFieldEdits)
+      ..[(event.locationId, event.field)] = event.rawValue;
+    emitter(state.copyWith(pendingLocationFieldEdits: pending));
+
+    _restartFieldEditTimer();
+  }
+
+  /// Records the raw text just typed into `event.field` of set `event.setId` as a pending edit,
+  /// visible immediately, and (re)starts the same field-edit debounce every other typed field of
+  /// the mode rides.
+  Future<void> _onSetFieldChanged(
+    OcptResourcesSetFieldChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final pending = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
+      ..[(event.setId, event.field)] = event.rawValue;
+    emitter(state.copyWith(pendingSetFieldEdits: pending));
+
+    _restartFieldEditTimer();
+  }
+
+  /// Sets location `event.locationId`'s colour index, written immediately.
+  Future<void> _onLocationColorChanged(
+    OcptResourcesLocationColorChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the colour of location ${event.locationId}",
+    action: (project) => _locationsService.updateLocation(
+      database: project.database,
+      locationId: event.locationId,
+      colorIndex: Value(event.colorIndex),
+    ),
+  );
+
+  /// Sets location `event.locationId`'s filming permit status, written immediately.
+  Future<void> _onLocationPermitStatusChanged(
+    OcptResourcesLocationPermitStatusChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the permit status of location ${event.locationId}",
+    action: (project) => _locationsService.updateLocation(
+      database: project.database,
+      locationId: event.locationId,
+      permitStatus: Value(event.status),
+    ),
+  );
+
+  /// Sets the date location `event.locationId`'s permit status last changed, written immediately.
+  Future<void> _onLocationPermitDateChanged(
+    OcptResourcesLocationPermitDateChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the permit date of location ${event.locationId}",
+    action: (project) => _locationsService.updateLocation(
+      database: project.database,
+      locationId: event.locationId,
+      permitDate: Value(event.date),
+    ),
+  );
+
+  /// Sets who to contact about location `event.locationId`, written immediately.
+  Future<void> _onLocationContactChanged(
+    OcptResourcesLocationContactChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the contact of location ${event.locationId}",
+    action: (project) => _locationsService.updateLocation(
+      database: project.database,
+      locationId: event.locationId,
+      contactPersonId: Value(event.personId),
+    ),
+  );
+
+  /// Adds a new, blank set at the end of location `event.locationId`'s sets, written immediately.
+  Future<void> _onSetAdded(
+    OcptResourcesSetAddedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "add a set to location ${event.locationId}",
+    action: (project) async {
+      await _locationsService.createSet(
+        database: project.database,
+        locationId: event.locationId,
+        name: "",
+      );
+    },
+  );
+
+  /// Removes set `event.setId`, written immediately, dropping any pending edit that still targeted
+  /// it.
+  Future<void> _onSetRemoved(
+    OcptResourcesSetRemovedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final pendingWithoutSet = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
+      ..removeWhere((key, _) => key.$1 == event.setId);
+    _cancelFieldEditTimerIfIdle(
+      pendingPersonEdits: state.pendingFieldEdits,
+      pendingRoleEdits: state.pendingRoleFieldEdits,
+      pendingLocationEdits: state.pendingLocationFieldEdits,
+      pendingSetEdits: pendingWithoutSet,
+    );
+
+    emitter(state.copyWith(pendingSetFieldEdits: pendingWithoutSet));
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "remove set ${event.setId}",
+      action: (project) => _locationsService.deleteSet(
+        database: project.database,
+        setId: event.setId,
+      ),
+    );
+  }
+
+  /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately.
+  Future<void> _onSceneAssignedToSet(
+    OcptResourcesSceneAssignedToSetEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "assign scene ${event.sceneId} to set ${event.setId}",
+    action: (project) async {
+      await _locationsService.assignSceneToSet(
+        database: project.database,
+        sceneId: event.sceneId,
+        setId: event.setId,
+      );
+    },
+  );
+
+  /// Says scene `event.sceneId` is no longer shot in set `event.setId`, written immediately.
+  Future<void> _onSceneRemovedFromSet(
+    OcptResourcesSceneRemovedFromSetEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "remove scene ${event.sceneId} from set ${event.setId}",
+    action: (project) => _locationsService.removeSceneFromSet(
+      database: project.database,
+      sceneId: event.sceneId,
+      setId: event.setId,
+    ),
+  );
+
+  /// Asks for a scouting photo through the native picker and references the file picked, written
+  /// immediately. A cancelled dialog changes nothing at all.
+  Future<void> _onLocationPhotoAddRequested(
+    OcptResourcesLocationPhotoAddRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptImageFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference a scouting photo of location ${event.locationId}",
+      action: (project) async {
+        await _locationsService.addLocationPhoto(
+          database: project.database,
+          locationId: event.locationId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Asks for the filming permit document through the native picker and references the file picked,
+  /// written immediately. A cancelled dialog leaves the document already referenced alone.
+  Future<void> _onPermitDocumentPickRequested(
+    OcptResourcesPermitDocumentPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptDocumentFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the permit document of location ${event.locationId}",
+      action: (project) async {
+        await _locationsService.setPermitDocument(
+          database: project.database,
+          locationId: event.locationId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops location `event.locationId`'s reference to its permit document, written immediately.
+  Future<void> _onPermitDocumentCleared(
+    OcptResourcesPermitDocumentClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the permit document of location ${event.locationId}",
+    action: (project) => _locationsService.clearPermitDocument(
+      database: project.database,
+      locationId: event.locationId,
+    ),
+  );
+
+  /// Drops the asset reference `event.assetId`, written immediately.
+  Future<void> _onAssetRemoved(
+    OcptResourcesAssetRemovedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the asset reference ${event.assetId}",
+    action: (project) =>
+        _locationsService.removeAsset(database: project.database, assetId: event.assetId),
+  );
+
+  /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
+  /// cancelled it, when it failed, or when the platform gave a file with no path at all.
+  ///
+  /// **The file itself is never read here** (see `docs/adr/0013-binary-assets-referenced-by-path.md`)
+  /// — unlike an import, which is exactly why this goes to [FileSelectorManager] directly rather
+  /// than through `OcptExportManager`: there is nothing to decode, only a path to keep.
+  Future<String?> _pickFilePath({
+    required List<String> allowedExtensions,
+    required String fileTypeLabel,
+  }) async {
+    final fileSelectorManager =
+        _fileSelectorManager ?? globalGetIt().get<FileSelectorManager>();
+
+    final selection = await fileSelectorManager.openSelector(
+      allowedExtensions: allowedExtensions,
+      label: fileTypeLabel,
+    );
+
+    final file = selection.value;
+    if (!selection.status.isSuccess || file == null) {
+      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
+      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
+      return null;
+    }
+
+    return file.path.isEmpty ? null : file.path;
   }
 
   /// Writes a discrete change to the catalogue (a person's field, position, skill or

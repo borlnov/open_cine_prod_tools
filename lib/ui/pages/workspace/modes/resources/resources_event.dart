@@ -4,11 +4,14 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 
 /// The events handled by `OcptResourcesBloc`.
@@ -35,9 +38,9 @@ class OcptResourcesBackRequestedEvent extends OcptResourcesEvent {
 
 /// Selects the left dock's tab [tab], dispatched by `OcptResourcesTabBar`.
 ///
-/// Clears the selected person and the selected role when [tab] actually differs from the one
-/// already active: a tab switch shows a different list, none of whose rows the previous selection
-/// belonged to.
+/// Clears the selected person, role and location when [tab] actually differs from the one already
+/// active: a tab switch shows a different list, none of whose rows the previous selection belonged
+/// to.
 class OcptResourcesTabSelectedEvent extends OcptResourcesEvent {
   /// The tab to select.
   final OcptResourcesTab tab;
@@ -561,6 +564,7 @@ class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesEvent {
 /// Requests opening person [personId]'s sheet, dispatched by the role sheet's dedicated `↗`
 /// affordance in the cast-member cell (a plain row click only *selects* the role).
 ///
+/// Dispatched by the role sheet's cast member line and by the location sheet's contact line alike.
 /// Flushes any pending field edit first, then switches the left dock to
 /// [OcptResourcesTab.people] and selects [personId] in one state — deliberately **not** by
 /// dispatching `OcptResourcesTabSelectedEvent`, which clears the selection on every tab change: the
@@ -575,6 +579,304 @@ class OcptResourcesPersonSheetOpenRequestedEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, personId];
+}
+
+/// Selects location [locationId], dispatched by a row of `OcptLocationsList`: the centre then shows
+/// that location's `OcptLocationSheet`.
+class OcptResourcesLocationSelectedEvent extends OcptResourcesEvent {
+  /// The id of the location to select.
+  final String locationId;
+
+  /// Class constructor
+  const OcptResourcesLocationSelectedEvent({required this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId];
+}
+
+/// Requests creating a new, blank location at the end of the list, then selecting it: the left
+/// dock's `+ Add a location` action.
+class OcptResourcesLocationCreationRequestedEvent extends OcptResourcesEvent {
+  /// Class constructor
+  const OcptResourcesLocationCreationRequestedEvent();
+}
+
+/// Requests deleting location [locationId], dispatched once the sheet's inline confirmation has
+/// already been answered. Clears the selection when it was the selected location, and drops any
+/// pending field edit that still targeted it or one of its sets.
+class OcptResourcesLocationDeletionRequestedEvent extends OcptResourcesEvent {
+  /// The id of the location to delete.
+  final String locationId;
+
+  /// Class constructor
+  const OcptResourcesLocationDeletionRequestedEvent({required this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId];
+}
+
+/// Records the raw text just typed into [field] of location [locationId], dispatched by the
+/// location sheet on every keystroke.
+///
+/// Rides the same field-edit autosave debounce as `OcptResourcesPersonFieldChangedEvent`.
+class OcptResourcesLocationFieldChangedEvent extends OcptResourcesEvent {
+  /// The id of the location whose field was edited.
+  final String locationId;
+
+  /// The field edited.
+  final OcptLocationField field;
+
+  /// The raw text now sitting in the field, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptResourcesLocationFieldChangedEvent({
+    required this.locationId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, field, rawValue];
+}
+
+/// Sets location [locationId]'s colour to `ocptCoveragePalette[colorIndex]`, written immediately:
+/// picking a swatch is a single discrete action, not typing.
+class OcptResourcesLocationColorChangedEvent extends OcptResourcesEvent {
+  /// The id of the location whose colour changed.
+  final String locationId;
+
+  /// The new colour index.
+  final int colorIndex;
+
+  /// Class constructor
+  const OcptResourcesLocationColorChangedEvent({
+    required this.locationId,
+    required this.colorIndex,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, colorIndex];
+}
+
+/// Sets location [locationId]'s filming permit status to [status], written immediately.
+class OcptResourcesLocationPermitStatusChangedEvent extends OcptResourcesEvent {
+  /// The id of the location whose permit status changed.
+  final String locationId;
+
+  /// The new status.
+  final OcptPermitStatus status;
+
+  /// Class constructor
+  const OcptResourcesLocationPermitStatusChangedEvent({
+    required this.locationId,
+    required this.status,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, status];
+}
+
+/// Sets the date location [locationId]'s permit status last changed to [date] (or clears it, when
+/// null), written immediately.
+class OcptResourcesLocationPermitDateChangedEvent extends OcptResourcesEvent {
+  /// The id of the location whose permit date changed.
+  final String locationId;
+
+  /// The new date, or null to clear it.
+  final DateTime? date;
+
+  /// Class constructor
+  const OcptResourcesLocationPermitDateChangedEvent({
+    required this.locationId,
+    required this.date,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, date];
+}
+
+/// Sets who to contact about location [locationId] to person [personId] (or clears it, when null),
+/// written immediately: picking a person from a menu is a single discrete action, not typing.
+class OcptResourcesLocationContactChangedEvent extends OcptResourcesEvent {
+  /// The id of the location whose contact changed.
+  final String locationId;
+
+  /// The id of the person to contact, or null to clear it.
+  final String? personId;
+
+  /// Class constructor
+  const OcptResourcesLocationContactChangedEvent({
+    required this.locationId,
+    required this.personId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, personId];
+}
+
+/// Adds a new, blank set at the end of location [locationId]'s sets, written immediately.
+class OcptResourcesSetAddedEvent extends OcptResourcesEvent {
+  /// The id of the location the set is added to.
+  final String locationId;
+
+  /// Class constructor
+  const OcptResourcesSetAddedEvent({required this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId];
+}
+
+/// Records the raw text just typed into [field] of set [setId], dispatched by the location sheet's
+/// sets card on every keystroke. Rides the same debounce as every other typed field of the mode.
+class OcptResourcesSetFieldChangedEvent extends OcptResourcesEvent {
+  /// The id of the set whose field was edited.
+  final String setId;
+
+  /// The field edited.
+  final OcptSetField field;
+
+  /// The raw text now sitting in the field, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptResourcesSetFieldChangedEvent({
+    required this.setId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, field, rawValue];
+}
+
+/// Removes set [setId] and the scene links onto it, written immediately.
+class OcptResourcesSetRemovedEvent extends OcptResourcesEvent {
+  /// The id of the set to remove.
+  final String setId;
+
+  /// Class constructor
+  const OcptResourcesSetRemovedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Says scene [sceneId] is shot in set [setId], written immediately.
+///
+/// A scene is shot in one set, so this **moves** the scene when it already sat in another one (see
+/// `OcptLocationsService.assignSceneToSet`) — including from a set of another location, which is
+/// exactly what repairing a mis-assignment looks like.
+class OcptResourcesSceneAssignedToSetEvent extends OcptResourcesEvent {
+  /// The id of the scene being assigned.
+  final String sceneId;
+
+  /// The id of the set it is shot in.
+  final String setId;
+
+  /// Class constructor
+  const OcptResourcesSceneAssignedToSetEvent({required this.sceneId, required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, setId];
+}
+
+/// Says scene [sceneId] is no longer shot in set [setId], leaving it with no set at all, written
+/// immediately.
+class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesEvent {
+  /// The id of the scene being unassigned.
+  final String sceneId;
+
+  /// The id of the set it is no longer shot in.
+  final String setId;
+
+  /// Class constructor
+  const OcptResourcesSceneRemovedFromSetEvent({required this.sceneId, required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, setId];
+}
+
+/// Requests referencing a scouting photo for location [locationId]: opens the native file picker
+/// and, if a file is picked, stores its path.
+///
+/// [fileTypeLabel] is the localized label the native dialog names its type filter with, travelling
+/// on the event exactly as an export's does — no manager or service of this app ever sees a `Tr`.
+class OcptResourcesLocationPhotoAddRequestedEvent extends OcptResourcesEvent {
+  /// The id of the location the photo is referenced for.
+  final String locationId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesLocationPhotoAddRequestedEvent({
+    required this.locationId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, fileTypeLabel];
+}
+
+/// Requests referencing location [locationId]'s filming permit document, replacing whichever one it
+/// referenced before. See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+class OcptResourcesPermitDocumentPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the location the document is referenced for.
+  final String locationId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesPermitDocumentPickRequestedEvent({
+    required this.locationId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, fileTypeLabel];
+}
+
+/// Drops location [locationId]'s reference to its permit document. The file itself is never
+/// touched.
+class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesEvent {
+  /// The id of the location whose permit document reference is dropped.
+  final String locationId;
+
+  /// Class constructor
+  const OcptResourcesPermitDocumentClearedEvent({required this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId];
+}
+
+/// Drops the asset reference [assetId] — a scouting photo. The file itself is never touched.
+class OcptResourcesAssetRemovedEvent extends OcptResourcesEvent {
+  /// The id of the asset reference to drop.
+  final String assetId;
+
+  /// Class constructor
+  const OcptResourcesAssetRemovedEvent({required this.assetId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, assetId];
 }
 
 /// Toggles the visibility of the left (list) dock.

@@ -3,17 +3,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
@@ -22,10 +26,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: a
 /// person's discrete fields (colour, birth date, transport autonomy, image rights status/date)
 /// and every sub-list (positions, skills, unavailabilities) write straight to the project database
-/// the moment they change, and so do a role's cast member and kind. [pendingFieldEdits] and
-/// [pendingRoleFieldEdits] are the exception — the person sheet's and the role sheet's typed
-/// free-text fields each go through the same 2 s autosave debounce, mirroring
-/// `OcptShotListState.pendingFieldEdits`.
+/// the moment they change, and so do a role's cast member and kind, a location's colour, permit
+/// status and date, and every scene ↔ set link. The four `pending…FieldEdits` maps are the
+/// exception — the typed free-text fields of the person, role, location and set sheets all go
+/// through the same 2 s autosave debounce, mirroring `OcptShotListState.pendingFieldEdits`.
 class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     with MixinOcptProjectVersionsState<OcptResourcesState> {
   /// Whether the resources catalogue is still being loaded from the project database.
@@ -49,6 +53,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
 
   /// The id of the role currently selected, whose sheet the centre shows, or null while none is.
   final String? selectedRoleId;
+
+  /// The id of the location currently selected, whose sheet the centre shows, or null while none
+  /// is.
+  final String? selectedLocationId;
 
   /// Whether the left (list) dock is shown.
   final bool isListPanelVisible;
@@ -92,6 +100,21 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// comment): a role's typed name or casting notes and a person's typed fields are flushed
   /// together, never one without the other.
   final Map<(String, OcptRoleField), String> pendingRoleFieldEdits;
+
+  /// Every location field edit currently sitting in the field-edit autosave debounce, keyed by the
+  /// location id and the field, holding the raw text last typed for it.
+  ///
+  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
+  /// comment).
+  final Map<(String, OcptLocationField), String> pendingLocationFieldEdits;
+
+  /// Every set field edit currently sitting in the field-edit autosave debounce, keyed by the
+  /// **set** id and the field, holding the raw text last typed for it.
+  ///
+  /// Keyed by the set rather than by the location holding it: a location sheet shows every one of
+  /// its sets at once, each with its own code, name and notes, so two sets being typed into are two
+  /// pending edits (see `OcptSetField`). Rides the same debounce timer as [pendingFieldEdits].
+  final Map<(String, OcptSetField), String> pendingSetFieldEdits;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -176,6 +199,30 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return OcptRemovedRoleAlert.of(selectedRole);
   }
 
+  /// Every location of [snapshot], in display order (empty while nothing is loaded).
+  List<OcptLocation> get locations => snapshot?.locations ?? const [];
+
+  /// The location [selectedLocationId] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
+  OcptLocation? get selectedLocation {
+    final selectedLocationId = this.selectedLocationId;
+    if (selectedLocationId == null) {
+      return null;
+    }
+
+    for (final location in locations) {
+      if (location.id == selectedLocationId) {
+        return location;
+      }
+    }
+
+    return null;
+  }
+
+  /// Every scene of the project's primary screenplay, in source order (empty while nothing is
+  /// loaded): what a set's scenes are picked from.
+  List<OcptSceneRef> get scenes => snapshot?.scenes ?? const [];
+
   /// `snapshot.peopleCount`, the status bar's first counter.
   int get peopleCount => snapshot?.peopleCount ?? 0;
 
@@ -199,6 +246,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.activeTab,
     required this.selectedPersonId,
     required this.selectedRoleId,
+    required this.selectedLocationId,
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.leftDockFraction,
@@ -206,6 +254,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.hasWriteError,
     required this.pendingFieldEdits,
     required this.pendingRoleFieldEdits,
+    required this.pendingLocationFieldEdits,
+    required this.pendingSetFieldEdits,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -223,6 +273,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       activeTab = OcptResourcesTab.people,
       selectedPersonId = null,
       selectedRoleId = null,
+      selectedLocationId = null,
       isListPanelVisible = true,
       rightDockTab = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
@@ -230,6 +281,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       hasWriteError = false,
       pendingFieldEdits = const {},
       pendingRoleFieldEdits = const {},
+      pendingLocationFieldEdits = const {},
+      pendingSetFieldEdits = const {},
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -241,8 +294,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedPersonId], [selectedRoleId] and [rightDockTab] all
-  /// legitimately go back to null while the mode is alive (nothing selected any more, the dock
+  /// so it needs no clear flag. [selectedPersonId], [selectedRoleId], [selectedLocationId] and
+  /// [rightDockTab] all legitimately go back to null while the mode is alive (nothing selected any more, the dock
   /// closed), so each has its own clear flag instead.
   @override
   OcptResourcesState copyWith({
@@ -254,6 +307,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool clearSelectedPersonId = false,
     String? selectedRoleId,
     bool clearSelectedRoleId = false,
+    String? selectedLocationId,
+    bool clearSelectedLocationId = false,
     bool? isListPanelVisible,
     OcptResourcesRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -262,6 +317,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool? hasWriteError,
     Map<(String, OcptPersonField), String>? pendingFieldEdits,
     Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
+    Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
+    Map<(String, OcptSetField), String>? pendingSetFieldEdits,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
@@ -282,6 +339,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     activeTab: activeTab ?? this.activeTab,
     selectedPersonId: clearSelectedPersonId ? null : (selectedPersonId ?? this.selectedPersonId),
     selectedRoleId: clearSelectedRoleId ? null : (selectedRoleId ?? this.selectedRoleId),
+    selectedLocationId: clearSelectedLocationId
+        ? null
+        : (selectedLocationId ?? this.selectedLocationId),
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
@@ -289,6 +349,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     hasWriteError: hasWriteError ?? this.hasWriteError,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
+    pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
+    pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId
         ? null
@@ -350,6 +412,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     activeTab,
     selectedPersonId,
     selectedRoleId,
+    selectedLocationId,
     isListPanelVisible,
     rightDockTab,
     leftDockFraction,
@@ -357,5 +420,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     hasWriteError,
     pendingFieldEdits,
     pendingRoleFieldEdits,
+    pendingLocationFieldEdits,
+    pendingSetFieldEdits,
   ];
 }
