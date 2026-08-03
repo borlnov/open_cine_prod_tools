@@ -949,6 +949,63 @@ void main() {
         expect(erasures.map((row) => row.personId), contains("person-1"));
       },
     );
+
+    test("previewing a version captured before an erasure shows nothing of the person", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(
+              id: "person-1",
+              firstName: const Value("Clara"),
+              lastName: const Value("Martin"),
+              email: const Value("clara@example.com"),
+              phone: const Value("0102030405"),
+              allergies: const Value("Arachides"),
+            ),
+          );
+      await database
+          .into(database.ocptPersonSkillsTable)
+          .insert(
+            OcptPersonSkillsTableCompanion.insert(
+              id: "skill-1",
+              personId: "person-1",
+              label: const Value("Permis B"),
+            ),
+          );
+
+      final version = await createVersion();
+      await peopleService.deletePerson(database: database, personId: "person-1");
+
+      // A preview reads the very same payload a restore does, and hydrates it into the database
+      // every mode draws its sheets from: scrubbing only the restore would put an erased person's
+      // contact details and allergies back on screen, one click away, for as long as the version
+      // lives.
+      final payload = (await service.loadPayload(database: database, id: version.id)).value!;
+
+      final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(previewDatabase.close);
+      await service.hydratePreview(
+        database: previewDatabase,
+        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+        payload: payload,
+      );
+
+      final person = await (previewDatabase.select(
+        previewDatabase.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-1"))).getSingle();
+      expect(person.isDeleted, isTrue);
+      expect(person.firstName, isEmpty);
+      expect(person.lastName, isEmpty);
+      expect(person.email, isEmpty);
+      expect(person.phone, isEmpty);
+      expect(person.allergies, isEmpty);
+
+      final skill = await (previewDatabase.select(
+        previewDatabase.ocptPersonSkillsTable,
+      )..where((table) => table.id.equals("skill-1"))).getSingle();
+      expect(skill.isDeleted, isTrue);
+      expect(skill.label, isEmpty);
+    });
   });
 
   group("renameVersion", () {

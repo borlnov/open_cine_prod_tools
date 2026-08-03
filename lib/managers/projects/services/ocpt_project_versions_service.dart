@@ -252,6 +252,16 @@ class OcptProjectVersionsService {
   /// that need the state itself rather than the card: entering a version's preview, and restoring
   /// it. Every failure comes back as a status — a version whose payload can't be read is a version
   /// the user must be told about, never an exception thrown at whichever screen asked.
+  ///
+  /// **This is also where an erased person is scrubbed back out** ([_scrubErasedPeople]), and being
+  /// the single door both operations come through is the whole reason it belongs here rather than
+  /// in the restore alone. §4.9's answer to "a version captured before an erasure still holds that
+  /// person's row, forever" is to scrub **on decode**, not on disk: the stored text stays
+  /// byte-identical, and no reader of it ever sees the person again. A preview is a reader — it
+  /// hydrates the payload into a database the modes draw every sheet from — so a scrub that only
+  /// guarded the restore would put the phone number, the address and the allergies of somebody who
+  /// asked to be removed straight back on screen, one click away, for as long as the version
+  /// exists.
   Future<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>> loadPayload({
     required OcptProjectDatabase database,
     required String id,
@@ -265,7 +275,16 @@ class OcptProjectVersionsService {
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     }
 
-    return _codec.decode(row.payload);
+    final decoded = _codec.decode(row.payload);
+    final payload = decoded.value;
+    if (payload == null) {
+      return decoded;
+    }
+
+    return ResultWithStatus(
+      status: decoded.status,
+      value: await _scrubErasedPeople(database: database, payload: payload),
+    );
   }
 
   /// Writes [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
@@ -571,27 +590,25 @@ class OcptProjectVersionsService {
   /// checked at the transaction's commit, by which point every table above has been written in
   /// full.
   ///
-  /// [payload] is scrubbed of every erased person before any of this runs — see
-  /// [_scrubErasedPeople] — so an erasure survives a restore of a version captured before it.
+  /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
+  /// for every reader of a payload alike — see [_scrubErasedPeople].
   Future<void> _applyPayload({
     required OcptProjectDatabase database,
     required OcptProjectVersionPayload payload,
     required String deviceId,
   }) async {
-    final scrubbedPayload = await _scrubErasedPeople(database: database, payload: payload);
-
     final stamps = await _OcptRestoreStamps.of(
       database: database,
-      payload: scrubbedPayload,
+      payload: payload,
       deviceId: deviceId,
     );
 
-    await _snapshotScreenplaysAboutToChange(database: database, payload: scrubbedPayload);
+    await _snapshotScreenplaysAboutToChange(database: database, payload: payload);
 
     await _restoreTable(
       database: database,
       table: database.ocptScreenplaysTable,
-      payloadRows: scrubbedPayload.screenplays,
+      payloadRows: payload.screenplays,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -600,7 +617,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptScenesTable,
-      payloadRows: scrubbedPayload.scenes,
+      payloadRows: payload.scenes,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: null,
@@ -609,7 +626,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptShotsTable,
-      payloadRows: scrubbedPayload.shots,
+      payloadRows: payload.shots,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -618,7 +635,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptShotCharactersTable,
-      payloadRows: scrubbedPayload.shotCharacters,
+      payloadRows: payload.shotCharacters,
       rowIdOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -627,7 +644,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptShotCoveragesTable,
-      payloadRows: scrubbedPayload.shotCoverages,
+      payloadRows: payload.shotCoverages,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -636,7 +653,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptPeopleTable,
-      payloadRows: scrubbedPayload.people,
+      payloadRows: payload.people,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -645,7 +662,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptPersonPositionsTable,
-      payloadRows: scrubbedPayload.personPositions,
+      payloadRows: payload.personPositions,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -654,7 +671,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptPersonSkillsTable,
-      payloadRows: scrubbedPayload.personSkills,
+      payloadRows: payload.personSkills,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -663,7 +680,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptPersonUnavailabilitiesTable,
-      payloadRows: scrubbedPayload.personUnavailabilities,
+      payloadRows: payload.personUnavailabilities,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -672,7 +689,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptRolesTable,
-      payloadRows: scrubbedPayload.roles,
+      payloadRows: payload.roles,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -681,7 +698,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptLocationsTable,
-      payloadRows: scrubbedPayload.locations,
+      payloadRows: payload.locations,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -690,7 +707,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptSetsTable,
-      payloadRows: scrubbedPayload.sets,
+      payloadRows: payload.sets,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -699,7 +716,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptSceneSetsTable,
-      payloadRows: scrubbedPayload.sceneSets,
+      payloadRows: payload.sceneSets,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -708,7 +725,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptElementsTable,
-      payloadRows: scrubbedPayload.elements,
+      payloadRows: payload.elements,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -717,7 +734,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptSceneElementsTable,
-      payloadRows: scrubbedPayload.sceneElements,
+      payloadRows: payload.sceneElements,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -726,7 +743,7 @@ class OcptProjectVersionsService {
     await _restoreTable(
       database: database,
       table: database.ocptAssetsTable,
-      payloadRows: scrubbedPayload.assets,
+      payloadRows: payload.assets,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -737,7 +754,9 @@ class OcptProjectVersionsService {
 
   /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
   /// `person_unavailabilities` rows hanging off them — for every person `local_erasures` names in
-  /// [database], so [_applyPayload] can never write an erased person back.
+  /// [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
+  /// writing one back into the working copy, nor [hydratePreview] putting one on screen. [loadPayload]
+  /// is the single door both come through, which is why the scrub lives there.
   ///
   /// A version is captured before knowing about an erasure made later, so its stored payload still
   /// holds that person's personal data verbatim, forever: a version is never rewritten once
