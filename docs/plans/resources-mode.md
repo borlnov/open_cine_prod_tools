@@ -689,8 +689,39 @@ dashed "drop a file here" outline the person sheet and the photo grid both wear.
 
 ### M5 — Elements
 
-The elements board grouped by category, the tracking flags, owner and bringer resolved against the
-address book, and the `scene_elements` chip editor.
+The elements catalogue, grouped by category in the left dock, the tracking flags, owner and bringer
+resolved against the address book, and the `scene_elements` editor.
+
+The mock-up's elements tab is a **board of the whole catalogue** in the centre, and nothing on it
+can be changed; everything this milestone owes is a change. So the grouping stays where a list
+belongs — `OcptElementsList` in the left dock, one heading per category, the empty categories left
+out — and the centre becomes the mode's fourth sheet (`OcptElementSheet`), exactly as the roles tab
+turned the mock-up's own table into `OcptRoleSheet` and for the same reason. A board *and* a list
+would have shown the same thing twice.
+
+A row of the list ends on how far along the item is (`ocptElementTrackingLabel` /
+`ocptElementTrackingColor`, read off the three flags, the last one ticked winning), the elements'
+answer to a location's permit status: what is scanned for in a list of forty. `elements.cost` is
+typed as money and stored as cents through `ocptCostCentsOf`/`ocptCostTextOf`
+(`lib/utils/ocpt_cost_amount.dart`), which accept both decimal separators and read what is not an
+amount as **no** amount — the same remark-never-a-gate trade as the email field and the
+coordinates.
+
+A `scene_elements` link is a **row rather than a chip**, unlike a set's own scenes: it carries a
+quantity and a note for that scene alone ("2 verres, dont un cassé" is a fact about scene 12, not
+about the glasses), so the row debounces its own two fields locally and reports the whole link,
+exactly as an unavailability's row does. `OcptElementsService.addSceneElement` revives a dropped
+link rather than duplicating it, mirroring `assignSceneToSet`. No suggestion is offered:
+a heading names a place, which is what a *set* is matched against, and nothing in
+`INT. CUISINE - NUIT` says a bicycle is needed there.
+
+`elements.photoAssetId` stays unwired, deliberately: `OcptLocationsService` is still the only
+service that writes `assets` rows, and giving the elements service that ability is M6's or a step
+of its own.
+
+The person picker four sheets now ask with (a role's cast member, a location's contact, an
+element's owner and its bringer) is one widget, `OcptResourcesPersonPicker`; so is how a scene
+reads on a chip (`ocptSceneRefLabel`) and the notes card (`OcptResourcesNotesCard`).
 
 ### M6 — Export and polish
 
