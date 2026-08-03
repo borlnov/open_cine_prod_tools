@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
@@ -11,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -57,6 +59,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// The id of the location currently selected, whose sheet the centre shows, or null while none
   /// is.
   final String? selectedLocationId;
+
+  /// The id of the element currently selected, whose sheet the centre shows, or null while none is.
+  final String? selectedElementId;
 
   /// Whether the left (list) dock is shown.
   final bool isListPanelVisible;
@@ -115,6 +120,13 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// its sets at once, each with its own code, name and notes, so two sets being typed into are two
   /// pending edits (see `OcptSetField`). Rides the same debounce timer as [pendingFieldEdits].
   final Map<(String, OcptSetField), String> pendingSetFieldEdits;
+
+  /// Every element field edit currently sitting in the field-edit autosave debounce, keyed by the
+  /// element id and the field, holding the raw text last typed for it.
+  ///
+  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
+  /// comment).
+  final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -219,8 +231,29 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
+  /// Every element of [snapshot], in display order (empty while nothing is loaded).
+  List<OcptElement> get elements => snapshot?.elements ?? const [];
+
+  /// The element [selectedElementId] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
+  OcptElement? get selectedElement {
+    final selectedElementId = this.selectedElementId;
+    if (selectedElementId == null) {
+      return null;
+    }
+
+    for (final element in elements) {
+      if (element.id == selectedElementId) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
   /// Every scene of the project's primary screenplay, in source order (empty while nothing is
-  /// loaded): what a set's scenes are picked from.
+  /// loaded): what a set's scenes are picked from, and what an element's own scenes are picked
+  /// from.
   List<OcptSceneRef> get scenes => snapshot?.scenes ?? const [];
 
   /// `snapshot.peopleCount`, the status bar's first counter.
@@ -247,6 +280,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.selectedPersonId,
     required this.selectedRoleId,
     required this.selectedLocationId,
+    required this.selectedElementId,
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.leftDockFraction,
@@ -256,6 +290,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.pendingRoleFieldEdits,
     required this.pendingLocationFieldEdits,
     required this.pendingSetFieldEdits,
+    required this.pendingElementFieldEdits,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -274,6 +309,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       selectedPersonId = null,
       selectedRoleId = null,
       selectedLocationId = null,
+      selectedElementId = null,
       isListPanelVisible = true,
       rightDockTab = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
@@ -283,6 +319,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       pendingRoleFieldEdits = const {},
       pendingLocationFieldEdits = const {},
       pendingSetFieldEdits = const {},
+      pendingElementFieldEdits = const {},
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -294,9 +331,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedPersonId], [selectedRoleId], [selectedLocationId] and
-  /// [rightDockTab] all legitimately go back to null while the mode is alive (nothing selected any more, the dock
-  /// closed), so each has its own clear flag instead.
+  /// so it needs no clear flag. [selectedPersonId], [selectedRoleId], [selectedLocationId],
+  /// [selectedElementId] and [rightDockTab] all legitimately go back to null while the mode is alive
+  /// (nothing selected any more, the dock closed), so each has its own clear flag instead.
   @override
   OcptResourcesState copyWith({
     bool? isLoading,
@@ -309,6 +346,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool clearSelectedRoleId = false,
     String? selectedLocationId,
     bool clearSelectedLocationId = false,
+    String? selectedElementId,
+    bool clearSelectedElementId = false,
     bool? isListPanelVisible,
     OcptResourcesRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -319,6 +358,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
     Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
     Map<(String, OcptSetField), String>? pendingSetFieldEdits,
+    Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
@@ -342,6 +382,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     selectedLocationId: clearSelectedLocationId
         ? null
         : (selectedLocationId ?? this.selectedLocationId),
+    selectedElementId: clearSelectedElementId
+        ? null
+        : (selectedElementId ?? this.selectedElementId),
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
@@ -351,6 +394,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
     pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
     pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
+    pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId
         ? null
@@ -413,6 +457,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     selectedPersonId,
     selectedRoleId,
     selectedLocationId,
+    selectedElementId,
     isListPanelVisible,
     rightDockTab,
     leftDockFraction,
@@ -422,5 +467,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingRoleFieldEdits,
     pendingLocationFieldEdits,
     pendingSetFieldEdits,
+    pendingElementFieldEdits,
   ];
 }

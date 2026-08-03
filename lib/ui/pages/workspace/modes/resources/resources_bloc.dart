@@ -21,6 +21,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
@@ -32,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -42,23 +46,24 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// `OcptShotListBloc` builds its own snapshot with — and holds the active tab, the selected person,
 /// the dock geometry and the pending field edits on top of it.
 ///
-/// This milestone gives [OcptResourcesTab.people], [OcptResourcesTab.roles] and
-/// [OcptResourcesTab.locations] real content: [OcptResourcesTab.elements] is read (its count
-/// already feeds the status bar) but nothing here yet creates, edits or deletes an element.
+/// Every one of the four [OcptResourcesTab]s now has real content: the address book, the cast
+/// reconciled against the screenplay, the locations with their sets, and the elements catalogue with
+/// the dépouillement links onto the scenes needing each item.
 ///
 /// Most of a person's discrete fields (colour, birth date, transport autonomy, image rights status
 /// and date), every sub-list (positions, skills, unavailabilities), a role's cast member and kind,
-/// and a location's colour, permit status and date, contact, sets, scene links and referenced files
-/// are written to the project database the moment they change, exactly like a shot's difficulty
-/// axis or its character chips are. A role's name is never written here for an
+/// a location's colour, permit status and date, contact, sets, scene links and referenced files, and
+/// an element's category, provenance, owner, bringer, tracking flags and scene links are written to
+/// the project database the moment they change, exactly like a shot's difficulty axis or its
+/// character chips are. A role's name is never written here for an
 /// `isFromScreenplay` role — [_roleIndexService]'s own reconciliation owns it, and would overwrite
 /// a hand-typed name right back on the next save; withholding that field is the widgets' job, not a
-/// special case here. The four sheets' typed free-text fields ([OcptPersonField], [OcptRoleField],
-/// [OcptLocationField], [OcptSetField]) are the exception: an edit is held in the matching
-/// `OcptResourcesState.pending…FieldEdits` map and written [defaultFieldEditDebounce] after the last
-/// keystroke, mirroring `OcptShotListBloc`'s own autosave convention — the four maps ride the very
-/// same debounce timer, so pending edits are always flushed together, never one kind without the
-/// others. The debounce is flushed immediately whenever the selected record, or the active tab,
+/// special case here. The sheets' typed free-text fields ([OcptPersonField], [OcptRoleField],
+/// [OcptLocationField], [OcptSetField], [OcptElementField]) are the exception: an edit is held in the
+/// matching `OcptResourcesState.pending…FieldEdits` map and written [defaultFieldEditDebounce] after
+/// the last keystroke, mirroring `OcptShotListBloc`'s own autosave convention — the five maps ride
+/// the very same debounce timer, so pending edits are always flushed together, never one kind
+/// without the others. The debounce is flushed immediately whenever the selected record, or the active tab,
 /// changes, when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's
 /// own `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending
 /// edit is never silently dropped.
@@ -202,6 +207,18 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesLocationAvailabilityAddedEvent>(_onLocationAvailabilityAdded);
     on<OcptResourcesLocationAvailabilityUpdatedEvent>(_onLocationAvailabilityUpdated);
     on<OcptResourcesLocationAvailabilityRemovedEvent>(_onLocationAvailabilityRemoved);
+    on<OcptResourcesElementSelectedEvent>(_onElementSelected);
+    on<OcptResourcesElementCreationRequestedEvent>(_onElementCreationRequested);
+    on<OcptResourcesElementDeletionRequestedEvent>(_onElementDeletionRequested);
+    on<OcptResourcesElementFieldChangedEvent>(_onElementFieldChanged);
+    on<OcptResourcesElementCategoryChangedEvent>(_onElementCategoryChanged);
+    on<OcptResourcesElementSourceKindChangedEvent>(_onElementSourceKindChanged);
+    on<OcptResourcesElementOwnerChangedEvent>(_onElementOwnerChanged);
+    on<OcptResourcesElementBringerChangedEvent>(_onElementBringerChanged);
+    on<OcptResourcesElementTrackingFlagChangedEvent>(_onElementTrackingFlagChanged);
+    on<OcptResourcesSceneAssignedToElementEvent>(_onSceneAssignedToElement);
+    on<OcptResourcesSceneElementUpdatedEvent>(_onSceneElementUpdated);
+    on<OcptResourcesSceneElementRemovedEvent>(_onSceneElementRemoved);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptResourcesRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptResourcesRightDockToggledEvent>(_onRightDockToggled);
@@ -239,9 +256,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// which version is being previewed alongside the catalogue it just read: what it read comes
   /// from that very version's in-memory database, and the two must reach the mode together (see
   /// the hook's own doc comment). The selected person and the selected role are always cleared on a
-  /// (re)load, mirroring `OcptShotListBloc`'s own selection reset: a preview or a restore changes
-  /// the whole database underneath, so a stale selection is dropped rather than trusted to still
-  /// mean the same thing.
+  /// (re)load, and so are the selected location and element, mirroring `OcptShotListBloc`'s own
+  /// selection reset: a preview or a restore changes the whole database underneath, so a stale
+  /// selection is dropped rather than trusted to still mean the same thing.
   Future<void> _onLoadRequested(
     OcptResourcesLoadRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -279,6 +296,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         clearSelectedPersonId: true,
         clearSelectedRoleId: true,
         clearSelectedLocationId: true,
+        clearSelectedElementId: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
       ),
@@ -322,7 +340,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _routerManager.pop();
   }
 
-  /// Selects tab `event.tab`, clearing the selected person and role when it actually changes tab.
+  /// Selects tab `event.tab`, clearing every selected record when it actually changes tab.
   ///
   /// Flushes any pending field edit first, so switching tabs right after typing never loses it.
   Future<void> _onTabSelected(
@@ -339,6 +357,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         clearSelectedPersonId: !isSameTab,
         clearSelectedRoleId: !isSameTab,
         clearSelectedLocationId: !isSameTab,
+        clearSelectedElementId: !isSameTab,
       ),
     );
   }
@@ -427,6 +446,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: state.pendingSetFieldEdits,
+      pendingElementEdits: state.pendingElementFieldEdits,
     );
 
     final wasSelected = state.selectedPersonId == event.personId;
@@ -492,18 +512,20 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// more.
   ///
   /// Every handler that drops a record also drops the pending edits that targeted it, and the
-  /// timer is shared by all four maps: cancelling it on the strength of one map having emptied
-  /// would strand whatever the other three still hold until the next keystroke.
+  /// timer is shared by all five maps: cancelling it on the strength of one map having emptied
+  /// would strand whatever the other four still hold until the next keystroke.
   void _cancelFieldEditTimerIfIdle({
     required Map<(String, OcptPersonField), String> pendingPersonEdits,
     required Map<(String, OcptRoleField), String> pendingRoleEdits,
     required Map<(String, OcptLocationField), String> pendingLocationEdits,
     required Map<(String, OcptSetField), String> pendingSetEdits,
+    required Map<(String, OcptElementField), String> pendingElementEdits,
   }) {
     if (pendingPersonEdits.isEmpty &&
         pendingRoleEdits.isEmpty &&
         pendingLocationEdits.isEmpty &&
-        pendingSetEdits.isEmpty) {
+        pendingSetEdits.isEmpty &&
+        pendingElementEdits.isEmpty) {
       _fieldEditTimer?.cancel();
       _fieldEditTimer = null;
     }
@@ -517,14 +539,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
   /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it
   /// already fired or there was none), writes every person field edit through
-  /// `OcptPeopleService.updatePerson` and every role field edit through
-  /// `OcptRoleIndexService.updateRole`, then reloads the snapshot so every derived aggregate
-  /// reflects what the database now says. A no-op while nothing of either kind is pending.
+  /// each sheet's own service — `OcptPeopleService.updatePerson`, `OcptRoleIndexService.updateRole`,
+  /// `OcptLocationsService.updateLocation`/`.updateSet` and `OcptElementsService.updateElement` —
+  /// then reloads the snapshot so every derived aggregate reflects what the database now says. A
+  /// no-op while nothing of any kind is pending.
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
   /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that
-  /// changes what person, role or tab is selected, or that leaves the workspace, so a pending edit
-  /// is never silently dropped by a selection change. [flushPendingFieldEdits] is the sibling of
+  /// changes which record, or which tab, is selected, or that leaves the workspace, so a pending
+  /// edit is never silently dropped by a selection change. [flushPendingFieldEdits] is the sibling of
   /// this method used outside of an event handler.
   Future<void> _flushPendingFieldEdits(Emitter<OcptResourcesState> emitter) async {
     _fieldEditTimer?.cancel();
@@ -534,10 +557,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingRoleEdits = state.pendingRoleFieldEdits;
     final pendingLocationEdits = state.pendingLocationFieldEdits;
     final pendingSetEdits = state.pendingSetFieldEdits;
+    final pendingElementEdits = state.pendingElementFieldEdits;
     if (pendingPersonEdits.isEmpty &&
         pendingRoleEdits.isEmpty &&
         pendingLocationEdits.isEmpty &&
-        pendingSetEdits.isEmpty) {
+        pendingSetEdits.isEmpty &&
+        pendingElementEdits.isEmpty) {
       return;
     }
 
@@ -548,6 +573,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         pendingRoleFieldEdits: const {},
         pendingLocationFieldEdits: const {},
         pendingSetFieldEdits: const {},
+        pendingElementFieldEdits: const {},
       ));
       return;
     }
@@ -560,6 +586,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
+      await _writeAllPendingElementFields(
+        database: project.database,
+        pending: pendingElementEdits,
+      );
       final snapshot = await _loadSnapshot(project);
       emitter(
         state.copyWith(
@@ -568,6 +598,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           pendingRoleFieldEdits: const {},
           pendingLocationFieldEdits: const {},
           pendingSetFieldEdits: const {},
+          pendingElementFieldEdits: const {},
         ),
       );
 
@@ -586,6 +617,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           pendingRoleFieldEdits: const {},
           pendingLocationFieldEdits: const {},
           pendingSetFieldEdits: const {},
+          pendingElementFieldEdits: const {},
         ),
       );
     }
@@ -612,10 +644,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingRoleEdits = state.pendingRoleFieldEdits;
     final pendingLocationEdits = state.pendingLocationFieldEdits;
     final pendingSetEdits = state.pendingSetFieldEdits;
+    final pendingElementEdits = state.pendingElementFieldEdits;
     if (pendingPersonEdits.isEmpty &&
         pendingRoleEdits.isEmpty &&
         pendingLocationEdits.isEmpty &&
-        pendingSetEdits.isEmpty) {
+        pendingSetEdits.isEmpty &&
+        pendingElementEdits.isEmpty) {
       return;
     }
 
@@ -632,6 +666,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
+      await _writeAllPendingElementFields(
+        database: project.database,
+        pending: pendingElementEdits,
+      );
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending resources field edit of "
           "the project at ${project.path}: $error");
@@ -1016,6 +1054,94 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
   }
 
+  /// Writes every entry of [pending] through [_writeElementField].
+  Future<void> _writeAllPendingElementFields({
+    required OcptProjectDatabase database,
+    required Map<(String, OcptElementField), String> pending,
+  }) async {
+    for (final entry in pending.entries) {
+      final (elementId, field) = entry.key;
+      await _writeElementField(
+        database: database,
+        elementId: elementId,
+        field: field,
+        rawValue: entry.value,
+      );
+    }
+  }
+
+  /// Writes a single element field edit through `OcptElementsService.updateElement`, translating
+  /// [field] into the matching named argument (see `OcptElementField`'s own doc comment for the
+  /// mapping).
+  ///
+  /// The cost is the only one not written as typed: what cannot be read as an amount of money is
+  /// written as null rather than refused, so a `gratuit` costs nothing and a cleared field clears
+  /// the price. Saying so is the sheet's job, not this one's — the same trade the two coordinate
+  /// fields of a location make.
+  Future<void> _writeElementField({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required OcptElementField field,
+    required String rawValue,
+  }) async {
+    switch (field) {
+      case OcptElementField.name:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          name: Value(rawValue),
+        );
+      case OcptElementField.code:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          code: Value(rawValue),
+        );
+      case OcptElementField.subCategory:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          subCategory: Value(rawValue),
+        );
+      case OcptElementField.quantity:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          quantity: Value(rawValue),
+        );
+      case OcptElementField.ownerNotes:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          ownerNotes: Value(rawValue),
+        );
+      case OcptElementField.storageNotes:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          storageNotes: Value(rawValue),
+        );
+      case OcptElementField.cost:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          cost: Value(ocptCostCentsOf(rawValue)),
+        );
+      case OcptElementField.purposeNotes:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          purposeNotes: Value(rawValue),
+        );
+      case OcptElementField.notes:
+        await _elementsService.updateElement(
+          database: database,
+          elementId: elementId,
+          notes: Value(rawValue),
+        );
+    }
+  }
+
   /// Sets person `event.personId`'s avatar colour index, written immediately.
   Future<void> _onPersonColorChanged(
     OcptResourcesPersonColorChangedEvent event,
@@ -1325,6 +1451,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       pendingRoleEdits: pendingWithoutRole,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: state.pendingSetFieldEdits,
+      pendingElementEdits: state.pendingElementFieldEdits,
     );
 
     final wasSelected = state.selectedRoleId == event.roleId;
@@ -1376,6 +1503,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         selectedPersonId: event.personId,
         clearSelectedRoleId: true,
         clearSelectedLocationId: true,
+        clearSelectedElementId: true,
       ),
     );
   }
@@ -1471,6 +1599,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: pendingWithoutLocation,
       pendingSetEdits: pendingWithoutSets,
+      pendingElementEdits: state.pendingElementFieldEdits,
     );
 
     final wasSelected = state.selectedLocationId == event.locationId;
@@ -1608,6 +1737,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: pendingWithoutSet,
+      pendingElementEdits: state.pendingElementFieldEdits,
     );
 
     emitter(state.copyWith(pendingSetFieldEdits: pendingWithoutSet));
@@ -1813,9 +1943,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     return file.path.isEmpty ? null : file.path;
   }
 
-  /// Writes a discrete change to the catalogue (a person's field, position, skill or
-  /// unavailability, or a role's cast member or kind) through [action] and reloads the snapshot, so
-  /// every derived aggregate (a person's positions summary, the status bar's position count)
+  /// Writes a discrete change to the catalogue — a person's field, position, skill or
+  /// unavailability, a role's cast member or kind, a location's own picks, an element's category,
+  /// provenance, owner, bringer, tracking flags or scene links — through [action] and reloads the
+  /// snapshot, so every derived aggregate (a person's positions summary, the status bar's counts)
   /// reflects what the database now says. Mirrors `OcptShotListBloc`'s own `_writeCoverageChange`
   /// shape, shared by every discrete field, position, skill, unavailability and role write of this
   /// bloc. A no-op while no project is open.
@@ -1838,6 +1969,244 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       emitter(state.copyWith(hasWriteError: true));
     }
   }
+
+  /// Selects element `event.elementId`.
+  ///
+  /// Flushes any pending field edit first, so switching elements right after typing never loses it.
+  /// An element id that no longer exists in the current snapshot (a stale click on a list rebuilt
+  /// underneath) is ignored rather than selecting nothing, mirroring [_onPersonSelected].
+  Future<void> _onElementSelected(
+    OcptResourcesElementSelectedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final exists = state.elements.any((element) => element.id == event.elementId);
+    if (!exists) {
+      return;
+    }
+
+    emitter(state.copyWith(selectedElementId: event.elementId));
+  }
+
+  /// Creates a new, blank element of `event.category` at the end of the catalogue, reloads it and
+  /// selects the new element so it can be named straight away.
+  ///
+  /// Unlike a person or a location, it is given no colour of its own: an element is told apart in a
+  /// list by the category heading it sits under and by its code, and the palette is what a person,
+  /// a location and a shot already share.
+  Future<void> _onElementCreationRequested(
+    OcptResourcesElementCreationRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final elementId = await _elementsService.createElement(
+        database: project.database,
+        name: "",
+        category: event.category,
+        sourceKind: OcptElementSourceKind.owned,
+      );
+      if (elementId == null) {
+        // The write was refused (a version is being previewed read-only); the shell already
+        // withholds the button that dispatches this event, so this is only ever a race.
+        return;
+      }
+
+      final snapshot = await _loadSnapshot(project);
+      emitter(state.copyWith(snapshot: snapshot, selectedElementId: elementId));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to create an element in the project at "
+          "${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Deletes element `event.elementId`, clearing the selection when it was the selected one, and
+  /// dropping any pending field edit that still targeted it.
+  Future<void> _onElementDeletionRequested(
+    OcptResourcesElementDeletionRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final pendingWithoutElement = Map<(String, OcptElementField), String>.of(
+      state.pendingElementFieldEdits,
+    )..removeWhere((key, _) => key.$1 == event.elementId);
+    _cancelFieldEditTimerIfIdle(
+      pendingPersonEdits: state.pendingFieldEdits,
+      pendingRoleEdits: state.pendingRoleFieldEdits,
+      pendingLocationEdits: state.pendingLocationFieldEdits,
+      pendingSetEdits: state.pendingSetFieldEdits,
+      pendingElementEdits: pendingWithoutElement,
+    );
+
+    final wasSelected = state.selectedElementId == event.elementId;
+
+    try {
+      await _elementsService.deleteElement(database: project.database, elementId: event.elementId);
+      final snapshot = await _loadSnapshot(project);
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          pendingElementFieldEdits: pendingWithoutElement,
+          clearSelectedElementId: wasSelected,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to delete element ${event.elementId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Records the raw text just typed into `event.field` of element `event.elementId` as a pending
+  /// edit, visible immediately, and (re)starts the same field-edit debounce every other typed field
+  /// of the mode rides.
+  Future<void> _onElementFieldChanged(
+    OcptResourcesElementFieldChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final pending = Map<(String, OcptElementField), String>.of(state.pendingElementFieldEdits)
+      ..[(event.elementId, event.field)] = event.rawValue;
+    emitter(state.copyWith(pendingElementFieldEdits: pending));
+
+    _restartFieldEditTimer();
+  }
+
+  /// Sets element `event.elementId`'s category, written immediately.
+  Future<void> _onElementCategoryChanged(
+    OcptResourcesElementCategoryChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the category of element ${event.elementId}",
+    action: (project) => _elementsService.updateElement(
+      database: project.database,
+      elementId: event.elementId,
+      category: Value(event.category),
+    ),
+  );
+
+  /// Sets where element `event.elementId` comes from, written immediately.
+  Future<void> _onElementSourceKindChanged(
+    OcptResourcesElementSourceKindChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the provenance of element ${event.elementId}",
+    action: (project) => _elementsService.updateElement(
+      database: project.database,
+      elementId: event.elementId,
+      sourceKind: Value(event.sourceKind),
+    ),
+  );
+
+  /// Sets who owns element `event.elementId`, written immediately.
+  Future<void> _onElementOwnerChanged(
+    OcptResourcesElementOwnerChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the owner of element ${event.elementId}",
+    action: (project) => _elementsService.updateElement(
+      database: project.database,
+      elementId: event.elementId,
+      ownerPersonId: Value(event.personId),
+    ),
+  );
+
+  /// Sets who brings element `event.elementId` to set, written immediately.
+  Future<void> _onElementBringerChanged(
+    OcptResourcesElementBringerChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change who brings element ${event.elementId}",
+    action: (project) => _elementsService.updateElement(
+      database: project.database,
+      elementId: event.elementId,
+      broughtByPersonId: Value(event.personId),
+    ),
+  );
+
+  /// Ticks or unticks one of element `event.elementId`'s three tracking flags, written immediately.
+  Future<void> _onElementTrackingFlagChanged(
+    OcptResourcesElementTrackingFlagChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the ${event.flag.name} flag of element ${event.elementId}",
+    action: (project) => switch (event.flag) {
+      OcptElementTrackingFlag.secured => _elementsService.updateElement(
+        database: project.database,
+        elementId: event.elementId,
+        isSecured: Value(event.value),
+      ),
+      OcptElementTrackingFlag.readyForShoot => _elementsService.updateElement(
+        database: project.database,
+        elementId: event.elementId,
+        isReadyForShoot: Value(event.value),
+      ),
+      OcptElementTrackingFlag.returned => _elementsService.updateElement(
+        database: project.database,
+        elementId: event.elementId,
+        isReturned: Value(event.value),
+      ),
+    },
+  );
+
+  /// Says element `event.elementId` is needed in scene `event.sceneId`, written immediately.
+  Future<void> _onSceneAssignedToElement(
+    OcptResourcesSceneAssignedToElementEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "assign scene ${event.sceneId} to element ${event.elementId}",
+    action: (project) async {
+      await _elementsService.addSceneElement(
+        database: project.database,
+        sceneId: event.sceneId,
+        elementId: event.elementId,
+      );
+    },
+  );
+
+  /// Updates the quantity and the notes of the scene ↔ element link `event.id`, written
+  /// immediately.
+  Future<void> _onSceneElementUpdated(
+    OcptResourcesSceneElementUpdatedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "update the scene ↔ element link ${event.id}",
+    action: (project) => _elementsService.updateSceneElement(
+      database: project.database,
+      id: event.id,
+      quantity: Value(event.quantity),
+      notes: Value(event.notes),
+    ),
+  );
+
+  /// Removes the scene ↔ element link `event.id`, written immediately.
+  Future<void> _onSceneElementRemoved(
+    OcptResourcesSceneElementRemovedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "remove the scene ↔ element link ${event.id}",
+    action: (project) =>
+        _elementsService.removeSceneElement(database: project.database, id: event.id),
+  );
 
   /// Toggles the left (list) dock's visibility.
   Future<void> _onLeftPanelToggled(

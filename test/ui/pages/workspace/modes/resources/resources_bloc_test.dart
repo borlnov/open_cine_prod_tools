@@ -12,6 +12,11 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -644,6 +649,202 @@ void main() {
     final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
 
     expect(state.selectedLocationId, isNull);
+
+    await bloc.close();
+  });
+  test("creating an element appends it in its own category and selects it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.vehicle),
+    );
+    final state = await waitForState(bloc, (state) => state.elementCount == 1);
+
+    expect(state.selectedElementId, state.elements.single.id);
+    expect(state.elements.single.category, OcptElementCategory.vehicle);
+    expect(state.elements.single.sceneLinks, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("a typed element field edit is pending until the debounce writes it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+
+    bloc.add(
+      OcptResourcesElementFieldChangedEvent(
+        elementId: elementId,
+        field: OcptElementField.name,
+        rawValue: "Vélo de Léa",
+      ),
+    );
+    var state = await waitForState(
+      bloc,
+      (state) => state.pendingElementFieldEdits[(elementId, OcptElementField.name)] == "Vélo de Léa",
+    );
+    expect(state.selectedElement!.name, isEmpty);
+
+    state = await waitForState(bloc, (state) => state.selectedElement!.name == "Vélo de Léa");
+    expect(state.pendingElementFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  // The cost is typed as money and stored as cents, and what cannot be read as an amount is stored
+  // as no amount at all rather than as zero — a prop whose price is unknown is not a free one.
+  test("a typed cost is stored in cents, and what isn't an amount as no cost at all", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+
+    bloc.add(
+      OcptResourcesElementFieldChangedEvent(
+        elementId: elementId,
+        field: OcptElementField.cost,
+        rawValue: "12,50",
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedElement!.cost == 1250);
+
+    bloc.add(
+      OcptResourcesElementFieldChangedEvent(
+        elementId: elementId,
+        field: OcptElementField.cost,
+        rawValue: "gratuit",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.selectedElement!.cost == null);
+    expect(state.pendingElementFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("the provenance, the owner, the bringer and the flags all land in the database", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = withPerson.people.single.id;
+
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+
+    bloc.add(
+      OcptResourcesElementSourceKindChangedEvent(
+        elementId: elementId,
+        sourceKind: OcptElementSourceKind.borrowed,
+      ),
+    );
+    await waitForState(
+      bloc,
+      (state) => state.elements.single.sourceKind == OcptElementSourceKind.borrowed,
+    );
+
+    bloc.add(OcptResourcesElementOwnerChangedEvent(elementId: elementId, personId: personId));
+    await waitForState(bloc, (state) => state.elements.single.ownerPersonId == personId);
+
+    bloc.add(OcptResourcesElementBringerChangedEvent(elementId: elementId, personId: personId));
+    await waitForState(bloc, (state) => state.elements.single.broughtByPersonId == personId);
+
+    bloc.add(
+      OcptResourcesElementTrackingFlagChangedEvent(
+        elementId: elementId,
+        flag: OcptElementTrackingFlag.secured,
+        value: true,
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.elements.single.isSecured);
+    expect(state.elements.single.isReadyForShoot, isFalse);
+    expect(state.elements.single.isReturned, isFalse);
+
+    await bloc.close();
+  });
+
+  test("a scene is linked to an element, given its own quantity, then unlinked", () async {
+    final project = projectsManager.currentProject!;
+    await project.database
+        .into(project.database.ocptScenesTable)
+        .insert(
+          OcptScenesTableCompanion.insert(
+            id: "scene-1",
+            screenplayId: project.primaryScreenplayId,
+            position: 0,
+            heading: "INT. CUISINE - NUIT",
+            charStart: 0,
+            charEnd: 10,
+          ),
+        );
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+
+    bloc.add(
+      OcptResourcesSceneAssignedToElementEvent(sceneId: "scene-1", elementId: elementId),
+    );
+    var state = await waitForState(bloc, (state) => state.elements.single.sceneLinks.isNotEmpty);
+    final linkId = state.elements.single.sceneLinks.single.id;
+    expect(state.elements.single.sceneLinks.single.sceneId, "scene-1");
+
+    bloc.add(
+      OcptResourcesSceneElementUpdatedEvent(id: linkId, quantity: "2", notes: "Dont un cassé"),
+    );
+    state = await waitForState(
+      bloc,
+      (state) => state.elements.single.sceneLinks.single.quantity == "2",
+    );
+    expect(state.elements.single.sceneLinks.single.notes, "Dont un cassé");
+
+    bloc.add(OcptResourcesSceneElementRemovedEvent(id: linkId));
+    state = await waitForState(bloc, (state) => state.elements.single.sceneLinks.isEmpty);
+
+    await bloc.close();
+  });
+
+  test("deleting the selected element clears the selection and drops its pending edit", () async {
+    final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 30));
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+
+    bloc.add(
+      OcptResourcesElementFieldChangedEvent(
+        elementId: elementId,
+        field: OcptElementField.name,
+        rawValue: "Valise",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
+
+    bloc.add(OcptResourcesElementDeletionRequestedEvent(elementId: elementId));
+    final state = await waitForState(bloc, (state) => state.elementCount == 0);
+    expect(state.selectedElementId, isNull);
+    expect(state.pendingElementFieldEdits, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("selecting another tab clears the selected element", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.elements));
+    await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.elements);
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    await waitForState(bloc, (state) => state.selectedElementId != null);
+
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
+    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
+    expect(state.selectedElementId, isNull);
 
     await bloc.close();
   });
