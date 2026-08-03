@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_half_day.dart';
@@ -48,6 +49,22 @@ String ocptCrewPositionLabel(Tr tr, String positionId) => switch (positionId) {
   'lineProducer' => tr.resourcesCrewPositionLineProducer,
   _ => positionId,
 };
+
+/// The crew department of position [positionId] (one of `ocptCrewPositions`' ids), or null when
+/// [positionId] is empty (a free-label assignment, which belongs to no department) or names a
+/// position retired from the catalogue.
+///
+/// Used by the person sheet's positions card to show a `person_positions` row's muted department
+/// column, derived rather than stored: `ocptCrewPositions` is the one place a position's
+/// department is recorded.
+OcptCrewDepartment? ocptCrewPositionDepartmentOf(String positionId) {
+  for (final position in ocptCrewPositions) {
+    if (position.id == positionId) {
+      return position.department;
+    }
+  }
+  return null;
+}
 
 /// The display label of the crew department [department], for grouping `ocptCrewPositions` in the
 /// UI.
