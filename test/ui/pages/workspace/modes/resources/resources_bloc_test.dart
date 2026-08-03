@@ -206,6 +206,21 @@ void main() {
     await bloc.close();
   });
 
+  test("each created person gets a colour index derived from their rank", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    final first = await waitForState(bloc, (state) => state.peopleCount == 1);
+    expect(first.selectedPerson!.colorIndex, 0);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    final second = await waitForState(bloc, (state) => state.peopleCount == 2);
+    expect(second.selectedPerson!.colorIndex, 1);
+
+    await bloc.close();
+  });
+
   test("selecting a tab other than people clears the selected person", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);

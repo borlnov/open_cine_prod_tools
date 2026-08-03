@@ -297,6 +297,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
   /// Creates a new, blank person at the end of the address book, reloads the catalogue and selects
   /// the new person.
+  ///
+  /// The freshly created person is immediately given an avatar colour derived from their rank in
+  /// the address book — `state.peopleCount` read *before* the insert, so the first person is 0,
+  /// the second 1, and so on — rather than being left at `people.colorIndex`'s own table default
+  /// of 0, which would otherwise make every new person share the same avatar tint.
+  /// `OcptPerson.colorIndex` is read back through `ocptCoverageColorAt` wherever a person's avatar
+  /// is painted (`OcptPeopleList`, `OcptPersonSheet`), the same way a shot's colour is derived from
+  /// its rank within its sequence.
   Future<void> _onPersonCreationRequested(
     OcptResourcesPersonCreationRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -309,12 +317,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     try {
+      final rank = state.peopleCount;
       final personId = await _peopleService.createPerson(database: project.database);
       if (personId == null) {
         // The write was refused (a version is being previewed read-only); the shell already
         // withholds the button that dispatches this event, so this is only ever a race.
         return;
       }
+
+      await _peopleService.updatePerson(
+        database: project.database,
+        personId: personId,
+        colorIndex: Value(rank),
+      );
 
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedPersonId: personId));
