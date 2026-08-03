@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// "Meals, health, skills": [OcptPerson.dietaryNotes] and [OcptPerson.allergies] (both free text,
 /// through the sheet's own `OcptPersonField` debounce), and the skills as removable chips plus an
@@ -54,20 +54,20 @@ class OcptPersonSheetMealsHealthCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    return OcptPersonSheetCard(
+    return OcptResourcesSheetCard(
       title: tr.resourcesMealsHealthTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          OcptPersonSheetField(
-            personId: personId,
+          OcptResourcesSheetField(
+            ownerId: personId,
             label: tr.resourcesDietaryNotesLabel,
             value: fieldValueOf(OcptPersonField.dietaryNotes),
             onChanged: _onFieldChangedOrNull(OcptPersonField.dietaryNotes),
           ),
           const SizedBox(height: 10),
-          OcptPersonSheetField(
-            personId: personId,
+          OcptResourcesSheetField(
+            ownerId: personId,
             label: tr.resourcesAllergiesLabel,
             value: fieldValueOf(OcptPersonField.allergies),
             onChanged: _onFieldChangedOrNull(OcptPersonField.allergies),

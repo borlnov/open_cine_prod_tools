@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// "Logistics": whether the person can travel to set on their own (a real tri-state — unknown is
 /// itself a selectable value, not a missing one), where they stay during the shoot, and their
@@ -44,7 +44,7 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    return OcptPersonSheetCard(
+    return OcptResourcesSheetCard(
       title: tr.resourcesLogisticsTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,16 +61,16 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
             onChanged: onTransportAutonomyChanged,
           ),
           const SizedBox(height: 10),
-          OcptPersonSheetField(
-            personId: personId,
+          OcptResourcesSheetField(
+            ownerId: personId,
             label: tr.resourcesAccommodationNotesLabel,
             value: fieldValueOf(OcptPersonField.accommodationNotes),
             multiline: true,
             onChanged: _onFieldChangedOrNull(OcptPersonField.accommodationNotes),
           ),
           const SizedBox(height: 10),
-          OcptPersonSheetField(
-            personId: personId,
+          OcptResourcesSheetField(
+            ownerId: personId,
             label: tr.resourcesTravelNotesLabel,
             value: fieldValueOf(OcptPersonField.travelNotes),
             multiline: true,

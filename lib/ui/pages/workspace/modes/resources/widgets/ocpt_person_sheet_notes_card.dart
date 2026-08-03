@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// A card holding a single multi-line free-text field, with no label of its own row since the
 /// card's own title already says what it is: shared by the HMC notes card and the notes card,
@@ -33,10 +33,10 @@ class OcptPersonSheetNotesCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => OcptPersonSheetCard(
+  Widget build(BuildContext context) => OcptResourcesSheetCard(
     title: title,
-    child: OcptPersonSheetField(
-      personId: personId,
+    child: OcptResourcesSheetField(
+      ownerId: personId,
       label: "",
       value: value,
       multiline: true,

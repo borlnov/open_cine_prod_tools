@@ -4,30 +4,31 @@
 
 import 'package:flutter/material.dart';
 
-/// The number of lines a [OcptPersonSheetField.multiline] field is tall before it grows with what
-/// is typed into it.
+/// The number of lines a [OcptResourcesSheetField.multiline] field is tall before it grows with
+/// what is typed into it.
 const int _multilineMinLines = 3;
 
-/// One editable text field of the person sheet: an optional uppercase, `onSurfaceVariant` label
-/// over a themed text field, following the same idiom as the shot inspector's own
-/// `OcptShotInspectorField` without being the same widget — the two production modes stay
-/// independent of one another (see `OcptShotInspectorReadOnlyField`'s own doc comment for the same
-/// reasoning).
+/// One editable text field of a resources sheet, whichever tab's sheet it is: an optional
+/// uppercase, `onSurfaceVariant` label over a themed text field, following the same idiom as the
+/// shot inspector's own `OcptShotInspectorField` without being the same widget — the two
+/// production modes stay independent of one another (see `OcptShotInspectorReadOnlyField`'s own
+/// doc comment for the same reasoning).
 ///
 /// A field may **flag** what it holds without refusing it, through [errorTextOf]: nothing here
-/// ever blocks a write, since the sheet autosaves as it is typed.
+/// ever blocks a write, since a sheet autosaves as it is typed.
 ///
 /// [value] is the field's current authoritative value — a pending edit still sitting in
-/// `OcptResourcesState.pendingFieldEdits`, or the person's own stored value otherwise, exactly as
-/// `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The internal controller is only
-/// ever reset to it when [personId] changes (the sheet now shows a different person) or when
-/// [value] genuinely differs from what the controller already holds (an edit landed, or a reload
-/// changed the underlying data): a rebuild for an unrelated reason (another field's pending edit,
-/// a dock resize) never touches the controller, so the caret never jumps mid-typing.
-class OcptPersonSheetField extends StatefulWidget {
-  /// The id of the person this field belongs to, used only to detect a person switch (see the
-  /// class doc comment).
-  final String personId;
+/// `OcptResourcesState.pendingFieldEdits` (or `pendingRoleFieldEdits`), or the record's own stored
+/// value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The
+/// internal controller is only ever reset to it when [ownerId] changes (the sheet now shows a
+/// different record) or when [value] genuinely differs from what the controller already holds (an
+/// edit landed, or a reload changed the underlying data): a rebuild for an unrelated reason
+/// (another field's pending edit, a dock resize) never touches the controller, so the caret never
+/// jumps mid-typing.
+class OcptResourcesSheetField extends StatefulWidget {
+  /// The id of the record this field belongs to — a person on the people tab, a role on the roles
+  /// tab — used only to detect a switch from one to another (see the class doc comment).
+  final String ownerId;
 
   /// The field's label, upper-cased for display. An empty label renders no label row at all: the
   /// header's name fields use their own placeholder instead of a label.
@@ -37,8 +38,8 @@ class OcptPersonSheetField extends StatefulWidget {
   /// string for a missing value, never `ocptResourcesEmptyValue`.
   final String value;
 
-  /// Whether this field is written as several lines (the notes cards, the legal hours callout)
-  /// instead of being a single line.
+  /// Whether this field is written as several lines (the notes cards, the legal hours callout,
+  /// a role's casting notes) instead of being a single line.
   final bool multiline;
 
   /// The greyed placeholder shown while the field is empty, or null for a field whose label says
@@ -54,8 +55,8 @@ class OcptPersonSheetField extends StatefulWidget {
   /// not a gate — the value is written either way.
   final String? Function(String value)? errorTextOf;
 
-  /// The text style overriding this field's default `bodySmall`, used by the header's name fields
-  /// to read as a title rather than as an ordinary field.
+  /// The text style overriding this field's default `bodySmall`, used by a sheet header's own
+  /// name fields to read as a title rather than as an ordinary field.
   final TextStyle? textStyle;
 
   /// Called with the field's raw text on every keystroke, or null while the field may not be
@@ -64,9 +65,9 @@ class OcptPersonSheetField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
 
   /// Class constructor
-  const OcptPersonSheetField({
+  const OcptResourcesSheetField({
     super.key,
-    required this.personId,
+    required this.ownerId,
     required this.label,
     required this.value,
     this.multiline = false,
@@ -77,22 +78,23 @@ class OcptPersonSheetField extends StatefulWidget {
   });
 
   @override
-  State<OcptPersonSheetField> createState() => _OcptPersonSheetFieldState();
+  State<OcptResourcesSheetField> createState() => _OcptResourcesSheetFieldState();
 }
 
-/// The state of [OcptPersonSheetField]: owns the controller the class doc comment explains the
+/// The state of [OcptResourcesSheetField]: owns the controller the class doc comment explains the
 /// reasoning for.
-class _OcptPersonSheetFieldState extends State<OcptPersonSheetField> {
+class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
   /// The field's own text editing controller, seeded from the widget's initial value and kept in
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
-  /// The [OcptPersonSheetField.personId] the controller was last synced against, so a person
-  /// switch is detected even when the two people happen to share the same field value.
-  late String _trackedPersonId = widget.personId;
+  /// The [OcptResourcesSheetField.ownerId] the controller was last synced against, so a switch
+  /// from one record to another is detected even when the two happen to share the same field
+  /// value.
+  late String _trackedOwnerId = widget.ownerId;
 
   /// The field's own focus node, watched so the check of
-  /// [OcptPersonSheetField.errorTextOf] is only shown once typing has stopped.
+  /// [OcptResourcesSheetField.errorTextOf] is only shown once typing has stopped.
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -110,12 +112,12 @@ class _OcptPersonSheetFieldState extends State<OcptPersonSheetField> {
   }
 
   @override
-  void didUpdateWidget(covariant OcptPersonSheetField oldWidget) {
+  void didUpdateWidget(covariant OcptResourcesSheetField oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.personId != _trackedPersonId || widget.value != _controller.text) {
+    if (widget.ownerId != _trackedOwnerId || widget.value != _controller.text) {
       _controller.text = widget.value;
-      _trackedPersonId = widget.personId;
+      _trackedOwnerId = widget.ownerId;
     }
   }
 
@@ -126,7 +128,7 @@ class _OcptPersonSheetFieldState extends State<OcptPersonSheetField> {
     super.dispose();
   }
 
-  /// The message to show under the field right now: what [OcptPersonSheetField.errorTextOf] says
+  /// The message to show under the field right now: what [OcptResourcesSheetField.errorTextOf] says
   /// about the current value, or null while the field has the focus or is never checked.
   String? _resolveErrorText() {
     final errorTextOf = widget.errorTextOf;

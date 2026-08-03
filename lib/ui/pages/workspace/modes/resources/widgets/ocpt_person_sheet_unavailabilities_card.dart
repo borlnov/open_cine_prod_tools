@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
 /// How long an unavailability row waits after the last keystroke in its reason field before
@@ -89,7 +89,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     final tr = Tr.of(context);
     final onAdded = this.onAdded;
 
-    return OcptPersonSheetCard(
+    return OcptResourcesSheetCard(
       title: tr.resourcesUnavailabilitiesTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

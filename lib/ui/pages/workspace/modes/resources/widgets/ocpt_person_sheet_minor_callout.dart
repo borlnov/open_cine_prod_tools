@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The warning-tinted "Legal hours" callout shown on the person sheet whenever the selected
@@ -52,8 +52,8 @@ class OcptPersonSheetMinorCallout extends StatelessWidget {
             style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-          OcptPersonSheetField(
-            personId: personId,
+          OcptResourcesSheetField(
+            ownerId: personId,
             label: "",
             value: value,
             multiline: true,

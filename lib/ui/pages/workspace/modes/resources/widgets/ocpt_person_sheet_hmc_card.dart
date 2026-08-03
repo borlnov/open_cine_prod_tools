@@ -5,8 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// "Hair, make-up & costume": the body measurements a wardrobe sheet always carries (height,
 /// chest, waist, hips), the three clothing sizes, and the HMC continuity notes.
@@ -39,7 +39,7 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    return OcptPersonSheetCard(
+    return OcptResourcesSheetCard(
       title: tr.resourcesHmcTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,8 +60,8 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
             (tr.resourcesSizeShoesLabel, OcptPersonField.sizeShoes),
           ]),
           const SizedBox(height: 10),
-          OcptPersonSheetField(
-            personId: personId,
+          OcptResourcesSheetField(
+            ownerId: personId,
             label: tr.resourcesHmcNotesLabel,
             value: fieldValueOf(OcptPersonField.hmcNotes),
             multiline: true,
@@ -79,8 +79,8 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
       for (final (index, (label, field)) in fields.indexed) ...[
         if (index > 0) const SizedBox(width: 8),
         Expanded(
-          child: OcptPersonSheetField(
-            personId: personId,
+          child: OcptResourcesSheetField(
+            ownerId: personId,
             label: label,
             value: fieldValueOf(field),
             onChanged: _onFieldChangedOrNull(field),

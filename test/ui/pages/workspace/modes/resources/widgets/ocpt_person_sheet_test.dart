@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// Builds a minimal [OcptPerson] for these tests, every free-text field left blank except the ones
 /// a case cares about.
@@ -132,10 +132,10 @@ Future<void> _useTallSurface(WidgetTester tester) async {
 
 /// The [Finder] of the text field labelled [label] (its uppercased display label, e.g. `"EMAIL"`),
 /// mirroring `OcptShotInspectorPanel`'s own test helper: the label and the field are siblings
-/// inside one `OcptPersonSheetField`, so the field is found as its descendant rather than through
+/// inside one `OcptResourcesSheetField`, so the field is found as its descendant rather than through
 /// the label directly.
 Finder _fieldOf(String label) => find.descendant(
-  of: find.ancestor(of: find.text(label), matching: find.byType(OcptPersonSheetField)),
+  of: find.ancestor(of: find.text(label), matching: find.byType(OcptResourcesSheetField)),
   matching: find.byType(TextField),
 );
 
@@ -288,7 +288,7 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
     final hmcCard = find.ancestor(
       of: find.text(tr.resourcesHmcTitle),
-      matching: find.byType(OcptPersonSheetCard),
+      matching: find.byType(OcptResourcesSheetCard),
     );
 
     for (final value in ["168", "88", "39", "Cicatrice au menton"]) {
@@ -298,7 +298,7 @@ void main() {
     // The meals card keeps what is read at catering time, and nothing a fitting needs.
     final mealsCard = find.ancestor(
       of: find.text(tr.resourcesMealsHealthTitle),
-      matching: find.byType(OcptPersonSheetCard),
+      matching: find.byType(OcptResourcesSheetCard),
     );
     expect(find.descendant(of: mealsCard, matching: find.text("Végétarienne")), findsOneWidget);
     expect(find.descendant(of: mealsCard, matching: find.text("39")), findsNothing);

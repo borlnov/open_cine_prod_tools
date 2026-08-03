@@ -649,7 +649,7 @@ class _OcptRoleTableRowState extends State<_OcptRoleTableRow> {
 
 /// One editable text field of the roles table's expanded row: an upper-cased, `onSurfaceVariant`
 /// label over a themed text field, following the same controller-sync idiom as
-/// `OcptPersonSheetField` (see its own doc comment) without being the same widget — the roles
+/// `OcptResourcesSheetField` (see its own doc comment) without being the same widget — the roles
 /// table stays independent of the person sheet.
 ///
 /// [value] is the field's current authoritative value — a pending edit still sitting in

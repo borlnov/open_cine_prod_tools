@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_email_format.dart';
 
@@ -70,8 +70,8 @@ class OcptPersonSheetHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: OcptPersonSheetField(
-                      personId: person.id,
+                    child: OcptResourcesSheetField(
+                      ownerId: person.id,
                       label: "",
                       value: fieldValueOf(OcptPersonField.firstName),
                       hintText: tr.resourcesFirstNameHint,
@@ -81,8 +81,8 @@ class OcptPersonSheetHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: OcptPersonSheetField(
-                      personId: person.id,
+                    child: OcptResourcesSheetField(
+                      ownerId: person.id,
                       label: "",
                       value: fieldValueOf(OcptPersonField.lastName),
                       hintText: tr.resourcesLastNameHint,
@@ -176,8 +176,8 @@ class OcptPersonSheetHeader extends StatelessWidget {
     String label,
     OcptPersonField field, {
     String? Function(String value)? errorTextOf,
-  }) => OcptPersonSheetField(
-    personId: person.id,
+  }) => OcptResourcesSheetField(
+    ownerId: person.id,
     label: label,
     value: fieldValueOf(field),
     errorTextOf: errorTextOf,

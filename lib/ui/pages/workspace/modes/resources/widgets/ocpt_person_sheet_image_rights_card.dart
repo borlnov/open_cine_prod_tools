@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
@@ -54,7 +54,7 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
     final tr = Tr.of(context);
     final dateLabel = _dateLabelOf(tr, status);
 
-    return OcptPersonSheetCard(
+    return OcptResourcesSheetCard(
       title: tr.resourcesImageRightsTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

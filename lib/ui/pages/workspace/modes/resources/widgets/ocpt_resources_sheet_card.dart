@@ -4,14 +4,14 @@
 
 import 'package:flutter/material.dart';
 
-/// The card chrome shared by every section of `OcptPersonSheet`: a title on the left, an optional
-/// muted hint on the right (the positions card's "A function may cover a single slot"), and the
-/// section's own content underneath.
+/// The card chrome shared by every section of a resources sheet — `OcptPersonSheet`'s and
+/// `OcptRoleSheet`'s alike: a title on the left, an optional muted hint on the right (the positions
+/// card's "A function may cover a single slot"), and the section's own content underneath.
 ///
 /// Built on the stock [Card] so its background, border and radius come from the studio design
 /// system's own `CardThemeData` (`lib/constants/ocpt_theme.dart`) rather than being redeclared
 /// here; only the body padding, which no component theme states, is this widget's own.
-class OcptPersonSheetCard extends StatelessWidget {
+class OcptResourcesSheetCard extends StatelessWidget {
   /// The card's title, always shown.
   final String title;
 
@@ -23,7 +23,7 @@ class OcptPersonSheetCard extends StatelessWidget {
   final Widget child;
 
   /// Class constructor
-  const OcptPersonSheetCard({super.key, required this.title, this.hint, required this.child});
+  const OcptResourcesSheetCard({super.key, required this.title, this.hint, required this.child});
 
   @override
   Widget build(BuildContext context) {
