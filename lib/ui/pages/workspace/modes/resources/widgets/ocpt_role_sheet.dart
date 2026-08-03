@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_removed_role_banner.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_action.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
@@ -166,7 +167,12 @@ class OcptRoleSheet extends StatelessWidget {
           ),
           if (!isReadOnly && _showsDeleteAction) ...[
             const SizedBox(height: 20),
-            _OcptRoleDeleteAction(roleId: role.id, onDeleteRequested: onDeleteRequested),
+            OcptResourcesDeleteAction(
+              ownerId: role.id,
+              label: tr.resourcesRoleDeleteAction,
+              confirmMessage: tr.resourcesRoleDeleteConfirmMessage,
+              onDeleteRequested: onDeleteRequested,
+            ),
           ],
         ],
       ),
@@ -260,93 +266,6 @@ class OcptRoleSheet extends StatelessWidget {
             ],
             child: badge,
           ),
-      ],
-    );
-  }
-}
-
-/// The sheet's `Delete this role` action, and the inline confirmation it turns into.
-///
-/// A [StatefulWidget] (the documented RFL1 exception) because it owns that ephemeral yes/no state:
-/// nothing outside it needs to know a delete is being confirmed, and the bloc's own state carries
-/// no such flag for a role (unlike a project version's `versionPendingDeletionId`, this is never
-/// worth surviving a rebuild triggered by something else). The question is answered inline rather
-/// than through a dialog, exactly as a project version card asks its own — the person sheet's own
-/// dialog is the odd one out, and it is the one erasing a whole address-book entry.
-class _OcptRoleDeleteAction extends StatefulWidget {
-  /// The id of the role being deleted, watched so switching sheets closes an open question.
-  final String roleId;
-
-  /// Called once the confirmation is answered `Delete`.
-  final VoidCallback onDeleteRequested;
-
-  /// Class constructor
-  const _OcptRoleDeleteAction({required this.roleId, required this.onDeleteRequested});
-
-  @override
-  State<_OcptRoleDeleteAction> createState() => _OcptRoleDeleteActionState();
-}
-
-/// The state of [_OcptRoleDeleteAction]: the inline delete confirmation's own flag.
-class _OcptRoleDeleteActionState extends State<_OcptRoleDeleteAction> {
-  /// Whether the confirmation is shown in place of the action.
-  bool _isConfirming = false;
-
-  @override
-  void didUpdateWidget(covariant _OcptRoleDeleteAction oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // The sheet now shows another role: reopening the question later should ask again, not resume
-    // where the previous role left off.
-    if (widget.roleId != oldWidget.roleId) {
-      _isConfirming = false;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-
-    if (!_isConfirming) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          onPressed: () => setState(() => _isConfirming = true),
-          style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-          child: Text(tr.resourcesRoleDeleteAction),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tr.resourcesRoleDeleteConfirmMessage,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () => setState(() => _isConfirming = false),
-              child: Text(tr.resourcesRoleDeleteCancelAction),
-            ),
-            const SizedBox(width: 6),
-            FilledButton(
-              onPressed: () {
-                setState(() => _isConfirming = false);
-                widget.onDeleteRequested();
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.error,
-                foregroundColor: theme.colorScheme.onError,
-              ),
-              child: Text(tr.resourcesRoleDeleteConfirmAction),
-            ),
-          ],
-        ),
       ],
     );
   }

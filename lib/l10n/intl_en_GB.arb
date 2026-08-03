@@ -3536,17 +3536,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRoleDeleteCancelAction": "Cancel",
-  "@resourcesRoleDeleteCancelAction": {
-    "description": "Action cancelling the role's inline delete confirmation",
-    "context": "Displayed in the role sheet's expanded row",
+  "resourcesDeleteCancelAction": "Cancel",
+  "@resourcesDeleteCancelAction": {
+    "description": "Action cancelling a resources sheet's inline delete confirmation",
+    "context": "Displayed at the bottom of the resources mode's role and location sheets",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRoleDeleteConfirmAction": "Delete",
-  "@resourcesRoleDeleteConfirmAction": {
-    "description": "Action confirming the role's inline delete confirmation",
-    "context": "Displayed in the role sheet's expanded row",
+  "resourcesDeleteConfirmAction": "Delete",
+  "@resourcesDeleteConfirmAction": {
+    "description": "Action confirming a resources sheet's inline delete confirmation",
+    "context": "Displayed at the bottom of the resources mode's role and location sheets",
     "type": "text",
     "placeholders": {}
   },

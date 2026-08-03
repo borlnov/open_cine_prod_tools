@@ -284,7 +284,7 @@ void main() {
     expect(find.text(tr.resourcesRoleDeleteConfirmMessage), findsOneWidget);
     expect(deleted, 0);
 
-    await tester.tap(find.text(tr.resourcesRoleDeleteConfirmAction));
+    await tester.tap(find.text(tr.resourcesDeleteConfirmAction));
     await tester.pumpAndSettle();
 
     expect(deleted, 1);
