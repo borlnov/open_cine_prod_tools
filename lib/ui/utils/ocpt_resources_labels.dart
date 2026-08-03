@@ -2,13 +2,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
 /// The placeholder shown in place of a resources field that has no value yet.
 ///
@@ -94,6 +98,34 @@ String ocptImageRightsStatusLabel(Tr tr, OcptImageRightsStatus status) => switch
   OcptImageRightsStatus.generated => tr.resourcesImageRightsGenerated,
   OcptImageRightsStatus.signed => tr.resourcesImageRightsSigned,
 };
+
+/// The display label of [status], where a location's filming permit stands.
+String ocptPermitStatusLabel(Tr tr, OcptPermitStatus status) => switch (status) {
+  OcptPermitStatus.notNeeded => tr.resourcesPermitNotNeeded,
+  OcptPermitStatus.toRequest => tr.resourcesPermitToRequest,
+  OcptPermitStatus.requested => tr.resourcesPermitRequested,
+  OcptPermitStatus.granted => tr.resourcesPermitGranted,
+  OcptPermitStatus.refused => tr.resourcesPermitRefused,
+};
+
+/// The colour the permit status [status] is painted with, in the left dock's list and on the
+/// location sheet's own badge alike — a location is read at a glance by whether it may be shot at.
+///
+/// Follows the image rights card's own scale, for the same reason it does: `notNeeded` is the
+/// neutral one and reads through `onSurfaceVariant`, a permit still to request or awaiting an
+/// answer is the workspace's warning colour, a granted one is the "already shot" green, and a
+/// refused one is the one genuine error of the five — the location cannot be used as planned.
+Color ocptPermitStatusColor(BuildContext context, OcptPermitStatus status) {
+  final theme = Theme.of(context);
+
+  return switch (status) {
+    OcptPermitStatus.notNeeded => theme.colorScheme.onSurfaceVariant,
+    OcptPermitStatus.toRequest || OcptPermitStatus.requested => ocptWarningColor(context),
+    OcptPermitStatus.granted =>
+      theme.extension<OcptSpecificColors>()?.shotStatusShot ?? theme.colorScheme.primary,
+    OcptPermitStatus.refused => theme.colorScheme.error,
+  };
+}
 
 /// The display label of the left dock tab [tab], shared by `OcptResourcesTabBar` (the tab strip
 /// itself) and `OcptResourcesListPanel` (the list header title, and the placeholder line of a tab

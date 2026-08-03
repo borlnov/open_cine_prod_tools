@@ -163,6 +163,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       selectedPersonId: state.selectedPersonId,
       roles: state.roles,
       selectedRoleId: state.selectedRoleId,
+      locations: state.locations,
+      selectedLocationId: state.selectedLocationId,
       onTabSelected: (tab) =>
           context.read<OcptResourcesBloc>().add(OcptResourcesTabSelectedEvent(tab: tab)),
       onPersonSelected: (personId) => context.read<OcptResourcesBloc>().add(
@@ -170,6 +172,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onRoleSelected: (roleId) =>
           context.read<OcptResourcesBloc>().add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
+      onLocationSelected: (locationId) => context.read<OcptResourcesBloc>().add(
+        OcptResourcesLocationSelectedEvent(locationId: locationId),
+      ),
       onAddPersonRequested: state.isPreviewingVersion
           ? null
           : () => context.read<OcptResourcesBloc>().add(
@@ -179,6 +184,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
           ? null
           : (kind) => context.read<OcptResourcesBloc>().add(
               OcptResourcesRoleCreationRequestedEvent(kind: kind),
+            ),
+      onAddLocationRequested: state.isPreviewingVersion
+          ? null
+          : () => context.read<OcptResourcesBloc>().add(
+              const OcptResourcesLocationCreationRequestedEvent(),
             ),
     );
   }

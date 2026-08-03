@@ -477,5 +477,14 @@
   "resourcesRoleDeleteConfirmAction": "Supprimer",
   "resourcesRemovedRoleBanner": "{characterName} a été retiré du scénario, mais le rôle et sa distribution sont conservés.",
   "resourcesRemovedRoleDeleteAction": "Supprimer ce rôle",
-  "resourcesRemovedRoleKeepAction": "Conserver comme rôle muet"
+  "resourcesRemovedRoleKeepAction": "Conserver comme rôle muet",
+  "resourcesLocationsEmptyHint": "Aucun lieu pour l'instant. Ajoutez le premier lieu de tournage.",
+  "resourcesLocationUnnamed": "Lieu sans nom",
+  "resourcesLocationSetCount": "{count, plural, one{{count} décor} other{{count} décors}}",
+  "resourcesAddLocationAction": "+ Ajouter un lieu",
+  "resourcesPermitNotNeeded": "Aucune autorisation",
+  "resourcesPermitToRequest": "Autorisation à demander",
+  "resourcesPermitRequested": "Autorisation demandée",
+  "resourcesPermitGranted": "Autorisation obtenue",
+  "resourcesPermitRefused": "Autorisation refusée"
 }

@@ -4,10 +4,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_locations_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_people_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_tab_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_roles_list.dart';
@@ -17,13 +19,12 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 /// left, its count on the right), the scrolling list, and — on [OcptResourcesTab.people] and
 /// [OcptResourcesTab.roles] — a full-width footer action, contextual to whichever tab is active.
 ///
-/// The people tab's footer creates a person outright; the roles tab's opens a small menu offering
-/// `Silent role` and `Extra` — `speaking` is never offered, since only
+/// The people and locations tabs' footers create a record outright; the roles tab's opens a small
+/// menu offering `Silent role` and `Extra` — `speaking` is never offered, since only
 /// `OcptRoleIndexService.reconcile` ever creates one, from the screenplay's own speaking
-/// characters. Both footers are withheld — no button at all, rather than a disabled one — while a
-/// project version is being previewed read-only. [OcptResourcesTab.locations] and
-/// [OcptResourcesTab.elements] show a shared, discreet "coming in a future version" placeholder
-/// line instead of a list, and have nothing to add yet.
+/// characters. Every footer is withheld — no button at all, rather than a disabled one — while a
+/// project version is being previewed read-only. [OcptResourcesTab.elements] shows a discreet
+/// "coming in a future version" placeholder line instead of a list, and has nothing to add yet.
 class OcptResourcesListPanel extends StatelessWidget {
   /// The left dock's currently active tab.
   final OcptResourcesTab activeTab;
@@ -43,6 +44,13 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// The id of the selected role, or null if none is.
   final String? selectedRoleId;
 
+  /// Every location, in display order — read regardless of [activeTab] for the same reason [people]
+  /// is: the [OcptResourcesTab.locations] header count is shown whichever tab is active.
+  final List<OcptLocation> locations;
+
+  /// The id of the selected location, or null if none is.
+  final String? selectedLocationId;
+
   /// Called with the tab tapped in the tab bar.
   final ValueChanged<OcptResourcesTab> onTabSelected;
 
@@ -52,6 +60,9 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// Called with a role's id when their row is clicked.
   final ValueChanged<String> onRoleSelected;
 
+  /// Called with a location's id when its row is clicked.
+  final ValueChanged<String> onLocationSelected;
+
   /// Called when the footer's `+ Add a person` button is clicked, or null while it may not be used
   /// (a project version being previewed read-only) — no button is rendered at all then.
   final VoidCallback? onAddPersonRequested;
@@ -59,6 +70,10 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// Called with the kind picked from the footer's `+ Add a role` menu (`silent` or `extra`), or
   /// null while it may not be used — no button is rendered at all then.
   final ValueChanged<OcptRoleKind>? onAddRoleRequested;
+
+  /// Called when the footer's `+ Add a location` button is clicked, or null while it may not be
+  /// used — no button is rendered at all then.
+  final VoidCallback? onAddLocationRequested;
 
   /// Class constructor
   const OcptResourcesListPanel({
@@ -68,11 +83,15 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.selectedPersonId,
     required this.roles,
     required this.selectedRoleId,
+    required this.locations,
+    required this.selectedLocationId,
     required this.onTabSelected,
     required this.onPersonSelected,
     required this.onRoleSelected,
+    required this.onLocationSelected,
     required this.onAddPersonRequested,
     required this.onAddRoleRequested,
+    required this.onAddLocationRequested,
   });
 
   @override
@@ -81,6 +100,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     final tr = Tr.of(context);
     final isPeopleTab = activeTab == OcptResourcesTab.people;
     final isRolesTab = activeTab == OcptResourcesTab.roles;
+    final isLocationsTab = activeTab == OcptResourcesTab.locations;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -106,6 +126,13 @@ class OcptResourcesListPanel extends StatelessWidget {
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
+                )
+              else if (isLocationsTab)
+                Text(
+                  tr.resourcesStatsLocations(locations.length),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
             ],
           ),
@@ -126,13 +153,23 @@ class OcptResourcesListPanel extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             child: _OcptAddRoleButton(onKindPicked: onAddRoleRequested!),
           ),
+        ] else if (isLocationsTab && onAddLocationRequested != null) ...[
+          Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: FilledButton(
+              onPressed: onAddLocationRequested,
+              child: Text(tr.resourcesAddLocationAction),
+            ),
+          ),
         ],
       ],
     );
   }
 
-  /// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab, or a
-  /// shared, discreet muted placeholder line on the two tabs with no content yet.
+  /// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
+  /// [OcptLocationsList] on the locations tab, or a discreet muted placeholder line on the one tab
+  /// with no content yet.
   Widget _buildBody(BuildContext context, Tr tr) {
     if (activeTab == OcptResourcesTab.people) {
       return OcptPeopleList(
@@ -148,6 +185,14 @@ class OcptResourcesListPanel extends StatelessWidget {
         people: people,
         selectedRoleId: selectedRoleId,
         onRoleSelected: onRoleSelected,
+      );
+    }
+
+    if (activeTab == OcptResourcesTab.locations) {
+      return OcptLocationsList(
+        locations: locations,
+        selectedLocationId: selectedLocationId,
+        onLocationSelected: onLocationSelected,
       );
     }
 

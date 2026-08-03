@@ -3574,5 +3574,72 @@
     "context": "Displayed in the removed-role banner of the resources mode",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesLocationsEmptyHint": "No location yet. Add the first place the film is shot in.",
+  "@resourcesLocationsEmptyHint": {
+    "description": "Hint shown in place of the locations list while the project has none",
+    "context": "Displayed in the resources mode's left dock, on the locations tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationUnnamed": "Unnamed location",
+  "@resourcesLocationUnnamed": {
+    "description": "Placeholder standing in for a location whose name is still empty",
+    "context": "Displayed in the resources mode's left dock and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationSetCount": "{count, plural, one{{count} set} other{{count} sets}}",
+  "@resourcesLocationSetCount": {
+    "description": "Number of sets a location holds",
+    "context": "Displayed on a row of the resources mode's left dock, on the locations tab",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesAddLocationAction": "+ Add a location",
+  "@resourcesAddLocationAction": {
+    "description": "Action creating a new, blank location",
+    "context": "Displayed at the bottom of the resources mode's left dock, on the locations tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitNotNeeded": "No permit needed",
+  "@resourcesPermitNotNeeded": {
+    "description": "Filming permit status: this location needs none",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitToRequest": "Permit to request",
+  "@resourcesPermitToRequest": {
+    "description": "Filming permit status: needed, not requested yet",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitRequested": "Permit requested",
+  "@resourcesPermitRequested": {
+    "description": "Filming permit status: requested, awaiting an answer",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitGranted": "Permit granted",
+  "@resourcesPermitGranted": {
+    "description": "Filming permit status: granted, the location may be shot at",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitRefused": "Permit refused",
+  "@resourcesPermitRefused": {
+    "description": "Filming permit status: refused, the location cannot be used as planned",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
   }
 }

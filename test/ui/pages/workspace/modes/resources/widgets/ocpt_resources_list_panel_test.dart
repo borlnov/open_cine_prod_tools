@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
@@ -79,14 +81,44 @@ OcptRole _role({required String id, required String name}) => OcptRole(
   number: 1,
 );
 
+/// A location carrying nothing but a name, enough for a row of the list.
+OcptLocation _location({required String id, required String name}) => OcptLocation(
+  id: id,
+  name: name,
+  colorIndex: 0,
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  latitude: null,
+  longitude: null,
+  contactPersonId: null,
+  contactNotes: "",
+  permitStatus: OcptPermitStatus.notNeeded,
+  permitLabel: "",
+  permitDate: null,
+  permitAssetId: null,
+  parkingNotes: "",
+  powerNotes: "",
+  facilitiesNotes: "",
+  constraintsNotes: "",
+  notes: "",
+  sets: const [],
+  photos: const [],
+  permitDocument: null,
+);
+
 void main() {
-  /// Pumps the panel on [activeTab], with [onAddPersonRequested]/[onAddRoleRequested] as its two
-  /// contextual creation callbacks.
+  /// Pumps the panel on [activeTab], with the three contextual creation callbacks a tab may carry.
   Future<void> pumpPanel(
     WidgetTester tester, {
     OcptResourcesTab activeTab = OcptResourcesTab.people,
     VoidCallback? onAddPersonRequested,
     ValueChanged<OcptRoleKind>? onAddRoleRequested,
+    VoidCallback? onAddLocationRequested,
+    ValueChanged<String>? onLocationSelected,
   }) async {
     await tester.pumpWidget(
       _wrapInApp(
@@ -96,11 +128,15 @@ void main() {
           selectedPersonId: null,
           roles: [_role(id: "r1", name: "Le Client")],
           selectedRoleId: null,
+          locations: [_location(id: "l1", name: "La maison des Pains")],
+          selectedLocationId: null,
           onTabSelected: (tab) {},
           onPersonSelected: (personId) {},
           onRoleSelected: (roleId) {},
+          onLocationSelected: onLocationSelected ?? (locationId) {},
           onAddPersonRequested: onAddPersonRequested,
           onAddRoleRequested: onAddRoleRequested,
+          onAddLocationRequested: onAddLocationRequested,
         ),
       ),
     );
@@ -160,19 +196,52 @@ void main() {
     expect(find.text("Le Client"), findsOneWidget);
   });
 
+  testWidgets("the locations tab lists its locations and offers the creation button", (
+    tester,
+  ) async {
+    String? selectedLocationId;
+
+    await pumpPanel(
+      tester,
+      activeTab: OcptResourcesTab.locations,
+      onAddLocationRequested: () {},
+      onLocationSelected: (locationId) => selectedLocationId = locationId,
+    );
+
+    expect(find.text("La maison des Pains"), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, "+ Add a location"), findsOneWidget);
+
+    await tester.tap(find.text("La maison des Pains"));
+    await tester.pumpAndSettle();
+
+    expect(selectedLocationId, "l1");
+  });
+
+  testWidgets("a null add-location callback draws no button at all, not a disabled one", (
+    tester,
+  ) async {
+    await pumpPanel(tester, activeTab: OcptResourcesTab.locations);
+
+    expect(find.widgetWithText(FilledButton, "+ Add a location"), findsNothing);
+    expect(find.text("La maison des Pains"), findsOneWidget);
+  });
+
   testWidgets("a tab with no content yet shows a placeholder and no creation button", (
     tester,
   ) async {
     await pumpPanel(
       tester,
-      activeTab: OcptResourcesTab.locations,
+      activeTab: OcptResourcesTab.elements,
       onAddPersonRequested: () {},
       onAddRoleRequested: (kind) {},
+      onAddLocationRequested: () {},
     );
 
     expect(find.text("Sofia Berger"), findsNothing);
     expect(find.text("Le Client"), findsNothing);
+    expect(find.text("La maison des Pains"), findsNothing);
     expect(find.widgetWithText(FilledButton, "+ Add a person"), findsNothing);
     expect(find.widgetWithText(FilledButton, "+ Add a role"), findsNothing);
+    expect(find.widgetWithText(FilledButton, "+ Add a location"), findsNothing);
   });
 }
