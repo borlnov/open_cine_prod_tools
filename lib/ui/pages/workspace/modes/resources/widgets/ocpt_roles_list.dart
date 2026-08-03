@@ -3,23 +3,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_avatar.dart';
 
 /// The separator joining the names of the other roles a cast member holds, in
 /// [_OcptRoleEntry]'s own muted line.
 const _otherRolesSeparator = ", ";
 
-/// The cast: one row per [OcptRole], mock-up layout — a small circular avatar (the cast member's
-/// own colour and initials, or a hollow, muted one while uncast), the role's name on top in the
-/// accent colour, the cast member's name under it (a muted italic "Not cast" while there is none),
-/// and — when the same person holds other roles too — a small muted line listing them.
+/// The radius of a row's avatar.
+const double _avatarRadius = 13;
+
+/// The cast: one row per [OcptRole], mock-up layout — a small [OcptRoleAvatar], the role's name on
+/// top in the accent colour, the cast member's name under it (a muted italic "Not cast" while there
+/// is none), and — when the same person holds other roles too — a small muted line listing them.
 ///
-/// Selecting a row only selects it (`OcptResourcesRoleSelectedEvent`), which is what expands its
-/// editor in place in `OcptRolesTable`; there is no sheet or dialog of its own to open from here.
+/// A role the screenplay no longer speaks carries a marker beside its name: its own sheet is where
+/// the alert and the two ways out of it live, so this list is what says which sheet to go and read.
+///
+/// Selecting a row only selects it (`OcptResourcesRoleSelectedEvent`), which is what the mode
+/// builds `OcptRoleSheet` from; there is no sheet or dialog of its own to open from here.
 class OcptRolesList extends StatelessWidget {
   /// The cast to list, in display order.
   final List<OcptRole> roles;
@@ -145,20 +150,37 @@ class _OcptRoleEntry extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _OcptRoleAvatar(castMember: castMember),
+              OcptRoleAvatar(castMember: castMember, radius: _avatarRadius),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      roleName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            roleName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (role.orphanedName != null) ...[
+                          const SizedBox(width: 6),
+                          Tooltip(
+                            message: tr.resourcesRoleOrphanedMarkerTooltip,
+                            child: Icon(
+                              Icons.person_off_outlined,
+                              size: 14,
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -192,42 +214,6 @@ class _OcptRoleEntry extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// A role's 26 px circular avatar: the cast member's colour and initials while cast, a hollow,
-/// muted circle while it isn't — the list's own way of saying "nobody plays this part yet" without
-/// a line of text alone carrying it.
-class _OcptRoleAvatar extends StatelessWidget {
-  /// The person cast in the role this avatar represents, or null while uncast.
-  final OcptPerson? castMember;
-
-  /// Class constructor
-  const _OcptRoleAvatar({required this.castMember});
-
-  @override
-  Widget build(BuildContext context) {
-    final castMember = this.castMember;
-    if (castMember != null) {
-      return CircleAvatar(
-        radius: 13,
-        backgroundColor: Color(ocptCoverageColorAt(castMember.colorIndex)),
-        child: Text(
-          castMember.initials,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      );
-    }
-
-    final outline = Theme.of(context).colorScheme.outline;
-    return Container(
-      width: 26,
-      height: 26,
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: outline)),
-      child: Icon(Icons.person_outline, size: 14, color: outline),
     );
   }
 }

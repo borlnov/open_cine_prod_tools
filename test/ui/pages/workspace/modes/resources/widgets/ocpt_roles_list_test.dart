@@ -59,6 +59,7 @@ OcptRole _role({
   String name = "",
   String? personId,
   OcptRoleKind kind = OcptRoleKind.speaking,
+  String? orphanedName,
   int number = 1,
 }) => OcptRole(
   id: id,
@@ -67,7 +68,7 @@ OcptRole _role({
   personId: personId,
   kind: kind,
   isFromScreenplay: kind == OcptRoleKind.speaking,
-  orphanedName: null,
+  orphanedName: orphanedName,
   castingNotes: "",
   number: number,
 );
@@ -150,6 +151,26 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
     expect(find.text(tr.resourcesRolesEmptyHint), findsOneWidget);
+  });
+
+  testWidgets("an orphaned role is flagged, an ordinary one is not", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptRolesList(
+          roles: [
+            _role(id: "r1", name: "Le Client", orphanedName: "LE CLIENT"),
+            _role(id: "r2", name: "Le Voisin", number: 2),
+          ],
+          people: const [],
+          selectedRoleId: null,
+          onRoleSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The alert itself lives in the role's own sheet: this list only says which one to go and read.
+    expect(find.byIcon(Icons.person_off_outlined), findsOneWidget);
   });
 
   testWidgets("tapping a row reports that role's id", (tester) async {

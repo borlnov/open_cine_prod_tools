@@ -18,11 +18,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_removed_role_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_roles_table.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -33,16 +32,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
-/// left, the selected item's editable sheet (or, on the roles tab, the whole cast's table) in the
-/// centre, and the shared `Versions` dock tab on the right.
+/// left, the selected item's editable sheet in the centre, and the shared `Versions` dock tab on
+/// the right.
 ///
 /// This milestone gives the people and roles tabs real content — creating, editing and erasing a
 /// person; casting, kind, casting notes and hand-added roles; the removed-role banner — while the
-/// other two tabs show a shared, discreet placeholder line. While a project version is being
-/// previewed, the mode shows that version's catalogue instead of the working copy's, and shows it
-/// read-only: everything that would write — the `+ Add a person`/`+ Add a role` buttons, the
-/// person sheet's own fields, the roles table's cast/kind/notes/delete — is withheld, and the
-/// shell carries the band naming the version.
+/// other two tabs show a shared, discreet placeholder line. Both tabs answer the same gesture: a
+/// record is picked on the left and edited in the centre, through `OcptPersonSheet` and
+/// `OcptRoleSheet` respectively. While a project version is being previewed, the mode shows that
+/// version's catalogue instead of the working copy's, and shows it read-only: everything that would
+/// write — the `+ Add a person`/`+ Add a role` buttons, the person sheet's own fields, the role
+/// sheet's cast/kind/notes/delete — is withheld, and the shell carries the band naming the
+/// version.
 class OcptResourcesMode extends StatelessWidget {
   /// Creates the resources mode.
   const OcptResourcesMode({super.key});
@@ -182,11 +183,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Builds the shell's `centre`: the roles tab's banners and table on
-  /// [OcptResourcesTab.roles], the selected person's sheet on [OcptResourcesTab.people] (or the
-  /// empty state while none is selected), and the shared placeholder on the two tabs with no
-  /// content yet — handled by `OcptResourcesListPanel`'s own placeholder for the list, but the
-  /// centre also has nothing of its own to show for them, so it reuses the same empty state.
+  /// Builds the shell's `centre`: the selected role's sheet on [OcptResourcesTab.roles], the
+  /// selected person's sheet on [OcptResourcesTab.people] (each with its own empty state while
+  /// none is selected), and the shared placeholder on the two tabs with no content yet — handled
+  /// by `OcptResourcesListPanel`'s own placeholder for the list, but the centre also has nothing
+  /// of its own to show for them, so it reuses the same empty state.
   Widget _buildCentre(BuildContext context, OcptResourcesState state) {
     if (state.activeTab == OcptResourcesTab.roles) {
       return _buildRolesCentre(context, state);
@@ -336,77 +337,79 @@ class _ResourcesViewState extends State<_ResourcesView> {
     bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: person.id));
   }
 
-  /// Builds the roles tab's centre: the removed-role banners over the cast table, or the empty
-  /// state (mirroring `resourcesNoPersonSelectedHint`'s tone) while the cast itself is empty.
+  /// Builds the roles tab's centre: the selected role's sheet, or the empty state — the one
+  /// explaining where roles come from while the cast itself is empty, the one asking for a
+  /// selection otherwise, mirroring `resourcesNoPersonSelectedHint`'s tone.
   Widget _buildRolesCentre(BuildContext context, OcptResourcesState state) {
-    if (state.roles.isEmpty) {
+    final tr = Tr.of(context);
+    final selectedRole = state.selectedRole;
+
+    if (selectedRole == null) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.theater_comedy_outlined,
-        message: Tr.of(context).resourcesRolesEmptyHint,
+        message: state.roles.isEmpty ? tr.resourcesRolesEmptyHint : tr.resourcesNoRoleSelectedHint,
       );
     }
 
-    // Built after that early return rather than before it: an alert is read off a role's own
-    // `orphanedName`, so an empty cast can never have one to show.
-    final banners = _buildRemovedRoleBanners(context, state);
     final bloc = context.read<OcptResourcesBloc>();
-    final isReadOnly = state.isPreviewingVersion;
+    final castMember = _personOf(state, selectedRole.personId);
 
-    final table = OcptRolesTable(
-      roles: state.roles,
+    return OcptRoleSheet(
+      key: ValueKey(selectedRole.id),
+      role: selectedRole,
+      castMember: castMember,
+      otherRoles: _otherRolesOf(state, selectedRole, castMember),
       people: state.people,
-      selectedRoleId: state.selectedRoleId,
-      isReadOnly: isReadOnly,
-      fieldValueOf: (role, field) => _roleFieldValueOf(state, role, field),
-      onRoleSelected: (roleId) => bloc.add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
-      onFieldChanged: (roleId, field, rawValue) => bloc.add(
-        OcptResourcesRoleFieldChangedEvent(roleId: roleId, field: field, rawValue: rawValue),
+      removedRoleAlert: state.selectedRoleAlert,
+      isReadOnly: state.isPreviewingVersion,
+      fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
+      onFieldChanged: (field, rawValue) => bloc.add(
+        OcptResourcesRoleFieldChangedEvent(
+          roleId: selectedRole.id,
+          field: field,
+          rawValue: rawValue,
+        ),
       ),
-      onCastChanged: (roleId, personId) =>
-          bloc.add(OcptResourcesRoleCastChangedEvent(roleId: roleId, personId: personId)),
-      onKindChanged: (roleId, kind) =>
-          bloc.add(OcptResourcesRoleKindChangedEvent(roleId: roleId, kind: kind)),
-      onDeleteRequested: (roleId) =>
-          bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: roleId)),
+      onCastChanged: (personId) => bloc.add(
+        OcptResourcesRoleCastChangedEvent(roleId: selectedRole.id, personId: personId),
+      ),
+      onKindChanged: (kind) =>
+          bloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
+      onDeleteRequested: () =>
+          bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id)),
+      onOrphanedRoleKept: () =>
+          bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
     );
-
-    if (banners.isEmpty) {
-      return Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 20), child: table);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Column(children: banners),
-          const SizedBox(height: 10),
-          Expanded(child: table),
-        ],
-      ),
-    );
   }
 
-  /// Builds one `OcptRemovedRoleBanner` per alert the state derives, or an empty list when no role
-  /// is orphaned.
-  List<Widget> _buildRemovedRoleBanners(BuildContext context, OcptResourcesState state) {
-    final bloc = context.read<OcptResourcesBloc>();
+  /// The person [personId] names, or null when it is null or names nobody in the loaded address
+  /// book (a stale reference from a snapshot rebuilt underneath).
+  OcptPerson? _personOf(OcptResourcesState state, String? personId) {
+    if (personId == null) {
+      return null;
+    }
+
+    for (final person in state.people) {
+      if (person.id == personId) {
+        return person;
+      }
+    }
+
+    return null;
+  }
+
+  /// The other roles [castMember] holds beside [role], in display order, or empty while [role] is
+  /// uncast or its cast member holds only this one.
+  List<OcptRole> _otherRolesOf(OcptResourcesState state, OcptRole role, OcptPerson? castMember) {
+    if (castMember == null) {
+      return const [];
+    }
 
     return [
-      for (final alert in state.removedRoleAlerts)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: OcptRemovedRoleBanner(
-            alert: alert,
-            isReadOnly: state.isPreviewingVersion,
-            onDeleteRequested: () =>
-                bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: alert.roleId)),
-            onKeepRequested: () =>
-                bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: alert.roleId)),
-          ),
-        ),
+      for (final other in state.roles)
+        if (other.id != role.id && other.personId == castMember.id) other,
     ];
   }
 

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the roles table's typed, free-text fields, whose edits go through the resources bloc's
+/// One of the role sheet's typed, free-text fields, whose edits go through the resources bloc's
 /// 2 s autosave debounce (`OcptResourcesState.pendingRoleFieldEdits`) rather than being written
 /// immediately — mirroring `OcptPersonField`'s own split between typed and discrete fields.
 ///

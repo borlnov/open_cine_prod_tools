@@ -434,11 +434,10 @@ class OcptResourcesUnavailabilityRemovedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, id];
 }
 
-/// Selects role [roleId], dispatched by a row of `OcptRolesTable`: the row expands in place into
-/// its inline editor (cast member, kind, casting notes, delete). There is no role sheet or dialog.
+/// Selects role [roleId], dispatched by a row of `OcptRolesList`: the centre then shows that
+/// role's `OcptRoleSheet`.
 ///
-/// Selecting the already-selected role clears the selection instead, collapsing the row the same
-/// way it was expanded.
+/// Selecting the already-selected role changes nothing, exactly as selecting a person twice does.
 class OcptResourcesRoleSelectedEvent extends OcptResourcesEvent {
   /// The id of the role to select.
   final String roleId;
@@ -466,8 +465,8 @@ class OcptResourcesRoleCreationRequestedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, kind];
 }
 
-/// Records the raw text just typed into [field] of role [roleId], dispatched by the roles table's
-/// expanded row on every keystroke.
+/// Records the raw text just typed into [field] of role [roleId], dispatched by the role sheet on
+/// every keystroke.
 ///
 /// Rides the same field-edit autosave debounce as `OcptResourcesPersonFieldChangedEvent`: the
 /// typed value becomes visible immediately as a pending edit in
@@ -529,7 +528,7 @@ class OcptResourcesRoleKindChangedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, roleId, kind];
 }
 
-/// Requests deleting role [roleId]: the expanded row's own delete action. Tombstones the role,
+/// Requests deleting role [roleId]: the role sheet's own delete action. Tombstones the role,
 /// clears the selection when it was the selected role, and drops any pending field edit that
 /// still targeted it.
 class OcptResourcesRoleDeletionRequestedEvent extends OcptResourcesEvent {
@@ -559,7 +558,7 @@ class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, roleId];
 }
 
-/// Requests opening person [personId]'s sheet, dispatched by the roles table's dedicated `↗`
+/// Requests opening person [personId]'s sheet, dispatched by the role sheet's dedicated `↗`
 /// affordance in the cast-member cell (a plain row click only *selects* the role).
 ///
 /// Flushes any pending field edit first, then switches the left dock to

@@ -48,7 +48,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// difficulty axis or its character chips are. A role's name is never written here for an
 /// `isFromScreenplay` role — [_roleIndexService]'s own reconciliation owns it, and would overwrite
 /// a hand-typed name right back on the next save; withholding that field is the widgets' job, not a
-/// special case here. The sheet's and the roles table's typed free-text fields ([OcptPersonField],
+/// special case here. The two sheets' typed free-text fields ([OcptPersonField],
 /// [OcptRoleField]) are the exception: an edit is held in [OcptResourcesState.pendingFieldEdits] /
 /// [OcptResourcesState.pendingRoleFieldEdits] and written [defaultFieldEditDebounce] after the last
 /// keystroke, mirroring `OcptShotListBloc`'s own autosave convention — both maps ride the very same
@@ -950,19 +950,18 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// Selects role `event.roleId`, expanding its row in place; selecting the already-selected role
   /// clears the selection instead, collapsing it back.
   ///
-  /// Flushes any pending field edit first, so switching roles (or collapsing one) right after
-  /// typing never loses it. A role id that no longer exists in the current snapshot (a stale click
-  /// on a table rebuilt underneath) is ignored rather than selecting nothing.
+  /// Flushes any pending field edit first, so switching roles right after typing never loses it. A
+  /// role id that no longer exists in the current snapshot (a stale click on a list rebuilt
+  /// underneath) is ignored rather than selecting nothing.
+  ///
+  /// Selecting the already-selected role is a no-op rather than a way of clearing the selection,
+  /// mirroring [_onPersonSelected]: the centre shows the role's sheet, and a click on a list row
+  /// blanking it would be a surprising affordance.
   Future<void> _onRoleSelected(
     OcptResourcesRoleSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
     await _flushPendingFieldEdits(emitter);
-
-    if (state.selectedRoleId == event.roleId) {
-      emitter(state.copyWith(clearSelectedRoleId: true));
-      return;
-    }
 
     final exists = state.roles.any((role) => role.id == event.roleId);
     if (!exists) {
@@ -1087,7 +1086,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         _roleIndexService.keepOrphanedRoleAsSilent(database: project.database, roleId: event.roleId),
   );
 
-  /// Opens person `event.personId`'s sheet from the roles table's `↗` affordance: flushes any
+  /// Opens person `event.personId`'s sheet from the role sheet's `↗` affordance: flushes any
   /// pending field edit, then switches the left dock to [OcptResourcesTab.people] and selects
   /// `event.personId`, in one state.
   ///

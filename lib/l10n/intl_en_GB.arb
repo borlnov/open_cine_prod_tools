@@ -3362,7 +3362,7 @@
   },
   "resourcesRolesEmptyHint": "No roles yet. They appear automatically from the screenplay's speaking characters.",
   "@resourcesRolesEmptyHint": {
-    "description": "Hint shown in place of the roles list, and of the roles table, while the cast is empty",
+    "description": "Hint shown in place of the roles list, and of the centre area, while the cast is empty",
     "context": "Displayed in the resources mode's left dock and centre area, on the roles tab",
     "type": "text",
     "placeholders": {}
@@ -3370,14 +3370,14 @@
   "resourcesRoleUnnamed": "Unnamed role",
   "@resourcesRoleUnnamed": {
     "description": "Placeholder shown in place of a role's name while it is empty",
-    "context": "Displayed in the resources mode's roles list and roles table",
+    "context": "Displayed in the resources mode's roles list and role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleNotCast": "Not cast",
   "@resourcesRoleNotCast": {
     "description": "Shown in place of a cast member's name while a role is uncast, and as the cast member picker's own entry that uncasts a role",
-    "context": "Displayed in the resources mode's roles list and roles table",
+    "context": "Displayed in the resources mode's roles list and role sheet",
     "type": "text",
     "placeholders": {}
   },
@@ -3413,143 +3413,147 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRolesColumnNumber": "N°",
-  "@resourcesRolesColumnNumber": {
-    "description": "Header of the roles table's rank column",
-    "context": "Displayed in the resources mode's roles table",
+  "resourcesNoRoleSelectedHint": "Select a role to see its sheet.",
+  "@resourcesNoRoleSelectedHint": {
+    "description": "Hint shown in the centre area while no role is selected",
+    "context": "Displayed centred in the resources mode's main area, on the roles tab",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRolesColumnRole": "Role",
-  "@resourcesRolesColumnRole": {
-    "description": "Header of the roles table's role name column",
-    "context": "Displayed in the resources mode's roles table",
+  "resourcesRoleNumberBadge": "N° {number}",
+  "@resourcesRoleNumberBadge": {
+    "description": "A role's rank in the cast, shown as a badge",
+    "context": "Displayed at the top right of the resources mode's role sheet header",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesRoleCastMemberLabel": "Cast member",
+  "@resourcesRoleCastMemberLabel": {
+    "description": "Label of the picker choosing which person is cast in a role",
+    "context": "Displayed in the casting card of the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRolesColumnCastMember": "Cast member",
-  "@resourcesRolesColumnCastMember": {
-    "description": "Header of the roles table's cast member column, and the label of the expanded row's cast member picker",
-    "context": "Displayed in the resources mode's roles table",
+  "resourcesRoleCastingCardTitle": "Casting",
+  "@resourcesRoleCastingCardTitle": {
+    "description": "Title of the card holding a role's cast member and the other roles they hold",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRolesColumnOtherRoles": "Other roles held",
-  "@resourcesRolesColumnOtherRoles": {
-    "description": "Header of the roles table's other-roles-held column",
-    "context": "Displayed in the resources mode's roles table",
+  "resourcesRoleNameHint": "Role name",
+  "@resourcesRoleNameHint": {
+    "description": "Placeholder shown in a hand-added role's name field while it is empty",
+    "context": "Displayed in the header of the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRolesTableTitle": "Cast",
-  "@resourcesRolesTableTitle": {
-    "description": "Title over the roles table",
-    "context": "Displayed in the resources mode's centre area, on the roles tab",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesRolesTableSubtitle": "One actor may hold several roles, and a crew member may act too — use ↗ to open a cast member's sheet.",
-  "@resourcesRolesTableSubtitle": {
-    "description": "Subtitle explaining the roles table's own quirks",
-    "context": "Displayed under the roles table's title, in the resources mode's centre area",
+  "resourcesRoleOrphanedMarkerTooltip": "This character no longer speaks in the screenplay",
+  "@resourcesRoleOrphanedMarkerTooltip": {
+    "description": "Tooltip of the marker flagging an orphaned role in the cast list",
+    "context": "Displayed on hover over a row of the resources mode's left dock, on the roles tab",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleKindSpeaking": "Speaking",
   "@resourcesRoleKindSpeaking": {
     "description": "Label of a speaking role, reconciled from the screenplay",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleKindSilent": "Silent",
   "@resourcesRoleKindSilent": {
     "description": "Label of a silent (non-speaking) role, added by hand",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleKindExtra": "Extra",
   "@resourcesRoleKindExtra": {
     "description": "Label of an extra role, added by hand",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleKindFieldLabel": "Kind",
   "@resourcesRoleKindFieldLabel": {
     "description": "Label of the expanded row's role kind picker",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleCastingNotesLabel": "Casting notes",
   "@resourcesRoleCastingNotesLabel": {
     "description": "Label of a role's casting notes field",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleCastingNotesHint": "Availability, agent contact, audition notes…",
   "@resourcesRoleCastingNotesHint": {
     "description": "Placeholder shown in a role's empty casting notes field",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleNameLabel": "Name",
   "@resourcesRoleNameLabel": {
     "description": "Label of a role's name field, or of its read-only note for a role reconciled from the screenplay",
-    "context": "Displayed in the resources mode's roles table",
+    "context": "Displayed in the resources mode's role sheet",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleNameFromScreenplayNote": "This role comes from the screenplay: its name and its existence follow the character's cues.",
   "@resourcesRoleNameFromScreenplayNote": {
     "description": "Note explaining why a role's name field and delete action are withheld, shown in the name field's place",
-    "context": "Displayed in the resources mode's roles table, for a role reconciled from the screenplay",
+    "context": "Displayed in the resources mode's role sheet, for a role reconciled from the screenplay",
     "type": "text",
     "placeholders": {}
   },
   "resourcesOpenPersonSheetTooltip": "Open this person's sheet",
   "@resourcesOpenPersonSheetTooltip": {
-    "description": "Tooltip of the roles table's ↗ affordance, opening the cast member's own sheet",
-    "context": "Displayed on hover over the roles table's cast member cell",
+    "description": "Tooltip of the role sheet's ↗ affordance, opening the cast member's own sheet",
+    "context": "Displayed on hover over the role sheet's cast member cell",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleDeleteAction": "Delete this role",
   "@resourcesRoleDeleteAction": {
     "description": "Action opening the role's inline delete confirmation",
-    "context": "Displayed in the roles table's expanded row",
+    "context": "Displayed in the role sheet's expanded row",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleDeleteConfirmMessage": "This permanently deletes this role. This can't be undone.",
   "@resourcesRoleDeleteConfirmMessage": {
     "description": "Message of the role's inline delete confirmation",
-    "context": "Displayed in the roles table's expanded row",
+    "context": "Displayed in the role sheet's expanded row",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleDeleteCancelAction": "Cancel",
   "@resourcesRoleDeleteCancelAction": {
     "description": "Action cancelling the role's inline delete confirmation",
-    "context": "Displayed in the roles table's expanded row",
+    "context": "Displayed in the role sheet's expanded row",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleDeleteConfirmAction": "Delete",
   "@resourcesRoleDeleteConfirmAction": {
     "description": "Action confirming the role's inline delete confirmation",
-    "context": "Displayed in the roles table's expanded row",
+    "context": "Displayed in the role sheet's expanded row",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRemovedRoleBanner": "{characterName} was removed from the screenplay, but the role and its casting are kept.",
   "@resourcesRemovedRoleBanner": {
     "description": "Alert naming a role no longer speaking in the screenplay, whose casting and notes are kept",
-    "context": "Displayed above the roles table of the resources mode",
+    "context": "Displayed in the role sheet of the resources mode",
     "type": "text",
     "placeholders": {
       "characterName": {

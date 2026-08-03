@@ -344,13 +344,16 @@ void main() {
     // Not written yet: still the field's default empty value.
     expect(state.selectedRole!.name, isEmpty);
 
-    // Selecting the role away (collapsing it) flushes the pending edit rather than losing it.
-    bloc.add(OcptResourcesRoleSelectedEvent(roleId: roleId));
-    state = await waitForState(bloc, (state) => state.selectedRoleId == null);
+    // Selecting another role flushes the pending edit rather than losing it.
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    state = await waitForState(bloc, (state) => state.selectedRoleId != roleId);
     expect(state.pendingRoleFieldEdits, isEmpty);
 
-    final roles = await waitForState(bloc, (state) => state.roles.single.name == "Passerby");
-    expect(roles.roles.single.name, "Passerby");
+    final roles = await waitForState(
+      bloc,
+      (state) => state.roles.any((role) => role.name == "Passerby"),
+    );
+    expect(roles.roles.firstWhere((role) => role.id == roleId).name, "Passerby");
 
     await bloc.close();
   });

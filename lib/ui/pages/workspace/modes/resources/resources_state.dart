@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// person's discrete fields (colour, birth date, transport autonomy, image rights status/date)
 /// and every sub-list (positions, skills, unavailabilities) write straight to the project database
 /// the moment they change, and so do a role's cast member and kind. [pendingFieldEdits] and
-/// [pendingRoleFieldEdits] are the exception — the person sheet's and the roles table's typed
+/// [pendingRoleFieldEdits] are the exception — the person sheet's and the role sheet's typed
 /// free-text fields each go through the same 2 s autosave debounce, mirroring
 /// `OcptShotListState.pendingFieldEdits`.
 class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
@@ -47,12 +47,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// The id of the person currently selected, whose sheet the centre shows, or null while none is.
   final String? selectedPersonId;
 
-  /// The id of the role currently selected, whose row expands in place in the roles table, or null
-  /// while none is.
-  ///
-  /// Selecting the already-selected role clears this back to null (see
-  /// `OcptResourcesRoleSelectedEvent`), the way the expanded row is collapsed again — there is no
-  /// dialog or sheet of its own for a role.
+  /// The id of the role currently selected, whose sheet the centre shows, or null while none is.
   final String? selectedRoleId;
 
   /// Whether the left (list) dock is shown.
@@ -166,9 +161,20 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// The removed-role banner's alerts, one per role the screenplay no longer names as a speaking
-  /// character.
-  List<OcptRemovedRoleAlert> get removedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
+  /// The removed-role alert of [selectedRole], or null while none is selected or the selected role
+  /// is still spoken in the screenplay.
+  ///
+  /// One alert at a time rather than every alert of the project: the banner reporting it lives
+  /// inside the sheet of the role it names (see `OcptRoleSheet`), and the cast list of the left
+  /// dock is what marks the other orphaned roles so they can be reached in turn.
+  OcptRemovedRoleAlert? get selectedRoleAlert {
+    final selectedRole = this.selectedRole;
+    if (selectedRole == null) {
+      return null;
+    }
+
+    return OcptRemovedRoleAlert.of(selectedRole);
+  }
 
   /// `snapshot.peopleCount`, the status bar's first counter.
   int get peopleCount => snapshot?.peopleCount ?? 0;

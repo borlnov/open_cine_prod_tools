@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 
-/// The alert shown above the roles table for a role the screenplay no longer names as a speaking
+/// The alert shown inside the sheet of a role the screenplay no longer names as a speaking
 /// character, but whose casting and notes are kept.
 ///
 /// One banner per [OcptRemovedRoleAlert], built file for file like
