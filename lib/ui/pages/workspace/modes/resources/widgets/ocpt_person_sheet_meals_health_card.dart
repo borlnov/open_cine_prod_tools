@@ -10,8 +10,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
 
 /// "Meals, health, skills": [OcptPerson.dietaryNotes] and [OcptPerson.allergies] (both free text,
-/// through the sheet's own `OcptPersonField` debounce), the skills as removable chips plus an add
-/// affordance, and the three costume sizes.
+/// through the sheet's own `OcptPersonField` debounce), and the skills as removable chips plus an
+/// add affordance.
+///
+/// The costume sizes are **not** here: they belong to `OcptPersonSheetHmcCard`, beside the
+/// measurements a fitting reads them with, rather than beside a person's allergies and driving
+/// licences.
 class OcptPersonSheetMealsHealthCard extends StatelessWidget {
   /// The person these fields belong to.
   final String personId;
@@ -77,44 +81,10 @@ class OcptPersonSheetMealsHealthCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           _OcptPersonSkillChips(skills: skills, onAdded: onSkillAdded, onRemoved: onSkillRemoved),
-          const SizedBox(height: 10),
-          _buildSizesRow(context, tr),
         ],
       ),
     );
   }
-
-  /// The three costume sizes, side by side.
-  Widget _buildSizesRow(BuildContext context, Tr tr) => Row(
-    children: [
-      Expanded(
-        child: OcptPersonSheetField(
-          personId: personId,
-          label: tr.resourcesSizeTopLabel,
-          value: fieldValueOf(OcptPersonField.sizeTop),
-          onChanged: _onFieldChangedOrNull(OcptPersonField.sizeTop),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: OcptPersonSheetField(
-          personId: personId,
-          label: tr.resourcesSizeBottomLabel,
-          value: fieldValueOf(OcptPersonField.sizeBottom),
-          onChanged: _onFieldChangedOrNull(OcptPersonField.sizeBottom),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: OcptPersonSheetField(
-          personId: personId,
-          label: tr.resourcesSizeShoesLabel,
-          value: fieldValueOf(OcptPersonField.sizeShoes),
-          onChanged: _onFieldChangedOrNull(OcptPersonField.sizeShoes),
-        ),
-      ),
-    ],
-  );
 
   /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
   /// while the sheet may not be written to.

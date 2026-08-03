@@ -3167,56 +3167,84 @@
   "resourcesDietaryNotesLabel": "Dietary notes",
   "@resourcesDietaryNotesLabel": {
     "description": "Label of the person sheet's dietary notes field",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesAllergiesLabel": "Allergies",
   "@resourcesAllergiesLabel": {
     "description": "Label of the person sheet's allergies field",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesSkillsLabel": "Driving licences & skills",
   "@resourcesSkillsLabel": {
     "description": "Label of the person sheet's skills chips",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesAddSkillHint": "Add a skill",
   "@resourcesAddSkillHint": {
     "description": "Placeholder of the inline field adding a new skill",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRemoveSkillTooltip": "Remove skill",
   "@resourcesRemoveSkillTooltip": {
     "description": "Tooltip of a skill chip's remove control",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementHeightLabel": "Height",
+  "@resourcesMeasurementHeightLabel": {
+    "description": "Label of the person sheet's height field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementChestLabel": "Chest",
+  "@resourcesMeasurementChestLabel": {
+    "description": "Label of the person sheet's chest measurement field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementWaistLabel": "Waist",
+  "@resourcesMeasurementWaistLabel": {
+    "description": "Label of the person sheet's waist measurement field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementHipsLabel": "Hips",
+  "@resourcesMeasurementHipsLabel": {
+    "description": "Label of the person sheet's hip measurement field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesSizeTopLabel": "Top / upper body",
   "@resourcesSizeTopLabel": {
     "description": "Label of the person sheet's top clothing size field",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesSizeBottomLabel": "Bottom",
   "@resourcesSizeBottomLabel": {
     "description": "Label of the person sheet's bottom clothing size field",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
   "resourcesSizeShoesLabel": "Shoes",
   "@resourcesSizeShoesLabel": {
     "description": "Label of the person sheet's shoe size field",
-    "context": "Displayed on the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },
@@ -3283,10 +3311,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesHmcNotesTitle": "HMC notes",
-  "@resourcesHmcNotesTitle": {
-    "description": "Title of the person sheet's hair/make-up/costume notes card",
+  "resourcesHmcTitle": "Hair, make-up \u0026 costume",
+  "@resourcesHmcTitle": {
+    "description": "Title of the person sheet's hair, make-up and costume card",
     "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesHmcNotesLabel": "Continuity notes",
+  "@resourcesHmcNotesLabel": {
+    "description": "Label of the person sheet's hair/make-up/costume notes field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
     "type": "text",
     "placeholders": {}
   },

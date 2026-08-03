@@ -590,6 +590,30 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           personId: personId,
           allergies: Value(rawValue),
         );
+      case OcptPersonField.measurementHeight:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          measurementHeight: Value(rawValue),
+        );
+      case OcptPersonField.measurementChest:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          measurementChest: Value(rawValue),
+        );
+      case OcptPersonField.measurementWaist:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          measurementWaist: Value(rawValue),
+        );
+      case OcptPersonField.measurementHips:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          measurementHips: Value(rawValue),
+        );
       case OcptPersonField.sizeTop:
         await _peopleService.updatePerson(
           database: database,

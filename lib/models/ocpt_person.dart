@@ -183,6 +183,19 @@ class OcptPerson extends Equatable {
   /// Allergies, free text.
   final String allergies;
 
+  /// The person's height, free text. See `OcptPeopleTable.measurementHeight` for why the
+  /// measurements and sizes are never numbers.
+  final String measurementHeight;
+
+  /// The person's chest measurement, free text.
+  final String measurementChest;
+
+  /// The person's waist measurement, free text.
+  final String measurementWaist;
+
+  /// The person's hip measurement, free text.
+  final String measurementHips;
+
   /// Top/upper body clothing size, free text.
   final String sizeTop;
 
@@ -240,6 +253,10 @@ class OcptPerson extends Equatable {
     required this.travelNotes,
     required this.dietaryNotes,
     required this.allergies,
+    required this.measurementHeight,
+    required this.measurementChest,
+    required this.measurementWaist,
+    required this.measurementHips,
     required this.sizeTop,
     required this.sizeBottom,
     required this.sizeShoes,
@@ -281,6 +298,10 @@ class OcptPerson extends Equatable {
     travelNotes: row.travelNotes,
     dietaryNotes: row.dietaryNotes,
     allergies: row.allergies,
+    measurementHeight: row.measurementHeight,
+    measurementChest: row.measurementChest,
+    measurementWaist: row.measurementWaist,
+    measurementHips: row.measurementHips,
     sizeTop: row.sizeTop,
     sizeBottom: row.sizeBottom,
     sizeShoes: row.sizeShoes,
@@ -355,6 +376,10 @@ class OcptPerson extends Equatable {
     travelNotes,
     dietaryNotes,
     allergies,
+    measurementHeight,
+    measurementChest,
+    measurementWaist,
+    measurementHips,
     sizeTop,
     sizeBottom,
     sizeShoes,

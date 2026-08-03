@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
 
 /// Builds a minimal [OcptPerson] for these tests, every free-text field left blank except the ones
@@ -29,6 +30,10 @@ OcptPerson _person({
   String travelNotes = "",
   String dietaryNotes = "",
   String allergies = "",
+  String measurementHeight = "",
+  String measurementChest = "",
+  String measurementWaist = "",
+  String measurementHips = "",
   String sizeTop = "",
   String sizeBottom = "",
   String sizeShoes = "",
@@ -59,6 +64,10 @@ OcptPerson _person({
   travelNotes: travelNotes,
   dietaryNotes: dietaryNotes,
   allergies: allergies,
+  measurementHeight: measurementHeight,
+  measurementChest: measurementChest,
+  measurementWaist: measurementWaist,
+  measurementHips: measurementHips,
   sizeTop: sizeTop,
   sizeBottom: sizeBottom,
   sizeShoes: sizeShoes,
@@ -91,6 +100,10 @@ String _fieldValueOf(OcptPerson person, OcptPersonField field) => switch (field)
   OcptPersonField.travelNotes => person.travelNotes,
   OcptPersonField.dietaryNotes => person.dietaryNotes,
   OcptPersonField.allergies => person.allergies,
+  OcptPersonField.measurementHeight => person.measurementHeight,
+  OcptPersonField.measurementChest => person.measurementChest,
+  OcptPersonField.measurementWaist => person.measurementWaist,
+  OcptPersonField.measurementHips => person.measurementHips,
   OcptPersonField.sizeTop => person.sizeTop,
   OcptPersonField.sizeBottom => person.sizeBottom,
   OcptPersonField.sizeShoes => person.sizeShoes,
@@ -216,6 +229,40 @@ void main() {
     expect(find.text("defined in the schedule"), findsOneWidget);
     expect(find.text("Végétarienne"), findsOneWidget);
     expect(find.text("Ponctuelle"), findsOneWidget);
+  });
+
+  testWidgets("the HMC card holds the measurements and sizes, not the meals card", (tester) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(
+          dietaryNotes: "Végétarienne",
+          measurementHeight: "168",
+          measurementChest: "88",
+          sizeShoes: "39",
+          hmcNotes: "Cicatrice au menton",
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    final hmcCard = find.ancestor(
+      of: find.text(tr.resourcesHmcTitle),
+      matching: find.byType(OcptPersonSheetCard),
+    );
+
+    for (final value in ["168", "88", "39", "Cicatrice au menton"]) {
+      expect(find.descendant(of: hmcCard, matching: find.text(value)), findsOneWidget);
+    }
+
+    // The meals card keeps what is read at catering time, and nothing a fitting needs.
+    final mealsCard = find.ancestor(
+      of: find.text(tr.resourcesMealsHealthTitle),
+      matching: find.byType(OcptPersonSheetCard),
+    );
+    expect(find.descendant(of: mealsCard, matching: find.text("Végétarienne")), findsOneWidget);
+    expect(find.descendant(of: mealsCard, matching: find.text("39")), findsNothing);
   });
 
   testWidgets("shows the minor badge and legal-hours callout for a minor", (tester) async {

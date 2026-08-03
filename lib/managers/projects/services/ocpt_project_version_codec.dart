@@ -291,6 +291,22 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a person's `allergies` column from a JSON object
   static const _allergiesKey = "allergies";
 
+  /// This is the key used to stringify or parse a person's `measurementHeight` column from a JSON
+  /// object
+  static const _measurementHeightKey = "measurementHeight";
+
+  /// This is the key used to stringify or parse a person's `measurementChest` column from a JSON
+  /// object
+  static const _measurementChestKey = "measurementChest";
+
+  /// This is the key used to stringify or parse a person's `measurementWaist` column from a JSON
+  /// object
+  static const _measurementWaistKey = "measurementWaist";
+
+  /// This is the key used to stringify or parse a person's `measurementHips` column from a JSON
+  /// object
+  static const _measurementHipsKey = "measurementHips";
+
   /// This is the key used to stringify or parse a person's `sizeTop` column from a JSON object
   static const _sizeTopKey = "sizeTop";
 
@@ -987,6 +1003,10 @@ class OcptProjectVersionCodec {
     _travelNotesKey: row.travelNotes,
     _dietaryNotesKey: row.dietaryNotes,
     _allergiesKey: row.allergies,
+    _measurementHeightKey: row.measurementHeight,
+    _measurementChestKey: row.measurementChest,
+    _measurementWaistKey: row.measurementWaist,
+    _measurementHipsKey: row.measurementHips,
     _sizeTopKey: row.sizeTop,
     _sizeBottomKey: row.sizeBottom,
     _sizeShoesKey: row.sizeShoes,
@@ -1021,6 +1041,10 @@ class OcptProjectVersionCodec {
     travelNotes: _string(json, _travelNotesKey),
     dietaryNotes: _string(json, _dietaryNotesKey),
     allergies: _string(json, _allergiesKey),
+    measurementHeight: _string(json, _measurementHeightKey),
+    measurementChest: _string(json, _measurementChestKey),
+    measurementWaist: _string(json, _measurementWaistKey),
+    measurementHips: _string(json, _measurementHipsKey),
     sizeTop: _string(json, _sizeTopKey),
     sizeBottom: _string(json, _sizeBottomKey),
     sizeShoes: _string(json, _sizeShoesKey),

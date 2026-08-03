@@ -34,7 +34,8 @@ class OcptPeopleService {
   /// carries no information about the person), `isDeleted` (the tombstone itself, set to true
   /// rather than blanked) and `colorIndex` (an arbitrary palette index, not personal data). Every
   /// other column — name, contact details, address, birth date, transport/accommodation/travel
-  /// notes, diet, allergies, sizes, HMC notes, image rights status/date/asset, free notes — held
+  /// notes, diet, allergies, measurements, sizes, HMC notes, image rights status/date/asset, free
+  /// notes — held
   /// something about the person and is reset to its table default (empty string, `null`, or
   /// [OcptImageRightsStatus.notApplicable] for the one enum column) in this single write.
   static const _erasureCompanion = OcptPeopleTableCompanion(
@@ -56,6 +57,10 @@ class OcptPeopleService {
     travelNotes: Value(''),
     dietaryNotes: Value(''),
     allergies: Value(''),
+    measurementHeight: Value(''),
+    measurementChest: Value(''),
+    measurementWaist: Value(''),
+    measurementHips: Value(''),
     sizeTop: Value(''),
     sizeBottom: Value(''),
     sizeShoes: Value(''),
@@ -178,6 +183,10 @@ class OcptPeopleService {
     Value<String> travelNotes = const Value.absent(),
     Value<String> dietaryNotes = const Value.absent(),
     Value<String> allergies = const Value.absent(),
+    Value<String> measurementHeight = const Value.absent(),
+    Value<String> measurementChest = const Value.absent(),
+    Value<String> measurementWaist = const Value.absent(),
+    Value<String> measurementHips = const Value.absent(),
     Value<String> sizeTop = const Value.absent(),
     Value<String> sizeBottom = const Value.absent(),
     Value<String> sizeShoes = const Value.absent(),
@@ -214,6 +223,10 @@ class OcptPeopleService {
         travelNotes: travelNotes,
         dietaryNotes: dietaryNotes,
         allergies: allergies,
+        measurementHeight: measurementHeight,
+        measurementChest: measurementChest,
+        measurementWaist: measurementWaist,
+        measurementHips: measurementHips,
         sizeTop: sizeTop,
         sizeBottom: sizeBottom,
         sizeShoes: sizeShoes,

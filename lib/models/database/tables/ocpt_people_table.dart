@@ -141,17 +141,47 @@ class OcptPeopleTable extends Table {
   /// on a call sheet depends on them.
   TextColumn get allergies => text().withDefault(const Constant(''))();
 
-  /// Top/upper body clothing size, free text — real production lists mix `38`, `M` and `Haut 38`,
-  /// so this is never a constrained size scale.
+  /// The person's height, free text.
+  ///
+  /// {@template open_cine_prod_tools.hmcMeasurement}
+  /// **Never a number**: real production lists mix `38`, `M`, `Haut 38`, `178`, `1m78` and
+  /// `5'10"`, so a numeric column would have to pick a unit nobody agreed to and would reject half
+  /// of what a costume designer actually writes down.
+  /// {@endtemplate}
+  TextColumn get measurementHeight => text().withDefault(const Constant(''))();
+
+  /// The person's chest measurement.
+  ///
+  /// {@macro open_cine_prod_tools.hmcMeasurement}
+  TextColumn get measurementChest => text().withDefault(const Constant(''))();
+
+  /// The person's waist measurement.
+  ///
+  /// {@macro open_cine_prod_tools.hmcMeasurement}
+  TextColumn get measurementWaist => text().withDefault(const Constant(''))();
+
+  /// The person's hip measurement.
+  ///
+  /// {@macro open_cine_prod_tools.hmcMeasurement}
+  TextColumn get measurementHips => text().withDefault(const Constant(''))();
+
+  /// Top/upper body clothing size.
+  ///
+  /// {@macro open_cine_prod_tools.hmcMeasurement}
   TextColumn get sizeTop => text().withDefault(const Constant(''))();
 
-  /// Bottom clothing size, free text. See [sizeTop].
+  /// Bottom clothing size.
+  ///
+  /// {@macro open_cine_prod_tools.hmcMeasurement}
   TextColumn get sizeBottom => text().withDefault(const Constant(''))();
 
-  /// Shoe size, free text. See [sizeTop].
+  /// Shoe size.
+  ///
+  /// {@macro open_cine_prod_tools.hmcMeasurement}
   TextColumn get sizeShoes => text().withDefault(const Constant(''))();
 
-  /// Hair/make-up/costume continuity notes for this person, free multi-line text.
+  /// Hair/make-up/costume continuity notes for this person, free multi-line text — shown on the
+  /// same sheet card as the measurements and sizes above, which is where a fitting reads them.
   TextColumn get hmcNotes => text().withDefault(const Constant(''))();
 
   /// Where this person's image rights release stands.

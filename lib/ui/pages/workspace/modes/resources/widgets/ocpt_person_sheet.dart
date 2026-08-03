@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_unavailability_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_hmc_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_image_rights_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_logistics_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_meals_health_card.dart';
@@ -20,7 +21,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 /// The resources mode's centre, once a person is selected: the whole person sheet, a single
 /// scrolling column edited in place — the header (photo slot, name, minor badge, contact grid),
 /// the crew positions card, the legal-hours callout (only while the person is a minor), a
-/// two-column grid of cards (meals/health/skills; logistics; image rights; HMC notes), the
+/// two-column grid of cards (meals/health/skills; logistics; image rights; hair, make-up and
+/// costume), the
 /// full-width unavailabilities card, the notes card, and `Delete this person` at the very bottom.
 ///
 /// The unavailabilities are the one card outside the grid: a date range, a slot selector and a
@@ -196,64 +198,57 @@ class OcptPersonSheet extends StatelessWidget {
   }
 
   /// The two-column grid of cards: meals/health/skills beside logistics, then image rights beside
-  /// the HMC notes.
-  Widget _buildCardGrid(BuildContext context) {
-    final tr = Tr.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: OcptPersonSheetMealsHealthCard(
-                personId: person.id,
-                skills: person.skills,
-                fieldValueOf: fieldValueOf,
-                onFieldChanged: isReadOnly ? null : onFieldChanged,
-                onSkillAdded: isReadOnly ? null : onSkillAdded,
-                onSkillRemoved: isReadOnly ? null : onSkillRemoved,
-              ),
+  /// hair, make-up and costume.
+  Widget _buildCardGrid(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: OcptPersonSheetMealsHealthCard(
+              personId: person.id,
+              skills: person.skills,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: isReadOnly ? null : onFieldChanged,
+              onSkillAdded: isReadOnly ? null : onSkillAdded,
+              onSkillRemoved: isReadOnly ? null : onSkillRemoved,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OcptPersonSheetLogisticsCard(
-                personId: person.id,
-                isTransportAutonomous: person.isTransportAutonomous,
-                fieldValueOf: fieldValueOf,
-                onFieldChanged: isReadOnly ? null : onFieldChanged,
-                onTransportAutonomyChanged: isReadOnly ? null : onTransportAutonomyChanged,
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OcptPersonSheetLogisticsCard(
+              personId: person.id,
+              isTransportAutonomous: person.isTransportAutonomous,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: isReadOnly ? null : onFieldChanged,
+              onTransportAutonomyChanged: isReadOnly ? null : onTransportAutonomyChanged,
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: OcptPersonSheetImageRightsCard(
-                status: person.imageRightsStatus,
-                date: person.imageRightsDate,
-                onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
-                onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
-              ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: OcptPersonSheetImageRightsCard(
+              status: person.imageRightsStatus,
+              date: person.imageRightsDate,
+              onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
+              onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OcptPersonSheetNotesCard(
-                title: tr.resourcesHmcNotesTitle,
-                personId: person.id,
-                value: fieldValueOf(OcptPersonField.hmcNotes),
-                onChanged: isReadOnly
-                    ? null
-                    : (value) => onFieldChanged(OcptPersonField.hmcNotes, value),
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OcptPersonSheetHmcCard(
+              personId: person.id,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: isReadOnly ? null : onFieldChanged,
             ),
-          ],
-        ),
-      ],
-    );
-  }
+          ),
+        ],
+      ),
+    ],
+  );
 }

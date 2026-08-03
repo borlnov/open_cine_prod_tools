@@ -61,6 +61,18 @@ enum OcptPersonField {
   /// Maps to `updatePerson`'s `allergies`.
   allergies,
 
+  /// Maps to `updatePerson`'s `measurementHeight`.
+  measurementHeight,
+
+  /// Maps to `updatePerson`'s `measurementChest`.
+  measurementChest,
+
+  /// Maps to `updatePerson`'s `measurementWaist`.
+  measurementWaist,
+
+  /// Maps to `updatePerson`'s `measurementHips`.
+  measurementHips,
+
   /// Maps to `updatePerson`'s `sizeTop`.
   sizeTop,
 
