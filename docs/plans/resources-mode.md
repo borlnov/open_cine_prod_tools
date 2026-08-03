@@ -145,7 +145,7 @@ Where this plan and the mock-up differ, **this plan wins**; the differences are 
 
 | Tab | Left dock | Centre sheet |
 | --- | --------- | ------------ |
-| **People** | Avatar + name + role chips + positions + day count | Photo slot, contact grid, "functions on the film" (roles then positions), unavailabilities, diet/allergies/skills/sizes, image-rights card, HMC notes |
+| **People** | Avatar + name + role chips + positions + day count | Photo slot, contact grid (structured postal address, §4.2.1), "functions on the film" (roles then positions, their scope read-only), meals/health/skills, logistics, HMC card (measurements, sizes, notes), image-rights card, unavailabilities, notes |
 | **Roles** | Role name + cast member + other roles held | A table of the whole cast: n°, role, actor, other roles held — clicking a row opens that person's sheet |
 | **Locations** | Location name, colour bar, permit badge | Address + GPS + contact, filming permit card, sets in this location, parking / power / facilities, noise and schedule constraints, scouting photos, shooting days |
 | **Elements** | Grouped by category | Code, name, detail line, days — the whole catalogue as grouped cards |
@@ -172,7 +172,7 @@ This plan keeps that single table (§4.2.6) rather than one table per department
 
 | # | Difference |
 | - | ---------- |
-| 1 | **Crew positions are assigned at project level, not per time slot.** The mock-up assigns them inside the planning's `créneaux`; the planning mode does not exist. A `person_positions` row carries a free-text scope ("whole shoot", "mornings only") which the schedule mode later refines into real per-slot assignments. |
+| 1 | **Crew positions are assigned at project level; their scope belongs to the schedule mode.** The mock-up assigns positions inside the planning's `créneaux`. A `person_positions` row therefore says only *that* a person holds a function, never *when*: the scope is shown on the person sheet as a read-only column reading "defined in the schedule", and the schedule mode is what will fill it. One person may hold several functions over one slot (script supervisor *and* general assistant), which is why the scope can never live on the assignment row as a single free-text answer. |
 | 2 | **Photos and documents are referenced, never embedded** (§4.3). The mock-up shows "drop a photo" and "upload the signed PDF"; this step stores a path and shows a thumbnail, and no bytes enter the `.ocpt`. |
 | 3 | **No document generation.** The mock-up's "Generate the document" button for image rights is out of scope (§6): a legally meaningful release needs a template, jurisdiction-aware wording and a title-page-style editor. The status field and the reference to a signed PDF ship; the generator does not. |
 | 4 | **The resources mode's right dock holds one tab, `Versions`, and no inspector.** The mock-up hides the inspector for this mode and this plan agrees — the centre sheet *is* the inspector. But the `Versions` tab is hosted by *every* mode's right dock since project versions landed, and §4.7 has this mode mixing in the very bloc mixin that feeds that panel; a mode with no right panel would be the only one from which a user cannot seal or browse a version. So the dock exists, `OcptResourcesRightDockTab` has a single entry, and the dock is closed by default. |
@@ -180,7 +180,8 @@ This plan keeps that single table (§4.2.6) rather than one table per department
 
 ### 3.4 Decisions
 
-All nine were settled with Benoit before this plan was finalised. **They are not open questions.**
+Decisions 1 to 9 were settled with Benoit before this plan was finalised; 10 to 14 came out of his
+review of the People tab once M2 was built, and amend it. **None of them is an open question.**
 
 | # | Decision |
 | - | -------- |
@@ -188,11 +189,16 @@ All nine were settled with Benoit before this plan was finalised. **They are not
 | 2 | **Binary assets are references**, never bytes: an `assets` table holds a path, and nothing enters the `.ocpt`. See §4.3 and [ADR 0013](../adr/0013-binary-assets-referenced-by-path.md). |
 | 3 | **A role is auto-created for every speaking character** the screenplay has, on the same reconciliation pass the scene index already runs. See §4.4. |
 | 4 | **The Claude Design mock-up is the reference for the four sheets** and is followed as-is; Benoit is only asked about what the mock-up leaves unsaid. |
-| 5 | **Crew positions are assigned at project level, with a free-text scope** ("whole shoot", "mornings only"), the schedule mode refining them per time slot later. The scope text is not decoration: the reference call sheet of 13 August has *David on sound in the morning, Johan on sound in the afternoon*, and a model with no scope cannot say that. |
+| 5 | **Crew positions are assigned at project level; the schedule mode owns their scope.** A `person_positions` row is `(person, position)` and nothing else — no stored scope. The reference call sheet of 13 August has *David on sound in the morning, Johan on sound in the afternoon*, and the same person may hold two functions over one slot: both are per-slot facts about a shooting day, so they are answered by the schedule mode's own tables, and the person sheet shows the scope as a read-only column until it exists. |
 | 6 | **Deleting a person writes a tombstone and blanks their personal columns** — an erasure, not a hide. See §4.9, which is where this collides with versions. |
 | 7 | **The mode switcher becomes `screenplay · shotList · resources · schedule · budget`**: the three implemented modes first, the two empty ones last. This reorders `budget` and `schedule`, which is safe — `OcptPropertiesManager.workspaceMode` persists the enum by **name**, not by index. |
 | 8 | **One `elements` table with a category and a free sub-category**, not one table per department. Both reference spreadsheets already do this, and for the same reason: the tracking columns are identical whatever the item is. |
 | 9 | **Scene ↔ element links ship with an editor on the element sheet**; the per-scene breakdown *view* does not (§6). |
+| 10 | **A postal address is structured, not a single free-text line**: `addressLine1`, `addressLine2`, `postalCode`, `city`, `region`, `country`, on `people` **and** on `locations`. That is the field set every international address form settles on, and the one an XLSX column, a call-sheet line or a later geocoding can each read on its own. |
+| 11 | **The email field is checked, never blocked.** Every person-sheet field autosaves as it is typed, so a validity check that refused a write would refuse half of every address as it is being entered. The value is stored exactly as typed; a malformed one is flagged under the field once it loses the focus. See §4.6. |
+| 12 | **An unavailability spans a date range and a slot within it**: `startDate` → `endDate` (the same day by default), plus full day / morning / afternoon / a custom `startMinute`–`endMinute` window. Several rows may cover one date, which is how "unavailable 14:00–17:30 and again after 20:00" is said. Its reason is a multi-line field: one line was not enough to hold a real one. |
+| 13 | **The costume sizes leave the meals/health/skills card for an HMC card of their own**, holding what a wardrobe sheet always carries — height, chest, waist, hips, shoe size, top and bottom sizes — plus the HMC notes that until then were a card of their own. Diet, allergies and skills have nothing to do with a fitting. |
+| 14 | **All four amendments are applied to schema v6 in place, not as a v7.** v6 is provisional until M1 merges ([ADR 0007](../adr/0007-schema-migration-policy.md)) and no released build has ever written it, so there is no user file to migrate — a v7 whose only content is fixing a v6 that never shipped would be a permanent lie in the migration history. |
 
 ---
 
@@ -271,7 +277,8 @@ The address book. One row per human, whatever they do on the film.
 | ------ | ---- | ----- |
 | `id`, `sortKey`, `isDeleted` | | |
 | `firstName`, `lastName` | text | Both free; the display name and the initials are derived at read time, never stored. |
-| `email`, `phone`, `address`, `city` | text | The address book columns every reference document has. |
+| `email`, `phone` | text | The two contact columns every reference document has. `email` is checked for shape on blur and stored as typed (decision 11). |
+| `addressLine1`, `addressLine2`, `postalCode`, `city`, `region`, `country` | text | The structured postal address of decision 10. Six columns rather than one because a call sheet prints them in a country's own order, an export gives each a column, and a postal code is the one part of an address that is worth sorting or searching on. |
 | `colorIndex` | int | Indexes `ocptCoveragePalette`, exactly as a shot's colour does, so a person keeps one avatar colour everywhere. |
 | `birthDate` | date, nullable | Age and minor status are **derived**, never stored: a stored "15 ans" is wrong within a year. |
 | `minorNotes` | text | The legal framing when a person is a minor (hours, guardian presence, DDETS authorisation). |
@@ -279,7 +286,8 @@ The address book. One row per human, whatever they do on the film.
 | `accommodationNotes`, `travelNotes` | text | "Chez Camille", and the birth date + loyalty card number a train booking needs. |
 | `dietaryNotes`, `allergies` | text | Both reference documents track them, and a call sheet's catering line depends on them. |
 | `sizeTop`, `sizeBottom`, `sizeShoes` | text | Costume sizes, free text because real lists mix `38`, `M` and `Haut 38`. |
-| `hmcNotes` | text | Makeup/hair/costume continuity notes. |
+| `measurementHeight`, `measurementChest`, `measurementWaist`, `measurementHips` | text | The body measurements a wardrobe sheet always carries (decision 13). Free text like the sizes above, and for the same reason: real sheets mix `178`, `1m78` and `5'10"`, and a numeric column would have to pick a unit the user never agreed to. |
+| `hmcNotes` | text | Makeup/hair/costume continuity notes, shown on the same HMC card as the sizes and measurements. |
 | `imageRightsStatus` | enum | `notApplicable`, `toGenerate`, `generated`, `signed`. |
 | `imageRightsDate` | date, nullable | |
 | `imageRightsAssetId` | text, nullable | → `assets` |
@@ -289,15 +297,23 @@ The address book. One row per human, whatever they do on the film.
 #### 4.2.2 `person_positions`, `person_skills`, `person_unavailabilities`
 
 - **`person_positions`** — `personId`, `positionId` (a stable code from `ocptCrewPositions`, or
-  empty when the position is a free label), `customLabel`, `scopeNotes`, `sortKey`, `isDeleted`.
+  empty when the position is a free label), `customLabel`, `sortKey`, `isDeleted`. **No scope
+  column** (decision 5): the row says that a person holds a function, and the schedule mode's own
+  tables will say over which slots — including the case of one person holding two functions over
+  the same slot, which a single scope string on this row could never express.
   `ocptCrewPositions` (`lib/constants/`) is a `const` catalogue of `(id, ARB key, department)`
   covering the positions the reference call sheets print — direction, image, sound, art department,
   HMC, production — so the label is localised and the id stays stable for the schedule mode.
   `OcptCrewDepartment` is the enum grouping them.
 - **`person_skills`** — `personId`, `label`, `sortKey`, `isDeleted`. Driving licences, swimming,
   languages, instruments: chips on the person sheet, and the thing an AD searches on.
-- **`person_unavailabilities`** — `personId`, `date`, `halfDay` (`OcptHalfDay { full, morning,
-  afternoon }`), `reason`, `isDeleted`. Read by the schedule mode later; already worth capturing.
+- **`person_unavailabilities`** — `personId`, `startDate`, `endDate`, `slot`
+  (`OcptUnavailabilitySlot { fullDay, morning, afternoon, custom }`), `startMinute`/`endMinute`
+  (minutes from midnight, both null unless `slot` is `custom`), `reason`, `isDeleted`. A range
+  rather than a date because a week away is one answer, not seven; a slot rather than a half-day
+  alone because "unavailable from 14:00 to 17:30" is what a real conflict looks like (decision 12).
+  Several rows may cover one date, which is how two windows in one day are said. Read by the
+  schedule mode later; already worth capturing.
 
 #### 4.2.3 `roles`
 
@@ -316,7 +332,10 @@ stored column, for the same reason a shot code is not stored.
 
 #### 4.2.4 `locations` and `sets`
 
-**`locations`**: `id`, `name`, `colorIndex`, `city`, `address`, `latitude`/`longitude` (real,
+**`locations`**: `id`, `name`, `colorIndex`, the same six structured address columns `people`
+carries (`addressLine1`, `addressLine2`, `postalCode`, `city`, `region`, `country`, decision 10 —
+an address is one shape wherever it appears, and a location's is the one printed on a call sheet),
+`latitude`/`longitude` (real,
 nullable), `contactPersonId` (nullable → `people`, because the reference address book *does* list
 the location owners), `contactNotes`, `permitStatus` (`OcptPermitStatus { notNeeded, toRequest,
 requested, granted, refused }`), `permitLabel`, `permitDate`, `permitAssetId`, `parkingNotes`,
@@ -433,7 +452,14 @@ controller.
   `OcptLocationsList` / `OcptElementsList`. A search field filters the active list.
 - **Centre** — `OcptPersonSheet`, `OcptRolesTable`, `OcptLocationSheet`, `OcptElementsBoard`. Every
   sheet edits in place with the same debounce-and-flush discipline the shot inspector uses; nothing
-  opens a modal to edit a field.
+  opens a modal to edit a field. A field may **flag** what it holds without refusing it
+  (decision 11): `ocptEmailFormatError` is the shared check, the field shows its message once it
+  loses the focus, and the value is written either way — the person sheet autosaves as it is typed,
+  so a field that refused an incomplete value would refuse nearly every keystroke.
+  The person sheet's cards read top-down as the header, the functions, the legal-hours callout when
+  the person is a minor, then a two-column grid (meals/health/skills beside logistics, then the HMC
+  card beside image rights), then the unavailabilities — full width, since a date range, a slot and
+  a multi-line reason do not fit half of one — and last the notes.
 - **Right dock** — one tab, `OcptResourcesRightDockTab.versions`, hosting the shared
   `OcptProjectVersionsPanel` exactly as the two other modes do (§3.3, difference 4). No inspector
   tab: the centre sheet is the inspector. The dock is closed by default, and the shell's own
@@ -602,6 +628,12 @@ edit / delete, the right dock and its single `Versions` tab, the four obligation
 data, the working-copy refresh event, and the mixin's state members — the status bar, and the
 en_GB + fr ARB entries. This is the milestone that proves the shell wiring; the other three tabs
 are then additive.
+
+Benoit's review of the built sheet added decisions 10 to 14, applied here rather than deferred:
+the structured address (on `locations` too, so the two never disagree about what an address is),
+the email check, the scope column dropped, the unavailability's range and slot, and the HMC card.
+Every one of them touches schema v6 in place, so `contentDigest`, the payload codec and the
+migration test move with them.
 
 ### M3 — Roles and casting
 
