@@ -14,6 +14,9 @@ const int _multilineMinLines = 3;
 /// independent of one another (see `OcptShotInspectorReadOnlyField`'s own doc comment for the same
 /// reasoning).
 ///
+/// A field may **flag** what it holds without refusing it, through [errorTextOf]: nothing here
+/// ever blocks a write, since the sheet autosaves as it is typed.
+///
 /// [value] is the field's current authoritative value — a pending edit still sitting in
 /// `OcptResourcesState.pendingFieldEdits`, or the person's own stored value otherwise, exactly as
 /// `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The internal controller is only
@@ -42,6 +45,15 @@ class OcptPersonSheetField extends StatefulWidget {
   /// everything there is to say.
   final String? hintText;
 
+  /// The message to show under the field for the value it currently holds, or null when there is
+  /// nothing to say about it; null itself for a field that is never checked.
+  ///
+  /// The message is only ever shown **while the field does not have the focus**: the sheet writes
+  /// as it is typed, and flagging a half-typed address on every keystroke would make the field
+  /// red for as long as it takes to enter a correct value. It is a remark on what is now there,
+  /// not a gate — the value is written either way.
+  final String? Function(String value)? errorTextOf;
+
   /// The text style overriding this field's default `bodySmall`, used by the header's name fields
   /// to read as a title rather than as an ordinary field.
   final TextStyle? textStyle;
@@ -59,6 +71,7 @@ class OcptPersonSheetField extends StatefulWidget {
     required this.value,
     this.multiline = false,
     this.hintText,
+    this.errorTextOf,
     this.textStyle,
     required this.onChanged,
   });
@@ -78,6 +91,24 @@ class _OcptPersonSheetFieldState extends State<OcptPersonSheetField> {
   /// switch is detected even when the two people happen to share the same field value.
   late String _trackedPersonId = widget.personId;
 
+  /// The field's own focus node, watched so the check of
+  /// [OcptPersonSheetField.errorTextOf] is only shown once typing has stopped.
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  /// Rebuilds so the error message appears the moment the field loses the focus, and disappears
+  /// again the moment it regains it.
+  void _onFocusChanged() {
+    if (widget.errorTextOf != null) {
+      setState(() {});
+    }
+  }
+
   @override
   void didUpdateWidget(covariant OcptPersonSheetField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -90,8 +121,19 @@ class _OcptPersonSheetFieldState extends State<OcptPersonSheetField> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  /// The message to show under the field right now: what [OcptPersonSheetField.errorTextOf] says
+  /// about the current value, or null while the field has the focus or is never checked.
+  String? _resolveErrorText() {
+    final errorTextOf = widget.errorTextOf;
+    if (errorTextOf == null || _focusNode.hasFocus) {
+      return null;
+    }
+    return errorTextOf(_controller.text);
   }
 
   @override
@@ -111,12 +153,17 @@ class _OcptPersonSheetFieldState extends State<OcptPersonSheetField> {
         ],
         TextField(
           controller: _controller,
+          focusNode: _focusNode,
           readOnly: widget.onChanged == null,
           onChanged: widget.onChanged,
           maxLines: widget.multiline ? null : 1,
           minLines: widget.multiline ? _multilineMinLines : 1,
           style: widget.textStyle ?? theme.textTheme.bodySmall,
-          decoration: InputDecoration(isDense: true, hintText: widget.hintText),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: widget.hintText,
+            errorText: _resolveErrorText(),
+          ),
         ),
       ],
     );

@@ -392,6 +392,7 @@
   "resourcesFirstNameHint": "Prénom",
   "resourcesLastNameHint": "Nom",
   "resourcesEmailLabel": "E-mail",
+  "resourcesEmailMalformedError": "Cette adresse e-mail semble incorrecte",
   "resourcesPhoneLabel": "Téléphone",
   "resourcesAddressLine1Label": "Adresse (ligne 1)",
   "resourcesAddressLine2Label": "Adresse (ligne 2)",

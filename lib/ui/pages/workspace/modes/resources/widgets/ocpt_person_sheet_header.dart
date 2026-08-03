@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_email_format.dart';
 
 /// The person sheet's header: the photo slot on the left, and on the right the display name (as
 /// two adjoining, title-styled fields — `person.displayName` is derived from `firstName` and
@@ -136,7 +137,12 @@ class OcptPersonSheetHeader extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _buildFieldRow(
-        first: _buildTextField(tr.resourcesEmailLabel, OcptPersonField.email),
+        first: _buildTextField(
+          tr.resourcesEmailLabel,
+          OcptPersonField.email,
+          errorTextOf: (value) =>
+              ocptEmailLooksWellFormed(value) ? null : tr.resourcesEmailMalformedError,
+        ),
         second: _buildTextField(tr.resourcesPhoneLabel, OcptPersonField.phone),
       ),
       const SizedBox(height: 10),
@@ -165,11 +171,16 @@ class OcptPersonSheetHeader extends StatelessWidget {
     ],
   );
 
-  /// One field of the contact grid.
-  Widget _buildTextField(String label, OcptPersonField field) => OcptPersonSheetField(
+  /// One field of the contact grid, optionally checked by [errorTextOf] once it loses the focus.
+  Widget _buildTextField(
+    String label,
+    OcptPersonField field, {
+    String? Function(String value)? errorTextOf,
+  }) => OcptPersonSheetField(
     personId: person.id,
     label: label,
     value: fieldValueOf(field),
+    errorTextOf: errorTextOf,
     onChanged: _onFieldChangedOrNull(field),
   );
 

@@ -231,6 +231,30 @@ void main() {
     expect(find.text("Ponctuelle"), findsOneWidget);
   });
 
+  testWidgets("a malformed email is flagged once the field loses the focus, never before", (
+    tester,
+  ) async {
+    await _useTallSurface(tester);
+    await tester.pumpWidget(_buildSheet(person: _person(email: "clara@example.com")));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    expect(find.text(tr.resourcesEmailMalformedError), findsNothing);
+
+    // Typing an incomplete address says nothing while the field still has the focus: the sheet
+    // writes as it is typed, and every value passes through half-typed states.
+    await tester.tap(_fieldOf(tr.resourcesEmailLabel.toUpperCase()));
+    await tester.pumpAndSettle();
+    await tester.enterText(_fieldOf(tr.resourcesEmailLabel.toUpperCase()), "clara@");
+    await tester.pumpAndSettle();
+    expect(find.text(tr.resourcesEmailMalformedError), findsNothing);
+
+    // It is flagged the moment the focus moves elsewhere.
+    await tester.tap(_fieldOf(tr.resourcesPhoneLabel.toUpperCase()));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.resourcesEmailMalformedError), findsOneWidget);
+  });
+
   testWidgets("the HMC card holds the measurements and sizes, not the meals card", (tester) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(

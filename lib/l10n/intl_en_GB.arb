@@ -2957,6 +2957,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesEmailMalformedError": "This doesn't look like an email address",
+  "@resourcesEmailMalformedError": {
+    "description": "Remark shown under a person's email field when what it holds isn't a well-formed address; the value is stored either way",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesPhoneLabel": "Phone",
   "@resourcesPhoneLabel": {
     "description": "Label of the person sheet's phone field",
