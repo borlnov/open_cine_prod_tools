@@ -8,11 +8,14 @@ import 'dart:io';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -31,6 +34,19 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+/// The seven weekday names an availability window's summary cell is built from, keyed by their
+/// `DateTime.monday`…`DateTime.sunday` numbers — the locale's own names in the app, plain English
+/// ones here.
+const Map<int, String> _weekdayLabels = {
+  DateTime.monday: "Mon",
+  DateTime.tuesday: "Tue",
+  DateTime.wednesday: "Wed",
+  DateTime.thursday: "Thu",
+  DateTime.friday: "Fri",
+  DateTime.saturday: "Sat",
+  DateTime.sunday: "Sun",
+};
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
@@ -74,6 +90,81 @@ class _StubFileSelectorManager extends FileSelectorManager {
   }
 }
 
+/// An export manager whose [exportResourcesXlsx] is stubbed and whose calls are recorded, so the
+/// bloc's export path can be exercised without any real native dialog or workbook write. Mirrors
+/// `shot_list_bloc_test.dart`'s own `_FakeExportManager`.
+class _FakeExportManager extends OcptExportManager {
+  /// Class constructor
+  _FakeExportManager({this.exportResult, this.fails = false})
+    : super(fileSelectorManager: const FileSelectorManager());
+
+  /// The path [exportResourcesXlsx] returns, or null to simulate a cancelled save dialog.
+  final String? exportResult;
+
+  /// Whether [exportResourcesXlsx] throws, to exercise the bloc's export failure path.
+  final bool fails;
+
+  /// The snapshot of the last [exportResourcesXlsx] call.
+  OcptResourcesSnapshot? lastExportedSnapshot;
+
+  /// The labels of the last [exportResourcesXlsx] call.
+  OcptResourcesXlsxLabels? lastExportedLabels;
+
+  /// The project name of the last [exportResourcesXlsx] call.
+  String? lastExportedProjectName;
+
+  /// The file type label of the last [exportResourcesXlsx] call.
+  String? lastExportedFileTypeLabel;
+
+  @override
+  Future<String?> exportResourcesXlsx({
+    required OcptResourcesSnapshot snapshot,
+    required OcptResourcesXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedLabels = labels;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+
+    if (fails) {
+      throw StateError("resources export intentionally failed for the test");
+    }
+
+    return exportResult;
+  }
+}
+
+/// The labels the export tests dispatch, standing in for what `ocptResourcesXlsxLabelsOf` builds
+/// from a real `Tr`: the bloc only carries them through to the manager.
+const _exportLabels = OcptResourcesXlsxLabels(
+  fileNameSuffix: "resources",
+  peopleSheetName: "People",
+  rolesSheetName: "Roles",
+  locationsSheetName: "Locations",
+  elementsSheetName: "Elements",
+  peopleColumnHeaders: {},
+  rolesColumnHeaders: {},
+  locationsColumnHeaders: {},
+  elementsColumnHeaders: {},
+  crewPositionLabels: {},
+  roleKindLabels: {},
+  imageRightsStatusLabels: {},
+  permitStatusLabels: {},
+  elementCategoryLabels: {},
+  elementSourceKindLabels: {},
+  dayPartSlotLabels: {},
+  availabilityKindLabels: {},
+  elementTrackingToSecureLabel: "To secure",
+  elementTrackingSecuredLabel: "Secured",
+  elementTrackingReadyLabel: "Ready",
+  elementTrackingReturnedLabel: "Returned",
+  everyDayLabel: "Every day",
+  weekdayLabels: _weekdayLabels,
+  sceneLabels: {},
+);
+
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -108,10 +199,12 @@ void main() {
 
   /// Builds a bloc wired to the test project. [fieldEditDebounce] defaults to a short duration so
   /// tests exercising the field-edit debounce don't have to wait out the real 2 s one,
-  /// [overrideProjectsManager] lets a test swap in a manager of its own (already holding an open
-  /// project) when it needs to.
+  /// [exportManager] to a [_FakeExportManager] whose export cancels, so no test ever reaches a
+  /// native save dialog, and [overrideProjectsManager] lets a test swap in a manager of its own
+  /// (already holding an open project) when it needs to.
   OcptResourcesBloc buildBloc({
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
     OcptProjectsManager? overrideProjectsManager,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
@@ -119,6 +212,7 @@ void main() {
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
+    exportManager: exportManager ?? _FakeExportManager(),
     fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
   );
@@ -845,6 +939,111 @@ void main() {
     bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
     final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
     expect(state.selectedElementId, isNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the resources catalogue hands its snapshot to the export manager', () async {
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - resources.xlsx");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.peopleCount == 1);
+
+    bloc.add(
+      const OcptResourcesXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.xlsxExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - resources.xlsx");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "Excel workbook");
+    expect(exportManager.lastExportedLabels, _exportLabels);
+    expect(exportManager.lastExportedSnapshot!.peopleCount, 1);
+
+    bloc.add(const OcptResourcesIoNoticeDismissedEvent());
+    final dismissedState = await waitForState(bloc, (state) => state.ioNotice == null);
+    expect(dismissedState.hasWriteError, isFalse);
+
+    await bloc.close();
+  });
+
+  test('exporting flushes a pending field edit first, so the workbook holds it', () async {
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - resources.xlsx");
+    final bloc = buildBloc(
+      exportManager: exportManager,
+      fieldEditDebounce: const Duration(days: 1),
+    );
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = state.selectedPersonId!;
+
+    bloc.add(
+      OcptResourcesPersonFieldChangedEvent(
+        personId: personId,
+        field: OcptPersonField.firstName,
+        rawValue: "Léa",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptResourcesXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    final exportedPerson = exportManager.lastExportedSnapshot!.people.firstWhere(
+      (person) => person.id == personId,
+    );
+    expect(exportedPerson.firstName, "Léa");
+
+    await bloc.close();
+  });
+
+  test('a cancelled save dialog leaves no export notice at all', () async {
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptResourcesXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    // Nothing to wait for: a cancellation emits no state of its own, so the assertion is that the
+    // bloc settles back with no notice once the export has had time to resolve.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing export raises the transient export failure notice', () async {
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptResourcesXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.xlsxExportFailed);
+    expect(state.ioNotice!.path, isNull);
 
     await bloc.close();
   });

@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
@@ -118,7 +119,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptResourcesBloc>().add(const OcptResourcesBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelResources,
-        overflowEntries: _buildOverflowEntries(context),
+        overflowEntries: _buildOverflowEntries(context, state),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
           const OcptResourcesLeftPanelToggledEvent(),
@@ -146,15 +147,39 @@ class _ResourcesViewState extends State<_ResourcesView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: only resetting the panel layout this milestone
-  /// (the XLSX export follows once the four tabs all have content).
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
+  /// Builds the mode's `⋮` overflow menu entries: the XLSX export first, then resetting the panel
+  /// layout, mirroring `OcptShotListMode._buildOverflowEntries`.
+  ///
+  /// The export entry is disabled while the whole catalogue is empty: there would be nothing in
+  /// any of the four sheets but their header row.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(
+    BuildContext context,
+    OcptResourcesState state,
+  ) => [
+    PopupMenuItem<void>(
+      enabled: state.peopleCount + state.roleCount + state.locationCount + state.elementCount > 0,
+      onTap: () => _requestXlsxExport(context, state),
+      child: Text(Tr.of(context).resourcesExportXlsxMenuAction),
+    ),
     PopupMenuItem<void>(
       onTap: () =>
           context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
       child: Text(Tr.of(context).resourcesResetPanelLayoutAction),
     ),
   ];
+
+  /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
+  /// every localized string the four sheets and the native save dialog carry.
+  void _requestXlsxExport(BuildContext context, OcptResourcesState state) {
+    final tr = Tr.of(context);
+
+    context.read<OcptResourcesBloc>().add(
+      OcptResourcesXlsxExportRequestedEvent(
+        labels: ocptResourcesXlsxLabelsOf(context, state.scenes),
+        fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
+      ),
+    );
+  }
 
   /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.
   ///
@@ -920,6 +945,14 @@ class _ResourcesViewState extends State<_ResourcesView> {
       context.read<OcptResourcesBloc>().add(const OcptResourcesWriteErrorDismissedEvent());
     }
 
+    final ioNotice = state.ioNotice;
+    if (ioNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+      context.read<OcptResourcesBloc>().add(const OcptResourcesIoNoticeDismissedEvent());
+    }
+
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
       ScaffoldMessenger.of(context)
@@ -929,5 +962,18 @@ class _ResourcesViewState extends State<_ResourcesView> {
         );
       context.read<OcptResourcesBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
+  }
+
+  /// Maps [notice] to its localized, user-facing message, mirroring
+  /// `OcptShotListMode._ioNoticeMessage`.
+  String _ioNoticeMessage(BuildContext context, OcptResourcesIoNotice notice) {
+    final tr = Tr.of(context);
+
+    return switch (notice.kind) {
+      OcptResourcesIoNoticeKind.xlsxExportSucceeded => tr.resourcesExportXlsxSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptResourcesIoNoticeKind.xlsxExportFailed => tr.resourcesExportXlsxError,
+    };
   }
 }

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -22,6 +23,32 @@ import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+
+/// The kind of transient notice [OcptResourcesIoNotice] carries, one per resources export outcome.
+enum OcptResourcesIoNoticeKind {
+  /// The resources catalogue was successfully exported to a four-sheet XLSX workbook.
+  xlsxExportSucceeded,
+
+  /// Exporting the resources catalogue to a four-sheet XLSX workbook failed.
+  xlsxExportFailed,
+}
+
+/// A transient notice, produced by `OcptResourcesBloc`, reporting the outcome of an export, shown
+/// as a SnackBar then dismissed. Modelled on `OcptShotListIoNotice`.
+class OcptResourcesIoNotice extends Equatable {
+  /// The outcome this notice reports.
+  final OcptResourcesIoNoticeKind kind;
+
+  /// The path the export was written to, only set when [kind] is the succeeded kind.
+  final String? path;
+
+  /// Class constructor
+  const OcptResourcesIoNotice({required this.kind, this.path});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [kind, path];
+}
 
 /// The state of `OcptResourcesBloc`.
 ///
@@ -88,6 +115,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// Whether the last write to the project database failed; shown as a transient SnackBar then
   /// dismissed.
   final bool hasWriteError;
+
+  /// The outcome of the last resources export, or null while there is nothing to report; shown as
+  /// a transient SnackBar then dismissed.
+  final OcptResourcesIoNotice? ioNotice;
 
   /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the person id
   /// and the field, holding the raw text last typed for it.
@@ -286,6 +317,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.hasWriteError,
+    required this.ioNotice,
     required this.pendingFieldEdits,
     required this.pendingRoleFieldEdits,
     required this.pendingLocationFieldEdits,
@@ -315,6 +347,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
+      ioNotice = null,
       pendingFieldEdits = const {},
       pendingRoleFieldEdits = const {},
       pendingLocationFieldEdits = const {},
@@ -332,8 +365,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
   /// so it needs no clear flag. [selectedPersonId], [selectedRoleId], [selectedLocationId],
-  /// [selectedElementId] and [rightDockTab] all legitimately go back to null while the mode is alive
-  /// (nothing selected any more, the dock closed), so each has its own clear flag instead.
+  /// [selectedElementId], [rightDockTab] and [ioNotice] all legitimately go back to null while the
+  /// mode is alive (nothing selected any more, the dock closed, the export notice dismissed), so
+  /// each has its own clear flag instead.
   @override
   OcptResourcesState copyWith({
     bool? isLoading,
@@ -354,6 +388,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     double? leftDockFraction,
     double? rightDockFraction,
     bool? hasWriteError,
+    OcptResourcesIoNotice? ioNotice,
+    bool clearIoNotice = false,
     Map<(String, OcptPersonField), String>? pendingFieldEdits,
     Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
     Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
@@ -390,6 +426,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     hasWriteError: hasWriteError ?? this.hasWriteError,
+    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
     pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
@@ -463,6 +500,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     leftDockFraction,
     rightDockFraction,
     hasWriteError,
+    ioNotice,
     pendingFieldEdits,
     pendingRoleFieldEdits,
     pendingLocationFieldEdits,

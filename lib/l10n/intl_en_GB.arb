@@ -4430,5 +4430,562 @@
     "context": "Displayed in the resources mode's element sheet",
     "type": "text",
     "placeholders": {}
+  },
+  "resourcesExportXlsxMenuAction": "Export the resources…",
+  "@resourcesExportXlsxMenuAction": {
+    "description": "Action exporting the whole resources catalogue to a four-sheet Excel workbook",
+    "context": "Displayed in the overflow menu of the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxFileTypeLabel": "Excel workbook",
+  "@resourcesExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the resources catalogue",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxFileNameSuffix": "resources",
+  "@resourcesExportXlsxFileNameSuffix": {
+    "description": "Suffix appended to the project name for the resources workbook's file name, so it never collides with the shot list workbook's own name",
+    "context": "Used to build the suggested file name in the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxPeopleSheetName": "Crew & cast directory",
+  "@resourcesExportXlsxPeopleSheetName": {
+    "description": "Name given to the exported resources workbook's people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxRolesSheetName": "Roles",
+  "@resourcesExportXlsxRolesSheetName": {
+    "description": "Name given to the exported resources workbook's roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxLocationsSheetName": "Locations & sets",
+  "@resourcesExportXlsxLocationsSheetName": {
+    "description": "Name given to the exported resources workbook's locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxElementsSheetName": "Elements",
+  "@resourcesExportXlsxElementsSheetName": {
+    "description": "Name given to the exported resources workbook's elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxSuccessMessage": "Exported to {path}",
+  "@resourcesExportXlsxSuccessMessage": {
+    "description": "Message shown when the resources catalogue was successfully exported to an Excel workbook",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesExportXlsxError": "The resources catalogue could not be exported.",
+  "@resourcesExportXlsxError": {
+    "description": "Error shown when exporting the resources catalogue to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxAvailabilityEveryDay": "Every day",
+  "@resourcesXlsxAvailabilityEveryDay": {
+    "description": "Says a dated window's weekday mask covers every day of its date range",
+    "context": "Part of the availability windows summary cell of the exported locations & sets sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnName": "Name",
+  "@resourcesXlsxColumnName": {
+    "description": "Header of the name column, shared by the exported resources workbook's people, roles and elements sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPositions": "Positions",
+  "@resourcesXlsxColumnPositions": {
+    "description": "Header of the crew positions column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnRoles": "Roles",
+  "@resourcesXlsxColumnRoles": {
+    "description": "Header of the cast roles column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnEmail": "Email",
+  "@resourcesXlsxColumnEmail": {
+    "description": "Header of the email column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPhone": "Phone",
+  "@resourcesXlsxColumnPhone": {
+    "description": "Header of the phone column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAddressLine1": "Address line 1",
+  "@resourcesXlsxColumnAddressLine1": {
+    "description": "Header of the address line 1 column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAddressLine2": "Address line 2",
+  "@resourcesXlsxColumnAddressLine2": {
+    "description": "Header of the address line 2 column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPostalCode": "Postal code",
+  "@resourcesXlsxColumnPostalCode": {
+    "description": "Header of the postal code column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCity": "City",
+  "@resourcesXlsxColumnCity": {
+    "description": "Header of the city column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnRegion": "Region",
+  "@resourcesXlsxColumnRegion": {
+    "description": "Header of the region column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCountry": "Country",
+  "@resourcesXlsxColumnCountry": {
+    "description": "Header of the country column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnBirthDate": "Birth date",
+  "@resourcesXlsxColumnBirthDate": {
+    "description": "Header of the birth date column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAge": "Age",
+  "@resourcesXlsxColumnAge": {
+    "description": "Header of the age column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnMinorNotes": "Minor notes",
+  "@resourcesXlsxColumnMinorNotes": {
+    "description": "Header of the minor notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTransportAutonomy": "Transport autonomy",
+  "@resourcesXlsxColumnTransportAutonomy": {
+    "description": "Header of the transport autonomy column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAccommodationNotes": "Accommodation",
+  "@resourcesXlsxColumnAccommodationNotes": {
+    "description": "Header of the accommodation notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTravelNotes": "Travel",
+  "@resourcesXlsxColumnTravelNotes": {
+    "description": "Header of the travel notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnDietaryNotes": "Diet",
+  "@resourcesXlsxColumnDietaryNotes": {
+    "description": "Header of the dietary notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAllergies": "Allergies",
+  "@resourcesXlsxColumnAllergies": {
+    "description": "Header of the allergies column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSkills": "Skills",
+  "@resourcesXlsxColumnSkills": {
+    "description": "Header of the skills column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnHeight": "Height",
+  "@resourcesXlsxColumnHeight": {
+    "description": "Header of the height column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnChest": "Chest",
+  "@resourcesXlsxColumnChest": {
+    "description": "Header of the chest measurement column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnWaist": "Waist",
+  "@resourcesXlsxColumnWaist": {
+    "description": "Header of the waist measurement column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnHips": "Hips",
+  "@resourcesXlsxColumnHips": {
+    "description": "Header of the hip measurement column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTopSize": "Top size",
+  "@resourcesXlsxColumnTopSize": {
+    "description": "Header of the top clothing size column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnBottomSize": "Bottom size",
+  "@resourcesXlsxColumnBottomSize": {
+    "description": "Header of the bottom clothing size column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnShoeSize": "Shoe size",
+  "@resourcesXlsxColumnShoeSize": {
+    "description": "Header of the shoe size column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnHmcNotes": "HMC notes",
+  "@resourcesXlsxColumnHmcNotes": {
+    "description": "Header of the hair/make-up/costume notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnImageRightsStatus": "Image rights",
+  "@resourcesXlsxColumnImageRightsStatus": {
+    "description": "Header of the image rights status column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnImageRightsDate": "Image rights date",
+  "@resourcesXlsxColumnImageRightsDate": {
+    "description": "Header of the image rights date column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnUnavailabilities": "Unavailabilities",
+  "@resourcesXlsxColumnUnavailabilities": {
+    "description": "Header of the unavailabilities summary column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnNotes": "Notes",
+  "@resourcesXlsxColumnNotes": {
+    "description": "Header of the notes column, shared by the exported people, locations & sets and elements sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnNumber": "Number",
+  "@resourcesXlsxColumnNumber": {
+    "description": "Header of the role number column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnKind": "Kind",
+  "@resourcesXlsxColumnKind": {
+    "description": "Header of the role kind column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCastMember": "Cast member",
+  "@resourcesXlsxColumnCastMember": {
+    "description": "Header of the cast member column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnFromScreenplay": "From screenplay",
+  "@resourcesXlsxColumnFromScreenplay": {
+    "description": "Header of the from-screenplay flag column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnRemovedFromScreenplay": "Removed from screenplay",
+  "@resourcesXlsxColumnRemovedFromScreenplay": {
+    "description": "Header of the removed-from-screenplay flag column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCastingNotes": "Casting notes",
+  "@resourcesXlsxColumnCastingNotes": {
+    "description": "Header of the casting notes column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnLocationName": "Location",
+  "@resourcesXlsxColumnLocationName": {
+    "description": "Header of the location name column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSetCode": "Set code",
+  "@resourcesXlsxColumnSetCode": {
+    "description": "Header of the set code column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSetName": "Set name",
+  "@resourcesXlsxColumnSetName": {
+    "description": "Header of the set name column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnScenes": "Scenes",
+  "@resourcesXlsxColumnScenes": {
+    "description": "Header of the scenes column, shared by the exported locations & sets and elements sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnLatitude": "Latitude",
+  "@resourcesXlsxColumnLatitude": {
+    "description": "Header of the latitude column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnLongitude": "Longitude",
+  "@resourcesXlsxColumnLongitude": {
+    "description": "Header of the longitude column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnContact": "Contact",
+  "@resourcesXlsxColumnContact": {
+    "description": "Header of the contact column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnContactNotes": "Contact notes",
+  "@resourcesXlsxColumnContactNotes": {
+    "description": "Header of the contact notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPermitStatus": "Permit status",
+  "@resourcesXlsxColumnPermitStatus": {
+    "description": "Header of the permit status column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPermitLabel": "Permit reference",
+  "@resourcesXlsxColumnPermitLabel": {
+    "description": "Header of the permit reference column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPermitDate": "Permit date",
+  "@resourcesXlsxColumnPermitDate": {
+    "description": "Header of the permit date column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAvailabilityWindows": "Availability",
+  "@resourcesXlsxColumnAvailabilityWindows": {
+    "description": "Header of the availability windows summary column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnParkingNotes": "Parking",
+  "@resourcesXlsxColumnParkingNotes": {
+    "description": "Header of the parking notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPowerNotes": "Power",
+  "@resourcesXlsxColumnPowerNotes": {
+    "description": "Header of the power notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnFacilitiesNotes": "Facilities",
+  "@resourcesXlsxColumnFacilitiesNotes": {
+    "description": "Header of the facilities notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnConstraintsNotes": "Constraints",
+  "@resourcesXlsxColumnConstraintsNotes": {
+    "description": "Header of the constraints notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCategory": "Category",
+  "@resourcesXlsxColumnCategory": {
+    "description": "Header of the category column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSubCategory": "Sub-category",
+  "@resourcesXlsxColumnSubCategory": {
+    "description": "Header of the sub-category column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCode": "Code",
+  "@resourcesXlsxColumnCode": {
+    "description": "Header of the code column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnQuantity": "Quantity",
+  "@resourcesXlsxColumnQuantity": {
+    "description": "Header of the quantity column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSourceKind": "Source",
+  "@resourcesXlsxColumnSourceKind": {
+    "description": "Header of the source/provenance column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnOwner": "Owner",
+  "@resourcesXlsxColumnOwner": {
+    "description": "Header of the owner column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnOwnerNotes": "Owner (organisation)",
+  "@resourcesXlsxColumnOwnerNotes": {
+    "description": "Header of the free-text owner notes column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnBroughtBy": "Brought by",
+  "@resourcesXlsxColumnBroughtBy": {
+    "description": "Header of the brought-by column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnStorageNotes": "Storage",
+  "@resourcesXlsxColumnStorageNotes": {
+    "description": "Header of the storage notes column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSecured": "Secured",
+  "@resourcesXlsxColumnSecured": {
+    "description": "Header of the secured flag column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnReady": "Ready",
+  "@resourcesXlsxColumnReady": {
+    "description": "Header of the ready-for-shoot flag column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnReturned": "Returned",
+  "@resourcesXlsxColumnReturned": {
+    "description": "Header of the returned flag column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTrackingStatus": "Tracking status",
+  "@resourcesXlsxColumnTrackingStatus": {
+    "description": "Header of the derived tracking status column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCost": "Cost",
+  "@resourcesXlsxColumnCost": {
+    "description": "Header of the cost column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPurposeNotes": "Purpose",
+  "@resourcesXlsxColumnPurposeNotes": {
+    "description": "Header of the purpose notes column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
   }
 }

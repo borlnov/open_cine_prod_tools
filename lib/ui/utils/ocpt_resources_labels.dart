@@ -3,22 +3,29 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_elements_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_locations_xlsx_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_people_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// The placeholder shown in place of a resources field that has no value yet.
 ///
@@ -240,3 +247,195 @@ String ocptRoleKindLabel(Tr tr, OcptRoleKind kind) => switch (kind) {
   OcptRoleKind.silent => tr.resourcesRoleKindSilent,
   OcptRoleKind.extra => tr.resourcesRoleKindExtra,
 };
+
+/// The header label of the exported crew & cast directory sheet's column [column].
+String ocptPeopleXlsxColumnLabel(Tr tr, OcptPeopleXlsxColumn column) => switch (column) {
+  OcptPeopleXlsxColumn.name => tr.resourcesXlsxColumnName,
+  OcptPeopleXlsxColumn.positions => tr.resourcesXlsxColumnPositions,
+  OcptPeopleXlsxColumn.roles => tr.resourcesXlsxColumnRoles,
+  OcptPeopleXlsxColumn.email => tr.resourcesXlsxColumnEmail,
+  OcptPeopleXlsxColumn.phone => tr.resourcesXlsxColumnPhone,
+  OcptPeopleXlsxColumn.addressLine1 => tr.resourcesXlsxColumnAddressLine1,
+  OcptPeopleXlsxColumn.addressLine2 => tr.resourcesXlsxColumnAddressLine2,
+  OcptPeopleXlsxColumn.postalCode => tr.resourcesXlsxColumnPostalCode,
+  OcptPeopleXlsxColumn.city => tr.resourcesXlsxColumnCity,
+  OcptPeopleXlsxColumn.region => tr.resourcesXlsxColumnRegion,
+  OcptPeopleXlsxColumn.country => tr.resourcesXlsxColumnCountry,
+  OcptPeopleXlsxColumn.birthDate => tr.resourcesXlsxColumnBirthDate,
+  OcptPeopleXlsxColumn.age => tr.resourcesXlsxColumnAge,
+  OcptPeopleXlsxColumn.minorNotes => tr.resourcesXlsxColumnMinorNotes,
+  OcptPeopleXlsxColumn.transportAutonomy => tr.resourcesXlsxColumnTransportAutonomy,
+  OcptPeopleXlsxColumn.accommodationNotes => tr.resourcesXlsxColumnAccommodationNotes,
+  OcptPeopleXlsxColumn.travelNotes => tr.resourcesXlsxColumnTravelNotes,
+  OcptPeopleXlsxColumn.dietaryNotes => tr.resourcesXlsxColumnDietaryNotes,
+  OcptPeopleXlsxColumn.allergies => tr.resourcesXlsxColumnAllergies,
+  OcptPeopleXlsxColumn.skills => tr.resourcesXlsxColumnSkills,
+  OcptPeopleXlsxColumn.height => tr.resourcesXlsxColumnHeight,
+  OcptPeopleXlsxColumn.chest => tr.resourcesXlsxColumnChest,
+  OcptPeopleXlsxColumn.waist => tr.resourcesXlsxColumnWaist,
+  OcptPeopleXlsxColumn.hips => tr.resourcesXlsxColumnHips,
+  OcptPeopleXlsxColumn.topSize => tr.resourcesXlsxColumnTopSize,
+  OcptPeopleXlsxColumn.bottomSize => tr.resourcesXlsxColumnBottomSize,
+  OcptPeopleXlsxColumn.shoeSize => tr.resourcesXlsxColumnShoeSize,
+  OcptPeopleXlsxColumn.hmcNotes => tr.resourcesXlsxColumnHmcNotes,
+  OcptPeopleXlsxColumn.imageRightsStatus => tr.resourcesXlsxColumnImageRightsStatus,
+  OcptPeopleXlsxColumn.imageRightsDate => tr.resourcesXlsxColumnImageRightsDate,
+  OcptPeopleXlsxColumn.unavailabilities => tr.resourcesXlsxColumnUnavailabilities,
+  OcptPeopleXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
+};
+
+/// The header label of the exported roles sheet's column [column].
+String ocptRolesXlsxColumnLabel(Tr tr, OcptRolesXlsxColumn column) => switch (column) {
+  OcptRolesXlsxColumn.number => tr.resourcesXlsxColumnNumber,
+  OcptRolesXlsxColumn.name => tr.resourcesXlsxColumnName,
+  OcptRolesXlsxColumn.kind => tr.resourcesXlsxColumnKind,
+  OcptRolesXlsxColumn.castMember => tr.resourcesXlsxColumnCastMember,
+  OcptRolesXlsxColumn.fromScreenplay => tr.resourcesXlsxColumnFromScreenplay,
+  OcptRolesXlsxColumn.removedFromScreenplay => tr.resourcesXlsxColumnRemovedFromScreenplay,
+  OcptRolesXlsxColumn.castingNotes => tr.resourcesXlsxColumnCastingNotes,
+};
+
+/// The header label of the exported locations & sets sheet's column [column].
+String ocptLocationsXlsxColumnLabel(Tr tr, OcptLocationsXlsxColumn column) => switch (column) {
+  OcptLocationsXlsxColumn.locationName => tr.resourcesXlsxColumnLocationName,
+  OcptLocationsXlsxColumn.setCode => tr.resourcesXlsxColumnSetCode,
+  OcptLocationsXlsxColumn.setName => tr.resourcesXlsxColumnSetName,
+  OcptLocationsXlsxColumn.setScenes => tr.resourcesXlsxColumnScenes,
+  OcptLocationsXlsxColumn.addressLine1 => tr.resourcesXlsxColumnAddressLine1,
+  OcptLocationsXlsxColumn.addressLine2 => tr.resourcesXlsxColumnAddressLine2,
+  OcptLocationsXlsxColumn.postalCode => tr.resourcesXlsxColumnPostalCode,
+  OcptLocationsXlsxColumn.city => tr.resourcesXlsxColumnCity,
+  OcptLocationsXlsxColumn.region => tr.resourcesXlsxColumnRegion,
+  OcptLocationsXlsxColumn.country => tr.resourcesXlsxColumnCountry,
+  OcptLocationsXlsxColumn.latitude => tr.resourcesXlsxColumnLatitude,
+  OcptLocationsXlsxColumn.longitude => tr.resourcesXlsxColumnLongitude,
+  OcptLocationsXlsxColumn.contact => tr.resourcesXlsxColumnContact,
+  OcptLocationsXlsxColumn.contactNotes => tr.resourcesXlsxColumnContactNotes,
+  OcptLocationsXlsxColumn.permitStatus => tr.resourcesXlsxColumnPermitStatus,
+  OcptLocationsXlsxColumn.permitLabel => tr.resourcesXlsxColumnPermitLabel,
+  OcptLocationsXlsxColumn.permitDate => tr.resourcesXlsxColumnPermitDate,
+  OcptLocationsXlsxColumn.availabilityWindows => tr.resourcesXlsxColumnAvailabilityWindows,
+  OcptLocationsXlsxColumn.parkingNotes => tr.resourcesXlsxColumnParkingNotes,
+  OcptLocationsXlsxColumn.powerNotes => tr.resourcesXlsxColumnPowerNotes,
+  OcptLocationsXlsxColumn.facilitiesNotes => tr.resourcesXlsxColumnFacilitiesNotes,
+  OcptLocationsXlsxColumn.constraintsNotes => tr.resourcesXlsxColumnConstraintsNotes,
+  OcptLocationsXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
+};
+
+/// The header label of the exported elements sheet's column [column].
+String ocptElementsXlsxColumnLabel(Tr tr, OcptElementsXlsxColumn column) => switch (column) {
+  OcptElementsXlsxColumn.category => tr.resourcesXlsxColumnCategory,
+  OcptElementsXlsxColumn.subCategory => tr.resourcesXlsxColumnSubCategory,
+  OcptElementsXlsxColumn.code => tr.resourcesXlsxColumnCode,
+  OcptElementsXlsxColumn.name => tr.resourcesXlsxColumnName,
+  OcptElementsXlsxColumn.quantity => tr.resourcesXlsxColumnQuantity,
+  OcptElementsXlsxColumn.sourceKind => tr.resourcesXlsxColumnSourceKind,
+  OcptElementsXlsxColumn.owner => tr.resourcesXlsxColumnOwner,
+  OcptElementsXlsxColumn.ownerNotes => tr.resourcesXlsxColumnOwnerNotes,
+  OcptElementsXlsxColumn.broughtBy => tr.resourcesXlsxColumnBroughtBy,
+  OcptElementsXlsxColumn.storageNotes => tr.resourcesXlsxColumnStorageNotes,
+  OcptElementsXlsxColumn.secured => tr.resourcesXlsxColumnSecured,
+  OcptElementsXlsxColumn.ready => tr.resourcesXlsxColumnReady,
+  OcptElementsXlsxColumn.returned => tr.resourcesXlsxColumnReturned,
+  OcptElementsXlsxColumn.trackingStatus => tr.resourcesXlsxColumnTrackingStatus,
+  OcptElementsXlsxColumn.cost => tr.resourcesXlsxColumnCost,
+  OcptElementsXlsxColumn.scenes => tr.resourcesXlsxColumnScenes,
+  OcptElementsXlsxColumn.purposeNotes => tr.resourcesXlsxColumnPurposeNotes,
+  OcptElementsXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
+};
+
+/// Builds every localized string the exported resources workbook carries, for the [scenes] a set's
+/// or an element's own scene column names.
+///
+/// This is the single bridge between the UI's `Tr` and `OcptResourcesXlsxExportService`, which runs
+/// in the manager layer and has no `BuildContext` to resolve anything of its own — mirroring
+/// `ocptShotListXlsxLabelsOf`. Every enum label map reuses the very `ocpt…Label` helpers this file
+/// already exposes to the four tabs' own widgets, so the workbook can never name a status
+/// differently from the screen. [scenes] is resolved into [OcptResourcesXlsxLabels.sceneLabels]
+/// through `ocptSceneRefLabel`, since that helper lives here rather than under `lib/managers/`.
+///
+/// Takes the [context] rather than a `Tr` alone, unlike its shot list sibling: the weekday names an
+/// availability window is described with come from the locale's own calendar data through
+/// [DateFormat], the way the dated-window controls already format a date, rather than from seven
+/// ARB keys translating what every locale already knows.
+OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
+  BuildContext context,
+  List<OcptSceneRef> scenes,
+) {
+  final tr = Tr.of(context);
+
+  return OcptResourcesXlsxLabels(
+    fileNameSuffix: tr.resourcesExportXlsxFileNameSuffix,
+    peopleSheetName: tr.resourcesExportXlsxPeopleSheetName,
+    rolesSheetName: tr.resourcesExportXlsxRolesSheetName,
+    locationsSheetName: tr.resourcesExportXlsxLocationsSheetName,
+    elementsSheetName: tr.resourcesExportXlsxElementsSheetName,
+    peopleColumnHeaders: {
+      for (final column in OcptPeopleXlsxColumn.values)
+        column: ocptPeopleXlsxColumnLabel(tr, column),
+    },
+    rolesColumnHeaders: {
+      for (final column in OcptRolesXlsxColumn.values)
+        column: ocptRolesXlsxColumnLabel(tr, column),
+    },
+    locationsColumnHeaders: {
+      for (final column in OcptLocationsXlsxColumn.values)
+        column: ocptLocationsXlsxColumnLabel(tr, column),
+    },
+    elementsColumnHeaders: {
+      for (final column in OcptElementsXlsxColumn.values)
+        column: ocptElementsXlsxColumnLabel(tr, column),
+    },
+    crewPositionLabels: {
+      for (final position in ocptCrewPositions)
+        position.id: ocptCrewPositionLabel(tr, position.id),
+    },
+    roleKindLabels: {for (final kind in OcptRoleKind.values) kind: ocptRoleKindLabel(tr, kind)},
+    imageRightsStatusLabels: {
+      for (final status in OcptImageRightsStatus.values)
+        status: ocptImageRightsStatusLabel(tr, status),
+    },
+    permitStatusLabels: {
+      for (final status in OcptPermitStatus.values) status: ocptPermitStatusLabel(tr, status),
+    },
+    elementCategoryLabels: {
+      for (final category in OcptElementCategory.values)
+        category: ocptElementCategoryLabel(tr, category),
+    },
+    elementSourceKindLabels: {
+      for (final sourceKind in OcptElementSourceKind.values)
+        sourceKind: ocptElementSourceKindLabel(tr, sourceKind),
+    },
+    dayPartSlotLabels: {
+      for (final slot in OcptDayPartSlot.values) slot: ocptDayPartSlotLabel(tr, slot),
+    },
+    availabilityKindLabels: {
+      for (final kind in OcptLocationAvailabilityKind.values)
+        kind: ocptLocationAvailabilityKindLabel(tr, kind),
+    },
+    elementTrackingToSecureLabel: tr.resourcesElementTrackingToSecure,
+    elementTrackingSecuredLabel: tr.resourcesElementTrackingSecured,
+    elementTrackingReadyLabel: tr.resourcesElementTrackingReady,
+    elementTrackingReturnedLabel: tr.resourcesElementTrackingReturned,
+    everyDayLabel: tr.resourcesXlsxAvailabilityEveryDay,
+    weekdayLabels: _weekdayLabelsOf(context),
+    sceneLabels: {for (final scene in scenes) scene.id: ocptSceneRefLabel(scene)},
+  );
+}
+
+/// The name of every day of the week in [context]'s own locale, keyed by its
+/// `DateTime.monday`…`DateTime.sunday` number.
+///
+/// Formatted off a reference week (2024-01-01 was a Monday) rather than off today, so the seven
+/// names are always the seven weekdays whatever day this runs on. The short form is what a
+/// spreadsheet cell listing several of them has room for, and it stays unambiguous where
+/// `MaterialLocalizations.narrowWeekdays`' single letters would not.
+Map<int, String> _weekdayLabelsOf(BuildContext context) {
+  final format = DateFormat.E(Localizations.localeOf(context).toString());
+  final firstMonday = DateTime(2024);
+
+  return {
+    for (final weekday in ocptWeekdays)
+      weekday: format.format(firstMonday.add(Duration(days: weekday - DateTime.monday))),
+  };
+}

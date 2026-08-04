@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -1310,4 +1311,34 @@ class OcptResourcesDockLayoutResetEvent extends OcptResourcesEvent {
 class OcptResourcesWriteErrorDismissedEvent extends OcptResourcesEvent {
   /// Class constructor
   const OcptResourcesWriteErrorDismissedEvent();
+}
+
+/// Requests exporting the whole resources catalogue to a four-sheet XLSX workbook, dispatched by
+/// the mode's `⋮` menu.
+///
+/// Both localized payloads are resolved by the widget dispatching this, since the bloc has no
+/// `BuildContext` of its own: [labels] is every string the four sheets themselves carry (see
+/// `ocptResourcesXlsxLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the
+/// `.xlsx` type. Every pending field edit is flushed first, so a value typed seconds before the
+/// export is in the workbook rather than only on screen, mirroring
+/// `OcptShotListXlsxExportRequestedEvent`.
+class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesEvent {
+  /// Every localized string the exported workbook holds.
+  final OcptResourcesXlsxLabels labels;
+
+  /// The localized label of the `.xlsx` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesXlsxExportRequestedEvent({required this.labels, required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, labels, fileTypeLabel];
+}
+
+/// Dismisses the transient export notice currently shown, if any.
+class OcptResourcesIoNoticeDismissedEvent extends OcptResourcesEvent {
+  /// Class constructor
+  const OcptResourcesIoNoticeDismissedEvent();
 }

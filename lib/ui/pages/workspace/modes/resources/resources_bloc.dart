@@ -11,6 +11,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -89,6 +90,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
 
+  /// The manager used to export the resources catalogue to a four-sheet XLSX workbook.
+  final OcptExportManager _exportManager;
+
   /// The service used to read and write the address book.
   final OcptPeopleService _peopleService;
 
@@ -126,6 +130,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
     OcptPeopleService? peopleService,
     OcptRoleIndexService? roleIndexService,
     OcptLocationsService? locationsService,
@@ -135,6 +140,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _peopleService =
            peopleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
@@ -226,6 +232,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesDockFractionsChangedEvent>(_onDockFractionsChanged);
     on<OcptResourcesDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptResourcesWriteErrorDismissedEvent>(_onWriteErrorDismissed);
+    on<OcptResourcesXlsxExportRequestedEvent>(_onXlsxExportRequested);
+    on<OcptResourcesIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -2303,6 +2311,64 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     emitter(state.copyWith(hasWriteError: false));
+  }
+
+  /// Exports the whole resources catalogue to a four-sheet XLSX workbook.
+  ///
+  /// Flushes every pending field edit first — that flush re-reads the snapshot, so the workbook
+  /// holds the value the user typed seconds ago rather than the one the database held before it —
+  /// then hands what the state now carries to [OcptExportManager.exportResourcesXlsx], mirroring
+  /// `OcptShotListBloc._onXlsxExportRequested`. A cancelled save dialog is a silent no-op; a
+  /// failure raises the transient export-failed notice.
+  Future<void> _onXlsxExportRequested(
+    OcptResourcesXlsxExportRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    final project = _projectsManager.currentProject;
+    if (snapshot == null || project == null) {
+      return;
+    }
+
+    try {
+      final path = await _exportManager.exportResourcesXlsx(
+        snapshot: snapshot,
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptResourcesIoNotice(
+            kind: OcptResourcesIoNoticeKind.xlsxExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the resources catalogue of the "
+          "project at ${project.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Clears the transient export notice currently shown, if any.
+  Future<void> _onIoNoticeDismissed(
+    OcptResourcesIoNoticeDismissedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    emitter(state.copyWith(clearIoNotice: true));
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
