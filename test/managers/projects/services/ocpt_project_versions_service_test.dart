@@ -3,10 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
@@ -19,9 +22,15 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
@@ -32,15 +41,23 @@ void main() {
 
   const codec = OcptProjectVersionCodec();
   const peopleService = OcptPeopleService();
-  const service = OcptProjectVersionsService(
-    codec: codec,
-    screenplayService: OcptScreenplayService(
-      sceneIndexService: OcptSceneIndexService(),
-      shotListService: OcptShotListService(),
-      shotCoverageService: OcptShotCoverageService(),
-      roleIndexService: OcptRoleIndexService(),
-    ),
+  const roleIndexService = OcptRoleIndexService();
+  const elementsService = OcptElementsService();
+  const locationsService = OcptLocationsService();
+  const breakdownService = OcptBreakdownService(
+    elementsService: elementsService,
+    locationsService: locationsService,
   );
+  // Used directly by the breakdown restore tests below, to seed a real scene index and a real
+  // reconciled role — separate from the one `service` builds for its own screenplay-snapshotting
+  // needs, but a stateless collaborator over the same database, so the two never disagree.
+  const screenplayService = OcptScreenplayService(
+    sceneIndexService: OcptSceneIndexService(),
+    shotListService: OcptShotListService(),
+    shotCoverageService: OcptShotCoverageService(),
+    roleIndexService: roleIndexService,
+  );
+  const service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
   const screenplayId = "screenplay-1";
   const deviceId = "device-1";
   const appVersion = "0.1.0";
@@ -118,6 +135,38 @@ void main() {
           isDeleted: Value(isDeleted),
         ),
       );
+
+  /// Saves [fountainText] as the project's screenplay and returns its resulting live scenes,
+  /// ordered as they appear in the text — the real reconciliation path, rather than a hand-inserted
+  /// scene, since the breakdown restore tests below need real scene ids a real tag can point at.
+  Future<List<OcptSceneRow>> saveScreenplayScenes(String fountainText) async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: fountainText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    return (database.select(database.ocptScenesTable)
+          ..where((table) => table.isDeleted.equals(false))
+          ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+        .get();
+  }
+
+  /// The breakdown tag [id], tombstone included, or null if the project holds no such row at all.
+  Future<OcptBreakdownTagRow?> readTag(String id) => (database.select(
+    database.ocptBreakdownTagsTable,
+  )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+  /// The `scene_breakdowns` row of scene [sceneId], tombstone included, or null if it has none.
+  Future<OcptSceneBreakdownRow?> readSceneBreakdown(String sceneId) => (database.select(
+    database.ocptSceneBreakdownsTable,
+  )..where((table) => table.sceneId.equals(sceneId))).getSingleOrNull();
+
+  /// The element [id] as the project currently holds it.
+  Future<OcptElementRow> readElement(String id) => (database.select(
+    database.ocptElementsTable,
+  )..where((table) => table.id.equals(id))).getSingle();
 
   /// Creates a version named [name], with the fixed provenance every test here uses.
   Future<OcptProjectVersion> createVersion({String name = "v1 — First read", String note = ""}) =>
@@ -408,6 +457,27 @@ void main() {
               deviceId: "device-0",
             ),
           );
+      final elementId = (await elementsService.createElement(
+        database: database,
+        name: "Desk lamp",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.owned,
+      ))!;
+      await breakdownService.createTag(
+        database: database,
+        sceneId: "scene-1",
+        startOffset: 0,
+        endOffset: 4,
+        taggedText: "desk",
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: elementId,
+      );
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: "scene-1",
+        status: const Value(OcptBreakdownSceneStatus.inProgress),
+        notes: const Value("Check the lamp"),
+      );
 
       final payload = await readPayload((await createVersion()).id);
 
@@ -425,6 +495,11 @@ void main() {
       expect(await preview.select(preview.ocptShotsTable).get(), payload.shots);
       expect(await preview.select(preview.ocptShotCharactersTable).get(), payload.shotCharacters);
       expect(await preview.select(preview.ocptShotCoveragesTable).get(), payload.shotCoverages);
+      expect(await preview.select(preview.ocptBreakdownTagsTable).get(), payload.breakdownTags);
+      expect(
+        await preview.select(preview.ocptSceneBreakdownsTable).get(),
+        payload.sceneBreakdowns,
+      );
       expect(
         await preview.select(preview.ocptRowFieldVersionsTable).get(),
         payload.rowFieldVersions,
@@ -725,6 +800,8 @@ void main() {
                   elements: payload.elements,
                   sceneElements: payload.sceneElements,
                   assets: payload.assets,
+                  breakdownTags: payload.breakdownTags,
+                  sceneBreakdowns: payload.sceneBreakdowns,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -1061,6 +1138,194 @@ void main() {
       expect(skill.isDeleted, isTrue);
       expect(skill.label, isEmpty);
     });
+
+    test(
+      "restores a breakdown captured before it, then one captured after, tags tombstoned rather "
+      "than deleted and every reference still resolving",
+      () async {
+        // A real screenplay, reconciled into two real scenes — the breakdown restore's own
+        // subtlety (§ the payload's doc comment) is about references staying valid, which only
+        // means something against ids the reconciliation itself minted.
+        final scenes = await saveScreenplayScenes(
+          "INT. HOUSE - DAY\n\nA desk lamp glows. LÉA enters quietly.\n\n"
+          "EXT. STREET - NIGHT\n\nRain falls on the porch.\n",
+        );
+        final scene1 = scenes[0];
+        final scene2 = scenes[1];
+
+        final elementId = (await elementsService.createElement(
+          database: database,
+          name: "Desk lamp",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        ))!;
+        final roleId = (await roleIndexService.addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: "LÉA",
+          kind: OcptRoleKind.silent,
+        ))!;
+        final locationId = (await locationsService.createLocation(
+          database: database,
+          name: "House",
+        ))!;
+        final setId = (await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Kitchen",
+        ))!;
+
+        final elementTagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: scene1.id,
+          startOffset: 0,
+          endOffset: 4,
+          taggedText: "desk",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId,
+        ))!;
+        final roleTagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: scene1.id,
+          startOffset: 20,
+          endOffset: 23,
+          taggedText: "LÉA",
+          targetKind: OcptBreakdownTargetKind.role,
+          targetId: roleId,
+        ))!;
+        await breakdownService.updateSceneBreakdown(
+          database: database,
+          sceneId: scene1.id,
+          status: const Value(OcptBreakdownSceneStatus.inProgress),
+          notes: const Value("Check the lamp cable colour"),
+        );
+        final sceneBreakdownId = (await readSceneBreakdown(scene1.id))!.id;
+
+        final versionA = await createVersion(name: "v1 — First pass");
+
+        // Diverge from A: a tag is added, another is removed, the scene is marked done, and the
+        // element is secured.
+        final addedTagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: scene2.id,
+          startOffset: 0,
+          endOffset: 4,
+          taggedText: "Rain",
+          targetKind: OcptBreakdownTargetKind.set,
+          targetId: setId,
+        ))!;
+        await breakdownService.deleteTag(database: database, tagId: roleTagId);
+        await breakdownService.updateSceneBreakdown(
+          database: database,
+          sceneId: scene1.id,
+          status: const Value(OcptBreakdownSceneStatus.done),
+          notes: const Value("All set"),
+        );
+        await (database.update(
+          database.ocptElementsTable,
+        )..where((table) => table.id.equals(elementId))).write(
+          const OcptElementsTableCompanion(status: Value(OcptElementStatus.confirmed)),
+        );
+
+        final versionB = await createVersion(name: "v2 — Locked");
+
+        // Restore A: the breakdown must read exactly as it did at that moment.
+        final resultA = await restore(versionA.id);
+        expect(resultA.status, OcptProjectRestoreStatus.ok);
+
+        expect(
+          (await readTag(roleTagId))?.isDeleted,
+          isFalse,
+          reason: "a tag deleted after A must be live again",
+        );
+        final tagAddedAfterA = await readTag(addedTagId);
+        expect(
+          tagAddedAfterA,
+          isNotNull,
+          reason: "the row must still be there, as a tombstone",
+        );
+        expect(
+          tagAddedAfterA?.isDeleted,
+          isTrue,
+          reason: "a tag added after A must be tombstoned, never deleted",
+        );
+
+        final scene1AfterRestoringA = await readSceneBreakdown(scene1.id);
+        expect(scene1AfterRestoringA?.status, OcptBreakdownSceneStatus.inProgress);
+        expect(scene1AfterRestoringA?.notes, "Check the lamp cable colour");
+        expect((await readElement(elementId)).status, OcptElementStatus.toFind);
+
+        // A restore must never leave a dangling reference: every live tag's target still resolves
+        // to a live row, whichever of the three catalogues it names.
+        final liveTags = await (database.select(
+          database.ocptBreakdownTagsTable,
+        )..where((table) => table.isDeleted.equals(false))).get();
+        final liveSceneIds = {
+          for (final row
+              in await (database.select(
+                database.ocptScenesTable,
+              )..where((table) => table.isDeleted.equals(false))).get())
+            row.id,
+        };
+        final liveElementIds = {
+          for (final row
+              in await (database.select(
+                database.ocptElementsTable,
+              )..where((table) => table.isDeleted.equals(false))).get())
+            row.id,
+        };
+        final liveRoleIds = {
+          for (final row
+              in await (database.select(
+                database.ocptRolesTable,
+              )..where((table) => table.isDeleted.equals(false))).get())
+            row.id,
+        };
+        final liveSetIds = {
+          for (final row
+              in await (database.select(
+                database.ocptSetsTable,
+              )..where((table) => table.isDeleted.equals(false))).get())
+            row.id,
+        };
+        expect(liveTags, isNotEmpty);
+        for (final tag in liveTags) {
+          expect(liveSceneIds, contains(tag.sceneId));
+          switch (tag.targetKind) {
+            case OcptBreakdownTargetKind.element:
+              expect(liveElementIds, contains(tag.elementId));
+            case OcptBreakdownTargetKind.role:
+              expect(liveRoleIds, contains(tag.roleId));
+            case OcptBreakdownTargetKind.set:
+              expect(liveSetIds, contains(tag.setId));
+          }
+        }
+
+        // Only the columns the restore actually changed carry a fresh stamp.
+        final stampsAfterA = await readStamps();
+        expect(stampsAfterA["breakdown_tags/$addedTagId/isDeleted"]?.deviceId, deviceId);
+        expect(stampsAfterA["breakdown_tags/$roleTagId/isDeleted"]?.deviceId, deviceId);
+        expect(
+          stampsAfterA.containsKey("breakdown_tags/$elementTagId/taggedText"),
+          isFalse,
+          reason: "a tag the restore left untouched gains no stamp at all",
+        );
+        expect(stampsAfterA["scene_breakdowns/$sceneBreakdownId/status"]?.deviceId, deviceId);
+        expect(stampsAfterA["scene_breakdowns/$sceneBreakdownId/notes"]?.deviceId, deviceId);
+        expect(stampsAfterA.containsKey("scene_breakdowns/$sceneBreakdownId/sceneId"), isFalse);
+
+        // Restore B afterwards: the round trip works in the other direction too.
+        final resultB = await restore(versionB.id);
+        expect(resultB.status, OcptProjectRestoreStatus.ok);
+
+        expect((await readTag(addedTagId))?.isDeleted, isFalse);
+        expect((await readTag(roleTagId))?.isDeleted, isTrue);
+        final scene1AfterRestoringB = await readSceneBreakdown(scene1.id);
+        expect(scene1AfterRestoringB?.status, OcptBreakdownSceneStatus.done);
+        expect(scene1AfterRestoringB?.notes, "All set");
+        expect((await readElement(elementId)).status, OcptElementStatus.confirmed);
+      },
+    );
   });
 
   group("renameVersion", () {

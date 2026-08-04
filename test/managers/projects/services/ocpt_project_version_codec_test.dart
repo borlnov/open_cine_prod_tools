@@ -12,6 +12,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -491,6 +493,57 @@ void main() {
         isDeleted: true,
       ),
     ],
+    breakdownTags: const [
+      OcptBreakdownTagRow(
+        id: "breakdown-tag-1",
+        sceneId: "scene-1",
+        targetKind: OcptBreakdownTargetKind.element,
+        elementId: "element-1",
+        startOffset: 0,
+        endOffset: 4,
+        taggedText: "desk",
+        needsCheck: false,
+        isDeleted: false,
+      ),
+      OcptBreakdownTagRow(
+        id: "breakdown-tag-2",
+        sceneId: "scene-1",
+        targetKind: OcptBreakdownTargetKind.role,
+        roleId: "role-1",
+        startOffset: 10,
+        endOffset: 13,
+        taggedText: "LÉA",
+        needsCheck: true,
+        isDeleted: false,
+      ),
+      OcptBreakdownTagRow(
+        id: "breakdown-tag-3",
+        sceneId: "scene-2",
+        targetKind: OcptBreakdownTargetKind.set,
+        setId: "set-1",
+        startOffset: 2,
+        endOffset: 9,
+        taggedText: "kitchen",
+        needsCheck: false,
+        isDeleted: true,
+      ),
+    ],
+    sceneBreakdowns: const [
+      OcptSceneBreakdownRow(
+        id: "scene-breakdown-1",
+        sceneId: "scene-1",
+        status: OcptBreakdownSceneStatus.inProgress,
+        notes: "Check the lamp cable colour",
+        isDeleted: false,
+      ),
+      OcptSceneBreakdownRow(
+        id: "scene-breakdown-2",
+        sceneId: "scene-2",
+        status: OcptBreakdownSceneStatus.done,
+        notes: "",
+        isDeleted: true,
+      ),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -650,9 +703,11 @@ void main() {
       expect(element.broughtByPersonId, "person-1");
       expect(element.isSecured, isTrue);
       expect(element.cost, 1200);
+      expect(element.status, OcptElementStatus.confirmed);
       final freeElement = roundTripped.elements.last;
       expect(freeElement.ownerPersonId, isNull);
       expect(freeElement.cost, isNull);
+      expect(freeElement.status, OcptElementStatus.toFind);
 
       final sceneElement = roundTripped.sceneElements.first;
       expect(sceneElement.elementId, "element-1");
@@ -663,6 +718,54 @@ void main() {
       expect(asset.path, "/home/user/Documents/release-clara.pdf");
       expect(asset.addedAt, DateTime.utc(2026, 1, 10, 9));
       expect(asset.personId, "person-1");
+    });
+
+    test('every column of the two breakdown tables round trips, enums and nulls included', () {
+      final roundTripped = roundTrip(buildRichPayload());
+
+      // The three targetKind values, each pointing at exactly one of elementId/roleId/setId and
+      // leaving the other two null — a codec that forgot one of the three columns would silently
+      // lose the tags of that whole kind on a restore.
+      final elementTag = roundTripped.breakdownTags.firstWhere((tag) => tag.id == "breakdown-tag-1");
+      expect(elementTag.targetKind, OcptBreakdownTargetKind.element);
+      expect(elementTag.elementId, "element-1");
+      expect(elementTag.roleId, isNull);
+      expect(elementTag.setId, isNull);
+      expect(elementTag.taggedText, "desk");
+      expect(elementTag.startOffset, 0);
+      expect(elementTag.endOffset, 4);
+      expect(elementTag.needsCheck, isFalse);
+      expect(elementTag.isDeleted, isFalse);
+
+      final roleTag = roundTripped.breakdownTags.firstWhere((tag) => tag.id == "breakdown-tag-2");
+      expect(roleTag.targetKind, OcptBreakdownTargetKind.role);
+      expect(roleTag.elementId, isNull);
+      expect(roleTag.roleId, "role-1");
+      expect(roleTag.setId, isNull);
+      expect(roleTag.needsCheck, isTrue);
+
+      final setTag = roundTripped.breakdownTags.firstWhere((tag) => tag.id == "breakdown-tag-3");
+      expect(setTag.targetKind, OcptBreakdownTargetKind.set);
+      expect(setTag.elementId, isNull);
+      expect(setTag.roleId, isNull);
+      expect(setTag.setId, "set-1");
+      // The tombstone is a row like any other: a payload holding only live tags would resurrect,
+      // on restore, every tag the user had removed since.
+      expect(setTag.isDeleted, isTrue);
+
+      final inProgressScene = roundTripped.sceneBreakdowns.firstWhere(
+        (row) => row.id == "scene-breakdown-1",
+      );
+      expect(inProgressScene.status, OcptBreakdownSceneStatus.inProgress);
+      expect(inProgressScene.notes, "Check the lamp cable colour");
+      expect(inProgressScene.isDeleted, isFalse);
+
+      final doneScene = roundTripped.sceneBreakdowns.firstWhere(
+        (row) => row.id == "scene-breakdown-2",
+      );
+      expect(doneScene.status, OcptBreakdownSceneStatus.done);
+      expect(doneScene.notes, "");
+      expect(doneScene.isDeleted, isTrue);
     });
 
     test("a shot's abbreviation survives, so a restore keeps the coverage bar labels", () {
@@ -724,6 +827,8 @@ void main() {
         elements: [],
         sceneElements: [],
         assets: [],
+        breakdownTags: [],
+        sceneBreakdowns: [],
         rowFieldVersions: [],
         pageSetup: OcptPageSetup.standard(),
         settingsJson: null,
@@ -765,6 +870,8 @@ void main() {
         elements: payload.elements.reversed.toList(),
         sceneElements: payload.sceneElements.reversed.toList(),
         assets: payload.assets.reversed.toList(),
+        breakdownTags: payload.breakdownTags.reversed.toList(),
+        sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -794,6 +901,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: const [
           OcptRowFieldVersionRow(
             targetTableName: "shots",
@@ -831,6 +940,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: payload.pageSetup.format,
@@ -871,6 +982,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -900,6 +1013,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -929,6 +1044,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -960,6 +1077,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -967,6 +1086,194 @@ void main() {
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
+    });
+
+    test('changes when a breakdown tag is added', () {
+      final payload = buildRichPayload();
+      final withNewTag = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        breakdownTags: [
+          ...payload.breakdownTags,
+          const OcptBreakdownTagRow(
+            id: "breakdown-tag-4",
+            sceneId: "scene-1",
+            targetKind: OcptBreakdownTargetKind.element,
+            elementId: "element-1",
+            startOffset: 20,
+            endOffset: 24,
+            taggedText: "mug!",
+            needsCheck: false,
+            isDeleted: false,
+          ),
+        ],
+        sceneBreakdowns: payload.sceneBreakdowns,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      // Without the breakdown tables in the digest, an afternoon of tagging the script would leave
+      // the working-copy card claiming no drift from its base.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewTag)));
+    });
+
+    test("changes when a breakdown tag's text or offsets change", () {
+      final payload = buildRichPayload();
+      final reanchored = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        breakdownTags: [
+          payload.breakdownTags.first.copyWith(
+            startOffset: 5,
+            endOffset: 9,
+            taggedText: "lamp",
+          ),
+          ...payload.breakdownTags.skip(1),
+        ],
+        sceneBreakdowns: payload.sceneBreakdowns,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(reanchored)));
+    });
+
+    test('changes when a breakdown tag is tombstoned', () {
+      final payload = buildRichPayload();
+      final tombstoned = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        breakdownTags: [
+          payload.breakdownTags.first.copyWith(isDeleted: true),
+          ...payload.breakdownTags.skip(1),
+        ],
+        sceneBreakdowns: payload.sceneBreakdowns,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
+    });
+
+    test("changes when a scene breakdown's status changes", () {
+      final payload = buildRichPayload();
+      final marked = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: [
+          payload.sceneBreakdowns.first.copyWith(status: OcptBreakdownSceneStatus.done),
+          ...payload.sceneBreakdowns.skip(1),
+        ],
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(marked)));
+    });
+
+    test("changes when an element's status changes", () {
+      final payload = buildRichPayload();
+      final restatused = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: [
+          payload.elements.first.copyWith(status: OcptElementStatus.reserved),
+          ...payload.elements.skip(1),
+        ],
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      // elements.status is new too, and it lives inside the digest exactly like every other
+      // column: a status changed only on this field must not read as an unmodified working copy.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(restatused)));
     });
 
     test('changes when the page format changes', () {
@@ -989,6 +1296,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: OcptPageFormat.usLetter,
@@ -1021,6 +1330,8 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1119,6 +1430,12 @@ void main() {
       expect(payload.sceneElements, isEmpty);
       expect(payload.assets, isEmpty);
       expect(payload.locationAvailabilities, isEmpty);
+      // A version written before schema v9 predates the breakdown pass by even more, so it goes
+      // through every upgrade step in a row: still no tags, no scene statuses, and — vacuously here,
+      // since there are no elements at all — every one of them still to find.
+      expect(payload.breakdownTags, isEmpty);
+      expect(payload.sceneBreakdowns, isEmpty);
+      expect(payload.elements.every((row) => row.status == OcptElementStatus.toFind), isTrue);
     });
 
     test('a stored format-2 payload decodes with no availability window', () {
@@ -1189,6 +1506,9 @@ void main() {
       // Truthful rather than unknown: the project had no window to capture, so restoring this
       // version drops whatever windows the working copy has gathered since.
       expect(payload.locationAvailabilities, isEmpty);
+      expect(payload.breakdownTags, isEmpty);
+      expect(payload.sceneBreakdowns, isEmpty);
+      expect(payload.elements.every((row) => row.status == OcptElementStatus.toFind), isTrue);
     });
 
     test('a stored format-3 payload decodes to a null currency', () {
@@ -1233,6 +1553,78 @@ void main() {
       // has never been nullable — which is why `OcptProjectVersionsService.restoreVersion` leaves
       // the project's own currency untouched rather than overwriting it with this null.
       expect(result.value!.currencyCode, isNull);
+      expect(result.value!.breakdownTags, isEmpty);
+      expect(result.value!.sceneBreakdowns, isEmpty);
+      expect(result.value!.elements.every((row) => row.status == OcptElementStatus.toFind), isTrue);
+    });
+
+    test('a stored format-4 payload decodes with no breakdown and every element still to find', () {
+      // The retired format that shipped `elements.status` on the table but never bumped the payload
+      // format for it (`9a42495`): a real format-4 payload written before that column existed
+      // carries no `status` key on its element rows at all, and no breakdown keys whatsoever.
+      const format4Payload = '''
+{
+  "payloadFormat": 4,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [],
+  "locationAvailabilities": [],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [
+    {
+      "id": "element-1",
+      "sortKey": "V",
+      "isDeleted": false,
+      "category": "prop",
+      "subCategory": "",
+      "name": "Old lamp",
+      "code": "LAMP1",
+      "quantity": "",
+      "sourceKind": "owned",
+      "ownerPersonId": null,
+      "ownerNotes": "",
+      "broughtByPersonId": null,
+      "storageNotes": "",
+      "isSecured": false,
+      "isReadyForShoot": false,
+      "isReturned": false,
+      "cost": null,
+      "purposeNotes": "",
+      "notes": "",
+      "photoAssetId": null
+    }
+  ],
+  "sceneElements": [],
+  "assets": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null, "currencyCode": "EUR" },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+      final result = codec.decode(format4Payload);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      final payload = result.value!;
+      expect(payload.breakdownTags, isEmpty);
+      expect(payload.sceneBreakdowns, isEmpty);
+      // The column's own default is the honest reading here, not a guess: this element was
+      // captured before `status` existed at all, so there is no real value to have preserved.
+      expect(payload.elements.single.status, OcptElementStatus.toFind);
     });
   });
 
@@ -1292,6 +1684,19 @@ void main() {
     test('an enum column holding an unknown value is refused', () {
       final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
       ((encoded["shots"] as List).first as Map<String, dynamic>)["status"] = "teleported";
+
+      expect(
+        codec.decode(jsonEncode(encoded)).status,
+        OcptProjectVersionPayloadStatus.malformedPayload,
+      );
+    });
+
+    test('a format-5 element row missing its status is refused, not defaulted', () {
+      // At the current format, elements.status is read strictly ([_upgradeFormat4To5] is the only
+      // place that ever defaults it, and only for a payload that never reached format 5): a format-5
+      // payload with the column simply missing is malformed, not a project that predates it.
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      ((encoded["elements"] as List).first as Map<String, dynamic>).remove("status");
 
       expect(
         codec.decode(jsonEncode(encoded)).status,

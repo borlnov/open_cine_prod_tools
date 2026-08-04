@@ -13,6 +13,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -53,7 +55,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 4;
+  static const currentPayloadFormat = 5;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -110,6 +112,12 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `assets` rows from a JSON object
   static const _assetsKey = "assets";
+
+  /// This is the key used to stringify or parse the `breakdown_tags` rows from a JSON object
+  static const _breakdownTagsKey = "breakdownTags";
+
+  /// This is the key used to stringify or parse the `scene_breakdowns` rows from a JSON object
+  static const _sceneBreakdownsKey = "sceneBreakdowns";
 
   /// This is the key used to stringify or parse the `row_field_versions` rows from a JSON object
   static const _rowFieldVersionsKey = "rowFieldVersions";
@@ -200,7 +208,8 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a shot's `sound` column from a JSON object
   static const _soundKey = "sound";
 
-  /// This is the key used to stringify or parse a shot's `status` column from a JSON object
+  /// This is the key used to stringify or parse a `status` column (`shots.status`,
+  /// `elements.status` or `scene_breakdowns.status`) from a JSON object
   static const _statusKey = "status";
 
   /// This is the key used to stringify or parse a shot's `difficultySet` column from a JSON object
@@ -218,13 +227,16 @@ class OcptProjectVersionCodec {
   /// object
   static const _difficultySoundKey = "difficultySound";
 
-  /// This is the key used to stringify or parse a shot's `notes` column from a JSON object
+  /// This is the key used to stringify or parse a free-form `notes` column (`shots.notes`,
+  /// `people.notes`, `locations.notes`, `sets.notes`, `elements.notes`, `scene_elements.notes` or
+  /// `scene_breakdowns.notes`) from a JSON object
   static const _notesKey = "notes";
 
   /// This is the key used to stringify or parse a shot's `locationNotes` column from a JSON object
   static const _locationNotesKey = "locationNotes";
 
-  /// This is the key used to stringify or parse a shot's `needsCheck` column from a JSON object
+  /// This is the key used to stringify or parse a `needsCheck` column (`shots.needsCheck` or
+  /// `breakdown_tags.needsCheck`) from a JSON object
   static const _needsCheckKey = "needsCheck";
 
   /// This is the key used to stringify or parse a shot's `checkReason` column from a JSON object
@@ -397,6 +409,17 @@ class OcptProjectVersionCodec {
   /// from a JSON object
   static const _kindKey = "kind";
 
+  /// This is the key used to stringify or parse a breakdown tag's `targetKind` column from a JSON
+  /// object.
+  ///
+  /// Its own key rather than a reuse of [_kindKey]: that one already serves two columns which are
+  /// each a table describing *itself* (what kind of role, what kind of asset), while a tag's
+  /// `targetKind` describes which of a **different** row's ids ([_elementIdKey], [_roleIdKey] or
+  /// [_setIdKey]) is the one that means something — a distinct enough idea, and overloading
+  /// [_kindKey] with it would only make a reader of the stored JSON wonder which sense a given
+  /// `"kind"` key holds.
+  static const _targetKindKey = "targetKind";
+
   /// This is the key used to stringify or parse a role's `isFromScreenplay` column from a JSON
   /// object
   static const _isFromScreenplayKey = "isFromScreenplay";
@@ -458,8 +481,14 @@ class OcptProjectVersionCodec {
   /// object
   static const _codeKey = "code";
 
-  /// This is the key used to stringify or parse a scene set's `setId` column from a JSON object
+  /// This is the key used to stringify or parse a `setId` column (`scene_sets.setId` or
+  /// `breakdown_tags.setId`) from a JSON object
   static const _setIdKey = "setId";
+
+  /// This is the key used to stringify or parse a breakdown tag's `roleId` column from a JSON
+  /// object — the sibling of [_elementIdKey] and [_setIdKey], non-null only when the tag's
+  /// `targetKind` names a role.
+  static const _roleIdKey = "roleId";
 
   /// This is the key used to stringify or parse an element's `category` column from a JSON object
   static const _categoryKey = "category";
@@ -507,8 +536,8 @@ class OcptProjectVersionCodec {
   /// object
   static const _purposeNotesKey = "purposeNotes";
 
-  /// This is the key used to stringify or parse a scene element's `elementId` column from a JSON
-  /// object
+  /// This is the key used to stringify or parse an `elementId` column (`scene_elements.elementId`
+  /// or `breakdown_tags.elementId`) from a JSON object
   static const _elementIdKey = "elementId";
 
   /// This is the key used to stringify or parse an asset's `path` column from a JSON object
@@ -517,12 +546,18 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse an asset's `addedAt` column from a JSON object
   static const _addedAtKey = "addedAt";
 
-  /// This is the key used to stringify or parse a coverage's `startOffset` column from a JSON
-  /// object
+  /// This is the key used to stringify or parse a scene-relative `startOffset` column
+  /// (`shot_coverages.startOffset` or `breakdown_tags.startOffset`) from a JSON object
   static const _startOffsetKey = "startOffset";
 
-  /// This is the key used to stringify or parse a coverage's `endOffset` column from a JSON object
+  /// This is the key used to stringify or parse a scene-relative `endOffset` column
+  /// (`shot_coverages.endOffset` or `breakdown_tags.endOffset`) from a JSON object
   static const _endOffsetKey = "endOffset";
+
+  /// This is the key used to stringify or parse a breakdown tag's `taggedText` column from a JSON
+  /// object: the tagged passage, verbatim — unlike the neighbouring `shot_coverages`, which stores
+  /// only a digest (see `OcptBreakdownTagsTable`'s own doc comment for why).
+  static const _taggedTextKey = "taggedText";
 
   /// This is the key used to stringify or parse a coverage's `coveredTextDigest` column from a JSON
   /// object
@@ -578,6 +613,7 @@ class OcptProjectVersionCodec {
     1: _upgradeFormat1To2,
     2: _upgradeFormat2To3,
     3: _upgradeFormat3To4,
+    4: _upgradeFormat4To5,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -637,6 +673,36 @@ class OcptProjectVersionCodec {
     return {...json, _projectSettingsKey: projectSettings};
   }
 
+  /// Turns a format-**4** JSON object into a format-**5** one: two things, done together because
+  /// the same moment in the schema's history left both undone — the breakdown pass's two tables and
+  /// the `elements.status` column it leans on all arrived in schema v9, so a payload written before
+  /// that carries none of the three.
+  ///
+  /// - [_breakdownTagsKey]/[_sceneBreakdownsKey] materialise as **empty lists**, exactly as
+  ///   [_upgradeFormat1To2] and [_upgradeFormat2To3] do for the tables that predate them: a payload
+  ///   that never reached format 5 predates the breakdown pass entirely, so "no tags, no scene
+  ///   statuses" is a truthful statement about that moment, and
+  ///   `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
+  ///   doesn't hold — so restoring one correctly drops whatever breakdown work has happened since,
+  ///   with no special case written for it;
+  /// - every `elements` row gains a [_statusKey] of [OcptElementStatus.toFind] — **unlike**
+  ///   [_upgradeFormat3To4]'s currency, which upgrades to *null* and means "leave the project's own
+  ///   value alone": a version that never reached format 5 was captured before `elements.status`
+  ///   existed at all, so there is no live value anywhere to leave alone — the column's own default
+  ///   is the honest reading of "nobody has ever recorded a status for this element", not a guess.
+  ///   This is also what lets [_elementFromJson] read [_statusKey] strictly rather than defaulting
+  ///   it itself: by the time a JSON object reaches that method it has already been upgraded to
+  ///   [currentPayloadFormat], where the column is never absent.
+  static Map<String, dynamic> _upgradeFormat4To5(Map<String, dynamic> json) => {
+    ...json,
+    _elementsKey: [
+      for (final element in _rows(json, _elementsKey))
+        {...element, _statusKey: OcptElementStatus.toFind.name},
+    ],
+    _breakdownTagsKey: const <dynamic>[],
+    _sceneBreakdownsKey: const <dynamic>[],
+  };
+
   /// Class constructor
   const OcptProjectVersionCodec();
 
@@ -665,6 +731,10 @@ class OcptProjectVersionCodec {
     _elementsKey: [for (final row in payload.elements) _elementToJson(row)],
     _sceneElementsKey: [for (final row in payload.sceneElements) _sceneElementToJson(row)],
     _assetsKey: [for (final row in payload.assets) _assetToJson(row)],
+    _breakdownTagsKey: [for (final row in payload.breakdownTags) _breakdownTagToJson(row)],
+    _sceneBreakdownsKey: [
+      for (final row in payload.sceneBreakdowns) _sceneBreakdownToJson(row),
+    ],
     _rowFieldVersionsKey: [for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row)],
     _projectSettingsKey: {
       _pageFormatKey: payload.pageSetup.format.name,
@@ -728,15 +798,18 @@ class OcptProjectVersionCodec {
   ///
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
   ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
-  ///   `sceneSets`, `elements`, `sceneElements`, `assets` — every column of each — plus
-  ///   `pageSetup.format`, `settingsJson` and `currencyCode`. This is "the project", as a user would
-  ///   describe it, and the resources tables are not optional here: leave them out and two states
-  ///   differing only in their people, locations or elements would hash identically — the
-  ///   working-copy card would claim no drift after an afternoon of typing resources in, and a
-  ///   restore would skip the safety version it promised to keep. `currencyCode` is only ever null
-  ///   on a payload decoded from a format predating it (never on one freshly captured from a live
-  ///   database, which always reads a real value), so this never makes an old and a current capture
-  ///   of the very same project disagree;
+  ///   `sceneSets`, `elements`, `sceneElements`, `assets`, `breakdownTags`, `sceneBreakdowns` —
+  ///   every column of each — plus `pageSetup.format`, `settingsJson` and `currencyCode`. This is
+  ///   "the project", as a user would describe it, and the resources tables are not optional here:
+  ///   leave them out and two states differing only in their people, locations or elements would
+  ///   hash identically — the working-copy card would claim no drift after an afternoon of typing
+  ///   resources in, and a restore would skip the safety version it promised to keep. The breakdown
+  ///   tables are exactly the same case, one step later in the project's life: leave them out and an
+  ///   afternoon spent tagging the script, or marking scenes done, would hash identically to a
+  ///   screenplay nobody has ever broken down. `currencyCode` is only ever null on a payload decoded
+  ///   from a format predating it (never on one freshly captured from a live database, which always
+  ///   reads a real value), so this never makes an old and a current capture of the very same
+  ///   project disagree;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -812,6 +885,16 @@ class OcptProjectVersionCodec {
         toJson: _sceneElementToJson,
       ),
       _assetsKey: _canonicalRows(payload.assets, primaryKeyOf: (row) => row.id, toJson: _assetToJson),
+      _breakdownTagsKey: _canonicalRows(
+        payload.breakdownTags,
+        primaryKeyOf: (row) => row.id,
+        toJson: _breakdownTagToJson,
+      ),
+      _sceneBreakdownsKey: _canonicalRows(
+        payload.sceneBreakdowns,
+        primaryKeyOf: (row) => row.id,
+        toJson: _sceneBreakdownToJson,
+      ),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
@@ -884,6 +967,12 @@ class OcptProjectVersionCodec {
       elements: [for (final row in _rows(json, _elementsKey)) _elementFromJson(row)],
       sceneElements: [for (final row in _rows(json, _sceneElementsKey)) _sceneElementFromJson(row)],
       assets: [for (final row in _rows(json, _assetsKey)) _assetFromJson(row)],
+      breakdownTags: [
+        for (final row in _rows(json, _breakdownTagsKey)) _breakdownTagFromJson(row),
+      ],
+      sceneBreakdowns: [
+        for (final row in _rows(json, _sceneBreakdownsKey)) _sceneBreakdownFromJson(row),
+      ],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
       ],
@@ -1380,11 +1469,7 @@ class OcptProjectVersionCodec {
     ownerNotes: _string(json, _ownerNotesKey),
     broughtByPersonId: _nullableString(json, _broughtByPersonIdKey),
     storageNotes: _string(json, _storageNotesKey),
-    // A payload captured before this column existed carries no `_statusKey` at all: `toFind` is the
-    // honest reading of "nobody has ever recorded a status for this element", exactly the default
-    // the column itself falls back to.
-    status: _nullableEnum(json, _statusKey, OcptElementStatus.values.asNameMap()) ??
-        OcptElementStatus.toFind,
+    status: _enum(json, _statusKey, OcptElementStatus.values.asNameMap()),
     isSecured: _bool(json, _isSecuredKey),
     isReadyForShoot: _bool(json, _isReadyForShootKey),
     isReturned: _bool(json, _isReturnedKey),
@@ -1441,6 +1526,55 @@ class OcptProjectVersionCodec {
     locationId: _nullableString(json, _locationIdKey),
     elementId: _nullableString(json, _elementIdKey),
   );
+
+  /// Serializes one `breakdown_tags` row.
+  static Map<String, dynamic> _breakdownTagToJson(OcptBreakdownTagRow row) => {
+    _idKey: row.id,
+    _sceneIdKey: row.sceneId,
+    _targetKindKey: row.targetKind.name,
+    _elementIdKey: row.elementId,
+    _roleIdKey: row.roleId,
+    _setIdKey: row.setId,
+    _startOffsetKey: row.startOffset,
+    _endOffsetKey: row.endOffset,
+    _taggedTextKey: row.taggedText,
+    _needsCheckKey: row.needsCheck,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `breakdown_tags` row.
+  static OcptBreakdownTagRow _breakdownTagFromJson(Map<String, dynamic> json) => OcptBreakdownTagRow(
+    id: _string(json, _idKey),
+    sceneId: _string(json, _sceneIdKey),
+    targetKind: _enum(json, _targetKindKey, OcptBreakdownTargetKind.values.asNameMap()),
+    elementId: _nullableString(json, _elementIdKey),
+    roleId: _nullableString(json, _roleIdKey),
+    setId: _nullableString(json, _setIdKey),
+    startOffset: _int(json, _startOffsetKey),
+    endOffset: _int(json, _endOffsetKey),
+    taggedText: _string(json, _taggedTextKey),
+    needsCheck: _bool(json, _needsCheckKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `scene_breakdowns` row.
+  static Map<String, dynamic> _sceneBreakdownToJson(OcptSceneBreakdownRow row) => {
+    _idKey: row.id,
+    _sceneIdKey: row.sceneId,
+    _statusKey: row.status.name,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `scene_breakdowns` row.
+  static OcptSceneBreakdownRow _sceneBreakdownFromJson(Map<String, dynamic> json) =>
+      OcptSceneBreakdownRow(
+        id: _string(json, _idKey),
+        sceneId: _string(json, _sceneIdKey),
+        status: _enum(json, _statusKey, OcptBreakdownSceneStatus.values.asNameMap()),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `row_field_versions` row.
   static Map<String, dynamic> _rowFieldVersionToJson(OcptRowFieldVersionRow row) => {

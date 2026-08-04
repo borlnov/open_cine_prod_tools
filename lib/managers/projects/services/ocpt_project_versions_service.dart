@@ -59,6 +59,8 @@ class OcptProjectVersionsService {
     'elements',
     'scene_elements',
     'assets',
+    'breakdown_tags',
+    'scene_breakdowns',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -342,6 +344,11 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptElementsTable, payload.elements)
         ..insertAll(database.ocptSceneElementsTable, payload.sceneElements)
         ..insertAll(database.ocptAssetsTable, payload.assets)
+        // Both breakdown tables follow every table they may reference (scenes, roles, sets and
+        // elements are all written above), so this is not a forward reference — unlike the
+        // asset-referencing trio above it, `breakdown_tags` closes no foreign-key cycle of its own.
+        ..insertAll(database.ocptBreakdownTagsTable, payload.breakdownTags)
+        ..insertAll(database.ocptSceneBreakdownsTable, payload.sceneBreakdowns)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -564,6 +571,8 @@ class OcptProjectVersionsService {
       elements: await database.select(database.ocptElementsTable).get(),
       sceneElements: await database.select(database.ocptSceneElementsTable).get(),
       assets: await database.select(database.ocptAssetsTable).get(),
+      breakdownTags: await database.select(database.ocptBreakdownTagsTable).get(),
+      sceneBreakdowns: await database.select(database.ocptSceneBreakdownsTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -611,6 +620,11 @@ class OcptProjectVersionsService {
   /// [restoreVersion] runs this under `PRAGMA defer_foreign_keys = ON`: every constraint is only
   /// checked at the transaction's commit, by which point every table above has been written in
   /// full.
+  ///
+  /// `breakdown_tags` and `scene_breakdowns` follow the resources tables, since a tag may point at
+  /// an element, a role or a set, and both tables reference `scenes`: every one of those exists by
+  /// this point, so — unlike `assets` — neither closes a foreign-key cycle of its own; the deferred
+  /// pragma above is what the asset trio needs, not these two.
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
   /// for every reader of a payload alike — see [_scrubErasedPeople].
@@ -780,6 +794,24 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    await _restoreTable(
+      database: database,
+      table: database.ocptBreakdownTagsTable,
+      payloadRows: payload.breakdownTags,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptSceneBreakdownsTable,
+      payloadRows: payload.sceneBreakdowns,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
@@ -861,6 +893,11 @@ class OcptProjectVersionsService {
       elements: payload.elements,
       sceneElements: payload.sceneElements,
       assets: payload.assets,
+      // A breakdown tag never names a person — only an element, a role or a set — and a scene
+      // breakdown carries nothing about anyone either, so neither list has anything for this method
+      // to scrub: both travel through unchanged.
+      breakdownTags: payload.breakdownTags,
+      sceneBreakdowns: payload.sceneBreakdowns,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
