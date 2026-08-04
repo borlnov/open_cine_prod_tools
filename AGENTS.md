@@ -92,7 +92,7 @@ reports, storyboard, the per-scene breakdown screen, and a casting tracker.
 | 24 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
-| 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying them, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export | ✅ |
+| 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
 
 ## Ways of working
 
@@ -250,7 +250,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v7 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v8 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the thirteen resources tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
@@ -273,15 +273,21 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
   seventeen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
-  plus the page setup, in a JSON format versioned by `payloadFormat` — independent of the schema
+  plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
+  independent of the schema
   version, upgraded on decode when older, refused when newer. It is **a hand-written mirror of the
   schema**, and a new synchronised table has to be added to all three of it, `contentDigest` and
   `_applyPayload`: leave it out of the payload and a restore rewinds half the project, out of the
   digest and the working copy claims not to have drifted, out of `_applyPayload` and it is never
-  written back. Payload format 2 (the resources tables) is what the `_payloadUpgrades` map's first
-  entry materialises, as empty lists, when a format-1 payload is decoded — restoring a version
-  captured before those tables existed therefore tombstones every resource row, which is the
-  truthful reading of "this project had no people". Counters shown on a card
+  written back. Payload format 2 (the resources mode's eleven tables) and format 3
+  (`location_availabilities`) are what the `_payloadUpgrades` map's first two entries materialise,
+  as empty lists, when an older payload is decoded — restoring a version captured before those
+  tables existed therefore tombstones every resource row, which is the truthful reading of "this
+  project had no people". Format 4 (the currency) upgrades to **null** instead, the one entry that
+  doesn't mean "there was none": the column has never been nullable, so a version that predates it
+  did have a currency, it simply never recorded which one, and
+  `OcptProjectVersionsService.restoreVersion` reads that null as "leave the project's currency
+  untouched" — the opposite of what the empty-list entries mean. Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
