@@ -13,11 +13,14 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
@@ -33,13 +36,13 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 }
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
-/// or a PDF, the project's shot list out of it as an XLSX workbook, and its scenario coverage as
-/// an annotated screenplay PDF.
+/// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
+/// annotated screenplay PDF, and its resources catalogue as a second, four-sheet XLSX workbook.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
-/// [fountainIoService], [pdfExportService], [shotListXlsxExportService] and
-/// [scenarioCoveragePdfService], and the "save as" location picking to [saveLocationService] — the
-/// services this manager owns (RFL18).
+/// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
+/// [scenarioCoveragePdfService] and [resourcesXlsxExportService], and the "save as" location
+/// picking to [saveLocationService] — the six services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -55,6 +58,9 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service rendering the scenario coverage PDF.
   final OcptScenarioCoveragePdfService scenarioCoveragePdfService;
+
+  /// The service building the resources catalogue's four-sheet XLSX workbook.
+  final OcptResourcesXlsxExportService resourcesXlsxExportService;
 
   /// The service showing the native "save as" dialog and resolving the chosen path.
   final OcptSaveLocationService saveLocationService;
@@ -82,7 +88,8 @@ class OcptExportManager extends AbsWithLifeCycle {
        fountainIoService = const OcptFountainIoService(),
        pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
        scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
-       shotListXlsxExportService = const OcptShotListXlsxExportService();
+       shotListXlsxExportService = const OcptShotListXlsxExportService(),
+       resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
   ///
@@ -196,6 +203,28 @@ class OcptExportManager extends AbsWithLifeCycle {
       bytes: bytes,
     );
   }
+
+  /// Builds the resources catalogue's four-sheet XLSX workbook of [snapshot] via
+  /// [resourcesXlsxExportService] and shows the native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the four sheets themselves hold, and [fileTypeLabel]
+  /// is the localized label passed to the native dialog's type filter — this manager has no `Tr`
+  /// of its own. Returns the path of the written file, or null if the user cancelled or the save
+  /// failed (failures are logged; the OS dialog already reported a cancellation to the user).
+  Future<String?> exportResourcesXlsx({
+    required OcptResourcesSnapshot snapshot,
+    required OcptResourcesXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: resourcesXlsxExportService.xlsxFileName(
+      projectName: projectName,
+      suffix: labels.fileNameSuffix,
+    ),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
+  );
 
   /// Shows the native save dialog and writes [bytes] to the chosen location.
   ///

@@ -13,10 +13,25 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_s
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:path/path.dart' as p;
+
+/// The seven weekday names an availability window's summary cell is built from, keyed by their
+/// `DateTime.monday`…`DateTime.sunday` numbers — the locale's own names in the app, plain English
+/// ones here.
+const Map<int, String> _weekdayLabels = {
+  DateTime.monday: "Mon",
+  DateTime.tuesday: "Tue",
+  DateTime.wednesday: "Wed",
+  DateTime.thursday: "Thu",
+  DateTime.friday: "Fri",
+  DateTime.saturday: "Sat",
+  DateTime.sunday: "Sun",
+};
 
 /// A save-location service whose [pickSaveLocation] is stubbed and whose calls are recorded, so
 /// the manager's export methods can be exercised without any real native dialog.
@@ -327,6 +342,104 @@ void main() {
       );
 
       expect(saveLocationService.lastSuggestedFileName, "My Movie.xlsx");
+      expect(saveLocationService.lastFileTypeLabel, "Excel workbook");
+      expect(saveLocationService.lastExtensions, const [
+        OcptShotListXlsxExportService.xlsxFileExtension,
+      ]);
+    });
+  });
+
+  group('exportResourcesXlsx', () {
+    final snapshot = OcptResourcesSnapshot.build(
+      people: const [],
+      roles: const [],
+      locations: const [],
+      elements: const [],
+      scenes: const [],
+    );
+    const labels = OcptResourcesXlsxLabels(
+      fileNameSuffix: "resources",
+      peopleSheetName: "People",
+      rolesSheetName: "Roles",
+      locationsSheetName: "Locations",
+      elementsSheetName: "Elements",
+      peopleColumnHeaders: {},
+      rolesColumnHeaders: {},
+      locationsColumnHeaders: {},
+      elementsColumnHeaders: {},
+      crewPositionLabels: {},
+      roleKindLabels: {},
+      imageRightsStatusLabels: {},
+      permitStatusLabels: {},
+      elementCategoryLabels: {},
+      elementSourceKindLabels: {},
+      dayPartSlotLabels: {},
+      availabilityKindLabels: {},
+      elementTrackingToSecureLabel: "To secure",
+      elementTrackingSecuredLabel: "Secured",
+      elementTrackingReadyLabel: "Ready",
+      elementTrackingReturnedLabel: "Returned",
+      everyDayLabel: "Every day",
+      weekdayLabels: _weekdayLabels,
+      sceneLabels: {},
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      final path = await manager.exportResourcesXlsx(
+        snapshot: snapshot,
+        labels: labels,
+        projectName: "My Movie",
+        fileTypeLabel: "Excel workbook",
+      );
+
+      expect(path, isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a readable, four-sheet workbook and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - resources.xlsx");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      final path = await manager.exportResourcesXlsx(
+        snapshot: snapshot,
+        labels: labels,
+        projectName: "My Movie",
+        fileTypeLabel: "Excel workbook",
+      );
+
+      expect(path, chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(Excel.decodeBytes(writtenBytes).tables.keys, [
+        "People",
+        "Roles",
+        "Locations",
+        "Elements",
+      ]);
+    });
+
+    test('suggests the file name computed by OcptResourcesXlsxExportService, suffixed', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await manager.exportResourcesXlsx(
+        snapshot: snapshot,
+        labels: labels,
+        projectName: "My Movie",
+        fileTypeLabel: "Excel workbook",
+      );
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - resources.xlsx");
       expect(saveLocationService.lastFileTypeLabel, "Excel workbook");
       expect(saveLocationService.lastExtensions, const [
         OcptShotListXlsxExportService.xlsxFileExtension,

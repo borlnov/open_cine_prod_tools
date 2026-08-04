@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -12,6 +13,12 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:uuid/uuid.dart';
 
 /// Loads and saves a screenplay's Fountain text, taking safety snapshots along the way.
+///
+/// [saveScreenplayText] also reconciles the scene index and the cast (`OcptRoleIndexService`)
+/// against the newly saved text, and re-checks the shots' scenario coverage — all three on the
+/// save path itself rather than on the editor's parse debounce, and for the same reason each
+/// time: a director does not want a scene, a role or a coverage flag appearing and disappearing
+/// mid-keystroke.
 ///
 /// {@template open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
 /// A snapshot of the text is taken:
@@ -42,14 +49,19 @@ class OcptScreenplayService {
   /// The service used to re-check the shots' scenario coverage against the text just saved.
   final OcptShotCoverageService _shotCoverageService;
 
+  /// The service used to reconcile the cast against the newly saved text's speaking characters.
+  final OcptRoleIndexService _roleIndexService;
+
   /// Class constructor
   const OcptScreenplayService({
     required OcptSceneIndexService sceneIndexService,
     required OcptShotListService shotListService,
     required OcptShotCoverageService shotCoverageService,
+    required OcptRoleIndexService roleIndexService,
   }) : _sceneIndexService = sceneIndexService,
        _shotListService = shotListService,
-       _shotCoverageService = shotCoverageService;
+       _shotCoverageService = shotCoverageService,
+       _roleIndexService = roleIndexService;
 
   /// Loads the current Fountain text of the screenplay [screenplayId] in [database].
   Future<String> loadScreenplayText({
@@ -104,14 +116,18 @@ class OcptScreenplayService {
   /// This snapshots the text as it was before the overwrite (tagged [snapshotReason]), updates
   /// the screenplay's text and `updatedAt`, reconciles its scene index from the new text — passing
   /// `OcptShotListService.detachShotsFromDeletedScenes` as `onScenesDeleted`, so a scene removed by
-  /// this save orphans its shots rather than silently dropping them — re-checks the shots' scenario
+  /// this save orphans its shots rather than silently dropping them — reconciles the cast against
+  /// the same parsed document (`OcptRoleIndexService.reconcile`), re-checks the shots' scenario
   /// coverage against the text just saved, and prunes old snapshots, all within a single
   /// transaction.
   ///
-  /// The coverage re-check deliberately happens here, on save, and never on the editor's parse
-  /// debounce: staleness is what raises a shot's `needsCheck` flag, and a director does not want a
-  /// shot flagged mid-keystroke. It runs after the reconciliation so it reads the scenes'
-  /// `charStart`/`charEnd` as the new text has just redefined them.
+  /// The coverage re-check and the cast reconciliation deliberately happen here, on save, and never
+  /// on the editor's parse debounce: staleness is what raises a shot's `needsCheck` flag, and a
+  /// speaking character's appearance or disappearance is what raises or clears a role's
+  /// `orphanedName` — in both cases a director does not want the flag flickering mid-keystroke. The
+  /// cast is reconciled right after the scene index (it reads the parsed [FountainDocument], not
+  /// the scenes the scene index just wrote) and before the coverage re-check, which reads the
+  /// scenes' `charStart`/`charEnd` as the new text has just redefined them.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
@@ -157,6 +173,12 @@ class OcptScreenplayService {
           database: database,
           scenesAboutToBeDeleted: scenesAboutToBeDeleted,
         ),
+      );
+
+      await _roleIndexService.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: document,
       );
 
       await _shotCoverageService.refreshStaleness(

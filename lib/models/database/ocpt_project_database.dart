@@ -7,25 +7,51 @@ import 'dart:io';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_positions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_skills_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavailabilities_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_row_field_versions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_elements_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snapshots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_characters_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_coverages_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 // These are only used through the type converters declared in the table files above
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
-// OcptShotCheckReasonConverter), but the generated ocpt_project_database.g.dart part file below
-// references them directly: since a part file shares its main library's imports rather than
-// having its own, they must be imported here too for that generated code to resolve.
+// OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
+// OcptPermitStatusConverter, OcptElementCategoryConverter, OcptElementSourceKindConverter,
+// OcptAssetKindConverter, OcptDayPartSlotConverter), but the generated
+// ocpt_project_database.g.dart
+// part file below references them directly: since a part file shares its main library's imports
+// rather than having its own, they must be imported here too for that generated code to resolve.
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 part 'ocpt_project_database.g.dart';
 
@@ -37,8 +63,14 @@ part 'ocpt_project_database.g.dart';
 /// schema version 2 onwards, the shot list built on top of that index ([OcptShotsTable],
 /// [OcptShotCharactersTable], [OcptShotCoveragesTable]). From schema version 3 it also holds the
 /// per-column version stamps a merge resolves conflicts with ([OcptRowFieldVersionsTable]), and
-/// from schema version 5 the user's named project versions ([OcptProjectVersionsTable]).
-/// `OcptProjectsManager` owns the single instance open at a time.
+/// from schema version 5 the user's named project versions ([OcptProjectVersionsTable]). From
+/// schema version 6 it holds the resources mode's catalogue: the address book
+/// ([OcptPeopleTable]) and its [OcptPersonPositionsTable]/[OcptPersonSkillsTable]/
+/// [OcptPersonUnavailabilitiesTable] siblings, the cast ([OcptRolesTable]), locations and their
+/// sets ([OcptLocationsTable], [OcptSetsTable], [OcptSceneSetsTable]), the physical elements
+/// catalogue ([OcptElementsTable], [OcptSceneElementsTable]), the binary asset references
+/// ([OcptAssetsTable]) and the local, never-synchronised record of erased people
+/// ([OcptLocalErasuresTable]). `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -50,6 +82,19 @@ part 'ocpt_project_database.g.dart';
     OcptShotCoveragesTable,
     OcptRowFieldVersionsTable,
     OcptProjectVersionsTable,
+    OcptPeopleTable,
+    OcptPersonPositionsTable,
+    OcptPersonSkillsTable,
+    OcptPersonUnavailabilitiesTable,
+    OcptRolesTable,
+    OcptLocationsTable,
+    OcptLocationAvailabilitiesTable,
+    OcptSetsTable,
+    OcptSceneSetsTable,
+    OcptElementsTable,
+    OcptSceneElementsTable,
+    OcptAssetsTable,
+    OcptLocalErasuresTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -118,7 +163,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 8;
 
   /// The database options used by this database.
   ///
@@ -143,8 +188,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `position` already held (see [_backfillSortKeys]). From 3 to 4 it adds `shots.abbreviation`,
   /// the short label the scenario coverage export marks its bars with. From 4 to 5 it creates
   /// [OcptProjectVersionsTable] and adds the `project_info.currentVersionId` column pointing into
-  /// it. Every step is additive, as ADR 0007 requires: every new column carries a default (or is
-  /// nullable), so the rows a project already had stay valid without being rewritten.
+  /// it. From 5 to 6 it creates the twelve tables of the resources mode — the address book, its
+  /// positions/skills/unavailabilities, the cast, locations and sets, elements, asset references
+  /// and the local erasures record — and nothing else: no table a project already had is altered.
+  /// From 6 to 7 it creates [OcptLocationAvailabilitiesTable], the dated windows during which a
+  /// location may be shot in. From 7 to 8 it adds `project_info.currencyCode`, defaulting an
+  /// existing file to EUR exactly as a freshly created one would if the device locale couldn't
+  /// suggest anything better. Every step is additive, as ADR 0007 requires: every new column
+  /// carries a default (or is nullable), so the rows a project already had stay valid without being
+  /// rewritten.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -190,6 +242,34 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       if (from < 5) {
         await m.createTable(ocptProjectVersionsTable);
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currentVersionId);
+      }
+
+      if (from < 6) {
+        // Each `createTable` follows every table it references, so a fresh foreign key never
+        // points at a table that doesn't exist in the migration yet — except for the forward
+        // references onto `assets` (`people.imageRightsAssetId`/`photoAssetId`,
+        // `locations.permitAssetId`, `elements.photoAssetId`), which SQLite never validates at
+        // `CREATE TABLE` time, only at the `INSERT`/`UPDATE` that would violate them.
+        await m.createTable(ocptPeopleTable);
+        await m.createTable(ocptPersonPositionsTable);
+        await m.createTable(ocptPersonSkillsTable);
+        await m.createTable(ocptPersonUnavailabilitiesTable);
+        await m.createTable(ocptRolesTable);
+        await m.createTable(ocptLocationsTable);
+        await m.createTable(ocptSetsTable);
+        await m.createTable(ocptSceneSetsTable);
+        await m.createTable(ocptElementsTable);
+        await m.createTable(ocptSceneElementsTable);
+        await m.createTable(ocptAssetsTable);
+        await m.createTable(ocptLocalErasuresTable);
+      }
+
+      if (from < 7) {
+        await m.createTable(ocptLocationAvailabilitiesTable);
+      }
+
+      if (from < 8) {
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currencyCode);
       }
     },
     beforeOpen: (details) async {

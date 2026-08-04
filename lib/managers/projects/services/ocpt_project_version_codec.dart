@@ -12,8 +12,16 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
@@ -44,7 +52,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 1;
+  static const currentPayloadFormat = 4;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -63,6 +71,44 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `shot_coverages` rows from a JSON object
   static const _shotCoveragesKey = "shotCoverages";
+
+  /// This is the key used to stringify or parse the `people` rows from a JSON object
+  static const _peopleKey = "people";
+
+  /// This is the key used to stringify or parse the `person_positions` rows from a JSON object
+  static const _personPositionsKey = "personPositions";
+
+  /// This is the key used to stringify or parse the `person_skills` rows from a JSON object
+  static const _personSkillsKey = "personSkills";
+
+  /// This is the key used to stringify or parse the `person_unavailabilities` rows from a JSON
+  /// object
+  static const _personUnavailabilitiesKey = "personUnavailabilities";
+
+  /// This is the key used to stringify or parse the `roles` rows from a JSON object
+  static const _rolesKey = "roles";
+
+  /// This is the key used to stringify or parse the `locations` rows from a JSON object
+  static const _locationsKey = "locations";
+
+  /// This is the key used to stringify or parse the `location_availabilities` rows from a JSON
+  /// object
+  static const _locationAvailabilitiesKey = "locationAvailabilities";
+
+  /// This is the key used to stringify or parse the `sets` rows from a JSON object
+  static const _setsKey = "sets";
+
+  /// This is the key used to stringify or parse the `scene_sets` rows from a JSON object
+  static const _sceneSetsKey = "sceneSets";
+
+  /// This is the key used to stringify or parse the `elements` rows from a JSON object
+  static const _elementsKey = "elements";
+
+  /// This is the key used to stringify or parse the `scene_elements` rows from a JSON object
+  static const _sceneElementsKey = "sceneElements";
+
+  /// This is the key used to stringify or parse the `assets` rows from a JSON object
+  static const _assetsKey = "assets";
 
   /// This is the key used to stringify or parse the `row_field_versions` rows from a JSON object
   static const _rowFieldVersionsKey = "rowFieldVersions";
@@ -187,6 +233,289 @@ class OcptProjectVersionCodec {
   /// JSON object
   static const _characterNameKey = "characterName";
 
+  /// This is the key used to stringify or parse a person's `firstName` column from a JSON object
+  static const _firstNameKey = "firstName";
+
+  /// This is the key used to stringify or parse a person's `lastName` column from a JSON object
+  static const _lastNameKey = "lastName";
+
+  /// This is the key used to stringify or parse a person's `email` column from a JSON object
+  static const _emailKey = "email";
+
+  /// This is the key used to stringify or parse a person's `phone` column from a JSON object
+  static const _phoneKey = "phone";
+
+  /// This is the key used to stringify or parse a first address line column
+  /// (`people.addressLine1` or `locations.addressLine1`) from a JSON object
+  static const _addressLine1Key = "addressLine1";
+
+  /// This is the key used to stringify or parse a second address line column
+  /// (`people.addressLine2` or `locations.addressLine2`) from a JSON object
+  static const _addressLine2Key = "addressLine2";
+
+  /// This is the key used to stringify or parse a postal code column (`people.postalCode` or
+  /// `locations.postalCode`) from a JSON object
+  static const _postalCodeKey = "postalCode";
+
+  /// This is the key used to stringify or parse a region column (`people.region` or
+  /// `locations.region`) from a JSON object
+  static const _regionKey = "region";
+
+  /// This is the key used to stringify or parse a country column (`people.country` or
+  /// `locations.country`) from a JSON object
+  static const _countryKey = "country";
+
+  /// This is the key used to stringify or parse a city column (`people.city` or `locations.city`)
+  /// from a JSON object
+  static const _cityKey = "city";
+
+  /// This is the key used to stringify or parse a `colorIndex` column (`people` or `locations`)
+  /// from a JSON object
+  static const _colorIndexKey = "colorIndex";
+
+  /// This is the key used to stringify or parse a person's `birthDate` column from a JSON object
+  static const _birthDateKey = "birthDate";
+
+  /// This is the key used to stringify or parse a person's `minorNotes` column from a JSON object
+  static const _minorNotesKey = "minorNotes";
+
+  /// This is the key used to stringify or parse a person's `isTransportAutonomous` column from a
+  /// JSON object
+  static const _isTransportAutonomousKey = "isTransportAutonomous";
+
+  /// This is the key used to stringify or parse a person's `accommodationNotes` column from a JSON
+  /// object
+  static const _accommodationNotesKey = "accommodationNotes";
+
+  /// This is the key used to stringify or parse a person's `travelNotes` column from a JSON object
+  static const _travelNotesKey = "travelNotes";
+
+  /// This is the key used to stringify or parse a person's `dietaryNotes` column from a JSON object
+  static const _dietaryNotesKey = "dietaryNotes";
+
+  /// This is the key used to stringify or parse a person's `allergies` column from a JSON object
+  static const _allergiesKey = "allergies";
+
+  /// This is the key used to stringify or parse a person's `measurementHeight` column from a JSON
+  /// object
+  static const _measurementHeightKey = "measurementHeight";
+
+  /// This is the key used to stringify or parse a person's `measurementChest` column from a JSON
+  /// object
+  static const _measurementChestKey = "measurementChest";
+
+  /// This is the key used to stringify or parse a person's `measurementWaist` column from a JSON
+  /// object
+  static const _measurementWaistKey = "measurementWaist";
+
+  /// This is the key used to stringify or parse a person's `measurementHips` column from a JSON
+  /// object
+  static const _measurementHipsKey = "measurementHips";
+
+  /// This is the key used to stringify or parse a person's `sizeTop` column from a JSON object
+  static const _sizeTopKey = "sizeTop";
+
+  /// This is the key used to stringify or parse a person's `sizeBottom` column from a JSON object
+  static const _sizeBottomKey = "sizeBottom";
+
+  /// This is the key used to stringify or parse a person's `sizeShoes` column from a JSON object
+  static const _sizeShoesKey = "sizeShoes";
+
+  /// This is the key used to stringify or parse a person's `hmcNotes` column from a JSON object
+  static const _hmcNotesKey = "hmcNotes";
+
+  /// This is the key used to stringify or parse a person's `imageRightsStatus` column from a JSON
+  /// object
+  static const _imageRightsStatusKey = "imageRightsStatus";
+
+  /// This is the key used to stringify or parse a person's `imageRightsDate` column from a JSON
+  /// object
+  static const _imageRightsDateKey = "imageRightsDate";
+
+  /// This is the key used to stringify or parse a person's `imageRightsAssetId` column from a JSON
+  /// object
+  static const _imageRightsAssetIdKey = "imageRightsAssetId";
+
+  /// This is the key used to stringify or parse a `photoAssetId` column (`people` or `elements`)
+  /// from a JSON object
+  static const _photoAssetIdKey = "photoAssetId";
+
+  /// This is the key used to stringify or parse a `personId` column (`person_positions`,
+  /// `person_skills`, `person_unavailabilities`, `roles.personId`, `locations.contactPersonId`'s
+  /// sibling name aside, `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`) from a
+  /// JSON object
+  static const _personIdKey = "personId";
+
+  /// This is the key used to stringify or parse a person position's `positionId` column from a JSON
+  /// object
+  static const _positionIdKey = "positionId";
+
+  /// This is the key used to stringify or parse a person position's `customLabel` column from a
+  /// JSON object
+  static const _customLabelKey = "customLabel";
+
+  /// This is the key used to stringify or parse a `label` column (`person_skills.label` or
+  /// `assets.label`) from a JSON object
+  static const _labelKey = "label";
+
+  /// This is the key used to stringify or parse an unavailability's `startDate` column from a
+  /// JSON object
+  static const _startDateKey = "startDate";
+
+  /// This is the key used to stringify or parse an unavailability's `endDate` column from a JSON
+  /// object
+  static const _endDateKey = "endDate";
+
+  /// This is the key used to stringify or parse an unavailability's `slot` column from a JSON
+  /// object
+  static const _slotKey = "slot";
+
+  /// This is the key used to stringify or parse an unavailability's `startMinute` column from a
+  /// JSON object
+  static const _startMinuteKey = "startMinute";
+
+  /// This is the key used to stringify or parse an unavailability's `endMinute` column from a JSON
+  /// object
+  static const _endMinuteKey = "endMinute";
+
+  /// This is the key used to stringify or parse an unavailability's `reason` column from a JSON
+  /// object
+  static const _reasonKey = "reason";
+
+  /// This is the key used to stringify or parse a weekday mask from a JSON object
+  static const _weekdaysKey = "weekdays";
+
+  /// This is the key used to stringify or parse a single note from a JSON object
+  static const _noteKey = "note";
+
+  /// This is the key used to stringify or parse a `name` column (`roles`, `locations`, `sets` or
+  /// `elements`) from a JSON object
+  static const _nameKey = "name";
+
+  /// This is the key used to stringify or parse a `kind` column (`roles.kind` or `assets.kind`)
+  /// from a JSON object
+  static const _kindKey = "kind";
+
+  /// This is the key used to stringify or parse a role's `isFromScreenplay` column from a JSON
+  /// object
+  static const _isFromScreenplayKey = "isFromScreenplay";
+
+  /// This is the key used to stringify or parse a role's `orphanedName` column from a JSON object
+  static const _orphanedNameKey = "orphanedName";
+
+  /// This is the key used to stringify or parse a role's `castingNotes` column from a JSON object
+  static const _castingNotesKey = "castingNotes";
+
+  /// This is the key used to stringify or parse a location's `latitude` column from a JSON object
+  static const _latitudeKey = "latitude";
+
+  /// This is the key used to stringify or parse a location's `longitude` column from a JSON object
+  static const _longitudeKey = "longitude";
+
+  /// This is the key used to stringify or parse a location's `contactPersonId` column from a JSON
+  /// object
+  static const _contactPersonIdKey = "contactPersonId";
+
+  /// This is the key used to stringify or parse a location's `contactNotes` column from a JSON
+  /// object
+  static const _contactNotesKey = "contactNotes";
+
+  /// This is the key used to stringify or parse a location's `permitStatus` column from a JSON
+  /// object
+  static const _permitStatusKey = "permitStatus";
+
+  /// This is the key used to stringify or parse a location's `permitLabel` column from a JSON
+  /// object
+  static const _permitLabelKey = "permitLabel";
+
+  /// This is the key used to stringify or parse a location's `permitDate` column from a JSON object
+  static const _permitDateKey = "permitDate";
+
+  /// This is the key used to stringify or parse a location's `permitAssetId` column from a JSON
+  /// object
+  static const _permitAssetIdKey = "permitAssetId";
+
+  /// This is the key used to stringify or parse a location's `parkingNotes` column from a JSON
+  /// object
+  static const _parkingNotesKey = "parkingNotes";
+
+  /// This is the key used to stringify or parse a location's `powerNotes` column from a JSON object
+  static const _powerNotesKey = "powerNotes";
+
+  /// This is the key used to stringify or parse a location's `facilitiesNotes` column from a JSON
+  /// object
+  static const _facilitiesNotesKey = "facilitiesNotes";
+
+  /// This is the key used to stringify or parse a location's `constraintsNotes` column from a JSON
+  /// object
+  static const _constraintsNotesKey = "constraintsNotes";
+
+  /// This is the key used to stringify or parse a set's `locationId` column from a JSON object
+  static const _locationIdKey = "locationId";
+
+  /// This is the key used to stringify or parse a `code` column (`sets` or `elements`) from a JSON
+  /// object
+  static const _codeKey = "code";
+
+  /// This is the key used to stringify or parse a scene set's `setId` column from a JSON object
+  static const _setIdKey = "setId";
+
+  /// This is the key used to stringify or parse an element's `category` column from a JSON object
+  static const _categoryKey = "category";
+
+  /// This is the key used to stringify or parse an element's `subCategory` column from a JSON
+  /// object
+  static const _subCategoryKey = "subCategory";
+
+  /// This is the key used to stringify or parse a `quantity` column (`elements` or
+  /// `scene_elements`) from a JSON object
+  static const _quantityKey = "quantity";
+
+  /// This is the key used to stringify or parse an element's `sourceKind` column from a JSON object
+  static const _sourceKindKey = "sourceKind";
+
+  /// This is the key used to stringify or parse an element's `ownerPersonId` column from a JSON
+  /// object
+  static const _ownerPersonIdKey = "ownerPersonId";
+
+  /// This is the key used to stringify or parse an element's `ownerNotes` column from a JSON object
+  static const _ownerNotesKey = "ownerNotes";
+
+  /// This is the key used to stringify or parse an element's `broughtByPersonId` column from a
+  /// JSON object
+  static const _broughtByPersonIdKey = "broughtByPersonId";
+
+  /// This is the key used to stringify or parse an element's `storageNotes` column from a JSON
+  /// object
+  static const _storageNotesKey = "storageNotes";
+
+  /// This is the key used to stringify or parse an element's `isSecured` column from a JSON object
+  static const _isSecuredKey = "isSecured";
+
+  /// This is the key used to stringify or parse an element's `isReadyForShoot` column from a JSON
+  /// object
+  static const _isReadyForShootKey = "isReadyForShoot";
+
+  /// This is the key used to stringify or parse an element's `isReturned` column from a JSON object
+  static const _isReturnedKey = "isReturned";
+
+  /// This is the key used to stringify or parse an element's `cost` column from a JSON object
+  static const _costKey = "cost";
+
+  /// This is the key used to stringify or parse an element's `purposeNotes` column from a JSON
+  /// object
+  static const _purposeNotesKey = "purposeNotes";
+
+  /// This is the key used to stringify or parse a scene element's `elementId` column from a JSON
+  /// object
+  static const _elementIdKey = "elementId";
+
+  /// This is the key used to stringify or parse an asset's `path` column from a JSON object
+  static const _pathKey = "path";
+
+  /// This is the key used to stringify or parse an asset's `addedAt` column from a JSON object
+  static const _addedAtKey = "addedAt";
+
   /// This is the key used to stringify or parse a coverage's `startOffset` column from a JSON
   /// object
   static const _startOffsetKey = "startOffset";
@@ -220,6 +549,9 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse the project's `pageFormat` from a JSON object
   static const _pageFormatKey = "pageFormat";
 
+  /// This is the key used to stringify or parse the project's `currencyCode` from a JSON object
+  static const _currencyCodeKey = "currencyCode";
+
   /// This is the key used to stringify or parse the project's `settingsJson` from a JSON object
   static const _settingsJsonKey = "settingsJson";
 
@@ -238,10 +570,71 @@ class OcptProjectVersionCodec {
   /// The upgrade steps [decode] replays, keyed by the format each one upgrades **from**: the entry
   /// at `n` turns a format `n` JSON object into a format `n + 1` one.
   ///
-  /// Empty while [currentPayloadFormat] is the only format that has ever existed. The map has to
-  /// cover every format from the oldest readable one up to `currentPayloadFormat - 1`, without a
-  /// hole, or [decode] refuses the payload rather than guessing.
-  static const _payloadUpgrades = <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{};
+  /// The map has to cover every format from the oldest readable one up to
+  /// `currentPayloadFormat - 1`, without a hole, or [decode] refuses the payload rather than
+  /// guessing.
+  static const _payloadUpgrades = <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{
+    1: _upgradeFormat1To2,
+    2: _upgradeFormat2To3,
+    3: _upgradeFormat3To4,
+  };
+
+  /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
+  /// (`people` down to `assets`) simply didn't exist yet, so this materialises them as **empty
+  /// lists** rather than special-casing their absence anywhere else.
+  ///
+  /// A version written in format 1 predates the resources mode entirely, so a payload with no
+  /// resources keys at all is a *truthful* statement about that moment: the project had no people,
+  /// no locations, no elements. Once this step has run, [_payloadFromJson] sees the same eleven
+  /// empty lists it would see for a project that genuinely never had any resources, and
+  /// `OcptProjectVersionsService._restoreTable` already tombstones, on restore, every row the
+  /// payload doesn't hold — so a restore of a format-1 version correctly wipes whatever resources
+  /// the working copy had accumulated since, with no special case written for it.
+  static Map<String, dynamic> _upgradeFormat1To2(Map<String, dynamic> json) => {
+    ...json,
+    _peopleKey: const <dynamic>[],
+    _personPositionsKey: const <dynamic>[],
+    _personSkillsKey: const <dynamic>[],
+    _personUnavailabilitiesKey: const <dynamic>[],
+    _rolesKey: const <dynamic>[],
+    _locationsKey: const <dynamic>[],
+    _setsKey: const <dynamic>[],
+    _sceneSetsKey: const <dynamic>[],
+    _elementsKey: const <dynamic>[],
+    _sceneElementsKey: const <dynamic>[],
+    _assetsKey: const <dynamic>[],
+  };
+
+  /// Turns a format-**2** JSON object into a format-**3** one: `location_availabilities` did not
+  /// exist yet, so this materialises it as an **empty list**, exactly as [_upgradeFormat1To2] does
+  /// for the tables that predate it.
+  ///
+  /// That empty list is truthful: a version written in format 2 was captured when no location could
+  /// carry a window at all. `OcptProjectVersionsService._restoreTable` tombstones, on restore, every
+  /// row the payload doesn't hold, so restoring one correctly drops the windows entered since.
+  static Map<String, dynamic> _upgradeFormat2To3(Map<String, dynamic> json) => {
+    ...json,
+    _locationAvailabilitiesKey: const <dynamic>[],
+  };
+
+  /// Turns a format-**3** JSON object into a format-**4** one: `project_info.currencyCode` didn't
+  /// exist yet, so [_projectSettingsKey] gains a **null** [_currencyCodeKey] rather than a guessed
+  /// one.
+  ///
+  /// Null is the truthful reading here, unlike the empty lists [_upgradeFormat1To2] and
+  /// [_upgradeFormat2To3] materialise: those tables genuinely held nothing yet, whereas a project
+  /// captured in format 3 or earlier *did* have a currency — the column has never been nullable —
+  /// this payload simply never recorded which one. `OcptProjectVersionsService.restoreVersion`
+  /// reads that null as "leave the project's currency untouched" rather than as "there was none",
+  /// which is the whole reason [OcptProjectVersionPayload.currencyCode] is nullable at all.
+  static Map<String, dynamic> _upgradeFormat3To4(Map<String, dynamic> json) {
+    final projectSettings = Map<String, dynamic>.from(
+      json[_projectSettingsKey] as Map<String, dynamic>? ?? const {},
+    );
+    projectSettings[_currencyCodeKey] = null;
+
+    return {...json, _projectSettingsKey: projectSettings};
+  }
 
   /// Class constructor
   const OcptProjectVersionCodec();
@@ -255,10 +648,27 @@ class OcptProjectVersionCodec {
     _shotsKey: [for (final row in payload.shots) _shotToJson(row)],
     _shotCharactersKey: [for (final row in payload.shotCharacters) _shotCharacterToJson(row)],
     _shotCoveragesKey: [for (final row in payload.shotCoverages) _shotCoverageToJson(row)],
+    _peopleKey: [for (final row in payload.people) _personToJson(row)],
+    _personPositionsKey: [for (final row in payload.personPositions) _personPositionToJson(row)],
+    _personSkillsKey: [for (final row in payload.personSkills) _personSkillToJson(row)],
+    _personUnavailabilitiesKey: [
+      for (final row in payload.personUnavailabilities) _personUnavailabilityToJson(row),
+    ],
+    _rolesKey: [for (final row in payload.roles) _roleToJson(row)],
+    _locationsKey: [for (final row in payload.locations) _locationToJson(row)],
+    _locationAvailabilitiesKey: [
+      for (final row in payload.locationAvailabilities) _locationAvailabilityToJson(row),
+    ],
+    _setsKey: [for (final row in payload.sets) _setToJson(row)],
+    _sceneSetsKey: [for (final row in payload.sceneSets) _sceneSetToJson(row)],
+    _elementsKey: [for (final row in payload.elements) _elementToJson(row)],
+    _sceneElementsKey: [for (final row in payload.sceneElements) _sceneElementToJson(row)],
+    _assetsKey: [for (final row in payload.assets) _assetToJson(row)],
     _rowFieldVersionsKey: [for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row)],
     _projectSettingsKey: {
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
+      _currencyCodeKey: payload.currencyCode,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -315,9 +725,17 @@ class OcptProjectVersionCodec {
   /// What goes in and what is left out, and why — matching `OcptProjectVersionsTable.contentDigest`
   /// exactly:
   ///
-  /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages` — every column
-  ///   of each — plus `pageSetup.format` and `settingsJson`. This is "the project", as a user
-  ///   would describe it;
+  /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
+  ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
+  ///   `sceneSets`, `elements`, `sceneElements`, `assets` — every column of each — plus
+  ///   `pageSetup.format`, `settingsJson` and `currencyCode`. This is "the project", as a user would
+  ///   describe it, and the resources tables are not optional here: leave them out and two states
+  ///   differing only in their people, locations or elements would hash identically — the
+  ///   working-copy card would claim no drift after an afternoon of typing resources in, and a
+  ///   restore would skip the safety version it promised to keep. `currencyCode` is only ever null
+  ///   on a payload decoded from a format predating it (never on one freshly captured from a live
+  ///   database, which always reads a real value), so this never makes an old and a current capture
+  ///   of the very same project disagree;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -349,8 +767,53 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _shotCoverageToJson,
       ),
+      _peopleKey: _canonicalRows(payload.people, primaryKeyOf: (row) => row.id, toJson: _personToJson),
+      _personPositionsKey: _canonicalRows(
+        payload.personPositions,
+        primaryKeyOf: (row) => row.id,
+        toJson: _personPositionToJson,
+      ),
+      _personSkillsKey: _canonicalRows(
+        payload.personSkills,
+        primaryKeyOf: (row) => row.id,
+        toJson: _personSkillToJson,
+      ),
+      _personUnavailabilitiesKey: _canonicalRows(
+        payload.personUnavailabilities,
+        primaryKeyOf: (row) => row.id,
+        toJson: _personUnavailabilityToJson,
+      ),
+      _rolesKey: _canonicalRows(payload.roles, primaryKeyOf: (row) => row.id, toJson: _roleToJson),
+      _locationsKey: _canonicalRows(
+        payload.locations,
+        primaryKeyOf: (row) => row.id,
+        toJson: _locationToJson,
+      ),
+      _locationAvailabilitiesKey: _canonicalRows(
+        payload.locationAvailabilities,
+        primaryKeyOf: (row) => row.id,
+        toJson: _locationAvailabilityToJson,
+      ),
+      _setsKey: _canonicalRows(payload.sets, primaryKeyOf: (row) => row.id, toJson: _setToJson),
+      _sceneSetsKey: _canonicalRows(
+        payload.sceneSets,
+        primaryKeyOf: (row) => row.id,
+        toJson: _sceneSetToJson,
+      ),
+      _elementsKey: _canonicalRows(
+        payload.elements,
+        primaryKeyOf: (row) => row.id,
+        toJson: _elementToJson,
+      ),
+      _sceneElementsKey: _canonicalRows(
+        payload.sceneElements,
+        primaryKeyOf: (row) => row.id,
+        toJson: _sceneElementToJson,
+      ),
+      _assetsKey: _canonicalRows(payload.assets, primaryKeyOf: (row) => row.id, toJson: _assetToJson),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
+      _currencyCodeKey: payload.currencyCode,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -402,6 +865,24 @@ class OcptProjectVersionCodec {
         for (final row in _rows(json, _shotCharactersKey)) _shotCharacterFromJson(row),
       ],
       shotCoverages: [for (final row in _rows(json, _shotCoveragesKey)) _shotCoverageFromJson(row)],
+      people: [for (final row in _rows(json, _peopleKey)) _personFromJson(row)],
+      personPositions: [
+        for (final row in _rows(json, _personPositionsKey)) _personPositionFromJson(row),
+      ],
+      personSkills: [for (final row in _rows(json, _personSkillsKey)) _personSkillFromJson(row)],
+      personUnavailabilities: [
+        for (final row in _rows(json, _personUnavailabilitiesKey)) _personUnavailabilityFromJson(row),
+      ],
+      roles: [for (final row in _rows(json, _rolesKey)) _roleFromJson(row)],
+      locations: [for (final row in _rows(json, _locationsKey)) _locationFromJson(row)],
+      locationAvailabilities: [
+        for (final row in _rows(json, _locationAvailabilitiesKey)) _locationAvailabilityFromJson(row),
+      ],
+      sets: [for (final row in _rows(json, _setsKey)) _setFromJson(row)],
+      sceneSets: [for (final row in _rows(json, _sceneSetsKey)) _sceneSetFromJson(row)],
+      elements: [for (final row in _rows(json, _elementsKey)) _elementFromJson(row)],
+      sceneElements: [for (final row in _rows(json, _sceneElementsKey)) _sceneElementFromJson(row)],
+      assets: [for (final row in _rows(json, _assetsKey)) _assetFromJson(row)],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
       ],
@@ -415,6 +896,7 @@ class OcptProjectVersionCodec {
         ),
       ),
       settingsJson: _nullableString(projectSettings, _settingsJsonKey),
+      currencyCode: _nullableString(projectSettings, _currencyCodeKey),
     );
   }
 
@@ -562,6 +1044,397 @@ class OcptProjectVersionCodec {
         isDeleted: _bool(json, _isDeletedKey),
       );
 
+  /// Serializes one `people` row.
+  static Map<String, dynamic> _personToJson(OcptPersonRow row) => {
+    _idKey: row.id,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _firstNameKey: row.firstName,
+    _lastNameKey: row.lastName,
+    _emailKey: row.email,
+    _phoneKey: row.phone,
+    _addressLine1Key: row.addressLine1,
+    _addressLine2Key: row.addressLine2,
+    _postalCodeKey: row.postalCode,
+    _cityKey: row.city,
+    _regionKey: row.region,
+    _countryKey: row.country,
+    _colorIndexKey: row.colorIndex,
+    _birthDateKey: row.birthDate?.toIso8601String(),
+    _minorNotesKey: row.minorNotes,
+    _isTransportAutonomousKey: row.isTransportAutonomous,
+    _accommodationNotesKey: row.accommodationNotes,
+    _travelNotesKey: row.travelNotes,
+    _dietaryNotesKey: row.dietaryNotes,
+    _allergiesKey: row.allergies,
+    _measurementHeightKey: row.measurementHeight,
+    _measurementChestKey: row.measurementChest,
+    _measurementWaistKey: row.measurementWaist,
+    _measurementHipsKey: row.measurementHips,
+    _sizeTopKey: row.sizeTop,
+    _sizeBottomKey: row.sizeBottom,
+    _sizeShoesKey: row.sizeShoes,
+    _hmcNotesKey: row.hmcNotes,
+    _imageRightsStatusKey: row.imageRightsStatus.name,
+    _imageRightsDateKey: row.imageRightsDate?.toIso8601String(),
+    _imageRightsAssetIdKey: row.imageRightsAssetId,
+    _photoAssetIdKey: row.photoAssetId,
+    _notesKey: row.notes,
+  };
+
+  /// Parses one `people` row.
+  static OcptPersonRow _personFromJson(Map<String, dynamic> json) => OcptPersonRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    firstName: _string(json, _firstNameKey),
+    lastName: _string(json, _lastNameKey),
+    email: _string(json, _emailKey),
+    phone: _string(json, _phoneKey),
+    addressLine1: _string(json, _addressLine1Key),
+    addressLine2: _string(json, _addressLine2Key),
+    postalCode: _string(json, _postalCodeKey),
+    city: _string(json, _cityKey),
+    region: _string(json, _regionKey),
+    country: _string(json, _countryKey),
+    colorIndex: _int(json, _colorIndexKey),
+    birthDate: _nullableDateTime(json, _birthDateKey),
+    minorNotes: _string(json, _minorNotesKey),
+    isTransportAutonomous: _nullableBool(json, _isTransportAutonomousKey),
+    accommodationNotes: _string(json, _accommodationNotesKey),
+    travelNotes: _string(json, _travelNotesKey),
+    dietaryNotes: _string(json, _dietaryNotesKey),
+    allergies: _string(json, _allergiesKey),
+    measurementHeight: _string(json, _measurementHeightKey),
+    measurementChest: _string(json, _measurementChestKey),
+    measurementWaist: _string(json, _measurementWaistKey),
+    measurementHips: _string(json, _measurementHipsKey),
+    sizeTop: _string(json, _sizeTopKey),
+    sizeBottom: _string(json, _sizeBottomKey),
+    sizeShoes: _string(json, _sizeShoesKey),
+    hmcNotes: _string(json, _hmcNotesKey),
+    imageRightsStatus: _enum(json, _imageRightsStatusKey, OcptImageRightsStatus.values.asNameMap()),
+    imageRightsDate: _nullableDateTime(json, _imageRightsDateKey),
+    imageRightsAssetId: _nullableString(json, _imageRightsAssetIdKey),
+    photoAssetId: _nullableString(json, _photoAssetIdKey),
+    notes: _string(json, _notesKey),
+  );
+
+  /// Serializes one `person_positions` row.
+  static Map<String, dynamic> _personPositionToJson(OcptPersonPositionRow row) => {
+    _idKey: row.id,
+    _personIdKey: row.personId,
+    _positionIdKey: row.positionId,
+    _customLabelKey: row.customLabel,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `person_positions` row.
+  static OcptPersonPositionRow _personPositionFromJson(Map<String, dynamic> json) =>
+      OcptPersonPositionRow(
+        id: _string(json, _idKey),
+        personId: _string(json, _personIdKey),
+        positionId: _string(json, _positionIdKey),
+        customLabel: _string(json, _customLabelKey),
+        sortKey: _string(json, _sortKeyKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `person_skills` row.
+  static Map<String, dynamic> _personSkillToJson(OcptPersonSkillRow row) => {
+    _idKey: row.id,
+    _personIdKey: row.personId,
+    _labelKey: row.label,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `person_skills` row.
+  static OcptPersonSkillRow _personSkillFromJson(Map<String, dynamic> json) => OcptPersonSkillRow(
+    id: _string(json, _idKey),
+    personId: _string(json, _personIdKey),
+    label: _string(json, _labelKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `person_unavailabilities` row.
+  static Map<String, dynamic> _personUnavailabilityToJson(OcptPersonUnavailabilityRow row) => {
+    _idKey: row.id,
+    _personIdKey: row.personId,
+    _startDateKey: row.startDate.toIso8601String(),
+    _endDateKey: row.endDate.toIso8601String(),
+    _slotKey: row.slot.name,
+    _startMinuteKey: row.startMinute,
+    _endMinuteKey: row.endMinute,
+    _reasonKey: row.reason,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `person_unavailabilities` row.
+  static OcptPersonUnavailabilityRow _personUnavailabilityFromJson(Map<String, dynamic> json) =>
+      OcptPersonUnavailabilityRow(
+        id: _string(json, _idKey),
+        personId: _string(json, _personIdKey),
+        startDate: _dateTime(json, _startDateKey),
+        endDate: _dateTime(json, _endDateKey),
+        slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
+        startMinute: _nullableInt(json, _startMinuteKey),
+        endMinute: _nullableInt(json, _endMinuteKey),
+        reason: _string(json, _reasonKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `roles` row.
+  static Map<String, dynamic> _roleToJson(OcptRoleRow row) => {
+    _idKey: row.id,
+    _screenplayIdKey: row.screenplayId,
+    _nameKey: row.name,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _personIdKey: row.personId,
+    _kindKey: row.kind.name,
+    _isFromScreenplayKey: row.isFromScreenplay,
+    _orphanedNameKey: row.orphanedName,
+    _castingNotesKey: row.castingNotes,
+  };
+
+  /// Parses one `roles` row.
+  static OcptRoleRow _roleFromJson(Map<String, dynamic> json) => OcptRoleRow(
+    id: _string(json, _idKey),
+    screenplayId: _string(json, _screenplayIdKey),
+    name: _string(json, _nameKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    personId: _nullableString(json, _personIdKey),
+    kind: _enum(json, _kindKey, OcptRoleKind.values.asNameMap()),
+    isFromScreenplay: _bool(json, _isFromScreenplayKey),
+    orphanedName: _nullableString(json, _orphanedNameKey),
+    castingNotes: _string(json, _castingNotesKey),
+  );
+
+  /// Serializes one `locations` row.
+  static Map<String, dynamic> _locationToJson(OcptLocationRow row) => {
+    _idKey: row.id,
+    _nameKey: row.name,
+    _colorIndexKey: row.colorIndex,
+    _addressLine1Key: row.addressLine1,
+    _addressLine2Key: row.addressLine2,
+    _postalCodeKey: row.postalCode,
+    _cityKey: row.city,
+    _regionKey: row.region,
+    _countryKey: row.country,
+    _latitudeKey: row.latitude,
+    _longitudeKey: row.longitude,
+    _contactPersonIdKey: row.contactPersonId,
+    _contactNotesKey: row.contactNotes,
+    _permitStatusKey: row.permitStatus.name,
+    _permitLabelKey: row.permitLabel,
+    _permitDateKey: row.permitDate?.toIso8601String(),
+    _permitAssetIdKey: row.permitAssetId,
+    _parkingNotesKey: row.parkingNotes,
+    _powerNotesKey: row.powerNotes,
+    _facilitiesNotesKey: row.facilitiesNotes,
+    _constraintsNotesKey: row.constraintsNotes,
+    _notesKey: row.notes,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `locations` row.
+  static OcptLocationRow _locationFromJson(Map<String, dynamic> json) => OcptLocationRow(
+    id: _string(json, _idKey),
+    name: _string(json, _nameKey),
+    colorIndex: _int(json, _colorIndexKey),
+    addressLine1: _string(json, _addressLine1Key),
+    addressLine2: _string(json, _addressLine2Key),
+    postalCode: _string(json, _postalCodeKey),
+    city: _string(json, _cityKey),
+    region: _string(json, _regionKey),
+    country: _string(json, _countryKey),
+    latitude: _nullableDouble(json, _latitudeKey),
+    longitude: _nullableDouble(json, _longitudeKey),
+    contactPersonId: _nullableString(json, _contactPersonIdKey),
+    contactNotes: _string(json, _contactNotesKey),
+    permitStatus: _enum(json, _permitStatusKey, OcptPermitStatus.values.asNameMap()),
+    permitLabel: _string(json, _permitLabelKey),
+    permitDate: _nullableDateTime(json, _permitDateKey),
+    permitAssetId: _nullableString(json, _permitAssetIdKey),
+    parkingNotes: _string(json, _parkingNotesKey),
+    powerNotes: _string(json, _powerNotesKey),
+    facilitiesNotes: _string(json, _facilitiesNotesKey),
+    constraintsNotes: _string(json, _constraintsNotesKey),
+    notes: _string(json, _notesKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `location_availabilities` row.
+  static Map<String, dynamic> _locationAvailabilityToJson(OcptLocationAvailabilityRow row) => {
+    _idKey: row.id,
+    _locationIdKey: row.locationId,
+    _startDateKey: row.startDate.toIso8601String(),
+    _endDateKey: row.endDate.toIso8601String(),
+    _weekdaysKey: row.weekdays,
+    _slotKey: row.slot.name,
+    _startMinuteKey: row.startMinute,
+    _endMinuteKey: row.endMinute,
+    _kindKey: row.kind.name,
+    _noteKey: row.note,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `location_availabilities` row.
+  static OcptLocationAvailabilityRow _locationAvailabilityFromJson(Map<String, dynamic> json) =>
+      OcptLocationAvailabilityRow(
+        id: _string(json, _idKey),
+        locationId: _string(json, _locationIdKey),
+        startDate: _dateTime(json, _startDateKey),
+        endDate: _dateTime(json, _endDateKey),
+        weekdays: _int(json, _weekdaysKey),
+        slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
+        startMinute: _nullableInt(json, _startMinuteKey),
+        endMinute: _nullableInt(json, _endMinuteKey),
+        kind: _enum(json, _kindKey, OcptLocationAvailabilityKind.values.asNameMap()),
+        note: _string(json, _noteKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `sets` row.
+  static Map<String, dynamic> _setToJson(OcptSetRow row) => {
+    _idKey: row.id,
+    _locationIdKey: row.locationId,
+    _codeKey: row.code,
+    _nameKey: row.name,
+    _notesKey: row.notes,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `sets` row.
+  static OcptSetRow _setFromJson(Map<String, dynamic> json) => OcptSetRow(
+    id: _string(json, _idKey),
+    locationId: _string(json, _locationIdKey),
+    code: _string(json, _codeKey),
+    name: _string(json, _nameKey),
+    notes: _string(json, _notesKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `scene_sets` row.
+  static Map<String, dynamic> _sceneSetToJson(OcptSceneSetRow row) => {
+    _idKey: row.id,
+    _sceneIdKey: row.sceneId,
+    _setIdKey: row.setId,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `scene_sets` row.
+  static OcptSceneSetRow _sceneSetFromJson(Map<String, dynamic> json) => OcptSceneSetRow(
+    id: _string(json, _idKey),
+    sceneId: _string(json, _sceneIdKey),
+    setId: _string(json, _setIdKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `elements` row.
+  static Map<String, dynamic> _elementToJson(OcptElementRow row) => {
+    _idKey: row.id,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _categoryKey: row.category.name,
+    _subCategoryKey: row.subCategory,
+    _nameKey: row.name,
+    _codeKey: row.code,
+    _quantityKey: row.quantity,
+    _sourceKindKey: row.sourceKind.name,
+    _ownerPersonIdKey: row.ownerPersonId,
+    _ownerNotesKey: row.ownerNotes,
+    _broughtByPersonIdKey: row.broughtByPersonId,
+    _storageNotesKey: row.storageNotes,
+    _isSecuredKey: row.isSecured,
+    _isReadyForShootKey: row.isReadyForShoot,
+    _isReturnedKey: row.isReturned,
+    _costKey: row.cost,
+    _purposeNotesKey: row.purposeNotes,
+    _notesKey: row.notes,
+    _photoAssetIdKey: row.photoAssetId,
+  };
+
+  /// Parses one `elements` row.
+  static OcptElementRow _elementFromJson(Map<String, dynamic> json) => OcptElementRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    category: _enum(json, _categoryKey, OcptElementCategory.values.asNameMap()),
+    subCategory: _string(json, _subCategoryKey),
+    name: _string(json, _nameKey),
+    code: _string(json, _codeKey),
+    quantity: _string(json, _quantityKey),
+    sourceKind: _enum(json, _sourceKindKey, OcptElementSourceKind.values.asNameMap()),
+    ownerPersonId: _nullableString(json, _ownerPersonIdKey),
+    ownerNotes: _string(json, _ownerNotesKey),
+    broughtByPersonId: _nullableString(json, _broughtByPersonIdKey),
+    storageNotes: _string(json, _storageNotesKey),
+    isSecured: _bool(json, _isSecuredKey),
+    isReadyForShoot: _bool(json, _isReadyForShootKey),
+    isReturned: _bool(json, _isReturnedKey),
+    cost: _nullableInt(json, _costKey),
+    purposeNotes: _string(json, _purposeNotesKey),
+    notes: _string(json, _notesKey),
+    photoAssetId: _nullableString(json, _photoAssetIdKey),
+  );
+
+  /// Serializes one `scene_elements` row.
+  static Map<String, dynamic> _sceneElementToJson(OcptSceneElementRow row) => {
+    _idKey: row.id,
+    _sceneIdKey: row.sceneId,
+    _elementIdKey: row.elementId,
+    _quantityKey: row.quantity,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `scene_elements` row.
+  static OcptSceneElementRow _sceneElementFromJson(Map<String, dynamic> json) => OcptSceneElementRow(
+    id: _string(json, _idKey),
+    sceneId: _string(json, _sceneIdKey),
+    elementId: _string(json, _elementIdKey),
+    quantity: _string(json, _quantityKey),
+    notes: _string(json, _notesKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `assets` row.
+  static Map<String, dynamic> _assetToJson(OcptAssetRow row) => {
+    _idKey: row.id,
+    _kindKey: row.kind.name,
+    _pathKey: row.path,
+    _labelKey: row.label,
+    _addedAtKey: row.addedAt.toIso8601String(),
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+    _personIdKey: row.personId,
+    _locationIdKey: row.locationId,
+    _elementIdKey: row.elementId,
+  };
+
+  /// Parses one `assets` row.
+  static OcptAssetRow _assetFromJson(Map<String, dynamic> json) => OcptAssetRow(
+    id: _string(json, _idKey),
+    kind: _enum(json, _kindKey, OcptAssetKind.values.asNameMap()),
+    path: _string(json, _pathKey),
+    label: _string(json, _labelKey),
+    addedAt: _dateTime(json, _addedAtKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    personId: _nullableString(json, _personIdKey),
+    locationId: _nullableString(json, _locationIdKey),
+    elementId: _nullableString(json, _elementIdKey),
+  );
+
   /// Serializes one `row_field_versions` row.
   static Map<String, dynamic> _rowFieldVersionToJson(OcptRowFieldVersionRow row) => {
     _tableNameKey: row.targetTableName,
@@ -653,6 +1526,21 @@ class OcptProjectVersionCodec {
     return value;
   }
 
+  /// The boolean stored at [key] in [json], or null when the column it mirrors was null — the
+  /// tri-state `people.isTransportAutonomous` is the one column of the schema that needs this.
+  static bool? _nullableBool(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) {
+      return null;
+    }
+
+    if (value is! bool) {
+      throw _OcptPayloadFormatError("'$key' isn't a boolean");
+    }
+
+    return value;
+  }
+
   /// The non-null number stored at [key] in [json], as a double.
   ///
   /// A whole margin written as `1` by an older build (or by a hand-edited file) reads back as an
@@ -666,10 +1554,37 @@ class OcptProjectVersionCodec {
     return value.toDouble();
   }
 
+  /// The number stored at [key] in [json], as a double, or null when the column it mirrors was
+  /// null — `locations.latitude`/`longitude` before a location has been pinned on a map.
+  static double? _nullableDouble(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) {
+      return null;
+    }
+
+    if (value is! num) {
+      throw _OcptPayloadFormatError("'$key' isn't a number");
+    }
+
+    return value.toDouble();
+  }
+
   /// The non-null date and time stored at [key] in [json], as an ISO 8601 string.
   static DateTime _dateTime(Map<String, dynamic> json, String key) =>
       DateTime.tryParse(_string(json, key)) ??
       (throw _OcptPayloadFormatError("'$key' isn't an ISO 8601 date"));
+
+  /// The date and time stored at [key] in [json], as an ISO 8601 string, or null when the column
+  /// it mirrors was null.
+  static DateTime? _nullableDateTime(Map<String, dynamic> json, String key) {
+    final value = _nullableString(json, key);
+    if (value == null) {
+      return null;
+    }
+
+    return DateTime.tryParse(value) ??
+        (throw _OcptPayloadFormatError("'$key' isn't an ISO 8601 date"));
+  }
 
   /// The non-null enum value stored at [key] in [json], looked up by name in [valuesByName].
   static T _enum<T extends Enum>(

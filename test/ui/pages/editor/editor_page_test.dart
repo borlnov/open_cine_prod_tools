@@ -1019,9 +1019,10 @@ void main() {
       expect(find.text("INT. KITCHEN - DAY", findRichText: true), findsWidgets);
       expect(find.text("The rewrite.", findRichText: true), findsNothing);
 
-      // The shell says so, and has nothing left to save.
+      // The shell says so, and has nothing left to save or to open project settings from.
       expect(find.text(tr.workspaceReadOnlyPill), findsOneWidget);
       expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);
+      expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsNothing);
       expect(find.byType(OcptWorkspaceReadOnlyBanner), findsOneWidget);
       expect(find.textContaining("Before the rewrite"), findsOneWidget);
 

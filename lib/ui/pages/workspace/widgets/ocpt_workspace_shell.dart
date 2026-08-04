@@ -19,8 +19,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_t
 ///
 /// The controls every mode ends its toolbar with are built here rather than handed in, so their
 /// order is the shell's guarantee and no mode can break it: the [modeLabel], the dock toggles
-/// ([onToggleLeftDock]/[onToggleRightDock]), then the save control ([onSave]) — each rendered only
-/// when the mode wired it, so a mode with no dock or nothing to save simply shows fewer of them.
+/// ([onToggleLeftDock]/[onToggleRightDock]), the save control ([onSave]), then the project
+/// settings action ([onProjectSettingsRequested]) — each rendered only when the mode wired it, so
+/// a mode with no dock, nothing to save, or nothing to open there simply shows fewer of them.
 ///
 /// This widget knows nothing about any specific mode (the screenplay editor included) beyond the
 /// moved [OcptWorkspaceDock]/[OcptWorkspaceDockDivider]/[OcptWorkspaceDockLayoutController]
@@ -83,6 +84,12 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// Whether a save is in flight: the save control then shows a spinner in place of its button.
   final bool isSaving;
 
+  /// Called when the toolbar's project settings action is clicked, or null when the mode withholds
+  /// it — no control is rendered at all then, rather than a disabled one. A mode withholds it while
+  /// a project version is being previewed, the same idiom every other affordance that writes
+  /// follows (see `OcptOpenProjectModel.isReadOnly`).
+  final VoidCallback? onProjectSettingsRequested;
+
   /// The full-width band shown between the toolbar and the docks row, or null when there is
   /// nothing to announce.
   ///
@@ -131,6 +138,7 @@ class OcptWorkspaceShell extends StatelessWidget {
     this.onToggleRightDock,
     this.onSave,
     this.isSaving = false,
+    this.onProjectSettingsRequested,
     this.banner,
     this.leftPanel,
     this.rightPanel,
@@ -155,6 +163,7 @@ class OcptWorkspaceShell extends StatelessWidget {
         modeLabel: modeLabel,
         dockToggles: _buildDockToggles(context),
         saveAction: _buildSaveAction(context),
+        projectSettingsAction: _buildProjectSettingsAction(context),
         overflowEntries: overflowEntries,
       ),
       if (banner != null) banner!,
@@ -219,6 +228,21 @@ class OcptWorkspaceShell extends StatelessWidget {
       tooltip: Tr.of(context).editorSaveTooltip,
       style: OcptWorkspaceToolbar.chromeButtonStyle,
       onPressed: onSave,
+    );
+  }
+
+  /// Builds the toolbar's project settings action, or null when the mode withheld it.
+  Widget? _buildProjectSettingsAction(BuildContext context) {
+    final onProjectSettingsRequested = this.onProjectSettingsRequested;
+    if (onProjectSettingsRequested == null) {
+      return null;
+    }
+
+    return IconButton(
+      icon: const Icon(Icons.settings_outlined, size: 20),
+      tooltip: Tr.of(context).workspaceProjectSettingsTooltip,
+      style: OcptWorkspaceToolbar.chromeButtonStyle,
+      onPressed: onProjectSettingsRequested,
     );
   }
 

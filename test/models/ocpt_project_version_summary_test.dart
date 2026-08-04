@@ -28,9 +28,22 @@ void main() {
     shots: shots,
     shotCharacters: const [],
     shotCoverages: const [],
+    people: const [],
+    personPositions: const [],
+    personSkills: const [],
+    personUnavailabilities: const [],
+    roles: const [],
+    locations: const [],
+    locationAvailabilities: const [],
+    sets: const [],
+    sceneSets: const [],
+    elements: const [],
+    sceneElements: const [],
+    assets: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,
+    currencyCode: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].

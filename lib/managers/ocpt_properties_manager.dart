@@ -32,8 +32,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// brightness, it stores the list of recently opened projects, the preferred editor mode, the
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
 /// visibility preference, the last used workspace mode, the shot list mode's own dock
-/// fractions, visible table columns and last right dock tab, and the id identifying this replica
-/// of the app ([loadOrCreateDeviceId]).
+/// fractions, visible table columns and last right dock tab, the resources mode's own dock
+/// fractions, and the id identifying this replica of the app ([loadOrCreateDeviceId]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -110,6 +110,24 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// [shotListLeftDockFraction] is. Loading it returns null if nothing has been stored yet, which
   /// is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final shotListRightDockFraction = SharedPreferencesItem<double>("SHOT_LIST_RIGHT_DOCK_FRACTION");
+
+  /// This is the key used to store the resources mode's left (list) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction] and [shotListLeftDockFraction] for the same reason
+  /// the two are kept apart from each other. Loading it returns null if nothing has been stored
+  /// yet, which is equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final resourcesLeftDockFraction = SharedPreferencesItem<double>("RESOURCES_LEFT_DOCK_FRACTION");
+
+  /// This is the key used to store the resources mode's right (versions) dock width, as a fraction
+  /// of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction] and [shotListRightDockFraction] for the same
+  /// reason. Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final resourcesRightDockFraction = SharedPreferencesItem<double>(
+    "RESOURCES_RIGHT_DOCK_FRACTION",
+  );
 
   /// This is the key used to store which optional columns of the shot list table are visible, as
   /// the [OcptShotListColumn] names joined by [_shotListColumnsSeparator].

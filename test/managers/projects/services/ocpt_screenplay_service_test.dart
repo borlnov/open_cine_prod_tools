@@ -5,11 +5,13 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 void main() {
@@ -22,6 +24,7 @@ void main() {
     sceneIndexService: OcptSceneIndexService(),
     shotListService: OcptShotListService(),
     shotCoverageService: OcptShotCoverageService(),
+    roleIndexService: OcptRoleIndexService(),
   );
 
   late OcptProjectDatabase database;
@@ -183,5 +186,94 @@ void main() {
       "INT. HOUSE - DAY",
     );
     expect(await preview.select(preview.ocptScreenplaySnapshotsTable).get(), isEmpty);
+  });
+
+  test('saveScreenplayText reconciles the cast, inserting a speaking role per character',
+      () async {
+    await service.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final roles = await (database.select(database.ocptRolesTable)
+          ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+        .get();
+
+    expect(roles, hasLength(2));
+    expect(roles.map((role) => role.name), ["JOHN", "MARY"]);
+    expect(roles.every((role) => role.isFromScreenplay), isTrue);
+    expect(roles.every((role) => role.kind == OcptRoleKind.speaking), isTrue);
+  });
+
+  test('a save whose screenplay drops a character orphans that role, keeping its casting',
+      () async {
+    const roleIndexService = OcptRoleIndexService();
+
+    await database
+        .into(database.ocptPeopleTable)
+        .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
+
+    await service.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final roles = await roleIndexService.loadRoles(database: database, screenplayId: screenplayId);
+    final maryRole = roles.firstWhere((role) => role.name == "MARY");
+
+    await roleIndexService.updateRole(
+      database: database,
+      roleId: maryRole.id,
+      personId: const Value("person-1"),
+      castingNotes: const Value("Understudy confirmed"),
+    );
+
+    // The next save's screenplay no longer names MARY.
+    await service.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final row = await (database.select(
+      database.ocptRolesTable,
+    )..where((table) => table.id.equals(maryRole.id))).getSingle();
+
+    expect(row.orphanedName, "MARY");
+    expect(row.personId, "person-1");
+    expect(row.castingNotes, "Understudy confirmed");
+    expect(row.isDeleted, isFalse);
+  });
+
+  test('a hand-added role survives a save mentioning none of its character', () async {
+    const roleIndexService = OcptRoleIndexService();
+
+    final handAddedId = await roleIndexService.addRole(
+      database: database,
+      screenplayId: screenplayId,
+      name: "Passerby",
+      kind: OcptRoleKind.silent,
+    );
+
+    await service.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final row = await (database.select(
+      database.ocptRolesTable,
+    )..where((table) => table.id.equals(handAddedId!))).getSingle();
+
+    expect(row.isDeleted, isFalse);
+    expect(row.name, "Passerby");
+    expect(row.isFromScreenplay, isFalse);
+    expect(row.orphanedName, isNull);
   });
 }

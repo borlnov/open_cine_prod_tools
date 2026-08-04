@@ -62,9 +62,9 @@ you choose.
 What the app does today:
 
 - A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
-  bottom mode switcher for the production tools. Screenplay and shot list are implemented; budget
-  and schedule are still empty states (see [Roadmap](#roadmap)). Dock sizes and the mode you were
-  last in come back with the project.
+  bottom mode switcher for the production tools. Screenplay, shot list and resources are
+  implemented; schedule and budget are still empty states (see [Roadmap](#roadmap)). Dock sizes and
+  the mode you were last in come back with the project.
 - A styled WYSIWYG screenplay mode with the real page layout: a block-type dropdown, Tab cycling
   between screenplay element types, smart Enter, bold/italic/underline, a title page edited in
   place, and `#N#` scene numbers.
@@ -79,6 +79,15 @@ What the app does today:
   about. Each shot can be tied to the passages of the screenplay it covers, and a shot whose
   covered text has changed since is flagged for re-checking rather than silently going stale.
   Exports to XLSX.
+- A resources mode: who shoots the film, where, and with what. An address book where one person is
+  one entry whatever they do on the film, the cast reconciled against the screenplay's own speaking
+  characters (a character who leaves the script keeps their casting and is flagged rather than
+  dropped), the locations with their sets, their filming permit, their access notes and the windows
+  they may be shot in, and a catalogue of everything that has to be on set and is not a person -
+  props, costumes, vehicles, equipment - with who owns it, who brings it and whether it is secured,
+  ready or already back. Scenes are linked to the sets they are shot in and to the elements they
+  need. Photos and signed documents are referenced by path rather than copied into the project
+  file. Exports to XLSX, one sheet per tab.
 - A scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage each shot covers, the passages no shot covers washed grey, and optional
   legend and summary pages - so you can see, page by page, what your découpage still leaves out.
@@ -99,7 +108,7 @@ Planned production tools, in priority order:
 - Budget
 - Script supervisor reports
 - Storyboard
-- Breakdown
+- A per-scene breakdown screen
 - Casting tracker
 
 ## Platforms

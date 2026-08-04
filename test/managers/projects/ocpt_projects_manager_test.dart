@@ -166,6 +166,30 @@ void main() {
     expect(manager.currentProject, isNull);
   });
 
+  test(
+    'saveCurrentProjectCurrencyCode writes the code, loadCurrentProjectCurrencyCode reads it back',
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      final initialCode = await manager.loadCurrentProjectCurrencyCode();
+      final otherCode = initialCode == "USD" ? "GBP" : "USD";
+
+      await manager.saveCurrentProjectCurrencyCode(otherCode);
+
+      expect(await manager.loadCurrentProjectCurrencyCode(), otherCode);
+    },
+  );
+
+  test('saveCurrentProjectCurrencyCode is a no-op when no project is open', () async {
+    await expectLater(manager.saveCurrentProjectCurrencyCode("USD"), completes);
+    expect(manager.currentProject, isNull);
+  });
+
+  test('loadCurrentProjectCurrencyCode returns null when no project is open', () async {
+    expect(await manager.loadCurrentProjectCurrencyCode(), isNull);
+  });
+
   test('createProjectVersion captures the open project, listProjectVersions reads it back', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
 

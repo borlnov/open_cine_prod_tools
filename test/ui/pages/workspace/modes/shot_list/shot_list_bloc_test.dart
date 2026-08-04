@@ -1055,6 +1055,28 @@ void main() {
     await bloc.close();
   });
 
+  test(
+    'the project settings changed event re-reads the page setup the export dialog pre-fills from',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+          ? OcptPageFormat.a4
+          : OcptPageFormat.usLetter;
+      // Written directly through the manager, the way the project settings page itself writes it
+      // — this bloc never sees the new value on an event, only the fact that something changed.
+      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+
+      bloc.add(const OcptShotListProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+
+      expect(state.pageSetup.format, otherFormat);
+
+      await bloc.close();
+    },
+  );
+
   test('a first coverage click sets the pending anchor and writes nothing', () async {
     await writeScreenplay(twoSceneText);
 

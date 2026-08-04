@@ -1,0 +1,858 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
+import 'package:uuid/uuid.dart';
+
+/// CRUD over `locations`, their `sets`, the `scene_sets` links between a scene and the sets it is
+/// shot in, the `location_availabilities` windows a location may be shot in, and the `assets` rows
+/// a location owns (its scouting photos and its permit document).
+///
+/// {@macro open_cine_prod_tools.tombstones}
+///
+/// **Order is `sortKey`, never `position`**, for `locations`, `sets` and a location's photos — see
+/// `OcptShotListService`'s own doc comment. `scene_sets` carries no `sortKey` at all: a scene's
+/// sets are an unordered set of answers rather than a list the user reorders (see
+/// [assignSceneToSet] and `OcptSceneSetsTable`'s own doc comment), and the scenes read back for a
+/// set are ordered by the screenplay's own scene order instead.
+///
+/// This service does not decide *which* set a scene's heading suggests — §4.5 of the plan this
+/// service ships under is explicit that the suggestion is never applied automatically, only
+/// offered: `ocptSceneSetSuggestionOf` computes it and the resources mode offers it, while
+/// [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode calls once the user
+/// has picked (or confirmed) one.
+class OcptLocationsService {
+  /// Class constructor
+  const OcptLocationsService();
+
+  /// Loads every live location of [database], in `sortKey` order, each joined with its live
+  /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
+  /// start-date order, the order they are read in rather than one the user chose) and with the
+  /// document its `permitAssetId` resolves to.
+  ///
+  /// A set's `sceneIds` name **live scenes only**: a `scene_sets` row whose scene was tombstoned by
+  /// the last reconciliation is skipped rather than shown as a scene that no longer exists, and
+  /// comes back on its own if the scene does — `OcptSceneIndexService` reuses a scene's id for as
+  /// long as it can match it.
+  Future<List<OcptLocation>> loadLocations({required OcptProjectDatabase database}) async {
+    final locationRows = await _liveLocationRows(database);
+    final locationIds = locationRows.map((row) => row.id).toList(growable: false);
+
+    final setRows = locationIds.isEmpty
+        ? const <OcptSetRow>[]
+        : await (database.select(database.ocptSetsTable)
+                ..where((table) => table.locationId.isIn(locationIds) & table.isDeleted.not())
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+              .get();
+
+    final sceneIdsBySetId = await _liveSceneIdsBySetId(
+      database: database,
+      setIds: setRows.map((row) => row.id).toList(growable: false),
+    );
+
+    final assetRows = locationIds.isEmpty
+        ? const <OcptAssetRow>[]
+        : await (database.select(database.ocptAssetsTable)
+                ..where((table) => table.locationId.isIn(locationIds) & table.isDeleted.not())
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+              .get();
+
+    final setsByLocationId = <String, List<OcptSet>>{};
+    for (final row in setRows) {
+      setsByLocationId
+          .putIfAbsent(row.locationId, () => [])
+          .add(OcptSet.fromRow(row: row, sceneIds: sceneIdsBySetId[row.id] ?? const []));
+    }
+
+    final availabilityRows = locationIds.isEmpty
+        ? const <OcptLocationAvailabilityRow>[]
+        : await (database.select(database.ocptLocationAvailabilitiesTable)
+                ..where((table) => table.locationId.isIn(locationIds) & table.isDeleted.not())
+                ..orderBy([
+                  (table) => OrderingTerm.asc(table.startDate),
+                  (table) => OrderingTerm.asc(table.endDate),
+                ]))
+              .get();
+
+    final availabilitiesByLocationId = <String, List<OcptLocationAvailability>>{};
+    for (final row in availabilityRows) {
+      availabilitiesByLocationId
+          .putIfAbsent(row.locationId, () => [])
+          .add(OcptLocationAvailability.fromRow(row));
+    }
+
+    final photosByLocationId = <String, List<OcptAssetRef>>{};
+    final assetsById = <String, OcptAssetRef>{};
+    for (final row in assetRows) {
+      final asset = OcptAssetRef.fromRow(row);
+      assetsById[asset.id] = asset;
+      if (row.kind == OcptAssetKind.locationPhoto) {
+        photosByLocationId.putIfAbsent(row.locationId!, () => []).add(asset);
+      }
+    }
+
+    return [
+      for (final row in locationRows)
+        OcptLocation.fromRow(
+          row: row,
+          sets: setsByLocationId[row.id] ?? const [],
+          photos: photosByLocationId[row.id] ?? const [],
+          permitDocument: row.permitAssetId == null ? null : assetsById[row.permitAssetId],
+          availabilities: availabilitiesByLocationId[row.id] ?? const [],
+        ),
+    ];
+  }
+
+  /// Loads every live scene of screenplay [screenplayId] in [database], in source order.
+  ///
+  /// The resources mode reads these to offer them for a set (see [assignSceneToSet]) and to name
+  /// the ones a set already holds. This service is where the read lives because `scene_sets` is
+  /// its table; the scenes themselves are `OcptSceneIndexService`'s to write, and nothing here
+  /// ever does.
+  Future<List<OcptSceneRef>> loadScenes({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final rows =
+        await (database.select(database.ocptScenesTable)
+              ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
+              ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+            .get();
+
+    return rows.map(OcptSceneRef.fromRow).toList(growable: false);
+  }
+
+  /// Creates a new location named [name] in [database], appended at the end, and returns its
+  /// freshly generated id.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> createLocation({
+    required OcptProjectDatabase database,
+    required String name,
+  }) async {
+    if (database.refusesUserWrite("createLocation")) {
+      return null;
+    }
+
+    final existing = await _liveLocationRows(database);
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptLocationsTable)
+        .insert(
+          OcptLocationsTableCompanion.insert(
+            id: id,
+            name: name,
+            sortKey: Value(
+              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+            ),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Updates the fields of location [locationId] in [database] that are passed as something other
+  /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
+  /// [reorderLocation] and [deleteLocation].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateLocation({
+    required OcptProjectDatabase database,
+    required String locationId,
+    Value<String> name = const Value.absent(),
+    Value<int> colorIndex = const Value.absent(),
+    Value<String> addressLine1 = const Value.absent(),
+    Value<String> addressLine2 = const Value.absent(),
+    Value<String> postalCode = const Value.absent(),
+    Value<String> city = const Value.absent(),
+    Value<String> region = const Value.absent(),
+    Value<String> country = const Value.absent(),
+    Value<double?> latitude = const Value.absent(),
+    Value<double?> longitude = const Value.absent(),
+    Value<String?> contactPersonId = const Value.absent(),
+    Value<String> contactNotes = const Value.absent(),
+    Value<OcptPermitStatus> permitStatus = const Value.absent(),
+    Value<String> permitLabel = const Value.absent(),
+    Value<DateTime?> permitDate = const Value.absent(),
+    Value<String?> permitAssetId = const Value.absent(),
+    Value<String> parkingNotes = const Value.absent(),
+    Value<String> powerNotes = const Value.absent(),
+    Value<String> facilitiesNotes = const Value.absent(),
+    Value<String> constraintsNotes = const Value.absent(),
+    Value<String> notes = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateLocation")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptLocationsTable,
+    )..where((table) => table.id.equals(locationId) & table.isDeleted.not())).write(
+      OcptLocationsTableCompanion(
+        name: name,
+        colorIndex: colorIndex,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        postalCode: postalCode,
+        city: city,
+        region: region,
+        country: country,
+        latitude: latitude,
+        longitude: longitude,
+        contactPersonId: contactPersonId,
+        contactNotes: contactNotes,
+        permitStatus: permitStatus,
+        permitLabel: permitLabel,
+        permitDate: permitDate,
+        permitAssetId: permitAssetId,
+        parkingNotes: parkingNotes,
+        powerNotes: powerNotes,
+        facilitiesNotes: facilitiesNotes,
+        constraintsNotes: constraintsNotes,
+        notes: notes,
+      ),
+    );
+  }
+
+  /// Tombstones location [locationId] in [database], its sets, the `scene_sets` links onto those
+  /// sets, its availability windows, and the `assets` rows it owns (its scouting photos and its
+  /// permit document) along with it.
+  ///
+  /// The photo files themselves are never touched: this app only ever holds their paths (see
+  /// [addLocationPhoto]), so deleting a location drops its references and nothing else.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> deleteLocation({
+    required OcptProjectDatabase database,
+    required String locationId,
+  }) async {
+    if (database.refusesUserWrite("deleteLocation")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final setRows =
+          await (database.select(database.ocptSetsTable)..where(
+                (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
+              ))
+              .get();
+      final setIds = setRows.map((row) => row.id).toList(growable: false);
+
+      if (setIds.isNotEmpty) {
+        await (database.update(
+          database.ocptSceneSetsTable,
+        )..where((table) => table.setId.isIn(setIds))).write(
+          const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
+        );
+        await (database.update(
+          database.ocptSetsTable,
+        )..where((table) => table.locationId.equals(locationId))).write(
+          const OcptSetsTableCompanion(isDeleted: Value(true)),
+        );
+      }
+
+      await (database.update(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((table) => table.locationId.equals(locationId))).write(
+        const OcptLocationAvailabilitiesTableCompanion(isDeleted: Value(true)),
+      );
+
+      await (database.update(
+        database.ocptAssetsTable,
+      )..where((table) => table.locationId.equals(locationId))).write(
+        const OcptAssetsTableCompanion(isDeleted: Value(true)),
+      );
+
+      await (database.update(
+        database.ocptLocationsTable,
+      )..where((table) => table.id.equals(locationId))).write(
+        const OcptLocationsTableCompanion(isDeleted: Value(true)),
+      );
+    });
+  }
+
+  /// Moves location [locationId] to [newPosition] (0-based), by giving it a `sortKey` sitting
+  /// between the two locations it lands between. Writes **exactly one row**.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> reorderLocation({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required int newPosition,
+  }) async {
+    if (database.refusesUserWrite("reorderLocation")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final others = (await _liveLocationRows(database))
+        ..removeWhere((row) => row.id == locationId);
+
+      final clampedPosition = newPosition < 0
+          ? 0
+          : (newPosition > others.length ? others.length : newPosition);
+
+      final sortKey = ocptFractionalKeyBetween(
+        before: clampedPosition > 0 ? others[clampedPosition - 1].sortKey : null,
+        after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
+      );
+
+      await (database.update(
+        database.ocptLocationsTable,
+      )..where((table) => table.id.equals(locationId))).write(
+        OcptLocationsTableCompanion(sortKey: Value(sortKey)),
+      );
+    });
+  }
+
+  /// Creates a new set named [name] inside location [locationId], appended at the end of that
+  /// location's sets, and returns its freshly generated id.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> createSet({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required String name,
+  }) async {
+    if (database.refusesUserWrite("createSet")) {
+      return null;
+    }
+
+    final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptSetsTable)
+        .insert(
+          OcptSetsTableCompanion.insert(
+            id: id,
+            locationId: locationId,
+            name: name,
+            sortKey: Value(
+              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+            ),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Updates the fields of set [setId] in [database] that are passed as something other than
+  /// [Value.absent].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateSet({
+    required OcptProjectDatabase database,
+    required String setId,
+    Value<String> code = const Value.absent(),
+    Value<String> name = const Value.absent(),
+    Value<String> notes = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateSet")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptSetsTable,
+    )..where((table) => table.id.equals(setId) & table.isDeleted.not())).write(
+      OcptSetsTableCompanion(code: code, name: name, notes: notes),
+    );
+  }
+
+  /// Tombstones set [setId] in [database] and the `scene_sets` links onto it along with it.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> deleteSet({required OcptProjectDatabase database, required String setId}) async {
+    if (database.refusesUserWrite("deleteSet")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      await (database.update(
+        database.ocptSceneSetsTable,
+      )..where((table) => table.setId.equals(setId))).write(
+        const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
+      );
+      await (database.update(
+        database.ocptSetsTable,
+      )..where((table) => table.id.equals(setId))).write(
+        const OcptSetsTableCompanion(isDeleted: Value(true)),
+      );
+    });
+  }
+
+  /// Moves set [setId] to [newPosition] (0-based) within location [locationId]'s sets, by giving
+  /// it a `sortKey` sitting between the two sets it lands between. Writes **exactly one row**.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> reorderSet({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required String setId,
+    required int newPosition,
+  }) async {
+    if (database.refusesUserWrite("reorderSet")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final others =
+          (await _liveSetRowsOfLocation(database: database, locationId: locationId))
+            ..removeWhere((row) => row.id == setId);
+
+      final clampedPosition = newPosition < 0
+          ? 0
+          : (newPosition > others.length ? others.length : newPosition);
+
+      final sortKey = ocptFractionalKeyBetween(
+        before: clampedPosition > 0 ? others[clampedPosition - 1].sortKey : null,
+        after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
+      );
+
+      await (database.update(
+        database.ocptSetsTable,
+      )..where((table) => table.id.equals(setId))).write(
+        OcptSetsTableCompanion(sortKey: Value(sortKey)),
+      );
+    });
+  }
+
+  /// Says scene [sceneId] is also shot in set [setId], and returns the id of the link.
+  ///
+  /// A scene may be shot in **several** sets (see `OcptSceneSetsTable`), so this adds a link beside
+  /// the ones the scene already carries rather than moving it: dropping a set is
+  /// [removeSceneFromSet]'s job, and saying "also here" must never silently answer "no longer
+  /// there".
+  ///
+  /// Saying the same thing twice writes nothing new — the live link's id comes back — and a link
+  /// the user had dropped is revived rather than duplicated, so a scene never ends up holding two
+  /// rows that say the same thing.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> assignSceneToSet({
+    required OcptProjectDatabase database,
+    required String sceneId,
+    required String setId,
+  }) async {
+    if (database.refusesUserWrite("assignSceneToSet")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final existingLinks =
+          await (database.select(database.ocptSceneSetsTable)..where(
+                (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
+              ))
+              .get();
+
+      OcptSceneSetRow? droppedLink;
+      for (final link in existingLinks) {
+        if (!link.isDeleted) {
+          return link.id;
+        }
+
+        droppedLink ??= link;
+      }
+
+      if (droppedLink != null) {
+        await (database.update(
+          database.ocptSceneSetsTable,
+        )..where((table) => table.id.equals(droppedLink!.id))).write(
+          const OcptSceneSetsTableCompanion(isDeleted: Value(false)),
+        );
+
+        return droppedLink.id;
+      }
+
+      final id = const Uuid().v4();
+      await database
+          .into(database.ocptSceneSetsTable)
+          .insert(
+            OcptSceneSetsTableCompanion.insert(id: id, sceneId: sceneId, setId: setId),
+          );
+
+      return id;
+    });
+  }
+
+  /// Removes the link saying scene [sceneId] is shot in set [setId], leaving whatever other sets
+  /// that scene is shot in alone. A no-op when there is no such live link.
+  ///
+  /// Takes the two ids the caller has rather than the link's own: the set sheet lists a scene, and
+  /// "this scene is not shot here" is what the user answers — the row carrying it is an
+  /// implementation detail of that answer.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> removeSceneFromSet({
+    required OcptProjectDatabase database,
+    required String sceneId,
+    required String setId,
+  }) async {
+    if (database.refusesUserWrite("removeSceneFromSet")) {
+      return;
+    }
+
+    await (database.update(database.ocptSceneSetsTable)..where(
+          (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
+        ))
+        .write(const OcptSceneSetsTableCompanion(isDeleted: Value(true)));
+  }
+
+  /// Adds an availability window to location [locationId], and returns its freshly generated id.
+  ///
+  /// [endDate] is clamped up to [startDate] rather than refused, and [weekdays] falls back to
+  /// [ocptEveryWeekdayMask] when it covers no day at all: both are slips of a control, and the
+  /// caller has nothing useful to do with an error — the sheet shows what was written, which is
+  /// how the user sees it.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> addAvailability({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required DateTime startDate,
+    required DateTime endDate,
+    int weekdays = ocptEveryWeekdayMask,
+    OcptDayPartSlot slot = OcptDayPartSlot.fullDay,
+    int? startMinute,
+    int? endMinute,
+    OcptLocationAvailabilityKind kind = OcptLocationAvailabilityKind.available,
+    String note = "",
+  }) async {
+    if (database.refusesUserWrite("addAvailability")) {
+      return null;
+    }
+
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptLocationAvailabilitiesTable)
+        .insert(
+          OcptLocationAvailabilitiesTableCompanion.insert(
+            id: id,
+            locationId: locationId,
+            startDate: startDate,
+            endDate: endDate.isBefore(startDate) ? startDate : endDate,
+            weekdays: Value(
+              weekdays & ocptEveryWeekdayMask == 0 ? ocptEveryWeekdayMask : weekdays,
+            ),
+            slot: Value(slot),
+            startMinute: Value(startMinute),
+            endMinute: Value(endMinute),
+            kind: Value(kind),
+            note: Value(note),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Updates the fields of availability window [id] that are passed as something other than
+  /// [Value.absent].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateAvailability({
+    required OcptProjectDatabase database,
+    required String id,
+    Value<DateTime> startDate = const Value.absent(),
+    Value<DateTime> endDate = const Value.absent(),
+    Value<int> weekdays = const Value.absent(),
+    Value<OcptDayPartSlot> slot = const Value.absent(),
+    Value<int?> startMinute = const Value.absent(),
+    Value<int?> endMinute = const Value.absent(),
+    Value<OcptLocationAvailabilityKind> kind = const Value.absent(),
+    Value<String> note = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateAvailability")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptLocationAvailabilitiesTable,
+    )..where((table) => table.id.equals(id) & table.isDeleted.not())).write(
+      OcptLocationAvailabilitiesTableCompanion(
+        startDate: startDate,
+        endDate: endDate,
+        weekdays: weekdays,
+        slot: slot,
+        startMinute: startMinute,
+        endMinute: endMinute,
+        kind: kind,
+        note: note,
+      ),
+    );
+  }
+
+  /// Removes availability window [id].
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> removeAvailability({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    if (database.refusesUserWrite("removeAvailability")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptLocationAvailabilitiesTable,
+    )..where((table) => table.id.equals(id))).write(
+      const OcptLocationAvailabilitiesTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
+  /// References the file at [path] as a scouting photo of location [locationId], appended at the
+  /// end of its photos, and returns the freshly generated id of the `assets` row.
+  ///
+  /// **No byte of the file is read, copied or written here** — see
+  /// `docs/adr/0013-binary-assets-referenced-by-path.md` and `OcptAssetsTable`'s own doc comment:
+  /// the app stores the path and nothing else, and a path that resolves to nothing later is a
+  /// normal state the UI reports rather than an error.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> addLocationPhoto({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required String path,
+    String label = "",
+  }) async {
+    if (database.refusesUserWrite("addLocationPhoto")) {
+      return null;
+    }
+
+    final existing =
+        await (database.select(database.ocptAssetsTable)
+              ..where(
+                (table) =>
+                    table.locationId.equals(locationId) &
+                    table.kind.equalsValue(OcptAssetKind.locationPhoto) &
+                    table.isDeleted.not(),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+            .get();
+
+    return _insertAsset(
+      database: database,
+      kind: OcptAssetKind.locationPhoto,
+      locationId: locationId,
+      path: path,
+      label: label,
+      sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+    );
+  }
+
+  /// References the file at [path] as location [locationId]'s filming permit document, replacing
+  /// whichever document it referenced before, and returns the freshly generated id of the `assets`
+  /// row.
+  ///
+  /// The replaced document's row is tombstoned in the same transaction: a location has one permit
+  /// document, so a row nothing points at any more is not history worth keeping — it is an orphan.
+  /// See [addLocationPhoto] for why no byte of the file is touched.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> setPermitDocument({
+    required OcptProjectDatabase database,
+    required String locationId,
+    required String path,
+    String label = "",
+  }) async {
+    if (database.refusesUserWrite("setPermitDocument")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      await _tombstonePermitDocument(database: database, locationId: locationId);
+
+      final id = await _insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        locationId: locationId,
+        path: path,
+        label: label,
+        sortKey: "",
+      );
+
+      await (database.update(
+        database.ocptLocationsTable,
+      )..where((table) => table.id.equals(locationId))).write(
+        OcptLocationsTableCompanion(permitAssetId: Value(id)),
+      );
+
+      return id;
+    });
+  }
+
+  /// Drops location [locationId]'s reference to its filming permit document: the `assets` row is
+  /// tombstoned and `permitAssetId` goes back to null. The file itself is never touched.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> clearPermitDocument({
+    required OcptProjectDatabase database,
+    required String locationId,
+  }) async {
+    if (database.refusesUserWrite("clearPermitDocument")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      await _tombstonePermitDocument(database: database, locationId: locationId);
+      await (database.update(
+        database.ocptLocationsTable,
+      )..where((table) => table.id.equals(locationId))).write(
+        const OcptLocationsTableCompanion(permitAssetId: Value(null)),
+      );
+    });
+  }
+
+  /// Drops the reference [assetId], whatever it illustrates. The file itself is never touched.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> removeAsset({
+    required OcptProjectDatabase database,
+    required String assetId,
+  }) async {
+    if (database.refusesUserWrite("removeAsset")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptAssetsTable,
+    )..where((table) => table.id.equals(assetId))).write(
+      const OcptAssetsTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
+  /// Inserts one `assets` row and returns its freshly generated id.
+  Future<String> _insertAsset({
+    required OcptProjectDatabase database,
+    required OcptAssetKind kind,
+    required String locationId,
+    required String path,
+    required String label,
+    required String sortKey,
+  }) async {
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptAssetsTable)
+        .insert(
+          OcptAssetsTableCompanion.insert(
+            id: id,
+            kind: kind,
+            path: path,
+            label: Value(label),
+            addedAt: DateTime.now(),
+            sortKey: Value(sortKey),
+            locationId: Value(locationId),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Tombstones whichever `assets` row location [locationId] currently names as its permit
+  /// document, if any. Leaves `permitAssetId` alone: both callers write it themselves.
+  Future<void> _tombstonePermitDocument({
+    required OcptProjectDatabase database,
+    required String locationId,
+  }) async {
+    final row = await (database.select(
+      database.ocptLocationsTable,
+    )..where((table) => table.id.equals(locationId))).getSingleOrNull();
+
+    final permitAssetId = row?.permitAssetId;
+    if (permitAssetId == null) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptAssetsTable,
+    )..where((table) => table.id.equals(permitAssetId))).write(
+      const OcptAssetsTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
+  /// The ids of the live scenes linked to each of [setIds], keyed by set id and ordered by the
+  /// screenplay's own scene order. See [loadLocations] for why a link onto a tombstoned scene is
+  /// left out rather than reported.
+  Future<Map<String, List<String>>> _liveSceneIdsBySetId({
+    required OcptProjectDatabase database,
+    required List<String> setIds,
+  }) async {
+    if (setIds.isEmpty) {
+      return const {};
+    }
+
+    final linkRows =
+        await (database.select(database.ocptSceneSetsTable)..where(
+              (table) => table.setId.isIn(setIds) & table.isDeleted.not(),
+            ))
+            .get();
+    if (linkRows.isEmpty) {
+      return const {};
+    }
+
+    final sceneRows =
+        await (database.select(database.ocptScenesTable)..where(
+              (table) =>
+                  table.id.isIn(linkRows.map((row) => row.sceneId).toList(growable: false)) &
+                  table.isDeleted.not(),
+            ))
+            .get();
+
+    final positionBySceneId = {for (final row in sceneRows) row.id: row.position};
+
+    final sceneIdsBySetId = <String, List<String>>{};
+    for (final link in linkRows) {
+      if (positionBySceneId.containsKey(link.sceneId)) {
+        sceneIdsBySetId.putIfAbsent(link.setId, () => []).add(link.sceneId);
+      }
+    }
+
+    for (final sceneIds in sceneIdsBySetId.values) {
+      sceneIds.sort((a, b) => positionBySceneId[a]!.compareTo(positionBySceneId[b]!));
+    }
+
+    return sceneIdsBySetId;
+  }
+
+  /// Every live location row of [database], ordered by `sortKey`.
+  Future<List<OcptLocationRow>> _liveLocationRows(OcptProjectDatabase database) =>
+      (database.select(database.ocptLocationsTable)
+            ..where((table) => table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
+
+  /// Every live set row of location [locationId], ordered by `sortKey`.
+  Future<List<OcptSetRow>> _liveSetRowsOfLocation({
+    required OcptProjectDatabase database,
+    required String locationId,
+  }) => (database.select(database.ocptSetsTable)
+        ..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())
+        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+      .get();
+}

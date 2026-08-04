@@ -221,6 +221,17 @@ class OcptEditorPageSetupChangedEvent extends OcptEditorEvent {
   List<Object?> get props => [...super.props, pageSetup];
 }
 
+/// Reports that the project settings page was closed after changing something.
+///
+/// Unlike [OcptEditorPageSetupChangedEvent], this carries no value: the project settings page
+/// writes the project's page format itself (through the very same
+/// `OcptProjectsManager.saveCurrentProjectPageFormat`), so all this bloc has to do is re-read it
+/// and repaginate.
+class OcptEditorProjectSettingsChangedEvent extends OcptEditorEvent {
+  /// Class constructor
+  const OcptEditorProjectSettingsChangedEvent();
+}
+
 /// Dismisses the transient save error currently shown, if any.
 class OcptEditorSaveErrorDismissedEvent extends OcptEditorEvent {
   /// Class constructor

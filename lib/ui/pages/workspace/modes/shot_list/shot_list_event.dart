@@ -225,6 +225,16 @@ class OcptShotListBackRequestedEvent extends OcptShotListEvent {
   const OcptShotListBackRequestedEvent();
 }
 
+/// Reports that the project settings page was closed after changing something.
+///
+/// The page format is the only field the scenario coverage export dialog pre-fills from, so this
+/// re-reads it (through `OcptShotListState.pageSetup`) rather than carrying the new value on the
+/// event, exactly as the screenplay editor's own equivalent event does.
+class OcptShotListProjectSettingsChangedEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListProjectSettingsChangedEvent();
+}
+
 /// Records the raw text just typed into [field] of shot [shotId], dispatched by the inspector on
 /// every keystroke.
 ///

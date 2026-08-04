@@ -24,6 +24,12 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 /// safety net rather than history, and copying thirty full screenplay texts into every version
 /// would multiply the project file's size for nothing — stated here so the missing field reads as a
 /// decision rather than an oversight.
+///
+/// `local_erasures` is deliberately **not** part of this either, and for the opposite reason: it
+/// must never travel in a payload. It is local, never synchronised, and its whole job is to survive
+/// a restore of a version captured before an erasure — carrying it here would let that very restore
+/// rewind the fact that the erasure ever happened. See `ocpt_local_erasures_table.dart` and
+/// `OcptProjectVersionsService`'s restore path, which reads it straight from the database instead.
 class OcptProjectVersionPayload extends Equatable {
   /// The `screenplays` rows of the project.
   final List<OcptScreenplayRow> screenplays;
@@ -39,6 +45,44 @@ class OcptProjectVersionPayload extends Equatable {
 
   /// The `shot_coverages` rows of the project.
   final List<OcptShotCoverageRow> shotCoverages;
+
+  /// The `people` rows of the project: the address book, tombstones included.
+  final List<OcptPersonRow> people;
+
+  /// The `person_positions` rows of the project.
+  final List<OcptPersonPositionRow> personPositions;
+
+  /// The `person_skills` rows of the project.
+  final List<OcptPersonSkillRow> personSkills;
+
+  /// The `person_unavailabilities` rows of the project.
+  final List<OcptPersonUnavailabilityRow> personUnavailabilities;
+
+  /// The `roles` rows of the project.
+  final List<OcptRoleRow> roles;
+
+  /// The `locations` rows of the project.
+  final List<OcptLocationRow> locations;
+
+  /// The `location_availabilities` rows of the project.
+  final List<OcptLocationAvailabilityRow> locationAvailabilities;
+
+  /// The `sets` rows of the project.
+  final List<OcptSetRow> sets;
+
+  /// The `scene_sets` rows of the project.
+  final List<OcptSceneSetRow> sceneSets;
+
+  /// The `elements` rows of the project.
+  final List<OcptElementRow> elements;
+
+  /// The `scene_elements` rows of the project.
+  final List<OcptSceneElementRow> sceneElements;
+
+  /// The `assets` rows of the project: the binary asset references, never the bytes they point at
+  /// (`docs/adr/0013-binary-assets-referenced-by-path.md`). Restoring a version restores the
+  /// reference, and the file it names may now be dangling — a normal state, not an error.
+  final List<OcptAssetRow> assets;
 
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
@@ -60,6 +104,17 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `project_info.settingsJson` of the project, or null if it had none.
   final String? settingsJson;
 
+  /// The `project_info.currencyCode` of the project, or null when this payload predates
+  /// currencies (captured in payload format 3 or earlier).
+  ///
+  /// Unlike every other field of this class, a null here is not "this project had none" — the
+  /// column itself is never null — it is "this version doesn't know". That distinction is what
+  /// `OcptProjectVersionsService.restoreVersion` reads it for: a restore **leaves the project's
+  /// currency untouched** when this is null, rather than overwriting it with a guess, which is the
+  /// fail-safe direction (the opposite choice the resources tables make, since their absence is a
+  /// truthful "there were none").
+  final String? currencyCode;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -67,9 +122,22 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shots,
     required this.shotCharacters,
     required this.shotCoverages,
+    required this.people,
+    required this.personPositions,
+    required this.personSkills,
+    required this.personUnavailabilities,
+    required this.roles,
+    required this.locations,
+    required this.locationAvailabilities,
+    required this.sets,
+    required this.sceneSets,
+    required this.elements,
+    required this.sceneElements,
+    required this.assets,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
+    required this.currencyCode,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -77,8 +145,13 @@ class OcptProjectVersionPayload extends Equatable {
   String toString() =>
       "OcptProjectVersionPayload(screenplays: ${screenplays.length}, scenes: ${scenes.length}, "
       "shots: ${shots.length}, shotCharacters: ${shotCharacters.length}, "
-      "shotCoverages: ${shotCoverages.length}, rowFieldVersions: ${rowFieldVersions.length}, "
-      "pageSetup: $pageSetup)";
+      "shotCoverages: ${shotCoverages.length}, people: ${people.length}, "
+      "personPositions: ${personPositions.length}, personSkills: ${personSkills.length}, "
+      "personUnavailabilities: ${personUnavailabilities.length}, roles: ${roles.length}, "
+      "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
+      "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
+      "assets: ${assets.length}, rowFieldVersions: ${rowFieldVersions.length}, "
+      "pageSetup: $pageSetup, currencyCode: $currencyCode)";
 
   /// Object properties
   @override
@@ -88,8 +161,21 @@ class OcptProjectVersionPayload extends Equatable {
     shots,
     shotCharacters,
     shotCoverages,
+    people,
+    personPositions,
+    personSkills,
+    personUnavailabilities,
+    roles,
+    locations,
+    locationAvailabilities,
+    sets,
+    sceneSets,
+    elements,
+    sceneElements,
+    assets,
     rowFieldVersions,
     pageSetup,
     settingsJson,
+    currencyCode,
   ];
 }

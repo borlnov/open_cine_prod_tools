@@ -11,10 +11,19 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 void main() {
   // The codec logs through appLogger(), which requires a global manager instance to be set; merely
@@ -156,6 +165,329 @@ void main() {
         isDeleted: true,
       ),
     ],
+    people: [
+      const OcptPersonRow(
+        id: "person-1",
+        sortKey: "V",
+        isDeleted: false,
+        firstName: "Clara",
+        lastName: "Martin",
+        email: "clara@example.com",
+        phone: "0102030405",
+        addressLine1: "12 rue des Lilas",
+        addressLine2: "Bâtiment B",
+        postalCode: "75011",
+        city: "Paris",
+        region: "Île-de-France",
+        country: "France",
+        colorIndex: 2,
+        minorNotes: "",
+        isTransportAutonomous: true,
+        accommodationNotes: "Chez Camille",
+        travelNotes: "Carte jeune SNCF",
+        dietaryNotes: "Vegetarian",
+        allergies: "Peanuts",
+        measurementHeight: "168",
+        measurementChest: "88",
+        measurementWaist: "68",
+        measurementHips: "94",
+        sizeTop: "38",
+        sizeBottom: "M",
+        sizeShoes: "39",
+        hmcNotes: "Redhead wig",
+        imageRightsStatus: OcptImageRightsStatus.signed,
+        imageRightsAssetId: "asset-1",
+        photoAssetId: "asset-2",
+        notes: "Lead actress",
+      ),
+      OcptPersonRow(
+        id: "person-2",
+        sortKey: "k",
+        isDeleted: true,
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        addressLine1: "",
+        addressLine2: "",
+        postalCode: "",
+        city: "",
+        region: "",
+        country: "",
+        colorIndex: 0,
+        birthDate: DateTime.utc(1990, 5, 12),
+        minorNotes: "",
+        accommodationNotes: "",
+        travelNotes: "",
+        dietaryNotes: "",
+        allergies: "",
+        measurementHeight: "",
+        measurementChest: "",
+        measurementWaist: "",
+        measurementHips: "",
+        sizeTop: "",
+        sizeBottom: "",
+        sizeShoes: "",
+        hmcNotes: "",
+        imageRightsStatus: OcptImageRightsStatus.notApplicable,
+        imageRightsDate: DateTime.utc(2026, 1, 10),
+        notes: "",
+      ),
+    ],
+    personPositions: const [
+      OcptPersonPositionRow(
+        id: "position-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      OcptPersonPositionRow(
+        id: "position-2",
+        personId: "person-1",
+        positionId: "",
+        customLabel: "Régie",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
+    personSkills: const [
+      OcptPersonSkillRow(
+        id: "skill-1",
+        personId: "person-1",
+        label: "Permis B",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      OcptPersonSkillRow(id: "skill-2", personId: "person-1", label: "", sortKey: "k", isDeleted: true),
+    ],
+    personUnavailabilities: [
+      OcptPersonUnavailabilityRow(
+        id: "unavailability-1",
+        personId: "person-1",
+        startDate: DateTime.utc(2026, 3),
+        endDate: DateTime.utc(2026, 3, 5),
+        slot: OcptDayPartSlot.custom,
+        startMinute: 14 * 60,
+        endMinute: 17 * 60 + 30,
+        reason: "Wedding",
+        isDeleted: false,
+      ),
+      OcptPersonUnavailabilityRow(
+        id: "unavailability-2",
+        personId: "person-1",
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+        slot: OcptDayPartSlot.fullDay,
+        reason: "",
+        isDeleted: true,
+      ),
+    ],
+    roles: const [
+      OcptRoleRow(
+        id: "role-1",
+        screenplayId: "screenplay-1",
+        name: "CLARA",
+        sortKey: "V",
+        isDeleted: false,
+        personId: "person-1",
+        kind: OcptRoleKind.speaking,
+        isFromScreenplay: true,
+        castingNotes: "Confirmed",
+      ),
+      OcptRoleRow(
+        id: "role-2",
+        screenplayId: "screenplay-1",
+        name: "EXTRA",
+        sortKey: "k",
+        isDeleted: true,
+        kind: OcptRoleKind.extra,
+        isFromScreenplay: false,
+        orphanedName: "GHOST",
+        castingNotes: "",
+      ),
+    ],
+    locations: [
+      const OcptLocationRow(
+        id: "location-1",
+        name: "Maison des Pains",
+        colorIndex: 1,
+        addressLine1: "3 rue Victor Hugo",
+        addressLine2: "",
+        postalCode: "69002",
+        city: "Lyon",
+        region: "Auvergne-Rhône-Alpes",
+        country: "France",
+        latitude: 45.75,
+        longitude: 4.85,
+        contactPersonId: "person-1",
+        contactNotes: "Call after 6pm",
+        permitStatus: OcptPermitStatus.granted,
+        permitLabel: "AUT-2026-01",
+        permitAssetId: "asset-1",
+        parkingNotes: "Street parking",
+        powerNotes: "16A available",
+        facilitiesNotes: "Toilet inside",
+        constraintsNotes: "No noise after 10pm",
+        notes: "Owner lives nearby",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      OcptLocationRow(
+        id: "location-2",
+        name: "",
+        colorIndex: 0,
+        addressLine1: "",
+        addressLine2: "",
+        postalCode: "",
+        city: "",
+        region: "",
+        country: "",
+        contactNotes: "",
+        permitStatus: OcptPermitStatus.toRequest,
+        permitLabel: "",
+        permitDate: DateTime.utc(2026, 2),
+        parkingNotes: "",
+        powerNotes: "",
+        facilitiesNotes: "",
+        constraintsNotes: "",
+        notes: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
+    locationAvailabilities: [
+      OcptLocationAvailabilityRow(
+        id: "availability-1",
+        locationId: "location-1",
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 20),
+        weekdays: 0x03,
+        slot: OcptDayPartSlot.custom,
+        startMinute: 8 * 60,
+        endMinute: 19 * 60,
+        kind: OcptLocationAvailabilityKind.conditional,
+        note: "No noise after 22:00",
+        isDeleted: false,
+      ),
+      OcptLocationAvailabilityRow(
+        id: "availability-2",
+        locationId: "location-2",
+        startDate: DateTime.utc(2026, 4, 5),
+        endDate: DateTime.utc(2026, 4, 5),
+        weekdays: ocptEveryWeekdayMask,
+        slot: OcptDayPartSlot.fullDay,
+        kind: OcptLocationAvailabilityKind.available,
+        note: "",
+        isDeleted: true,
+      ),
+    ],
+    sets: const [
+      OcptSetRow(
+        id: "set-1",
+        locationId: "location-1",
+        code: "A",
+        name: "Cuisine",
+        notes: "Bright morning light",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      OcptSetRow(
+        id: "set-2",
+        locationId: "location-1",
+        code: "",
+        name: "Escalier",
+        notes: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
+    sceneSets: const [
+      OcptSceneSetRow(id: "scene-set-1", sceneId: "scene-1", setId: "set-1", isDeleted: false),
+      OcptSceneSetRow(id: "scene-set-2", sceneId: "scene-2", setId: "set-1", isDeleted: true),
+    ],
+    elements: const [
+      OcptElementRow(
+        id: "element-1",
+        sortKey: "V",
+        isDeleted: false,
+        category: OcptElementCategory.prop,
+        subCategory: "Kitchenware",
+        name: "Ceramic mug",
+        code: "MUG1",
+        quantity: "×2",
+        sourceKind: OcptElementSourceKind.owned,
+        ownerPersonId: "person-1",
+        ownerNotes: "M. et Mme Schmit",
+        broughtByPersonId: "person-1",
+        storageNotes: "Sous l'abri",
+        isSecured: true,
+        isReadyForShoot: true,
+        isReturned: false,
+        cost: 1200,
+        purposeNotes: "Breakfast scene",
+        notes: "Handle with care",
+        photoAssetId: "asset-1",
+      ),
+      OcptElementRow(
+        id: "element-2",
+        sortKey: "k",
+        isDeleted: true,
+        category: OcptElementCategory.other,
+        subCategory: "",
+        name: "",
+        code: "",
+        quantity: "",
+        sourceKind: OcptElementSourceKind.toBuy,
+        ownerNotes: "",
+        storageNotes: "",
+        isSecured: false,
+        isReadyForShoot: false,
+        isReturned: false,
+        purposeNotes: "",
+        notes: "",
+      ),
+    ],
+    sceneElements: const [
+      OcptSceneElementRow(
+        id: "scene-element-1",
+        sceneId: "scene-1",
+        elementId: "element-1",
+        quantity: "1",
+        notes: "On the table",
+        isDeleted: false,
+      ),
+      OcptSceneElementRow(
+        id: "scene-element-2",
+        sceneId: "scene-2",
+        elementId: "element-1",
+        quantity: "",
+        notes: "",
+        isDeleted: true,
+      ),
+    ],
+    assets: [
+      OcptAssetRow(
+        id: "asset-1",
+        kind: OcptAssetKind.document,
+        path: "/home/user/Documents/release-clara.pdf",
+        label: "Signed release",
+        addedAt: DateTime.utc(2026, 1, 10, 9),
+        sortKey: "V",
+        isDeleted: false,
+        personId: "person-1",
+      ),
+      OcptAssetRow(
+        id: "asset-2",
+        kind: OcptAssetKind.personPhoto,
+        path: "",
+        label: "",
+        addedAt: DateTime.utc(2026),
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -182,6 +514,7 @@ void main() {
       ),
     ),
     settingsJson: '{"someSetting":true}',
+    currencyCode: "GBP",
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -209,10 +542,22 @@ void main() {
       expect(roundTripped.shots.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.shotCharacters.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.shotCoverages.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.people.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.personPositions.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.personSkills.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.personUnavailabilities.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.roles.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.locations.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.sets.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.sceneSets.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.elements.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.sceneElements.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.assets.map((row) => row.isDeleted), [false, true]);
 
       // sortKey, not position, is what orders a group after ADR 0010.
       expect(roundTripped.shots.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.shotCharacters.map((row) => row.sortKey), ["V", "k"]);
+      expect(roundTripped.people.map((row) => row.sortKey), ["V", "k"]);
 
       // The per-column stamps travel with the rows they describe: this is the assertion that
       // catches a codec silently dropping the sidecar.
@@ -221,6 +566,100 @@ void main() {
       expect(roundTripped.rowFieldVersions.first.version, 7);
       expect(roundTripped.rowFieldVersions.last.rowId, "shot-1/THÉO");
       expect(roundTripped.rowFieldVersions.last.deviceId, "device-2");
+    });
+
+    test('every column of the eleven resource tables round trips, enums and nulls included', () {
+      final roundTripped = roundTrip(buildRichPayload());
+
+      final person = roundTripped.people.first;
+      expect(person.firstName, "Clara");
+      // The six address columns travel one by one: a payload that kept only the street would lose
+      // the postcode a call sheet prints and the country an export gives a column of its own.
+      expect(person.addressLine1, "12 rue des Lilas");
+      expect(person.addressLine2, "Bâtiment B");
+      expect(person.postalCode, "75011");
+      expect(person.city, "Paris");
+      expect(person.region, "Île-de-France");
+      expect(person.country, "France");
+      expect(person.colorIndex, 2);
+      expect(person.birthDate, isNull);
+      expect(person.isTransportAutonomous, isTrue);
+      expect(person.imageRightsStatus, OcptImageRightsStatus.signed);
+      expect(person.imageRightsAssetId, "asset-1");
+      final erasedPerson = roundTripped.people.last;
+      expect(erasedPerson.birthDate, DateTime.utc(1990, 5, 12));
+      expect(erasedPerson.isTransportAutonomous, isNull);
+      expect(erasedPerson.imageRightsStatus, OcptImageRightsStatus.notApplicable);
+
+      final position = roundTripped.personPositions.first;
+      expect(position.personId, "person-1");
+      expect(position.positionId, "director");
+
+      final skill = roundTripped.personSkills.first;
+      expect(skill.label, "Permis B");
+
+      final unavailability = roundTripped.personUnavailabilities.first;
+      expect(unavailability.startDate, DateTime.utc(2026, 3));
+      expect(unavailability.endDate, DateTime.utc(2026, 3, 5));
+      expect(unavailability.slot, OcptDayPartSlot.custom);
+      expect(unavailability.startMinute, 14 * 60);
+      expect(unavailability.endMinute, 17 * 60 + 30);
+      // The window of the second row is null, not zero: only a custom slot carries one.
+      expect(roundTripped.personUnavailabilities.last.startMinute, isNull);
+      expect(unavailability.reason, "Wedding");
+
+      final role = roundTripped.roles.first;
+      expect(role.personId, "person-1");
+      expect(role.kind, OcptRoleKind.speaking);
+      expect(role.isFromScreenplay, isTrue);
+      expect(role.orphanedName, isNull);
+      final orphanedRole = roundTripped.roles.last;
+      expect(orphanedRole.personId, isNull);
+      expect(orphanedRole.kind, OcptRoleKind.extra);
+      expect(orphanedRole.orphanedName, "GHOST");
+
+      final location = roundTripped.locations.first;
+      expect(location.addressLine1, "3 rue Victor Hugo");
+      expect(location.postalCode, "69002");
+      expect(location.region, "Auvergne-Rhône-Alpes");
+      expect(location.country, "France");
+      expect(location.latitude, 45.75);
+      expect(location.longitude, 4.85);
+      expect(location.contactPersonId, "person-1");
+      expect(location.permitStatus, OcptPermitStatus.granted);
+      final unpinnedLocation = roundTripped.locations.last;
+      expect(unpinnedLocation.latitude, isNull);
+      expect(unpinnedLocation.longitude, isNull);
+      expect(unpinnedLocation.permitDate, DateTime.utc(2026, 2));
+
+      final set = roundTripped.sets.first;
+      expect(set.locationId, "location-1");
+      expect(set.code, "A");
+
+      final sceneSet = roundTripped.sceneSets.first;
+      expect(sceneSet.sceneId, "scene-1");
+      expect(sceneSet.setId, "set-1");
+
+      final element = roundTripped.elements.first;
+      expect(element.category, OcptElementCategory.prop);
+      expect(element.sourceKind, OcptElementSourceKind.owned);
+      expect(element.ownerPersonId, "person-1");
+      expect(element.broughtByPersonId, "person-1");
+      expect(element.isSecured, isTrue);
+      expect(element.cost, 1200);
+      final freeElement = roundTripped.elements.last;
+      expect(freeElement.ownerPersonId, isNull);
+      expect(freeElement.cost, isNull);
+
+      final sceneElement = roundTripped.sceneElements.first;
+      expect(sceneElement.elementId, "element-1");
+      expect(sceneElement.quantity, "1");
+
+      final asset = roundTripped.assets.first;
+      expect(asset.kind, OcptAssetKind.document);
+      expect(asset.path, "/home/user/Documents/release-clara.pdf");
+      expect(asset.addedAt, DateTime.utc(2026, 1, 10, 9));
+      expect(asset.personId, "person-1");
     });
 
     test("a shot's abbreviation survives, so a restore keeps the coverage bar labels", () {
@@ -259,6 +698,10 @@ void main() {
       expect(roundTripped.settingsJson, '{"someSetting":true}');
     });
 
+    test('the currency comes back', () {
+      expect(roundTrip(buildRichPayload()).currencyCode, "GBP");
+    });
+
     test('a project with no shot list at all round trips as an empty one', () {
       const payload = OcptProjectVersionPayload(
         screenplays: [],
@@ -266,9 +709,22 @@ void main() {
         shots: [],
         shotCharacters: [],
         shotCoverages: [],
+        people: [],
+        personPositions: [],
+        personSkills: [],
+        personUnavailabilities: [],
+        roles: [],
+        locations: [],
+        locationAvailabilities: [],
+        sets: [],
+        sceneSets: [],
+        elements: [],
+        sceneElements: [],
+        assets: [],
         rowFieldVersions: [],
         pageSetup: OcptPageSetup.standard(),
         settingsJson: null,
+        currencyCode: null,
       );
 
       expect(roundTrip(payload), payload);
@@ -294,9 +750,22 @@ void main() {
         shots: payload.shots.reversed.toList(),
         shotCharacters: payload.shotCharacters.reversed.toList(),
         shotCoverages: payload.shotCoverages.reversed.toList(),
+        people: payload.people.reversed.toList(),
+        personPositions: payload.personPositions.reversed.toList(),
+        personSkills: payload.personSkills.reversed.toList(),
+        personUnavailabilities: payload.personUnavailabilities.reversed.toList(),
+        roles: payload.roles.reversed.toList(),
+        locations: payload.locations.reversed.toList(),
+        locationAvailabilities: payload.locationAvailabilities.reversed.toList(),
+        sets: payload.sets.reversed.toList(),
+        sceneSets: payload.sceneSets.reversed.toList(),
+        elements: payload.elements.reversed.toList(),
+        sceneElements: payload.sceneElements.reversed.toList(),
+        assets: payload.assets.reversed.toList(),
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -310,6 +779,18 @@ void main() {
         shots: payload.shots,
         shotCharacters: payload.shotCharacters,
         shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
         rowFieldVersions: const [
           OcptRowFieldVersionRow(
             targetTableName: "shots",
@@ -321,6 +802,7 @@ void main() {
         ],
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -334,6 +816,18 @@ void main() {
         shots: payload.shots,
         shotCharacters: payload.shotCharacters,
         shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: payload.pageSetup.format,
@@ -345,6 +839,7 @@ void main() {
           ),
         ),
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -361,9 +856,22 @@ void main() {
         shots: payload.shots,
         shotCharacters: payload.shotCharacters,
         shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -377,9 +885,82 @@ void main() {
         shots: [payload.shots.first.copyWith(isDeleted: true), payload.shots.last],
         shotCharacters: payload.shotCharacters,
         shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
+    });
+
+    test('changes when a resources row is edited', () {
+      final payload = buildRichPayload();
+      final edited = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: [payload.people.first.copyWith(phone: "0699999999"), payload.people.last],
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      // Without the resources tables in the digest, an afternoon of typing people, locations and
+      // elements in would leave the working-copy card claiming no drift from its base.
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
+    });
+
+    test('changes when a resources row is tombstoned', () {
+      final payload = buildRichPayload();
+      final tombstoned = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: [payload.people.first.copyWith(isDeleted: true), payload.people.last],
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -393,15 +974,57 @@ void main() {
         shots: payload.shots,
         shotCharacters: payload.shotCharacters,
         shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: OcptPageFormat.usLetter,
           margins: payload.pageSetup.margins,
         ),
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
+    });
+
+    test('changes when the currency changes', () {
+      final payload = buildRichPayload();
+      final recurrencied = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: "USD",
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
     });
   });
 
@@ -432,15 +1055,181 @@ void main() {
       expect(result.value, buildRichPayload());
     });
 
-    test('an older format with no upgrade step is refused rather than guessed', () {
-      // No format older than the current one has ever shipped, so no upgrade step is registered:
-      // the replay loop must refuse the payload instead of reading it as if it were current.
-      final result = codec.decode(
-        encodedWithFormat(OcptProjectVersionCodec.currentPayloadFormat - 1),
-      );
+    test('a format with no upgrade step at all is refused rather than guessed', () {
+      // Format 0 has never existed and no step of _payloadUpgrades claims to read it: the replay
+      // loop must refuse the payload instead of reading it as if it were current.
+      final result = codec.decode(encodedWithFormat(0));
 
       expect(result.status, OcptProjectVersionPayloadStatus.malformedPayload);
       expect(result.value, isNull);
+    });
+
+    test('a stored format-1 payload decodes cleanly with the eleven resources tables empty', () {
+      // A literal fixture of what a real version written before the resources mode existed looks
+      // like on disk: none of the eleven resources keys are present at all, since payload format 1
+      // predates them entirely.
+      const format1Payload = r'''
+{
+  "payloadFormat": 1,
+  "screenplays": [
+    {
+      "id": "screenplay-1",
+      "title": "My Movie",
+      "fountainText": "INT. HOUSE - DAY\n\nCLARA enters.",
+      "updatedAt": "2026-03-04T15:42:12.345Z",
+      "isDeleted": false
+    }
+  ],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+      final result = codec.decode(format1Payload);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      final payload = result.value!;
+      expect(payload.screenplays, hasLength(1));
+      expect(payload.screenplays.single.id, "screenplay-1");
+      // A version captured before the resources mode existed is a truthful statement that the
+      // project had none: this is what OcptProjectVersionsService._restoreTable then tombstones
+      // the working copy's resources against, with no special case of its own.
+      expect(payload.people, isEmpty);
+      expect(payload.personPositions, isEmpty);
+      expect(payload.personSkills, isEmpty);
+      expect(payload.personUnavailabilities, isEmpty);
+      expect(payload.roles, isEmpty);
+      expect(payload.locations, isEmpty);
+      expect(payload.sets, isEmpty);
+      expect(payload.sceneSets, isEmpty);
+      expect(payload.elements, isEmpty);
+      expect(payload.sceneElements, isEmpty);
+      expect(payload.assets, isEmpty);
+      expect(payload.locationAvailabilities, isEmpty);
+    });
+
+    test('a stored format-2 payload decodes with no availability window', () {
+      // The retired format the resources mode first shipped in: every resources key is there, and
+      // `locationAvailabilities` is the one that isn't — a location could not carry a window yet.
+      const format2Payload = '''
+{
+  "payloadFormat": 2,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [
+    {
+      "id": "location-1",
+      "name": "Maison des Pains",
+      "colorIndex": 1,
+      "addressLine1": "",
+      "addressLine2": "",
+      "postalCode": "",
+      "city": "Lyon",
+      "region": "",
+      "country": "",
+      "latitude": null,
+      "longitude": null,
+      "contactPersonId": null,
+      "contactNotes": "",
+      "permitStatus": "granted",
+      "permitLabel": "",
+      "permitDate": null,
+      "permitAssetId": null,
+      "parkingNotes": "",
+      "powerNotes": "",
+      "facilitiesNotes": "",
+      "constraintsNotes": "",
+      "notes": "",
+      "sortKey": "V",
+      "isDeleted": false
+    }
+  ],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [],
+  "sceneElements": [],
+  "assets": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+      final result = codec.decode(format2Payload);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      final payload = result.value!;
+      expect(payload.locations, hasLength(1));
+      // Truthful rather than unknown: the project had no window to capture, so restoring this
+      // version drops whatever windows the working copy has gathered since.
+      expect(payload.locationAvailabilities, isEmpty);
+    });
+
+    test('a stored format-3 payload decodes to a null currency', () {
+      // The retired format that shipped with `location_availabilities` but before
+      // `project_info.currencyCode` existed: `projectSettings` carries no `currencyCode` key at
+      // all.
+      const format3Payload = '''
+{
+  "payloadFormat": 3,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [],
+  "locationAvailabilities": [],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [],
+  "sceneElements": [],
+  "assets": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+      final result = codec.decode(format3Payload);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      // Null reads as "this version doesn't know", never as "there was no currency" — the column
+      // has never been nullable — which is why `OcptProjectVersionsService.restoreVersion` leaves
+      // the project's own currency untouched rather than overwriting it with this null.
+      expect(result.value!.currencyCode, isNull);
     });
   });
 

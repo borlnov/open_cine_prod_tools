@@ -224,6 +224,50 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
+  testWidgets(
+    "the project settings action is rendered only when the mode wired it, and clicking it fires "
+    "the callback",
+    (tester) async {
+      var requestCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsNothing);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onProjectSettingsRequested: () => requestCount++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final action = find.byTooltip(tr.workspaceProjectSettingsTooltip);
+      expect(action, findsOneWidget);
+
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+
+      expect(requestCount, 1);
+    },
+  );
+
   testWidgets("a mode that wires none of the chrome slots renders none of them", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
@@ -243,6 +287,7 @@ void main() {
     expect(find.byTooltip(tr.workspaceToggleLeftDockTooltip), findsNothing);
     expect(find.byTooltip(tr.workspaceToggleRightDockTooltip), findsNothing);
     expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);
+    expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsNothing);
   });
 
   testWidgets(

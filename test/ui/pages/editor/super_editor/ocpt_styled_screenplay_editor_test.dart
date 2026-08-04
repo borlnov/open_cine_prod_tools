@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -51,6 +52,7 @@ class _RecordingScreenplayService extends OcptScreenplayService {
         sceneIndexService: const OcptSceneIndexService(),
         shotListService: const OcptShotListService(),
         shotCoverageService: const OcptShotCoverageService(),
+        roleIndexService: const OcptRoleIndexService(),
       );
 
   /// Every Fountain text this service was asked to save, in call order.

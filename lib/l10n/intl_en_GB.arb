@@ -2157,7 +2157,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectVersionsPanelSubtitle": "A version covers the screenplay and the shot list together.",
+  "projectVersionsPanelSubtitle": "A version covers the screenplay, the shot list and the resources together.",
   "@projectVersionsPanelSubtitle": {
     "description": "Line explaining what a project version holds",
     "context": "Displayed under the header of the versions tab of the right dock",
@@ -2330,7 +2330,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "projectVersionCreateDialogMessage": "This version keeps the whole project as it stands: screenplay, scene index, shot list and scenario coverage.",
+  "projectVersionCreateDialogMessage": "This version keeps the whole project as it stands: screenplay, scene index, shot list, scenario coverage and resources.",
   "@projectVersionCreateDialogMessage": {
     "description": "Message of the project version creation dialog, saying what is captured",
     "context": "Displayed in the project version creation dialog",
@@ -2503,6 +2503,2573 @@
   "@workspaceReadOnlyBannerExitAction": {
     "description": "Action leaving a version's read-only preview",
     "context": "Displayed in the read-only banner of the workspace",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeResources": "Resources",
+  "@workspaceModeResources": {
+    "description": "Short label of the resources production mode",
+    "context": "Displayed under the mode's icon in the workspace's bottom mode switcher",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelResources": "Resources",
+  "@workspaceModeLabelResources": {
+    "description": "Label of the resources production mode",
+    "context": "Displayed in the workspace toolbar, between the mode's own toolbar actions and the shell's own chrome",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabPeople": "People",
+  "@resourcesTabPeople": {
+    "description": "Label of the resources mode's people tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabRoles": "Roles",
+  "@resourcesTabRoles": {
+    "description": "Label of the resources mode's roles tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabLocations": "Locations",
+  "@resourcesTabLocations": {
+    "description": "Label of the resources mode's locations tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTabElements": "Elements",
+  "@resourcesTabElements": {
+    "description": "Label of the resources mode's elements tab",
+    "context": "Displayed in the resources mode's left dock tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesStatsPeople": "{count, plural, one{{count} person} other{{count} people}}",
+  "@resourcesStatsPeople": {
+    "description": "Number of people in the address book",
+    "context": "Displayed in the resources mode's status bar and in its left dock's people tab header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsRoles": "{count, plural, one{{count} role} other{{count} roles}}",
+  "@resourcesStatsRoles": {
+    "description": "Number of roles in the cast",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsPositions": "{count, plural, one{{count} position} other{{count} positions}}",
+  "@resourcesStatsPositions": {
+    "description": "Total number of crew position assignments across every person",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsLocations": "{count, plural, one{{count} location} other{{count} locations}}",
+  "@resourcesStatsLocations": {
+    "description": "Number of locations",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesStatsElements": "{count, plural, one{{count} element} other{{count} elements}}",
+  "@resourcesStatsElements": {
+    "description": "Number of elements in the physical elements catalogue",
+    "context": "Displayed in the resources mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesAddPersonAction": "+ Add a person",
+  "@resourcesAddPersonAction": {
+    "description": "Action creating a new, blank person at the end of the address book",
+    "context": "Displayed in the footer of the resources mode's left dock, on the people tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnnamedPerson": "Unnamed person",
+  "@resourcesUnnamedPerson": {
+    "description": "Placeholder shown in place of a person's display name while it is empty",
+    "context": "Displayed in the resources mode's people list and person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPeopleEmptyHint": "No people yet. Add one to get started.",
+  "@resourcesPeopleEmptyHint": {
+    "description": "Hint shown in place of the people list while the address book holds nobody",
+    "context": "Displayed in the resources mode's left dock, on the people tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNoPersonSelectedHint": "Select a person to see their sheet.",
+  "@resourcesNoPersonSelectedHint": {
+    "description": "Hint shown in the centre area while no person is selected",
+    "context": "Displayed centred in the resources mode's main area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesWriteError": "The change could not be saved.",
+  "@resourcesWriteError": {
+    "description": "Error shown when a resources change couldn't be written to the project",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteConfirmTitle": "Delete this person?",
+  "@resourcesDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming a person's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteConfirmMessage": "This permanently erases {personName}'s personal details — contact information, address, and notes. This can't be undone.",
+  "@resourcesDeleteConfirmMessage": {
+    "description": "Message of the dialog confirming a person's deletion, naming the person and stating the deletion is an erasure",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesDeleteConfirmCancelAction": "Cancel",
+  "@resourcesDeleteConfirmCancelAction": {
+    "description": "Action cancelling the deletion of a resources record",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteConfirmDeleteAction": "Delete",
+  "@resourcesDeleteConfirmDeleteAction": {
+    "description": "Action confirming the deletion of a resources record",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesResetPanelLayoutAction": "Reset panel layout",
+  "@resourcesResetPanelLayoutAction": {
+    "description": "Action restoring the resources mode's two dock fractions to their defaults",
+    "context": "Displayed in the resources mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRightDockVersionsTabLabel": "Versions",
+  "@resourcesRightDockVersionsTabLabel": {
+    "description": "Label of the resources mode's right dock's single tab",
+    "context": "Displayed in the resources mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRightDockCloseTooltip": "Close panel",
+  "@resourcesRightDockCloseTooltip": {
+    "description": "Tooltip of the resources mode's right dock close button",
+    "context": "Displayed on hover over the × button of the resources mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesToggleSearchTooltip": "Show or hide search",
+  "@resourcesToggleSearchTooltip": {
+    "description": "Tooltip of the resources mode toolbar's search toggle",
+    "context": "Displayed on hover over the search icon of the resources mode toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSearchHint": "Search…",
+  "@resourcesSearchHint": {
+    "description": "Placeholder of the resources mode's search field",
+    "context": "Displayed inside the search field while it is empty, under the left dock's tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSearchClearTooltip": "Clear search",
+  "@resourcesSearchClearTooltip": {
+    "description": "Tooltip of the resources mode's search field's own clear button",
+    "context": "Displayed on hover over the × button inside the search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSearchNoMatchHint": "No match for \"{query}\".",
+  "@resourcesSearchNoMatchHint": {
+    "description": "Line shown in place of a resources tab's list once every row was filtered out by the search query",
+    "context": "Displayed under the search field, in place of the active tab's list, when it matches nothing",
+    "type": "text",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesCrewPositionDirector": "Director",
+  "@resourcesCrewPositionDirector": {
+    "description": "Label of the director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstAssistantDirector": "First assistant director",
+  "@resourcesCrewPositionFirstAssistantDirector": {
+    "description": "Label of the first assistant director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionScriptSupervisor": "Script supervisor",
+  "@resourcesCrewPositionScriptSupervisor": {
+    "description": "Label of the script supervisor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionDirectorOfPhotography": "Director of photography",
+  "@resourcesCrewPositionDirectorOfPhotography": {
+    "description": "Label of the director of photography crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCameraOperator": "Camera operator",
+  "@resourcesCrewPositionCameraOperator": {
+    "description": "Label of the camera operator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstAssistantCamera": "First assistant camera",
+  "@resourcesCrewPositionFirstAssistantCamera": {
+    "description": "Label of the first assistant camera crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionGaffer": "Gaffer",
+  "@resourcesCrewPositionGaffer": {
+    "description": "Label of the gaffer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionElectrician": "Electrician",
+  "@resourcesCrewPositionElectrician": {
+    "description": "Label of the electrician crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionGrip": "Grip",
+  "@resourcesCrewPositionGrip": {
+    "description": "Label of the grip crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSoundEngineer": "Sound engineer",
+  "@resourcesCrewPositionSoundEngineer": {
+    "description": "Label of the sound engineer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionBoomOperator": "Boom operator",
+  "@resourcesCrewPositionBoomOperator": {
+    "description": "Label of the boom operator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetDecorator": "Set decorator",
+  "@resourcesCrewPositionSetDecorator": {
+    "description": "Label of the set decorator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPropsMaster": "Props master",
+  "@resourcesCrewPositionPropsMaster": {
+    "description": "Label of the props master crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetDresser": "Set dresser",
+  "@resourcesCrewPositionSetDresser": {
+    "description": "Label of the set dresser crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionMakeupArtist": "Make-up artist",
+  "@resourcesCrewPositionMakeupArtist": {
+    "description": "Label of the make-up artist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionHairStylist": "Hair stylist",
+  "@resourcesCrewPositionHairStylist": {
+    "description": "Label of the hair stylist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeDesigner": "Costume designer",
+  "@resourcesCrewPositionCostumeDesigner": {
+    "description": "Label of the costume designer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionManager": "Production manager",
+  "@resourcesCrewPositionProductionManager": {
+    "description": "Label of the production manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionAssistant": "Production assistant",
+  "@resourcesCrewPositionProductionAssistant": {
+    "description": "Label of the production assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionLineProducer": "Line producer",
+  "@resourcesCrewPositionLineProducer": {
+    "description": "Label of the line producer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentDirection": "Direction",
+  "@resourcesCrewDepartmentDirection": {
+    "description": "Label of the direction crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentImage": "Image",
+  "@resourcesCrewDepartmentImage": {
+    "description": "Label of the image (camera) crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentSound": "Sound",
+  "@resourcesCrewDepartmentSound": {
+    "description": "Label of the sound crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentArtDepartment": "Art department",
+  "@resourcesCrewDepartmentArtDepartment": {
+    "description": "Label of the art department crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentHmc": "Hair, make-up & costume",
+  "@resourcesCrewDepartmentHmc": {
+    "description": "Label of the hair, make-up and costume crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentProduction": "Production",
+  "@resourcesCrewDepartmentProduction": {
+    "description": "Label of the production crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSlotFullDay": "Full day",
+  "@resourcesSlotFullDay": {
+    "description": "Label of the unavailability slot covering the whole of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSlotMorning": "Morning",
+  "@resourcesSlotMorning": {
+    "description": "Label of the unavailability slot covering the morning of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSlotAfternoon": "Afternoon",
+  "@resourcesSlotAfternoon": {
+    "description": "Label of the unavailability slot covering the afternoon of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSlotCustom": "Time slot",
+  "@resourcesSlotCustom": {
+    "description": "Label of the unavailability slot covering an explicit time window of each day",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsNotApplicable": "Not applicable",
+  "@resourcesImageRightsNotApplicable": {
+    "description": "Label of the not-applicable image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsToGenerate": "To generate",
+  "@resourcesImageRightsToGenerate": {
+    "description": "Label of the to-generate image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsGenerated": "Generated",
+  "@resourcesImageRightsGenerated": {
+    "description": "Label of the generated image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsSigned": "Signed",
+  "@resourcesImageRightsSigned": {
+    "description": "Label of the signed image rights status",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesChangeColorTooltip": "Change colour",
+  "@resourcesChangeColorTooltip": {
+    "description": "Tooltip of the person sheet's avatar, opening the colour picker",
+    "context": "Displayed on hover over the person sheet's photo slot",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesFirstNameHint": "First name",
+  "@resourcesFirstNameHint": {
+    "description": "Placeholder of the person sheet's first name field",
+    "context": "Displayed in the person sheet's header while the field is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLastNameHint": "Last name",
+  "@resourcesLastNameHint": {
+    "description": "Placeholder of the person sheet's last name field",
+    "context": "Displayed in the person sheet's header while the field is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesEmailLabel": "Email",
+  "@resourcesEmailLabel": {
+    "description": "Label of the person sheet's email field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesEmailMalformedError": "This doesn't look like an email address",
+  "@resourcesEmailMalformedError": {
+    "description": "Remark shown under a person's email field when what it holds isn't a well-formed address; the value is stored either way",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPhoneLabel": "Phone",
+  "@resourcesPhoneLabel": {
+    "description": "Label of the person sheet's phone field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddressLine1Label": "Address (line 1)",
+  "@resourcesAddressLine1Label": {
+    "description": "Label of the person sheet's first address line field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddressLine2Label": "Address (line 2)",
+  "@resourcesAddressLine2Label": {
+    "description": "Label of the person sheet's second address line field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPostalCodeLabel": "Postcode",
+  "@resourcesPostalCodeLabel": {
+    "description": "Label of the person sheet's postal code field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRegionLabel": "Region / state",
+  "@resourcesRegionLabel": {
+    "description": "Label of the person sheet's region, state, province or county field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCountryLabel": "Country",
+  "@resourcesCountryLabel": {
+    "description": "Label of the person sheet's country field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCityLabel": "City",
+  "@resourcesCityLabel": {
+    "description": "Label of the person sheet's city field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesBirthDateLabel": "Date of birth",
+  "@resourcesBirthDateLabel": {
+    "description": "Label of the person sheet's date of birth field",
+    "context": "Displayed in the person sheet's header contact grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesClearDateAction": "Clear date",
+  "@resourcesClearDateAction": {
+    "description": "Action clearing a date field of the person sheet",
+    "context": "Displayed as the tooltip of a date field's clear button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMinorBadge": "Minor · {age}",
+  "@resourcesMinorBadge": {
+    "description": "Badge shown next to a minor's display name, naming their current age",
+    "context": "Displayed in the person sheet's header",
+    "type": "text",
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesPositionsTitle": "Functions on the film",
+  "@resourcesPositionsTitle": {
+    "description": "Title of the person sheet's crew positions card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPositionsHint": "A person may hold several, even over one slot",
+  "@resourcesPositionsHint": {
+    "description": "Hint explaining that a position's scope may be partial, e.g. a single time slot",
+    "context": "Displayed at the top of the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPositionsEmptyHint": "No function assigned yet.",
+  "@resourcesPositionsEmptyHint": {
+    "description": "Hint shown in place of the positions list while the person holds none",
+    "context": "Displayed on the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddPositionAction": "+ Add a function",
+  "@resourcesAddPositionAction": {
+    "description": "Action adding a new, blank crew position assignment to the selected person",
+    "context": "Displayed at the bottom of the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPositionCustomOptionLabel": "Custom label…",
+  "@resourcesPositionCustomOptionLabel": {
+    "description": "Menu entry switching a position row from the catalogue to a free-text label",
+    "context": "Displayed in the person sheet's position picker menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPositionLabelHint": "Position",
+  "@resourcesPositionLabelHint": {
+    "description": "Placeholder of a position row's label field while it is empty",
+    "context": "Displayed on the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPositionScopePlaceholder": "defined in the schedule",
+  "@resourcesPositionScopePlaceholder": {
+    "description": "Read-only scope column of a function row, which the schedule mode will fill",
+    "context": "Displayed on the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovePositionTooltip": "Remove position",
+  "@resourcesRemovePositionTooltip": {
+    "description": "Tooltip of a position row's remove button",
+    "context": "Displayed on the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMinorCalloutTitle": "Legal hours",
+  "@resourcesMinorCalloutTitle": {
+    "description": "Title of the callout stating the legal framing for a minor's working hours",
+    "context": "Displayed on the person sheet when the selected person is a minor",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMinorNotesHint": "Hours, guardian presence, authorisation…",
+  "@resourcesMinorNotesHint": {
+    "description": "Placeholder of the minor legal hours field while it is empty",
+    "context": "Displayed on the person sheet's legal hours callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityCardTitle": "Availability",
+  "@resourcesLocationAvailabilityCardTitle": {
+    "description": "Title of the location sheet's availability card",
+    "context": "Displayed on the location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityCount": "{count,plural, =1{1 window}other{{count} windows}}",
+  "@resourcesLocationAvailabilityCount": {
+    "description": "Number of availability windows a location holds",
+    "context": "Displayed beside the location sheet's availability card title",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesLocationAvailabilitiesEmptyHint": "No window entered — nothing is known yet about when this location is free.",
+  "@resourcesLocationAvailabilitiesEmptyHint": {
+    "description": "Hint shown in place of the availability list while the location has none",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddLocationAvailabilityAction": "+ Add an availability",
+  "@resourcesAddLocationAvailabilityAction": {
+    "description": "Action adding an availability window to a location",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddLocationAvailabilitySlotTooltip": "Add another window over these dates",
+  "@resourcesAddLocationAvailabilitySlotTooltip": {
+    "description": "Tooltip of the control adding a second window over a row's own dates",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveLocationAvailabilityTooltip": "Remove this window",
+  "@resourcesRemoveLocationAvailabilityTooltip": {
+    "description": "Tooltip of the control removing an availability window",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityNoteLabel": "Note",
+  "@resourcesLocationAvailabilityNoteLabel": {
+    "description": "Label of an availability window's free-text note",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAvailabilityNoteHint": "No noise after 22:00, access through the courtyard…",
+  "@resourcesLocationAvailabilityNoteHint": {
+    "description": "Placeholder of an availability window's free-text note",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAvailabilityKindAvailable": "Available",
+  "@resourcesAvailabilityKindAvailable": {
+    "description": "Label of an availability window the production may use freely",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAvailabilityKindConditional": "With conditions",
+  "@resourcesAvailabilityKindConditional": {
+    "description": "Label of an availability window carrying a condition to respect",
+    "context": "Displayed on the location sheet's availability card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilitiesTitle": "Unavailabilities",
+  "@resourcesUnavailabilitiesTitle": {
+    "description": "Title of the person sheet's unavailabilities card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilitiesEmptyHint": "No unavailability declared.",
+  "@resourcesUnavailabilitiesEmptyHint": {
+    "description": "Hint shown in place of the unavailabilities list while the person has none",
+    "context": "Displayed on the person sheet's unavailabilities card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddUnavailabilityAction": "+ Add an unavailability",
+  "@resourcesAddUnavailabilityAction": {
+    "description": "Action adding a new unavailability to the selected person",
+    "context": "Displayed at the bottom of the person sheet's unavailabilities card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityFromLabel": "from",
+  "@resourcesUnavailabilityFromLabel": {
+    "description": "Word introducing the first date of an unavailability's range",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityToLabel": "to",
+  "@resourcesUnavailabilityToLabel": {
+    "description": "Word introducing the last date of an unavailability's range",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityReasonLabel": "Reason",
+  "@resourcesUnavailabilityReasonLabel": {
+    "description": "Label of an unavailability's reason field",
+    "context": "Displayed on an unavailability row of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesUnavailabilityReasonHint": "Why this person is unavailable",
+  "@resourcesUnavailabilityReasonHint": {
+    "description": "Placeholder of an unavailability row's reason field while it is empty",
+    "context": "Displayed on the person sheet's unavailabilities card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddUnavailabilitySlotTooltip": "Add another slot on these dates",
+  "@resourcesAddUnavailabilitySlotTooltip": {
+    "description": "Tooltip of the button adding a second time slot over an unavailability's own dates",
+    "context": "Displayed on hover over the + button of an unavailability row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveUnavailabilityTooltip": "Remove unavailability",
+  "@resourcesRemoveUnavailabilityTooltip": {
+    "description": "Tooltip of an unavailability row's remove button",
+    "context": "Displayed on the person sheet's unavailabilities card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMealsHealthTitle": "Meals, health, skills",
+  "@resourcesMealsHealthTitle": {
+    "description": "Title of the person sheet's meals, health and skills card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDietaryNotesLabel": "Dietary notes",
+  "@resourcesDietaryNotesLabel": {
+    "description": "Label of the person sheet's dietary notes field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAllergiesLabel": "Allergies",
+  "@resourcesAllergiesLabel": {
+    "description": "Label of the person sheet's allergies field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSkillsLabel": "Driving licences & skills",
+  "@resourcesSkillsLabel": {
+    "description": "Label of the person sheet's skills chips",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSkillHint": "Add a skill",
+  "@resourcesAddSkillHint": {
+    "description": "Placeholder of the inline field adding a new skill",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveSkillTooltip": "Remove skill",
+  "@resourcesRemoveSkillTooltip": {
+    "description": "Tooltip of a skill chip's remove control",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementHeightLabel": "Height",
+  "@resourcesMeasurementHeightLabel": {
+    "description": "Label of the person sheet's height field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementChestLabel": "Chest",
+  "@resourcesMeasurementChestLabel": {
+    "description": "Label of the person sheet's chest measurement field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementWaistLabel": "Waist",
+  "@resourcesMeasurementWaistLabel": {
+    "description": "Label of the person sheet's waist measurement field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMeasurementHipsLabel": "Hips",
+  "@resourcesMeasurementHipsLabel": {
+    "description": "Label of the person sheet's hip measurement field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSizeTopLabel": "Top / upper body",
+  "@resourcesSizeTopLabel": {
+    "description": "Label of the person sheet's top clothing size field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSizeBottomLabel": "Bottom",
+  "@resourcesSizeBottomLabel": {
+    "description": "Label of the person sheet's bottom clothing size field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSizeShoesLabel": "Shoes",
+  "@resourcesSizeShoesLabel": {
+    "description": "Label of the person sheet's shoe size field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLogisticsTitle": "Logistics",
+  "@resourcesLogisticsTitle": {
+    "description": "Title of the person sheet's logistics card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTransportAutonomyLabel": "Can travel to set alone",
+  "@resourcesTransportAutonomyLabel": {
+    "description": "Label of the person sheet's transport autonomy control",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTransportAutonomyUnknown": "Not asked",
+  "@resourcesTransportAutonomyUnknown": {
+    "description": "Value of the transport autonomy control meaning it hasn't been asked yet",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTransportAutonomyYes": "Yes",
+  "@resourcesTransportAutonomyYes": {
+    "description": "Value of the transport autonomy control meaning the person can travel alone",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTransportAutonomyNo": "No",
+  "@resourcesTransportAutonomyNo": {
+    "description": "Value of the transport autonomy control meaning the person cannot travel alone",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAccommodationNotesLabel": "Accommodation",
+  "@resourcesAccommodationNotesLabel": {
+    "description": "Label of the person sheet's accommodation notes field",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesTravelNotesLabel": "Travel logistics",
+  "@resourcesTravelNotesLabel": {
+    "description": "Label of the person sheet's travel logistics field",
+    "context": "Displayed on the person sheet's logistics card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsTitle": "Image rights",
+  "@resourcesImageRightsTitle": {
+    "description": "Title of the person sheet's image rights card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsGeneratedOnLabel": "Generated on",
+  "@resourcesImageRightsGeneratedOnLabel": {
+    "description": "Label of the image rights date field while the release has been drafted",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsSignedOnLabel": "Signed on",
+  "@resourcesImageRightsSignedOnLabel": {
+    "description": "Label of the image rights date field while the release has come back signed",
+    "context": "Displayed on the person sheet's image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesHmcTitle": "Hair, make-up \u0026 costume",
+  "@resourcesHmcTitle": {
+    "description": "Title of the person sheet's hair, make-up and costume card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesHmcNotesLabel": "Continuity notes",
+  "@resourcesHmcNotesLabel": {
+    "description": "Label of the person sheet's hair/make-up/costume notes field",
+    "context": "Displayed on the person sheet's hair, make-up and costume card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNotesTitle": "Notes",
+  "@resourcesNotesTitle": {
+    "description": "Title of the person sheet's free-form notes card",
+    "context": "Displayed on the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeletePersonAction": "Delete this person",
+  "@resourcesDeletePersonAction": {
+    "description": "Action opening the person deletion confirmation dialog",
+    "context": "Displayed at the bottom of the person sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesEmptyHint": "No roles yet. They appear automatically from the screenplay's speaking characters.",
+  "@resourcesRolesEmptyHint": {
+    "description": "Hint shown in place of the roles list, and of the centre area, while the cast is empty",
+    "context": "Displayed in the resources mode's left dock and centre area, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleUnnamed": "Unnamed role",
+  "@resourcesRoleUnnamed": {
+    "description": "Placeholder shown in place of a role's name while it is empty",
+    "context": "Displayed in the resources mode's roles list and role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNotCast": "Not cast",
+  "@resourcesRoleNotCast": {
+    "description": "Shown in place of a cast member's name while a role is uncast, and as the cast member picker's own entry that uncasts a role",
+    "context": "Displayed in the resources mode's roles list and role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRolesListOtherRolesLabel": "Also playing {names}",
+  "@resourcesRolesListOtherRolesLabel": {
+    "description": "Muted line under a cast list row naming this cast member's other roles",
+    "context": "Displayed in the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesAddRoleAction": "+ Add a role",
+  "@resourcesAddRoleAction": {
+    "description": "Action opening the menu of the two kinds a role may be hand-added as",
+    "context": "Displayed in the footer of the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddRoleSilentOption": "Silent role",
+  "@resourcesAddRoleSilentOption": {
+    "description": "Menu entry adding a hand-added, silent role",
+    "context": "Displayed in the resources mode's `+ Add a role` menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddRoleExtraOption": "Extra",
+  "@resourcesAddRoleExtraOption": {
+    "description": "Menu entry adding a hand-added extra role",
+    "context": "Displayed in the resources mode's `+ Add a role` menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNoRoleSelectedHint": "Select a role to see its sheet.",
+  "@resourcesNoRoleSelectedHint": {
+    "description": "Hint shown in the centre area while no role is selected",
+    "context": "Displayed centred in the resources mode's main area, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNumberBadge": "N° {number}",
+  "@resourcesRoleNumberBadge": {
+    "description": "A role's rank in the cast, shown as a badge",
+    "context": "Displayed at the top right of the resources mode's role sheet header",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesRoleCastMemberLabel": "Cast member",
+  "@resourcesRoleCastMemberLabel": {
+    "description": "Label of the picker choosing which person is cast in a role",
+    "context": "Displayed in the casting card of the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCastingCardTitle": "Casting",
+  "@resourcesRoleCastingCardTitle": {
+    "description": "Title of the card holding a role's cast member and the other roles they hold",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameHint": "Role name",
+  "@resourcesRoleNameHint": {
+    "description": "Placeholder shown in a hand-added role's name field while it is empty",
+    "context": "Displayed in the header of the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleOrphanedMarkerTooltip": "This character no longer speaks in the screenplay",
+  "@resourcesRoleOrphanedMarkerTooltip": {
+    "description": "Tooltip of the marker flagging an orphaned role in the cast list",
+    "context": "Displayed on hover over a row of the resources mode's left dock, on the roles tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindSpeaking": "Speaking",
+  "@resourcesRoleKindSpeaking": {
+    "description": "Label of a speaking role, reconciled from the screenplay",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindSilent": "Silent",
+  "@resourcesRoleKindSilent": {
+    "description": "Label of a silent (non-speaking) role, added by hand",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindExtra": "Extra",
+  "@resourcesRoleKindExtra": {
+    "description": "Label of an extra role, added by hand",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleKindFieldLabel": "Kind",
+  "@resourcesRoleKindFieldLabel": {
+    "description": "Label of the expanded row's role kind picker",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCastingNotesLabel": "Casting notes",
+  "@resourcesRoleCastingNotesLabel": {
+    "description": "Label of a role's casting notes field",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleCastingNotesHint": "Availability, agent contact, audition notes…",
+  "@resourcesRoleCastingNotesHint": {
+    "description": "Placeholder shown in a role's empty casting notes field",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameLabel": "Name",
+  "@resourcesRoleNameLabel": {
+    "description": "Label of a role's name field, or of its read-only note for a role reconciled from the screenplay",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNameFromScreenplayNote": "This role comes from the screenplay: its name and its existence follow the character's cues.",
+  "@resourcesRoleNameFromScreenplayNote": {
+    "description": "Note explaining why a role's name field and delete action are withheld, shown in the name field's place",
+    "context": "Displayed in the resources mode's role sheet, for a role reconciled from the screenplay",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesOpenPersonSheetTooltip": "Open this person's sheet",
+  "@resourcesOpenPersonSheetTooltip": {
+    "description": "Tooltip of the role sheet's ↗ affordance, opening the cast member's own sheet",
+    "context": "Displayed on hover over the role sheet's cast member cell",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteAction": "Delete this role",
+  "@resourcesRoleDeleteAction": {
+    "description": "Action opening the role's delete confirmation dialog",
+    "context": "Displayed in the role sheet's expanded row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteConfirmTitle": "Delete this role?",
+  "@resourcesRoleDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming a role's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteConfirmMessage": "This permanently deletes this role. This can't be undone.",
+  "@resourcesRoleDeleteConfirmMessage": {
+    "description": "Message of the dialog confirming a role's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovedRoleBanner": "{characterName} was removed from the screenplay, but the role and its casting are kept.",
+  "@resourcesRemovedRoleBanner": {
+    "description": "Alert naming a role no longer speaking in the screenplay, whose casting and notes are kept",
+    "context": "Displayed in the role sheet of the resources mode",
+    "type": "text",
+    "placeholders": {
+      "characterName": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesRemovedRoleDeleteAction": "Delete this role",
+  "@resourcesRemovedRoleDeleteAction": {
+    "description": "Action deleting an orphaned role for good",
+    "context": "Displayed in the removed-role banner of the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovedRoleKeepAction": "Keep as a silent role",
+  "@resourcesRemovedRoleKeepAction": {
+    "description": "Action turning an orphaned role into a hand-added silent role",
+    "context": "Displayed in the removed-role banner of the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationsEmptyHint": "No location yet. Add the first place the film is shot in.",
+  "@resourcesLocationsEmptyHint": {
+    "description": "Hint shown in place of the locations list while the project has none",
+    "context": "Displayed in the resources mode's left dock, on the locations tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationUnnamed": "Unnamed location",
+  "@resourcesLocationUnnamed": {
+    "description": "Placeholder standing in for a location whose name is still empty",
+    "context": "Displayed in the resources mode's left dock and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationSetCount": "{count, plural, one{{count} set} other{{count} sets}}",
+  "@resourcesLocationSetCount": {
+    "description": "Number of sets a location holds",
+    "context": "Displayed on a row of the resources mode's left dock, on the locations tab",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesAddLocationAction": "+ Add a location",
+  "@resourcesAddLocationAction": {
+    "description": "Action creating a new, blank location",
+    "context": "Displayed at the bottom of the resources mode's left dock, on the locations tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitNotNeeded": "No permit needed",
+  "@resourcesPermitNotNeeded": {
+    "description": "Filming permit status: this location needs none",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitToRequest": "Permit to request",
+  "@resourcesPermitToRequest": {
+    "description": "Filming permit status: needed, not requested yet",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitRequested": "Permit requested",
+  "@resourcesPermitRequested": {
+    "description": "Filming permit status: requested, awaiting an answer",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitGranted": "Permit granted",
+  "@resourcesPermitGranted": {
+    "description": "Filming permit status: granted, the location may be shot at",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPermitRefused": "Permit refused",
+  "@resourcesPermitRefused": {
+    "description": "Filming permit status: refused, the location cannot be used as planned",
+    "context": "Displayed in the resources mode's locations list and location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNoLocationSelectedHint": "Select a location to see its sheet.",
+  "@resourcesNoLocationSelectedHint": {
+    "description": "Hint shown in place of a location sheet while none is selected",
+    "context": "Displayed centred in the resources mode's main area, on the locations tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationNameHint": "Location name",
+  "@resourcesLocationNameHint": {
+    "description": "Placeholder of the location name field while it is empty",
+    "context": "Displayed in the header of the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationAddressCardTitle": "Address and access",
+  "@resourcesLocationAddressCardTitle": {
+    "description": "Title of the card holding a location's postal address, coordinates and contact",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLatitudeLabel": "Latitude",
+  "@resourcesLatitudeLabel": {
+    "description": "Label of a location's latitude field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLongitudeLabel": "Longitude",
+  "@resourcesLongitudeLabel": {
+    "description": "Label of a location's longitude field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCoordinateFormatError": "This isn't a number: it won't be kept as a coordinate.",
+  "@resourcesCoordinateFormatError": {
+    "description": "Remark shown under a coordinate field holding something that cannot be read as a number",
+    "context": "Displayed in the resources mode's location sheet, once the field loses the focus",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationContactLabel": "Contact",
+  "@resourcesLocationContactLabel": {
+    "description": "Label of the picker naming the person to contact about a location",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationNoContact": "No contact",
+  "@resourcesLocationNoContact": {
+    "description": "Entry of the contact picker leaving a location with no contact",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationContactNotesLabel": "Contact notes",
+  "@resourcesLocationContactNotesLabel": {
+    "description": "Label of the free-text notes about a location's contact",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitCardTitle": "Filming permit",
+  "@resourcesLocationPermitCardTitle": {
+    "description": "Title of the card holding a location's filming permit reference, date and document",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitLabelLabel": "Reference",
+  "@resourcesLocationPermitLabelLabel": {
+    "description": "Label of a filming permit's own reference field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitLabelHint": "Permit reference, issuing authority…",
+  "@resourcesLocationPermitLabelHint": {
+    "description": "Placeholder of a filming permit's reference field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitDateLabel": "Permit date",
+  "@resourcesLocationPermitDateLabel": {
+    "description": "Label of the date a location's filming permit status last changed",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationParkingTitle": "Parking",
+  "@resourcesLocationParkingTitle": {
+    "description": "Title of the card holding where vehicles and the production truck can park",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationParkingHint": "Where the truck and the cars go…",
+  "@resourcesLocationParkingHint": {
+    "description": "Placeholder of the parking notes field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPowerTitle": "Power",
+  "@resourcesLocationPowerTitle": {
+    "description": "Title of the card holding what electrical power is available on site",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPowerHint": "Sockets, amperage, generator needed…",
+  "@resourcesLocationPowerHint": {
+    "description": "Placeholder of the power notes field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationFacilitiesTitle": "Facilities",
+  "@resourcesLocationFacilitiesTitle": {
+    "description": "Title of the card holding what facilities the location offers",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationFacilitiesHint": "Toilets, water, a room to change in…",
+  "@resourcesLocationFacilitiesHint": {
+    "description": "Placeholder of the facilities notes field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationConstraintsTitle": "Noise and schedule constraints",
+  "@resourcesLocationConstraintsTitle": {
+    "description": "Title of the callout holding what the neighbours and the town hall will tolerate",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationConstraintsHint": "Hours allowed, noise limits, neighbours to warn…",
+  "@resourcesLocationConstraintsHint": {
+    "description": "Placeholder of the constraints field while it is empty",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationDeleteAction": "Delete this location",
+  "@resourcesLocationDeleteAction": {
+    "description": "Action deleting a location, its sets and its scene links",
+    "context": "Displayed at the bottom of the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationDeleteConfirmTitle": "Delete this location?",
+  "@resourcesLocationDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming a location's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationDeleteConfirmMessage": "This deletes the location, its sets and the scenes' links to them. This can't be undone.",
+  "@resourcesLocationDeleteConfirmMessage": {
+    "description": "Message of the dialog confirming a location's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationSetsCardTitle": "Sets in this location",
+  "@resourcesLocationSetsCardTitle": {
+    "description": "Title of the card holding a location's sets and the scenes shot in them",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationNoSetHint": "No set yet in this location.",
+  "@resourcesLocationNoSetHint": {
+    "description": "Hint shown while a location holds no set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSetAction": "+ Add a set in this location",
+  "@resourcesAddSetAction": {
+    "description": "Action adding a new, blank set to a location",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveSetTooltip": "Remove this set",
+  "@resourcesRemoveSetTooltip": {
+    "description": "Tooltip of the control removing a set and the scenes' links to it",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetCodeLabel": "Code",
+  "@resourcesSetCodeLabel": {
+    "description": "Label of a set's short code field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetNameLabel": "Set",
+  "@resourcesSetNameLabel": {
+    "description": "Label of a set's name field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetNotesLabel": "Notes",
+  "@resourcesSetNotesLabel": {
+    "description": "Label of a set's own notes field",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetScenesLabel": "Scenes shot here",
+  "@resourcesSetScenesLabel": {
+    "description": "Label of the scenes linked to a set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSceneToSetAction": "Scene",
+  "@resourcesAddSceneToSetAction": {
+    "description": "Action opening the picker adding a scene to a set",
+    "context": "Displayed on a chip in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSceneSuggestedOption": "{scene} — suggested",
+  "@resourcesSceneSuggestedOption": {
+    "description": "Entry of the scene picker whose heading matches this set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {
+      "scene": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesScenesInAnotherSetLabel": "Also shot in another set",
+  "@resourcesScenesInAnotherSetLabel": {
+    "description": "Heading of the scene picker's group of scenes already shot in another set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitDocumentLabel": "Document",
+  "@resourcesLocationPermitDocumentLabel": {
+    "description": "Label of the referenced filming permit document",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReferenceDocumentAction": "Reference a document…",
+  "@resourcesReferenceDocumentAction": {
+    "description": "Action opening the picker referencing a document by path",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReplaceDocumentAction": "Reference another document…",
+  "@resourcesReplaceDocumentAction": {
+    "description": "Action opening the picker replacing the document a location references",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveDocumentTooltip": "Drop this reference",
+  "@resourcesRemoveDocumentTooltip": {
+    "description": "Tooltip of the control dropping a referenced document, leaving the file untouched",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPhotosCardTitle": "Scouting photos",
+  "@resourcesLocationPhotosCardTitle": {
+    "description": "Title of the card holding a location's referenced scouting photos",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPhotosCount": "{count, plural, one{{count} photo} other{{count} photos}}",
+  "@resourcesLocationPhotosCount": {
+    "description": "Number of photos referenced for a location",
+    "context": "Displayed beside the scouting photos card's own title",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesAddPhotoAction": "+ Reference a photo",
+  "@resourcesAddPhotoAction": {
+    "description": "Action opening the picker referencing a photo by path",
+    "context": "Displayed on the empty tile of the scouting photos grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovePhotoTooltip": "Drop this reference",
+  "@resourcesRemovePhotoTooltip": {
+    "description": "Tooltip of the control dropping a referenced photo, leaving the file untouched",
+    "context": "Displayed over a tile of the scouting photos grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAssetFileMissing": "File not found",
+  "@resourcesAssetFileMissing": {
+    "description": "Marker shown for a referenced file whose path no longer resolves to anything",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageFileTypeLabel": "Images",
+  "@resourcesImageFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when referencing a photo",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDocumentFileTypeLabel": "Documents",
+  "@resourcesDocumentFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when referencing a document",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryProp": "Props",
+  "@resourcesElementCategoryProp": {
+    "description": "Label of the element category holding the objects a character handles",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategorySetDressing": "Set dressing",
+  "@resourcesElementCategorySetDressing": {
+    "description": "Label of the element category holding what furnishes a set",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryCostume": "Costumes",
+  "@resourcesElementCategoryCostume": {
+    "description": "Label of the element category holding what a character wears",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryMakeup": "Make-up & prosthetics",
+  "@resourcesElementCategoryMakeup": {
+    "description": "Label of the element category holding make-up, hair and prosthetics material",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryVehicle": "Vehicles",
+  "@resourcesElementCategoryVehicle": {
+    "description": "Label of the element category holding vehicles",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryAnimal": "Animals",
+  "@resourcesElementCategoryAnimal": {
+    "description": "Label of the element category holding animals",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategorySpecialEquipment": "Special equipment",
+  "@resourcesElementCategorySpecialEquipment": {
+    "description": "Label of the element category holding harnesses, wires, pyrotechnics and weapons",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryCamera": "Camera",
+  "@resourcesElementCategoryCamera": {
+    "description": "Label of the element category holding camera department equipment",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryLighting": "Lighting & grip",
+  "@resourcesElementCategoryLighting": {
+    "description": "Label of the element category holding lighting and grip equipment",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategorySound": "Sound",
+  "@resourcesElementCategorySound": {
+    "description": "Label of the element category holding sound recording equipment",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryProduction": "Production",
+  "@resourcesElementCategoryProduction": {
+    "description": "Label of the element category holding walkies, generators, tents and signage",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryCatering": "Catering",
+  "@resourcesElementCategoryCatering": {
+    "description": "Label of the element category holding catering and craft services material",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryExtras": "Extras",
+  "@resourcesElementCategoryExtras": {
+    "description": "Label of the element category holding a block of extras tracked as one item",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryOther": "Other",
+  "@resourcesElementCategoryOther": {
+    "description": "Label of the element category holding whatever the others don't fit",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceOwned": "Owned",
+  "@resourcesElementSourceOwned": {
+    "description": "Label of the element provenance meaning the production already owns it",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceBorrowed": "Borrowed",
+  "@resourcesElementSourceBorrowed": {
+    "description": "Label of the element provenance meaning it is borrowed and expected back",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceRented": "Rented",
+  "@resourcesElementSourceRented": {
+    "description": "Label of the element provenance meaning it is rented",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceToBuy": "To buy",
+  "@resourcesElementSourceToBuy": {
+    "description": "Label of the element provenance meaning it still has to be bought",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceToMake": "To make",
+  "@resourcesElementSourceToMake": {
+    "description": "Label of the element provenance meaning it still has to be built",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceAlreadyOnSet": "Already on set",
+  "@resourcesElementSourceAlreadyOnSet": {
+    "description": "Label of the element provenance meaning nothing has to be brought",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingToSecure": "To secure",
+  "@resourcesElementTrackingToSecure": {
+    "description": "Tracking status of an element the production doesn't have yet",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingSecured": "Secured",
+  "@resourcesElementTrackingSecured": {
+    "description": "Tracking status of an element the production has but hasn't prepared yet",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingReady": "Ready",
+  "@resourcesElementTrackingReady": {
+    "description": "Tracking status of an element prepared and ready to go to set",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingReturned": "Returned",
+  "@resourcesElementTrackingReturned": {
+    "description": "Tracking status of an element given back after the shoot",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddElementAction": "+ Add an element",
+  "@resourcesAddElementAction": {
+    "description": "Label of the left dock footer button creating an element, opening the category menu",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementsEmptyHint": "Nothing yet. Add the props, vehicles, animals and equipment the shoot needs.",
+  "@resourcesElementsEmptyHint": {
+    "description": "Hint shown in place of the elements list while the catalogue is empty",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementUnnamed": "Unnamed element",
+  "@resourcesElementUnnamed": {
+    "description": "Placeholder shown in place of an element's name while it is still empty",
+    "context": "Displayed in the resources mode's elements list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesNoElementSelectedHint": "Pick an element on the left to open its sheet.",
+  "@resourcesNoElementSelectedHint": {
+    "description": "Hint shown in the centre of the elements tab while no element is selected",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCodeLabel": "Code",
+  "@resourcesElementCodeLabel": {
+    "description": "Label of the element sheet's short code field",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNameHint": "Name of the element",
+  "@resourcesElementNameHint": {
+    "description": "Placeholder shown in the element sheet's name field while it is empty",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCategoryFieldLabel": "Category",
+  "@resourcesElementCategoryFieldLabel": {
+    "description": "Label of the element sheet's category picker",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSubCategoryLabel": "Sub-category",
+  "@resourcesElementSubCategoryLabel": {
+    "description": "Label of the element sheet's free sub-category field",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementQuantityLabel": "Quantity",
+  "@resourcesElementQuantityLabel": {
+    "description": "Label of the element sheet's quantity field, free text like the sheets it comes from",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourcingCardTitle": "Where it comes from",
+  "@resourcesElementSourcingCardTitle": {
+    "description": "Title of the element sheet's card holding the provenance, the owner and the cost",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSourceKindFieldLabel": "Provenance",
+  "@resourcesElementSourceKindFieldLabel": {
+    "description": "Label of the element sheet's provenance picker",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementOwnerLabel": "Owner",
+  "@resourcesElementOwnerLabel": {
+    "description": "Label of the element sheet's owner picker over the address book",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNoOwner": "Nobody in the address book",
+  "@resourcesElementNoOwner": {
+    "description": "Shown by the element sheet's owner picker while no person of the address book owns it",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementOwnerNotesLabel": "Or an organisation",
+  "@resourcesElementOwnerNotesLabel": {
+    "description": "Label of the element sheet's free-text owner field, for an owner who is not a person",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementBringerLabel": "Brought to set by",
+  "@resourcesElementBringerLabel": {
+    "description": "Label of the element sheet's picker naming who brings the element to set",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNoBringer": "Nobody yet",
+  "@resourcesElementNoBringer": {
+    "description": "Shown by the element sheet's bringer picker while nobody is named",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCostLabel": "Cost",
+  "@resourcesElementCostLabel": {
+    "description": "Label of the element sheet's cost field",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementCostFormatError": "Not an amount: no cost will be recorded",
+  "@resourcesElementCostFormatError": {
+    "description": "Message shown under the element sheet's cost field when what it holds is not an amount",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementTrackingCardTitle": "Tracking",
+  "@resourcesElementTrackingCardTitle": {
+    "description": "Title of the element sheet's card holding the three tracking flags and where it is stored",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementSecuredLabel": "Secured",
+  "@resourcesElementSecuredLabel": {
+    "description": "Label of the element sheet's checkbox saying the production has the element",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementReadyLabel": "Ready for the shoot",
+  "@resourcesElementReadyLabel": {
+    "description": "Label of the element sheet's checkbox saying the element is prepared",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementReturnedLabel": "Returned",
+  "@resourcesElementReturnedLabel": {
+    "description": "Label of the element sheet's checkbox saying the element went back after the shoot",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementStorageNotesLabel": "Stored where?",
+  "@resourcesElementStorageNotesLabel": {
+    "description": "Label of the element sheet's field saying where the element waits until the shoot",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementScenesCardTitle": "Scenes needing it",
+  "@resourcesElementScenesCardTitle": {
+    "description": "Title of the element sheet's card holding the breakdown links onto scenes",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementNoSceneHint": "No scene yet.",
+  "@resourcesElementNoSceneHint": {
+    "description": "Hint shown in the element sheet's scenes card while the element is linked to no scene",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddSceneToElementAction": "+ Scene",
+  "@resourcesAddSceneToElementAction": {
+    "description": "Label of the element sheet's picker adding a scene needing the element",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveSceneFromElementTooltip": "This scene doesn't need it",
+  "@resourcesRemoveSceneFromElementTooltip": {
+    "description": "Tooltip of the control unlinking a scene from an element",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSceneElementQuantityLabel": "In this scene",
+  "@resourcesSceneElementQuantityLabel": {
+    "description": "Label of the per-scene quantity field, overriding the element's own",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSceneElementNotesLabel": "Note for this scene",
+  "@resourcesSceneElementNotesLabel": {
+    "description": "Label of the per-scene notes field of a breakdown link",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementPurposeLabel": "Why it is needed",
+  "@resourcesElementPurposeLabel": {
+    "description": "Label of the element sheet's field saying what the element is for",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteElementAction": "Delete this element",
+  "@resourcesDeleteElementAction": {
+    "description": "Label of the element sheet's destructive action, at the very bottom",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementDeleteConfirmTitle": "Delete this element?",
+  "@resourcesElementDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming an element's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteElementConfirm": "This deletes the element, and the scenes it was linked to lose it too. This can't be undone.",
+  "@resourcesDeleteElementConfirm": {
+    "description": "Message of the dialog confirming an element's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxMenuAction": "Export the resources…",
+  "@resourcesExportXlsxMenuAction": {
+    "description": "Action exporting the whole resources catalogue to a four-sheet Excel workbook",
+    "context": "Displayed in the overflow menu of the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxFileTypeLabel": "Excel workbook",
+  "@resourcesExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the resources catalogue",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxFileNameSuffix": "resources",
+  "@resourcesExportXlsxFileNameSuffix": {
+    "description": "Suffix appended to the project name for the resources workbook's file name, so it never collides with the shot list workbook's own name",
+    "context": "Used to build the suggested file name in the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxPeopleSheetName": "Crew & cast directory",
+  "@resourcesExportXlsxPeopleSheetName": {
+    "description": "Name given to the exported resources workbook's people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxRolesSheetName": "Roles",
+  "@resourcesExportXlsxRolesSheetName": {
+    "description": "Name given to the exported resources workbook's roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxLocationsSheetName": "Locations & sets",
+  "@resourcesExportXlsxLocationsSheetName": {
+    "description": "Name given to the exported resources workbook's locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxElementsSheetName": "Elements",
+  "@resourcesExportXlsxElementsSheetName": {
+    "description": "Name given to the exported resources workbook's elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxSuccessMessage": "Exported to {path}",
+  "@resourcesExportXlsxSuccessMessage": {
+    "description": "Message shown when the resources catalogue was successfully exported to an Excel workbook",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesExportXlsxError": "The resources catalogue could not be exported.",
+  "@resourcesExportXlsxError": {
+    "description": "Error shown when exporting the resources catalogue to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxAvailabilityEveryDay": "Every day",
+  "@resourcesXlsxAvailabilityEveryDay": {
+    "description": "Says a dated window's weekday mask covers every day of its date range",
+    "context": "Part of the availability windows summary cell of the exported locations & sets sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnName": "Name",
+  "@resourcesXlsxColumnName": {
+    "description": "Header of the name column, shared by the exported resources workbook's people, roles and elements sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPositions": "Positions",
+  "@resourcesXlsxColumnPositions": {
+    "description": "Header of the crew positions column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnRoles": "Roles",
+  "@resourcesXlsxColumnRoles": {
+    "description": "Header of the cast roles column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnEmail": "Email",
+  "@resourcesXlsxColumnEmail": {
+    "description": "Header of the email column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPhone": "Phone",
+  "@resourcesXlsxColumnPhone": {
+    "description": "Header of the phone column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAddressLine1": "Address line 1",
+  "@resourcesXlsxColumnAddressLine1": {
+    "description": "Header of the address line 1 column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAddressLine2": "Address line 2",
+  "@resourcesXlsxColumnAddressLine2": {
+    "description": "Header of the address line 2 column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPostalCode": "Postal code",
+  "@resourcesXlsxColumnPostalCode": {
+    "description": "Header of the postal code column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCity": "City",
+  "@resourcesXlsxColumnCity": {
+    "description": "Header of the city column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnRegion": "Region",
+  "@resourcesXlsxColumnRegion": {
+    "description": "Header of the region column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCountry": "Country",
+  "@resourcesXlsxColumnCountry": {
+    "description": "Header of the country column, shared by the exported people and locations & sets sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnBirthDate": "Birth date",
+  "@resourcesXlsxColumnBirthDate": {
+    "description": "Header of the birth date column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAge": "Age",
+  "@resourcesXlsxColumnAge": {
+    "description": "Header of the age column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnMinorNotes": "Minor notes",
+  "@resourcesXlsxColumnMinorNotes": {
+    "description": "Header of the minor notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTransportAutonomy": "Transport autonomy",
+  "@resourcesXlsxColumnTransportAutonomy": {
+    "description": "Header of the transport autonomy column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAccommodationNotes": "Accommodation",
+  "@resourcesXlsxColumnAccommodationNotes": {
+    "description": "Header of the accommodation notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTravelNotes": "Travel",
+  "@resourcesXlsxColumnTravelNotes": {
+    "description": "Header of the travel notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnDietaryNotes": "Diet",
+  "@resourcesXlsxColumnDietaryNotes": {
+    "description": "Header of the dietary notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAllergies": "Allergies",
+  "@resourcesXlsxColumnAllergies": {
+    "description": "Header of the allergies column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSkills": "Skills",
+  "@resourcesXlsxColumnSkills": {
+    "description": "Header of the skills column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnHeight": "Height",
+  "@resourcesXlsxColumnHeight": {
+    "description": "Header of the height column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnChest": "Chest",
+  "@resourcesXlsxColumnChest": {
+    "description": "Header of the chest measurement column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnWaist": "Waist",
+  "@resourcesXlsxColumnWaist": {
+    "description": "Header of the waist measurement column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnHips": "Hips",
+  "@resourcesXlsxColumnHips": {
+    "description": "Header of the hip measurement column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTopSize": "Top size",
+  "@resourcesXlsxColumnTopSize": {
+    "description": "Header of the top clothing size column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnBottomSize": "Bottom size",
+  "@resourcesXlsxColumnBottomSize": {
+    "description": "Header of the bottom clothing size column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnShoeSize": "Shoe size",
+  "@resourcesXlsxColumnShoeSize": {
+    "description": "Header of the shoe size column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnHmcNotes": "HMC notes",
+  "@resourcesXlsxColumnHmcNotes": {
+    "description": "Header of the hair/make-up/costume notes column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnImageRightsStatus": "Image rights",
+  "@resourcesXlsxColumnImageRightsStatus": {
+    "description": "Header of the image rights status column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnImageRightsDate": "Image rights date",
+  "@resourcesXlsxColumnImageRightsDate": {
+    "description": "Header of the image rights date column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnUnavailabilities": "Unavailabilities",
+  "@resourcesXlsxColumnUnavailabilities": {
+    "description": "Header of the unavailabilities summary column of the exported people sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnNotes": "Notes",
+  "@resourcesXlsxColumnNotes": {
+    "description": "Header of the notes column, shared by the exported people, locations & sets and elements sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnNumber": "Number",
+  "@resourcesXlsxColumnNumber": {
+    "description": "Header of the role number column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnKind": "Kind",
+  "@resourcesXlsxColumnKind": {
+    "description": "Header of the role kind column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCastMember": "Cast member",
+  "@resourcesXlsxColumnCastMember": {
+    "description": "Header of the cast member column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnFromScreenplay": "From screenplay",
+  "@resourcesXlsxColumnFromScreenplay": {
+    "description": "Header of the from-screenplay flag column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnRemovedFromScreenplay": "Removed from screenplay",
+  "@resourcesXlsxColumnRemovedFromScreenplay": {
+    "description": "Header of the removed-from-screenplay flag column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCastingNotes": "Casting notes",
+  "@resourcesXlsxColumnCastingNotes": {
+    "description": "Header of the casting notes column of the exported roles sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnLocationName": "Location",
+  "@resourcesXlsxColumnLocationName": {
+    "description": "Header of the location name column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSetCode": "Set code",
+  "@resourcesXlsxColumnSetCode": {
+    "description": "Header of the set code column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSetName": "Set name",
+  "@resourcesXlsxColumnSetName": {
+    "description": "Header of the set name column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnScenes": "Scenes",
+  "@resourcesXlsxColumnScenes": {
+    "description": "Header of the scenes column, shared by the exported locations & sets and elements sheets",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnLatitude": "Latitude",
+  "@resourcesXlsxColumnLatitude": {
+    "description": "Header of the latitude column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnLongitude": "Longitude",
+  "@resourcesXlsxColumnLongitude": {
+    "description": "Header of the longitude column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnContact": "Contact",
+  "@resourcesXlsxColumnContact": {
+    "description": "Header of the contact column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnContactNotes": "Contact notes",
+  "@resourcesXlsxColumnContactNotes": {
+    "description": "Header of the contact notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPermitStatus": "Permit status",
+  "@resourcesXlsxColumnPermitStatus": {
+    "description": "Header of the permit status column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPermitLabel": "Permit reference",
+  "@resourcesXlsxColumnPermitLabel": {
+    "description": "Header of the permit reference column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPermitDate": "Permit date",
+  "@resourcesXlsxColumnPermitDate": {
+    "description": "Header of the permit date column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnAvailabilityWindows": "Availability",
+  "@resourcesXlsxColumnAvailabilityWindows": {
+    "description": "Header of the availability windows summary column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnParkingNotes": "Parking",
+  "@resourcesXlsxColumnParkingNotes": {
+    "description": "Header of the parking notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnPowerNotes": "Power",
+  "@resourcesXlsxColumnPowerNotes": {
+    "description": "Header of the power notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnFacilitiesNotes": "Facilities",
+  "@resourcesXlsxColumnFacilitiesNotes": {
+    "description": "Header of the facilities notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnConstraintsNotes": "Constraints",
+  "@resourcesXlsxColumnConstraintsNotes": {
+    "description": "Header of the constraints notes column of the exported locations & sets sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCategory": "Category",
+  "@resourcesXlsxColumnCategory": {
+    "description": "Header of the category column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSubCategory": "Sub-category",
+  "@resourcesXlsxColumnSubCategory": {
+    "description": "Header of the sub-category column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCode": "Code",
+  "@resourcesXlsxColumnCode": {
+    "description": "Header of the code column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnQuantity": "Quantity",
+  "@resourcesXlsxColumnQuantity": {
+    "description": "Header of the quantity column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSourceKind": "Source",
+  "@resourcesXlsxColumnSourceKind": {
+    "description": "Header of the source/provenance column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnOwner": "Owner",
+  "@resourcesXlsxColumnOwner": {
+    "description": "Header of the owner column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnOwnerNotes": "Owner (organisation)",
+  "@resourcesXlsxColumnOwnerNotes": {
+    "description": "Header of the free-text owner notes column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnBroughtBy": "Brought by",
+  "@resourcesXlsxColumnBroughtBy": {
+    "description": "Header of the brought-by column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnStorageNotes": "Storage",
+  "@resourcesXlsxColumnStorageNotes": {
+    "description": "Header of the storage notes column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnSecured": "Secured",
+  "@resourcesXlsxColumnSecured": {
+    "description": "Header of the secured flag column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnReady": "Ready",
+  "@resourcesXlsxColumnReady": {
+    "description": "Header of the ready-for-shoot flag column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnReturned": "Returned",
+  "@resourcesXlsxColumnReturned": {
+    "description": "Header of the returned flag column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnTrackingStatus": "Tracking status",
+  "@resourcesXlsxColumnTrackingStatus": {
+    "description": "Header of the derived tracking status column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesXlsxColumnCost": "Cost ({currencyCode})",
+  "@resourcesXlsxColumnCost": {
+    "description": "Header of the cost column of the exported elements sheet, naming the project's currency",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {
+      "currencyCode": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesXlsxColumnPurposeNotes": "Purpose",
+  "@resourcesXlsxColumnPurposeNotes": {
+    "description": "Header of the purpose notes column of the exported elements sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceProjectSettingsTooltip": "Project settings",
+  "@workspaceProjectSettingsTooltip": {
+    "description": "Tooltip of the workspace toolbar's project settings button",
+    "context": "Shown on hover over the project settings button of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsPageTitle": "Project settings",
+  "@projectSettingsPageTitle": {
+    "description": "Title of the project settings page",
+    "context": "Displayed at the top of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsCurrencySectionTitle": "Currency",
+  "@projectSettingsCurrencySectionTitle": {
+    "description": "Title of the project settings page's currency section",
+    "context": "Displayed at the top of the currency section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsCurrencyLabel": "Currency",
+  "@projectSettingsCurrencyLabel": {
+    "description": "Label of the currency dropdown",
+    "context": "Displayed next to the currency dropdown in the currency section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsPageFormatSectionTitle": "Page format",
+  "@projectSettingsPageFormatSectionTitle": {
+    "description": "Title of the project settings page's page format section",
+    "context": "Displayed at the top of the page format section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsPageFormatLabel": "Page format",
+  "@projectSettingsPageFormatLabel": {
+    "description": "Label of the page format dropdown",
+    "context": "Displayed next to the page format dropdown in the page format section",
     "type": "text",
     "placeholders": {}
   }

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -44,6 +45,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
         sceneIndexService: const OcptSceneIndexService(),
         shotListService: const OcptShotListService(),
         shotCoverageService: const OcptShotCoverageService(),
+        roleIndexService: const OcptRoleIndexService(),
       );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
@@ -1035,6 +1037,46 @@ void main() {
 
     final state = await waitForState(bloc, (state) => state.pageSetup == newSetup);
     expect(state.statistics, FountainScriptStatistics.of(state.document!, newSetup.toMetrics()));
+
+    await bloc.close();
+  });
+
+  test(
+    'the project settings changed event re-reads the page format and repaginates',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+          ? OcptPageFormat.a4
+          : OcptPageFormat.usLetter;
+      // Written directly through the manager, the way the project settings page itself writes it
+      // — this bloc never sees the new value on an event, only the fact that something changed.
+      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+
+      bloc.add(const OcptEditorProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+
+      expect(
+        state.statistics,
+        FountainScriptStatistics.of(state.document!, state.pageSetup.toMetrics()),
+      );
+
+      await bloc.close();
+    },
+  );
+
+  test('the project settings changed event is a no-op when the format did not change', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    final setupBefore = bloc.state.pageSetup;
+
+    bloc.add(const OcptEditorProjectSettingsChangedEvent());
+    // Nothing to wait for: assert the very next state (if any) still matches, after giving the
+    // handler's async work a chance to run.
+    await Future<void>.delayed(Duration.zero);
+
+    expect(bloc.state.pageSetup, setupBefore);
 
     await bloc.close();
   });

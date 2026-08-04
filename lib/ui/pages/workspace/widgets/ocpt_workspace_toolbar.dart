@@ -22,8 +22,8 @@ const double _dirtyMarkerSize = 6;
 /// The workspace shell's thin, discreet toolbar: the back action leading to the projects list, the
 /// open project's title (with a dot marking unsaved changes, or the `Read only` pill while
 /// [isReadOnly]), a trailing slot for the active mode's own controls ([actions]), then the shell's
-/// own chrome — the active mode's name ([modeLabel]), the [dockToggles], the [saveAction] and an
-/// overflow `⋮` menu built from [overflowEntries].
+/// own chrome — the active mode's name ([modeLabel]), the [dockToggles], the [saveAction], the
+/// [projectSettingsAction] and an overflow `⋮` menu built from [overflowEntries].
 ///
 /// Everything mode-specific (format controls, tab selectors, an editing-mode toggle, export
 /// entries…) is the active mode's own job to build and hand in through [actions] /
@@ -62,6 +62,11 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// The save control, shown after [dockToggles], or null when the mode has nothing to save.
   final Widget? saveAction;
 
+  /// The project settings action, shown after [saveAction], or null when the mode withholds it —
+  /// while a project version is being previewed, since a preview has nothing here that may be
+  /// written.
+  final Widget? projectSettingsAction;
+
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
 
@@ -87,6 +92,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     this.modeLabel,
     this.dockToggles = const [],
     this.saveAction,
+    this.projectSettingsAction,
     this.overflowEntries = const [],
   });
 
@@ -138,6 +144,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                       ),
                     ...dockToggles,
                     if (saveAction != null) saveAction!,
+                    if (projectSettingsAction != null) projectSettingsAction!,
                     if (overflowEntries.isNotEmpty)
                       PopupMenuButton<void>(
                         icon: const Icon(Icons.more_vert, size: 20),

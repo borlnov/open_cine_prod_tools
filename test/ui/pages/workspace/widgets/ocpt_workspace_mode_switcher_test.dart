@@ -37,9 +37,10 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptWorkspaceModeSwitcher)));
 
     expect(find.text(tr.workspaceModeScreenplay), findsOneWidget);
-    expect(find.text(tr.workspaceModeBudget), findsOneWidget);
-    expect(find.text(tr.workspaceModeSchedule), findsOneWidget);
     expect(find.text(tr.workspaceModeShotList), findsOneWidget);
+    expect(find.text(tr.workspaceModeResources), findsOneWidget);
+    expect(find.text(tr.workspaceModeSchedule), findsOneWidget);
+    expect(find.text(tr.workspaceModeBudget), findsOneWidget);
   });
 
   testWidgets('the active mode is tinted primary, the others onSurfaceVariant', (tester) async {

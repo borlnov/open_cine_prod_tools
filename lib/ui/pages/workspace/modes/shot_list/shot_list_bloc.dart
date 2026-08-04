@@ -163,6 +163,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListScenarioCoverageExportRequestedEvent>(_onScenarioCoverageExportRequested);
     on<OcptShotListIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
+    on<OcptShotListProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptShotListShotFieldChangedEvent>(_onShotFieldChanged);
     on<OcptShotListFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptShotListShotDifficultyChangedEvent>(_onShotDifficultyChanged);
@@ -708,6 +709,20 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     await _flushPendingFieldEdits(emitter);
     await _projectsManager.closeCurrentProject();
     _routerManager.pop();
+  }
+
+  /// Re-reads the page setup after the project settings page changed something, so the scenario
+  /// coverage export dialog pre-fills from the format actually in effect.
+  Future<void> _onProjectSettingsChanged(
+    OcptShotListProjectSettingsChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    emitter(state.copyWith(pageSetup: await _loadPageSetup(project)));
   }
 
   /// Records the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
