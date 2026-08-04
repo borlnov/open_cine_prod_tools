@@ -47,6 +47,11 @@ class OcptResourcesSheetField extends StatefulWidget {
   /// everything there is to say.
   final String? hintText;
 
+  /// Chrome shown after the typed text, greyed like [hintText], or null for a field with nothing
+  /// to add — the cost field's currency symbol is the one user of this today, and it is chrome
+  /// only: the value being edited stays the bare number [errorTextOf]/`onChanged` see.
+  final String? suffixText;
+
   /// The message to show under the field for the value it currently holds, or null when there is
   /// nothing to say about it; null itself for a field that is never checked.
   ///
@@ -80,6 +85,7 @@ class OcptResourcesSheetField extends StatefulWidget {
     required this.value,
     this.multiline = false,
     this.hintText,
+    this.suffixText,
     this.errorTextOf,
     this.textStyle,
     this.inputFormatters,
@@ -176,6 +182,7 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
           decoration: InputDecoration(
             isDense: true,
             hintText: widget.hintText,
+            suffixText: widget.suffixText,
             errorText: _resolveErrorText(),
           ),
         ),

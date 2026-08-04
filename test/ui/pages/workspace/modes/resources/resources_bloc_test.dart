@@ -248,10 +248,9 @@ void main() {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
 
-    // Written directly against the database, bypassing the bloc entirely: nothing the project
-    // settings page currently writes (the currency, the page format) is part of this snapshot, so
-    // this is what a change this bloc doesn't otherwise know about has to look like from its point
-    // of view.
+    // Written directly against the database, bypassing the bloc entirely: the resources catalogue
+    // isn't something the project settings page writes, so this is what a change this bloc
+    // doesn't otherwise know about has to look like from its point of view.
     final project = projectsManager.currentProject!;
     await project.database
         .into(project.database.ocptPeopleTable)
@@ -261,6 +260,33 @@ void main() {
     final state = await waitForState(bloc, (state) => state.peopleCount == 1);
 
     expect(state.peopleCount, 1);
+
+    await bloc.close();
+  });
+
+  test("the project settings changed event re-reads the currency", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    final initialCode = bloc.state.currencyCode;
+    final otherCode = initialCode == "USD" ? "GBP" : "USD";
+
+    await projectsManager.saveCurrentProjectCurrencyCode(otherCode);
+
+    bloc.add(const OcptResourcesProjectSettingsChangedEvent());
+    final state = await waitForState(bloc, (state) => state.currencyCode == otherCode);
+
+    expect(state.currencyCode, otherCode);
+
+    await bloc.close();
+  });
+
+  test("the initial load reads the project's currency", () async {
+    await projectsManager.saveCurrentProjectCurrencyCode("GBP");
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.currencyCode, "GBP");
 
     await bloc.close();
   });

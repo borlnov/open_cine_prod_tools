@@ -323,7 +323,15 @@ String ocptLocationsXlsxColumnLabel(Tr tr, OcptLocationsXlsxColumn column) => sw
 };
 
 /// The header label of the exported elements sheet's column [column].
-String ocptElementsXlsxColumnLabel(Tr tr, OcptElementsXlsxColumn column) => switch (column) {
+///
+/// [currencyCode] is only read by [OcptElementsXlsxColumn.cost], whose header names the project's
+/// currency (`Cost (EUR)`) so the workbook reads correctly once it has left the app that produced
+/// it.
+String ocptElementsXlsxColumnLabel(
+  Tr tr,
+  OcptElementsXlsxColumn column, {
+  required String currencyCode,
+}) => switch (column) {
   OcptElementsXlsxColumn.category => tr.resourcesXlsxColumnCategory,
   OcptElementsXlsxColumn.subCategory => tr.resourcesXlsxColumnSubCategory,
   OcptElementsXlsxColumn.code => tr.resourcesXlsxColumnCode,
@@ -338,7 +346,7 @@ String ocptElementsXlsxColumnLabel(Tr tr, OcptElementsXlsxColumn column) => swit
   OcptElementsXlsxColumn.ready => tr.resourcesXlsxColumnReady,
   OcptElementsXlsxColumn.returned => tr.resourcesXlsxColumnReturned,
   OcptElementsXlsxColumn.trackingStatus => tr.resourcesXlsxColumnTrackingStatus,
-  OcptElementsXlsxColumn.cost => tr.resourcesXlsxColumnCost,
+  OcptElementsXlsxColumn.cost => tr.resourcesXlsxColumnCost(currencyCode),
   OcptElementsXlsxColumn.scenes => tr.resourcesXlsxColumnScenes,
   OcptElementsXlsxColumn.purposeNotes => tr.resourcesXlsxColumnPurposeNotes,
   OcptElementsXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
@@ -358,10 +366,15 @@ String ocptElementsXlsxColumnLabel(Tr tr, OcptElementsXlsxColumn column) => swit
 /// availability window is described with come from the locale's own calendar data through
 /// [DateFormat], the way the dated-window controls already format a date, rather than from seven
 /// ARB keys translating what every locale already knows.
+///
+/// [currencyCode] is the project's own currency, an ISO 4217 code read off `OcptResourcesState`:
+/// resolving it is this function's job precisely so `OcptResourcesXlsxExportService` never has to
+/// learn what a currency is beyond the header string it is handed.
 OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
   BuildContext context,
-  List<OcptSceneRef> scenes,
-) {
+  List<OcptSceneRef> scenes, {
+  required String currencyCode,
+}) {
   final tr = Tr.of(context);
 
   return OcptResourcesXlsxLabels(
@@ -384,7 +397,7 @@ OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
     },
     elementsColumnHeaders: {
       for (final column in OcptElementsXlsxColumn.values)
-        column: ocptElementsXlsxColumnLabel(tr, column),
+        column: ocptElementsXlsxColumnLabel(tr, column, currencyCode: currencyCode),
     },
     crewPositionLabels: {
       for (final position in ocptCrewPositions)

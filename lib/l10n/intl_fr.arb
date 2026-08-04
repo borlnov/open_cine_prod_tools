@@ -679,7 +679,7 @@
   "resourcesXlsxColumnReady": "Pr\u00eat",
   "resourcesXlsxColumnReturned": "Rendu",
   "resourcesXlsxColumnTrackingStatus": "Statut de suivi",
-  "resourcesXlsxColumnCost": "Co\u00fbt",
+  "resourcesXlsxColumnCost": "Co\u00fbt ({currencyCode})",
   "resourcesXlsxColumnPurposeNotes": "Utilit\u00e9",
   "workspaceProjectSettingsTooltip": "Param\u00e8tres du projet",
   "projectSettingsPageTitle": "Param\u00e8tres du projet",

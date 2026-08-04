@@ -5006,12 +5006,16 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesXlsxColumnCost": "Cost",
+  "resourcesXlsxColumnCost": "Cost ({currencyCode})",
   "@resourcesXlsxColumnCost": {
-    "description": "Header of the cost column of the exported elements sheet",
+    "description": "Header of the cost column of the exported elements sheet, naming the project's currency",
     "context": "Written into the exported XLSX file",
     "type": "text",
-    "placeholders": {}
+    "placeholders": {
+      "currencyCode": {
+        "type": "String"
+      }
+    }
   },
   "resourcesXlsxColumnPurposeNotes": "Purpose",
   "@resourcesXlsxColumnPurposeNotes": {

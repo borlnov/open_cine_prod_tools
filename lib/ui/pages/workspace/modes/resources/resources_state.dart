@@ -67,6 +67,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// The title shown in the toolbar: the name of the project currently open.
   final String title;
 
+  /// The current project's currency, an ISO 4217 code: what the element sheet's cost field shows
+  /// as its suffix, and what the exported workbook names its cost column after.
+  final String currencyCode;
+
   /// The whole resources catalogue as last read from the project database, or null while nothing
   /// has been loaded yet.
   final OcptResourcesSnapshot? snapshot;
@@ -322,6 +326,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   const OcptResourcesState({
     required this.isLoading,
     required this.title,
+    required this.currencyCode,
     required this.snapshot,
     required this.activeTab,
     required this.isSearchVisible,
@@ -354,6 +359,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   OcptResourcesState.init()
     : isLoading = true,
       title = "",
+      currencyCode = "",
       snapshot = null,
       activeTab = OcptResourcesTab.people,
       isSearchVisible = false,
@@ -392,6 +398,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   OcptResourcesState copyWith({
     bool? isLoading,
     String? title,
+    String? currencyCode,
     OcptResourcesSnapshot? snapshot,
     OcptResourcesTab? activeTab,
     bool? isSearchVisible,
@@ -433,6 +440,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   }) => OcptResourcesState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
+    currencyCode: currencyCode ?? this.currencyCode,
     snapshot: snapshot ?? this.snapshot,
     activeTab: activeTab ?? this.activeTab,
     isSearchVisible: isSearchVisible ?? this.isSearchVisible,
@@ -513,6 +521,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     ...super.props,
     isLoading,
     title,
+    currencyCode,
     snapshot,
     activeTab,
     isSearchVisible,

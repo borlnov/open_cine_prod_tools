@@ -197,7 +197,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     context.read<OcptResourcesBloc>().add(
       OcptResourcesXlsxExportRequestedEvent(
-        labels: ocptResourcesXlsxLabelsOf(context, state.scenes),
+        labels: ocptResourcesXlsxLabelsOf(context, state.scenes, currencyCode: state.currencyCode),
         fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
       ),
     );
@@ -643,6 +643,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       bringer: _personOf(state, selectedElement.broughtByPersonId),
       people: state.people,
       scenes: state.scenes,
+      currencyCode: state.currencyCode,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _elementFieldValueOf(state, selectedElement, field),
       onFieldChanged: (field, rawValue) => bloc.add(

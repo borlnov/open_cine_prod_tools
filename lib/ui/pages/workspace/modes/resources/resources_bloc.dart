@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
@@ -299,11 +300,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     final previewedVersion = project.previewedVersion;
     final snapshot = await _loadSnapshot(project);
+    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
 
     emitter(
       state.copyWith(
         isLoading: false,
         title: project.name,
+        currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
         previewedVersionId: previewedVersion?.id,
         clearPreviewedVersionId: previewedVersion == null,
         snapshot: snapshot,
@@ -354,12 +357,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _routerManager.pop();
   }
 
-  /// Reloads the resources snapshot after the project settings page changed something.
+  /// Re-reads the project's currency and reloads the resources snapshot after the project
+  /// settings page changed something.
   ///
-  /// Nothing in the snapshot itself depends on the project's currency or page format today — this
-  /// exists so a change made there is never silently missed by this mode, the same reasoning that
-  /// has `OcptProjectWorkingCopyRefreshRequestedEvent` refresh the working-copy card proactively
-  /// rather than only on the writes this bloc already knows about.
+  /// The currency is what the element sheet's cost field and the exported workbook's cost column
+  /// both read off this state; nothing in the snapshot itself depends on it or on the page format,
+  /// but reloading it here too is what keeps this mode from being the one place a change made on
+  /// the project settings page is silently missed — the same reasoning that has
+  /// `OcptProjectWorkingCopyRefreshRequestedEvent` refresh the working-copy card proactively rather
+  /// than only on the writes this bloc already knows about.
   Future<void> _onProjectSettingsChanged(
     OcptResourcesProjectSettingsChangedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -369,7 +375,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+    final snapshot = await _loadSnapshot(project);
+    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+
+    emitter(
+      state.copyWith(snapshot: snapshot, currencyCode: currencyCode ?? ocptDefaultCurrencyCode),
+    );
   }
 
   /// Selects tab `event.tab`, clearing every selected record when it actually changes tab.

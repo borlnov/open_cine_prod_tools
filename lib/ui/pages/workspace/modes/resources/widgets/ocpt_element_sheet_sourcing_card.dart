@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -37,6 +38,9 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
   /// The whole address book, offered by the two pickers.
   final List<OcptPerson> people;
 
+  /// The current project's currency, an ISO 4217 code, shown as the cost field's suffix.
+  final String currencyCode;
+
   /// The element's current value for `field`.
   final String Function(OcptElementField field) fieldValueOf;
 
@@ -66,6 +70,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     required this.owner,
     required this.bringer,
     required this.people,
+    required this.currencyCode,
     required this.fieldValueOf,
     required this.onFieldChanged,
     required this.onSourceKindChanged,
@@ -108,6 +113,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
           _field(
             OcptElementField.cost,
             tr.resourcesElementCostLabel,
+            suffixText: NumberFormat.simpleCurrency(name: currencyCode).currencySymbol,
             errorTextOf: (value) => _costErrorOf(tr, value),
           ),
         ],
@@ -171,6 +177,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
   Widget _field(
     OcptElementField field,
     String label, {
+    String? suffixText,
     String? Function(String value)? errorTextOf,
   }) {
     final onFieldChanged = this.onFieldChanged;
@@ -179,6 +186,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
       ownerId: element.id,
       label: label,
       value: fieldValueOf(field),
+      suffixText: suffixText,
       errorTextOf: errorTextOf,
       onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
     );

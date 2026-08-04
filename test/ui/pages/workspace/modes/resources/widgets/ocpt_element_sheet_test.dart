@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a centre-sized
 /// box.
@@ -113,6 +114,7 @@ void main() {
     OcptElement? element,
     List<OcptPerson> people = const [],
     List<OcptSceneRef> scenes = const [],
+    String currencyCode = "EUR",
     bool isReadOnly = false,
     String Function(OcptElementField field)? fieldValueOf,
     void Function(OcptElementField field, String rawValue)? onFieldChanged,
@@ -133,6 +135,7 @@ void main() {
           bringer: _personOf(people, shown.broughtByPersonId),
           people: people,
           scenes: scenes,
+          currencyCode: currencyCode,
           isReadOnly: isReadOnly,
           fieldValueOf: fieldValueOf ?? (field) => "",
           onFieldChanged: onFieldChanged ?? (field, rawValue) {},
@@ -217,6 +220,28 @@ void main() {
     // field is left alone.
     expect(find.text(tr.resourcesElementCostFormatError), findsOneWidget);
   });
+
+  testWidgets(
+    "the cost field shows the project's currency symbol as a suffix, never as part of the text "
+    "being edited",
+    (tester) async {
+      final tr = await pumpSheet(
+        tester,
+        currencyCode: "USD",
+        fieldValueOf: (field) => field == OcptElementField.cost ? "42.00" : "",
+      );
+
+      final costField = find.byWidgetPredicate(
+        (widget) => widget is OcptResourcesSheetField && widget.label == tr.resourcesElementCostLabel,
+      );
+      final textField = tester.widget<TextField>(
+        find.descendant(of: costField, matching: find.byType(TextField)),
+      );
+
+      expect(textField.decoration?.suffixText, r"$");
+      expect(textField.controller?.text, "42.00");
+    },
+  );
 
   testWidgets("a scene link shows its own quantity and note, and can be unlinked", (tester) async {
     String? removedLinkId;

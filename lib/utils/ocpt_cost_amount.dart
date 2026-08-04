@@ -53,8 +53,10 @@ int? ocptCostCentsOf(String text) {
 /// empty string when there is no amount at all.
 ///
 /// No currency symbol and no grouping: this is the text of an editable field, not a formatted
-/// price. What currency a production counts in is a project-wide question nothing in the app asks
-/// yet, and a grouped `1 200.00` would have to be un-grouped again on the very next keystroke.
+/// price. The project's currency is shown beside it instead, as the field's `suffixText`
+/// (`OcptElementSheetSourcingCard`) — chrome the field wears rather than a character this function
+/// would have to write and [ocptCostCentsOf] would then have to strip back out — and a grouped
+/// `1 200.00` would have to be un-grouped again on the very next keystroke.
 String ocptCostTextOf(int? cents) {
   if (cents == null) {
     return "";

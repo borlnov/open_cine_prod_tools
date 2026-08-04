@@ -62,6 +62,9 @@ class OcptElementSheet extends StatelessWidget {
   /// with and picks a new one from.
   final List<OcptSceneRef> scenes;
 
+  /// The current project's currency, an ISO 4217 code, shown as the cost field's suffix.
+  final String currencyCode;
+
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
   /// of this sheet may write through.
   final bool isReadOnly;
@@ -111,6 +114,7 @@ class OcptElementSheet extends StatelessWidget {
     required this.bringer,
     required this.people,
     required this.scenes,
+    required this.currencyCode,
     this.isReadOnly = false,
     required this.fieldValueOf,
     required this.onFieldChanged,
@@ -151,6 +155,7 @@ class OcptElementSheet extends StatelessWidget {
                   owner: owner,
                   bringer: bringer,
                   people: people,
+                  currencyCode: currencyCode,
                   fieldValueOf: fieldValueOf,
                   onFieldChanged: isReadOnly ? null : onFieldChanged,
                   onSourceKindChanged: isReadOnly ? null : onSourceKindChanged,
