@@ -5019,5 +5019,47 @@
     "context": "Written into the exported XLSX file",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceProjectSettingsTooltip": "Project settings",
+  "@workspaceProjectSettingsTooltip": {
+    "description": "Tooltip of the workspace toolbar's project settings button",
+    "context": "Shown on hover over the project settings button of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsPageTitle": "Project settings",
+  "@projectSettingsPageTitle": {
+    "description": "Title of the project settings page",
+    "context": "Displayed at the top of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsCurrencySectionTitle": "Currency",
+  "@projectSettingsCurrencySectionTitle": {
+    "description": "Title of the project settings page's currency section",
+    "context": "Displayed at the top of the currency section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsCurrencyLabel": "Currency",
+  "@projectSettingsCurrencyLabel": {
+    "description": "Label of the currency dropdown",
+    "context": "Displayed next to the currency dropdown in the currency section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsPageFormatSectionTitle": "Page format",
+  "@projectSettingsPageFormatSectionTitle": {
+    "description": "Title of the project settings page's page format section",
+    "context": "Displayed at the top of the page format section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsPageFormatLabel": "Page format",
+  "@projectSettingsPageFormatLabel": {
+    "description": "Label of the page format dropdown",
+    "context": "Displayed next to the page format dropdown in the page format section",
+    "type": "text",
+    "placeholders": {}
   }
 }

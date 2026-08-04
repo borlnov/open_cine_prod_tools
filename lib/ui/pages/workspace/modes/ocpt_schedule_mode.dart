@@ -9,10 +9,15 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 
 /// The shooting schedule production mode. Not implemented yet: shows the shared empty state.
+///
+/// The project settings action is already wired, unlike everything else here: it opens
+/// [OcptRoute.projectSettings] directly, since this mode owns no bloc to reload once the page comes
+/// back — nothing this mode shows yet depends on the project's currency or page format.
 class OcptScheduleMode extends StatelessWidget {
   /// Creates the schedule mode.
   const OcptScheduleMode({super.key});
@@ -27,6 +32,8 @@ class OcptScheduleMode extends StatelessWidget {
       isDirty: false,
       onBack: () => unawaited(_closeProjectAndPop()),
       modeLabel: tr.workspaceModeLabelSchedule,
+      onProjectSettingsRequested: () =>
+          unawaited(globalGetIt().get<OcptRouterManager>().push(OcptRoute.projectSettings)),
       centre: OcptWorkspaceEmptyMode(
         icon: Icons.calendar_month_outlined,
         message: tr.workspaceEmptyModeMessage(tr.workspaceModeSchedule),

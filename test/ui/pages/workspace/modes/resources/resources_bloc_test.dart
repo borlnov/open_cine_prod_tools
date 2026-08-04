@@ -244,6 +244,27 @@ void main() {
     await bloc.close();
   });
 
+  test("the project settings changed event reloads the snapshot from the database", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    // Written directly against the database, bypassing the bloc entirely: nothing the project
+    // settings page currently writes (the currency, the page format) is part of this snapshot, so
+    // this is what a change this bloc doesn't otherwise know about has to look like from its point
+    // of view.
+    final project = projectsManager.currentProject!;
+    await project.database
+        .into(project.database.ocptPeopleTable)
+        .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
+
+    bloc.add(const OcptResourcesProjectSettingsChangedEvent());
+    final state = await waitForState(bloc, (state) => state.peopleCount == 1);
+
+    expect(state.peopleCount, 1);
+
+    await bloc.close();
+  });
+
   test("creating a person appends it to the address book and selects it", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);

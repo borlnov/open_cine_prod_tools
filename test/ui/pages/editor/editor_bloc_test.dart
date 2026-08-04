@@ -1041,6 +1041,46 @@ void main() {
     await bloc.close();
   });
 
+  test(
+    'the project settings changed event re-reads the page format and repaginates',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+          ? OcptPageFormat.a4
+          : OcptPageFormat.usLetter;
+      // Written directly through the manager, the way the project settings page itself writes it
+      // — this bloc never sees the new value on an event, only the fact that something changed.
+      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+
+      bloc.add(const OcptEditorProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+
+      expect(
+        state.statistics,
+        FountainScriptStatistics.of(state.document!, state.pageSetup.toMetrics()),
+      );
+
+      await bloc.close();
+    },
+  );
+
+  test('the project settings changed event is a no-op when the format did not change', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    final setupBefore = bloc.state.pageSetup;
+
+    bloc.add(const OcptEditorProjectSettingsChangedEvent());
+    // Nothing to wait for: assert the very next state (if any) still matches, after giving the
+    // handler's async work a chance to run.
+    await Future<void>.delayed(Duration.zero);
+
+    expect(bloc.state.pageSetup, setupBefore);
+
+    await bloc.close();
+  });
+
   test('closing the bloc flushes the pending unsaved change', () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);

@@ -680,5 +680,11 @@
   "resourcesXlsxColumnReturned": "Rendu",
   "resourcesXlsxColumnTrackingStatus": "Statut de suivi",
   "resourcesXlsxColumnCost": "Co\u00fbt",
-  "resourcesXlsxColumnPurposeNotes": "Utilit\u00e9"
+  "resourcesXlsxColumnPurposeNotes": "Utilit\u00e9",
+  "workspaceProjectSettingsTooltip": "Param\u00e8tres du projet",
+  "projectSettingsPageTitle": "Param\u00e8tres du projet",
+  "projectSettingsCurrencySectionTitle": "Devise",
+  "projectSettingsCurrencyLabel": "Devise",
+  "projectSettingsPageFormatSectionTitle": "Format de page",
+  "projectSettingsPageFormatLabel": "Format de page"
 }

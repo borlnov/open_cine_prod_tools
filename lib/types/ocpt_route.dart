@@ -12,6 +12,9 @@ enum OcptRoute with MixinRoute {
   /// The workspace page, hosting whichever production mode is active
   workspace,
 
+  /// The current project's settings page (currency, page format)
+  projectSettings,
+
   /// The settings page
   settings,
 

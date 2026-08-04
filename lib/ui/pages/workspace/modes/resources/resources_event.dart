@@ -42,6 +42,12 @@ class OcptResourcesBackRequestedEvent extends OcptResourcesEvent {
   const OcptResourcesBackRequestedEvent();
 }
 
+/// Reports that the project settings page was closed after changing something.
+class OcptResourcesProjectSettingsChangedEvent extends OcptResourcesEvent {
+  /// Class constructor
+  const OcptResourcesProjectSettingsChangedEvent();
+}
+
 /// Selects the left dock's tab [tab], dispatched by `OcptResourcesTabBar`.
 ///
 /// Clears the selected person, role and location when [tab] actually differs from the one already

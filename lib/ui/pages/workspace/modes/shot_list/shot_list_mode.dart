@@ -4,11 +4,14 @@
 
 import 'dart:async';
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
@@ -119,6 +122,9 @@ class _ShotListViewState extends State<_ShotListView> {
         onToggleRightDock: () => context.read<OcptShotListBloc>().add(
           const OcptShotListRightDockToggledEvent(),
         ),
+        onProjectSettingsRequested: state.isPreviewingVersion
+            ? null
+            : () => _requestProjectSettings(context),
         banner: _buildReadOnlyBanner(context, state),
         leftPanel: _buildSequencePanel(context, state),
         rightPanel: _buildRightDock(context, state),
@@ -204,6 +210,20 @@ class _ShotListViewState extends State<_ShotListView> {
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
       ),
     );
+  }
+
+  /// Opens the project settings page, then re-reads the page setup if the user changed anything
+  /// there.
+  Future<void> _requestProjectSettings(BuildContext context) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
+      OcptRoute.projectSettings,
+    );
+    if (hasChanged != true) {
+      return;
+    }
+
+    bloc.add(const OcptShotListProjectSettingsChangedEvent());
   }
 
   /// Builds the sequence tree, the shell's `leftPanel`, or null while it's hidden.

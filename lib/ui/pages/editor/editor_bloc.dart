@@ -167,6 +167,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
     on<OcptEditorStyledSceneNumbersToggledEvent>(_onStyledSceneNumbersToggled);
     on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
+    on<OcptEditorProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
     on<OcptEditorExportRequestedEvent>(_onExportRequested);
@@ -744,6 +745,31 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final document = state.document;
     if (document != null) {
       _recomputeStatisticsNow(document: document, pageSetup: event.pageSetup, emitter: emitter);
+    }
+  }
+
+  /// Re-reads the project's page format after the project settings page changed something, and
+  /// repaginates against it.
+  ///
+  /// The format is the only field of the project settings page this bloc's own layout depends on:
+  /// the currency has nothing to do with a screenplay's pagination. Re-reading it rather than
+  /// carrying it on the event is what lets the project settings page own the write without this
+  /// bloc having to learn its shape.
+  Future<void> _onProjectSettingsChanged(
+    OcptEditorProjectSettingsChangedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
+    if (pageFormat == null || pageFormat == state.pageSetup.format) {
+      return;
+    }
+
+    final pageSetup = state.pageSetup.copyWith(format: pageFormat);
+    emitter(state.copyWith(pageSetup: pageSetup));
+
+    final document = state.document;
+    if (document != null) {
+      _recomputeStatisticsNow(document: document, pageSetup: pageSetup, emitter: emitter);
     }
   }
 

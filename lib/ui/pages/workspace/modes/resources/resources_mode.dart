@@ -4,9 +4,11 @@
 
 import 'dart:async';
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -17,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
@@ -131,6 +134,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onToggleRightDock: () => context.read<OcptResourcesBloc>().add(
           const OcptResourcesRightDockToggledEvent(),
         ),
+        onProjectSettingsRequested: state.isPreviewingVersion
+            ? null
+            : () => _requestProjectSettings(context),
         banner: _buildReadOnlyBanner(context, state),
         leftPanel: _buildListPanel(context, state),
         rightPanel: _buildRightDock(context, state),
@@ -195,6 +201,20 @@ class _ResourcesViewState extends State<_ResourcesView> {
         fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
       ),
     );
+  }
+
+  /// Opens the project settings page, then reloads the resources snapshot if the user changed
+  /// anything there.
+  Future<void> _requestProjectSettings(BuildContext context) async {
+    final bloc = context.read<OcptResourcesBloc>();
+    final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
+      OcptRoute.projectSettings,
+    );
+    if (hasChanged != true) {
+      return;
+    }
+
+    bloc.add(const OcptResourcesProjectSettingsChangedEvent());
   }
 
   /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.

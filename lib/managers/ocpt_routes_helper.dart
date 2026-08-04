@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 
@@ -18,6 +19,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     : super(values: OcptRoute.values, debugLogDiagnostics: true) {
     onPage(OcptRoute.home, _createHomePage);
     onPage(OcptRoute.workspace, _createWorkspacePage);
+    onPage(OcptRoute.projectSettings, _createProjectSettingsPage);
     onPage(OcptRoute.settings, _createSettingsPage);
     onPage(OcptRoute.licenses, _createLicensesPage);
   }
@@ -29,6 +31,10 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
   /// Callback to create the [WorkspacePage]
   RoutePageDetails _createWorkspacePage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: WorkspacePage());
+
+  /// Callback to create the [OcptProjectSettingsPage]
+  RoutePageDetails _createProjectSettingsPage(BuildContext context, GoRouterState state) =>
+      const RoutePageDetails(widget: OcptProjectSettingsPage());
 
   /// Callback to create the [SettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>

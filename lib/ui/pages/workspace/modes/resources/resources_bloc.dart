@@ -168,6 +168,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     super.registerMixinEvents();
     on<OcptResourcesLoadRequestedEvent>(_onLoadRequested);
     on<OcptResourcesBackRequestedEvent>(_onBackRequested);
+    on<OcptResourcesProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptResourcesTabSelectedEvent>(_onTabSelected);
     on<OcptResourcesPersonSelectedEvent>(_onPersonSelected);
     on<OcptResourcesPersonCreationRequestedEvent>(_onPersonCreationRequested);
@@ -351,6 +352,24 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     await _flushPendingFieldEdits(emitter);
     await _projectsManager.closeCurrentProject();
     _routerManager.pop();
+  }
+
+  /// Reloads the resources snapshot after the project settings page changed something.
+  ///
+  /// Nothing in the snapshot itself depends on the project's currency or page format today — this
+  /// exists so a change made there is never silently missed by this mode, the same reasoning that
+  /// has `OcptProjectWorkingCopyRefreshRequestedEvent` refresh the working-copy card proactively
+  /// rather than only on the writes this bloc already knows about.
+  Future<void> _onProjectSettingsChanged(
+    OcptResourcesProjectSettingsChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
   }
 
   /// Selects tab `event.tab`, clearing every selected record when it actually changes tab.

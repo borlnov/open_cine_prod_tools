@@ -2,12 +2,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
@@ -190,6 +193,9 @@ class _EditorViewState extends State<_EditorView> {
               // nothing the user does reaches the project.
               onSave: isReadOnly ? null : _requestManualSave,
               isSaving: state.isSaving,
+              onProjectSettingsRequested: isReadOnly
+                  ? null
+                  : () => _requestProjectSettings(context),
               banner: _buildReadOnlyBanner(context, state),
               leftPanel: _buildScenePanel(context, state),
               rightPanel: _buildRightDock(context, state),
@@ -579,6 +585,20 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     bloc.add(OcptEditorPageSetupChangedEvent(pageSetup: setup));
+  }
+
+  /// Opens the project settings page, then reloads the page format (and repaginates) if the user
+  /// changed anything there.
+  Future<void> _requestProjectSettings(BuildContext context) async {
+    final bloc = context.read<OcptEditorBloc>();
+    final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
+      OcptRoute.projectSettings,
+    );
+    if (hasChanged != true) {
+      return;
+    }
+
+    bloc.add(const OcptEditorProjectSettingsChangedEvent());
   }
 
   /// Shows the PDF export options dialog, then dispatches the export request if the user applied

@@ -18,9 +18,9 @@ class OcptRouterManagerBuilder extends AbstractRouterBuilder<OcptRouterManager> 
 
 /// Drives the navigation of the application through the [OcptRoute] enum.
 ///
-/// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace]: it can
-/// only be reached while [OcptProjectsManager] has a project open, otherwise navigation is
-/// redirected to [OcptRoute.home].
+/// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace] and
+/// [OcptRoute.projectSettings]: both can only be reached while [OcptProjectsManager] has a project
+/// open, otherwise navigation is redirected to [OcptRoute.home].
 class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
   /// {@macro act_router_manager.AbstractRouterManager.createRoutesHelper}
   @override
@@ -29,23 +29,25 @@ class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
 
   /// {@macro act_life_cycle.MixinUiLifeCycle.initAfterManagersAndBeforeViews}
   ///
-  /// This is also where the [OcptRoute.workspace] guard is registered: it's called once every
-  /// manager (including [OcptProjectsManager]) is ready, which is required for
-  /// [_redirectFromWorkspaceWhenNoProjectIsOpen] to safely query it.
+  /// This is also where the project guard is registered: it's called once every manager
+  /// (including [OcptProjectsManager]) is ready, which is required for
+  /// [_redirectWhenNoProjectIsOpen] to safely query it.
   @override
   Future<void> initAfterManagersAndBeforeViews() async {
     await super.initAfterManagersAndBeforeViews();
-    registerRedirect(_redirectFromWorkspaceWhenNoProjectIsOpen);
+    registerRedirect(_redirectWhenNoProjectIsOpen);
   }
 
-  /// Redirects [OcptRoute.workspace] to [OcptRoute.home] whenever no project is currently open.
-  Future<OcptRoute?> _redirectFromWorkspaceWhenNoProjectIsOpen(
+  /// Redirects [OcptRoute.workspace] and [OcptRoute.projectSettings] to [OcptRoute.home] whenever
+  /// no project is currently open: the workspace has nothing to show then, and the project
+  /// settings page has no project to read or write.
+  Future<OcptRoute?> _redirectWhenNoProjectIsOpen(
     BuildContext context,
     OcptRoute route,
     GoRouterState state,
   ) async {
-    if (route == OcptRoute.workspace &&
-        globalGetIt().get<OcptProjectsManager>().currentProject == null) {
+    final needsAnOpenProject = route == OcptRoute.workspace || route == OcptRoute.projectSettings;
+    if (needsAnOpenProject && globalGetIt().get<OcptProjectsManager>().currentProject == null) {
       return OcptRoute.home;
     }
 
