@@ -12,6 +12,7 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
@@ -24,6 +25,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
@@ -187,7 +189,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   ///
   /// If a project is already open, it's closed first. The project's page format defaults to
   /// [OcptPageFormat.a4] when the platform's locale is French, and to [OcptPageFormat.usLetter]
-  /// otherwise.
+  /// otherwise. Its currency defaults to whatever `intl` names for the platform's current locale
+  /// (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
+  /// [ocptDefaultCurrencyCode] when it can't.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> createProject({
     required String name,
     required String filePath,
@@ -220,6 +224,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
               createdAt: now,
               appVersionAtCreation: _appVersion,
               pageFormat: _defaultPageFormatForPlatformLocale(),
+              currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
             ),
           );
 
@@ -353,6 +358,41 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.database
         .update(project.database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
+  }
+
+  /// Loads the ISO 4217 currency code stored in the [currentProject]'s `project_info` table, or
+  /// null if no project is currently open.
+  ///
+  /// Modelled on [loadCurrentProjectPageFormat]: reading the project database stays confined to
+  /// the managers/services layer.
+  Future<String?> loadCurrentProjectCurrencyCode() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.currencyCode;
+  }
+
+  /// Updates the currency code stored in the [currentProject]'s `project_info` table. Does nothing
+  /// if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectPageFormat]: [code] is a property of the project, not of the
+  /// app, so it is written the very same way.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectCurrencyCode(String code) async {
+    final project = currentProject;
+    if (project == null || project.database.refusesUserWrite("saveCurrentProjectCurrencyCode")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(currencyCode: Value(code)));
   }
 
   /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
@@ -676,6 +716,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     final languageCode = PlatformDispatcher.instance.locale.languageCode;
     return languageCode == "fr" ? OcptPageFormat.a4 : OcptPageFormat.usLetter;
   }
+
+  /// Returns the default currency code for a newly created project, guessed from the platform's
+  /// current locale (e.g. `fr_FR` suggests `EUR`, `en_US` suggests `USD`) through `intl`'s own
+  /// locale-to-currency table, falling back to the schema's own default (`EUR`) when `intl` can't
+  /// name one for the locale — a Dart platform locale that carries no region at all, say.
+  static String _defaultCurrencyCodeForPlatformLocale() =>
+      NumberFormat.simpleCurrency(locale: PlatformDispatcher.instance.locale.toString())
+          .currencyName ??
+      ocptDefaultCurrencyCode;
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

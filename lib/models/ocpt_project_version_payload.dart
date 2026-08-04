@@ -104,6 +104,17 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `project_info.settingsJson` of the project, or null if it had none.
   final String? settingsJson;
 
+  /// The `project_info.currencyCode` of the project, or null when this payload predates
+  /// currencies (captured in payload format 3 or earlier).
+  ///
+  /// Unlike every other field of this class, a null here is not "this project had none" — the
+  /// column itself is never null — it is "this version doesn't know". That distinction is what
+  /// `OcptProjectVersionsService.restoreVersion` reads it for: a restore **leaves the project's
+  /// currency untouched** when this is null, rather than overwriting it with a guess, which is the
+  /// fail-safe direction (the opposite choice the resources tables make, since their absence is a
+  /// truthful "there were none").
+  final String? currencyCode;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -126,6 +137,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
+    required this.currencyCode,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -139,7 +151,7 @@ class OcptProjectVersionPayload extends Equatable {
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
       "assets: ${assets.length}, rowFieldVersions: ${rowFieldVersions.length}, "
-      "pageSetup: $pageSetup)";
+      "pageSetup: $pageSetup, currencyCode: $currencyCode)";
 
   /// Object properties
   @override
@@ -164,5 +176,6 @@ class OcptProjectVersionPayload extends Equatable {
     rowFieldVersions,
     pageSetup,
     settingsJson,
+    currencyCode,
   ];
 }

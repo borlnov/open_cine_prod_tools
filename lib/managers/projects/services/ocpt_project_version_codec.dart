@@ -52,7 +52,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 3;
+  static const currentPayloadFormat = 4;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -549,6 +549,9 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse the project's `pageFormat` from a JSON object
   static const _pageFormatKey = "pageFormat";
 
+  /// This is the key used to stringify or parse the project's `currencyCode` from a JSON object
+  static const _currencyCodeKey = "currencyCode";
+
   /// This is the key used to stringify or parse the project's `settingsJson` from a JSON object
   static const _settingsJsonKey = "settingsJson";
 
@@ -573,6 +576,7 @@ class OcptProjectVersionCodec {
   static const _payloadUpgrades = <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{
     1: _upgradeFormat1To2,
     2: _upgradeFormat2To3,
+    3: _upgradeFormat3To4,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -613,6 +617,25 @@ class OcptProjectVersionCodec {
     _locationAvailabilitiesKey: const <dynamic>[],
   };
 
+  /// Turns a format-**3** JSON object into a format-**4** one: `project_info.currencyCode` didn't
+  /// exist yet, so [_projectSettingsKey] gains a **null** [_currencyCodeKey] rather than a guessed
+  /// one.
+  ///
+  /// Null is the truthful reading here, unlike the empty lists [_upgradeFormat1To2] and
+  /// [_upgradeFormat2To3] materialise: those tables genuinely held nothing yet, whereas a project
+  /// captured in format 3 or earlier *did* have a currency — the column has never been nullable —
+  /// this payload simply never recorded which one. `OcptProjectVersionsService.restoreVersion`
+  /// reads that null as "leave the project's currency untouched" rather than as "there was none",
+  /// which is the whole reason [OcptProjectVersionPayload.currencyCode] is nullable at all.
+  static Map<String, dynamic> _upgradeFormat3To4(Map<String, dynamic> json) {
+    final projectSettings = Map<String, dynamic>.from(
+      json[_projectSettingsKey] as Map<String, dynamic>? ?? const {},
+    );
+    projectSettings[_currencyCodeKey] = null;
+
+    return {...json, _projectSettingsKey: projectSettings};
+  }
+
   /// Class constructor
   const OcptProjectVersionCodec();
 
@@ -645,6 +668,7 @@ class OcptProjectVersionCodec {
     _projectSettingsKey: {
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
+      _currencyCodeKey: payload.currencyCode,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -704,11 +728,14 @@ class OcptProjectVersionCodec {
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
   ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
   ///   `sceneSets`, `elements`, `sceneElements`, `assets` — every column of each — plus
-  ///   `pageSetup.format` and `settingsJson`. This is "the project", as a user would describe it,
-  ///   and the resources tables are not optional here: leave them out and two states differing only
-  ///   in their people, locations or elements would hash identically — the working-copy card would
-  ///   claim no drift after an afternoon of typing resources in, and a restore would skip the safety
-  ///   version it promised to keep;
+  ///   `pageSetup.format`, `settingsJson` and `currencyCode`. This is "the project", as a user would
+  ///   describe it, and the resources tables are not optional here: leave them out and two states
+  ///   differing only in their people, locations or elements would hash identically — the
+  ///   working-copy card would claim no drift after an afternoon of typing resources in, and a
+  ///   restore would skip the safety version it promised to keep. `currencyCode` is only ever null
+  ///   on a payload decoded from a format predating it (never on one freshly captured from a live
+  ///   database, which always reads a real value), so this never makes an old and a current capture
+  ///   of the very same project disagree;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -786,6 +813,7 @@ class OcptProjectVersionCodec {
       _assetsKey: _canonicalRows(payload.assets, primaryKeyOf: (row) => row.id, toJson: _assetToJson),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
+      _currencyCodeKey: payload.currencyCode,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -868,6 +896,7 @@ class OcptProjectVersionCodec {
         ),
       ),
       settingsJson: _nullableString(projectSettings, _settingsJsonKey),
+      currencyCode: _nullableString(projectSettings, _currencyCodeKey),
     );
   }
 

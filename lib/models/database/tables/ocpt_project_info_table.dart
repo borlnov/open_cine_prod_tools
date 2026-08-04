@@ -6,6 +6,15 @@ import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
+/// The currency a project counts in until somebody says otherwise: the column's own SQL default,
+/// what an existing project is migrated to, and the fallback `OcptProjectsManager` seeds a new one
+/// with when the device locale gives `intl` no better guess.
+///
+/// A top-level constant rather than a static of [OcptProjectInfoTable]: drift copies a column's
+/// `defaultValue` verbatim into the generated table class, and a static inherited from the table it
+/// generates against cannot be named unqualified there.
+const String ocptDefaultCurrencyCode = 'EUR';
+
 /// Converts a [OcptPageFormat] to and from the text stored in the `project_info.pageFormat`
 /// column.
 class OcptPageFormatConverter extends TypeConverter<OcptPageFormat, String> {
@@ -45,6 +54,16 @@ class OcptProjectInfoTable extends Table {
 
   /// The physical page format used to paginate this project's screenplays.
   TextColumn get pageFormat => text().map(const OcptPageFormatConverter())();
+
+  /// The ISO 4217 code of the currency this project counts its costs in (e.g. `EUR`, `USD`).
+  ///
+  /// A property of the **project**, not of the app: a production shot in France and one shot in
+  /// the US count their costs in different currencies, and that fact has to travel inside the
+  /// `.ocpt` file itself so a colleague opening it on another machine sees the same figures read
+  /// the same way. This is the same reasoning that keeps [pageFormat] here rather than in
+  /// `OcptPropertiesManager` — unlike the page **margins**, an app-wide rendering preference with
+  /// nothing to do with any one project.
+  TextColumn get currencyCode => text().withDefault(const Constant(ocptDefaultCurrencyCode))();
 
   /// Free-form project settings, stored as a JSON object, or null if there are none yet.
   TextColumn get settingsJson => text().nullable()();

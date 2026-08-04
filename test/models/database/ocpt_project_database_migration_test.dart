@@ -112,6 +112,14 @@ CREATE TABLE "assets" ("id" TEXT NOT NULL, "kind" TEXT NOT NULL, "path" TEXT NOT
 CREATE TABLE "local_erasures" ("person_id" TEXT NOT NULL REFERENCES people (id), "erased_at" TEXT NOT NULL, PRIMARY KEY ("person_id"));
 ''';
 
+// The one table version 7 added on top of [_v5Ddl]/[_v6ResourcesDdl]: `location_availabilities`,
+// the dated windows during which a location may be shot in. Captured through a real
+// `OcptProjectDatabase`, like every fixture above. `project_info` here still lacks
+// `currency_code`, which version 8 adds.
+const _v7LocationAvailabilitiesDdl = '''
+CREATE TABLE "location_availabilities" ("id" TEXT NOT NULL, "location_id" TEXT NOT NULL REFERENCES locations (id), "start_date" TEXT NOT NULL, "end_date" TEXT NOT NULL, "weekdays" INTEGER NOT NULL DEFAULT 127, "slot" TEXT NOT NULL DEFAULT 'fullDay', "start_minute" INTEGER NULL, "end_minute" INTEGER NULL, "kind" TEXT NOT NULL DEFAULT 'available', "note" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -261,7 +269,7 @@ void main() {
     // anything but version 7.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 7);
+    expect(await readSchemaVersion(freshDatabase), 8);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -301,6 +309,11 @@ void main() {
       ('upgraded_from_v4.ocpt', _v4Ddl, 4),
       ('upgraded_from_v5.ocpt', _v5Ddl, 5),
       ('upgraded_from_v6.ocpt', '$_v5Ddl$_v6ResourcesDdl', 6),
+      (
+        'upgraded_from_v7.ocpt',
+        '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl',
+        7,
+      ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -317,7 +330,7 @@ void main() {
         reason: "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 7);
+      expect(await readSchemaVersion(database), 8);
 
       await database.close();
     }
@@ -405,7 +418,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 5.
-    expect(await readSchemaVersion(database), 7);
+    expect(await readSchemaVersion(database), 8);
 
     await database.close();
   });
@@ -523,7 +536,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 7);
+    expect(await readSchemaVersion(database), 8);
 
     await database.close();
   });
@@ -579,7 +592,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 7);
+    expect(await readSchemaVersion(database), 8);
 
     await database.close();
   });
@@ -613,7 +626,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says version 5.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 7);
+    expect(await readSchemaVersion(database), 8);
 
     await database.close();
   });
@@ -757,8 +770,8 @@ void main() {
     )..where((table) => table.personId.equals("person1"))).go();
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
-    // (d) the file now says version 7.
-    expect(await readSchemaVersion(database), 7);
+    // (d) the file now says version 8.
+    expect(await readSchemaVersion(database), 8);
 
     await database.close();
   });
@@ -808,8 +821,42 @@ void main() {
     expect(availability.kind, OcptLocationAvailabilityKind.available);
     expect(availability.isDeleted, isFalse);
 
-    // (c) the file now says version 7.
-    expect(await readSchemaVersion(database), 7);
+    // (c) the file now says version 8.
+    expect(await readSchemaVersion(database), 8);
+
+    await database.close();
+  });
+
+  test('a v7 database migrates on, gaining the currency', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v7.ocpt');
+
+    // The shape version 7 left behind: `location_availabilities` exists, but `project_info` has
+    // no `currency_code` yet.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute(_v6ResourcesDdl);
+    legacyDb.execute(_v7LocationAvailabilitiesDdl);
+    legacyDb.execute('PRAGMA user_version = 7;');
+    seedCommonRows(legacyDb);
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived untouched: this step only adds one column.
+    await expectCommonRowsSurvived(database);
+
+    // (b) the new column exists and defaults an already-existing project to EUR, exactly as a
+    // freshly created one does when the device locale can't suggest anything better.
+    final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+    expect(projectInfo.currencyCode, "EUR");
+
+    await database
+        .update(database.ocptProjectInfoTable)
+        .write(const OcptProjectInfoTableCompanion(currencyCode: Value("USD")));
+    expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
+
+    // (c) the file now says version 8.
+    expect(await readSchemaVersion(database), 8);
 
     await database.close();
   });

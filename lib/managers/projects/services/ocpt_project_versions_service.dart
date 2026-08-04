@@ -11,6 +11,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
@@ -293,8 +294,8 @@ class OcptProjectVersionsService {
   ///
   /// [projectInfo] is the working copy's own header: the preview keeps the project's name, its
   /// creation date and the app version that created it, and takes only what the payload owns — the
-  /// page format and the free-form settings. Its `currentVersionId` is deliberately left null,
-  /// since the preview database holds no `project_versions` row for it to point at.
+  /// page format, the currency and the free-form settings. Its `currentVersionId` is deliberately
+  /// left null, since the preview database holds no `project_versions` row for it to point at.
   ///
   /// The rows go in verbatim, tombstones and primary keys included, in dependency order and within
   /// a single transaction: a half-hydrated preview must never be shown. The page **margins** the
@@ -315,6 +316,10 @@ class OcptProjectVersionsService {
             appVersionAtCreation: projectInfo.appVersionAtCreation,
             pageFormat: payload.pageSetup.format,
             settingsJson: Value(payload.settingsJson),
+            // A payload predating currencies (format 2 or earlier) carries no currency of its own
+            // to preview: the schema's own default reads as truthfully as anything else can for a
+            // moment currencies didn't exist yet.
+            currencyCode: Value(payload.currencyCode ?? ocptDefaultCurrencyCode),
           ),
         );
 
@@ -402,6 +407,10 @@ class OcptProjectVersionsService {
   /// committed — margins pointing at a restore that failed would leave the whole app paginating
   /// against a state no project holds.
   ///
+  /// The currency is written here too, **except when the payload doesn't carry one** — a version
+  /// captured before currencies existed — in which case the project's own currency is left exactly
+  /// as it stood: see `OcptProjectVersionPayload.currencyCode`.
+  ///
   /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
   /// **A restore is an edit, not a reset**, and that distinction is what the whole of
   /// [_applyPayload] is about. The obvious implementation — empty the tables, bulk-insert the
@@ -475,6 +484,13 @@ class OcptProjectVersionsService {
               OcptProjectInfoTableCompanion(
                 pageFormat: Value(payload.pageSetup.format),
                 settingsJson: Value(payload.settingsJson),
+                // Absent rather than written when the payload predates currencies: leaving the
+                // column out of a partial `.write()` keeps whatever the project already holds,
+                // which is the fail-safe direction — see `OcptProjectVersionPayload.currencyCode`.
+                currencyCode: switch (payload.currencyCode) {
+                  final code? => Value(code),
+                  null => const Value.absent(),
+                },
                 currentVersionId: Value(id),
               ),
             );
@@ -551,6 +567,7 @@ class OcptProjectVersionsService {
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
+      currencyCode: info.currencyCode,
     );
   }
 
@@ -847,6 +864,7 @@ class OcptProjectVersionsService {
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
+      currencyCode: payload.currencyCode,
     );
   }
 

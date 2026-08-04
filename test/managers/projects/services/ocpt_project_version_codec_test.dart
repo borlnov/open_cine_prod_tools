@@ -514,6 +514,7 @@ void main() {
       ),
     ),
     settingsJson: '{"someSetting":true}',
+    currencyCode: "GBP",
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -697,6 +698,10 @@ void main() {
       expect(roundTripped.settingsJson, '{"someSetting":true}');
     });
 
+    test('the currency comes back', () {
+      expect(roundTrip(buildRichPayload()).currencyCode, "GBP");
+    });
+
     test('a project with no shot list at all round trips as an empty one', () {
       const payload = OcptProjectVersionPayload(
         screenplays: [],
@@ -719,6 +724,7 @@ void main() {
         rowFieldVersions: [],
         pageSetup: OcptPageSetup.standard(),
         settingsJson: null,
+        currencyCode: null,
       );
 
       expect(roundTrip(payload), payload);
@@ -759,6 +765,7 @@ void main() {
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -795,6 +802,7 @@ void main() {
         ],
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -831,6 +839,7 @@ void main() {
           ),
         ),
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -862,6 +871,7 @@ void main() {
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -890,6 +900,7 @@ void main() {
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -918,6 +929,7 @@ void main() {
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       // Without the resources tables in the digest, an afternoon of typing people, locations and
@@ -948,6 +960,7 @@ void main() {
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -979,9 +992,39 @@ void main() {
           margins: payload.pageSetup.margins,
         ),
         settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
+    });
+
+    test('changes when the currency changes', () {
+      final payload = buildRichPayload();
+      final recurrencied = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        assets: payload.assets,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: "USD",
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
     });
   });
 
@@ -1143,6 +1186,50 @@ void main() {
       // Truthful rather than unknown: the project had no window to capture, so restoring this
       // version drops whatever windows the working copy has gathered since.
       expect(payload.locationAvailabilities, isEmpty);
+    });
+
+    test('a stored format-3 payload decodes to a null currency', () {
+      // The retired format that shipped with `location_availabilities` but before
+      // `project_info.currencyCode` existed: `projectSettings` carries no `currencyCode` key at
+      // all.
+      const format3Payload = '''
+{
+  "payloadFormat": 3,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [],
+  "locationAvailabilities": [],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [],
+  "sceneElements": [],
+  "assets": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+      final result = codec.decode(format3Payload);
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      // Null reads as "this version doesn't know", never as "there was no currency" — the column
+      // has never been nullable — which is why `OcptProjectVersionsService.restoreVersion` leaves
+      // the project's own currency untouched rather than overwriting it with this null.
+      expect(result.value!.currencyCode, isNull);
     });
   });
 

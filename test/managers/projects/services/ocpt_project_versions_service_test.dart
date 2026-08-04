@@ -728,6 +728,7 @@ void main() {
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
+                  currencyCode: payload.currencyCode,
                 ),
               ),
               summaryJson: "{}",
@@ -896,6 +897,57 @@ void main() {
         database.ocptPeopleTable,
       )..where((table) => table.id.equals("person-1"))).getSingle();
       expect(person.isDeleted, isTrue);
+    });
+
+    test("restores the currency the version was captured with", () async {
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(currencyCode: Value("USD")));
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.currencyCode, "EUR");
+    });
+
+    test("restoring a payload with no currency leaves the project's own currency untouched", () async {
+      // A literal fixture of a version captured before currencies existed (payload format 3):
+      // `projectSettings` carries no `currencyCode` key at all.
+      await database
+          .into(database.ocptProjectVersionsTable)
+          .insert(
+            OcptProjectVersionsTableCompanion.insert(
+              id: "version-format3",
+              name: "v0 — Before currencies",
+              createdAt: DateTime.utc(2026),
+              appVersion: "0.1.0",
+              payloadFormat: 3,
+              payload:
+                  '{"payloadFormat":3,"screenplays":[],"scenes":[],"shots":[],'
+                  '"shotCharacters":[],"shotCoverages":[],"people":[],"personPositions":[],'
+                  '"personSkills":[],"personUnavailabilities":[],"roles":[],"locations":[],'
+                  '"locationAvailabilities":[],"sets":[],"sceneSets":[],"elements":[],'
+                  '"sceneElements":[],"assets":[],"rowFieldVersions":[],'
+                  '"projectSettings":{"pageFormat":"a4","settingsJson":null},'
+                  '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
+                  '"bottomInches":1.25}}',
+              summaryJson: "{}",
+              createdByDeviceId: deviceId,
+            ),
+          );
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(currencyCode: Value("GBP")));
+
+      final result = await restore("version-format3");
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.currencyCode, "GBP");
     });
 
     test(

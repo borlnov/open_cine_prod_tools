@@ -163,7 +163,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   /// The database options used by this database.
   ///
@@ -192,7 +192,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// positions/skills/unavailabilities, the cast, locations and sets, elements, asset references
   /// and the local erasures record — and nothing else: no table a project already had is altered.
   /// From 6 to 7 it creates [OcptLocationAvailabilitiesTable], the dated windows during which a
-  /// location may be shot in. Every step is additive, as ADR 0007 requires: every new column
+  /// location may be shot in. From 7 to 8 it adds `project_info.currencyCode`, defaulting an
+  /// existing file to EUR exactly as a freshly created one would if the device locale couldn't
+  /// suggest anything better. Every step is additive, as ADR 0007 requires: every new column
   /// carries a default (or is nullable), so the rows a project already had stay valid without being
   /// rewritten.
   ///
@@ -264,6 +266,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 7) {
         await m.createTable(ocptLocationAvailabilitiesTable);
+      }
+
+      if (from < 8) {
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currencyCode);
       }
     },
     beforeOpen: (details) async {

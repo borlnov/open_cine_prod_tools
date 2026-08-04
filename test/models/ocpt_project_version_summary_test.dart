@@ -43,6 +43,7 @@ void main() {
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,
+    currencyCode: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].
