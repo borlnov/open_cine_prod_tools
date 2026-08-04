@@ -92,7 +92,7 @@ reports, storyboard, the per-scene breakdown screen, and a casting tracker.
 | 24 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
-| 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`), payload format 2 carrying them, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export | ✅ |
+| 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying them, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export | ✅ |
 
 ## Ways of working
 
@@ -250,8 +250,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v6 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the twelve resources tables, `row_field_versions`,
+- Persistence: drift schema v7 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the thirteen resources tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -260,7 +260,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   merges second renumbers, and the migration test pins what `onCreate` produces against what every
   upgrade path produces, so a table declared and forgotten in `onUpgrade` fails there rather than
   on a user's file.
-- Project versions (`project_versions` + `project_info.currentVersionId`, schema v6): the user's
+- Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
   `screenplay_snapshots` (automatic, screenplay-only, pruned past 30). The table is **local and
   never synchronised** — no tombstone, no `sortKey`, no stamps, and `OcptProjectVersionsService`
