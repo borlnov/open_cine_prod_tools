@@ -226,6 +226,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSceneElementUpdatedEvent>(_onSceneElementUpdated);
     on<OcptResourcesSceneElementRemovedEvent>(_onSceneElementRemoved);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
+    on<OcptResourcesSearchToggledEvent>(_onSearchToggled);
+    on<OcptResourcesSearchQueryChangedEvent>(_onSearchQueryChanged);
     on<OcptResourcesRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptResourcesRightDockToggledEvent>(_onRightDockToggled);
     on<OcptResourcesRightDockClosedEvent>(_onRightDockClosed);
@@ -350,6 +352,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
   /// Selects tab `event.tab`, clearing every selected record when it actually changes tab.
   ///
+  /// Also clears [OcptResourcesState.searchQuery] when it actually changes tab, but leaves the
+  /// search field open (`isSearchVisible` untouched): each tab searches its own kind of record —
+  /// a query that found three costume elements means nothing once the roles tab is showing — so
+  /// carrying it across a tab change would filter the new list against words that describe the
+  /// old one.
+  ///
   /// Flushes any pending field edit first, so switching tabs right after typing never loses it.
   Future<void> _onTabSelected(
     OcptResourcesTabSelectedEvent event,
@@ -366,6 +374,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         clearSelectedRoleId: !isSameTab,
         clearSelectedLocationId: !isSameTab,
         clearSelectedElementId: !isSameTab,
+        searchQuery: isSameTab ? null : "",
       ),
     );
   }
@@ -2222,6 +2231,40 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     emitter(state.copyWith(isListPanelVisible: !state.isListPanelVisible));
+  }
+
+  /// Toggles whether the search field is shown.
+  ///
+  /// Opening it forces the left dock open too (`isListPanelVisible: true` regardless of what it
+  /// already was) — a field in a hidden dock would be a toggle that visibly does nothing — while
+  /// closing it leaves the dock exactly as the user left it. Closing it also clears
+  /// [OcptResourcesState.searchQuery], so a hidden field can never keep filtering a list nobody can
+  /// see any more.
+  Future<void> _onSearchToggled(
+    OcptResourcesSearchToggledEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final isOpening = !state.isSearchVisible;
+
+    emitter(
+      state.copyWith(
+        isSearchVisible: isOpening,
+        isListPanelVisible: isOpening ? true : null,
+        searchQuery: isOpening ? null : "",
+      ),
+    );
+  }
+
+  /// Records the search field's current text.
+  ///
+  /// This needs no debounce, unlike a sheet field's typed value (see
+  /// `OcptResourcesSearchQueryChangedEvent`'s own doc comment): it writes nothing to the project
+  /// database, so it is applied to the state the moment it is typed rather than after a pause.
+  Future<void> _onSearchQueryChanged(
+    OcptResourcesSearchQueryChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    emitter(state.copyWith(searchQuery: event.query));
   }
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens

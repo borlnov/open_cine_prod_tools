@@ -7,7 +7,10 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_avatar.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 
 /// The separator joining the names of the other roles a cast member holds, in
 /// [_OcptRoleEntry]'s own muted line.
@@ -15,6 +18,51 @@ const _otherRolesSeparator = ", ";
 
 /// The radius of a row's avatar.
 const double _avatarRadius = 13;
+
+/// The subset of [roles] matching [query], through [ocptResourcesSearchMatches] against every
+/// field a row shows or that names the role: its own name, the name it had before it was orphaned
+/// (still worth finding by), the cast member's display name and the localized role kind.
+///
+/// Shared by [OcptRolesList]'s own body and `OcptResourcesListPanel`'s header count, so the two
+/// can never disagree about how many roles a query actually matches.
+List<OcptRole> ocptFilteredRolesOf({
+  required List<OcptRole> roles,
+  required List<OcptPerson> people,
+  required String query,
+  required Tr tr,
+}) => [
+  for (final role in roles)
+    if (ocptResourcesSearchMatches(
+      query: query,
+      fields: _searchFieldsOf(tr, role, _personOf(people, role.personId)),
+    ))
+      role,
+];
+
+/// The person [personId] names, or null when it is null or names nobody in [people] (a stale
+/// reference from a snapshot rebuilt underneath). Shared by [ocptFilteredRolesOf] and
+/// [OcptRolesList]'s own build method.
+OcptPerson? _personOf(List<OcptPerson> people, String? personId) {
+  if (personId == null) {
+    return null;
+  }
+
+  for (final person in people) {
+    if (person.id == personId) {
+      return person;
+    }
+  }
+
+  return null;
+}
+
+/// Every field of [role] a search query may match against, see [ocptFilteredRolesOf].
+Iterable<String> _searchFieldsOf(Tr tr, OcptRole role, OcptPerson? castMember) => [
+  role.name,
+  role.orphanedName ?? "",
+  castMember?.displayName ?? "",
+  ocptRoleKindLabel(tr, role.kind),
+];
 
 /// The cast: one row per [OcptRole], mock-up layout — a small [OcptRoleAvatar], the role's name on
 /// top in the accent colour, the cast member's name under it (a muted italic "Not cast" while there
@@ -35,6 +83,10 @@ class OcptRolesList extends StatelessWidget {
   /// The id of the selected role, or null if none is.
   final String? selectedRoleId;
 
+  /// The search query currently filtering the list, or empty while search is closed or nothing was
+  /// typed — see [ocptFilteredRolesOf].
+  final String searchQuery;
+
   /// Called with a role's id when their row is clicked.
   final ValueChanged<String> onRoleSelected;
 
@@ -44,28 +96,28 @@ class OcptRolesList extends StatelessWidget {
     required this.roles,
     required this.people,
     required this.selectedRoleId,
+    required this.searchQuery,
     required this.onRoleSelected,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
     if (roles.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          Tr.of(context).resourcesRolesEmptyHint,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-      );
+      return OcptResourcesListMessage(message: tr.resourcesRolesEmptyHint);
+    }
+
+    final filtered = ocptFilteredRolesOf(roles: roles, people: people, query: searchQuery, tr: tr);
+    if (filtered.isEmpty) {
+      return OcptResourcesListMessage(message: tr.resourcesSearchNoMatchHint(searchQuery));
     }
 
     return ListView.builder(
-      itemCount: roles.length,
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final role = roles[index];
-        final castMember = _personOf(role.personId);
+        final role = filtered[index];
+        final castMember = _personOf(people, role.personId);
         final otherRoleNames = castMember == null
             ? const <String>[]
             : [
@@ -82,22 +134,6 @@ class OcptRolesList extends StatelessWidget {
         );
       },
     );
-  }
-
-  /// The person [personId] names, or null when it is null or names nobody in [people] (a stale
-  /// reference from a snapshot rebuilt underneath).
-  OcptPerson? _personOf(String? personId) {
-    if (personId == null) {
-      return null;
-    }
-
-    for (final person in people) {
-      if (person.id == personId) {
-        return person;
-      }
-    }
-
-    return null;
   }
 }
 

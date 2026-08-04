@@ -76,6 +76,7 @@ void main() {
     WidgetTester tester, {
     required List<OcptLocation> locations,
     String? selectedLocationId,
+    String searchQuery = "",
     ValueChanged<String>? onLocationSelected,
   }) async {
     await tester.pumpWidget(
@@ -83,6 +84,7 @@ void main() {
         OcptLocationsList(
           locations: locations,
           selectedLocationId: selectedLocationId,
+          searchQuery: searchQuery,
           onLocationSelected: onLocationSelected ?? (locationId) {},
         ),
       ),
@@ -144,5 +146,60 @@ void main() {
     await pumpList(tester, locations: const []);
 
     expect(find.text("No location yet. Add the first place the film is shot in."), findsOneWidget);
+  });
+
+  testWidgets("a query finds a location by its city", (tester) async {
+    await pumpList(
+      tester,
+      locations: [
+        _location(id: "l1", name: "La maison des Pains", city: "Lyon"),
+        _location(id: "l2", name: "Le hangar", city: "Paris"),
+      ],
+      searchQuery: "lyon",
+    );
+
+    expect(find.text("La maison des Pains"), findsOneWidget);
+    expect(find.text("Le hangar"), findsNothing);
+  });
+
+  testWidgets("a query finds a location by one of its sets' names", (tester) async {
+    await pumpList(
+      tester,
+      locations: [
+        _location(id: "l1", name: "La maison des Pains", sets: [_set("Cuisine")]),
+        _location(id: "l2", name: "Le hangar"),
+      ],
+      searchQuery: "cuisine",
+    );
+
+    expect(find.text("La maison des Pains"), findsOneWidget);
+    expect(find.text("Le hangar"), findsNothing);
+  });
+
+  testWidgets("a query finds a location by its localized permit status", (tester) async {
+    await pumpList(
+      tester,
+      locations: [
+        _location(id: "l1", name: "La maison des Pains", permitStatus: OcptPermitStatus.granted),
+        _location(id: "l2", name: "Le hangar", permitStatus: OcptPermitStatus.toRequest),
+      ],
+      searchQuery: "granted",
+    );
+
+    expect(find.text("La maison des Pains"), findsOneWidget);
+    expect(find.text("Le hangar"), findsNothing);
+  });
+
+  testWidgets("a query matching nothing shows the no-match line, not the empty hint", (
+    tester,
+  ) async {
+    await pumpList(
+      tester,
+      locations: [_location(id: "l1", name: "La maison des Pains")],
+      searchQuery: "zzz",
+    );
+
+    expect(find.text('No match for "zzz".'), findsOneWidget);
+    expect(find.text("No location yet. Add the first place the film is shot in."), findsNothing);
   });
 }

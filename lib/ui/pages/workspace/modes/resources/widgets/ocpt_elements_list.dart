@@ -7,13 +7,39 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 
 /// The minimum width of a row's code badge, so a column of them lines up whatever they hold.
 const double _codeBadgeMinWidth = 40;
 
 /// The separator between the two halves of a row's own muted second line.
 const String _secondLineSeparator = " · ";
+
+/// The subset of [elements] matching [query], through [ocptResourcesSearchMatches] against every
+/// field a row shows or that names the element: its name, its code, its sub-category, and the
+/// localized category and tracking status.
+///
+/// Shared by [OcptElementsList]'s own body and `OcptResourcesListPanel`'s header count, so the two
+/// can never disagree about how many elements a query actually matches.
+List<OcptElement> ocptFilteredElementsOf({
+  required List<OcptElement> elements,
+  required String query,
+  required Tr tr,
+}) => [
+  for (final element in elements)
+    if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, element))) element,
+];
+
+/// Every field of [element] a search query may match against, see [ocptFilteredElementsOf].
+Iterable<String> _searchFieldsOf(Tr tr, OcptElement element) => [
+  element.name,
+  element.code,
+  element.subCategory,
+  ocptElementCategoryLabel(tr, element.category),
+  ocptElementTrackingLabel(tr, element),
+];
 
 /// The elements catalogue: one row per [OcptElement], under a heading per category — the mock-up's
 /// own grouping, and the only structure a flat list of forty items has.
@@ -35,6 +61,10 @@ class OcptElementsList extends StatelessWidget {
   /// The id of the selected element, or null if none is.
   final String? selectedElementId;
 
+  /// The search query currently filtering the list, or empty while search is closed or nothing was
+  /// typed — see [ocptFilteredElementsOf].
+  final String searchQuery;
+
   /// Called with an element's id when its row is clicked.
   final ValueChanged<String> onElementSelected;
 
@@ -43,30 +73,30 @@ class OcptElementsList extends StatelessWidget {
     super.key,
     required this.elements,
     required this.selectedElementId,
+    required this.searchQuery,
     required this.onElementSelected,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
     if (elements.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          Tr.of(context).resourcesElementsEmptyHint,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-      );
+      return OcptResourcesListMessage(message: tr.resourcesElementsEmptyHint);
+    }
+
+    final filtered = ocptFilteredElementsOf(elements: elements, query: searchQuery, tr: tr);
+    if (filtered.isEmpty) {
+      return OcptResourcesListMessage(message: tr.resourcesSearchNoMatchHint(searchQuery));
     }
 
     final theme = Theme.of(context);
-    final tr = Tr.of(context);
 
     return ListView(
       children: [
         for (final category in OcptElementCategory.values)
-          if (_elementsOf(category) case final categoryElements when categoryElements.isNotEmpty)
+          if (_elementsOf(filtered, category) case final categoryElements
+              when categoryElements.isNotEmpty)
             ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -89,8 +119,11 @@ class OcptElementsList extends StatelessWidget {
     );
   }
 
-  /// The elements of [category], in the catalogue's own order.
-  List<OcptElement> _elementsOf(OcptElementCategory category) => [
+  /// The elements of [category] among [elements] (the already-filtered list), in the catalogue's
+  /// own order. A category holding none of them — every one of its elements filtered out, or
+  /// simply having none to begin with — drops its heading too, since [elements] is what decides
+  /// which headings are worth drawing at all.
+  List<OcptElement> _elementsOf(List<OcptElement> elements, OcptElementCategory category) => [
     for (final element in elements)
       if (element.category == category) element,
   ];

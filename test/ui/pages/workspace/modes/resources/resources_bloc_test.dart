@@ -369,6 +369,102 @@ void main() {
     await bloc.close();
   });
 
+  test("opening search opens the left dock when it was closed", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesLeftPanelToggledEvent());
+    await waitForState(bloc, (state) => !state.isListPanelVisible);
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    final state = await waitForState(bloc, (state) => state.isSearchVisible);
+
+    expect(state.isListPanelVisible, isTrue);
+
+    await bloc.close();
+  });
+
+  test("opening search leaves an already-open left dock open", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    final state = await waitForState(bloc, (state) => state.isSearchVisible);
+
+    expect(state.isListPanelVisible, isTrue);
+
+    await bloc.close();
+  });
+
+  test("a typed query is applied to the state immediately, with no debounce", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    await waitForState(bloc, (state) => state.isSearchVisible);
+
+    bloc.add(const OcptResourcesSearchQueryChangedEvent(query: "léa"));
+    final state = await waitForState(bloc, (state) => state.searchQuery == "léa");
+
+    expect(state.searchQuery, "léa");
+
+    await bloc.close();
+  });
+
+  test("closing search clears whatever query was typed", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    await waitForState(bloc, (state) => state.isSearchVisible);
+    bloc.add(const OcptResourcesSearchQueryChangedEvent(query: "léa"));
+    await waitForState(bloc, (state) => state.searchQuery == "léa");
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    final state = await waitForState(bloc, (state) => !state.isSearchVisible);
+
+    expect(state.searchQuery, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("changing tab clears the query but leaves the search field open", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    await waitForState(bloc, (state) => state.isSearchVisible);
+    bloc.add(const OcptResourcesSearchQueryChangedEvent(query: "léa"));
+    await waitForState(bloc, (state) => state.searchQuery == "léa");
+
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.roles));
+    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
+
+    expect(state.searchQuery, isEmpty);
+    expect(state.isSearchVisible, isTrue);
+
+    await bloc.close();
+  });
+
+  test("re-selecting the already-active tab leaves the query untouched", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesSearchToggledEvent());
+    await waitForState(bloc, (state) => state.isSearchVisible);
+    bloc.add(const OcptResourcesSearchQueryChangedEvent(query: "léa"));
+    await waitForState(bloc, (state) => state.searchQuery == "léa");
+
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
+    // Reselecting the tab already active is not a tab change, so it may emit no new state at all:
+    // the assertion is that the bloc settles back with the query untouched.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.searchQuery, "léa");
+
+    await bloc.close();
+  });
+
   test("going back closes the current project and pops", () async {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(routerManager: routerManager);

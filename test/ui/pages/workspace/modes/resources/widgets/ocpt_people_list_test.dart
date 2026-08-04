@@ -90,6 +90,7 @@ void main() {
             ),
           ],
           selectedPersonId: null,
+          searchQuery: "",
           onPersonSelected: (_) {},
         ),
       ),
@@ -104,7 +105,12 @@ void main() {
   testWidgets("a person with no name shows the unnamed placeholder", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptPeopleList(people: [_person(id: "p1")], selectedPersonId: null, onPersonSelected: (_) {}),
+        OcptPeopleList(
+          people: [_person(id: "p1")],
+          selectedPersonId: null,
+          searchQuery: "",
+          onPersonSelected: (_) {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -115,7 +121,14 @@ void main() {
 
   testWidgets("an empty address book shows the empty hint instead of a list", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(OcptPeopleList(people: const [], selectedPersonId: null, onPersonSelected: (_) {})),
+      _wrapInApp(
+        OcptPeopleList(
+          people: const [],
+          selectedPersonId: null,
+          searchQuery: "",
+          onPersonSelected: (_) {},
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -131,6 +144,7 @@ void main() {
         OcptPeopleList(
           people: [_person(id: "p1", firstName: "Léa")],
           selectedPersonId: null,
+          searchQuery: "",
           onPersonSelected: (personId) => selected = personId,
         ),
       ),
@@ -141,5 +155,77 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selected, "p1");
+  });
+
+  testWidgets("a query finds an accented name by its unaccented spelling", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptPeopleList(
+          people: [
+            _person(id: "p1", firstName: "Léa", lastName: "Martin"),
+            _person(id: "p2", firstName: "Marc", lastName: "Dupont"),
+          ],
+          selectedPersonId: null,
+          searchQuery: "lea",
+          onPersonSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Léa Martin"), findsOneWidget);
+    expect(find.text("Marc Dupont"), findsNothing);
+  });
+
+  testWidgets("a query also matches a position's localized label", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptPeopleList(
+          people: [
+            _person(
+              id: "p1",
+              firstName: "Léa",
+              lastName: "Martin",
+              positions: const [
+                OcptPersonPosition(
+                  id: "pos1",
+                  personId: "p1",
+                  positionId: "director",
+                  customLabel: "",
+                ),
+              ],
+            ),
+            _person(id: "p2", firstName: "Marc", lastName: "Dupont"),
+          ],
+          selectedPersonId: null,
+          searchQuery: "director",
+          onPersonSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Léa Martin"), findsOneWidget);
+    expect(find.text("Marc Dupont"), findsNothing);
+  });
+
+  testWidgets("a query matching nothing shows the no-match line, not the empty hint", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptPeopleList(
+          people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
+          selectedPersonId: null,
+          searchQuery: "zzz",
+          onPersonSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPeopleList)));
+    expect(find.text(tr.resourcesSearchNoMatchHint("zzz")), findsOneWidget);
+    expect(find.text(tr.resourcesPeopleEmptyHint), findsNothing);
   });
 }

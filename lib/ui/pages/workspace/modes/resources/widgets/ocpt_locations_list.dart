@@ -7,7 +7,9 @@ import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 
 /// The width of a row's colour bar.
 const double _colorBarWidth = 3;
@@ -17,6 +19,29 @@ const double _colorBarHeight = 28;
 
 /// The separator between a location's city and its set count, on a row's own muted second line.
 const String _secondLineSeparator = " · ";
+
+/// The subset of [locations] matching [query], through [ocptResourcesSearchMatches] against every
+/// field a row shows or that names the location: its name, its city, each of its sets' codes and
+/// names, and the localized permit status.
+///
+/// Shared by [OcptLocationsList]'s own body and `OcptResourcesListPanel`'s header count, so the two
+/// can never disagree about how many locations a query actually matches.
+List<OcptLocation> ocptFilteredLocationsOf({
+  required List<OcptLocation> locations,
+  required String query,
+  required Tr tr,
+}) => [
+  for (final location in locations)
+    if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, location))) location,
+];
+
+/// Every field of [location] a search query may match against, see [ocptFilteredLocationsOf].
+Iterable<String> _searchFieldsOf(Tr tr, OcptLocation location) => [
+  location.name,
+  location.city,
+  for (final set in location.sets) ...[set.code, set.name],
+  ocptPermitStatusLabel(tr, location.permitStatus),
+];
 
 /// The filming locations: one row per [OcptLocation], mock-up layout — the location's own colour
 /// bar, its name, a muted line reading `city · N sets`, and its permit status on the right, painted
@@ -32,6 +57,10 @@ class OcptLocationsList extends StatelessWidget {
   /// The id of the selected location, or null if none is.
   final String? selectedLocationId;
 
+  /// The search query currently filtering the list, or empty while search is closed or nothing was
+  /// typed — see [ocptFilteredLocationsOf].
+  final String searchQuery;
+
   /// Called with a location's id when its row is clicked.
   final ValueChanged<String> onLocationSelected;
 
@@ -40,27 +69,27 @@ class OcptLocationsList extends StatelessWidget {
     super.key,
     required this.locations,
     required this.selectedLocationId,
+    required this.searchQuery,
     required this.onLocationSelected,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
     if (locations.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          Tr.of(context).resourcesLocationsEmptyHint,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-      );
+      return OcptResourcesListMessage(message: tr.resourcesLocationsEmptyHint);
+    }
+
+    final filtered = ocptFilteredLocationsOf(locations: locations, query: searchQuery, tr: tr);
+    if (filtered.isEmpty) {
+      return OcptResourcesListMessage(message: tr.resourcesSearchNoMatchHint(searchQuery));
     }
 
     return ListView.builder(
-      itemCount: locations.length,
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final location = locations[index];
+        final location = filtered[index];
 
         return _OcptLocationEntry(
           location: location,

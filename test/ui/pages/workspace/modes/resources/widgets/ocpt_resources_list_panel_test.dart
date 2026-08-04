@@ -146,12 +146,15 @@ void main() {
   Future<void> pumpPanel(
     WidgetTester tester, {
     OcptResourcesTab activeTab = OcptResourcesTab.people,
+    bool isSearchVisible = false,
+    String searchQuery = "",
     VoidCallback? onAddPersonRequested,
     ValueChanged<OcptRoleKind>? onAddRoleRequested,
     VoidCallback? onAddLocationRequested,
     ValueChanged<OcptElementCategory>? onAddElementRequested,
     ValueChanged<String>? onLocationSelected,
     ValueChanged<String>? onElementSelected,
+    ValueChanged<String>? onSearchQueryChanged,
   }) async {
     await tester.pumpWidget(
       _wrapInApp(
@@ -165,7 +168,10 @@ void main() {
           selectedLocationId: null,
           elements: [_element(id: "e1", name: "Vélo de Léa")],
           selectedElementId: null,
+          isSearchVisible: isSearchVisible,
+          searchQuery: searchQuery,
           onTabSelected: (tab) {},
+          onSearchQueryChanged: onSearchQueryChanged ?? (query) {},
           onPersonSelected: (personId) {},
           onRoleSelected: (roleId) {},
           onLocationSelected: onLocationSelected ?? (locationId) {},
@@ -303,5 +309,74 @@ void main() {
 
     expect(find.widgetWithText(FilledButton, "+ Add an element"), findsNothing);
     expect(find.text("Vélo de Léa"), findsOneWidget);
+  });
+
+  testWidgets("the search field is hidden until search is opened", (tester) async {
+    await pumpPanel(tester);
+
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets("opening search shows the field, seeded with the current query", (tester) async {
+    await pumpPanel(tester, isSearchVisible: true, searchQuery: "sofia");
+
+    expect(find.widgetWithText(TextField, "sofia"), findsOneWidget);
+  });
+
+  testWidgets("typing into the search field reports every keystroke", (tester) async {
+    String? typed;
+
+    await pumpPanel(
+      tester,
+      isSearchVisible: true,
+      onSearchQueryChanged: (query) => typed = query,
+    );
+
+    await tester.enterText(find.byType(TextField), "berger");
+    await tester.pumpAndSettle();
+
+    expect(typed, "berger");
+  });
+
+  testWidgets("the header count reports what the filtered list shows, not the whole catalogue", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptResourcesListPanel(
+          activeTab: OcptResourcesTab.people,
+          people: [
+            _person(id: "p1", firstName: "Sofia", lastName: "Berger"),
+            _person(id: "p2", firstName: "Marc", lastName: "Dupont"),
+          ],
+          selectedPersonId: null,
+          roles: const [],
+          selectedRoleId: null,
+          locations: const [],
+          selectedLocationId: null,
+          elements: const [],
+          selectedElementId: null,
+          isSearchVisible: true,
+          searchQuery: "berger",
+          onTabSelected: (tab) {},
+          onSearchQueryChanged: (query) {},
+          onPersonSelected: (personId) {},
+          onRoleSelected: (roleId) {},
+          onLocationSelected: (locationId) {},
+          onElementSelected: (elementId) {},
+          onAddPersonRequested: () {},
+          onAddRoleRequested: (kind) {},
+          onAddLocationRequested: () {},
+          onAddElementRequested: (category) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
+    // One of the two people matches "berger": the header must say one, not two.
+    expect(find.text(tr.resourcesStatsPeople(1)), findsOneWidget);
+    expect(find.text("Sofia Berger"), findsOneWidget);
+    expect(find.text("Marc Dupont"), findsNothing);
   });
 }

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_elements_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_locations_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_people_list.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_search_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_tab_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_roles_list.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
@@ -62,8 +63,19 @@ class OcptResourcesListPanel extends StatelessWidget {
   /// The id of the selected element, or null if none is.
   final String? selectedElementId;
 
+  /// Whether the search field is shown under the tab bar.
+  final bool isSearchVisible;
+
+  /// The search query currently filtering the active tab's list, or empty while search is closed or
+  /// nothing was typed. Also drives the header count on the right of the tab's title, so it always
+  /// reports what the list under it actually shows.
+  final String searchQuery;
+
   /// Called with the tab tapped in the tab bar.
   final ValueChanged<OcptResourcesTab> onTabSelected;
+
+  /// Called with the search field's raw text on every keystroke, and by its clear button.
+  final ValueChanged<String> onSearchQueryChanged;
 
   /// Called with a person's id when their row is clicked.
   final ValueChanged<String> onPersonSelected;
@@ -105,7 +117,10 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.selectedLocationId,
     required this.elements,
     required this.selectedElementId,
+    required this.isSearchVisible,
+    required this.searchQuery,
     required this.onTabSelected,
+    required this.onSearchQueryChanged,
     required this.onPersonSelected,
     required this.onRoleSelected,
     required this.onLocationSelected,
@@ -129,6 +144,8 @@ class OcptResourcesListPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OcptResourcesTabBar(activeTab: activeTab, onTabSelected: onTabSelected),
+        if (isSearchVisible)
+          OcptResourcesSearchField(query: searchQuery, onChanged: onSearchQueryChanged),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Row(
@@ -138,28 +155,45 @@ class OcptResourcesListPanel extends StatelessWidget {
               ),
               if (isPeopleTab)
                 Text(
-                  tr.resourcesStatsPeople(people.length),
+                  tr.resourcesStatsPeople(
+                    ocptFilteredPeopleOf(people: people, query: searchQuery, tr: tr).length,
+                  ),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 )
               else if (isRolesTab)
                 Text(
-                  tr.resourcesStatsRoles(roles.length),
+                  tr.resourcesStatsRoles(
+                    ocptFilteredRolesOf(
+                      roles: roles,
+                      people: people,
+                      query: searchQuery,
+                      tr: tr,
+                    ).length,
+                  ),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 )
               else if (isLocationsTab)
                 Text(
-                  tr.resourcesStatsLocations(locations.length),
+                  tr.resourcesStatsLocations(
+                    ocptFilteredLocationsOf(
+                      locations: locations,
+                      query: searchQuery,
+                      tr: tr,
+                    ).length,
+                  ),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 )
               else if (isElementsTab)
                 Text(
-                  tr.resourcesStatsElements(elements.length),
+                  tr.resourcesStatsElements(
+                    ocptFilteredElementsOf(elements: elements, query: searchQuery, tr: tr).length,
+                  ),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -210,6 +244,7 @@ class OcptResourcesListPanel extends StatelessWidget {
       return OcptPeopleList(
         people: people,
         selectedPersonId: selectedPersonId,
+        searchQuery: searchQuery,
         onPersonSelected: onPersonSelected,
       );
     }
@@ -219,6 +254,7 @@ class OcptResourcesListPanel extends StatelessWidget {
         roles: roles,
         people: people,
         selectedRoleId: selectedRoleId,
+        searchQuery: searchQuery,
         onRoleSelected: onRoleSelected,
       );
     }
@@ -227,6 +263,7 @@ class OcptResourcesListPanel extends StatelessWidget {
       return OcptLocationsList(
         locations: locations,
         selectedLocationId: selectedLocationId,
+        searchQuery: searchQuery,
         onLocationSelected: onLocationSelected,
       );
     }
@@ -234,6 +271,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     return OcptElementsList(
       elements: elements,
       selectedElementId: selectedElementId,
+      searchQuery: searchQuery,
       onElementSelected: onElementSelected,
     );
   }

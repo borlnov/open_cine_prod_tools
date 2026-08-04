@@ -64,6 +64,7 @@ void main() {
     WidgetTester tester,
     List<OcptElement> elements, {
     String? selectedElementId,
+    String searchQuery = "",
     ValueChanged<String>? onElementSelected,
   }) async {
     await tester.pumpWidget(
@@ -71,6 +72,7 @@ void main() {
         OcptElementsList(
           elements: elements,
           selectedElementId: selectedElementId,
+          searchQuery: searchQuery,
           onElementSelected: onElementSelected ?? (elementId) {},
         ),
       ),
@@ -161,5 +163,62 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedElementId, "e1");
+  });
+
+  testWidgets("a query finds an element by its code", (tester) async {
+    await pumpList(
+      tester,
+      [
+        _element(id: "e1", name: "Verres", code: "PR-01"),
+        _element(id: "e2", name: "Lampe torche", code: "PR-02"),
+      ],
+      searchQuery: "pr-01",
+    );
+
+    expect(find.text("Verres"), findsOneWidget);
+    expect(find.text("Lampe torche"), findsNothing);
+  });
+
+  testWidgets("a query finds an element by its localized category, dropping the other heading", (
+    tester,
+  ) async {
+    final tr = await pumpList(
+      tester,
+      [
+        _element(id: "e1", name: "Vélo de Léa", category: OcptElementCategory.vehicle),
+        _element(id: "e2", name: "Valise"),
+      ],
+      searchQuery: "vehicle",
+    );
+
+    expect(find.text("Vélo de Léa"), findsOneWidget);
+    expect(find.text("Valise"), findsNothing);
+    expect(find.text(tr.resourcesElementCategoryVehicle.toUpperCase()), findsOneWidget);
+    // The prop category held nothing once filtered: its heading drops along with its rows.
+    expect(find.text(tr.resourcesElementCategoryProp.toUpperCase()), findsNothing);
+  });
+
+  testWidgets("a query finds an element by its localized tracking status", (tester) async {
+    // "Secured" (`resourcesElementTrackingSecured`) in the `en_GB` locale these tests run under.
+    await pumpList(
+      tester,
+      [
+        _element(id: "e1", name: "Verres", isSecured: true),
+        _element(id: "e2", name: "Lampe torche"),
+      ],
+      searchQuery: "secured",
+    );
+
+    expect(find.text("Verres"), findsOneWidget);
+    expect(find.text("Lampe torche"), findsNothing);
+  });
+
+  testWidgets("a query matching nothing shows the no-match line, not the empty hint", (
+    tester,
+  ) async {
+    final tr = await pumpList(tester, [_element(id: "e1", name: "Verres")], searchQuery: "zzz");
+
+    expect(find.text(tr.resourcesSearchNoMatchHint("zzz")), findsOneWidget);
+    expect(find.text(tr.resourcesElementsEmptyHint), findsNothing);
   });
 }

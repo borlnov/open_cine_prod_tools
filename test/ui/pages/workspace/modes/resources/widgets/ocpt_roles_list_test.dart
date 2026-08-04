@@ -93,6 +93,7 @@ void main() {
           roles: [_role(id: "r1", name: "Le Client", personId: "p1")],
           people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
           selectedRoleId: null,
+          searchQuery: "",
           onRoleSelected: (_) {},
         ),
       ),
@@ -110,6 +111,7 @@ void main() {
           roles: [_role(id: "r1", name: "Le Client")],
           people: const [],
           selectedRoleId: null,
+          searchQuery: "",
           onRoleSelected: (_) {},
         ),
       ),
@@ -130,6 +132,7 @@ void main() {
           ],
           people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
           selectedRoleId: null,
+          searchQuery: "",
           onRoleSelected: (_) {},
         ),
       ),
@@ -144,7 +147,13 @@ void main() {
   testWidgets("an empty cast shows the empty hint instead of a list", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptRolesList(roles: const [], people: const [], selectedRoleId: null, onRoleSelected: (_) {}),
+        OcptRolesList(
+          roles: const [],
+          people: const [],
+          selectedRoleId: null,
+          searchQuery: "",
+          onRoleSelected: (_) {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -163,6 +172,7 @@ void main() {
           ],
           people: const [],
           selectedRoleId: null,
+          searchQuery: "",
           onRoleSelected: (_) {},
         ),
       ),
@@ -182,6 +192,7 @@ void main() {
           roles: [_role(id: "r1", name: "Le Client")],
           people: const [],
           selectedRoleId: null,
+          searchQuery: "",
           onRoleSelected: (roleId) => selected = roleId,
         ),
       ),
@@ -192,5 +203,68 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selected, "r1");
+  });
+
+  testWidgets("a query finds a role by its cast member's name", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptRolesList(
+          roles: [
+            _role(id: "r1", name: "Le Client", personId: "p1"),
+            _role(id: "r2", name: "Le Voisin", number: 2),
+          ],
+          people: [_person(id: "p1", firstName: "Léa", lastName: "Martin")],
+          selectedRoleId: null,
+          searchQuery: "martin",
+          onRoleSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Le Client"), findsOneWidget);
+    expect(find.text("Le Voisin"), findsNothing);
+  });
+
+  testWidgets("a query finds a role by its orphaned name", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptRolesList(
+          roles: [
+            _role(id: "r1", name: "Le Client", orphanedName: "LE VIEUX CLIENT"),
+            _role(id: "r2", name: "Le Voisin", number: 2),
+          ],
+          people: const [],
+          selectedRoleId: null,
+          searchQuery: "vieux",
+          onRoleSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Le Client"), findsOneWidget);
+    expect(find.text("Le Voisin"), findsNothing);
+  });
+
+  testWidgets("a query matching nothing shows the no-match line, not the empty hint", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptRolesList(
+          roles: [_role(id: "r1", name: "Le Client")],
+          people: const [],
+          selectedRoleId: null,
+          searchQuery: "zzz",
+          onRoleSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRolesList)));
+    expect(find.text(tr.resourcesSearchNoMatchHint("zzz")), findsOneWidget);
+    expect(find.text(tr.resourcesRolesEmptyHint), findsNothing);
   });
 }

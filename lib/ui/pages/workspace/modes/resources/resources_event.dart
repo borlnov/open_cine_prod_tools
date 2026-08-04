@@ -1254,6 +1254,34 @@ class OcptResourcesLeftPanelToggledEvent extends OcptResourcesEvent {
   const OcptResourcesLeftPanelToggledEvent();
 }
 
+/// Toggles whether the search field is shown, dispatched by the toolbar's search icon button.
+///
+/// Opening it also opens the left dock when it was closed — a field in a hidden dock would be a
+/// toggle that does nothing — and closing it clears whatever was typed, so a hidden field can
+/// never keep filtering a list nobody can see any more.
+class OcptResourcesSearchToggledEvent extends OcptResourcesEvent {
+  /// Class constructor
+  const OcptResourcesSearchToggledEvent();
+}
+
+/// Records the text currently sitting in the search field, dispatched by
+/// `OcptResourcesSearchField` on every keystroke.
+///
+/// Needs no debounce, unlike a sheet field's typed value: this writes nothing to the project
+/// database, only to `OcptResourcesState.searchQuery`, so there is no write to spare by waiting
+/// out a pause in typing.
+class OcptResourcesSearchQueryChangedEvent extends OcptResourcesEvent {
+  /// The text now sitting in the search field, exactly as typed.
+  final String query;
+
+  /// Class constructor
+  const OcptResourcesSearchQueryChangedEvent({required this.query});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, query];
+}
+
 /// Selects a tab of the right dock, dispatched by the dock's own tab row. There being only one
 /// tab, this either opens the dock on it or closes the dock, mirroring the shot list's own
 /// select-the-active-tab-again-to-close semantics.

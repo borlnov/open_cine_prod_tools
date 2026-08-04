@@ -7,7 +7,36 @@ import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
+
+/// The subset of [people] matching [query], through [ocptResourcesSearchMatches] against every
+/// field a row shows or that names the person: the display name, every position (its localized
+/// label, or the free custom one when it has no catalogue id), the email, the phone and the city.
+///
+/// Shared by [OcptPeopleList]'s own body and `OcptResourcesListPanel`'s header count, so the two
+/// can never disagree about how many people a query actually matches.
+List<OcptPerson> ocptFilteredPeopleOf({
+  required List<OcptPerson> people,
+  required String query,
+  required Tr tr,
+}) => [
+  for (final person in people)
+    if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, person))) person,
+];
+
+/// Every field of [person] a search query may match against, see [ocptFilteredPeopleOf].
+Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
+  person.displayName,
+  for (final position in person.positions)
+    position.positionId.isNotEmpty
+        ? ocptCrewPositionLabel(tr, position.positionId)
+        : position.customLabel,
+  person.email,
+  person.phone,
+  person.city,
+];
 
 /// The address book: one row per [OcptPerson], mock-up layout — a small circular avatar filled
 /// with the person's own colour and carrying their initials, the display name, and under it the
@@ -23,6 +52,10 @@ class OcptPeopleList extends StatelessWidget {
   /// The id of the selected person, or null if none is.
   final String? selectedPersonId;
 
+  /// The search query currently filtering the list, or empty while search is closed or nothing was
+  /// typed — see [ocptFilteredPeopleOf].
+  final String searchQuery;
+
   /// Called with a person's id when their row is clicked.
   final ValueChanged<String> onPersonSelected;
 
@@ -31,29 +64,29 @@ class OcptPeopleList extends StatelessWidget {
     super.key,
     required this.people,
     required this.selectedPersonId,
+    required this.searchQuery,
     required this.onPersonSelected,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
     if (people.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          Tr.of(context).resourcesPeopleEmptyHint,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-      );
+      return OcptResourcesListMessage(message: tr.resourcesPeopleEmptyHint);
+    }
+
+    final filtered = ocptFilteredPeopleOf(people: people, query: searchQuery, tr: tr);
+    if (filtered.isEmpty) {
+      return OcptResourcesListMessage(message: tr.resourcesSearchNoMatchHint(searchQuery));
     }
 
     return ListView.builder(
-      itemCount: people.length,
+      itemCount: filtered.length,
       itemBuilder: (context, index) => _OcptPersonEntry(
-        person: people[index],
-        isSelected: people[index].id == selectedPersonId,
-        onTap: () => onPersonSelected(people[index].id),
+        person: filtered[index],
+        isSelected: filtered[index].id == selectedPersonId,
+        onTap: () => onPersonSelected(filtered[index].id),
       ),
     );
   }

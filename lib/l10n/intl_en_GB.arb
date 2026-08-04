@@ -2691,6 +2691,38 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesToggleSearchTooltip": "Show or hide search",
+  "@resourcesToggleSearchTooltip": {
+    "description": "Tooltip of the resources mode toolbar's search toggle",
+    "context": "Displayed on hover over the search icon of the resources mode toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSearchHint": "Search…",
+  "@resourcesSearchHint": {
+    "description": "Placeholder of the resources mode's search field",
+    "context": "Displayed inside the search field while it is empty, under the left dock's tab bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSearchClearTooltip": "Clear search",
+  "@resourcesSearchClearTooltip": {
+    "description": "Tooltip of the resources mode's search field's own clear button",
+    "context": "Displayed on hover over the × button inside the search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSearchNoMatchHint": "No match for \"{query}\".",
+  "@resourcesSearchNoMatchHint": {
+    "description": "Line shown in place of a resources tab's list once every row was filtered out by the search query",
+    "context": "Displayed under the search field, in place of the active tab's list, when it matches nothing",
+    "type": "text",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "resourcesCrewPositionDirector": "Director",
   "@resourcesCrewPositionDirector": {
     "description": "Label of the director crew position",

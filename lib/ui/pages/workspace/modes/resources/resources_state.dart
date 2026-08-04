@@ -77,6 +77,22 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// starts on [OcptResourcesTab.people] on entry.
   final OcptResourcesTab activeTab;
 
+  /// Whether the search field is shown, under `OcptResourcesTabBar` in the left dock.
+  ///
+  /// Never persisted, exactly like [activeTab]: search is a transient way of scanning whichever
+  /// tab is open right now, not a project-wide or app-wide preference to restore on the next
+  /// visit.
+  final bool isSearchVisible;
+
+  /// The text currently typed into the search field, filtering [activeTab]'s own list; empty while
+  /// search is closed or nothing was typed.
+  ///
+  /// Never written anywhere — it only reads. Closing the search
+  /// (`OcptResourcesBloc._onSearchToggled`) and changing tab (`_onTabSelected`) both clear it, so a
+  /// hidden field, or one whose tab is no longer shown, can never keep filtering a list nobody can
+  /// see any more.
+  final String searchQuery;
+
   /// The id of the person currently selected, whose sheet the centre shows, or null while none is.
   final String? selectedPersonId;
 
@@ -308,6 +324,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.title,
     required this.snapshot,
     required this.activeTab,
+    required this.isSearchVisible,
+    required this.searchQuery,
     required this.selectedPersonId,
     required this.selectedRoleId,
     required this.selectedLocationId,
@@ -338,6 +356,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       title = "",
       snapshot = null,
       activeTab = OcptResourcesTab.people,
+      isSearchVisible = false,
+      searchQuery = "",
       selectedPersonId = null,
       selectedRoleId = null,
       selectedLocationId = null,
@@ -374,6 +394,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     String? title,
     OcptResourcesSnapshot? snapshot,
     OcptResourcesTab? activeTab,
+    bool? isSearchVisible,
+    String? searchQuery,
     String? selectedPersonId,
     bool clearSelectedPersonId = false,
     String? selectedRoleId,
@@ -413,6 +435,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     title: title ?? this.title,
     snapshot: snapshot ?? this.snapshot,
     activeTab: activeTab ?? this.activeTab,
+    isSearchVisible: isSearchVisible ?? this.isSearchVisible,
+    searchQuery: searchQuery ?? this.searchQuery,
     selectedPersonId: clearSelectedPersonId ? null : (selectedPersonId ?? this.selectedPersonId),
     selectedRoleId: clearSelectedRoleId ? null : (selectedRoleId ?? this.selectedRoleId),
     selectedLocationId: clearSelectedLocationId
@@ -491,6 +515,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     title,
     snapshot,
     activeTab,
+    isSearchVisible,
+    searchQuery,
     selectedPersonId,
     selectedRoleId,
     selectedLocationId,

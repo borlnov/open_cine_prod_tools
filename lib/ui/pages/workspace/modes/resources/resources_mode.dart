@@ -53,7 +53,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 /// While a project version is being previewed, the mode shows that version's catalogue instead of
 /// the working copy's, and shows it read-only: everything that would write — the `+ Add …`
 /// buttons and every field, picker and delete action of the three sheets — is withheld, and the
-/// shell carries the band naming the version.
+/// shell carries the band naming the version. The toolbar's search toggle is never one of the
+/// withheld affordances: it only filters what is already on screen, so it stays available while a
+/// version is being previewed too.
 class OcptResourcesMode extends StatelessWidget {
   /// Creates the resources mode.
   const OcptResourcesMode({super.key});
@@ -119,6 +121,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptResourcesBloc>().add(const OcptResourcesBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelResources,
+        toolbarActions: _buildToolbarActions(context, state),
         overflowEntries: _buildOverflowEntries(context, state),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
@@ -146,6 +149,19 @@ class _ResourcesViewState extends State<_ResourcesView> {
       );
     },
   );
+
+  /// Builds the mode's own toolbar actions: the search toggle, shown selected while the field is
+  /// open. Never withheld while a project version is being previewed read-only — search only
+  /// reads, it never writes to the project.
+  List<Widget> _buildToolbarActions(BuildContext context, OcptResourcesState state) => [
+    IconButton(
+      icon: const Icon(Icons.search, size: 20),
+      tooltip: Tr.of(context).resourcesToggleSearchTooltip,
+      isSelected: state.isSearchVisible,
+      onPressed: () =>
+          context.read<OcptResourcesBloc>().add(const OcptResourcesSearchToggledEvent()),
+    ),
+  ];
 
   /// Builds the mode's `⋮` overflow menu entries: the XLSX export first, then resetting the panel
   /// layout, mirroring `OcptShotListMode._buildOverflowEntries`.
@@ -200,8 +216,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
       selectedLocationId: state.selectedLocationId,
       elements: state.elements,
       selectedElementId: state.selectedElementId,
+      isSearchVisible: state.isSearchVisible,
+      searchQuery: state.searchQuery,
       onTabSelected: (tab) =>
           context.read<OcptResourcesBloc>().add(OcptResourcesTabSelectedEvent(tab: tab)),
+      onSearchQueryChanged: (query) => context.read<OcptResourcesBloc>().add(
+        OcptResourcesSearchQueryChangedEvent(query: query),
+      ),
       onPersonSelected: (personId) => context.read<OcptResourcesBloc>().add(
         OcptResourcesPersonSelectedEvent(personId: personId),
       ),
