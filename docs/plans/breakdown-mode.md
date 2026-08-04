@@ -39,7 +39,7 @@ This step is that view, plus the two facts the catalogues cannot hold on their o
 - **where in the text** a thing is called for — the passage, not just the scene;
 - **how far the breakdown has got** — per scene, held by hand.
 
-## 2. What ships, in one page
+## 2. What ships
 
 A new `OcptWorkspaceMode.breakdown`, the third implemented mode, placed **after `screenplay` and
 before `shotList`**: write, break down, then shoot-list, which is the order the work happens in.
@@ -63,6 +63,35 @@ before `shotList`**: write, break down, then shoot-list, which is the order the 
   every other export.
 
 Schema **v9**, project-version payload **format 5**.
+
+### 2.1 The nominal gesture, end to end
+
+Everything else in this plan serves this sequence. An agent that has to choose between two readings
+of a requirement picks the one that keeps this gesture short.
+
+The user is reading scene 1: *"A room lit by the desk lamp alone."*
+
+1. They click **desk**. The range opens and the word is marked pending.
+2. They click **lamp**. The range closes on `desk lamp` and the popover anchors under it.
+3. The popover holds a search field **pre-filled with the passage**, the matching targets grouped
+   `Roles` / `Sets` / `Elements` underneath, and the category chips at the bottom.
+4. **The thing already exists** — the same lamp was broken down in scene 8. It is in the list, with
+   the scenes it already appears in beside its name. One click: the tag is written, the
+   `scene_elements` link is ensured, the popover closes, the inspector shows the element. The user
+   reads on.
+5. **It does not exist.** The user corrects the name in the field if they want to
+   (`Desk lamp, 1960s`), then clicks the **`Prop`** chip. That single click creates the element in
+   that category with status *to find*, writes the tag, closes the popover and opens the inspector
+   on the new element — where the rest of the sheet is (sub-category, quantity, owner, who brings
+   it, notes). Filling it is optional: the breakdown pass can carry straight on and the sheets be
+   completed later.
+
+The two paths are one keystroke apart and neither ever leaves the script. That is the whole point:
+a breakdown pass is a hundred of these in an afternoon, and anything that costs a dialog, a mode
+change or a second decision is what makes people do it in a spreadsheet instead.
+
+Clicking an already-tagged word is not step 1 of a new range — it selects that tag's target in the
+inspector (§3.9).
 
 ## 3. Decisions
 
@@ -126,6 +155,55 @@ line. Storing the text itself costs nothing and buys two things a digest cannot 
 - **suggestions** (§3.4): finding the other occurrences of a tag needs the words, not their hash.
 
 This is a departure from the neighbouring table and must be recorded as such — see §8, ADR 0014.
+
+### 3.8 The popover links, the category chip creates, the inspector completes
+
+The mock-up's popover matches existing elements on the clicked words alone. That works for a demo
+and fails on a real film: by scene 20 there are a hundred and fifty elements, and the one being
+looked for is found by typing `peu`, not by having clicked exactly the words its name was built
+from. So the popover carries **a search field**, pre-filled with the passage, filtering the three
+catalogues live and grouping its results by kind.
+
+Creating stays where the mock-up put it — **on the category chips**. Clicking `Prop` creates the
+element in that category, named from the field, and writes the tag. There is no separate "Create…"
+button: picking the category *is* the creation, which is what keeps step 5 of §2.1 to one click.
+
+What the chip cannot ask for — sub-category, quantity, owner, who brings it, notes — is filled in
+the **inspector**, which opens on the new element. The popover is where a thing is named and
+classified; the sheet is where it is described.
+
+Only **elements** can be created this way. A speaking role is reconciled from the screenplay, and
+creating one by hand yields a silent role or an extra — a decision that belongs to the resources
+mode's role sheet. A set belongs to a location, which the popover has no room to ask for. Both are
+therefore linkable but not creatable here, and the popover offers `Open in Resources` when the
+search comes back empty for them.
+
+The element is written to the database **the moment the chip is clicked**, not held as a draft: the
+tag needs a target that exists, and "everything writes the moment it changes" is the invariant every
+other mode of this app already keeps.
+
+### 3.9 Tags never overlap, and a click on a tagged word selects it
+
+A range may not be opened inside an existing tag, and a tag may not be extended over one. The
+highlighting then carries exactly one colour per passage, and the recap's counts have one reading.
+
+A click on an already-tagged word therefore cannot mean "start a range", and it means **select this
+tag's target in the inspector**. Note that this is deliberately *not* what the same click does in
+`OcptShotCoverageDialog`, where clicking covered text removes the range: there, removing is the only
+thing a click could usefully mean, because a coverage range has no sheet to inspect. Here a tag has
+a target with a whole sheet behind it, and removal is one line further down in that sheet. Losing a
+tag by mis-clicking while reading would be the worse failure.
+
+### 3.10 The search lives in the mode's header and filters the recap's rows
+
+One field, in the header band beside the `Script` / `Recap` switch, visible in both views. Typing
+into it from the script view **switches to the recap** carrying the text: the script view is a
+reading surface, and the answer to "where is the Peugeot?" is a table, not a highlight.
+
+It filters the recap's **rows** — name, category, sub-category, owner, notes — and never its
+columns: keeping every scene column is what lets the user see, in one line, where the thing they
+just found falls across the film. Folding is diacritic- and case-insensitive, reusing
+`ocpt_resources_search.dart`, so `lea` finds `Léa`.
 
 ## 4. Data model — schema v9
 
@@ -226,6 +304,13 @@ the resources services. It owns:
   **ensuring the link the tag implies**: a `scene_elements` row for an element target, a
   `scene_sets` row for a set target. A role target creates no link row: there is no `scene_roles`
   table, and the tag itself is that link;
+- creating an element **and** its first tag in one transaction, from a name, a category and a
+  range (§3.8) — the one write the popover's category chips perform. It goes through
+  `OcptElementsService` for the element itself rather than reaching into `elements` on its own, so
+  the two modes mint an element exactly the same way;
+- refusing a range that overlaps a live tag of the same scene (§3.9). The mode also greys the
+  affordance out, but the service is what guarantees it: a suggestion accepted in bulk must not be
+  able to create an overlap either;
 - deleting a tag (tombstone). It **never** removes the `scene_elements` / `scene_sets` row it once
   ensured: the resources mode lets a user link an element to a scene by hand with no tag at all, so
   removing the link silently would destroy work the breakdown never created. The inspector offers
@@ -250,7 +335,23 @@ needs the new `charStart`/`charEnd`), and for each live tag:
 
 Write nothing when nothing changed: this runs on every save.
 
-### 5.3 Occurrence suggestions
+### 5.3 Searching the catalogues and the recap
+
+`lib/utils/ocpt_breakdown_search.dart`, pure and unit-tested. Two entry points over the same
+diacritic- and case-folding as `ocpt_resources_search.dart`, which it reuses rather than
+re-implements:
+
+- the popover's search (§3.8) — given a query and the three catalogues, the matching roles, sets and
+  elements, each kind capped so the popover keeps its height, ranked with prefix matches first and
+  already-tagged targets before never-used ones;
+- the recap's row filter (§3.10) — a predicate over an `OcptBreakdownTarget` covering its name,
+  category label, sub-category, owner and notes.
+
+The category *labels* are localized, so — exactly as the resources mode's lists already do — the
+matching happens where the labels are known and the widget filters itself; the util takes the
+resolved label strings, never a `Tr`.
+
+### 5.4 Occurrence suggestions
 
 `lib/utils/ocpt_breakdown_suggestions.dart`, pure and unit-tested, no Flutter import — the sibling of
 `ocpt_scene_set_suggestion.dart`. Given a screenplay's scenes and the live tags, it returns, per
@@ -280,9 +381,9 @@ All presentational, all in `widgets/`, all reporting upward — no widget reads 
 
 | Widget | What it is |
 | --- | --- |
-| `ocpt_breakdown_view_switch.dart` | the `Script` / `Recap` segmented control, hint, progress bar |
+| `ocpt_breakdown_header.dart` | the `Script` / `Recap` switch, the search field, hint, progress bar |
 | `ocpt_breakdown_script_view.dart` | the paper sheet, its scene headings and its clickable words |
-| `ocpt_breakdown_tag_popover.dart` | the popover a closed range opens: match list + create row |
+| `ocpt_breakdown_tag_popover.dart` | search field, results grouped by kind, category chips |
 | `ocpt_breakdown_recap_table.dart` | the target × scene cross-table, grouped by category |
 | `ocpt_breakdown_scene_panel.dart` | the left dock's scene list with status, bars and counts |
 | `ocpt_breakdown_category_legend.dart` | the left dock's legend, each entry toggling its colour |
@@ -309,9 +410,11 @@ every project and every export.
 ### 6.3 Read-only preview
 
 Every affordance that writes is **withheld, not disabled**, as a null callback — the word click that
-opens a range, the popover, the create rows, the status and category chips, the scene status control,
-every notes field, and the tag removal. What only reads stays: both views, the scene panel, the
-legend filtering, the inspector's occurrence jumps, the statistics and the export. The composite
+opens a range, the popover in full, the status and category chips, the scene status control, every
+notes field, the suggestion acceptance and the tag removal. What only reads stays: both views, the
+scene panel, the legend filtering, **the header's search**, the inspector's occurrence jumps, the
+statistics and the export. A click on a tagged word still selects its target, since selecting writes
+nothing. The composite
 panels (`ocpt_breakdown_target_inspector.dart`, `ocpt_breakdown_scene_inspector.dart`) take an
 `isReadOnly` flag and hand their own parts null callbacks, so a control added later cannot be gated
 in one place and forgotten in the other.
@@ -358,8 +461,8 @@ user checkpoint before the next one starts.
 | --- | --- | --- |
 | M1 | Schema v9: the two tables, `elements.status`, the migration step and its test, `OcptBreakdownService`, the codec's format 5, unit tests for all of it. No UI. | A restore round-trip test proving a version taken before and after a breakdown restores correctly |
 | M2 | The rename of §6.1, then the mode's shell: the enum entry and its placement, the bloc and its versions mixin, the left dock scene panel, the right dock with `Versions` only, the status bar. The centre shows an empty script sheet. | The mode is reachable, remembered across launches, and previews a version |
-| M3 | The script view and tagging: clickable words, the range interaction, the popover with its match list and its create rows, category highlighting, the legend and its filtering, the target and scene inspectors. | A user can break a scene down end to end |
-| M4 | The recap view, and the scene breakdown status and notes. | Both views agree on every count |
+| M3 | The script view and tagging: clickable words, the range interaction, the non-overlap rule, the popover with its search and its category chips, creation and its hand-off to the inspector, category highlighting, the legend and its filtering, the target and scene inspectors. | §2.1 plays end to end, both paths |
+| M4 | The recap view, the header's search field and its filtering, and the scene breakdown status and notes. | Both views agree on every count |
 | M5 | Reconciliation on the save path, `needsCheck` surfacing, and the occurrence suggestions. | Editing a scene above and inside a tagged one leaves the tags right |
 | M6 | The breakdown sheets PDF, its service, its labels, its dialog and its `⋮` entry. | A sheet prints for every scene of a real project |
 | M7 | Read-only preview gating swept end to end, l10n complete in both ARB files, ADR 0014, `AGENTS.md`, this plan deleted. | `dart run tool/check_markdown.dart` and the full gate |
