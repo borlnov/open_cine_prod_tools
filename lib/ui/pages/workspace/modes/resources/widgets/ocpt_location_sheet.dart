@@ -160,7 +160,8 @@ class OcptLocationSheet extends StatelessWidget {
   /// Called with an availability window's id when its remove control is clicked.
   final ValueChanged<String> onAvailabilityRemoved;
 
-  /// Called once the inline delete confirmation is answered `Delete`.
+  /// Called when the sheet's own delete action is clicked, the confirmation dialog being the
+  /// caller's to open.
   final VoidCallback onDeleteRequested;
 
   /// Class constructor
@@ -282,9 +283,7 @@ class OcptLocationSheet extends StatelessWidget {
           if (!isReadOnly) ...[
             const SizedBox(height: 20),
             OcptResourcesDeleteAction(
-              ownerId: location.id,
               label: tr.resourcesLocationDeleteAction,
-              confirmMessage: tr.resourcesLocationDeleteConfirmMessage,
               onDeleteRequested: onDeleteRequested,
             ),
           ],

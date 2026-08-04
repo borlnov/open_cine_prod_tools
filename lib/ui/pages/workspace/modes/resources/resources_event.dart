@@ -85,8 +85,8 @@ class OcptResourcesPersonCreationRequestedEvent extends OcptResourcesEvent {
   const OcptResourcesPersonCreationRequestedEvent();
 }
 
-/// Requests erasing person [personId], dispatched once `OcptPersonDeleteConfirmDialog` has already
-/// confirmed it. Clears the selection when [personId] was the selected person, and drops any
+/// Requests erasing person [personId], dispatched once `OcptResourcesDeleteConfirmDialog` has
+/// already confirmed it. Clears the selection when [personId] was the selected person, and drops any
 /// pending field edit that still targeted it.
 class OcptResourcesPersonDeletionRequestedEvent extends OcptResourcesEvent {
   /// The id of the person to erase.
@@ -543,7 +543,9 @@ class OcptResourcesRoleKindChangedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, roleId, kind];
 }
 
-/// Requests deleting role [roleId]: the role sheet's own delete action. Tombstones the role,
+/// Requests deleting role [roleId], dispatched once `OcptResourcesDeleteConfirmDialog` has already
+/// confirmed it — or straight from the removed-role banner, which is that question itself.
+/// Tombstones the role,
 /// clears the selection when it was the selected role, and drops any pending field edit that
 /// still targeted it.
 class OcptResourcesRoleDeletionRequestedEvent extends OcptResourcesEvent {
@@ -614,8 +616,8 @@ class OcptResourcesLocationCreationRequestedEvent extends OcptResourcesEvent {
   const OcptResourcesLocationCreationRequestedEvent();
 }
 
-/// Requests deleting location [locationId], dispatched once the sheet's inline confirmation has
-/// already been answered. Clears the selection when it was the selected location, and drops any
+/// Requests deleting location [locationId], dispatched once `OcptResourcesDeleteConfirmDialog` has
+/// already confirmed it. Clears the selection when it was the selected location, and drops any
 /// pending field edit that still targeted it or one of its sets.
 class OcptResourcesLocationDeletionRequestedEvent extends OcptResourcesEvent {
   /// The id of the location to delete.
@@ -1059,8 +1061,8 @@ class OcptResourcesElementCreationRequestedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, category];
 }
 
-/// Requests deleting element [elementId], dispatched once the sheet's own inline confirmation has
-/// already been answered. Clears the selection when [elementId] was the selected element, and drops
+/// Requests deleting element [elementId], dispatched once `OcptResourcesDeleteConfirmDialog` has
+/// already confirmed it. Clears the selection when [elementId] was the selected element, and drops
 /// any pending field edit that still targeted it.
 class OcptResourcesElementDeletionRequestedEvent extends OcptResourcesEvent {
   /// The id of the element to delete.

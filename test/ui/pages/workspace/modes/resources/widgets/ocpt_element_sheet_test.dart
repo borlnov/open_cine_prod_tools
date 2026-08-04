@@ -328,7 +328,7 @@ void main() {
     expect(find.text("×2"), findsOneWidget);
   });
 
-  testWidgets("deleting asks inline before it reports anything", (tester) async {
+  testWidgets("clicking Delete this element reports it", (tester) async {
     var deleteCount = 0;
 
     final tr = await pumpSheet(tester, onDeleteRequested: () => deleteCount++);
@@ -338,8 +338,8 @@ void main() {
     await tester.tap(find.text(tr.resourcesDeleteElementAction));
     await tester.pumpAndSettle();
 
-    expect(deleteCount, 0);
-    expect(find.text(tr.resourcesDeleteElementConfirm), findsOneWidget);
+    // The sheet only asks: the question itself is the mode's confirmation dialog.
+    expect(deleteCount, 1);
   });
 }
 

@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_minor_callout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_positions_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_unavailabilities_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_action.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_notes_card.dart';
 
 /// The resources mode's centre, once a person is selected: the whole person sheet, a single
@@ -138,7 +139,6 @@ class OcptPersonSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tr = Tr.of(context);
     final isMinor = person.isMinor == true;
 
@@ -190,13 +190,9 @@ class OcptPersonSheet extends StatelessWidget {
           ),
           if (!isReadOnly) ...[
             const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onDeleteRequested,
-                style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-                child: Text(tr.resourcesDeletePersonAction),
-              ),
+            OcptResourcesDeleteAction(
+              label: tr.resourcesDeletePersonAction,
+              onDeleteRequested: onDeleteRequested,
             ),
           ],
         ],

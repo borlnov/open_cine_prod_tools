@@ -402,6 +402,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   it holds without refusing it (`ocptEmailFormatError`, `ocptCostCentsOf`, the coordinates): the
   sheets autosave as they are typed, so a field that refused an incomplete value would refuse
   nearly every keystroke.
+  Each sheet ends on its own `Delete this …` action (`OcptResourcesDeleteAction`, which only asks),
+  and the four of them are answered by one `OcptResourcesDeleteConfirmDialog` opened by the mode —
+  a **dialog**, as in the shot list, never an inline yes/no, so a deletion is confirmed the same way
+  wherever it is asked from; only the wording differs, and it is the caller's. The removed-role
+  banner is the one exception: it deletes straight away, being that question itself.
   The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
   localized labels a row shows; the header count then reports what is on screen while the status

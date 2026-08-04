@@ -330,7 +330,7 @@ void main() {
     expect(openedPersonId, "p1");
   });
 
-  testWidgets("deleting asks first and reports only once confirmed", (tester) async {
+  testWidgets("clicking Delete this location reports it", (tester) async {
     var deleteCount = 0;
 
     await pumpSheet(tester, onDeleteRequested: () => deleteCount++);
@@ -342,14 +342,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(tr.resourcesLocationDeleteAction));
     await tester.pumpAndSettle();
-    expect(deleteCount, 0);
-    expect(find.text(tr.resourcesLocationDeleteConfirmMessage), findsOneWidget);
 
-    await tester.ensureVisible(find.text(tr.resourcesDeleteConfirmAction));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.resourcesDeleteConfirmAction));
-    await tester.pumpAndSettle();
-
+    // The sheet only asks: the question itself is the mode's confirmation dialog.
     expect(deleteCount, 1);
   });
 

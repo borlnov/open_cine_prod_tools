@@ -27,8 +27,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
@@ -292,11 +292,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
       return _buildElementsCentre(context, state);
     }
 
+    final tr = Tr.of(context);
     final selectedPerson = state.selectedPerson;
     if (selectedPerson == null) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.groups_outlined,
-        message: Tr.of(context).resourcesNoPersonSelectedHint,
+        message: tr.resourcesNoPersonSelectedHint,
       );
     }
 
@@ -377,7 +378,16 @@ class _ResourcesViewState extends State<_ResourcesView> {
             ),
           ),
       onUnavailabilityRemoved: (id) => bloc.add(OcptResourcesUnavailabilityRemovedEvent(id: id)),
-      onDeleteRequested: () => _handleDeletePersonRequested(context, selectedPerson),
+      onDeleteRequested: () => _handleDeleteRequested(
+        context,
+        title: tr.resourcesDeleteConfirmTitle,
+        message: tr.resourcesDeleteConfirmMessage(
+          selectedPerson.displayName.isEmpty
+              ? tr.resourcesUnnamedPerson
+              : selectedPerson.displayName,
+        ),
+        event: OcptResourcesPersonDeletionRequestedEvent(personId: selectedPerson.id),
+      ),
     );
   }
 
@@ -418,14 +428,25 @@ class _ResourcesViewState extends State<_ResourcesView> {
     };
   }
 
-  /// Shows the person deletion confirmation dialog, then dispatches the erasure if the user
-  /// confirmed it. Mirrors `OcptShotListMode._handleDeleteRequested`.
-  Future<void> _handleDeletePersonRequested(BuildContext context, OcptPerson person) async {
+  /// Asks [OcptResourcesDeleteConfirmDialog] the question [title] states, then dispatches [event]
+  /// if the user answered `Delete`.
+  ///
+  /// The four tabs share this one path, so a record is deleted the same way whichever it belongs
+  /// to — the way `OcptShotListMode._handleDeleteRequested` already asks it. Only the wording
+  /// differs, and it is the caller's.
+  Future<void> _handleDeleteRequested(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required OcptResourcesEvent event,
+  }) async {
     final bloc = context.read<OcptResourcesBloc>();
-    final tr = Tr.of(context);
-    final name = person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
 
-    final confirmed = await OcptPersonDeleteConfirmDialog.show(context, personName: name);
+    final confirmed = await OcptResourcesDeleteConfirmDialog.show(
+      context,
+      title: title,
+      message: message,
+    );
     if (confirmed != true) {
       return;
     }
@@ -433,7 +454,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       return;
     }
 
-    bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: person.id));
+    bloc.add(event);
   }
 
   /// Builds the roles tab's centre: the selected role's sheet, or the empty state — the one
@@ -474,8 +495,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onKindChanged: (kind) =>
           bloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
-      onDeleteRequested: () =>
-          bloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id)),
+      onDeleteRequested: () => _handleDeleteRequested(
+        context,
+        title: tr.resourcesRoleDeleteConfirmTitle,
+        message: tr.resourcesRoleDeleteConfirmMessage,
+        event: OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id),
+      ),
       onOrphanedRoleKept: () =>
           bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
       onPersonSheetOpenRequested: (personId) =>
@@ -613,8 +638,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
           ),
       onAvailabilityRemoved: (id) =>
           bloc.add(OcptResourcesLocationAvailabilityRemovedEvent(id: id)),
-      onDeleteRequested: () =>
-          bloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id)),
+      onDeleteRequested: () => _handleDeleteRequested(
+        context,
+        title: tr.resourcesLocationDeleteConfirmTitle,
+        message: tr.resourcesLocationDeleteConfirmMessage,
+        event: OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id),
+      ),
     );
   }
 
@@ -694,8 +723,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
         OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes),
       ),
       onLinkRemoved: (id) => bloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
-      onDeleteRequested: () =>
-          bloc.add(OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id)),
+      onDeleteRequested: () => _handleDeleteRequested(
+        context,
+        title: tr.resourcesElementDeleteConfirmTitle,
+        message: tr.resourcesDeleteElementConfirm,
+        event: OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id),
+      ),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
     );

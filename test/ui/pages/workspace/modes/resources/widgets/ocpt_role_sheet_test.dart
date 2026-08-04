@@ -265,7 +265,7 @@ void main() {
     expect(find.text(tr.resourcesRoleDeleteAction), findsNothing);
   });
 
-  testWidgets("a hand-added role is deleted through its inline confirmation", (tester) async {
+  testWidgets("clicking Delete this role reports it for a hand-added role", (tester) async {
     var deleted = 0;
 
     await tester.pumpWidget(
@@ -280,13 +280,7 @@ void main() {
     await tester.tap(find.text(tr.resourcesRoleDeleteAction));
     await tester.pumpAndSettle();
 
-    // The question is asked before anything is written.
-    expect(find.text(tr.resourcesRoleDeleteConfirmMessage), findsOneWidget);
-    expect(deleted, 0);
-
-    await tester.tap(find.text(tr.resourcesDeleteConfirmAction));
-    await tester.pumpAndSettle();
-
+    // The sheet only asks: the question itself is the mode's confirmation dialog.
     expect(deleted, 1);
   });
 

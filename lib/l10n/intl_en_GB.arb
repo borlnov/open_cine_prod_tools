@@ -2640,15 +2640,15 @@
   },
   "resourcesDeleteConfirmTitle": "Delete this person?",
   "@resourcesDeleteConfirmTitle": {
-    "description": "Title of the person deletion confirmation dialog",
-    "context": "Displayed after clicking the delete action of the person sheet",
+    "description": "Title of the dialog confirming a person's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
   "resourcesDeleteConfirmMessage": "This permanently erases {personName}'s personal details — contact information, address, and notes. This can't be undone.",
   "@resourcesDeleteConfirmMessage": {
-    "description": "Message of the person deletion confirmation dialog, naming the person and stating the deletion is an erasure",
-    "context": "Displayed after clicking the delete action of the person sheet",
+    "description": "Message of the dialog confirming a person's deletion, naming the person and stating the deletion is an erasure",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {
       "personName": {
@@ -2658,15 +2658,15 @@
   },
   "resourcesDeleteConfirmCancelAction": "Cancel",
   "@resourcesDeleteConfirmCancelAction": {
-    "description": "Action cancelling the person deletion",
-    "context": "Displayed in the person deletion confirmation dialog",
+    "description": "Action cancelling the deletion of a resources record",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
   "resourcesDeleteConfirmDeleteAction": "Delete",
   "@resourcesDeleteConfirmDeleteAction": {
-    "description": "Action confirming the person deletion",
-    "context": "Displayed in the person deletion confirmation dialog",
+    "description": "Action confirming the deletion of a resources record",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
@@ -3630,29 +3630,22 @@
   },
   "resourcesRoleDeleteAction": "Delete this role",
   "@resourcesRoleDeleteAction": {
-    "description": "Action opening the role's inline delete confirmation",
+    "description": "Action opening the role's delete confirmation dialog",
     "context": "Displayed in the role sheet's expanded row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleDeleteConfirmTitle": "Delete this role?",
+  "@resourcesRoleDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming a role's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
   "resourcesRoleDeleteConfirmMessage": "This permanently deletes this role. This can't be undone.",
   "@resourcesRoleDeleteConfirmMessage": {
-    "description": "Message of the role's inline delete confirmation",
-    "context": "Displayed in the role sheet's expanded row",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesDeleteCancelAction": "Cancel",
-  "@resourcesDeleteCancelAction": {
-    "description": "Action cancelling a resources sheet's inline delete confirmation",
-    "context": "Displayed at the bottom of the resources mode's role and location sheets",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesDeleteConfirmAction": "Delete",
-  "@resourcesDeleteConfirmAction": {
-    "description": "Action confirming a resources sheet's inline delete confirmation",
-    "context": "Displayed at the bottom of the resources mode's role and location sheets",
+    "description": "Message of the dialog confirming a role's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
@@ -3902,10 +3895,17 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesLocationDeleteConfirmTitle": "Delete this location?",
+  "@resourcesLocationDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming a location's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesLocationDeleteConfirmMessage": "This deletes the location, its sets and the scenes' links to them. This can't be undone.",
   "@resourcesLocationDeleteConfirmMessage": {
-    "description": "Message of the location's inline delete confirmation",
-    "context": "Displayed at the bottom of the resources mode's location sheet",
+    "description": "Message of the dialog confirming a location's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
@@ -4456,10 +4456,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesDeleteElementConfirm": "Delete this element? The scenes it was linked to lose it too.",
+  "resourcesElementDeleteConfirmTitle": "Delete this element?",
+  "@resourcesElementDeleteConfirmTitle": {
+    "description": "Title of the dialog confirming an element's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesDeleteElementConfirm": "This deletes the element, and the scenes it was linked to lose it too. This can't be undone.",
   "@resourcesDeleteElementConfirm": {
-    "description": "Question the element sheet's inline delete confirmation asks",
-    "context": "Displayed in the resources mode's element sheet",
+    "description": "Message of the dialog confirming an element's deletion",
+    "context": "Displayed in the resources mode's delete confirmation dialog",
     "type": "text",
     "placeholders": {}
   },

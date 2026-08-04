@@ -73,7 +73,8 @@ class OcptRoleSheet extends StatelessWidget {
   /// Called with this role's newly picked kind.
   final ValueChanged<OcptRoleKind> onKindChanged;
 
-  /// Called once the inline delete confirmation is answered `Delete`.
+  /// Called when the sheet's own delete action is clicked, the confirmation dialog being the
+  /// caller's to open.
   final VoidCallback onDeleteRequested;
 
   /// Called when the orphaned role's alert is answered `Keep as a silent role`.
@@ -165,9 +166,7 @@ class OcptRoleSheet extends StatelessWidget {
           if (!isReadOnly && _showsDeleteAction) ...[
             const SizedBox(height: 20),
             OcptResourcesDeleteAction(
-              ownerId: role.id,
               label: tr.resourcesRoleDeleteAction,
-              confirmMessage: tr.resourcesRoleDeleteConfirmMessage,
               onDeleteRequested: onDeleteRequested,
             ),
           ],

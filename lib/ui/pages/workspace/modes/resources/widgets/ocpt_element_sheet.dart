@@ -100,7 +100,8 @@ class OcptElementSheet extends StatelessWidget {
   /// Called with a link's id when its row's remove control is clicked.
   final ValueChanged<String> onLinkRemoved;
 
-  /// Called once the inline delete confirmation is answered `Delete`.
+  /// Called when the sheet's own delete action is clicked, the confirmation dialog being the
+  /// caller's to open.
   final VoidCallback onDeleteRequested;
 
   /// Called with a person's id when the `↗` beside the owner or the bringer is clicked.
@@ -208,9 +209,7 @@ class OcptElementSheet extends StatelessWidget {
           if (!isReadOnly) ...[
             const SizedBox(height: 20),
             OcptResourcesDeleteAction(
-              ownerId: element.id,
               label: tr.resourcesDeleteElementAction,
-              confirmMessage: tr.resourcesDeleteElementConfirm,
               onDeleteRequested: onDeleteRequested,
             ),
           ],
