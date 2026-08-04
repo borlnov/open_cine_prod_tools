@@ -114,15 +114,34 @@ reports, storyboard, the per-scene breakdown screen, and a casting tracker.
 
 ## Toolchain
 
-The host has **no usable Flutter SDK**. Run ALL Flutter/Dart/reuse commands inside the
-devcontainer (Flutter 3.44.6, the version pinned by `actlibs/tool/.flutter_version`):
+The Flutter SDK (3.44.6, the version pinned by `actlibs/tool/.flutter_version`) lives in the
+devcontainer; the developer's host has **no usable one**. An agent session normally starts
+**inside that container already** — cwd `/workspaces/open_cine_prod_tools`, `flutter` on the
+`PATH`, and no `docker` binary at all — so run `flutter analyze`, `flutter test`,
+`flutter build linux --debug`, `dart run …` and `reuse lint` directly, from the repo root. There is
+no container to start, and starting one is not possible from there. Check with `flutter --version`
+if in doubt: only a session running on the host itself needs the wrapper, which is what the
+verification gates below assume otherwise.
 
 ```bash
 cd .devcontainer && docker compose run --rm dev bash -lc 'cd /workspaces/open_cine_prod_tools && <command>'
 ```
 
-Git commands run on the host, from the repo root. The devcontainer persists the pub cache and
-Claude config in named volumes; X11 is forwarded so `flutter run -d linux` can open a window.
+Git commands run from the repo root, in the container like everything else. The container carries
+no SSH key, so `origin`'s `git@github.com:` URL cannot authenticate: push over HTTPS with the `gh`
+credentials the named volume persists, and use `gh` itself for everything else on GitHub (pull
+requests, issues, the API).
+
+```bash
+git -c credential.helper='!gh auth git-credential' \
+  push https://github.com/borlnov/open_cine_prod_tools.git <branch>
+```
+
+`git fetch` cannot run against `origin` there either, so a branch pushed that way has no
+remote-tracking ref until the developer fetches it from their host.
+
+The devcontainer persists the pub cache and Claude config in named volumes; X11 is forwarded so
+`flutter run -d linux` can open a window.
 
 Screenshots of the running app come from `tool/screenshot-app.sh`, which starts it on a private
 Xvfb display and exposes `shot` / `click` / `type` / `key` / `scroll` between invocations. Capture
