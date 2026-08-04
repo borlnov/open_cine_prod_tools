@@ -17,9 +17,10 @@ read the same guide. Edit `AGENTS.md`; never replace the symlink with a copy.
 
 Open Cine Prod Tools is an **open-source suite of film-production tools** (Apache-2.0,
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
-découpage technique (shot lists) and the scenario coverage per shot ship alongside it, and the
-long-term roadmap adds, in priority order: shooting schedule, call sheets, budget, script
-supervisor reports, storyboard, breakdown, and a casting tracker.
+découpage technique (shot lists), the scenario coverage per shot and the resources catalogue (the
+people, the cast, the locations and the physical elements) ship alongside it, and the long-term
+roadmap adds, in priority order: shooting schedule, call sheets, budget, script supervisor
+reports, storyboard, the per-scene breakdown screen, and a casting tracker.
 
 - Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
   released by the CI (see the Architecture section) but has never been run on a Mac — there is
@@ -91,6 +92,7 @@ supervisor reports, storyboard, breakdown, and a casting tracker.
 | 24 | Scenario coverage PDF export (issue #42): source provenance in the paginator (ADR 0012), schema v4 (`shots.abbreviation`, deduced from the shot size), `OcptScenarioCoverageLayout` (bars, lanes, ticks, uncovered washes, legend and summary), the coverage PDF service over a shared `OcptScriptPagePainter`, the shot list `⋮` entry and its options dialog | ✅ |
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
+| 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`), payload format 2 carrying them, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export | ✅ |
 
 ## Ways of working
 
@@ -149,9 +151,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 - Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
   only state is `{ OcptWorkspaceMode mode, bool isLoading }` — it owns *which* production mode is
-  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, budget,
-  schedule, shotList }` is persisted through `OcptPropertiesManager.workspaceMode` (modelled on
-  `editorMode`) so opening a project restores the last mode used. `OcptWorkspaceShell` is a
+  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, shotList,
+  resources, schedule, budget }` — the three implemented modes first, the two empty ones last — is
+  persisted through `OcptPropertiesManager.workspaceMode` by **name** rather than by index (modelled
+  on `editorMode`), so opening a project restores the last mode used and reordering the enum is
+  safe. `OcptWorkspaceShell` is a
   stateless slot widget (title, toolbar actions, overflow entries, left panel, right panel,
   centre, status bar, dock controller) built by whichever mode is active. The end of the toolbar
   is the shell's own chrome rather than a mode's actions, so its order can't drift from one mode
@@ -166,12 +170,14 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   what its affordances are. The screenplay mode is
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
   before this refactor), the shot list mode is `OcptShotListMode`
-  (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), and the two remaining
+  (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), the resources mode is
+  `OcptResourcesMode` (`lib/ui/pages/workspace/modes/resources/`, owning `OcptResourcesBloc`), and
+  the two remaining
   ones are stateless `OcptBudgetMode`/`OcptScheduleMode` widgets rendering a shared empty state —
   no bloc, no data, "coming in a future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
   `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
   primitives every mode's shell reuses; `OcptWorkspaceModeSwitcher` is the bottom band that
-  selects the mode (all four entries always selectable, unimplemented ones only discreetly
+  selects the mode (all five entries always selectable, unimplemented ones only discreetly
   marked). See `docs/adr/` for why this is a slot widget plus a mode-only bloc rather than a
   mode-aware god-bloc.
 - Config: `OcptConfigManager` (yaml assets in `assets/config/`), properties persisted through
@@ -244,11 +250,17 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v5 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, `row_field_versions`, `project_versions`), `storeDateTimeAsText:
+- Persistence: drift schema v6 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the twelve resources tables, `row_field_versions`,
+  `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
-- Project versions (`project_versions` + `project_info.currentVersionId`, schema v5): the user's
+  A schema number is allocated **at merge time, not at branch time**
+  (ADR 0007): of two branches in flight, whichever
+  merges second renumbers, and the migration test pins what `onCreate` produces against what every
+  upgrade path produces, so a table declared and forgotten in `onUpgrade` fails there rather than
+  on a user's file.
+- Project versions (`project_versions` + `project_info.currentVersionId`, schema v6): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
   `screenplay_snapshots` (automatic, screenplay-only, pruned past 30). The table is **local and
   never synchronised** — no tombstone, no `sortKey`, no stamps, and `OcptProjectVersionsService`
@@ -258,10 +270,18 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   the moment the user types, it has drifted from its base. `OcptProjectVersion.isBase` is that
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
-  `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the five
-  synchronised tables verbatim (primary keys, tombstones and `row_field_versions` stamps included)
+  `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
+  seventeen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  included)
   plus the page setup, in a JSON format versioned by `payloadFormat` — independent of the schema
-  version, upgraded on decode when older, refused when newer. Counters shown on a card
+  version, upgraded on decode when older, refused when newer. It is **a hand-written mirror of the
+  schema**, and a new synchronised table has to be added to all three of it, `contentDigest` and
+  `_applyPayload`: leave it out of the payload and a restore rewinds half the project, out of the
+  digest and the working copy claims not to have drifted, out of `_applyPayload` and it is never
+  written back. Payload format 2 (the resources tables) is what the `_payloadUpgrades` map's first
+  entry materialises, as empty lists, when a format-1 payload is decoded — restoring a version
+  captured before those tables existed therefore tombstones every resource row, which is the
+  truthful reading of "this project had no people". Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
@@ -292,8 +312,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   fork only ever added a card whose content duplicated the version it branched from. The margins
   half of the restored page setup is written by `OcptProjectsManager` **after** the transaction
   commits, since a preference can't be rolled back with it.
-- Sync-ready data model (ADR 0010): **no service ever deletes a synchronised row** (the local
-  `project_versions` above is the single exception). Every synchronised table
+- Sync-ready data model (ADR 0010): **no service ever deletes a synchronised row** (the two local
+  tables are the exceptions: `project_versions` above, and `local_erasures` below). Every
+  synchronised table
   carries `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out —
   including `scenes`, which is never synchronised but whose rows are referenced by two tables that
   are. Ordering is `sortKey`, a fractional index (`lib/utils/ocpt_fractional_key.dart`,
@@ -309,10 +330,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and five services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and six services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
-  annotated coverage PDF) and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
+  annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook) and
+  `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
   to a default location silently). The two PDF services share one `OcptCourierPrimeFontsLoader`
@@ -341,6 +363,66 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   snapshot and the parsed document to the manager. Every heading the two extra pages print comes in
   as an `OcptScenarioCoverageLabels`, exactly as `OcptShotListXlsxLabels` does for the workbook —
   the manager and its services never see a `Tr`.
+- Resources mode (`lib/ui/pages/workspace/modes/resources/`): who shoots the film, where, and with
+  what. Four tabs in the left dock — people, roles, locations, elements — the selected record's
+  editable sheet in the centre, and the shared `Versions` tab as the right dock's only tab (the
+  sheet *is* the inspector). Its four services are `OcptPeopleService`, `OcptRoleIndexService`,
+  `OcptLocationsService` and `OcptElementsService`, owned by `OcptProjectsManager` beside the shot
+  list's own, and `OcptResourcesBloc` joins their four reads into one `OcptResourcesSnapshot` the
+  way `OcptShotListBloc` builds its own.
+  **A person is one row, whatever they do on the film**: `people` is the address book, and both the
+  cast (`roles.personId`) and the crew positions (`person_positions`) are links onto it, never
+  copies of a name — so the same person can be a role, a position and a location's owner at once. A
+  `person_positions` row says only *that* someone holds a function; **when** they hold it is a
+  per-slot fact the schedule mode will own, which is why no scope column exists here.
+  **An element is anything that must be present on a day and is not a person** — one `elements`
+  table with a category and a free sub-category rather than one table per department, because the
+  tracking columns (owner, who brings it, secured, ready, returned, where) are the same whatever
+  the item is.
+  Roles are **reconciled from the screenplay**, not typed from nothing: `OcptRoleIndexService`
+  mirrors `OcptSceneIndexService` on the same save path — a speaking character with no row gets a
+  `speaking` role, a role whose character disappeared keeps its casting and its notes and gains an
+  `orphanedName` (`OcptRemovedRoleAlert`, the sibling of `OcptShotRemovedCharacterAlert`), and a
+  hand-added `silent`/`extra` role is never touched. A rename reads as one disappearance and one
+  appearance, repaired through the banner, exactly as a heading with no scene number is.
+  A scene is linked to a **set** (`scene_sets`, many-to-many — a continuous action is regularly
+  covered in two) and to an **element** (`scene_elements`, the *dépouillement* link, carrying the
+  quantity and the note that belong to that scene alone). `ocptSceneSetSuggestionOf`
+  (`lib/utils/`, pure and tested) reduces a heading to the place it names and *offers* the best set
+  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets.
+  Everything writes the moment it changes, except the sheets' typed free-text fields: those ride
+  one 2 s debounce shared by the five `pending…FieldEdits` maps, flushed together on a selection
+  change, a tab change, a version preview and the mode leaving the tree. A field may **flag** what
+  it holds without refusing it (`ocptEmailFormatError`, `ocptCostCentsOf`, the coordinates): the
+  sheets autosave as they are typed, so a field that refused an incomplete value would refuse
+  nearly every keystroke.
+  The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
+  diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
+  localized labels a row shows; the header count then reports what is on screen while the status
+  bar keeps counting the whole catalogue. The `⋮` menu exports the four-sheet workbook (above).
+- Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
+  `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
+  megabytes never reach a changeset sync designed around small per-column edits. A missing file is
+  a normal state rather than an error — the UI shows the reference with a "file not found" marker —
+  and it is the honest cost of the choice: a `.ocpt` sent to a colleague arrives without its
+  photos, and a restored version restores a reference that may now dangle. `OcptLocationsService`
+  is so far the only service that writes these rows (scouting photos, the permit document).
+- Erasing a person (`local_erasures`): deleting a person writes the tombstone **and blanks their
+  personal columns**, so the file stops holding a phone number, a home address and an allergy for
+  someone who asked to be removed. Versions cut across that — a payload captured earlier still
+  holds a full copy — so the erased ids are kept in `local_erasures` and the **restore path scrubs
+  on decode** (`OcptProjectVersionsService._scrubErasedPeople`, reading the list fresh from the
+  database so an erasure recorded *after* a version was taken still binds): versions stay
+  byte-identical (the codec never rewrites a stored payload), and the working copy never
+  resurrects an erased person. The scrubbed row is blanked and tombstoned rather than dropped —
+  `roles.personId`, `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may
+  still point at it. **`_scrubErasedPeople` and `OcptPeopleService.deletePerson` implement the same
+  erasure from two starting points and must be kept in step by hand**: a column blanked by one but
+  not the other reopens the leak. That list is a table for the same reason
+  `project_versions` is one: parked in `project_info.settingsJson` it would be captured, hashed and
+  written back by any restore, which would forget the erasure and resurrect the person in one
+  transaction. `local_erasures` is therefore local — no tombstone, no `sortKey`, no stamps, never
+  captured, never hashed, never restored.
 - Editor: super_editor styled mode keeps **one `ParagraphNode` per non-blank Fountain source
   line**; a blank source line carries no node of its own, folded into the following node's
   `ocptBlankLinesBefore` metadata instead. Other node metadata: `blockType` (the line's
@@ -421,7 +503,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptProjectVersionCard`/
   `OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is the one panel of the dock
   that is about the **project** rather than the mode showing it, so it is hosted by every mode's
-  dock (`OcptEditorRightDockTab.versions` and `OcptShotListRightDockTab.versions`) and built from
+  dock (`OcptEditorRightDockTab.versions`, `OcptShotListRightDockTab.versions` and
+  `OcptResourcesRightDockTab.versions`, the resources dock's only tab) and built from
   `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
   `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
   `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
@@ -433,8 +516,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   reload **must** emit `previewedVersionId`, read from `OcptProjectsManager.currentProject`, in the
   same state as the data it just read, or the mode draws one frame of a version's content with the
   working copy's editing affordances still on it). A mode also decides *when* the working copy is
-  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — both modes do it
-  on opening the `Versions` tab and on a save landing while it is already open, and the mixin
+  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — the three modes
+  do it on opening the `Versions` tab and on a save landing while it is already open, and the mixin
   throttles that path to one capture every 2 s, since it reads the whole project; the captures that
   follow an operation which just changed the project are never throttled.
   The panel reads top-down as **the present, then the sealed history**: `OcptProjectWorkingCopyCard`
@@ -469,13 +552,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   rather than disabled where it can be: the save control, the format controls, the `⋮` entries
   that rewrite (import & replace, page setup, title page), the metadata panel's "Edit…", the shot
   list's `+ Shot`, its orphan delete buttons, its inspector controls and its deleted-character
-  banner actions. What only reads stays: the exports, the scene/sequence panels, the statistics,
-  and the app-wide display preferences.
+  banner actions, and every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
+  sub-list rows and delete actions. What only reads stays: the exports, the scene/sequence panels,
+  the statistics, the resources search and the app-wide display preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
-  Flutter's own "no callback, no affordance" idiom); the two composite panels
-  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`) take an `isReadOnly` flag instead
-  and hand their own parts the null callbacks, so a control added later can't be gated in one place
-  and forgotten in the other. `OcptWorkspaceReadOnlyBanner` carries the two ways out of a preview:
+  Flutter's own "no callback, no affordance" idiom); a composite panel
+  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`, and each of the resources mode's
+  four sheets) takes an `isReadOnly` flag instead and hands its own parts the null callbacks, so a
+  control added later can't be gated in one place and forgotten in the other.
+  `OcptWorkspaceReadOnlyBanner` carries the two ways out of a preview:
   `Start from this version` (a plain restore of the version being read, which asks nothing further —
   the banner is that question, and `OcptProjectsManager.restoreProjectVersion` leaves the preview on
   its own before writing anything) and the filled `Back to the current version`.
