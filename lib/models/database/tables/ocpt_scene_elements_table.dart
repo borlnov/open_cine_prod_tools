@@ -30,7 +30,7 @@ class OcptSceneElementsTable extends Table {
   TextColumn get elementId => text().references(OcptElementsTable, #id)();
 
   /// How many of the element this scene needs, overriding `elements.quantity` for this scene alone.
-  /// Free text, for the same reason `elements.quantity` is.
+  /// A decimal number stored as text, for the same reason `elements.quantity` is.
   TextColumn get quantity => text().withDefault(const Constant(''))();
 
   /// Free-form notes about this scene's need for the element.

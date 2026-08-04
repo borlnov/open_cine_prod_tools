@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_decimal_input.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
 /// The width of the code field: a code is `PRP-3`, `VEH-1` — never a sentence.
@@ -101,7 +102,16 @@ class OcptElementSheetHeader extends StatelessWidget {
               child: _field(OcptElementField.subCategory, tr.resourcesElementSubCategoryLabel),
             ),
             const SizedBox(width: 12),
-            Expanded(child: _field(OcptElementField.quantity, tr.resourcesElementQuantityLabel)),
+            Expanded(
+              child: OcptResourcesSheetField(
+                ownerId: element.id,
+                label: tr.resourcesElementQuantityLabel,
+                value: fieldValueOf(OcptElementField.quantity),
+                inputFormatters: ocptDecimalInputFormatters,
+                keyboardType: ocptDecimalKeyboardType,
+                onChanged: _onChangedOf(OcptElementField.quantity),
+              ),
+            ),
           ],
         ),
       ],

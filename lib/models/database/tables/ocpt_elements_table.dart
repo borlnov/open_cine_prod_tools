@@ -72,9 +72,12 @@ class OcptElementsTable extends Table {
   /// shot's `abbreviation`.
   TextColumn get code => text().withDefault(const Constant(''))();
 
-  /// How many of this element are needed. **Text, not an integer**: the real sheets say `plein`,
-  /// `×5`, `2 par jour` — quantities a production actually writes down are not always countable
-  /// numbers.
+  /// How many of this element are needed: a decimal number, or empty while nobody has counted.
+  ///
+  /// **Stored as text although the field only accepts a number** (`OcptDecimalTextInputFormatter`):
+  /// the column predates the restriction and holds whatever earlier builds wrote into it, and
+  /// turning it into a `real` is not the additive migration ADR 0007 allows. Read it with
+  /// `double.tryParse` and treat what does not parse as no quantity — never as zero.
   TextColumn get quantity => text().withDefault(const Constant(''))();
 
   /// Where this element comes from, or is going to.

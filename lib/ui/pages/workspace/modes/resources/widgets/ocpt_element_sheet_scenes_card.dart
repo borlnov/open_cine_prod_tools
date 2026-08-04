@@ -10,12 +10,13 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_decimal_input.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
 /// How long a row waits after the last keystroke before reporting what was typed into it.
 const Duration _localFieldDebounce = Duration(milliseconds: 600);
 
-/// The width of a row's per-scene quantity field: a quantity is `×2`, `plein` — never a sentence.
+/// The width of a row's per-scene quantity field: a quantity is a number, never a sentence.
 const double _quantityFieldWidth = 96;
 
 /// "Scenes needing it": one row per `scene_elements` link — the scene it names, how many of the
@@ -280,6 +281,7 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
                     controller: _quantityController,
                     label: tr.resourcesSceneElementQuantityLabel,
                     isReadOnly: isReadOnly,
+                    isDecimal: true,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -308,6 +310,7 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
     required TextEditingController controller,
     required String label,
     required bool isReadOnly,
+    bool isDecimal = false,
   }) {
     final theme = Theme.of(context);
 
@@ -323,6 +326,8 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
           controller: controller,
           readOnly: isReadOnly,
           onChanged: isReadOnly ? null : _onFieldChanged,
+          inputFormatters: isDecimal ? ocptDecimalInputFormatters : null,
+          keyboardType: isDecimal ? ocptDecimalKeyboardType : null,
           style: theme.textTheme.bodySmall,
           decoration: const InputDecoration(isDense: true),
         ),

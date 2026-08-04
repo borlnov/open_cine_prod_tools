@@ -21,7 +21,7 @@ class OcptSceneElementLink extends Equatable {
   final String sceneId;
 
   /// How many of the element this scene needs, overriding `OcptElement.quantity` for this scene
-  /// alone. Free text, for the same reason the element's own quantity is.
+  /// alone. A decimal number stored as text, for the same reason the element's own quantity is.
   final String quantity;
 
   /// Free-form notes about this scene's need for the element.

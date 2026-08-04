@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// The number of lines a [OcptResourcesSheetField.multiline] field is tall before it grows with
 /// what is typed into it.
@@ -59,6 +60,13 @@ class OcptResourcesSheetField extends StatefulWidget {
   /// name fields to read as a title rather than as an ordinary field.
   final TextStyle? textStyle;
 
+  /// What this field accepts as it is typed into, or null for a field that accepts anything —
+  /// which nearly all of them do. The quantity fields pass `ocptDecimalInputFormatters`.
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// The keyboard a phone or a tablet opens for this field, or null for the ordinary text one.
+  final TextInputType? keyboardType;
+
   /// Called with the field's raw text on every keystroke, or null while the field may not be
   /// written to (a project version being previewed read-only): it then reads its value out —
   /// selectable, so it can still be copied — with no reaction to typing.
@@ -74,6 +82,8 @@ class OcptResourcesSheetField extends StatefulWidget {
     this.hintText,
     this.errorTextOf,
     this.textStyle,
+    this.inputFormatters,
+    this.keyboardType,
     required this.onChanged,
   });
 
@@ -160,6 +170,8 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
           onChanged: widget.onChanged,
           maxLines: widget.multiline ? null : 1,
           minLines: widget.multiline ? _multilineMinLines : 1,
+          inputFormatters: widget.inputFormatters,
+          keyboardType: widget.keyboardType,
           style: widget.textStyle ?? theme.textTheme.bodySmall,
           decoration: InputDecoration(
             isDense: true,

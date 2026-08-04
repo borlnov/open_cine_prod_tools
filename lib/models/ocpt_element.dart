@@ -31,7 +31,8 @@ class OcptElement extends Equatable {
   /// The short label a breakdown margin has room for, free text.
   final String code;
 
-  /// How many of this element are needed. Free text — see `OcptElementsTable.quantity`.
+  /// How many of this element are needed, as a decimal number — see `OcptElementsTable.quantity`
+  /// for why it is carried as text.
   final String quantity;
 
   /// Where this element comes from, or is going to.
