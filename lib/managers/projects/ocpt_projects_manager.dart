@@ -14,6 +14,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
@@ -56,14 +57,15 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// Every Open Cine Prod Tools project is a single `.ocpt` SQLite file (an [OcptProjectDatabase]);
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
-/// index, its shot list, its named versions or its resources catalogue (the address book, the
-/// cast, locations and elements) is delegated to [screenplayService], [sceneIndexService],
-/// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
-/// [roleIndexService], [locationsService] and [elementsService], the nine services this manager
-/// owns and wires together (RFL18): this manager itself is only responsible for the lifecycle of
-/// the project file (create/open/close), for keeping the properties manager's recent-projects list
-/// in sync, and for handing those services the facts only it holds — the open project's database,
-/// the app version, this replica's device id and the app-wide page margins.
+/// index, its shot list, its named versions, its resources catalogue (the address book, the cast,
+/// locations and elements) or the breakdown pass tagging that catalogue against the screenplay is
+/// delegated to [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
+/// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
+/// [elementsService] and [breakdownService], the ten services this manager owns and wires together
+/// (RFL18): this manager itself is only responsible for the lifecycle of the project file
+/// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
+/// handing those services the facts only it holds — the open project's database, the app version,
+/// this replica's device id and the app-wide page margins.
 ///
 /// It also owns the read-only **preview** of a version ([previewVersion] / [exitPreview]), which is
 /// a state of the open project rather than of the database and so belongs here rather than in
@@ -114,6 +116,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The service used for CRUD over the physical elements catalogue.
   final OcptElementsService elementsService;
 
+  /// The service used to tag a screenplay passage against an element, a role or a set, and to
+  /// track a scene's own breakdown status.
+  final OcptBreakdownService breakdownService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -154,7 +160,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       peopleService = const OcptPeopleService(),
       roleIndexService = const OcptRoleIndexService(),
       locationsService = const OcptLocationsService(),
-      elementsService = const OcptElementsService();
+      elementsService = const OcptElementsService(),
+      breakdownService = const OcptBreakdownService(
+        elementsService: OcptElementsService(),
+        locationsService: OcptLocationsService(),
+      );
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
