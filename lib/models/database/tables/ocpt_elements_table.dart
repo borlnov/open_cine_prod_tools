@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
 /// Converts a [OcptElementCategory] to and from the text stored in the `elements.category` column.
 class OcptElementCategoryConverter extends TypeConverter<OcptElementCategory, String> {
@@ -35,6 +36,20 @@ class OcptElementSourceKindConverter extends TypeConverter<OcptElementSourceKind
   /// {@macro drift.TypeConverter.toSql}
   @override
   String toSql(OcptElementSourceKind value) => value.name;
+}
+
+/// Converts a [OcptElementStatus] to and from the text stored in the `elements.status` column.
+class OcptElementStatusConverter extends TypeConverter<OcptElementStatus, String> {
+  /// Class constructor
+  const OcptElementStatusConverter();
+
+  /// {@macro drift.TypeConverter.fromSql}
+  @override
+  OcptElementStatus fromSql(String fromDb) => OcptElementStatus.values.byName(fromDb);
+
+  /// {@macro drift.TypeConverter.toSql}
+  @override
+  String toSql(OcptElementStatus value) => value.name;
 }
 
 /// Anything that must be present on a given shooting day and is not a person: props, set dressing,
@@ -98,6 +113,15 @@ class OcptElementsTable extends Table {
 
   /// Where this element is stored until the shoot (e.g. "sous l'abri, déjà sur place"), free text.
   TextColumn get storageNotes => text().withDefault(const Constant(''))();
+
+  /// How far this element is towards being ready for the shoot: to find, reserved, being made or
+  /// confirmed — the breakdown pass's own tracking, which the three booleans below cannot express
+  /// (neither *reserved* nor *being made* is any of "on the truck", "ready" or "returned").
+  // The stored literal below must match `OcptElementStatus.toFind.name` exactly, for the same
+  // reason `shots.status`'s default does: an enum's `.name` getter isn't a compile-time constant
+  // expression, so it can't be written as `Constant(OcptElementStatus.toFind)`.
+  TextColumn get status =>
+      text().map(const OcptElementStatusConverter()).withDefault(const Constant('toFind'))();
 
   /// Whether this element is secured (owned, borrowed, rented or bought — the first of the three
   /// checkboxes both reference spreadsheets share, in the order they use: got it, ready, returned).

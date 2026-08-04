@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -1354,6 +1355,7 @@ class OcptProjectVersionCodec {
     _ownerNotesKey: row.ownerNotes,
     _broughtByPersonIdKey: row.broughtByPersonId,
     _storageNotesKey: row.storageNotes,
+    _statusKey: row.status.name,
     _isSecuredKey: row.isSecured,
     _isReadyForShootKey: row.isReadyForShoot,
     _isReturnedKey: row.isReturned,
@@ -1378,6 +1380,11 @@ class OcptProjectVersionCodec {
     ownerNotes: _string(json, _ownerNotesKey),
     broughtByPersonId: _nullableString(json, _broughtByPersonIdKey),
     storageNotes: _string(json, _storageNotesKey),
+    // A payload captured before this column existed carries no `_statusKey` at all: `toFind` is the
+    // honest reading of "nobody has ever recorded a status for this element", exactly the default
+    // the column itself falls back to.
+    status: _nullableEnum(json, _statusKey, OcptElementStatus.values.asNameMap()) ??
+        OcptElementStatus.toFind,
     isSecured: _bool(json, _isSecuredKey),
     isReadyForShoot: _bool(json, _isReadyForShootKey),
     isReturned: _bool(json, _isReturnedKey),

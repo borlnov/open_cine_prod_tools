@@ -9,6 +9,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
@@ -21,6 +22,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_ta
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_row_field_versions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_breakdowns_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
@@ -34,14 +36,18 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
 // OcptPermitStatusConverter, OcptElementCategoryConverter, OcptElementSourceKindConverter,
-// OcptAssetKindConverter, OcptDayPartSlotConverter), but the generated
+// OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
+// OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter), but the generated
 // ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -70,7 +76,10 @@ part 'ocpt_project_database.g.dart';
 /// sets ([OcptLocationsTable], [OcptSetsTable], [OcptSceneSetsTable]), the physical elements
 /// catalogue ([OcptElementsTable], [OcptSceneElementsTable]), the binary asset references
 /// ([OcptAssetsTable]) and the local, never-synchronised record of erased people
-/// ([OcptLocalErasuresTable]). `OcptProjectsManager` owns the single instance open at a time.
+/// ([OcptLocalErasuresTable]). From schema version 9 it also holds the breakdown pass's own tables:
+/// the tags anchoring a passage of a scene to a catalogue row ([OcptBreakdownTagsTable]) and each
+/// scene's breakdown status ([OcptSceneBreakdownsTable]). `OcptProjectsManager` owns the single
+/// instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -95,6 +104,8 @@ part 'ocpt_project_database.g.dart';
     OcptSceneElementsTable,
     OcptAssetsTable,
     OcptLocalErasuresTable,
+    OcptBreakdownTagsTable,
+    OcptSceneBreakdownsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -163,7 +174,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   /// The database options used by this database.
   ///
@@ -194,16 +205,19 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// From 6 to 7 it creates [OcptLocationAvailabilitiesTable], the dated windows during which a
   /// location may be shot in. From 7 to 8 it adds `project_info.currencyCode`, defaulting an
   /// existing file to EUR exactly as a freshly created one would if the device locale couldn't
-  /// suggest anything better. Every step is additive, as ADR 0007 requires: every new column
-  /// carries a default (or is nullable), so the rows a project already had stay valid without being
-  /// rewritten.
+  /// suggest anything better. From 8 to 9 it creates [OcptBreakdownTagsTable] and
+  /// [OcptSceneBreakdownsTable], the breakdown pass's own tables, and adds `elements.status`. Every
+  /// step is additive, as ADR 0007 requires: every new column carries a default (or is nullable),
+  /// so the rows a project already had stay valid without being rewritten.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
   /// current declarations, so they carry both generations of columns already. The v5 step needs no
   /// such guard: [OcptProjectVersionsTable] has never existed in a build a user could have run, so
   /// it is always created here rather than altered, and `project_info` has existed since version 1,
-  /// so it can always be given its new pointer.
+  /// so it can always be given its new pointer. The v9 step guards `elements.status` the same way
+  /// the v3/v4 columns do: a file coming from before version 6 has just had `elements` created
+  /// above, from the current declaration, so it already carries the column.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
@@ -270,6 +284,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 8) {
         await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currencyCode);
+      }
+
+      if (from < 9) {
+        // Both new tables reference `scenes`, and `breakdown_tags` also references `elements`,
+        // `roles` and `sets` — all of which exist by version 6, so nothing here is a forward
+        // reference.
+        await m.createTable(ocptBreakdownTagsTable);
+        await m.createTable(ocptSceneBreakdownsTable);
+
+        if (from >= 6) {
+          await m.addColumn(ocptElementsTable, ocptElementsTable.status);
+        }
       }
     },
     beforeOpen: (details) async {

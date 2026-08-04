@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -422,6 +423,7 @@ void main() {
         ownerNotes: "M. et Mme Schmit",
         broughtByPersonId: "person-1",
         storageNotes: "Sous l'abri",
+        status: OcptElementStatus.confirmed,
         isSecured: true,
         isReadyForShoot: true,
         isReturned: false,
@@ -442,6 +444,7 @@ void main() {
         sourceKind: OcptElementSourceKind.toBuy,
         ownerNotes: "",
         storageNotes: "",
+        status: OcptElementStatus.toFind,
         isSecured: false,
         isReadyForShoot: false,
         isReturned: false,
