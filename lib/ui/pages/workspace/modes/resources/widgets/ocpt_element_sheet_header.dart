@@ -11,8 +11,12 @@ import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
-/// The width of the code field: a code is `ACC-3`, `VEH-1` — never a sentence.
+/// The width of the code field: a code is `PRP-3`, `VEH-1` — never a sentence.
 const double _codeFieldWidth = 92;
+
+/// How far above the bottom of the row's fields the tracking badge sits, so it reads as sitting on
+/// the name's own baseline rather than on the very bottom of its input box.
+const double _trackingBadgeBottomInset = 8;
 
 /// The element sheet's header: the element's code and its name as a title on the first row, its
 /// tracking state as a badge on the right of them, and the category, the sub-category and the
@@ -58,8 +62,12 @@ class OcptElementSheetHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Aligned by the bottom rather than by the top: the code carries a label and the name does
+        // not, and the name is a title-sized field, so the two boxes have neither the same height
+        // nor the same first line. What has to line up is the bottom of the two input boxes — the
+        // badge follows them instead of the top of the row it used to hang from.
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             SizedBox(
               width: _codeFieldWidth,
@@ -77,7 +85,10 @@ class OcptElementSheetHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Padding(padding: const EdgeInsets.only(top: 6), child: _buildTrackingBadge(context, tr)),
+            Padding(
+              padding: const EdgeInsets.only(bottom: _trackingBadgeBottomInset),
+              child: _buildTrackingBadge(context, tr),
+            ),
           ],
         ),
         const SizedBox(height: 10),
