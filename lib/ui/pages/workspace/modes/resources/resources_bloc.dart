@@ -20,8 +20,10 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
@@ -37,6 +39,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_element_code.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -2104,15 +2107,71 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   Future<void> _onElementCategoryChanged(
     OcptResourcesElementCategoryChangedEvent event,
     Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the category of element ${event.elementId}",
-    action: (project) => _elementsService.updateElement(
-      database: project.database,
-      elementId: event.elementId,
-      category: Value(event.category),
-    ),
-  );
+  ) async {
+    // A code typed a second ago is still sitting in the debounce, and it is precisely what decides
+    // whether the code below may be regenerated: flushing first is what tells a hand-written code
+    // from a generated one.
+    await _flushPendingFieldEdits(emitter);
+
+    final element = _elementOf(event.elementId);
+    if (element == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "change the category of element ${event.elementId}",
+      action: (project) => _elementsService.updateElement(
+        database: project.database,
+        elementId: event.elementId,
+        category: Value(event.category),
+        code: _codeAfterCategoryChangeOf(element: element, category: event.category),
+      ),
+    );
+  }
+
+  /// The element [elementId] identifies in the current snapshot, or null when the snapshot has no
+  /// such element (a stale event about a row deleted underneath).
+  OcptElement? _elementOf(String elementId) {
+    for (final element in state.elements) {
+      if (element.id == elementId) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  /// The code [element] is given as it moves to [category]: a freshly generated one, or
+  /// [Value.absent] to leave the one it already carries alone.
+  ///
+  /// A code is regenerated only when the user never chose it — it is empty, or it is still exactly
+  /// what `ocptElementCodeOf` produced for the category the element is leaving. Anything else is a
+  /// decision (`4L jaune`, or a `PRP-4` deliberately kept across the move) and survives the change,
+  /// the same way a shot's `abbreviation` is deduced once and never overwritten afterwards.
+  Value<String> _codeAfterCategoryChangeOf({
+    required OcptElement element,
+    required OcptElementCategory category,
+  }) {
+    final code = element.code.trim();
+    final isGenerated =
+        code.isEmpty || ocptElementCodeIsGeneratedFor(code: code, category: element.category);
+    if (!isGenerated) {
+      return const Value.absent();
+    }
+
+    return Value(
+      ocptElementCodeOf(
+        category: category,
+        // The element's own code is left out: it is about to stop belonging to the category it is
+        // numbered in, so it must not reserve a number there — and it can never collide with the
+        // numbers of the category it is joining.
+        existingCodes: state.elements
+            .where((other) => other.id != element.id)
+            .map((other) => other.code),
+      ),
+    );
+  }
 
   /// Sets where element `event.elementId` comes from, written immediately.
   Future<void> _onElementSourceKindChanged(

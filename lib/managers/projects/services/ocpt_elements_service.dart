@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_element_code.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
@@ -51,6 +52,12 @@ class OcptElementsService {
   /// Creates a new element named [name], of [category] and [sourceKind], in [database], appended
   /// at the end of the catalogue, and returns its freshly generated id.
   ///
+  /// The element's code is generated here rather than left empty (`ocptElementCodeOf`, numbered
+  /// within [category] from the codes the catalogue already carries): every element gets one
+  /// without anybody typing it, and a caller that creates an element as a side effect of something
+  /// else — the breakdown adding an item from a scene — cannot forget to. It is a default, not a
+  /// decision: the sheet's own field overwrites it.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createElement({
     required OcptProjectDatabase database,
@@ -73,6 +80,12 @@ class OcptElementsService {
             name: name,
             category: category,
             sourceKind: sourceKind,
+            code: Value(
+              ocptElementCodeOf(
+                category: category,
+                existingCodes: existing.map((row) => row.code),
+              ),
+            ),
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),

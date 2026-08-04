@@ -858,6 +858,48 @@ void main() {
     await bloc.close();
   });
 
+  // A generated code is a default and follows the category; a typed one is a decision and does not.
+  test("changing an element's category renumbers a generated code, never a typed one", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+    expect(created.selectedElement!.code, "PRP-1");
+
+    bloc.add(
+      OcptResourcesElementCategoryChangedEvent(
+        elementId: elementId,
+        category: OcptElementCategory.vehicle,
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedElement!.code == "VEH-1");
+
+    bloc.add(
+      OcptResourcesElementFieldChangedEvent(
+        elementId: elementId,
+        field: OcptElementField.code,
+        rawValue: "4L jaune",
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedElement!.code == "4L jaune");
+
+    bloc.add(
+      OcptResourcesElementCategoryChangedEvent(
+        elementId: elementId,
+        category: OcptElementCategory.costume,
+      ),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.selectedElement!.category == OcptElementCategory.costume,
+    );
+    expect(state.selectedElement!.code, "4L jaune");
+
+    await bloc.close();
+  });
+
   test("a typed element field edit is pending until the debounce writes it", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);

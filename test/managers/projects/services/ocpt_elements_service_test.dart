@@ -61,6 +61,36 @@ void main() {
       ]);
     });
 
+    test("createElement numbers a code within the element's own category", () async {
+      final firstPropId = await createElement("Valise");
+      final secondPropId = await createElement("Lampe torche");
+      final vehicleId = await elementsService
+          .createElement(
+            database: database,
+            name: "Renault 4L",
+            category: OcptElementCategory.vehicle,
+            sourceKind: OcptElementSourceKind.borrowed,
+          )
+          .then((id) => id!);
+
+      expect((await readElement(firstPropId)).code, "PRP-1");
+      expect((await readElement(secondPropId)).code, "PRP-2");
+      expect((await readElement(vehicleId)).code, "VEH-1");
+    });
+
+    test("createElement leaves a hand-written code out of its numbering", () async {
+      final firstId = await createElement("Valise");
+      await elementsService.updateElement(
+        database: database,
+        elementId: firstId,
+        code: const Value("malle noire"),
+      );
+
+      final secondId = await createElement("Lampe torche");
+
+      expect((await readElement(secondId)).code, "PRP-1");
+    });
+
     test("createElement in the middle keeps sortKey ordering", () async {
       final firstId = await createElement("A");
       final secondId = await createElement("B");
