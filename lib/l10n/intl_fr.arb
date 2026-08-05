@@ -767,5 +767,18 @@
   "breakdownRecapColumnOccurrences": "Occ.",
   "breakdownRecapSceneColumnLabel": "SC {number}",
   "breakdownRecapNothingTaggedHint": "Rien n'a encore été dépouillé. Cliquez sur un mot du scénario pour commencer.",
-  "breakdownRecapNoMatchesHint": "Aucun élément, personnage ou décor ne correspond à « {query} »."
+  "breakdownRecapNoMatchesHint": "Aucun élément, personnage ou décor ne correspond à « {query} ».",
+  "breakdownExportSheetsMenuAction": "Exporter les fiches de dépouillement…",
+  "breakdownExportSheetsDialogTitle": "Exporter les fiches de dépouillement",
+  "breakdownExportSheetsOnlyDoneLabel": "Uniquement les scènes marquées comme dépouillées",
+  "breakdownExportSheetsNotesLabel": "Inclure les notes de dépouillement de chaque scène",
+  "breakdownExportSheetsToFindLabel": "Inclure ce qu'il reste à trouver",
+  "breakdownExportSheetsFileTypeLabel": "Document PDF",
+  "breakdownExportSheetsFileNameSuffix": "dépouillement",
+  "breakdownExportSheetsDocumentTitle": "Fiches de dépouillement",
+  "breakdownExportSheetsLengthLabel": "Longueur",
+  "breakdownExportSheetsEmptySceneNote": "Rien n'a été dépouillé dans cette scène.",
+  "breakdownExportSheetsEmptyDocumentNote": "Aucune scène n'a encore été dépouillée.",
+  "breakdownExportSheetsSuccessMessage": "Exporté vers {path}",
+  "breakdownExportSheetsError": "Les fiches de dépouillement n'ont pas pu être exportées."
 }

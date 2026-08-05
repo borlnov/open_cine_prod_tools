@@ -10,6 +10,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -90,6 +91,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
 
+  /// The manager the breakdown sheets export goes through.
+  final OcptExportManager _exportManager;
+
   /// The service used to read the breakdown scenes and tags, and to remove one.
   final OcptBreakdownService _breakdownService;
 
@@ -122,6 +126,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
     OcptBreakdownService? breakdownService,
     OcptElementsService? elementsService,
     OcptRoleIndexService? roleIndexService,
@@ -131,6 +136,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _breakdownService =
            breakdownService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).breakdownService,
@@ -158,6 +164,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownLoadRequestedEvent>(_onLoadRequested);
     on<OcptBreakdownBackRequestedEvent>(_onBackRequested);
     on<OcptBreakdownProjectSettingsChangedEvent>(_onProjectSettingsChanged);
+    on<OcptBreakdownSheetsExportRequestedEvent>(_onSheetsExportRequested);
+    on<OcptBreakdownIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptBreakdownSceneSelectedEvent>(_onSceneSelected);
     on<OcptBreakdownSceneHeadingSelectedEvent>(_onSceneHeadingSelected);
     on<OcptBreakdownLeftPanelToggledEvent>(_onLeftPanelToggled);
@@ -369,6 +377,74 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
     final pageSetup = await _loadPageSetup(project);
     emitter(state.copyWith(pageSetup: pageSetup));
+  }
+
+  /// Exports one breakdown sheet per scene, as a PDF.
+  ///
+  /// Built exactly as the other two modes' own export handlers are: flush whatever is still pending
+  /// — that flush re-reads the snapshot, so a sheet holds the name or the note the user typed
+  /// seconds ago — then hand what the state now carries to
+  /// [OcptExportManager.exportBreakdownSheets]. A cancelled save dialog is a silent no-op; a
+  /// failure raises the transient export-failed notice.
+  ///
+  /// [OcptBreakdownState.screenplayText] is parsed here rather than kept parsed in the state: the
+  /// document is only needed by this export, and only for each scene's own length.
+  Future<void> _onSheetsExportRequested(
+    OcptBreakdownSheetsExportRequestedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportBreakdownSheets(
+        document: const FountainParser().parse(state.screenplayText),
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        onlyDoneScenes: options.onlyDoneScenes,
+        includeNotes: options.includeNotes,
+        includeToFindList: options.includeToFindList,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptBreakdownIoNotice(
+            kind: OcptBreakdownIoNoticeKind.sheetsExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the breakdown sheets of the project "
+          "at ${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptBreakdownIoNotice(
+            kind: OcptBreakdownIoNoticeKind.sheetsExportFailed,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Clears the transient export notice currently shown, if any.
+  Future<void> _onIoNoticeDismissed(
+    OcptBreakdownIoNoticeDismissedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    emitter(state.copyWith(clearIoNotice: true));
   }
 
   /// Selects scene `event.sceneId`, touching neither the selected target nor the right dock — the

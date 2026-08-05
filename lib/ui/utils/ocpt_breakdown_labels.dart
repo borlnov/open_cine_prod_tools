@@ -4,9 +4,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
@@ -66,6 +69,53 @@ String ocptElementStatusLabel(Tr tr, OcptElementStatus status) => switch (status
   OcptElementStatus.beingMade => tr.breakdownElementStatusBeingMade,
   OcptElementStatus.confirmed => tr.breakdownElementStatusConfirmed,
 };
+
+/// Builds every localized string the exported breakdown sheets carry, for the [scenes] they are
+/// being built from.
+///
+/// The single bridge between the UI's `Tr` and `OcptBreakdownSheetsPdfService`, which runs in the
+/// manager layer and has no `BuildContext` to resolve anything of its own — the sibling of
+/// `ocptScenarioCoverageLabelsOf` and `ocptResourcesXlsxLabelsOf` for the third export the app
+/// offers.
+///
+/// Almost every string here is a key the mode already shows on screen, resolved through the very
+/// same helpers its own widgets call: a printed sheet names a status, a category or a column
+/// exactly as the inspector and the recap do. Only what has no on-screen counterpart at all (the
+/// document's own name, the length label, the two notes standing in for an empty scene or an empty
+/// document, the file name suffix) gets a key of its own. A scene's title is resolved scene by
+/// scene, since it takes the scene's display number as a placeholder.
+OcptBreakdownSheetsLabels ocptBreakdownSheetsLabelsOf(Tr tr, List<OcptBreakdownScene> scenes) =>
+    OcptBreakdownSheetsLabels(
+      fileNameSuffix: tr.breakdownExportSheetsFileNameSuffix,
+      documentTitle: tr.breakdownExportSheetsDocumentTitle,
+      sceneTitles: {
+        for (final scene in scenes)
+          scene.id: tr.breakdownSceneInspectorTitle(scene.displayNumber),
+      },
+      statusLabel: tr.breakdownSceneInspectorStatusLabel,
+      lengthLabel: tr.breakdownExportSheetsLengthLabel,
+      notesLabel: tr.breakdownSceneNotesLabel,
+      targetsSectionTitle: tr.breakdownSceneInspectorTargetsSectionTitle,
+      toFindSectionTitle: tr.breakdownSceneInspectorToFindLabel,
+      nameHeader: tr.breakdownRecapColumnElement,
+      statusHeader: tr.breakdownRecapColumnStatus,
+      ownerHeader: tr.breakdownRecapColumnOwner,
+      sceneStatusLabels: {
+        for (final status in OcptBreakdownSceneStatus.values)
+          status: ocptBreakdownSceneStatusLabel(tr, status),
+      },
+      elementStatusLabels: {
+        for (final status in OcptElementStatus.values) status: ocptElementStatusLabel(tr, status),
+      },
+      elementCategoryLabels: {
+        for (final category in OcptElementCategory.values)
+          category: ocptElementCategoryLabel(tr, category),
+      },
+      roleGroupLabel: tr.breakdownTargetKindRoleLabel,
+      setGroupLabel: tr.breakdownTargetKindSetLabel,
+      emptySceneNote: tr.breakdownExportSheetsEmptySceneNote,
+      emptyDocumentNote: tr.breakdownExportSheetsEmptyDocumentNote,
+    );
 
 /// The colour element status [status] is painted with, following the shot list's own status scale:
 /// [OcptElementStatus.toFind] is the neutral one, [OcptElementStatus.reserved] and

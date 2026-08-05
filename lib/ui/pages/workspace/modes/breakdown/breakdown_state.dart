@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
@@ -24,6 +25,32 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_suggestions.dart';
+
+/// The kind of transient notice [OcptBreakdownIoNotice] carries, one per breakdown export outcome.
+enum OcptBreakdownIoNoticeKind {
+  /// The breakdown sheets were successfully exported to a PDF file.
+  sheetsExportSucceeded,
+
+  /// Exporting the breakdown sheets to a PDF file failed.
+  sheetsExportFailed,
+}
+
+/// A transient notice, produced by `OcptBreakdownBloc`, reporting the outcome of an export, shown
+/// as a SnackBar then dismissed. Modelled on `OcptResourcesIoNotice`.
+class OcptBreakdownIoNotice extends Equatable {
+  /// The outcome this notice reports.
+  final OcptBreakdownIoNoticeKind kind;
+
+  /// The path the export was written to, only set when [kind] is the succeeded kind.
+  final String? path;
+
+  /// Class constructor
+  const OcptBreakdownIoNotice({required this.kind, this.path});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [kind, path];
+}
 
 /// The state of `OcptBreakdownBloc`.
 ///
@@ -157,6 +184,10 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// overlap, or a preview database that slipped through. A transient notice tells the user rather
   /// than the writer silently doing nothing. Reset the moment it has been shown once.
   final bool hasTagWriteError;
+
+  /// The outcome of the last breakdown sheets export, shown once as a SnackBar and dismissed, or
+  /// null while there is nothing to report.
+  final OcptBreakdownIoNotice? ioNotice;
 
   /// The left (scene) dock's width, as a fraction of the mode's content row width.
   ///
@@ -352,6 +383,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.pendingTagAnchor,
     required this.pendingTagRange,
     required this.hasTagWriteError,
+    required this.ioNotice,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.projectVersions,
@@ -385,6 +417,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       pendingTagAnchor = null,
       pendingTagRange = null,
       hasTagWriteError = false,
+      ioNotice = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       projectVersions = const [],
@@ -439,6 +472,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownPendingTagRange? pendingTagRange,
     bool clearPendingTagRange = false,
     bool? hasTagWriteError,
+    OcptBreakdownIoNotice? ioNotice,
+    bool clearIoNotice = false,
     double? leftDockFraction,
     double? rightDockFraction,
     List<OcptProjectVersion>? projectVersions,
@@ -492,6 +527,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
       pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
       hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
+      ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
       leftDockFraction: leftDockFraction ?? this.leftDockFraction,
       rightDockFraction: rightDockFraction ?? this.rightDockFraction,
       projectVersions: projectVersions ?? this.projectVersions,
@@ -569,6 +605,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     pendingTagAnchor,
     pendingTagRange,
     hasTagWriteError,
+    ioNotice,
     leftDockFraction,
     rightDockFraction,
   ];

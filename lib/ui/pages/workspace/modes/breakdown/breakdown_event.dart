@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -579,4 +581,43 @@ class OcptBreakdownFlaggedTagRemovedEvent extends OcptBreakdownEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, tagId];
+}
+
+/// Requests exporting one breakdown sheet per scene as a PDF, dispatched by the mode's `⋮` menu
+/// once its own options dialog has resolved.
+///
+/// [options] is what that dialog returned — the page format and margins the document is typeset
+/// with, which scenes are printed, and the two sections a sheet may leave out. Both localized
+/// payloads are resolved by the widget dispatching this, since the bloc has no `BuildContext` of
+/// its own: [labels] is every string the document itself carries (see
+/// `ocptBreakdownSheetsLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the
+/// `.pdf` type. Any pending field edit is flushed first, exactly as the other two modes' own export
+/// events do, so an element renamed or a note typed seconds before the export is on the sheet
+/// rather than only on screen.
+class OcptBreakdownSheetsExportRequestedEvent extends OcptBreakdownEvent {
+  /// The one-off options the export runs with.
+  final OcptBreakdownSheetsExportOptions options;
+
+  /// Every localized string the exported document holds.
+  final OcptBreakdownSheetsLabels labels;
+
+  /// The localized label of the `.pdf` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptBreakdownSheetsExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Dismisses the transient export notice currently shown, if any.
+class OcptBreakdownIoNoticeDismissedEvent extends OcptBreakdownEvent {
+  /// Class constructor
+  const OcptBreakdownIoNoticeDismissedEvent();
 }

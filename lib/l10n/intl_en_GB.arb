@@ -5712,5 +5712,100 @@
         "type": "String"
       }
     }
+  },
+  "breakdownExportSheetsMenuAction": "Export the breakdown sheets…",
+  "@breakdownExportSheetsMenuAction": {
+    "description": "Action exporting one breakdown sheet per scene, as a PDF",
+    "context": "Displayed in the overflow menu of the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsDialogTitle": "Export the breakdown sheets",
+  "@breakdownExportSheetsDialogTitle": {
+    "description": "Title of the dialog picking the options the breakdown sheets export runs with",
+    "context": "Displayed as a dialog over the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsOnlyDoneLabel": "Only the scenes marked as done",
+  "@breakdownExportSheetsOnlyDoneLabel": {
+    "description": "Checkbox restricting the exported sheets to the scenes whose breakdown is complete",
+    "context": "Displayed in the breakdown sheets export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsNotesLabel": "Include each scene's breakdown notes",
+  "@breakdownExportSheetsNotesLabel": {
+    "description": "Checkbox including a scene's own breakdown notes on its sheet",
+    "context": "Displayed in the breakdown sheets export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsToFindLabel": "Include what is still to find",
+  "@breakdownExportSheetsToFindLabel": {
+    "description": "Checkbox including, at the end of a sheet, the list of the scene's elements still to find",
+    "context": "Displayed in the breakdown sheets export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsFileTypeLabel": "PDF document",
+  "@breakdownExportSheetsFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the breakdown sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsFileNameSuffix": "breakdown",
+  "@breakdownExportSheetsFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - breakdown.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsDocumentTitle": "Breakdown sheets",
+  "@breakdownExportSheetsDocumentTitle": {
+    "description": "Name of the document, printed beside the project name above every sheet",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsLengthLabel": "Length",
+  "@breakdownExportSheetsLengthLabel": {
+    "description": "Label of the scene's length in page eighths, printed beside its breakdown status",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsEmptySceneNote": "Nothing has been tagged in this scene.",
+  "@breakdownExportSheetsEmptySceneNote": {
+    "description": "Note printed on the sheet of a scene no element, role or set is tagged in",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsEmptyDocumentNote": "No scene has been broken down yet.",
+  "@breakdownExportSheetsEmptyDocumentNote": {
+    "description": "Note printed on the single page of an export no scene at all was selected for",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsSuccessMessage": "Exported to {path}",
+  "@breakdownExportSheetsSuccessMessage": {
+    "description": "Message shown when the breakdown sheets were successfully exported to a PDF file",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownExportSheetsError": "The breakdown sheets could not be exported.",
+  "@breakdownExportSheetsError": {
+    "description": "Error shown when exporting the breakdown sheets to a PDF file failed",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {}
   }
 }
