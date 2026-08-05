@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_suggestions.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -76,6 +77,17 @@ OcptBreakdownTag _buildTag({
   taggedText: taggedText,
   needsCheck: false,
 );
+
+/// Builds a suggested occurrence of element-1, in [sceneId], the passage [text].
+OcptBreakdownSuggestion _buildSuggestion({required String sceneId, required String text}) =>
+    OcptBreakdownSuggestion(
+      targetKind: OcptBreakdownTargetKind.element,
+      targetId: "element-1",
+      sceneId: sceneId,
+      startOffset: 0,
+      endOffset: text.length,
+      text: text,
+    );
 
 /// Builds an element target, its category and status overridable.
 OcptBreakdownTarget _buildElementTarget({
@@ -226,6 +238,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -278,6 +292,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -317,6 +333,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -353,6 +371,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -393,6 +413,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -436,6 +458,8 @@ void main() {
             onOwnerChanged: (_) {},
             onBringerChanged: (_) {},
             onOccurrenceSelected: (_) {},
+            suggestions: const [],
+            onSuggestionAccepted: (_) {},
             onOpenInResourcesRequested: () {},
             isTagRemovalPending: false,
             onTagRemovalRequested: () {},
@@ -479,6 +503,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -525,6 +551,8 @@ void main() {
           onOwnerChanged: (_) {},
           onBringerChanged: (_) {},
           onOccurrenceSelected: reported.add,
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -541,6 +569,178 @@ void main() {
 
     expect(reported, ["scene-1"]);
   });
+
+  testWidgets("shows the suggested occurrences section with its own count and rows", (tester) async {
+    await _useTallSurface(tester);
+    final sceneA = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
+    final sceneB = _buildScene(id: "scene-b", sceneNumber: "14", heading: "INT. BEDROOM - NIGHT");
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownTargetInspector(
+          target: _buildElementTarget(),
+          element: _buildElement(),
+          owner: null,
+          bringer: null,
+          people: const [],
+          scenes: [sceneA, sceneB],
+          fieldValueOf: (_) => "",
+          onBackToSceneRequested: () {},
+          onStatusChanged: (_) {},
+          onCategoryChanged: (_) {},
+          onFieldChanged: (_, __) {},
+          onOwnerChanged: (_) {},
+          onBringerChanged: (_) {},
+          onOccurrenceSelected: (_) {},
+          suggestions: [
+            _buildSuggestion(sceneId: "scene-a", text: "switches the desk lamp on"),
+            _buildSuggestion(sceneId: "scene-b", text: "the desk lamp falls"),
+          ],
+          onSuggestionAccepted: (_) {},
+          onOpenInResourcesRequested: () {},
+          isTagRemovalPending: false,
+          onTagRemovalRequested: () {},
+          onTagRemovalCancelled: () {},
+          onTagRemovalConfirmed: () {},
+        ),
+      ),
+    );
+
+    expect(find.text("Suggested occurrences (2)"), findsOneWidget);
+    expect(find.text("…switches the desk lamp on…"), findsOneWidget);
+    expect(find.text("…the desk lamp falls…"), findsOneWidget);
+  });
+
+  testWidgets("the suggested occurrences section is absent when there is nothing to suggest",
+      (tester) async {
+    await _useTallSurface(tester);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownTargetInspector(
+          target: _buildElementTarget(),
+          element: _buildElement(),
+          owner: null,
+          bringer: null,
+          people: const [],
+          scenes: const [],
+          fieldValueOf: (_) => "",
+          onBackToSceneRequested: () {},
+          onStatusChanged: (_) {},
+          onCategoryChanged: (_) {},
+          onFieldChanged: (_, __) {},
+          onOwnerChanged: (_) {},
+          onBringerChanged: (_) {},
+          onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
+          onOpenInResourcesRequested: () {},
+          isTagRemovalPending: false,
+          onTagRemovalRequested: () {},
+          onTagRemovalCancelled: () {},
+          onTagRemovalConfirmed: () {},
+        ),
+      ),
+    );
+
+    expect(find.textContaining("Suggested occurrences"), findsNothing);
+  });
+
+  testWidgets("clicking a suggestion's add control reports it, and its row still jumps",
+      (tester) async {
+    await _useTallSurface(tester);
+    final scene = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
+    final suggestion = _buildSuggestion(sceneId: "scene-a", text: "switches the desk lamp on");
+    final accepted = <OcptBreakdownSuggestion>[];
+    final jumped = <String>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownTargetInspector(
+          target: _buildElementTarget(),
+          element: _buildElement(),
+          owner: null,
+          bringer: null,
+          people: const [],
+          scenes: [scene],
+          fieldValueOf: (_) => "",
+          onBackToSceneRequested: () {},
+          onStatusChanged: (_) {},
+          onCategoryChanged: (_) {},
+          onFieldChanged: (_, __) {},
+          onOwnerChanged: (_) {},
+          onBringerChanged: (_) {},
+          onOccurrenceSelected: jumped.add,
+          suggestions: [suggestion],
+          onSuggestionAccepted: accepted.add,
+          onOpenInResourcesRequested: () {},
+          isTagRemovalPending: false,
+          onTagRemovalRequested: () {},
+          onTagRemovalCancelled: () {},
+          onTagRemovalConfirmed: () {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+
+    expect(accepted, [suggestion]);
+    expect(jumped, isEmpty);
+
+    await tester.tap(find.text("…switches the desk lamp on…"));
+    await tester.pump();
+
+    expect(jumped, ["scene-a"]);
+  });
+
+  testWidgets(
+    "a read-only panel withholds a suggestion's add control while its row still jumps",
+    (tester) async {
+      await _useTallSurface(tester);
+      final scene = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
+      final suggestion = _buildSuggestion(sceneId: "scene-a", text: "switches the desk lamp on");
+      final jumped = <String>[];
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptBreakdownTargetInspector(
+            target: _buildElementTarget(),
+            element: _buildElement(),
+            owner: null,
+            bringer: null,
+            people: const [],
+            scenes: [scene],
+            fieldValueOf: (_) => "",
+            onBackToSceneRequested: () {},
+            onStatusChanged: null,
+            onCategoryChanged: null,
+            onFieldChanged: null,
+            onOwnerChanged: null,
+            onBringerChanged: null,
+            onOccurrenceSelected: jumped.add,
+            suggestions: [suggestion],
+            onSuggestionAccepted: null,
+            onOpenInResourcesRequested: () {},
+            isTagRemovalPending: false,
+            onTagRemovalRequested: null,
+            onTagRemovalCancelled: null,
+            onTagRemovalConfirmed: null,
+            isReadOnly: true,
+          ),
+        ),
+      );
+
+      // The section still reads, but the add control is gone.
+      expect(find.text("Suggested occurrences (1)"), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsNothing);
+
+      await tester.tap(find.text("…switches the desk lamp on…"));
+      await tester.pump();
+
+      expect(jumped, ["scene-a"]);
+    },
+  );
 
   testWidgets("shows the owner's name, and picking another one from the menu reports its id",
       (tester) async {
@@ -566,6 +766,8 @@ void main() {
           onOwnerChanged: ownerReported.add,
           onBringerChanged: (_) {},
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: () {},
@@ -606,6 +808,8 @@ void main() {
           onOwnerChanged: null,
           onBringerChanged: null,
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: null,
           onOpenInResourcesRequested: () => requested = true,
           isTagRemovalPending: false,
           onTagRemovalRequested: null,
@@ -646,6 +850,8 @@ void main() {
             onOwnerChanged: (_) {},
             onBringerChanged: (_) {},
             onOccurrenceSelected: (_) {},
+            suggestions: const [],
+            onSuggestionAccepted: (_) {},
             onOpenInResourcesRequested: () {},
             isTagRemovalPending: isPending,
             onTagRemovalRequested: () => setState(() {
@@ -700,6 +906,8 @@ void main() {
           onOwnerChanged: null,
           onBringerChanged: null,
           onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: null,
           onOpenInResourcesRequested: () {},
           isTagRemovalPending: false,
           onTagRemovalRequested: null,

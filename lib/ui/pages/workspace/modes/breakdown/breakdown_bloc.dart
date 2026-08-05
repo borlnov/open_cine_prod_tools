@@ -190,6 +190,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownTagWriteErrorDismissedEvent>(_onTagWriteErrorDismissed);
     on<OcptBreakdownTagNeedsCheckClearedEvent>(_onTagNeedsCheckCleared);
     on<OcptBreakdownFlaggedTagRemovedEvent>(_onFlaggedTagRemoved);
+    on<OcptBreakdownSuggestionAcceptedEvent>(_onSuggestionAccepted);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -838,7 +839,50 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Dismisses the transient notice that the popover's last write was refused.
+  /// Tags one of the selected target's own suggested occurrences, dispatched by a click on the add
+  /// control of one of `OcptBreakdownTargetInspector`'s own "Suggested occurrences" rows — the
+  /// writer's second route onto `OcptBreakdownService.createTag`, [_onPopoverTargetLinked] being
+  /// the first, and it mirrors that handler in every respect but two: the range comes from
+  /// `event`'s own fields rather than [OcptBreakdownState.pendingTagRange] (there is no popover open
+  /// here), and **the selection does not change** — accepting one row of a list is meant to leave
+  /// the user on that very list, ready for the next row, rather than bouncing them to the newly
+  /// tagged passage's own scene.
+  ///
+  /// A stale call (no project open, or a preview database that slipped past the mode's own gating)
+  /// is ignored. A refusal (the range now overlaps a live tag, most likely one just written by an
+  /// earlier accepted suggestion) surfaces [OcptBreakdownState.hasTagWriteError], exactly as
+  /// [_onPopoverTargetLinked]'s own refusal does.
+  Future<void> _onSuggestionAccepted(
+    OcptBreakdownSuggestionAcceptedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null || state.isPreviewingVersion) {
+      return;
+    }
+
+    await _flushPendingFieldEdits(emitter);
+
+    final tagId = await _breakdownService.createTag(
+      database: project.database,
+      sceneId: event.sceneId,
+      startOffset: event.startOffset,
+      endOffset: event.endOffset,
+      taggedText: event.taggedText,
+      targetKind: event.targetKind,
+      targetId: event.targetId,
+    );
+
+    if (tagId == null) {
+      emitter(state.copyWith(hasTagWriteError: true));
+      return;
+    }
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project), hasTagWriteError: false));
+  }
+
+  /// Dismisses the transient notice that the last tag write — the popover's own link or element
+  /// creation, or a suggestion accepted from the target inspector — was refused.
   Future<void> _onTagWriteErrorDismissed(
     OcptBreakdownTagWriteErrorDismissedEvent event,
     Emitter<OcptBreakdownState> emitter,

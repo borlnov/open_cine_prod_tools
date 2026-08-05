@@ -724,6 +724,8 @@
   "breakdownElementNotesLabel": "Notes",
   "breakdownOccurrencesSectionTitle": "Occurrences dans le scénario",
   "breakdownOccurrenceSceneLabel": "Scène {number} · {heading}",
+  "breakdownSuggestedOccurrencesSectionTitle": "Occurrences suggérées ({count})",
+  "breakdownSuggestionAcceptAction": "Taguer ce passage",
   "breakdownOpenInResourcesAction": "Ouvrir dans Ressources",
   "breakdownRemoveFromBreakdownAction": "Retirer du dépouillement",
   "breakdownRemoveFromBreakdownConfirmMessage": "Ceci retire le tag de cette scène. Le lien créé dans Ressources, s'il existe, est conservé.",

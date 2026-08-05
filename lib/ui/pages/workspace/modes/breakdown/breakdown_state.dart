@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_suggestions.dart';
 
 /// The state of `OcptBreakdownBloc`.
 ///
@@ -137,9 +138,10 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// is — the script view's cue to anchor `OcptBreakdownTagPopover` under the word that closed it.
   final OcptBreakdownPendingTagRange? pendingTagRange;
 
-  /// Whether the popover's last write (a link or an element creation) was refused — the overlap, or
-  /// a preview database that slipped through — and a transient notice should tell the user rather
-  /// than the popover silently closing. Reset the moment it has been shown once.
+  /// Whether the last tag write — the popover's own link or element creation, or a suggestion
+  /// accepted from the target inspector's own "Suggested occurrences" section — was refused: the
+  /// overlap, or a preview database that slipped through. A transient notice tells the user rather
+  /// than the writer silently doing nothing. Reset the moment it has been shown once.
   final bool hasTagWriteError;
 
   /// The left (scene) dock's width, as a fraction of the mode's content row width.
@@ -258,6 +260,23 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   List<OcptBreakdownSearchCandidate> get searchCandidates {
     final snapshot = this.snapshot;
     return snapshot == null ? const [] : ocptBreakdownSearchCandidatesOf(snapshot);
+  }
+
+  /// [selectedTarget]'s own suggested occurrences — passages elsewhere in the screenplay that read
+  /// like one of its tags but are not tagged themselves (`ocptBreakdownSuggestionsOf`), offered by
+  /// the target inspector's own "Suggested occurrences" section. Empty while nothing is loaded or no
+  /// target is selected, mirroring [searchCandidates]'s own guard.
+  List<OcptBreakdownSuggestion> get selectedTargetSuggestions {
+    final selectedTargetRef = this.selectedTargetRef;
+    if (selectedTargetRef == null) {
+      return const [];
+    }
+
+    final (kind, id) = selectedTargetRef;
+    return [
+      for (final suggestion in ocptBreakdownSuggestionsOf(scenes: scenes, screenplayText: screenplayText))
+        if (suggestion.targetKind == kind && suggestion.targetId == id) suggestion,
+    ];
   }
 
   /// The raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is null,

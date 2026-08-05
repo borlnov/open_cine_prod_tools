@@ -466,7 +466,8 @@ class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownEve
   List<Object?> get props => [...super.props, category, name];
 }
 
-/// Dismisses the transient notice that the popover's last write was refused.
+/// Dismisses the transient notice that the last tag write — the popover's own link or element
+/// creation, or a suggestion accepted from the target inspector — was refused.
 class OcptBreakdownTagWriteErrorDismissedEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownTagWriteErrorDismissedEvent();
@@ -488,6 +489,54 @@ class OcptBreakdownTagNeedsCheckClearedEvent extends OcptBreakdownEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, tagId];
+}
+
+/// Tags one of the selected target's own suggested occurrences (`OcptBreakdownSuggestion`),
+/// dispatched by a click on the add control of one of `OcptBreakdownTargetInspector`'s own
+/// "Suggested occurrences" rows — the writer's second route onto
+/// `OcptBreakdownService.createTag`, [OcptBreakdownPopoverTargetLinkedEvent] being the first, and
+/// the field this event carries mirror the passage a `OcptBreakdownSuggestion` itself names, so a
+/// widget passing one along never has to unpack it further.
+class OcptBreakdownSuggestionAcceptedEvent extends OcptBreakdownEvent {
+  /// The kind of the target the suggestion is accepted for.
+  final OcptBreakdownTargetKind targetKind;
+
+  /// The id of the target the suggestion is accepted for.
+  final String targetId;
+
+  /// The id of the scene the suggested passage falls in.
+  final String sceneId;
+
+  /// The scene-relative offset at which the suggested passage starts.
+  final int startOffset;
+
+  /// The scene-relative offset one past the suggested passage's last character.
+  final int endOffset;
+
+  /// The suggested passage, verbatim, as it reads in the scene right now.
+  final String taggedText;
+
+  /// Class constructor
+  const OcptBreakdownSuggestionAcceptedEvent({
+    required this.targetKind,
+    required this.targetId,
+    required this.sceneId,
+    required this.startOffset,
+    required this.endOffset,
+    required this.taggedText,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    targetKind,
+    targetId,
+    sceneId,
+    startOffset,
+    endOffset,
+    taggedText,
+  ];
 }
 
 /// Removes tag [tagId] for good, dispatched by `OcptBreakdownSceneInspector`'s own "to check" alert's

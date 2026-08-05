@@ -63,8 +63,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// stay in step without leaving the recap. There is **no save control and no mode-specific toolbar
 /// action** — the shell simply isn't
 /// handed one, rather than showing an inert one — since every write here (the popover's own links and
-/// creations, the target inspector's chips, pickers and fields, the tag removal, and the scene
-/// inspector's own status chips) is written by its own event rather than a single save; the target
+/// creations, the target inspector's chips, pickers, fields and suggested-occurrence acceptances,
+/// the tag removal, and the scene inspector's own status chips) is written by its own event rather
+/// than a single save; the target
 /// inspector's three free-text fields and the scene inspector's own breakdown notes still autosave
 /// on the 2 s debounce every field like it does elsewhere in the app.
 ///
@@ -413,6 +414,19 @@ class _BreakdownViewState extends State<_BreakdownView> {
             ),
       onOccurrenceSelected: (sceneId) =>
           bloc.add(OcptBreakdownOccurrenceSelectedEvent(sceneId: sceneId)),
+      suggestions: state.selectedTargetSuggestions,
+      onSuggestionAccepted: isReadOnly
+          ? null
+          : (suggestion) => bloc.add(
+              OcptBreakdownSuggestionAcceptedEvent(
+                targetKind: suggestion.targetKind,
+                targetId: suggestion.targetId,
+                sceneId: suggestion.sceneId,
+                startOffset: suggestion.startOffset,
+                endOffset: suggestion.endOffset,
+                taggedText: suggestion.text,
+              ),
+            ),
       onOpenInResourcesRequested: () => context.read<OcptWorkspaceBloc>().add(
         const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.resources),
       ),

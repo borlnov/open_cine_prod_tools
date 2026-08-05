@@ -5363,6 +5363,24 @@
       }
     }
   },
+  "breakdownSuggestedOccurrencesSectionTitle": "Suggested occurrences ({count})",
+  "@breakdownSuggestedOccurrencesSectionTitle": {
+    "description": "Title of the target inspector's suggested-occurrences section, with the number of rows it lists",
+    "context": "Displayed above the list of passages that read like the target's own tags but are not tagged",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSuggestionAcceptAction": "Tag this passage",
+  "@breakdownSuggestionAcceptAction": {
+    "description": "Tooltip of a suggested occurrence's own add control",
+    "context": "Shown on a suggested-occurrence row's trailing icon button",
+    "type": "text",
+    "placeholders": {}
+  },
   "breakdownOpenInResourcesAction": "Open in Resources",
   "@breakdownOpenInResourcesAction": {
     "description": "Switches the workspace to the resources mode",

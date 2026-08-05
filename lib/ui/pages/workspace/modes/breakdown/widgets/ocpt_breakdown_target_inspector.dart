@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_suggestions.dart';
 
 /// One occurrence of the inspected target: a live tag, resolved out of [OcptBreakdownScene.tags],
 /// carrying just what the occurrences section shows and jumps to.
@@ -50,7 +51,10 @@ class _OcptBreakdownOccurrence {
 /// name, its category (or role/set kind) and scene count, then — **element targets only**, a role
 /// or a set having neither a status nor the fields below — its status chips, its category chips and
 /// its details (name, sub-category, quantity, notes, owner, who brings it), then every target's own
-/// occurrences in the screenplay and the two trailing actions every kind offers.
+/// occurrences in the screenplay, its suggested ones (§3.4 of the plan this ships under: a repeated
+/// occurrence is offered, never applied — [suggestions] read the same way [scenes] is, verbatim
+/// passages the target inspector shows and, unless [isReadOnly], offers to tag), and the two
+/// trailing actions every kind offers.
 ///
 /// The name field is where an element tagged from the script is given the label it is read under
 /// everywhere else: creating one from the popover names it after the passage it was tagged from,
@@ -65,8 +69,9 @@ class _OcptBreakdownOccurrence {
 /// no scroll-to-passage in this change, a click only selects the occurrence's own scene.
 ///
 /// [isReadOnly] withholds every control that writes — the status and category chips, the three
-/// fields, the two person pickers and the tag-removal action — while leaving every read (the sheet
-/// itself, the occurrences and their jump, `Open in Resources`) in place, mirroring
+/// fields, the two person pickers, a suggested occurrence's own add control and the tag-removal
+/// action — while leaving every read (the sheet itself, the occurrences and the suggested
+/// occurrences alike, and their jump, `Open in Resources`) in place, mirroring
 /// `OcptShotInspectorPanel`'s own convention: the panel takes the real callbacks and nulls them out
 /// itself, so a control added later cannot be gated in one place and forgotten in the other.
 class OcptBreakdownTargetInspector extends StatelessWidget {
@@ -123,6 +128,18 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
   /// scene writes nothing.
   final ValueChanged<String> onOccurrenceSelected;
 
+  /// [target]'s own suggested occurrences, already computed and filtered to it
+  /// (`OcptBreakdownState.selectedTargetSuggestions`) — passages elsewhere in the screenplay that
+  /// read like one of [target]'s own tags but are not tagged themselves. The "Suggested occurrences"
+  /// section is shown directly under the occurrences section, in the same shape, when this is
+  /// non-empty, and dropped entirely otherwise.
+  final List<OcptBreakdownSuggestion> suggestions;
+
+  /// Called with a suggestion when its own row's add control is clicked, tagging that passage; null
+  /// while it may not be accepted. Its own row's click to jump to the scene
+  /// ([onOccurrenceSelected]) is never withheld — only the write is.
+  final ValueChanged<OcptBreakdownSuggestion>? onSuggestionAccepted;
+
   /// Called when `Open in Resources` is clicked. Never withheld: switching mode reads, it never
   /// writes. Does **not** pre-select [target] there — the resources mode has no deep-link entry
   /// point yet, so the user lands on whichever tab and record it last showed.
@@ -165,6 +182,8 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     required this.onOwnerChanged,
     required this.onBringerChanged,
     required this.onOccurrenceSelected,
+    required this.suggestions,
+    required this.onSuggestionAccepted,
     required this.onOpenInResourcesRequested,
     required this.isTagRemovalPending,
     required this.onTagRemovalRequested,
@@ -240,7 +259,17 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
         _sectionTitle(context, tr.breakdownOccurrencesSectionTitle),
         const SizedBox(height: 8),
         _buildOccurrences(context, tr, occurrences),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+
+        if (suggestions.isNotEmpty) ...[
+          _sectionTitle(
+            context,
+            tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length),
+          ),
+          const SizedBox(height: 8),
+          _buildSuggestedOccurrences(context, tr, suggestions),
+          const SizedBox(height: 16),
+        ],
 
         FilledButton(
           onPressed: onOpenInResourcesRequested,
@@ -414,6 +443,114 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// The bordered list of [suggestions], the same shape [_buildOccurrences] builds for the live
+  /// occurrences above it, each row additionally carrying a trailing add control tagging that
+  /// passage — withheld, as a null [onSuggestionAccepted], while [isReadOnly]. A row whose own scene
+  /// has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded snapshot) is
+  /// skipped rather than shown with nothing to head it.
+  Widget _buildSuggestedOccurrences(
+    BuildContext context,
+    Tr tr,
+    List<OcptBreakdownSuggestion> suggestions,
+  ) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < suggestions.length; i++)
+            _buildSuggestedOccurrenceRow(
+              context,
+              theme,
+              tr,
+              suggestions[i],
+              isLast: i == suggestions.length - 1,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// One row of [_buildSuggestedOccurrences]: [suggestion]'s own scene and passage, exactly as an
+  /// occurrence row reads, plus a trailing add control.
+  Widget _buildSuggestedOccurrenceRow(
+    BuildContext context,
+    ThemeData theme,
+    Tr tr,
+    OcptBreakdownSuggestion suggestion, {
+    required bool isLast,
+  }) {
+    final scene = _sceneById(suggestion.sceneId);
+    if (scene == null) {
+      return const SizedBox.shrink();
+    }
+
+    return InkWell(
+      onTap: () => onOccurrenceSelected(suggestion.sceneId),
+      mouseCursor: ocptClickableCursor,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          border: isLast
+              ? null
+              : Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr.breakdownOccurrenceSceneLabel(scene.displayNumber, scene.heading),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "…${suggestion.text}…",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontFamily: ocptMonospaceFontFamily,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onSuggestionAccepted != null)
+              IconButton(
+                icon: const Icon(Icons.add, size: 18),
+                tooltip: tr.breakdownSuggestionAcceptAction,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => onSuggestionAccepted!(suggestion),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The scene of [scenes] whose id is [sceneId], or null while none is — a suggestion's own scene
+  /// having disappeared from a snapshot rebuilt underneath.
+  OcptBreakdownScene? _sceneById(String sceneId) {
+    for (final scene in scenes) {
+      if (scene.id == sceneId) {
+        return scene;
+      }
+    }
+
+    return null;
   }
 
   /// The inline "remove this target's tags from the selected scene" confirmation, replacing the

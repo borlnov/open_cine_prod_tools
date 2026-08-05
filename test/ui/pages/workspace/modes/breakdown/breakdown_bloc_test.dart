@@ -892,6 +892,122 @@ void main() {
     await bloc.close();
   });
 
+  test(
+    "accepting a suggested occurrence tags it, reloads the snapshot and leaves the selection",
+    () async {
+      await writeScreenplay(
+        "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n\n"
+        "INT. OFFICE - DAY\n\nHe switches the desk lamp on.\n",
+      );
+      final project = projectsManager.currentProject!;
+      final sceneRows = (await (project.database.select(project.database.ocptScenesTable)).get())
+        ..sort((a, b) => a.position.compareTo(b.position));
+      final sceneA = sceneRows[0];
+      final sceneB = sceneRows[1];
+
+      final elementId = await projectsManager.elementsService.createElement(
+        database: project.database,
+        name: "Desk lamp",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.owned,
+      );
+      expect(elementId, isNotNull);
+
+      // The scene's own text slice is [charStart, charEnd) of the whole screenplay, exactly what
+      // `ocptBreakdownSuggestionsOf` itself reads — offsets computed against a hand-typed literal
+      // would drift from the parser's own real ones (the heading's own length, in particular).
+      final screenplayText = await projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+      );
+      final sceneAText = screenplayText.substring(sceneA.charStart, sceneA.charEnd);
+      final taggedStart = sceneAText.indexOf("lamp");
+      final tagId = await projectsManager.breakdownService.createTag(
+        database: project.database,
+        sceneId: sceneA.id,
+        startOffset: taggedStart,
+        endOffset: taggedStart + "lamp".length,
+        taggedText: "lamp",
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: elementId!,
+      );
+      expect(tagId, isNotNull);
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+      bloc.add(
+        OcptBreakdownTargetSelectedEvent(
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId,
+          sceneId: sceneA.id,
+        ),
+      );
+      final selected = await waitForState(bloc, (state) => state.selectedTargetRef != null);
+      expect(selected.selectedTargetRef, (OcptBreakdownTargetKind.element, elementId));
+      expect(selected.selectedSceneId, sceneA.id);
+
+      // The other occurrence of "lamp" (inside "desk lamp") of scene-b is offered, not applied.
+      final suggestion = selected.selectedTargetSuggestions.single;
+      expect(suggestion.sceneId, sceneB.id);
+      expect(suggestion.text, "lamp");
+
+      bloc.add(
+        OcptBreakdownSuggestionAcceptedEvent(
+          targetKind: suggestion.targetKind,
+          targetId: suggestion.targetId,
+          sceneId: suggestion.sceneId,
+          startOffset: suggestion.startOffset,
+          endOffset: suggestion.endOffset,
+          taggedText: suggestion.text,
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.targets.any((target) => target.id == elementId && target.occurrenceCount == 2),
+      );
+
+      // Accepting the suggestion writes the tag (the second occurrence now counts) without
+      // bouncing the user off the row they were working through.
+      expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, elementId));
+      expect(state.selectedSceneId, sceneA.id);
+      expect(state.selectedTargetSuggestions, isEmpty);
+
+      await bloc.close();
+    },
+  );
+
+  test("accepting a suggestion is refused while a version is previewed", () async {
+    final tagged = await writeTaggedElement();
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Base", note: ""));
+    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = withVersion.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    bloc.add(
+      OcptBreakdownSuggestionAcceptedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: tagged.elementId,
+        sceneId: tagged.sceneId,
+        startOffset: 10,
+        endOffset: 14,
+        taggedText: "desk",
+      ),
+    );
+    // Nothing to wait for since nothing should change; give the event a moment to process.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.taggedTargetCount, 1);
+
+    await bloc.close();
+  });
+
   test("a fresh load always drops the selected target, exactly as the selected scene", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
     final bloc = buildBloc();
