@@ -735,6 +735,7 @@
   "breakdownSceneInspectorTargetsSectionTitle": "Éléments dépouillés",
   "breakdownSceneInspectorEmptyHint": "Rien n'est encore dépouillé pour cette scène. Cliquez un mot ou un passage du scénario pour le dépouiller.",
   "breakdownSceneInspectorFooterHint": "Les éléments dépouillés alimentent Ressources › Éléments et la feuille de service du jour.",
+  "breakdownSceneNotesLabel": "Notes de dépouillement",
   "breakdownPendingAnchorTooltip": "Cliquez la fin du passage pour le dépouiller.",
   "breakdownBlockedWordTooltip": "Cela chevaucherait un passage déjà dépouillé.",
   "breakdownPopoverFieldHint": "Rechercher, ou nommer l'élément à créer",

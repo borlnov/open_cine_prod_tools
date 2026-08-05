@@ -49,15 +49,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// landing the selection on it, on the `Inspector` tab, exactly as clicking an already-tagged word
 /// does. There is **no save control and no mode-specific toolbar action** — the shell simply isn't
 /// handed one, rather than showing an inert one — since every write here (the popover's own links and
-/// creations, the target inspector's chips, pickers and fields, and the tag removal) is written by
-/// its own event rather than a single save; the target inspector's three free-text fields still
-/// autosave on the 2 s debounce every field like it does elsewhere in the app.
+/// creations, the target inspector's chips, pickers and fields, the tag removal, and the scene
+/// inspector's own status chips) is written by its own event rather than a single save; the target
+/// inspector's three free-text fields and the scene inspector's own breakdown notes still autosave
+/// on the 2 s debounce every field like it does elsewhere in the app.
 ///
 /// While a project version is being previewed, the mode shows that version's own read instead of
 /// the working copy's, and carries the shell's read-only banner naming it, exactly as the resources
 /// and shot list modes do; the range interaction is withheld outright (`_buildScriptView`'s own doc
-/// comment), and the inspector withholds every control that writes (see
-/// [OcptBreakdownTargetInspector]'s own doc comment) while leaving both inspectors fully readable.
+/// comment), and both inspectors withhold every control that writes (see
+/// [OcptBreakdownTargetInspector]'s and `OcptBreakdownSceneInspector`'s own doc comments) while
+/// leaving both fully readable.
 class OcptBreakdownMode extends StatelessWidget {
   /// Creates the breakdown mode.
   const OcptBreakdownMode({super.key});
@@ -99,7 +101,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     // this whole subtree out, and so does the workspace's own back navigation), so triggering the
     // flush here — rather than dispatching an event, which would only be processed on a later
     // microtask this widget might not survive to see — is what guarantees the last debounce worth
-    // of typing into the target inspector's own fields isn't lost. Mirrors
+    // of typing into the target inspector's or the scene inspector's own fields isn't lost. Mirrors
     // `OcptShotListMode`'s/`OcptResourcesMode`'s own `deactivate()`.
     unawaited(context.read<OcptBreakdownBloc>().flushPendingFieldEdits());
     super.deactivate();
@@ -269,16 +271,31 @@ class _BreakdownViewState extends State<_BreakdownView> {
   Widget _buildInspector(BuildContext context, OcptBreakdownState state) {
     final target = state.selectedTarget;
     if (target == null) {
+      final scene = state.selectedScene;
+      final bloc = context.read<OcptBreakdownBloc>();
+      final isReadOnly = state.isPreviewingVersion;
+
       return OcptBreakdownSceneInspector(
-        scene: state.selectedScene,
+        scene: scene,
         targetById: ocptBreakdownTargetsById(state.targets),
-        onTargetSelected: (targetKind, targetId, sceneId) => context.read<OcptBreakdownBloc>().add(
+        notesValue: scene == null ? "" : state.sceneNotesValueOf(scene.id, scene.notes),
+        onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
           OcptBreakdownTargetSelectedEvent(
             targetKind: targetKind,
             targetId: targetId,
             sceneId: sceneId,
           ),
         ),
+        onStatusChanged: scene == null
+            ? null
+            : (status) =>
+                  bloc.add(OcptBreakdownSceneStatusChangedEvent(sceneId: scene.id, status: status)),
+        onNotesChanged: scene == null
+            ? null
+            : (rawValue) => bloc.add(
+                OcptBreakdownSceneNotesChangedEvent(sceneId: scene.id, rawValue: rawValue),
+              ),
+        isReadOnly: isReadOnly,
       );
     }
 

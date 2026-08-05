@@ -86,7 +86,14 @@ void main() {
   testWidgets("shows the mode's own empty message while nothing is selected", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
-        const OcptBreakdownSceneInspector(scene: null, targetById: {}, onTargetSelected: _noop3),
+        const OcptBreakdownSceneInspector(
+          scene: null,
+          targetById: {},
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: null,
+          onNotesChanged: null,
+        ),
       ),
     );
 
@@ -98,7 +105,14 @@ void main() {
 
     await tester.pumpWidget(
       _wrapInApp(
-        OcptBreakdownSceneInspector(scene: scene, targetById: const {}, onTargetSelected: _noop3),
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: const {},
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+        ),
       ),
     );
 
@@ -111,8 +125,7 @@ void main() {
     );
   });
 
-  testWidgets("shows the tagged/to-find counts, the status tile and the warning callout",
-      (tester) async {
+  testWidgets("shows the tagged/to-find counts and the warning callout", (tester) async {
     final target = _buildElementTarget(id: "element-1", name: "Desk lamp");
     final scene = _buildScene(
       id: "scene-1",
@@ -130,13 +143,19 @@ void main() {
 
     await tester.pumpWidget(
       _wrapInApp(
-        OcptBreakdownSceneInspector(scene: scene, targetById: targetById, onTargetSelected: _noop3),
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: targetById,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+        ),
       ),
     );
 
     expect(find.text("TAGGED"), findsOneWidget);
     expect(find.text("1"), findsWidgets); // the tagged tile's own count, among others
-    expect(find.text("In progress"), findsOneWidget); // the status tile's own value
     expect(find.text("1 element still to find"), findsOneWidget);
     expect(find.text("Desk lamp"), findsWidgets);
   });
@@ -162,7 +181,10 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: targetById,
+          notesValue: "",
           onTargetSelected: (kind, id, sceneId) => reported.add((kind, id, sceneId)),
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
         ),
       ),
     );
@@ -171,6 +193,90 @@ void main() {
     await tester.pump();
 
     expect(reported, [(OcptBreakdownTargetKind.element, "element-1", "scene-1")]);
+  });
+
+  testWidgets("the status chips show the scene's own status and report a pick", (tester) async {
+    final reported = <OcptBreakdownSceneStatus>[];
+    final scene = _buildScene(id: "scene-1", status: OcptBreakdownSceneStatus.inProgress);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: const {},
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: reported.add,
+          onNotesChanged: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.text("In progress"), findsOneWidget);
+
+    await tester.tap(find.text("Done"));
+    await tester.pump();
+
+    expect(reported, [OcptBreakdownSceneStatus.done]);
+  });
+
+  testWidgets("the notes field shows its value and reports typing", (tester) async {
+    final reported = <String>[];
+    final scene = _buildScene(id: "scene-1");
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: const {},
+          notesValue: "Fragile prop",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: reported.add,
+        ),
+      ),
+    );
+
+    expect(find.text("Fragile prop"), findsOneWidget);
+
+    await tester.enterText(find.text("Fragile prop"), "Fragile prop, handle with care");
+    await tester.pump();
+
+    expect(reported, ["Fragile prop, handle with care"]);
+  });
+
+  testWidgets("isReadOnly withholds the status chips and the notes field while the sheet reads",
+      (tester) async {
+    final statusReported = <OcptBreakdownSceneStatus>[];
+    final notesReported = <String>[];
+    final scene = _buildScene(id: "scene-1", status: OcptBreakdownSceneStatus.inProgress);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: const {},
+          notesValue: "Fragile prop",
+          onTargetSelected: _noop3,
+          onStatusChanged: statusReported.add,
+          onNotesChanged: notesReported.add,
+          isReadOnly: true,
+        ),
+      ),
+    );
+
+    // Both are still readable…
+    expect(find.text("In progress"), findsOneWidget);
+    expect(find.text("Fragile prop"), findsOneWidget);
+
+    // …but neither writes: the status chip reports nothing, and the notes field refuses typing.
+    await tester.tap(find.text("Done"));
+    await tester.pump();
+    expect(statusReported, isEmpty);
+
+    final fieldWidget = tester.widget<TextField>(find.byType(TextField));
+    expect(fieldWidget.onChanged, isNull);
+    expect(notesReported, isEmpty);
   });
 }
 

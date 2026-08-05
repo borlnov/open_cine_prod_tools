@@ -7,21 +7,26 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_choice_chip.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// The right dock's `Inspector` tab while a scene is selected and no target is: the scene's own
-/// breakdown sheet — counts, an alert naming the elements still to find, and its targets grouped by
-/// category.
+/// breakdown sheet — counts, its own status chips, an alert naming the elements still to find, its
+/// targets grouped by category and its own breakdown notes.
 ///
-/// Purely presentational, like `OcptShotInspectorPanel`, but with nothing to write: the scene's
-/// breakdown status shown here is a read-out (`ocptBreakdownSceneStatusLabel`), its own control
-/// belonging to a later change, so this panel carries no `isReadOnly` flag — a click on one of its
-/// target rows only selects that target (`onTargetSelected`), and selecting writes nothing whatever
-/// a previewed version's own gating says.
+/// Purely presentational, like `OcptShotInspectorPanel`. [isReadOnly] withholds every control that
+/// writes — the status chips and the notes field — while leaving every read (the sheet itself and a
+/// click on one of its target rows, `onTargetSelected`) in place, mirroring
+/// `OcptBreakdownTargetInspector`'s own convention: the panel takes the real callbacks and nulls
+/// them out itself, so a control added later cannot be gated in one place and forgotten in the
+/// other. [onTargetSelected] is never withheld: selecting writes nothing whatever a previewed
+/// version's own gating says.
 class OcptBreakdownSceneInspector extends StatelessWidget {
   /// The selected scene, or null while nothing at all is selected — the mode's own empty message is
   /// shown then.
@@ -30,15 +35,34 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
   /// `{(kind, id): target}`, built once by the mode from the loaded snapshot's targets.
   final OcptBreakdownTargetsById targetById;
 
+  /// [scene]'s current value for its own breakdown notes — a pending edit still in the bloc's own
+  /// debounce, or the scene's own stored value. Ignored while [scene] is null.
+  final String notesValue;
+
   /// Called with a target's kind, its id and [scene]'s own id when one of its rows is clicked.
   final void Function(OcptBreakdownTargetKind kind, String id, String sceneId) onTargetSelected;
+
+  /// Called with the breakdown status just picked, or null while it may not be changed.
+  final ValueChanged<OcptBreakdownSceneStatus>? onStatusChanged;
+
+  /// Called with the notes field's raw text on every keystroke, or null while the sheet may not be
+  /// written to.
+  final ValueChanged<String>? onNotesChanged;
+
+  /// Whether what the mode shows is a project version being previewed read-only, which no callback
+  /// of this panel may write through.
+  final bool isReadOnly;
 
   /// Class constructor
   const OcptBreakdownSceneInspector({
     super.key,
     required this.scene,
     required this.targetById,
+    required this.notesValue,
     required this.onTargetSelected,
+    required this.onStatusChanged,
+    required this.onNotesChanged,
+    this.isReadOnly = false,
   });
 
   @override
@@ -91,16 +115,16 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
                 color: toFindTargets.isEmpty ? null : ocptWarningColor(context),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatTile(
-                label: tr.breakdownSceneInspectorStatusLabel,
-                value: ocptBreakdownSceneStatusLabel(tr, scene.status),
-                color: ocptBreakdownSceneStatusColor(context, scene.status),
-              ),
-            ),
           ],
         ),
+        const SizedBox(height: 16),
+
+        Text(
+          tr.breakdownSceneInspectorStatusLabel.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 8),
+        _buildStatusChips(context, scene),
         const SizedBox(height: 16),
 
         if (toFindTargets.isNotEmpty) ...[
@@ -118,6 +142,15 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
           _buildEmptyHint(context, tr)
         else
           for (final bucket in buckets) _buildGroup(context, tr, bucket, targets, scene.id),
+        const SizedBox(height: 16),
+
+        OcptResourcesSheetField(
+          ownerId: scene.id,
+          label: tr.breakdownSceneNotesLabel,
+          value: notesValue,
+          multiline: true,
+          onChanged: isReadOnly ? null : onNotesChanged,
+        ),
 
         const SizedBox(height: 8),
         Divider(height: 1, color: theme.colorScheme.outlineVariant),
@@ -129,6 +162,23 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       ],
     );
   }
+
+  /// The scene's own breakdown status chips, one per [OcptBreakdownSceneStatus], the current one
+  /// filled — the read-out for the fact the third stat tile used to show, [isReadOnly] withholding
+  /// the pick itself while leaving the current one visible.
+  Widget _buildStatusChips(BuildContext context, OcptBreakdownScene scene) => Wrap(
+    spacing: 6,
+    runSpacing: 6,
+    children: [
+      for (final status in OcptBreakdownSceneStatus.values)
+        OcptBreakdownChoiceChip(
+          label: ocptBreakdownSceneStatusLabel(Tr.of(context), status),
+          color: ocptBreakdownSceneStatusColor(context, status),
+          isSelected: scene.status == status,
+          onTap: isReadOnly || onStatusChanged == null ? null : () => onStatusChanged!(status),
+        ),
+    ],
+  );
 
   /// The warning callout naming [toFindTargets], comma-joined.
   Widget _buildToFindAlert(BuildContext context, Tr tr, List<OcptBreakdownTarget> toFindTargets) {
@@ -273,7 +323,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
   }
 }
 
-/// One of the three stat tiles under the scene's own heading.
+/// One of the two stat tiles under the scene's own heading.
 class _StatTile extends StatelessWidget {
   /// The tile's own small, muted label.
   final String label;

@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -219,6 +220,41 @@ class OcptBreakdownOccurrenceSelectedEvent extends OcptBreakdownEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, sceneId];
+}
+
+/// Writes a new breakdown status onto scene [sceneId] immediately, dispatched by a click on one of
+/// `OcptBreakdownSceneInspector`'s own status chips.
+class OcptBreakdownSceneStatusChangedEvent extends OcptBreakdownEvent {
+  /// The id of the scene whose breakdown status changed.
+  final String sceneId;
+
+  /// The status just picked.
+  final OcptBreakdownSceneStatus status;
+
+  /// Class constructor
+  const OcptBreakdownSceneStatusChangedEvent({required this.sceneId, required this.status});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, status];
+}
+
+/// Records the raw text just typed into scene [sceneId]'s own breakdown notes field as a pending
+/// edit, dispatched on every keystroke into `OcptBreakdownSceneInspector`'s notes field — rides the
+/// same field-edit debounce as `OcptBreakdownElementFieldChangedEvent`.
+class OcptBreakdownSceneNotesChangedEvent extends OcptBreakdownEvent {
+  /// The id of the scene whose breakdown notes are being edited.
+  final String sceneId;
+
+  /// The field's raw text, as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptBreakdownSceneNotesChangedEvent({required this.sceneId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, rawValue];
 }
 
 /// Writes a new status onto element [elementId] immediately, dispatched by a click on one of

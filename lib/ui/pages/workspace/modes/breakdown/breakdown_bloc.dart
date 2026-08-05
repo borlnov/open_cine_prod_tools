@@ -50,14 +50,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 /// all three live only in this bloc's own state.
 ///
 /// The selected target's three free-text fields (`OcptElementField.subCategory`/`.quantity`/
-/// `.notes`) are the one thing here that *does* write, and they ride the same debounce idiom
-/// `OcptResourcesBloc`'s five `pending…FieldEdits` maps do: an edit is held in
-/// [OcptBreakdownState.pendingElementFieldEdits] and written [_fieldEditDebounce] after the last
-/// keystroke, flushed immediately by [_flushPendingElementFieldEdits] on a target or scene selection
+/// `.notes`) and the selected scene's own breakdown notes are what write here through typing, and
+/// they ride the same debounce idiom `OcptResourcesBloc`'s five `pending…FieldEdits` maps do: an
+/// edit is held in [OcptBreakdownState.pendingElementFieldEdits] or
+/// [OcptBreakdownState.pendingSceneNotesEdits] and written [_fieldEditDebounce] after the last
+/// keystroke, flushed immediately by [_flushPendingFieldEdits] on a target or scene selection
 /// change, a right dock tab change, a version preview ([flushPendingProjectWrites]) and the mode
 /// leaving the tree ([flushPendingFieldEdits], called by the mode's own `deactivate()`). Every other
-/// write the target inspector offers — the status, the category, the owner, who brings it, and the
-/// tag removal — is a single pick rather than typing, so it is written immediately by its own event.
+/// write the target inspector or the scene inspector offers — the target's status, its category,
+/// its owner, who brings it and its tag removal, and the scene's own breakdown status — is a single
+/// pick rather than typing, so it is written immediately by its own event.
 ///
 /// [_onWordClicked] owns the script view's range interaction: a first click opens
 /// [OcptBreakdownState.pendingTagAnchor], a second one in the same scene closes it into
@@ -71,7 +73,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
 /// and [reloadFromProjectDatabase]. [_onRightDockTabSelected] dispatches
 /// [OcptProjectWorkingCopyRefreshRequestedEvent] on opening the `Versions` tab, exactly as the other
-/// two modes do, and so does [_flushPendingElementFieldEdits] when a field edit lands while that tab
+/// two modes do, and so does [_flushPendingFieldEdits] when a field edit lands while that tab
 /// is already open — the two moments the mixin's working-copy card is worth a fresh, throttled read.
 class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     with MixinOcptProjectVersionsBloc<OcptBreakdownState> {
@@ -167,6 +169,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownTargetSelectedEvent>(_onTargetSelected);
     on<OcptBreakdownTargetSelectionClearedEvent>(_onTargetSelectionCleared);
     on<OcptBreakdownWordClickedEvent>(_onWordClicked);
+    on<OcptBreakdownSceneStatusChangedEvent>(_onSceneStatusChanged);
+    on<OcptBreakdownSceneNotesChangedEvent>(_onSceneNotesChanged);
     on<OcptBreakdownElementStatusChangedEvent>(_onElementStatusChanged);
     on<OcptBreakdownElementCategoryChangedEvent>(_onElementCategoryChanged);
     on<OcptBreakdownElementFieldChangedEvent>(_onElementFieldChanged);
@@ -188,12 +192,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
 
-  /// Writes whatever target field edit is still sitting in the field-edit debounce, so a preview
-  /// about to swap the database can't send it into the previewed version instead.
+  /// Writes whatever target field edit or scene notes edit is still sitting in the field-edit
+  /// debounce, so a preview about to swap the database can't send it into the previewed version
+  /// instead.
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBreakdownState> emitter) =>
-      _flushPendingElementFieldEdits(emitter);
+      _flushPendingFieldEdits(emitter);
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
@@ -214,9 +219,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// (re)load, mirroring `OcptResourcesBloc`'s own selection reset: a preview or a restore changes
   /// the whole database underneath, so a stale selection is dropped rather than trusted to still
   /// mean the same thing — and so is any tag-removal confirmation the previous selection was asking
-  /// for, and any element field edit still sitting in the debounce (the caller flushes it through
-  /// [flushPendingProjectWrites] first whenever losing it here would matter; a bare page-format
-  /// reload never reaches this method at all, see [_onProjectSettingsChanged]).
+  /// for, and any element field edit or scene notes edit still sitting in the debounce (the caller
+  /// flushes it through [flushPendingProjectWrites] first whenever losing it here would matter; a
+  /// bare page-format reload never reaches this method at all, see [_onProjectSettingsChanged]).
   Future<void> _onLoadRequested(
     OcptBreakdownLoadRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -268,6 +273,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
         pendingElementFieldEdits: const {},
+        pendingSceneNotesEdits: const {},
         isTagRemovalPending: false,
         clearPendingTagAnchor: true,
         clearPendingTagRange: true,
@@ -361,14 +367,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// Selects scene `event.sceneId`.
   ///
   /// A scene id that no longer exists in the current snapshot (a stale click on a panel rebuilt
-  /// underneath) is ignored rather than selecting nothing. Flushes any pending element field edit
+  /// underneath) is ignored rather than selecting nothing. Flushes any pending field edit
   /// first, and drops whatever tag-removal confirmation the previous selection was showing: both
   /// belonged to the sheet this selection is about to replace.
   Future<void> _onSceneSelected(
     OcptBreakdownSceneSelectedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
 
     final exists = state.scenes.any((scene) => scene.id == event.sceneId);
     if (!exists) {
@@ -401,16 +407,16 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
   /// or switches to it) and records it as the tab the toolbar's toggle reopens the dock on.
   ///
-  /// Flushes any pending element field edit first — the inspector tab this may be leaving is the
+  /// Flushes any pending field edit first — the inspector tab this may be leaving is the
   /// one place they are shown — mirroring `OcptShotListBloc._onRightDockTabSelected`. Opening the
   /// `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s working-copy card
   /// needs a fresh read for: the other is a field edit flushing while it is already the one showing
-  /// (see [_flushPendingElementFieldEdits]).
+  /// (see [_flushPendingFieldEdits]).
   Future<void> _onRightDockTabSelected(
     OcptBreakdownRightDockTabSelectedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
 
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
@@ -529,13 +535,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// longer in the current snapshot (a stale click on a sheet rebuilt underneath) is ignored for the
   /// scene selection alone, the target selection itself is still applied.
   ///
-  /// Flushes any pending element field edit first, and drops whatever tag-removal confirmation the
+  /// Flushes any pending field edit first, and drops whatever tag-removal confirmation the
   /// previous selection was showing, exactly as [_onSceneSelected] does.
   Future<void> _onTargetSelected(
     OcptBreakdownTargetSelectedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
 
     final sceneExists = state.scenes.any((scene) => scene.id == event.sceneId);
@@ -552,13 +558,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Clears the currently selected target. Flushes any pending element field edit first, and drops
+  /// Clears the currently selected target. Flushes any pending field edit first, and drops
   /// whatever tag-removal confirmation was showing, exactly as [_onSceneSelected] does.
   Future<void> _onTargetSelectionCleared(
     OcptBreakdownTargetSelectionClearedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
     emitter(state.copyWith(clearSelectedTargetRef: true, isTagRemovalPending: false));
   }
 
@@ -583,7 +589,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// awaiting the popover's own answer: a further click on the sheet behind an open popover means
   /// nothing until that popover is resolved or cancelled.
   ///
-  /// Flushes any pending element field edit first, mirroring every other selection-changing
+  /// Flushes any pending field edit first, mirroring every other selection-changing
   /// handler, and drops whatever tag-removal confirmation the previous selection was showing.
   Future<void> _onWordClicked(
     OcptBreakdownWordClickedEvent event,
@@ -596,7 +602,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final anchor = state.pendingTagAnchor;
 
     if (anchor == null || anchor.sceneId != event.sceneId) {
-      await _flushPendingElementFieldEdits(emitter);
+      await _flushPendingFieldEdits(emitter);
 
       final sceneExists = state.scenes.any((scene) => scene.id == event.sceneId);
       emitter(
@@ -647,7 +653,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final clampedStart = startOffset.clamp(0, sceneText.length);
     final clampedEnd = endOffset.clamp(clampedStart, sceneText.length);
 
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
     emitter(
       state.copyWith(
         clearPendingTagAnchor: true,
@@ -696,7 +702,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return;
     }
 
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
 
     final tagId = await _breakdownService.createTag(
       database: project.database,
@@ -749,7 +755,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return;
     }
 
-    await _flushPendingElementFieldEdits(emitter);
+    await _flushPendingFieldEdits(emitter);
 
     final trimmedName = event.name.trim();
     final result = await _breakdownService.createElementAndTag(
@@ -790,6 +796,48 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     emitter(state.copyWith(hasTagWriteError: false));
+  }
+
+  /// Writes the selected scene's new breakdown status immediately — a single pick, not typing, so
+  /// it rides no debounce — then reloads the snapshot: a scene's status feeds the left dock's own
+  /// rows, the scene inspector's chips and the snapshot's `doneSceneCount`, all of which must be
+  /// read back from the database rather than patched in place, exactly as an element's status or
+  /// category change already is.
+  Future<void> _onSceneStatusChanged(
+    OcptBreakdownSceneStatusChangedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _breakdownService.updateSceneBreakdown(
+      database: project.database,
+      sceneId: event.sceneId,
+      status: Value(event.status),
+    );
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+  }
+
+  /// Records the raw text just typed into scene `event.sceneId`'s own breakdown notes as a pending
+  /// edit, visible immediately, and (re)starts the same field-edit debounce
+  /// [_onElementFieldChanged] does — one debounce timer for the whole mode.
+  Future<void> _onSceneNotesChanged(
+    OcptBreakdownSceneNotesChangedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final pending = Map<String, String>.of(state.pendingSceneNotesEdits)
+      ..[event.sceneId] = event.rawValue;
+    emitter(state.copyWith(pendingSceneNotesEdits: pending));
+
+    _fieldEditTimer?.cancel();
+    _fieldEditTimer = Timer(_fieldEditDebounce, () {
+      if (!isClosed) {
+        add(const OcptBreakdownFieldEditFlushRequestedEvent());
+      }
+    });
   }
 
   /// Writes the selected element's new status immediately — a single pick, not typing, so it rides
@@ -852,42 +900,56 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     });
   }
 
-  /// Writes every pending element field edit once the field-edit debounce elapses with no further
-  /// typing.
+  /// Writes every pending element field edit and every pending scene notes edit once the
+  /// field-edit debounce elapses with no further typing.
   Future<void> _onFieldEditFlushRequested(
     OcptBreakdownFieldEditFlushRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
-  ) => _flushPendingElementFieldEdits(emitter);
+  ) => _flushPendingFieldEdits(emitter);
 
-  /// Writes every pending element field edit immediately: cancels the debounce timer (a no-op if it
-  /// already fired or there was none), writes each one through `OcptElementsService.updateElement`,
-  /// then reloads the snapshot so every derived aggregate reflects what the database now says. A
-  /// no-op while nothing is pending.
+  /// Writes every pending element field edit and every pending scene notes edit immediately:
+  /// cancels the debounce timer (a no-op if it already fired or there was none), writes each one
+  /// through `OcptElementsService.updateElement`/`OcptBreakdownService.updateSceneBreakdown`, then
+  /// reloads the snapshot once so every derived aggregate reflects what the database now says. A
+  /// no-op while neither map holds anything.
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
   /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that changes
   /// the selected target, the selected scene, or the right dock tab, and by [flushPendingProjectWrites]
   /// (a version preview about to swap the database), so a pending edit is never silently dropped.
   /// [flushPendingFieldEdits] is the sibling of this method used outside of an event handler.
-  Future<void> _flushPendingElementFieldEdits(Emitter<OcptBreakdownState> emitter) async {
+  Future<void> _flushPendingFieldEdits(Emitter<OcptBreakdownState> emitter) async {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pending = state.pendingElementFieldEdits;
-    if (pending.isEmpty) {
+    final pendingElementFields = state.pendingElementFieldEdits;
+    final pendingSceneNotes = state.pendingSceneNotesEdits;
+    if (pendingElementFields.isEmpty && pendingSceneNotes.isEmpty) {
       return;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingElementFieldEdits: const {}));
+      emitter(
+        state.copyWith(pendingElementFieldEdits: const {}, pendingSceneNotesEdits: const {}),
+      );
       return;
     }
 
     try {
-      await _writeAllPendingElementFields(database: project.database, pending: pending);
+      await _writeAllPendingFields(
+        database: project.database,
+        elementFields: pendingElementFields,
+        sceneNotes: pendingSceneNotes,
+      );
       final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot, pendingElementFieldEdits: const {}));
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          pendingElementFieldEdits: const {},
+          pendingSceneNotesEdits: const {},
+        ),
+      );
 
       // The other of the two moments the working-copy card needs a fresh read for (see
       // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
@@ -897,12 +959,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending breakdown field edit of the "
           "project at ${project.path}: $error");
-      emitter(state.copyWith(pendingElementFieldEdits: const {}));
+      emitter(
+        state.copyWith(pendingElementFieldEdits: const {}, pendingSceneNotesEdits: const {}),
+      );
     }
   }
 
-  /// Writes every pending element field edit directly to the database, bypassing both the debounce
-  /// timer and the bloc's own event queue.
+  /// Writes every pending element field edit and every pending scene notes edit directly to the
+  /// database, bypassing both the debounce timer and the bloc's own event queue.
   ///
   /// Called by the mode's own `deactivate()`, mirroring `OcptShotListBloc.flushPendingFieldEdits`:
   /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -911,15 +975,16 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// microtask this widget might not survive to see — is what guarantees the last
   /// [_fieldEditDebounce] worth of typing isn't lost.
   ///
-  /// Unlike [_flushPendingElementFieldEdits], this never touches [state]: `emit` may only be called
+  /// Unlike [_flushPendingFieldEdits], this never touches [state]: `emit` may only be called
   /// from inside a registered `on<Event>` handler, and by the time this runs the widget tree that
   /// would show a fresh state is already gone anyway. A failure here is only logged.
   Future<void> flushPendingFieldEdits() async {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pending = state.pendingElementFieldEdits;
-    if (pending.isEmpty) {
+    final pendingElementFields = state.pendingElementFieldEdits;
+    final pendingSceneNotes = state.pendingSceneNotesEdits;
+    if (pendingElementFields.isEmpty && pendingSceneNotes.isEmpty) {
       return;
     }
 
@@ -929,22 +994,28 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     try {
-      await _writeAllPendingElementFields(database: project.database, pending: pending);
+      await _writeAllPendingFields(
+        database: project.database,
+        elementFields: pendingElementFields,
+        sceneNotes: pendingSceneNotes,
+      );
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending breakdown field edit of the "
           "project at ${project.path}: $error");
     }
   }
 
-  /// Writes every entry of [pending] through `OcptElementsService.updateElement`, translating each
-  /// (only `subCategory`, `quantity` and `notes` ever land here — the target inspector's other
+  /// Writes every entry of [elementFields] through `OcptElementsService.updateElement`, translating
+  /// each (only `subCategory`, `quantity` and `notes` ever land here — the target inspector's other
   /// fields are single picks written immediately by their own event, see this bloc's own doc
-  /// comment) into the matching named argument.
-  Future<void> _writeAllPendingElementFields({
+  /// comment) into the matching named argument, then every entry of [sceneNotes] through
+  /// `OcptBreakdownService.updateSceneBreakdown`.
+  Future<void> _writeAllPendingFields({
     required OcptProjectDatabase database,
-    required Map<(String, OcptElementField), String> pending,
+    required Map<(String, OcptElementField), String> elementFields,
+    required Map<String, String> sceneNotes,
   }) async {
-    for (final entry in pending.entries) {
+    for (final entry in elementFields.entries) {
       final (elementId, field) = entry.key;
       final rawValue = entry.value;
 
@@ -978,6 +1049,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
             "ignoring the pending edit for element $elementId",
           );
       }
+    }
+
+    for (final entry in sceneNotes.entries) {
+      await _breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: entry.key,
+        notes: Value(entry.value),
+      );
     }
   }
 

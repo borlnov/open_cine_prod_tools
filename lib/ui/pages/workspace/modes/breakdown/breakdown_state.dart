@@ -26,11 +26,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 /// The state of `OcptBreakdownBloc`.
 ///
 /// Selecting a target or a scene, and hiding a legend key, write nothing to the project database.
-/// [pendingElementFieldEdits] is the one pending field edit this state carries, the selected
-/// target's own free-text fields riding the debounce every other mode's `pending…FieldEdits` map
-/// does — see `OcptBreakdownBloc`'s own doc comment. [pendingTagAnchor] and [pendingTagRange] are
-/// likewise ephemeral and write nothing on their own: the range interaction they drive only
-/// touches the database once the popover it opens answers with a link or an element creation.
+/// [pendingElementFieldEdits] and [pendingSceneNotesEdits] are the pending field edits this state
+/// carries, the selected target's own free-text fields and the selected scene's own breakdown
+/// notes riding the debounce every other mode's `pending…FieldEdits` map does — see
+/// `OcptBreakdownBloc`'s own doc comment. [pendingTagAnchor] and [pendingTagRange] are likewise
+/// ephemeral and write nothing on their own: the range interaction they drive only touches the
+/// database once the popover it opens answers with a link or an element creation.
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     with MixinOcptProjectVersionsState<OcptBreakdownState> {
   /// Whether the breakdown read is still being loaded from the project database.
@@ -101,6 +102,12 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// `OcptResourcesState.pendingElementFieldEdits`. [elementFieldValueOf] is what a field reads
   /// instead of the element's own stored value while an edit is pending here.
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
+
+  /// A scene's own breakdown notes still sitting in the field-edit debounce, keyed by the scene's
+  /// id, mirroring [pendingElementFieldEdits] over the same debounce timer.
+  /// [sceneNotesValueOf] is what the scene inspector's notes field reads instead of the scene's own
+  /// stored value while an edit is pending here.
+  final Map<String, String> pendingSceneNotesEdits;
 
   /// The first word clicked of a range not yet closed, or null while none is open — the script
   /// view's own cue to mark that word as pending. Cleared the moment the range closes (successfully
@@ -255,6 +262,12 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   String elementFieldValueOf(String elementId, OcptElementField field, String storedValue) =>
       pendingElementFieldEdits[(elementId, field)] ?? storedValue;
 
+  /// [sceneId]'s current value for its own breakdown notes — a pending edit still sitting in
+  /// [pendingSceneNotesEdits], or [storedValue] (the scene's own value, read off `selectedScene` at
+  /// the call site) otherwise, mirroring [elementFieldValueOf].
+  String sceneNotesValueOf(String sceneId, String storedValue) =>
+      pendingSceneNotesEdits[sceneId] ?? storedValue;
+
   /// Class constructor
   const OcptBreakdownState({
     required this.isLoading,
@@ -270,6 +283,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.lastRightDockTab,
     required this.isTagRemovalPending,
     required this.pendingElementFieldEdits,
+    required this.pendingSceneNotesEdits,
     required this.pendingTagAnchor,
     required this.pendingTagRange,
     required this.hasTagWriteError,
@@ -299,6 +313,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       lastRightDockTab = OcptBreakdownRightDockTab.inspector,
       isTagRemovalPending = false,
       pendingElementFieldEdits = const {},
+      pendingSceneNotesEdits = const {},
       pendingTagAnchor = null,
       pendingTagRange = null,
       hasTagWriteError = false,
@@ -318,9 +333,10 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// it needs no clear flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
   /// [pendingTagAnchor] and [pendingTagRange] all legitimately go back to null while the mode is
   /// alive (a fresh load, a selection dropped, the dock closed, an anchor replaced or a range
-  /// resolved), so each has its own clear flag instead. [hiddenLegendKeys] and
-  /// [pendingElementFieldEdits] are each replaced wholesale rather than merged — the caller (the
-  /// bloc's own legend and field-edit handlers) always computes the full next map or set.
+  /// resolved), so each has its own clear flag instead. [hiddenLegendKeys],
+  /// [pendingElementFieldEdits] and [pendingSceneNotesEdits] are each replaced wholesale rather
+  /// than merged — the caller (the bloc's own legend and field-edit handlers) always computes the
+  /// full next map or set.
   @override
   OcptBreakdownState copyWith({
     bool? isLoading,
@@ -339,6 +355,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownRightDockTab? lastRightDockTab,
     bool? isTagRemovalPending,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
+    Map<String, String>? pendingSceneNotesEdits,
     OcptBreakdownPendingTagAnchor? pendingTagAnchor,
     bool clearPendingTagAnchor = false,
     OcptBreakdownPendingTagRange? pendingTagRange,
@@ -373,6 +390,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     isTagRemovalPending: isTagRemovalPending ?? this.isTagRemovalPending,
     pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
+    pendingSceneNotesEdits: pendingSceneNotesEdits ?? this.pendingSceneNotesEdits,
     pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
     pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
     hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
@@ -446,6 +464,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     lastRightDockTab,
     isTagRemovalPending,
     pendingElementFieldEdits,
+    pendingSceneNotesEdits,
     pendingTagAnchor,
     pendingTagRange,
     hasTagWriteError,

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_choice_chip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
@@ -259,7 +260,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     runSpacing: 6,
     children: [
       for (final status in OcptElementStatus.values)
-        _OcptBreakdownChoiceChip(
+        OcptBreakdownChoiceChip(
           label: ocptElementStatusLabel(Tr.of(context), status),
           color: ocptElementStatusColor(context, status),
           isSelected: element.status == status,
@@ -453,56 +454,6 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
       context,
     ).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
   );
-}
-
-/// One pill of the status chips row: filled with [color] while [isSelected], otherwise a plain
-/// outline.
-class _OcptBreakdownChoiceChip extends StatelessWidget {
-  /// The chip's own label.
-  final String label;
-
-  /// The chip's own colour, its fill while selected and its text colour either way.
-  final Color color;
-
-  /// Whether this is the currently selected value.
-  final bool isSelected;
-
-  /// Called when the chip is clicked, or null while it may not be picked.
-  final VoidCallback? onTap;
-
-  /// Class constructor
-  const _OcptBreakdownChoiceChip({
-    required this.label,
-    required this.color,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusLarge),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
-          border: Border.all(color: isSelected ? color : theme.colorScheme.outlineVariant),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: isSelected ? color : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// One entry of the two-column category grid: a swatch and a label, tinted when [isSelected].

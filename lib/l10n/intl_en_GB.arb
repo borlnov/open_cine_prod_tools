@@ -5444,6 +5444,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "breakdownSceneNotesLabel": "Breakdown notes",
+  "@breakdownSceneNotesLabel": {
+    "description": "Label of a scene's own free-text breakdown notes field",
+    "context": "Displayed above the scene inspector's notes field",
+    "type": "text",
+    "placeholders": {}
+  },
   "breakdownPendingAnchorTooltip": "Click the end of the passage to tag it.",
   "@breakdownPendingAnchorTooltip": {
     "description": "Explains the pending anchor mark",

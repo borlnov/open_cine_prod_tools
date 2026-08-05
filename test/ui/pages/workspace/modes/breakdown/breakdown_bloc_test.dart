@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -1098,6 +1099,121 @@ void main() {
       database: projectsManager.currentProject!.database,
     );
     expect(elements.single.notes, "handle with care");
+
+    await bloc.close();
+  });
+
+  test("changing a scene's breakdown status writes it immediately and reloads the snapshot",
+      () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(
+      OcptBreakdownSceneStatusChangedEvent(sceneId: sceneId, status: OcptBreakdownSceneStatus.done),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.scenes.single.status == OcptBreakdownSceneStatus.done,
+    );
+
+    expect(state.scenes.single.status, OcptBreakdownSceneStatus.done);
+
+    final scenes = await projectsManager.breakdownService.loadScenes(
+      database: projectsManager.currentProject!.database,
+      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+    );
+    expect(scenes.single.status, OcptBreakdownSceneStatus.done);
+
+    await bloc.close();
+  });
+
+  test("typing into a scene's breakdown notes debounces then writes it, clearing the pending edit",
+      () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "Bring the lamp"));
+    final pending = await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+    expect(pending.sceneNotesValueOf(sceneId, ""), "Bring the lamp");
+
+    final flushed = await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isEmpty);
+    expect(flushed.scenes.single.notes, "Bring the lamp");
+
+    final scenes = await projectsManager.breakdownService.loadScenes(
+      database: projectsManager.currentProject!.database,
+      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+    );
+    expect(scenes.single.notes, "Bring the lamp");
+
+    await bloc.close();
+  });
+
+  test("selecting a different scene flushes a pending scene notes edit", () async {
+    await writeScreenplay(
+      "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n",
+    );
+    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final loaded = await waitForState(bloc, (state) => state.scenes.length == 2);
+    final firstSceneId = loaded.scenes[0].id;
+    final secondSceneId = loaded.scenes[1].id;
+
+    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: firstSceneId, rawValue: "note one"));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+
+    bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: secondSceneId));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isEmpty);
+
+    final scenes = await projectsManager.breakdownService.loadScenes(
+      database: projectsManager.currentProject!.database,
+      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+    );
+    expect(scenes.firstWhere((scene) => scene.id == firstSceneId).notes, "note one");
+
+    await bloc.close();
+  });
+
+  test("switching the right dock tab flushes a pending scene notes edit", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "note"));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+
+    bloc.add(const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isEmpty);
+
+    final scenes = await projectsManager.breakdownService.loadScenes(
+      database: projectsManager.currentProject!.database,
+      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+    );
+    expect(scenes.single.notes, "note");
+
+    await bloc.close();
+  });
+
+  test("flushPendingFieldEdits writes a pending scene notes edit directly, bypassing the debounce",
+      () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+
+    await bloc.flushPendingFieldEdits();
+
+    final scenes = await projectsManager.breakdownService.loadScenes(
+      database: projectsManager.currentProject!.database,
+      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+    );
+    expect(scenes.single.notes, "handle with care");
 
     await bloc.close();
   });
