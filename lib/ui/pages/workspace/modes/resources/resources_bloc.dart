@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_ta
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -125,6 +126,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The running field-edit debounce timer, if any.
   Timer? _fieldEditTimer;
 
+  /// What the first load should open on, handed over by the mode that sent the user here, or null
+  /// to open on the mode's own default.
+  ///
+  /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
+  /// load goes through the very same handler (entering or leaving a version preview calls
+  /// [reloadFromProjectDatabase], which is [_onLoadRequested]), and re-applying it there would
+  /// yank the user back to a record they may well have navigated away from.
+  OcptResourcesRevealRequest? _pendingRevealRequest;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -141,7 +151,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptElementsService? elementsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+    OcptResourcesRevealRequest? revealRequest,
+  }) : _pendingRevealRequest = revealRequest,
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
@@ -302,22 +314,74 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final snapshot = await _loadSnapshot(project);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
 
+    final revealRequest = _pendingRevealRequest;
+    _pendingRevealRequest = null;
+
     emitter(
-      state.copyWith(
-        isLoading: false,
-        title: project.name,
-        currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
-        previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
-        snapshot: snapshot,
-        clearSelectedPersonId: true,
-        clearSelectedRoleId: true,
-        clearSelectedLocationId: true,
-        clearSelectedElementId: true,
-        leftDockFraction: leftDockFraction,
-        rightDockFraction: rightDockFraction,
+      _revealed(
+        state.copyWith(
+          isLoading: false,
+          title: project.name,
+          currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
+          previewedVersionId: previewedVersion?.id,
+          clearPreviewedVersionId: previewedVersion == null,
+          snapshot: snapshot,
+          clearSelectedPersonId: true,
+          clearSelectedRoleId: true,
+          clearSelectedLocationId: true,
+          clearSelectedElementId: true,
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
+        ),
+        revealRequest,
       ),
     );
+  }
+
+  /// [loaded] with [revealRequest]'s own tab active and its record selected, or [loaded] untouched
+  /// while there is no request — the ordinary case.
+  ///
+  /// Applied to the loaded state rather than emitted after it: the load clears all four selections,
+  /// so a selection landing beside it rather than inside it would be racing the very handler that
+  /// wipes it.
+  ///
+  /// A request naming no record, or one that isn't in the catalogue it was looked for in, only
+  /// selects the tab. That is the truthful reading of a request naming a row tombstoned since it
+  /// was built — the mode has a tab to show, and no sheet to show on it — and it is why this reads
+  /// the loaded snapshot rather than trusting the id.
+  OcptResourcesState _revealed(
+    OcptResourcesState loaded,
+    OcptResourcesRevealRequest? revealRequest,
+  ) {
+    if (revealRequest == null) {
+      return loaded;
+    }
+
+    final tabbed = loaded.copyWith(activeTab: revealRequest.tab);
+    final recordId = revealRequest.recordId;
+    final snapshot = loaded.snapshot;
+    if (recordId == null || snapshot == null) {
+      return tabbed;
+    }
+
+    return switch (revealRequest.tab) {
+      OcptResourcesTab.people =>
+        snapshot.people.any((person) => person.id == recordId)
+            ? tabbed.copyWith(selectedPersonId: recordId)
+            : tabbed,
+      OcptResourcesTab.roles =>
+        snapshot.roles.any((role) => role.id == recordId)
+            ? tabbed.copyWith(selectedRoleId: recordId)
+            : tabbed,
+      OcptResourcesTab.locations =>
+        snapshot.locations.any((location) => location.id == recordId)
+            ? tabbed.copyWith(selectedLocationId: recordId)
+            : tabbed,
+      OcptResourcesTab.elements =>
+        snapshot.elements.any((element) => element.id == recordId)
+            ? tabbed.copyWith(selectedElementId: recordId)
+            : tabbed,
+    };
   }
 
   /// Reads the whole resources catalogue of [project], joining the four services' own reads into

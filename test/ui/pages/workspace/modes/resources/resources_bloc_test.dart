@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -207,6 +208,7 @@ void main() {
     OcptExportManager? exportManager,
     OcptProjectsManager? overrideProjectsManager,
     FileSelectorManager? fileSelectorManager,
+    OcptResourcesRevealRequest? revealRequest,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
   }) => OcptResourcesBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
@@ -214,6 +216,7 @@ void main() {
     routerManager: routerManager ?? _RecordingRouterManager(),
     exportManager: exportManager ?? _FakeExportManager(),
     fileSelectorManager: fileSelectorManager,
+    revealRequest: revealRequest,
     fieldEditDebounce: fieldEditDebounce,
   );
 
@@ -1229,6 +1232,71 @@ void main() {
 
     expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.xlsxExportFailed);
     expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  test("a reveal request opens its own tab with its record already selected", () async {
+    final seed = buildBloc();
+    await waitForState(seed, (state) => !state.isLoading);
+    seed.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final seeded = await waitForState(seed, (state) => state.elementCount == 1);
+    final elementId = seeded.selectedElementId!;
+    await seed.close();
+
+    final bloc = buildBloc(
+      revealRequest: OcptResourcesRevealRequest(
+        tab: OcptResourcesTab.elements,
+        recordId: elementId,
+      ),
+    );
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.activeTab, OcptResourcesTab.elements);
+    expect(state.selectedElementId, elementId);
+    expect(state.selectedElement, isNotNull);
+
+    await bloc.close();
+  });
+
+  // The load clears every selection, so a reveal re-applied on each one would yank the user back to
+  // the revealed record every time a version preview is entered or left.
+  test("a reveal request is applied to the first load only", () async {
+    final seed = buildBloc();
+    await waitForState(seed, (state) => !state.isLoading);
+    seed.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
+    final seeded = await waitForState(seed, (state) => state.elementCount == 1);
+    final elementId = seeded.selectedElementId!;
+    await seed.close();
+
+    final bloc = buildBloc(
+      revealRequest: OcptResourcesRevealRequest(
+        tab: OcptResourcesTab.elements,
+        recordId: elementId,
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedElementId == elementId);
+
+    bloc.add(const OcptResourcesLoadRequestedEvent());
+    final reloaded = await waitForState(bloc, (state) => state.selectedElementId == null);
+
+    expect(reloaded.selectedElementId, isNull);
+
+    await bloc.close();
+  });
+
+  test("a reveal request naming an unknown record only opens its tab", () async {
+    final bloc = buildBloc(
+      revealRequest: const OcptResourcesRevealRequest(
+        tab: OcptResourcesTab.locations,
+        recordId: "no-such-location",
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.activeTab, OcptResourcesTab.locations);
+    expect(state.selectedLocationId, isNull);
 
     await bloc.close();
   });

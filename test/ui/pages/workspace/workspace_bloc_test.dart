@@ -5,6 +5,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
@@ -70,6 +72,65 @@ void main() {
 
     expect(state.mode, OcptWorkspaceMode.schedule);
     expect(await propertiesManager.workspaceMode.load(), OcptWorkspaceMode.schedule);
+    await bloc.close();
+  });
+
+  test('selecting a mode carries the reveal request it was given', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptWorkspaceModeSelectedEvent(
+        mode: OcptWorkspaceMode.resources,
+        revealRequest: OcptResourcesRevealRequest(
+          tab: OcptResourcesTab.elements,
+          recordId: "element-1",
+        ),
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.revealRequest != null);
+
+    expect(state.mode, OcptWorkspaceMode.resources);
+    expect(
+      state.revealRequest,
+      const OcptResourcesRevealRequest(tab: OcptResourcesTab.elements, recordId: "element-1"),
+    );
+    await bloc.close();
+  });
+
+  test('consuming the reveal request clears it without touching the mode', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(
+      const OcptWorkspaceModeSelectedEvent(
+        mode: OcptWorkspaceMode.resources,
+        revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.roles, recordId: "role-1"),
+      ),
+    );
+    await waitForState(bloc, (state) => state.revealRequest != null);
+
+    bloc.add(const OcptWorkspaceRevealRequestConsumedEvent());
+    final state = await waitForState(bloc, (state) => state.revealRequest == null);
+
+    expect(state.mode, OcptWorkspaceMode.resources);
+    await bloc.close();
+  });
+
+  test('a plain mode switch clears a reveal request an earlier one left behind', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(
+      const OcptWorkspaceModeSelectedEvent(
+        mode: OcptWorkspaceMode.resources,
+        revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.roles, recordId: "role-1"),
+      ),
+    );
+    await waitForState(bloc, (state) => state.revealRequest != null);
+
+    bloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.screenplay));
+    final state = await waitForState(bloc, (state) => state.mode == OcptWorkspaceMode.screenplay);
+
+    expect(state.revealRequest, isNull);
     await bloc.close();
   });
 }
