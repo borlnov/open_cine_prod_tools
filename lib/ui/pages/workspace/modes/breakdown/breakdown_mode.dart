@@ -23,17 +23,20 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
-/// The breakdown production mode (dépouillement du scénario): the scene list on the left, the whole
-/// screenplay typeset as a paper sheet in the centre, and the shared `Versions` dock tab on the
-/// right.
+/// The breakdown production mode (dépouillement du scénario): the scene list and, under it, the
+/// category legend on the left, the whole screenplay typeset as a paper sheet in the centre, and the
+/// shared `Versions` dock tab on the right.
 ///
-/// This milestone's script view only reads: see `OcptBreakdownScriptView`'s own doc comment for
-/// what is deliberately not here yet (the clickable, taggable words). There is therefore **no save
-/// control and no mode-specific toolbar action** — the shell simply isn't handed one, rather than
-/// showing an inert one — and the whole mode never withholds anything for a previewed version's
-/// sake beyond what [OcptBreakdownScriptView] already never offered.
+/// This milestone's script view lets every word be clicked — a tagged one selects its target, any
+/// other one reports its own offsets for a later milestone's range interaction to read — but writes
+/// nothing to the project database: selecting is a read (breakdown plan §6.3). There is therefore
+/// **no save control and no mode-specific toolbar action** — the shell simply isn't handed one,
+/// rather than showing an inert one — and the whole mode never withholds anything for a previewed
+/// version's sake beyond what [OcptBreakdownScriptView] already never offered: selecting still works
+/// while a version is being previewed, exactly as it does over the working copy.
 ///
 /// While a project version is being previewed, the mode shows that version's own read instead of
 /// the working copy's, and carries the shell's read-only banner naming it, exactly as the resources
@@ -106,7 +109,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         banner: _buildReadOnlyBanner(context, state),
         leftPanel: _buildScenePanel(context, state),
         rightPanel: _buildRightDock(context, state),
-        centre: _buildScriptView(state),
+        centre: _buildScriptView(context, state),
         statusBar: OcptBreakdownStatusBar(
           taggedTargetCount: state.taggedTargetCount,
           usedCategoryCount: state.usedCategoryCount,
@@ -156,11 +159,19 @@ class _BreakdownViewState extends State<_BreakdownView> {
       selectedSceneId: state.selectedSceneId,
       onSceneSelected: (sceneId) =>
           context.read<OcptBreakdownBloc>().add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId)),
+      legendEntries: ocptBreakdownLegendEntriesOf(state.targets),
+      hiddenLegendKeys: state.hiddenLegendKeys,
+      onLegendEntryToggled: (key) => context.read<OcptBreakdownBloc>().add(
+        OcptBreakdownLegendEntryToggledEvent(key: key),
+      ),
+      onShowAllLegendKeysRequested: () => context.read<OcptBreakdownBloc>().add(
+        const OcptBreakdownLegendShowAllRequestedEvent(),
+      ),
     );
   }
 
-  /// Builds the shell's `centre`: the whole screenplay typeset as a paper sheet.
-  Widget _buildScriptView(OcptBreakdownState state) => OcptBreakdownScriptView(
+  /// Builds the shell's `centre`: the whole screenplay typeset as a paper sheet, its words clickable.
+  Widget _buildScriptView(BuildContext context, OcptBreakdownState state) => OcptBreakdownScriptView(
     screenplayText: state.screenplayText,
     scenes: state.scenes,
     targetById: ocptBreakdownTargetsById(state.targets),
@@ -168,6 +179,18 @@ class _BreakdownViewState extends State<_BreakdownView> {
     selectedSceneId: state.selectedSceneId,
     onSceneSelected: (sceneId) => context.read<OcptBreakdownBloc>().add(
       OcptBreakdownSceneSelectedEvent(sceneId: sceneId),
+    ),
+    hiddenLegendKeys: state.hiddenLegendKeys,
+    selectedTargetRef: state.selectedTargetRef,
+    onTargetSelected: (targetKind, targetId, sceneId) => context.read<OcptBreakdownBloc>().add(
+      OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
+    ),
+    onWordClicked: (sceneId, wordStartOffset, wordEndOffset) => context.read<OcptBreakdownBloc>().add(
+      OcptBreakdownWordClickedEvent(
+        sceneId: sceneId,
+        wordStartOffset: wordStartOffset,
+        wordEndOffset: wordEndOffset,
+      ),
     ),
   );
 

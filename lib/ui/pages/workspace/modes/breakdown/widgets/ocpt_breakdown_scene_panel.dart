@@ -7,18 +7,23 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_category_legend.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// The breakdown mode's left dock: one row per scene, each showing its number, heading, a bar per
 /// category (or role/set kind) its tags cover and how many distinct things are tagged in it, and
-/// its own breakdown status on the right.
+/// its own breakdown status on the right — then, under a divider, the category legend
+/// ([OcptBreakdownCategoryLegend]).
 ///
 /// Width-agnostic, like the shot list's own sequence panel: it fills whatever width its parent
 /// `OcptWorkspaceDock` gives it and owns no background of its own. Clicking a row selects that
 /// scene, which is what both `OcptBreakdownScriptView` and (once it lands) the scene inspector read
 /// off — this panel itself never scrolls the script view to it, since the two are siblings of the
-/// same shell rather than one driving the other.
+/// same shell rather than one driving the other. The legend's own callbacks pass straight through:
+/// this panel hosts it (the plan puts the legend in the left dock, under the scenes) without
+/// knowing anything about what a hidden key does to the script view.
 class OcptBreakdownScenePanel extends StatelessWidget {
   /// The scenes to list, in source order.
   final List<OcptBreakdownScene> scenes;
@@ -33,6 +38,19 @@ class OcptBreakdownScenePanel extends StatelessWidget {
   /// Called with a scene's id when its row is clicked.
   final ValueChanged<String> onSceneSelected;
 
+  /// The category legend's own rows, already built by `ocptBreakdownLegendEntriesOf` from the
+  /// loaded snapshot's targets.
+  final List<OcptBreakdownLegendEntry> legendEntries;
+
+  /// The legend keys currently hidden from the script view's own highlighting.
+  final Set<OcptBreakdownLegendKey> hiddenLegendKeys;
+
+  /// Called with a legend entry's key when its row is clicked, toggling whether it is hidden.
+  final ValueChanged<OcptBreakdownLegendKey> onLegendEntryToggled;
+
+  /// Called when the legend's `Show all` action is clicked.
+  final VoidCallback onShowAllLegendKeysRequested;
+
   /// Class constructor
   const OcptBreakdownScenePanel({
     super.key,
@@ -40,6 +58,10 @@ class OcptBreakdownScenePanel extends StatelessWidget {
     required this.targetById,
     required this.selectedSceneId,
     required this.onSceneSelected,
+    required this.legendEntries,
+    required this.hiddenLegendKeys,
+    required this.onLegendEntryToggled,
+    required this.onShowAllLegendKeysRequested,
   });
 
   @override
@@ -89,6 +111,13 @@ class OcptBreakdownScenePanel extends StatelessWidget {
                     onTap: () => onSceneSelected(scenes[index].id),
                   ),
                 ),
+        ),
+        const Divider(height: 1),
+        OcptBreakdownCategoryLegend(
+          entries: legendEntries,
+          hiddenKeys: hiddenLegendKeys,
+          onEntryToggled: onLegendEntryToggled,
+          onShowAllRequested: onShowAllLegendKeysRequested,
         ),
       ],
     );

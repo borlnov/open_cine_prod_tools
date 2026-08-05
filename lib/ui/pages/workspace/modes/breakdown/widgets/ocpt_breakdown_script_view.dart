@@ -7,13 +7,46 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_display.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+
+/// A tagged word's target selected by the caret/list, exactly as the bloc's own state holds it:
+/// `(kind, id)`.
+typedef OcptBreakdownSelectedTargetRef = (OcptBreakdownTargetKind, String)?;
+
+/// The alpha a tagged word's own target colour is washed onto the paper sheet at: light enough that
+/// black Courier Prime text stays legible over even the palette's darkest entries, calibrated the
+/// same way `OcptShotCoverageDialog`'s own `_ocptOwnCoverageAlpha` is — lower, though, since
+/// `ocptBreakdownColorOf`'s palette is pastel by itself rather than one accent colour reused at
+/// different strengths.
+const double _ocptBreakdownTagAlpha = 0.35;
+
+/// The alpha a **selected** target's tag is washed at, replacing [_ocptBreakdownTagAlpha]: strong
+/// enough that a scene carrying several tags of the same category still reads unambiguously which
+/// one is selected.
+const double _ocptBreakdownSelectedTagAlpha = 0.55;
+
+/// The width of the ring `OcptBreakdownScriptView` draws around a selected target's tagged words, in
+/// logical pixels — what distinguishes the selection from the plain category wash every other tag
+/// of the same category still carries.
+const double _ocptBreakdownSelectedTagRingWidth = 1.5;
+
+/// The vertical padding of a clickable word's own box, in logical pixels.
+///
+/// This is what makes the whole band around a word clickable rather than only the glyphs
+/// themselves, and what makes a tagged range read as one continuous highlight: each word's box
+/// carries the whitespace that follows it, so two consecutive tagged words leave no gap between
+/// their two bands. Mirrors `OcptShotCoverageDialog`'s own `_ocptWordVerticalPadding`.
+const double _ocptWordVerticalPadding = 2;
 
 /// The breakdown mode's `centre`: the whole screenplay typeset on a simulated paper sheet, centred
 /// and scrollable, in Courier Prime at its true screenplay indents — one sheet, its scenes running
@@ -22,14 +55,31 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// Built scene by scene from [OcptScriptWordLayout.of], sliced out of the whole screenplay text
 /// with each [OcptBreakdownScene.charStart]/`charEnd`, and rendered through
 /// [ocptFountainWordDisplayRuns] so every Fountain marker (emphasis, a forcing character, a scene
-/// number) stays hidden — exactly what `OcptShotCoverageDialog` already does for the scenario
-/// coverage editor; this widget reuses that rendering, not its click-a-range interaction.
+/// number) stays hidden. Every word of every non-heading block is its own click target, painted per
+/// word exactly as `OcptShotCoverageDialog` renders its own — one `WidgetSpan` box per word, each
+/// carrying the whitespace after it, so a multi-word tag reads as one continuous band rather than a
+/// row of separate boxes.
 ///
-/// **The words are plain text in this milestone**: no click target, no highlight, no popover. Only
-/// a scene's heading row is clickable, selecting that scene — shown with a tinted accent bar and
-/// its own tagged-target count on the right — since that is the one thing this milestone's left
-/// dock and this view already agree on. The clickable, taggable, category-highlighted words the
-/// mock-up shows are a later milestone's.
+/// A word overlapped by a live tag whose target still resolves paints with that target's own colour
+/// (`OcptBreakdownTarget.color`), unless its legend key is in [hiddenLegendKeys] — hiding a category
+/// (`OcptBreakdownCategoryLegend`) is a reading aid for this highlighting alone, so a hidden word
+/// still selects its target on a click, it only stops painting. The tags of [selectedTargetRef]
+/// additionally carry a ring. A tag whose `OcptBreakdownTag.needsCheck` is set is underlined in the
+/// workspace's warning colour, composed with the category wash rather than replacing it. A tag whose
+/// target has been dropped from the snapshot (`OcptBreakdownSnapshot.build`'s own doc comment: a
+/// tombstoned catalogue row keeps its tag on the scene but drops it from the snapshot's targets) has
+/// no colour to paint and is left plain, never crashing.
+///
+/// Clicking a word that overlaps a live tag whose target resolves reports that target upward through
+/// [onTargetSelected], together with the scene the click happened in. Clicking any other word — one
+/// covered by no tag, or by a tag whose target is gone — reports its own scene-relative offsets
+/// through [onWordClicked]; `OcptBreakdownBloc` does nothing with it yet (see its own handler's doc
+/// comment for which later milestone closes that loop with the range interaction and the popover).
+/// Selecting writes nothing, so neither callback is ever withheld for a previewed version's sake —
+/// see this mode's own doc comment.
+///
+/// Only a scene's heading row stays row-level clickable, selecting that scene — shown with a tinted
+/// accent bar and its own tagged-target count on the right, exactly as before this milestone.
 class OcptBreakdownScriptView extends StatelessWidget {
   /// The screenplay's whole Fountain text, sliced scene by scene below.
   final String screenplayText;
@@ -38,7 +88,7 @@ class OcptBreakdownScriptView extends StatelessWidget {
   final List<OcptBreakdownScene> scenes;
 
   /// `{(kind, id): target}`, forwarded to every scene's heading row for its own tagged-target
-  /// count.
+  /// count, and to every word to resolve the live tag (if any) covering it.
   final OcptBreakdownTargetsById targetById;
 
   /// The page setup the sheet is typeset with.
@@ -50,6 +100,23 @@ class OcptBreakdownScriptView extends StatelessWidget {
   /// Called with a scene's id when its heading row is clicked.
   final ValueChanged<String> onSceneSelected;
 
+  /// The legend keys currently hidden from this view's own highlighting
+  /// (`OcptBreakdownCategoryLegend`).
+  final Set<OcptBreakdownLegendKey> hiddenLegendKeys;
+
+  /// The `(kind, id)` of the currently selected target, or null if none is — whose tagged words
+  /// additionally carry a ring.
+  final OcptBreakdownSelectedTargetRef selectedTargetRef;
+
+  /// Called with a tagged word's target kind, its id and the id of the scene the click happened in,
+  /// when a word overlapping a live tag whose target resolves is clicked.
+  final void Function(OcptBreakdownTargetKind targetKind, String targetId, String sceneId)
+  onTargetSelected;
+
+  /// Called with a clicked word's own scene id and scene-relative start/end offsets, when the word
+  /// is covered by no live tag or by one whose target is gone.
+  final void Function(String sceneId, int wordStartOffset, int wordEndOffset) onWordClicked;
+
   /// Class constructor
   const OcptBreakdownScriptView({
     super.key,
@@ -59,6 +126,10 @@ class OcptBreakdownScriptView extends StatelessWidget {
     required this.pageSetup,
     required this.selectedSceneId,
     required this.onSceneSelected,
+    required this.hiddenLegendKeys,
+    required this.selectedTargetRef,
+    required this.onTargetSelected,
+    required this.onWordClicked,
   });
 
   @override
@@ -101,6 +172,10 @@ class OcptBreakdownScriptView extends StatelessWidget {
                         previewLayout: previewLayout,
                         isSelected: scene.id == selectedSceneId,
                         onHeadingTapped: () => onSceneSelected(scene.id),
+                        hiddenLegendKeys: hiddenLegendKeys,
+                        selectedTargetRef: selectedTargetRef,
+                        onTargetSelected: onTargetSelected,
+                        onWordClicked: onWordClicked,
                       ),
                   ],
                 ),
@@ -143,6 +218,19 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
   /// Called when the heading row is clicked.
   final VoidCallback onHeadingTapped;
 
+  /// Forwarded from [OcptBreakdownScriptView].
+  final Set<OcptBreakdownLegendKey> hiddenLegendKeys;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownSelectedTargetRef selectedTargetRef;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(OcptBreakdownTargetKind targetKind, String targetId, String sceneId)
+  onTargetSelected;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(String sceneId, int wordStartOffset, int wordEndOffset) onWordClicked;
+
   /// Class constructor
   const _OcptBreakdownSceneSheet({
     required this.scene,
@@ -151,6 +239,10 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     required this.previewLayout,
     required this.isSelected,
     required this.onHeadingTapped,
+    required this.hiddenLegendKeys,
+    required this.selectedTargetRef,
+    required this.onTargetSelected,
+    required this.onWordClicked,
   });
 
   @override
@@ -178,9 +270,15 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
               )
             else
               _OcptBreakdownScriptBlock(
+                scene: scene,
                 block: layout.blocks[i],
+                targetById: targetById,
+                hiddenLegendKeys: hiddenLegendKeys,
+                selectedTargetRef: selectedTargetRef,
                 previewLayout: previewLayout,
                 isFollowedByBlankLine: _isFollowedByBlankLine(layout, i),
+                onTargetSelected: onTargetSelected,
+                onWordClicked: onWordClicked,
               ),
         ],
       ),
@@ -284,11 +382,25 @@ class _OcptBreakdownSceneHeadingBlock extends StatelessWidget {
   }
 }
 
-/// One non-heading block of the sheet: plain, non-clickable printed text at the block's own
-/// screenplay indent, width and alignment.
+/// One non-heading block of the sheet: every word its own click target, painted per the live tag
+/// (if any) covering it — see [OcptBreakdownScriptView]'s own doc comment for the painting and
+/// click-routing rules this class implements.
 class _OcptBreakdownScriptBlock extends StatelessWidget {
+  /// The scene this block belongs to, whose [OcptBreakdownScene.tags] every word is resolved
+  /// against.
+  final OcptBreakdownScene scene;
+
   /// The block rendered.
   final OcptScriptWordBlock block;
+
+  /// `{(kind, id): target}`, forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownTargetsById targetById;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final Set<OcptBreakdownLegendKey> hiddenLegendKeys;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownSelectedTargetRef selectedTargetRef;
 
   /// The pixel geometry the sheet is typeset with.
   final OcptEditorPreviewLayout previewLayout;
@@ -296,11 +408,24 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
   /// Whether the source leaves a blank line right after this block.
   final bool isFollowedByBlankLine;
 
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(OcptBreakdownTargetKind targetKind, String targetId, String sceneId)
+  onTargetSelected;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(String sceneId, int wordStartOffset, int wordEndOffset) onWordClicked;
+
   /// Class constructor
   const _OcptBreakdownScriptBlock({
+    required this.scene,
     required this.block,
+    required this.targetById,
+    required this.hiddenLegendKeys,
+    required this.selectedTargetRef,
     required this.previewLayout,
     required this.isFollowedByBlankLine,
+    required this.onTargetSelected,
+    required this.onWordClicked,
   });
 
   @override
@@ -315,6 +440,7 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
       fontWeight: printStyle.isBold ? FontWeight.bold : null,
       fontStyle: printStyle.isItalic ? FontStyle.italic : null,
     );
+    final displayRuns = ocptFountainWordDisplayRuns(block);
 
     return Padding(
       padding: EdgeInsets.only(bottom: isFollowedByBlankLine ? previewLayout.blockSpacing : 0),
@@ -325,7 +451,22 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
           child: SizedBox(
             width: previewLayout.widthOf(element),
             child: Text.rich(
-              TextSpan(children: _spansOf(block, printStyle.isUppercase, baseStyle)),
+              TextSpan(
+                children: [
+                  for (var i = 0; i < block.words.length; i++)
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.baseline,
+                      baseline: TextBaseline.alphabetic,
+                      child: _OcptBreakdownWord(
+                        runs: displayRuns[i],
+                        isUppercase: printStyle.isUppercase,
+                        style: baseStyle,
+                        paint: _paintOf(block.words[i]),
+                        onTap: () => _onWordTapped(block.words[i]),
+                      ),
+                    ),
+                ],
+              ),
               style: baseStyle,
               textAlign: _textAlignOf(element),
             ),
@@ -333,6 +474,60 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The live tag of [scene] covering [word], or null if none does.
+  ///
+  /// Tags never overlap (breakdown plan §3.9), so at most one can ever cover a given word.
+  OcptBreakdownTag? _tagCovering(OcptScriptWord word) {
+    for (final tag in scene.tags) {
+      if (tag.startOffset < word.endOffset && tag.endOffset > word.startOffset) {
+        return tag;
+      }
+    }
+    return null;
+  }
+
+  /// How [word] is painted: plain for an untagged word, for one whose tag's target has been dropped
+  /// from the snapshot, or for one whose legend key is currently hidden — otherwise the target's own
+  /// colour, strengthened and ringed when it is [selectedTargetRef], and underlined when the tag
+  /// [OcptBreakdownTag.needsCheck].
+  _OcptBreakdownWordPaint _paintOf(OcptScriptWord word) {
+    final tag = _tagCovering(word);
+    if (tag == null) {
+      return _OcptBreakdownWordPaint.plain;
+    }
+
+    final target = targetById[(tag.targetKind, tag.targetId)];
+    if (target == null) {
+      return _OcptBreakdownWordPaint.plain;
+    }
+
+    if (hiddenLegendKeys.contains(ocptBreakdownLegendKeyOf(target))) {
+      return _OcptBreakdownWordPaint.plain;
+    }
+
+    return _OcptBreakdownWordPaint(
+      color: Color(target.color),
+      isSelected: selectedTargetRef == (target.kind, target.id),
+      needsCheck: tag.needsCheck,
+      tooltipTargetName: target.name,
+    );
+  }
+
+  /// Reports [word]'s tap upward: its tag's target through [onTargetSelected] when one resolves —
+  /// selecting it, and (per `OcptBreakdownBloc._onTargetSelected`) the scene the click happened in,
+  /// so the left dock and the sheet stay in step — or the word's own scene-relative offsets through
+  /// [onWordClicked] otherwise. A hidden legend key never changes this: hiding a category withholds
+  /// its paint, not its click.
+  void _onWordTapped(OcptScriptWord word) {
+    final tag = _tagCovering(word);
+    final target = tag == null ? null : targetById[(tag.targetKind, tag.targetId)];
+    if (target != null) {
+      onTargetSelected(target.kind, target.id, scene.id);
+    } else {
+      onWordClicked(scene.id, word.startOffset, word.endOffset);
+    }
   }
 }
 
@@ -362,8 +557,9 @@ TextAlign _textAlignOf(FountainElementLayout element) => switch (element.alignme
 };
 
 /// [block]'s printed words, flattened into one run of spans: every Fountain marker hidden, every
-/// inline emphasis applied on top of [base], exactly as `OcptShotCoverageDialog` renders per word —
-/// flattened here since this milestone draws no per-word click target to hang a `WidgetSpan` off.
+/// inline emphasis applied on top of [base]. Used for the heading row alone, which stays row-level
+/// clickable rather than word-level — every other block renders through [_OcptBreakdownWord]
+/// instead, one per word, so a tag can hang its own click target and its own highlight off it.
 List<InlineSpan> _spansOf(OcptScriptWordBlock block, bool isUppercase, TextStyle base) => [
   for (final wordRuns in ocptFountainWordDisplayRuns(block))
     for (final run in wordRuns)
@@ -383,3 +579,125 @@ TextStyle _runStyleOf(FountainInlineStyle style, TextStyle base) => switch (styl
   // A note never reaches here: `ocptFountainWordDisplayRuns` drops its text entirely.
   FountainInlineStyle.plain || FountainInlineStyle.note => base,
 };
+
+/// How one word of the sheet is painted, decided once by `_OcptBreakdownScriptBlock` per word from
+/// its own tag (if any) — see that class's own `_paintOf` for the rules.
+class _OcptBreakdownWordPaint {
+  /// The tagged target's own colour, or null for a plain word (untagged, or its target gone).
+  final Color? color;
+
+  /// Whether this word's tag belongs to the currently selected target.
+  final bool isSelected;
+
+  /// Whether this word's tag needs a check (`OcptBreakdownTag.needsCheck`).
+  final bool needsCheck;
+
+  /// The tagged target's own name, shown as this word's tooltip — null for a plain word.
+  final String? tooltipTargetName;
+
+  /// Class constructor
+  const _OcptBreakdownWordPaint({
+    this.color,
+    this.isSelected = false,
+    this.needsCheck = false,
+    this.tooltipTargetName,
+  });
+
+  /// A plain word: no tag, or one whose target does not resolve.
+  static const plain = _OcptBreakdownWordPaint();
+}
+
+/// One clickable word of the sheet, painted per its [paint], its whole box (the glyphs, the
+/// whitespace that follows them and [_ocptWordVerticalPadding] above and below) being the click
+/// target.
+///
+/// The word is drawn from its printed display [runs] rather than from the source text it covers, so
+/// the Fountain markers around it (`*italic*`, a forced line's leading character) are resolved into
+/// real emphasis instead of being shown — exactly as the raw mode's paper preview resolves them. The
+/// offsets the click reports are the source ones all the same, markers included.
+class _OcptBreakdownWord extends StatelessWidget {
+  /// The word's printed runs, whitespace and inline emphasis included.
+  final List<OcptFountainDisplayRun> runs;
+
+  /// Whether the element this word belongs to prints upper-cased.
+  final bool isUppercase;
+
+  /// The paper text style the word is typeset in, before its own runs' emphasis.
+  final TextStyle style;
+
+  /// How this word is painted.
+  final _OcptBreakdownWordPaint paint;
+
+  /// Called when the word is clicked.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _OcptBreakdownWord({
+    required this.runs,
+    required this.isUppercase,
+    required this.style,
+    required this.paint,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final color = paint.color;
+
+    final background = color?.withValues(
+      alpha: paint.isSelected ? _ocptBreakdownSelectedTagAlpha : _ocptBreakdownTagAlpha,
+    );
+
+    var textStyle = style;
+    if (paint.needsCheck) {
+      textStyle = textStyle.copyWith(
+        decoration: TextDecoration.underline,
+        decorationStyle: TextDecorationStyle.dashed,
+        decorationColor: ocptWarningColor(context),
+      );
+    }
+
+    final content = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            color: background,
+            border: paint.isSelected && color != null
+                ? Border.all(color: color, width: _ocptBreakdownSelectedTagRingWidth)
+                : null,
+            borderRadius: BorderRadius.circular(2),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
+          child: Text.rich(
+            TextSpan(
+              children: [
+                for (final run in runs)
+                  TextSpan(
+                    text: isUppercase ? run.text.toUpperCase() : run.text,
+                    style: _runStyleOf(run.style, textStyle),
+                  ),
+              ],
+            ),
+            style: textStyle,
+          ),
+        ),
+      ),
+    );
+
+    final tooltipTargetName = paint.tooltipTargetName;
+    if (tooltipTargetName == null) {
+      return content;
+    }
+
+    return Tooltip(
+      message: paint.needsCheck
+          ? "$tooltipTargetName\n${tr.breakdownTagNeedsCheckTooltip}"
+          : tooltipTargetName,
+      child: content,
+    );
+  }
+}

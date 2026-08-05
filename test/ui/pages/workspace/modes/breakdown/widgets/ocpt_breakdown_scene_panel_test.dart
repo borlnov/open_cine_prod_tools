@@ -145,6 +145,10 @@ void main() {
           targetById: targetById,
           selectedSceneId: selectedSceneId,
           onSceneSelected: selections.add,
+          legendEntries: const [],
+          hiddenLegendKeys: const {},
+          onLegendEntryToggled: (_) {},
+          onShowAllLegendKeysRequested: () {},
         ),
       ),
     );

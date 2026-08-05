@@ -5214,5 +5214,26 @@
         "type": "int"
       }
     }
+  },
+  "breakdownLegendTitle": "Categories",
+  "@breakdownLegendTitle": {
+    "description": "Title of the breakdown mode's category legend",
+    "context": "Displayed above the legend, under the scene list, in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownLegendShowAllAction": "Show all",
+  "@breakdownLegendShowAllAction": {
+    "description": "Action revealing every legend key hidden from the script view's highlighting",
+    "context": "Displayed next to the legend's title, only while at least one key is hidden",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTagNeedsCheckTooltip": "This passage may have moved and no longer matches its tag. Check it.",
+  "@breakdownTagNeedsCheckTooltip": {
+    "description": "Explains why a tagged passage is underlined in the workspace's warning colour",
+    "context": "Tooltip of a word of the script view whose tag needs a check",
+    "type": "text",
+    "placeholders": {}
   }
 }

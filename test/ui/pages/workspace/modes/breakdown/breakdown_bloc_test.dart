@@ -311,6 +311,194 @@ void main() {
     },
   );
 
+  test("toggling a legend entry hides it, toggling it again reveals it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    const key = (OcptBreakdownTargetKind.element, OcptElementCategory.prop);
+
+    bloc.add(const OcptBreakdownLegendEntryToggledEvent(key: key));
+    final hidden = await waitForState(bloc, (state) => state.hiddenLegendKeys.isNotEmpty);
+    expect(hidden.hiddenLegendKeys, {key});
+
+    bloc.add(const OcptBreakdownLegendEntryToggledEvent(key: key));
+    final revealed = await waitForState(bloc, (state) => state.hiddenLegendKeys.isEmpty);
+    expect(revealed.hiddenLegendKeys, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("show all reveals every hidden legend key", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptBreakdownLegendEntryToggledEvent(
+        key: (OcptBreakdownTargetKind.element, OcptElementCategory.prop),
+      ),
+    );
+    bloc.add(const OcptBreakdownLegendEntryToggledEvent(key: (OcptBreakdownTargetKind.role, null)));
+    await waitForState(bloc, (state) => state.hiddenLegendKeys.length == 2);
+
+    bloc.add(const OcptBreakdownLegendShowAllRequestedEvent());
+    final state = await waitForState(bloc, (state) => state.hiddenLegendKeys.isEmpty);
+
+    expect(state.hiddenLegendKeys, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("selecting a target also selects the scene the click happened in", () async {
+    await writeScreenplay(
+      "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n",
+    );
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.length == 2);
+    final gardenSceneId = loaded.scenes[1].id;
+
+    bloc.add(
+      OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: gardenSceneId,
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.selectedTargetRef != null);
+
+    expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, "el-1"));
+    expect(state.selectedSceneId, gardenSceneId);
+
+    await bloc.close();
+  });
+
+  test("selecting a target naming a scene id that no longer exists drops the scene selection", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+    bloc.add(
+      const OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: "not-a-scene",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.selectedTargetRef != null);
+
+    expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, "el-1"));
+    expect(state.selectedSceneId, isNull);
+
+    await bloc.close();
+  });
+
+  test("a selected target resolves against the loaded snapshot's own targets", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+
+    final project = projectsManager.currentProject!;
+    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
+        .single
+        .id;
+
+    final elementId = await projectsManager.elementsService.createElement(
+      database: project.database,
+      name: "Desk lamp",
+      category: OcptElementCategory.prop,
+      sourceKind: OcptElementSourceKind.owned,
+    );
+    expect(elementId, isNotNull);
+
+    await projectsManager.breakdownService.createTag(
+      database: project.database,
+      sceneId: sceneId,
+      startOffset: 2,
+      endOffset: 6,
+      taggedText: "lamp",
+      targetKind: OcptBreakdownTargetKind.element,
+      targetId: elementId!,
+    );
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: elementId,
+        sceneId: sceneId,
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.selectedTarget != null);
+
+    expect(state.selectedTarget?.name, "Desk lamp");
+
+    await bloc.close();
+  });
+
+  test("clearing the target selection drops it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: "scene-1",
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedTargetRef != null);
+
+    bloc.add(const OcptBreakdownTargetSelectionClearedEvent());
+    final state = await waitForState(bloc, (state) => state.selectedTargetRef == null);
+
+    expect(state.selectedTargetRef, isNull);
+
+    await bloc.close();
+  });
+
+  test("a word click does nothing today, and never crashes", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 0, wordEndOffset: 6));
+    // Nothing to wait for since nothing should change; give the event a moment to be processed.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.scenes.single.id, sceneId);
+
+    await bloc.close();
+  });
+
+  test("a fresh load always drops the selected target, exactly as the selected scene", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(
+      OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: sceneId,
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedTargetRef != null);
+
+    bloc.add(const OcptBreakdownProjectSettingsChangedEvent());
+    // `_onProjectSettingsChanged` doesn't reload the snapshot itself; reload through a version
+    // preview round trip instead, which does go through `_onLoadRequested`.
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Checkpoint", note: ""));
+    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = withVersion.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    final previewing = await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    expect(previewing.selectedTargetRef, isNull);
+
+    await bloc.close();
+  });
+
   test("leaving a preview reloads the working copy's own read, clearing the previewed id", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
     final bloc = buildBloc();

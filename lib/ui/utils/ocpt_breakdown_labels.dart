@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// The display label of the breakdown status [status], read by the scene panel's own status column.
@@ -35,11 +36,19 @@ Color ocptBreakdownSceneStatusColor(BuildContext context, OcptBreakdownSceneStat
   };
 }
 
-/// The tooltip label of a scene panel's bar [bucket]: an element bucket's category label
+/// The display label of legend key [key]: an element category's own label
 /// ([ocptElementCategoryLabel]), or the fixed role/set label for the other two kinds.
+///
+/// The single switch every legend-keyed label reads off — the category legend's own rows
+/// (`OcptBreakdownCategoryLegend`) and a scene panel bar's tooltip ([ocptBreakdownSceneBarBucketLabel]
+/// below) alike — so a category's label is written once.
+String ocptBreakdownLegendKeyLabel(Tr tr, OcptBreakdownLegendKey key) => switch (key.$1) {
+  OcptBreakdownTargetKind.element => ocptElementCategoryLabel(tr, key.$2!),
+  OcptBreakdownTargetKind.role => tr.breakdownTargetKindRoleLabel,
+  OcptBreakdownTargetKind.set => tr.breakdownTargetKindSetLabel,
+};
+
+/// The tooltip label of a scene panel's bar [bucket]: delegates to [ocptBreakdownLegendKeyLabel]
+/// with the bucket's own key.
 String ocptBreakdownSceneBarBucketLabel(Tr tr, OcptBreakdownSceneBarBucket bucket) =>
-    switch (bucket.kind) {
-      OcptBreakdownTargetKind.element => ocptElementCategoryLabel(tr, bucket.category!),
-      OcptBreakdownTargetKind.role => tr.breakdownTargetKindRoleLabel,
-      OcptBreakdownTargetKind.set => tr.breakdownTargetKindSetLabel,
-    };
+    ocptBreakdownLegendKeyLabel(tr, (bucket.kind, bucket.category));

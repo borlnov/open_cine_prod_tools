@@ -10,16 +10,18 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 
 /// The state of `OcptBreakdownBloc`.
 ///
 /// Unlike the resources or shot list modes' own state, this one carries no pending field edit of
-/// any kind: this milestone's script view only reads, and nothing here writes to the project
-/// database yet — see `OcptBreakdownBloc.flushPendingProjectWrites`'s own doc comment for what will
-/// need one once the scene notes and the target inspector land.
+/// any kind: selecting a target writes nothing to the project database, and nothing here writes to
+/// it yet either — see `OcptBreakdownBloc.flushPendingProjectWrites`'s own doc comment for what
+/// will need one once the scene notes and the target inspector's own fields land.
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     with MixinOcptProjectVersionsState<OcptBreakdownState> {
   /// Whether the breakdown read is still being loaded from the project database.
@@ -46,6 +48,17 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// The id of the scene currently selected, whose heading the script view highlights, or null
   /// while none is.
   final String? selectedSceneId;
+
+  /// The legend keys currently hidden from the script view's own highlighting
+  /// (`OcptBreakdownCategoryLegend`). A reading aid for the pass in progress alone: **not**
+  /// persisted, unlike the two dock fractions below — a category silently hidden three launches
+  /// later would read as a bug rather than a deliberate choice.
+  final Set<OcptBreakdownLegendKey> hiddenLegendKeys;
+
+  /// The `(kind, id)` of the currently selected target, or null while none is — raw, exactly as
+  /// [selectedSceneId] is; [selectedTarget] is its resolved counterpart, looked up against
+  /// [snapshot].
+  final (OcptBreakdownTargetKind, String)? selectedTargetRef;
 
   /// Whether the left (scene) dock is shown.
   final bool isListPanelVisible;
@@ -128,6 +141,26 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     return null;
   }
 
+  /// The target [selectedTargetRef] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [snapshot]) — the script view's tagged words and, once a
+  /// later milestone adds it, the right dock's target inspector both read this rather than
+  /// [selectedTargetRef] itself.
+  OcptBreakdownTarget? get selectedTarget {
+    final selectedTargetRef = this.selectedTargetRef;
+    if (selectedTargetRef == null) {
+      return null;
+    }
+
+    final (kind, id) = selectedTargetRef;
+    for (final target in targets) {
+      if (target.kind == kind && target.id == id) {
+        return target;
+      }
+    }
+
+    return null;
+  }
+
   /// Class constructor
   const OcptBreakdownState({
     required this.isLoading,
@@ -136,6 +169,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.pageSetup,
     required this.snapshot,
     required this.selectedSceneId,
+    required this.hiddenLegendKeys,
+    required this.selectedTargetRef,
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.leftDockFraction,
@@ -157,6 +192,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       pageSetup = const OcptPageSetup.standard(),
       snapshot = null,
       selectedSceneId = null,
+      hiddenLegendKeys = const {},
+      selectedTargetRef = null,
       isListPanelVisible = true,
       rightDockTab = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
@@ -172,9 +209,11 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded, so
-  /// it needs no clear flag. [selectedSceneId] and [rightDockTab] both legitimately go back to null
-  /// while the mode is alive (a fresh load, the dock closed), so each has its own clear flag
-  /// instead.
+  /// it needs no clear flag. [selectedSceneId], [selectedTargetRef] and [rightDockTab] all
+  /// legitimately go back to null while the mode is alive (a fresh load, a selection dropped, the
+  /// dock closed), so each has its own clear flag instead. [hiddenLegendKeys] is replaced wholesale
+  /// rather than merged — the caller (the bloc's own legend handlers) always computes the full next
+  /// set.
   @override
   OcptBreakdownState copyWith({
     bool? isLoading,
@@ -184,6 +223,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownSnapshot? snapshot,
     String? selectedSceneId,
     bool clearSelectedSceneId = false,
+    Set<OcptBreakdownLegendKey>? hiddenLegendKeys,
+    (OcptBreakdownTargetKind, String)? selectedTargetRef,
+    bool clearSelectedTargetRef = false,
     bool? isListPanelVisible,
     OcptBreakdownRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -209,6 +251,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     pageSetup: pageSetup ?? this.pageSetup,
     snapshot: snapshot ?? this.snapshot,
     selectedSceneId: clearSelectedSceneId ? null : (selectedSceneId ?? this.selectedSceneId),
+    hiddenLegendKeys: hiddenLegendKeys ?? this.hiddenLegendKeys,
+    selectedTargetRef: clearSelectedTargetRef ? null : (selectedTargetRef ?? this.selectedTargetRef),
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
@@ -274,6 +318,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     pageSetup,
     snapshot,
     selectedSceneId,
+    hiddenLegendKeys,
+    selectedTargetRef,
     isListPanelVisible,
     rightDockTab,
     leftDockFraction,

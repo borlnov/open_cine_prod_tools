@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 
 /// This is the bloc class for the breakdown production mode (dépouillement du scénario).
 ///
@@ -34,7 +35,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// [OcptBreakdownSnapshot] joining [_breakdownService]'s scenes and tags with
 /// [_elementsService]/[_roleIndexService]/[_locationsService]'s three catalogues, the way
 /// `OcptResourcesBloc` builds its own `OcptResourcesSnapshot` — and holds the selected scene, the
-/// left dock's visibility, the right dock tab and the two fractions on top of it.
+/// selected target, the legend's hidden keys, the left dock's visibility, the right dock tab and the
+/// two fractions on top of it. Selecting a target or hiding a legend key writes nothing to the
+/// project database, so neither is ever flushed by [flushPendingProjectWrites] and both live only
+/// in this bloc's own state.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by
@@ -111,6 +115,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownRightDockClosedEvent>(_onRightDockClosed);
     on<OcptBreakdownDockFractionsChangedEvent>(_onDockFractionsChanged);
     on<OcptBreakdownDockLayoutResetEvent>(_onDockLayoutReset);
+    on<OcptBreakdownLegendEntryToggledEvent>(_onLegendEntryToggled);
+    on<OcptBreakdownLegendShowAllRequestedEvent>(_onLegendShowAllRequested);
+    on<OcptBreakdownTargetSelectedEvent>(_onTargetSelected);
+    on<OcptBreakdownTargetSelectionClearedEvent>(_onTargetSelectionCleared);
+    on<OcptBreakdownWordClickedEvent>(_onWordClicked);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -118,12 +127,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
 
-  /// This milestone writes nothing: the script view's words are plain text, not yet clickable, and
-  /// neither a scene's breakdown notes nor a target's inspector fields exist to debounce yet. So
-  /// there is nothing a preview swapping the database out could ever strand — this is a no-op, kept
-  /// only to answer the mixin's hook, and it will flush the scene notes' and the inspector's own
-  /// debounce once a later milestone adds them, exactly as `OcptResourcesBloc.flushPendingFieldEdits`
-  /// does for its own five pending-edit maps today.
+  /// This milestone writes nothing: the script view's words are clickable and select a tag's own
+  /// target, but selecting is a read (breakdown plan §6.3), and neither a scene's breakdown notes nor
+  /// a target's inspector fields exist to debounce yet. So there is nothing a preview swapping the
+  /// database out could ever strand — this is a no-op, kept only to answer the mixin's hook, and it
+  /// will flush the scene notes' and the inspector's own debounce once a later milestone adds them,
+  /// exactly as `OcptResourcesBloc.flushPendingFieldEdits` does for its own five pending-edit maps
+  /// today.
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBreakdownState> emitter) async {}
@@ -143,9 +153,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
   /// which version is being previewed alongside the read it just performed: what it read comes from
   /// that very version's in-memory database, and the two must reach the mode together (see the
-  /// hook's own doc comment). The selected scene is always cleared on a (re)load, mirroring
-  /// `OcptResourcesBloc`'s own selection reset: a preview or a restore changes the whole database
-  /// underneath, so a stale selection is dropped rather than trusted to still mean the same thing.
+  /// hook's own doc comment). The selected scene and the selected target are always cleared on a
+  /// (re)load, mirroring `OcptResourcesBloc`'s own selection reset: a preview or a restore changes
+  /// the whole database underneath, so a stale selection is dropped rather than trusted to still
+  /// mean the same thing.
   Future<void> _onLoadRequested(
     OcptBreakdownLoadRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -185,6 +196,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         pageSetup: pageSetup,
         snapshot: snapshot,
         clearSelectedSceneId: true,
+        clearSelectedTargetRef: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
       ),
@@ -378,4 +390,65 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       ),
     );
   }
+
+  /// Toggles whether `event.key` is hidden from the script view's own highlighting.
+  Future<void> _onLegendEntryToggled(
+    OcptBreakdownLegendEntryToggledEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final hiddenLegendKeys = Set<OcptBreakdownLegendKey>.from(state.hiddenLegendKeys);
+    if (!hiddenLegendKeys.remove(event.key)) {
+      hiddenLegendKeys.add(event.key);
+    }
+
+    emitter(state.copyWith(hiddenLegendKeys: hiddenLegendKeys));
+  }
+
+  /// Reveals every legend key currently hidden from the script view's own highlighting.
+  Future<void> _onLegendShowAllRequested(
+    OcptBreakdownLegendShowAllRequestedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    emitter(state.copyWith(hiddenLegendKeys: const {}));
+  }
+
+  /// Selects target `event.targetKind`/`event.targetId`, and the scene the click happened in — so
+  /// the left dock and the sheet stay in step, exactly as a click on a scene panel row already does
+  /// on its own. Mirrors [_onSceneSelected]'s own defensive check: a scene id no longer in the
+  /// current snapshot (a stale click on a sheet rebuilt underneath) is ignored for the scene
+  /// selection alone, the target selection itself is still applied.
+  Future<void> _onTargetSelected(
+    OcptBreakdownTargetSelectedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final sceneExists = state.scenes.any((scene) => scene.id == event.sceneId);
+
+    emitter(
+      state.copyWith(
+        selectedTargetRef: (event.targetKind, event.targetId),
+        selectedSceneId: sceneExists ? event.sceneId : null,
+        clearSelectedSceneId: !sceneExists,
+      ),
+    );
+  }
+
+  /// Clears the currently selected target.
+  Future<void> _onTargetSelectionCleared(
+    OcptBreakdownTargetSelectionClearedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    emitter(state.copyWith(clearSelectedTargetRef: true));
+  }
+
+  /// Records a click on a plain word of the script view — one that overlaps no live tag, or one
+  /// whose tag's target has been dropped from the snapshot.
+  ///
+  /// A no-op today, kept only to answer `OcptBreakdownScriptView.onWordClicked`: the click target
+  /// and the tag highlighting are built, the range interaction and the popover that turn a plain
+  /// word's click into a new tag are not — the next pass closes that loop, exactly as
+  /// [flushPendingProjectWrites] is a no-op until the fields it will flush exist.
+  Future<void> _onWordClicked(
+    OcptBreakdownWordClickedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {}
 }
