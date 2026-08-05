@@ -788,6 +788,12 @@ ARB files: `lib/l10n/intl_en_GB.arb` (main) + `lib/l10n/intl_fr.arb`; generated 
 `dart run intl_utils:generate`. Every user-visible string goes through `Tr.of(context)`, added
 to both ARB files.
 
+**In French, a screenplay's scene is une _séquence_** — never « une scène », which in this trade
+names something else. The one fixed idiom that keeps the word is « mise en scène » (the shot
+inspector's directing notes). English is untouched: the code, the ARB keys, the models and the
+tables all say `scene`, and so does the English UI. This is a naming rule about the French UI
+alone, and a new key must not reintroduce the other word.
+
 ## Verification gates
 
 All inside the devcontainer; all must pass before finishing any step (analyze + test at
