@@ -29,7 +29,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
@@ -45,6 +44,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
@@ -459,8 +459,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
     };
   }
 
-  /// Asks [OcptResourcesDeleteConfirmDialog] the question [title] states, then dispatches [event]
-  /// if the user answered `Delete`.
+  /// Asks [OcptConfirmDialog] the question [title] states, then dispatches [event] if the user
+  /// answered `Delete`.
   ///
   /// The four tabs share this one path, so a record is deleted the same way whichever it belongs
   /// to — the way `OcptShotListMode._handleDeleteRequested` already asks it. Only the wording
@@ -472,11 +472,14 @@ class _ResourcesViewState extends State<_ResourcesView> {
     required OcptResourcesEvent event,
   }) async {
     final bloc = context.read<OcptResourcesBloc>();
+    final tr = Tr.of(context);
 
-    final confirmed = await OcptResourcesDeleteConfirmDialog.show(
+    final confirmed = await OcptConfirmDialog.show(
       context,
       title: title,
       message: message,
+      cancelLabel: tr.resourcesDeleteConfirmCancelAction,
+      confirmLabel: tr.resourcesDeleteConfirmDeleteAction,
     );
     if (confirmed != true) {
       return;

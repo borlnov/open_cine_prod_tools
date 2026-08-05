@@ -241,10 +241,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -295,10 +292,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -336,10 +330,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -374,10 +365,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -416,10 +404,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -461,10 +446,7 @@ void main() {
             suggestions: const [],
             onSuggestionAccepted: (_) {},
             onOpenInResourcesRequested: () {},
-            isTagRemovalPending: false,
             onTagRemovalRequested: () {},
-            onTagRemovalCancelled: () {},
-            onTagRemovalConfirmed: () {},
           ),
         ),
       ),
@@ -506,10 +488,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -554,10 +533,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -598,10 +574,7 @@ void main() {
           ],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -635,10 +608,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -674,10 +644,7 @@ void main() {
           suggestions: [suggestion],
           onSuggestionAccepted: accepted.add,
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -722,10 +689,7 @@ void main() {
             suggestions: [suggestion],
             onSuggestionAccepted: null,
             onOpenInResourcesRequested: () {},
-            isTagRemovalPending: false,
             onTagRemovalRequested: null,
-            onTagRemovalCancelled: null,
-            onTagRemovalConfirmed: null,
             isReadOnly: true,
           ),
         ),
@@ -769,10 +733,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: (_) {},
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: () {},
-          onTagRemovalCancelled: () {},
-          onTagRemovalConfirmed: () {},
         ),
       ),
     );
@@ -811,10 +772,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: null,
           onOpenInResourcesRequested: () => requested = true,
-          isTagRemovalPending: false,
           onTagRemovalRequested: null,
-          onTagRemovalCancelled: null,
-          onTagRemovalConfirmed: null,
           isReadOnly: true,
         ),
       ),
@@ -826,44 +784,32 @@ void main() {
     expect(requested, isTrue);
   });
 
-  testWidgets("the tag-removal action asks inline, cancel dismisses it", (tester) async {
+  testWidgets("the tag-removal action only asks, the confirmation being the mode's own dialog",
+      (tester) async {
     await _useTallSurface(tester);
     var requested = false;
-    var cancelled = false;
-    var isPending = false;
 
     await tester.pumpWidget(
       _wrapInApp(
-        StatefulBuilder(
-          builder: (context, setState) => OcptBreakdownTargetInspector(
-            target: _buildElementTarget(),
-            element: _buildElement(),
-            owner: null,
-            bringer: null,
-            people: const [],
-            scenes: const [],
-            fieldValueOf: (_) => "",
-            onBackToSceneRequested: () {},
-            onStatusChanged: (_) {},
-            onCategoryChanged: (_) {},
-            onFieldChanged: (_, __) {},
-            onOwnerChanged: (_) {},
-            onBringerChanged: (_) {},
-            onOccurrenceSelected: (_) {},
-            suggestions: const [],
-            onSuggestionAccepted: (_) {},
-            onOpenInResourcesRequested: () {},
-            isTagRemovalPending: isPending,
-            onTagRemovalRequested: () => setState(() {
-              isPending = true;
-              requested = true;
-            }),
-            onTagRemovalCancelled: () => setState(() {
-              isPending = false;
-              cancelled = true;
-            }),
-            onTagRemovalConfirmed: () {},
-          ),
+        OcptBreakdownTargetInspector(
+          target: _buildElementTarget(),
+          element: _buildElement(),
+          owner: null,
+          bringer: null,
+          people: const [],
+          scenes: const [],
+          fieldValueOf: (_) => "",
+          onBackToSceneRequested: () {},
+          onStatusChanged: (_) {},
+          onCategoryChanged: (_) {},
+          onFieldChanged: (_, __) {},
+          onOwnerChanged: (_) {},
+          onBringerChanged: (_) {},
+          onOccurrenceSelected: (_) {},
+          suggestions: const [],
+          onSuggestionAccepted: (_) {},
+          onOpenInResourcesRequested: () {},
+          onTagRemovalRequested: () => requested = true,
         ),
       ),
     );
@@ -872,15 +818,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(requested, isTrue);
+    // The panel itself never shows the question: it is the `OcptConfirmDialog` the mode opens.
     expect(
       find.text("This removes the tag from this scene. The link it created in Resources, if any, stays."),
-      findsOneWidget,
+      findsNothing,
     );
-
-    await tester.tap(find.text("Cancel"));
-    await tester.pumpAndSettle();
-
-    expect(cancelled, isTrue);
     expect(find.text("Remove from the breakdown"), findsOneWidget);
   });
 
@@ -909,10 +851,7 @@ void main() {
           suggestions: const [],
           onSuggestionAccepted: null,
           onOpenInResourcesRequested: () {},
-          isTagRemovalPending: false,
           onTagRemovalRequested: null,
-          onTagRemovalCancelled: null,
-          onTagRemovalConfirmed: null,
           isReadOnly: true,
         ),
       ),

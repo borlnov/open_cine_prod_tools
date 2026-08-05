@@ -5395,24 +5395,31 @@
     "type": "text",
     "placeholders": {}
   },
+  "breakdownRemoveFromBreakdownConfirmTitle": "Remove from the breakdown?",
+  "@breakdownRemoveFromBreakdownConfirmTitle": {
+    "description": "Asks whether the selected target's tags really are to leave the selected scene",
+    "context": "Title of the tag-removal confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "breakdownRemoveFromBreakdownConfirmMessage": "This removes the tag from this scene. The link it created in Resources, if any, stays.",
   "@breakdownRemoveFromBreakdownConfirmMessage": {
     "description": "Explains that the scene_elements/scene_sets link a tag once ensured is not removed with it",
-    "context": "Displayed by the target inspector's inline tag-removal confirmation",
+    "context": "Displayed by the tag-removal confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
   "breakdownRemoveFromBreakdownConfirmAction": "Remove",
   "@breakdownRemoveFromBreakdownConfirmAction": {
     "description": "Confirms the tag removal for good",
-    "context": "Displayed by the target inspector's inline tag-removal confirmation",
+    "context": "Displayed by the tag-removal confirmation dialog",
     "type": "text",
     "placeholders": {}
   },
   "breakdownRemoveFromBreakdownCancelAction": "Cancel",
   "@breakdownRemoveFromBreakdownCancelAction": {
-    "description": "Dismisses the inline tag-removal confirmation without removing anything",
-    "context": "Displayed by the target inspector's inline tag-removal confirmation",
+    "description": "Dismisses the tag-removal confirmation without removing anything",
+    "context": "Displayed by the tag-removal confirmation dialog",
     "type": "text",
     "placeholders": {}
   },

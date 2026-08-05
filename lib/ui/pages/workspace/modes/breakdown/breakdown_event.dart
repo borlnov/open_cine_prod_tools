@@ -423,21 +423,9 @@ class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
-/// Shows the inline confirmation of "remove this target's tags from the selected scene", dispatched
-/// by `OcptBreakdownTargetInspector`'s own `Remove from the breakdown` action.
-class OcptBreakdownTagRemovalRequestedEvent extends OcptBreakdownEvent {
-  /// Class constructor
-  const OcptBreakdownTagRemovalRequestedEvent();
-}
-
-/// Hides the inline tag-removal confirmation currently shown.
-class OcptBreakdownTagRemovalCancelledEvent extends OcptBreakdownEvent {
-  /// Class constructor
-  const OcptBreakdownTagRemovalCancelledEvent();
-}
-
-/// Removes the selected target's tags from the selected scene for good, dispatched by the inline
-/// tag-removal confirmation's own answer.
+/// Removes the selected target's tags from the selected scene for good, dispatched by the mode once
+/// its `OcptConfirmDialog` — opened by `OcptBreakdownTargetInspector`'s own `Remove from the
+/// breakdown` action — has already been answered.
 class OcptBreakdownTagRemovalConfirmedEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownTagRemovalConfirmedEvent();

@@ -141,25 +141,15 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
   final ValueChanged<OcptBreakdownSuggestion>? onSuggestionAccepted;
 
   /// Called when `Open in Resources` is clicked. Never withheld: switching mode reads, it never
-  /// writes. Does **not** pre-select [target] there — the resources mode has no deep-link entry
-  /// point yet, so the user lands on whichever tab and record it last showed.
+  /// writes. The mode is what turns it into the reveal request landing on [target]'s own sheet
+  /// there — a set having none of its own, it is the location holding it that is opened.
   final VoidCallback onOpenInResourcesRequested;
 
-  /// Whether the inline "remove this target's tags from the selected scene" confirmation is shown
-  /// in place of the `Remove from the breakdown` action.
-  final bool isTagRemovalPending;
-
-  /// Called when `Remove from the breakdown` is clicked, asking for confirmation; null while it may
-  /// not be answered.
+  /// Called when `Remove from the breakdown` is clicked; null while it may not be answered.
+  ///
+  /// The panel only asks for the removal: the confirmation itself is the `OcptConfirmDialog` the
+  /// mode shows, as for every other irreversible action of the app.
   final VoidCallback? onTagRemovalRequested;
-
-  /// Called when the inline confirmation's own cancel is clicked; null under the same condition as
-  /// [onTagRemovalRequested].
-  final VoidCallback? onTagRemovalCancelled;
-
-  /// Called when the inline confirmation's own answer is clicked, removing the tags for good; null
-  /// under the same condition as [onTagRemovalRequested].
-  final VoidCallback? onTagRemovalConfirmed;
 
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
   /// of this panel may write through.
@@ -185,10 +175,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     required this.suggestions,
     required this.onSuggestionAccepted,
     required this.onOpenInResourcesRequested,
-    required this.isTagRemovalPending,
     required this.onTagRemovalRequested,
-    required this.onTagRemovalCancelled,
-    required this.onTagRemovalConfirmed,
     this.isReadOnly = false,
   });
 
@@ -277,9 +264,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
           child: Text(tr.breakdownOpenInResourcesAction),
         ),
         const SizedBox(height: 8),
-        if (isTagRemovalPending)
-          _buildTagRemovalConfirmation(context, theme, tr)
-        else if (!isReadOnly)
+        if (!isReadOnly)
           OutlinedButton(
             onPressed: onTagRemovalRequested,
             style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(36)),
@@ -552,37 +537,6 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
 
     return null;
   }
-
-  /// The inline "remove this target's tags from the selected scene" confirmation, replacing the
-  /// `Remove from the breakdown` action.
-  Widget _buildTagRemovalConfirmation(BuildContext context, ThemeData theme, Tr tr) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        tr.breakdownRemoveFromBreakdownConfirmMessage,
-        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-      ),
-      const SizedBox(height: 8),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextButton(
-            onPressed: onTagRemovalCancelled,
-            child: Text(tr.breakdownRemoveFromBreakdownCancelAction),
-          ),
-          const SizedBox(width: 6),
-          FilledButton(
-            onPressed: onTagRemovalConfirmed,
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
-            child: Text(tr.breakdownRemoveFromBreakdownConfirmAction),
-          ),
-        ],
-      ),
-    ],
-  );
 
   /// [target]'s live occurrences, resolved out of [scenes] in scene order — each scene's own
   /// [OcptBreakdownScene.tags] already ordered by start offset, the order the passages are read in.

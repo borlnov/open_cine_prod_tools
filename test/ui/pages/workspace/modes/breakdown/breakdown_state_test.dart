@@ -131,7 +131,7 @@ void main() {
     test("is carried over, list instance included, when nothing it derives from changes", () {
       final state = _loadedState();
 
-      final next = state.copyWith(searchQuery: "lamp", isTagRemovalPending: true);
+      final next = state.copyWith(searchQuery: "lamp", isListPanelVisible: false);
 
       expect(
         identical(next.selectedTargetSuggestions, state.selectedTargetSuggestions),

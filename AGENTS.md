@@ -53,6 +53,14 @@ schedule, call sheets, budget, script supervisor reports, storyboard, and a cast
   Default mode: styled block editor (super_editor) with the real screenplay layout. Alternate
   mode: raw Fountain text with a side-by-side paper-simulated preview (white page even in dark
   theme). Courier Prime everywhere (source, preview, PDF).
+- **An irreversible action is always confirmed by a dialog**, never by an inline yes/no: deleting a
+  record, removing a breakdown tag, replacing the screenplay with an imported file all go through
+  `OcptConfirmDialog` (`lib/ui/widgets/`), which the *page or mode* opens — a widget only ever asks
+  (a nullable `on…Requested` callback), it never carries the question itself. The caller owns every
+  word of it and `isDestructive`. A new action that cannot be undone reuses this dialog; a second
+  confirmation widget must not appear. The one standing exception is the `Versions` dock panel,
+  whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**, a list of
+  cards having no other way to say *which* one is being talked about.
 - **Before creating any new view/screen, ask Benoit design questions first** (layout, style,
   references). He shapes the UI himself.
 
@@ -446,9 +454,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   sheets autosave as they are typed, so a field that refused an incomplete value would refuse
   nearly every keystroke.
   Each sheet ends on its own `Delete this …` action (`OcptResourcesDeleteAction`, which only asks),
-  and the four of them are answered by one `OcptResourcesDeleteConfirmDialog` opened by the mode —
-  a **dialog**, as in the shot list, never an inline yes/no, so a deletion is confirmed the same way
-  wherever it is asked from; only the wording differs, and it is the caller's. The removed-role
+  and the four of them are answered by one `OcptConfirmDialog` opened by the mode, as in the shot
+  list and the breakdown; only the wording differs, and it is the caller's. The removed-role
   banner is the one exception: it deletes straight away, being that question itself.
   The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
@@ -682,8 +689,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   takes an `isReadOnly` flag instead and hands its own parts the null callbacks, so a
   control added later can't be gated in one place and forgotten in the other. Entering a preview
   additionally clears every *pending* write state a mode holds — the breakdown's open tag anchor,
-  its popover range, its tag-removal confirmation and its debounced field edits — so no half-started
-  gesture survives into a version's read.
+  its popover range and its debounced field edits — so no half-started gesture survives into a
+  version's read.
   `OcptWorkspaceReadOnlyBanner` carries the two ways out of a preview:
   `Start from this version` (a plain restore of the version being read, which asks nothing further —
   the banner is that question, and `OcptProjectsManager.restoreProjectVersion` leaves the preview on

@@ -190,8 +190,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownElementOwnerChangedEvent>(_onElementOwnerChanged);
     on<OcptBreakdownElementBringerChangedEvent>(_onElementBringerChanged);
     on<OcptBreakdownOccurrenceSelectedEvent>(_onOccurrenceSelected);
-    on<OcptBreakdownTagRemovalRequestedEvent>(_onTagRemovalRequested);
-    on<OcptBreakdownTagRemovalCancelledEvent>(_onTagRemovalCancelled);
     on<OcptBreakdownTagRemovalConfirmedEvent>(_onTagRemovalConfirmed);
     on<OcptBreakdownTagRangeCancelledEvent>(_onTagRangeCancelled);
     on<OcptBreakdownPopoverTargetLinkedEvent>(_onPopoverTargetLinked);
@@ -289,7 +287,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         lastRightDockTab: lastRightDockTab,
         pendingElementFieldEdits: const {},
         pendingSceneNotesEdits: const {},
-        isTagRemovalPending: false,
         clearPendingTagAnchor: true,
         clearPendingTagRange: true,
         hasTagWriteError: false,
@@ -466,7 +463,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return;
     }
 
-    emitter(state.copyWith(selectedSceneId: event.sceneId, isTagRemovalPending: false));
+    emitter(state.copyWith(selectedSceneId: event.sceneId));
   }
 
   /// Selects scene `event.sceneId` **and shows its own breakdown sheet**, dispatched by a click on
@@ -498,7 +495,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         clearSelectedTargetRef: true,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
-        isTagRemovalPending: false,
       ),
     );
   }
@@ -715,7 +711,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         clearSelectedSceneId: !sceneExists,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
-        isTagRemovalPending: false,
       ),
     );
   }
@@ -727,7 +722,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearSelectedTargetRef: true, isTagRemovalPending: false));
+    emitter(state.copyWith(clearSelectedTargetRef: true));
   }
 
   /// Records a click on a plain word of the script view — one that overlaps no live tag, or one
@@ -776,7 +771,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           ),
           selectedSceneId: sceneExists ? event.sceneId : null,
           clearSelectedSceneId: !sceneExists,
-          isTagRemovalPending: false,
         ),
       );
       return;
@@ -891,7 +885,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         selectedSceneId: range.sceneId,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
-        isTagRemovalPending: false,
         hasTagWriteError: false,
       ),
     );
@@ -946,7 +939,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         selectedSceneId: range.sceneId,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
-        isTagRemovalPending: false,
         hasTagWriteError: false,
       ),
     );
@@ -1310,22 +1302,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
   }
 
-  /// Shows the inline tag-removal confirmation of the currently selected target.
-  Future<void> _onTagRemovalRequested(
-    OcptBreakdownTagRemovalRequestedEvent event,
-    Emitter<OcptBreakdownState> emitter,
-  ) async {
-    emitter(state.copyWith(isTagRemovalPending: true));
-  }
-
-  /// Hides the inline tag-removal confirmation currently shown.
-  Future<void> _onTagRemovalCancelled(
-    OcptBreakdownTagRemovalCancelledEvent event,
-    Emitter<OcptBreakdownState> emitter,
-  ) async {
-    emitter(state.copyWith(isTagRemovalPending: false));
-  }
-
   /// Removes the selected target's tags from the selected scene for good — every live tag of
   /// [OcptBreakdownState.selectedTarget] within [OcptBreakdownState.selectedScene], tombstoned one
   /// by one through `OcptBreakdownService.deleteTag`, which never removes the `scene_elements`/
@@ -1333,9 +1309,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// lets a user make that link by hand, and dropping it silently here would destroy work the
   /// breakdown pass never did.
   ///
-  /// A no-op, clearing the confirmation, when either half of the selection is gone (a stale click on
-  /// a sheet the snapshot already rebuilt without it). Reloads the snapshot afterwards: the target
-  /// may disappear from it outright if this scene held its only tag.
+  /// A no-op when either half of the selection is gone (a stale click on a sheet the snapshot
+  /// already rebuilt without it). Reloads the snapshot afterwards: the target may disappear from it
+  /// outright if this scene held its only tag.
   Future<void> _onTagRemovalConfirmed(
     OcptBreakdownTagRemovalConfirmedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -1344,7 +1320,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final target = state.selectedTarget;
     final scene = state.selectedScene;
     if (project == null || target == null || scene == null) {
-      emitter(state.copyWith(isTagRemovalPending: false));
       return;
     }
 
@@ -1356,9 +1331,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       await _breakdownService.deleteTag(database: project.database, tagId: tagId);
     }
 
-    emitter(
-      state.copyWith(snapshot: await _loadSnapshot(project), isTagRemovalPending: false),
-    );
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
   }
 
   /// Clears tag `event.tagId`'s own `needsCheck` flag through

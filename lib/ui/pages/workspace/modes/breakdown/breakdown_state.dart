@@ -147,16 +147,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// without a second gesture — is the whole point of the selection.
   final OcptBreakdownRightDockTab lastRightDockTab;
 
-  /// Whether the inline confirmation of "remove this target's tags from the selected scene" is
-  /// shown, in place of `OcptBreakdownTargetInspector`'s own trailing action.
-  ///
-  /// A single flag rather than an id-keyed pending map (`OcptProjectVersionsPanel`'s own idiom for
-  /// the very same inline-confirmation shape): the inspector only ever asks this about the
-  /// currently selected target, so there is only ever one question to ask at a time. Reset to false
-  /// by every handler that changes the selection or reloads the snapshot, so a stale confirmation
-  /// never survives to a different target's sheet.
-  final bool isTagRemovalPending;
-
   /// A typed field of the selected target's own sheet still sitting in the field-edit debounce,
   /// keyed by the element's id and which `OcptElementField` it is — `subCategory`, `quantity` or
   /// `notes`, the only three the target inspector ever edits — mirroring
@@ -377,7 +367,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
-    required this.isTagRemovalPending,
     required this.pendingElementFieldEdits,
     required this.pendingSceneNotesEdits,
     required this.pendingTagAnchor,
@@ -411,7 +400,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       isListPanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptBreakdownRightDockTab.inspector,
-      isTagRemovalPending = false,
       pendingElementFieldEdits = const {},
       pendingSceneNotesEdits = const {},
       pendingTagAnchor = null,
@@ -464,7 +452,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
     OcptBreakdownRightDockTab? lastRightDockTab,
-    bool? isTagRemovalPending,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     Map<String, String>? pendingSceneNotesEdits,
     OcptBreakdownPendingTagAnchor? pendingTagAnchor,
@@ -521,7 +508,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
       rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
       lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-      isTagRemovalPending: isTagRemovalPending ?? this.isTagRemovalPending,
       pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
       pendingSceneNotesEdits: pendingSceneNotesEdits ?? this.pendingSceneNotesEdits,
       pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
@@ -599,7 +585,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     isListPanelVisible,
     rightDockTab,
     lastRightDockTab,
-    isTagRemovalPending,
     pendingElementFieldEdits,
     pendingSceneNotesEdits,
     pendingTagAnchor,

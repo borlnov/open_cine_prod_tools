@@ -1468,27 +1468,20 @@ void main() {
     await bloc.close();
   });
 
-  test("tag removal asks first, and cancelling leaves the tag untouched", () async {
+  test("tag removal with no target selected leaves the tag untouched", () async {
     final tagged = await writeTaggedElement();
     final bloc = buildBloc();
     await waitForState(bloc, (state) => state.taggedTargetCount == 1);
 
-    bloc.add(
-      OcptBreakdownTargetSelectedEvent(
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: tagged.elementId,
-        sceneId: tagged.sceneId,
-      ),
-    );
-    await waitForState(bloc, (state) => state.selectedTarget != null);
+    // The scene alone is selected, never the target: the confirmation the mode shows is about the
+    // selected target, so answering it with none is the stale click the handler guards against.
+    bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: tagged.sceneId));
+    await waitForState(bloc, (state) => state.selectedSceneId == tagged.sceneId);
 
-    bloc.add(const OcptBreakdownTagRemovalRequestedEvent());
-    await waitForState(bloc, (state) => state.isTagRemovalPending);
+    bloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
+    await pumpEventQueue();
 
-    bloc.add(const OcptBreakdownTagRemovalCancelledEvent());
-    final state = await waitForState(bloc, (state) => !state.isTagRemovalPending);
-
-    expect(state.taggedTargetCount, 1);
+    expect(bloc.state.taggedTargetCount, 1);
 
     await bloc.close();
   });
@@ -1510,13 +1503,8 @@ void main() {
       );
       await waitForState(bloc, (state) => state.selectedTarget != null);
 
-      bloc.add(const OcptBreakdownTagRemovalRequestedEvent());
-      await waitForState(bloc, (state) => state.isTagRemovalPending);
-
       bloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
-      final state = await waitForState(bloc, (state) => state.taggedTargetCount == 0);
-
-      expect(state.isTagRemovalPending, isFalse);
+      await waitForState(bloc, (state) => state.taggedTargetCount == 0);
 
       final elements = await projectsManager.elementsService.loadElements(
         database: project.database,

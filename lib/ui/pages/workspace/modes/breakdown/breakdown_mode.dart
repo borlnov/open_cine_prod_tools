@@ -42,6 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
@@ -223,6 +224,33 @@ class _BreakdownViewState extends State<_BreakdownView> {
         fileTypeLabel: tr.breakdownExportSheetsFileTypeLabel,
       ),
     );
+  }
+
+  /// Asks [OcptConfirmDialog] whether the selected target's tags really are to leave the selected
+  /// scene, then dispatches the removal if the user answered `Remove`.
+  ///
+  /// A dialog rather than an inline yes/no, the way `OcptShotListMode._handleDeleteRequested` and
+  /// `OcptResourcesMode._handleDeleteRequested` already ask their own question: removing a tag
+  /// cannot be undone, and an irreversible action is answered the same way everywhere in the app.
+  Future<void> _handleTagRemovalRequested(BuildContext context) async {
+    final bloc = context.read<OcptBreakdownBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.breakdownRemoveFromBreakdownConfirmTitle,
+      message: tr.breakdownRemoveFromBreakdownConfirmMessage,
+      cancelLabel: tr.breakdownRemoveFromBreakdownCancelAction,
+      confirmLabel: tr.breakdownRemoveFromBreakdownConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
   }
 
   /// Opens the project settings page, then reloads the mode's own read if the user changed
@@ -476,16 +504,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
           revealRequest: _revealRequestOf(state, target),
         ),
       ),
-      isTagRemovalPending: state.isTagRemovalPending,
-      onTagRemovalRequested: isReadOnly
-          ? null
-          : () => bloc.add(const OcptBreakdownTagRemovalRequestedEvent()),
-      onTagRemovalCancelled: isReadOnly
-          ? null
-          : () => bloc.add(const OcptBreakdownTagRemovalCancelledEvent()),
-      onTagRemovalConfirmed: isReadOnly
-          ? null
-          : () => bloc.add(const OcptBreakdownTagRemovalConfirmedEvent()),
+      onTagRemovalRequested: isReadOnly ? null : () => _handleTagRemovalRequested(context),
       isReadOnly: isReadOnly,
     );
   }
