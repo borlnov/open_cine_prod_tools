@@ -744,5 +744,19 @@
   "breakdownPopoverElementsGroupTitle": "Éléments",
   "breakdownPopoverCreateElementTitle": "Créer un élément",
   "breakdownPopoverFooterHint": "Cliquez une correspondance pour la lier, ou choisissez une catégorie pour créer et dépouiller un nouvel élément.",
-  "breakdownTagWriteError": "Ce dépouillement n'a pas pu être enregistré. Réessayez."
+  "breakdownTagWriteError": "Ce dépouillement n'a pas pu être enregistré. Réessayez.",
+  "breakdownHeaderScriptSegmentLabel": "Scénario",
+  "breakdownHeaderRecapSegmentLabel": "Récapitulatif",
+  "breakdownHeaderSearchHint": "Rechercher…",
+  "breakdownHeaderSearchClearTooltip": "Effacer la recherche",
+  "breakdownHeaderScriptHint": "Sélectionnez un mot pour le dépouiller.",
+  "breakdownHeaderRecapHint": "Filtre les éléments ci-dessous.",
+  "breakdownHeaderScenesProgressLabel": "{done}/{total} scènes dépouillées",
+  "breakdownRecapColumnElement": "Élément",
+  "breakdownRecapColumnStatus": "Statut",
+  "breakdownRecapColumnOwner": "Responsable",
+  "breakdownRecapColumnOccurrences": "Occ.",
+  "breakdownRecapSceneColumnLabel": "SC {number}",
+  "breakdownRecapNothingTaggedHint": "Rien n'a encore été dépouillé. Cliquez sur un mot du scénario pour commencer.",
+  "breakdownRecapNoMatchesHint": "Aucun élément, personnage ou décor ne correspond à « {query} »."
 }

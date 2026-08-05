@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -18,6 +19,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_recap_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_scene_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_scene_panel.dart';
@@ -37,8 +40,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// The breakdown production mode (dépouillement du scénario): the scene list and, under it, the
-/// category legend on the left, the whole screenplay typeset as a paper sheet in the centre, and the
+/// category legend on the left, the mode's own header band and, under it, either the whole
+/// screenplay typeset as a paper sheet or the recap cross-table in the centre, and the
 /// `Inspector`/`Versions` right dock.
+///
+/// The centre is `OcptBreakdownHeader` above an `Expanded` showing whichever of
+/// `OcptBreakdownScriptView`/`OcptBreakdownRecapTable` `OcptBreakdownState.centreView` currently
+/// names — the header's own `Script`/`Recap` switch is what moves between the two, and its search
+/// field, visible in both, filters the recap's rows and switches to it the moment the script view is
+/// active and the field turns non-empty (`OcptBreakdownBloc._onSearchQueryChanged`'s own doc
+/// comment): the script view is a reading surface, and the answer to "where is this?" is the table.
 ///
 /// The script view lets every word be clicked — a tagged one selects its target, and selecting a
 /// target opens the right dock on its `Inspector` tab, where `OcptBreakdownTargetInspector` shows its
@@ -47,7 +58,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// anchor, a second one in the same scene closes it and opens `OcptBreakdownTagPopover`, which links
 /// the passage to an existing target or creates a new element and tags it in one click — either way
 /// landing the selection on it, on the `Inspector` tab, exactly as clicking an already-tagged word
-/// does. There is **no save control and no mode-specific toolbar action** — the shell simply isn't
+/// does. The recap's own rows land the very same selection: clicking one dispatches the same event a
+/// tagged word's click does, passing the target's own first scene id, so the left dock and the sheet
+/// stay in step without leaving the recap. There is **no save control and no mode-specific toolbar
+/// action** — the shell simply isn't
 /// handed one, rather than showing an inert one — since every write here (the popover's own links and
 /// creations, the target inspector's chips, pickers and fields, the tag removal, and the scene
 /// inspector's own status chips) is written by its own event rather than a single save; the target
@@ -59,7 +73,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// and shot list modes do; the range interaction is withheld outright (`_buildScriptView`'s own doc
 /// comment), and both inspectors withhold every control that writes (see
 /// [OcptBreakdownTargetInspector]'s and `OcptBreakdownSceneInspector`'s own doc comments) while
-/// leaving both fully readable.
+/// leaving both fully readable. The header and the recap table need no such gating at all: the view
+/// switch, the search field and a recap row's click only ever read, so nothing here withholds
+/// anything from a previewed version — see their own doc comments.
 class OcptBreakdownMode extends StatelessWidget {
   /// Creates the breakdown mode.
   const OcptBreakdownMode({super.key});
@@ -140,7 +156,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         banner: _buildReadOnlyBanner(context, state),
         leftPanel: _buildScenePanel(context, state),
         rightPanel: _buildRightDock(context, state),
-        centre: _buildScriptView(context, state),
+        centre: _buildCentre(context, state),
         statusBar: OcptBreakdownStatusBar(
           taggedTargetCount: state.taggedTargetCount,
           usedCategoryCount: state.usedCategoryCount,
@@ -202,7 +218,54 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// Builds the shell's `centre`: the whole screenplay typeset as a paper sheet, its words clickable.
+  /// Builds the shell's `centre`: the header band, then whichever of the script view or the recap
+  /// table [OcptBreakdownState.centreView] currently names, filling the rest of the row.
+  Widget _buildCentre(BuildContext context, OcptBreakdownState state) {
+    final bloc = context.read<OcptBreakdownBloc>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OcptBreakdownHeader(
+          centreView: state.centreView,
+          onCentreViewSelected: (view) =>
+              bloc.add(OcptBreakdownCentreViewSelectedEvent(view: view)),
+          searchQuery: state.searchQuery,
+          onSearchQueryChanged: (query) =>
+              bloc.add(OcptBreakdownSearchQueryChangedEvent(query: query)),
+          taggedTargetCount: state.taggedTargetCount,
+          doneSceneCount: state.doneSceneCount,
+          sceneCount: state.scenes.length,
+        ),
+        Expanded(
+          child: state.centreView == OcptBreakdownCentreView.script
+              ? _buildScriptView(context, state)
+              : _buildRecapTable(context, state),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the recap view: the target × scene cross-table, filtered by the header's own search
+  /// field. A row's click reports the same event a tagged word's click in the script view already
+  /// does, passing the target's own first scene id, so the left dock and the sheet stay in step.
+  Widget _buildRecapTable(BuildContext context, OcptBreakdownState state) {
+    final bloc = context.read<OcptBreakdownBloc>();
+
+    return OcptBreakdownRecapTable(
+      scenes: state.scenes,
+      targets: state.targets,
+      elements: state.elements,
+      people: state.people,
+      searchQuery: state.searchQuery,
+      selectedTargetRef: state.selectedTargetRef,
+      onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
+        OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
+      ),
+    );
+  }
+
+  /// Builds the script view: the whole screenplay typeset as a paper sheet, its words clickable.
   ///
   /// [OcptBreakdownScriptView.onWordClicked] alone is what withholds the whole range interaction
   /// while a version is being previewed: nulling it out is enough, since no anchor can open and

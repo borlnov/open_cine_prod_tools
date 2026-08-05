@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -380,6 +381,122 @@ void main() {
     final state = await waitForState(bloc, (state) => state.hiddenLegendKeys.isEmpty);
 
     expect(state.hiddenLegendKeys, isEmpty);
+
+    await bloc.close();
+  });
+
+  test("the centre starts on the script view with an empty search query", () async {
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.centreView, OcptBreakdownCentreView.script);
+    expect(state.searchQuery, "");
+
+    await bloc.close();
+  });
+
+  test("switching the centre view clears a pending anchor and range", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42));
+    await waitForState(bloc, (state) => state.pendingTagRange != null);
+
+    bloc.add(const OcptBreakdownCentreViewSelectedEvent(view: OcptBreakdownCentreView.recap));
+    final state = await waitForState(bloc, (state) => state.centreView == OcptBreakdownCentreView.recap);
+
+    expect(state.pendingTagAnchor, isNull);
+    expect(state.pendingTagRange, isNull);
+
+    await bloc.close();
+  });
+
+  test("switching back to the script view leaves the search query untouched", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "lamp"));
+    await waitForState(bloc, (state) => state.searchQuery == "lamp");
+
+    bloc.add(const OcptBreakdownCentreViewSelectedEvent(view: OcptBreakdownCentreView.script));
+    final state = await waitForState(
+      bloc,
+      (state) => state.centreView == OcptBreakdownCentreView.script,
+    );
+
+    expect(state.searchQuery, "lamp");
+
+    await bloc.close();
+  });
+
+  test("typing a query from the script view switches to the recap, carrying the text", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.centreView, OcptBreakdownCentreView.script);
+
+    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "Peugeot"));
+    final state = await waitForState(
+      bloc,
+      (state) => state.centreView == OcptBreakdownCentreView.recap,
+    );
+
+    expect(state.searchQuery, "Peugeot");
+
+    await bloc.close();
+  });
+
+  test("typing a query while already on the recap stays there", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptBreakdownCentreViewSelectedEvent(view: OcptBreakdownCentreView.recap));
+    await waitForState(bloc, (state) => state.centreView == OcptBreakdownCentreView.recap);
+
+    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "Peugeot"));
+    final state = await waitForState(bloc, (state) => state.searchQuery == "Peugeot");
+
+    expect(state.centreView, OcptBreakdownCentreView.recap);
+
+    await bloc.close();
+  });
+
+  test("clearing the query afterward does not switch back to the script view", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "Peugeot"));
+    await waitForState(bloc, (state) => state.centreView == OcptBreakdownCentreView.recap);
+
+    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: ""));
+    final state = await waitForState(bloc, (state) => state.searchQuery == "");
+
+    expect(state.centreView, OcptBreakdownCentreView.recap);
+
+    await bloc.close();
+  });
+
+  test("typing a query from the script view also clears a pending anchor and range", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    final withAnchor = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
+    expect(withAnchor.pendingTagAnchor, isNotNull);
+
+    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "lamp"));
+    final state = await waitForState(
+      bloc,
+      (state) => state.centreView == OcptBreakdownCentreView.recap,
+    );
+
+    expect(state.pendingTagAnchor, isNull);
+    expect(state.pendingTagRange, isNull);
 
     await bloc.close();
   });

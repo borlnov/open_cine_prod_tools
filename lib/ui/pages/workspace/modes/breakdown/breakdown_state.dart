@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -25,8 +26,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
 /// The state of `OcptBreakdownBloc`.
 ///
-/// Selecting a target or a scene, and hiding a legend key, write nothing to the project database.
-/// [pendingElementFieldEdits] and [pendingSceneNotesEdits] are the pending field edits this state
+/// Selecting a target or a scene, hiding a legend key, switching [centreView] and typing into
+/// [searchQuery] all write nothing to the project database. [pendingElementFieldEdits] and
+/// [pendingSceneNotesEdits] are the pending field edits this state
 /// carries, the selected target's own free-text fields and the selected scene's own breakdown
 /// notes riding the debounce every other mode's `pending…FieldEdits` map does — see
 /// `OcptBreakdownBloc`'s own doc comment. [pendingTagAnchor] and [pendingTagRange] are likewise
@@ -54,6 +56,23 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// The whole breakdown read, as last loaded from the project database, or null while nothing has
   /// been read yet.
   final OcptBreakdownSnapshot? snapshot;
+
+  /// Which of the two views (script or recap) the mode's centre currently shows, toggled by the
+  /// header's own `Script`/`Recap` switch (`OcptBreakdownHeader`).
+  ///
+  /// A reading choice for the pass in progress, exactly like [hiddenLegendKeys]: **not**
+  /// persisted, so a project reopened days later always starts back on the script view rather than
+  /// wherever a previous session happened to leave the centre.
+  final OcptBreakdownCentreView centreView;
+
+  /// The header's own search field, as typed — filters the recap's rows, never its scene columns.
+  ///
+  /// Typing into it while [centreView] is [OcptBreakdownCentreView.script] switches the centre to
+  /// the recap in the same emitted state (`OcptBreakdownBloc._onSearchQueryChanged`); clearing it
+  /// back to empty afterward does **not** switch back to the script view — see that handler's own
+  /// doc comment. A reading choice for the pass in progress, exactly like [centreView]: **not**
+  /// persisted.
+  final String searchQuery;
 
   /// The id of the scene currently selected, whose heading the script view highlights, or null
   /// while none is.
@@ -178,6 +197,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// `snapshot.toFindCount`, the status bar's trailing counter.
   int get toFindCount => snapshot?.toFindCount ?? 0;
 
+  /// `snapshot.doneSceneCount`, the header's own progress label and bar.
+  int get doneSceneCount => snapshot?.doneSceneCount ?? 0;
+
   /// The scene [selectedSceneId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot]).
   OcptBreakdownScene? get selectedScene {
@@ -275,6 +297,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.screenplayText,
     required this.pageSetup,
     required this.snapshot,
+    required this.centreView,
+    required this.searchQuery,
     required this.selectedSceneId,
     required this.hiddenLegendKeys,
     required this.selectedTargetRef,
@@ -305,6 +329,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       screenplayText = "",
       pageSetup = const OcptPageSetup.standard(),
       snapshot = null,
+      centreView = OcptBreakdownCentreView.script,
+      searchQuery = "",
       selectedSceneId = null,
       hiddenLegendKeys = const {},
       selectedTargetRef = null,
@@ -336,7 +362,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// resolved), so each has its own clear flag instead. [hiddenLegendKeys],
   /// [pendingElementFieldEdits] and [pendingSceneNotesEdits] are each replaced wholesale rather
   /// than merged — the caller (the bloc's own legend and field-edit handlers) always computes the
-  /// full next map or set.
+  /// full next map or set. [searchQuery] needs no clear flag either: an empty string is already a
+  /// perfectly valid value for it (the field cleared), so `searchQuery: ""` is passed like any other
+  /// value rather than through a `clear…` flag.
   @override
   OcptBreakdownState copyWith({
     bool? isLoading,
@@ -344,6 +372,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     String? screenplayText,
     OcptPageSetup? pageSetup,
     OcptBreakdownSnapshot? snapshot,
+    OcptBreakdownCentreView? centreView,
+    String? searchQuery,
     String? selectedSceneId,
     bool clearSelectedSceneId = false,
     Set<OcptBreakdownLegendKey>? hiddenLegendKeys,
@@ -382,6 +412,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     screenplayText: screenplayText ?? this.screenplayText,
     pageSetup: pageSetup ?? this.pageSetup,
     snapshot: snapshot ?? this.snapshot,
+    centreView: centreView ?? this.centreView,
+    searchQuery: searchQuery ?? this.searchQuery,
     selectedSceneId: clearSelectedSceneId ? null : (selectedSceneId ?? this.selectedSceneId),
     hiddenLegendKeys: hiddenLegendKeys ?? this.hiddenLegendKeys,
     selectedTargetRef: clearSelectedTargetRef ? null : (selectedTargetRef ?? this.selectedTargetRef),
@@ -456,6 +488,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     screenplayText,
     pageSetup,
     snapshot,
+    centreView,
+    searchQuery,
     selectedSceneId,
     hiddenLegendKeys,
     selectedTargetRef,

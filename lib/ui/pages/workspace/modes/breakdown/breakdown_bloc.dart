@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -166,6 +167,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptBreakdownLegendEntryToggledEvent>(_onLegendEntryToggled);
     on<OcptBreakdownLegendShowAllRequestedEvent>(_onLegendShowAllRequested);
+    on<OcptBreakdownCentreViewSelectedEvent>(_onCentreViewSelected);
+    on<OcptBreakdownSearchQueryChangedEvent>(_onSearchQueryChanged);
     on<OcptBreakdownTargetSelectedEvent>(_onTargetSelected);
     on<OcptBreakdownTargetSelectionClearedEvent>(_onTargetSelectionCleared);
     on<OcptBreakdownWordClickedEvent>(_onWordClicked);
@@ -525,6 +528,49 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     emitter(state.copyWith(hiddenLegendKeys: const {}));
+  }
+
+  /// Selects which of the two views (script or recap) the centre shows, dispatched by the header's
+  /// own `Script`/`Recap` switch.
+  ///
+  /// Clears any pending tag anchor and pending range: the popover they might be driving has no
+  /// script sheet left to close over once the centre leaves it, mirroring [_onTagRangeCancelled]'s
+  /// own clearing.
+  Future<void> _onCentreViewSelected(
+    OcptBreakdownCentreViewSelectedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        centreView: event.view,
+        clearPendingTagAnchor: true,
+        clearPendingTagRange: true,
+      ),
+    );
+  }
+
+  /// Records the header's own search field text as typed.
+  ///
+  /// The moment `event.query` turns non-empty while the script view is active, switches the centre
+  /// to the recap in the same emitted state — carrying the just-typed text into the view that
+  /// actually answers it — and clears any pending tag anchor and pending range for the same reason
+  /// [_onCentreViewSelected] does. Clearing the field back to empty afterward does **not** switch
+  /// back to the script view, per [OcptBreakdownSearchQueryChangedEvent]'s own doc comment.
+  Future<void> _onSearchQueryChanged(
+    OcptBreakdownSearchQueryChangedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final switchesToRecap =
+        event.query.isNotEmpty && state.centreView == OcptBreakdownCentreView.script;
+
+    emitter(
+      state.copyWith(
+        searchQuery: event.query,
+        centreView: switchesToRecap ? OcptBreakdownCentreView.recap : state.centreView,
+        clearPendingTagAnchor: switchesToRecap,
+        clearPendingTagRange: switchesToRecap,
+      ),
+    );
   }
 
   /// Selects target `event.targetKind`/`event.targetId`, and the scene the click happened in — so

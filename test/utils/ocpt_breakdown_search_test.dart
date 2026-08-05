@@ -253,4 +253,99 @@ void main() {
       );
     });
   });
+
+  group("ocptBreakdownRecapRowMatches", () {
+    test("an empty query matches every row", () {
+      expect(
+        ocptBreakdownRecapRowMatches(query: "", targetName: "Desk lamp", categoryLabel: "Prop"),
+        isTrue,
+      );
+    });
+
+    test("a whitespace-only query also matches every row", () {
+      expect(
+        ocptBreakdownRecapRowMatches(query: "   ", targetName: "Desk lamp", categoryLabel: "Prop"),
+        isTrue,
+      );
+    });
+
+    test("matches on the target's own name", () {
+      expect(
+        ocptBreakdownRecapRowMatches(query: "lamp", targetName: "Desk lamp", categoryLabel: "Prop"),
+        isTrue,
+      );
+      expect(
+        ocptBreakdownRecapRowMatches(query: "chair", targetName: "Desk lamp", categoryLabel: "Prop"),
+        isFalse,
+      );
+    });
+
+    test("matches on the resolved category label", () {
+      expect(
+        ocptBreakdownRecapRowMatches(query: "prop", targetName: "Desk lamp", categoryLabel: "Prop"),
+        isTrue,
+      );
+    });
+
+    test("matches on the sub-category, when given", () {
+      expect(
+        ocptBreakdownRecapRowMatches(
+          query: "1960s",
+          targetName: "Desk lamp",
+          categoryLabel: "Prop",
+          subCategory: "1960s",
+        ),
+        isTrue,
+      );
+    });
+
+    test("matches on the owner's name, folding diacritics so `lea` finds `Léa`", () {
+      expect(
+        ocptBreakdownRecapRowMatches(
+          query: "lea",
+          targetName: "Desk lamp",
+          categoryLabel: "Prop",
+          ownerName: "Léa",
+        ),
+        isTrue,
+      );
+    });
+
+    test("matches on the notes, when given", () {
+      expect(
+        ocptBreakdownRecapRowMatches(
+          query: "fragile",
+          targetName: "Desk lamp",
+          categoryLabel: "Prop",
+          notes: "Handle with care, fragile.",
+        ),
+        isTrue,
+      );
+    });
+
+    test("a role or a set (no sub-category/owner/notes passed) still matches on its name/category", () {
+      expect(
+        ocptBreakdownRecapRowMatches(query: "léa", targetName: "Léa", categoryLabel: "Characters"),
+        isTrue,
+      );
+      expect(
+        ocptBreakdownRecapRowMatches(query: "kitchen", targetName: "Léa", categoryLabel: "Set"),
+        isFalse,
+      );
+    });
+
+    test("a query matching nothing at all returns false", () {
+      expect(
+        ocptBreakdownRecapRowMatches(
+          query: "zzz",
+          targetName: "Desk lamp",
+          categoryLabel: "Prop",
+          subCategory: "1960s",
+          ownerName: "Léa",
+          notes: "Fragile",
+        ),
+        isFalse,
+      );
+    });
+  });
 }

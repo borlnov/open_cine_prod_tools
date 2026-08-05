@@ -5513,5 +5513,118 @@
     "context": "Shown as a SnackBar in the breakdown mode",
     "type": "text",
     "placeholders": {}
+  },
+  "breakdownHeaderScriptSegmentLabel": "Script",
+  "@breakdownHeaderScriptSegmentLabel": {
+    "description": "Label of the header's own switch segment that shows the script view",
+    "context": "Displayed inside the breakdown mode's header, at the top of the centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderRecapSegmentLabel": "Recap",
+  "@breakdownHeaderRecapSegmentLabel": {
+    "description": "Label of the header's own switch segment that shows the recap view",
+    "context": "Displayed inside the breakdown mode's header, at the top of the centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderSearchHint": "Search…",
+  "@breakdownHeaderSearchHint": {
+    "description": "Placeholder of the breakdown mode's header search field",
+    "context": "Displayed inside the search field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderSearchClearTooltip": "Clear search",
+  "@breakdownHeaderSearchClearTooltip": {
+    "description": "Tooltip of the breakdown mode's header search field's own clear button",
+    "context": "Displayed on hover over the × button inside the search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderScriptHint": "Select a word to break it down.",
+  "@breakdownHeaderScriptHint": {
+    "description": "Hint shown in the header while the script view is active",
+    "context": "Displayed beside the header's own search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderRecapHint": "Filter the elements below.",
+  "@breakdownHeaderRecapHint": {
+    "description": "Hint shown in the header while the recap view is active",
+    "context": "Displayed beside the header's own search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderScenesProgressLabel": "{done}/{total} scenes broken down",
+  "@breakdownHeaderScenesProgressLabel": {
+    "description": "How many of the screenplay's scenes are marked done, of the total",
+    "context": "Displayed at the right of the breakdown mode's header, beside the progress bar",
+    "type": "text",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownRecapColumnElement": "Element",
+  "@breakdownRecapColumnElement": {
+    "description": "Header label of the recap table's own name column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapColumnStatus": "Status",
+  "@breakdownRecapColumnStatus": {
+    "description": "Header label of the recap table's own status column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapColumnOwner": "Owner",
+  "@breakdownRecapColumnOwner": {
+    "description": "Header label of the recap table's own owner column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapColumnOccurrences": "Occ.",
+  "@breakdownRecapColumnOccurrences": {
+    "description": "Header label of the recap table's own occurrence-count column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapSceneColumnLabel": "SC {number}",
+  "@breakdownRecapSceneColumnLabel": {
+    "description": "Header label of one of the recap table's own scene columns",
+    "context": "Displayed at the top of the recap table, one per scene",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownRecapNothingTaggedHint": "Nothing has been tagged yet. Click a word in the script to break it down.",
+  "@breakdownRecapNothingTaggedHint": {
+    "description": "Shown in place of the recap table while the screenplay carries no tag at all",
+    "context": "Displayed in the breakdown mode's centre area, in the recap view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapNoMatchesHint": "No element, role or set matches \"{query}\".",
+  "@breakdownRecapNoMatchesHint": {
+    "description": "Shown in place of the recap table once the header's search filtered every row out",
+    "context": "Displayed in the breakdown mode's centre area, in the recap view",
+    "type": "text",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
   }
 }

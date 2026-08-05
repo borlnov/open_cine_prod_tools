@@ -188,6 +188,39 @@ int _compareCandidates(
   return a.id.compareTo(b.id);
 }
 
+/// Whether [targetName] (and, where they exist, [categoryLabel]/[subCategory]/[ownerName]/[notes])
+/// matches [query] — the recap's own row filter (§5.3 of the plan this mode shipped from): the
+/// header's search field filters the recap's **rows**, and this is the predicate one row is kept
+/// or dropped by.
+///
+/// [categoryLabel] is the caller's own resolved label (`ocptBreakdownLegendKeyLabel` applied to
+/// the target's legend key), never a `Tr`, exactly as [ocptBreakdownSearchCatalogues] and the
+/// resources mode's own list filters take resolved strings rather than reaching for localization
+/// themselves. [subCategory]/[ownerName]/[notes] only ever come from an `elements` row — a role or
+/// a set carries none of the three (`OcptBreakdownTarget`'s own doc comment explains why) — so the
+/// caller simply leaves them null for those two kinds, and this only ever matches against
+/// [targetName]/[categoryLabel] for them.
+///
+/// Folding is [ocptResourcesSearchMatches]'s own, so `lea` finds an owner named `Léa` exactly as it
+/// finds a target named `Léa`, and an empty (or whitespace-only) [query] matches every row.
+bool ocptBreakdownRecapRowMatches({
+  required String query,
+  required String targetName,
+  required String categoryLabel,
+  String? subCategory,
+  String? ownerName,
+  String? notes,
+}) => ocptResourcesSearchMatches(
+  query: query,
+  fields: [
+    targetName,
+    categoryLabel,
+    if (subCategory != null) subCategory,
+    if (ownerName != null) ownerName,
+    if (notes != null) notes,
+  ],
+);
+
 /// The candidates the tag popover searches, flattened out of [snapshot]'s three raw catalogues
 /// ([OcptBreakdownSnapshot.elements]/[OcptBreakdownSnapshot.roles]/[OcptBreakdownSnapshot.sets]) —
 /// never out of [OcptBreakdownSnapshot.targets] alone, which only ever names a thing **already**

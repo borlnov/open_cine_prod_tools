@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -140,6 +141,44 @@ class OcptBreakdownLegendEntryToggledEvent extends OcptBreakdownEvent {
 class OcptBreakdownLegendShowAllRequestedEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownLegendShowAllRequestedEvent();
+}
+
+/// Selects which of the two views (script or recap) the mode's centre shows, dispatched by the
+/// header's own `Script`/`Recap` switch.
+///
+/// Clears any pending tag anchor and pending range: the popover a range interaction might be
+/// driving has no script sheet left to close over once the centre leaves it — there is nothing to
+/// close them on when the sheet is gone.
+class OcptBreakdownCentreViewSelectedEvent extends OcptBreakdownEvent {
+  /// The view to select.
+  final OcptBreakdownCentreView view;
+
+  /// Class constructor
+  const OcptBreakdownCentreViewSelectedEvent({required this.view});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, view];
+}
+
+/// Records the header's own search field text as typed, dispatched on every keystroke.
+///
+/// The moment [query] turns non-empty while the script view is active, the bloc switches the
+/// centre to the recap in the same emitted state — carrying the just-typed text into the view that
+/// actually answers it — and clears any pending tag anchor and pending range, for the same reason
+/// [OcptBreakdownCentreViewSelectedEvent] does. Clearing the field back to empty afterward does
+/// **not** switch back to the script view: a user who read the recap and cleared the field to widen
+/// it again is browsing the table, not asking to leave it.
+class OcptBreakdownSearchQueryChangedEvent extends OcptBreakdownEvent {
+  /// The field's raw text, as typed.
+  final String query;
+
+  /// Class constructor
+  const OcptBreakdownSearchQueryChangedEvent({required this.query});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, query];
 }
 
 /// Selects target [targetKind]/[targetId] in the inspector, dispatched by a click on one of its
