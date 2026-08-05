@@ -9,10 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -467,7 +471,10 @@ class _BreakdownViewState extends State<_BreakdownView> {
               ),
             ),
       onOpenInResourcesRequested: () => context.read<OcptWorkspaceBloc>().add(
-        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.resources),
+        OcptWorkspaceModeSelectedEvent(
+          mode: OcptWorkspaceMode.resources,
+          revealRequest: _revealRequestOf(state, target),
+        ),
       ),
       isTagRemovalPending: state.isTagRemovalPending,
       onTagRemovalRequested: isReadOnly
@@ -481,6 +488,43 @@ class _BreakdownViewState extends State<_BreakdownView> {
           : () => bloc.add(const OcptBreakdownTagRemovalConfirmedEvent()),
       isReadOnly: isReadOnly,
     );
+  }
+
+  /// Where the resources mode should land when `Open in Resources` is clicked on [target]'s own
+  /// sheet: the tab that holds it, with its record already selected.
+  ///
+  /// A **set** has no sheet of its own — it lives in the sets card of the location that holds it —
+  /// so it is that location which is revealed, resolved here out of [OcptBreakdownState.sets]. A
+  /// set whose location has gone missing from the snapshot reveals the locations tab and nothing
+  /// on it, which is as close as the mode can honestly get.
+  OcptWorkspaceRevealRequest _revealRequestOf(
+    OcptBreakdownState state,
+    OcptBreakdownTarget target,
+  ) => switch (target.kind) {
+    OcptBreakdownTargetKind.element => OcptResourcesRevealRequest(
+      tab: OcptResourcesTab.elements,
+      recordId: target.id,
+    ),
+    OcptBreakdownTargetKind.role => OcptResourcesRevealRequest(
+      tab: OcptResourcesTab.roles,
+      recordId: target.id,
+    ),
+    OcptBreakdownTargetKind.set => OcptResourcesRevealRequest(
+      tab: OcptResourcesTab.locations,
+      recordId: _locationIdOfSet(state, target.id),
+    ),
+  };
+
+  /// The id of the location holding the set [setId] names, or null while no set of
+  /// [OcptBreakdownState.sets] has that id.
+  String? _locationIdOfSet(OcptBreakdownState state, String setId) {
+    for (final set in state.sets) {
+      if (set.id == setId) {
+        return set.locationId;
+      }
+    }
+
+    return null;
   }
 
   /// The person named by [personId] among [people], or null while [personId] is null or names

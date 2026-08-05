@@ -170,8 +170,21 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 - Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
-  only state is `{ OcptWorkspaceMode mode, bool isLoading }` — it owns *which* production mode is
-  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, breakdown,
+  state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest }` —
+  it owns *which* production mode is active, nothing about that mode's own content. The reveal
+  request is the one exception that proves the rule, and the bloc **never reads inside it**: a mode
+  sending the user to another one *for a reason* (the breakdown's `Open in Resources`, meaning "this
+  very element, over there") attaches an `OcptWorkspaceRevealRequest` (`lib/models/`, sealed, today
+  `OcptResourcesRevealRequest { tab, recordId? }`) to `OcptWorkspaceModeSelectedEvent`; the bloc
+  transports it, `WorkspacePage` hands it to the mode that recognizes its own subtype and to no
+  other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
+  **one-shot** by construction: the destination bloc takes it as a *constructor* argument (an event
+  would race the load, which clears every selection) and nulls it in that first load, so entering or
+  leaving a version preview — which reloads through the same handler — doesn't yank the user back;
+  a plain switch from the mode switcher carries none and clears whatever an earlier one left. A
+  `recordId` that is null, or that names a row tombstoned since, only opens the tab. A set is
+  revealed as **its location** (`OcptSet.locationId`, resolved by the asking mode), a set having no
+  sheet of its own. `OcptWorkspaceMode { screenplay, breakdown,
   shotList, resources, schedule, budget }` — the four implemented modes first, in the order the work
   happens in (write, break down, shoot-list), the two empty ones last — is
   persisted through `OcptPropertiesManager.workspaceMode` by **name** rather than by index (modelled
@@ -495,6 +508,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   ocpt_breakdown_palette.dart` maps a colour **per category** rather than per rank (unlike a shot's
   coverage colour): a category must read the same in every project and every export. The `⋮` menu
   exports the breakdown sheets PDF (above).
+  The target inspector's `Open in Resources` is the app's one cross-mode navigation: it switches to
+  the resources mode **and lands on the record's own sheet**, through the reveal request the
+  workspace shell carries (above) — an element on the elements tab, a role on the roles tab, and a
+  set as the location that holds it. The popover's own `Open in Resources` deliberately carries
+  none: it is only ever shown when the search names no role and no set, so there is no sheet to land
+  on — the user is going there to create one.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
