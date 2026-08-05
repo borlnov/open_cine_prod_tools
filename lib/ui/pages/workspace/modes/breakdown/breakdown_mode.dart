@@ -161,6 +161,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
           taggedTargetCount: state.taggedTargetCount,
           usedCategoryCount: state.usedCategoryCount,
           toFindCount: state.toFindCount,
+          needsCheckTagCount: state.needsCheckTagCount,
         ),
         dockLayoutController: _dockLayoutController,
         onDockFractionsChanged: (fractions) => context.read<OcptBreakdownBloc>().add(
@@ -358,6 +359,10 @@ class _BreakdownViewState extends State<_BreakdownView> {
             : (rawValue) => bloc.add(
                 OcptBreakdownSceneNotesChangedEvent(sceneId: scene.id, rawValue: rawValue),
               ),
+        onTagNeedsCheckCleared: (tagId) =>
+            bloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: tagId)),
+        onFlaggedTagRemoved: (tagId) =>
+            bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId)),
         isReadOnly: isReadOnly,
       );
     }

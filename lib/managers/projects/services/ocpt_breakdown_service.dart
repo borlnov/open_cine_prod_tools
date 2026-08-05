@@ -41,7 +41,9 @@ class _OcptBreakdownTagRefused implements Exception {
 /// tagged passage within its own scene is followed there automatically when the shifted words are
 /// found exactly once, and only left for the user to sort out (`needsCheck`) when they cannot be
 /// found unambiguously — see its own doc comment for why this must run there rather than on the
-/// editor's parse debounce.
+/// editor's parse debounce. [clearTagNeedsCheck] is the user's own answer to a flag reconciliation
+/// left behind: it clears `needsCheck` alone, never touching the offsets — see its own doc comment
+/// for why.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 class OcptBreakdownService {
@@ -238,6 +240,31 @@ class OcptBreakdownService {
       database.ocptBreakdownTagsTable,
     )..where((table) => table.id.equals(tagId))).write(
       const OcptBreakdownTagsTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
+  /// Clears `needsCheck` on tag [tagId] alone, leaving its `startOffset`/`endOffset` exactly where
+  /// they are.
+  ///
+  /// The honest answer to the common flagged case: [reconcileTags] could not find the tagged text
+  /// exactly once in its own scene (it now occurs twice, or nowhere), yet the passage the tag
+  /// already points at is still the right one — the user looked at it and confirmed it, rather
+  /// than the tag having actually moved. Clearing the flag is therefore deliberately **not** a
+  /// re-anchor: only [reconcileTags], on the next save, ever moves a tag's offsets.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> clearTagNeedsCheck({
+    required OcptProjectDatabase database,
+    required String tagId,
+  }) async {
+    if (database.refusesUserWrite("clearTagNeedsCheck")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.id.equals(tagId))).write(
+      const OcptBreakdownTagsTableCompanion(needsCheck: Value(false)),
     );
   }
 

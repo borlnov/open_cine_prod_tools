@@ -200,6 +200,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// `snapshot.doneSceneCount`, the header's own progress label and bar.
   int get doneSceneCount => snapshot?.doneSceneCount ?? 0;
 
+  /// `snapshot.needsCheckTagCount`, the status bar's own "N to check" counter.
+  int get needsCheckTagCount => snapshot?.needsCheckTagCount ?? 0;
+
   /// The scene [selectedSceneId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot]).
   OcptBreakdownScene? get selectedScene {

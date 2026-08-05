@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -17,16 +18,29 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// The right dock's `Inspector` tab while a scene is selected and no target is: the scene's own
-/// breakdown sheet — counts, its own status chips, an alert naming the elements still to find, its
-/// targets grouped by category and its own breakdown notes.
+/// breakdown sheet — counts, its own status chips, an alert naming the elements still to find, a
+/// second alert listing the tags a save could not re-anchor, its targets grouped by category and
+/// its own breakdown notes.
+///
+/// The "to check" alert ([_buildToCheckAlert]) is the same visual shape as the "to find" one right
+/// above it — the warning colour, the same callout — but lists [OcptBreakdownScene.tags] whose
+/// [OcptBreakdownTag.needsCheck] is set, one row per tag: the passage verbatim, and the target it
+/// points at when [targetById] still resolves one (a tombstoned catalogue row still keeps its tag on
+/// the scene — `OcptBreakdownSnapshot.build`'s own doc comment — so a row whose target is gone shows
+/// the passage alone rather than crashing). Each row offers `Mark as checked` (clears the flag alone,
+/// leaving the offsets exactly where they are — the honest answer to "the passage now occurs twice
+/// in the scene so it could not be re-anchored unambiguously, but the one this tag points at is
+/// still right") and `Remove` (tombstones that one tag). Both act **straight away, with no inline
+/// confirmation**: the alert itself is the question, exactly as `OcptRemovedRoleBanner`'s own actions
+/// do in the resources mode.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`. [isReadOnly] withholds every control that
-/// writes — the status chips and the notes field — while leaving every read (the sheet itself and a
-/// click on one of its target rows, `onTargetSelected`) in place, mirroring
-/// `OcptBreakdownTargetInspector`'s own convention: the panel takes the real callbacks and nulls
-/// them out itself, so a control added later cannot be gated in one place and forgotten in the
-/// other. [onTargetSelected] is never withheld: selecting writes nothing whatever a previewed
-/// version's own gating says.
+/// writes — the status chips, the notes field and the "to check" alert's two actions — while leaving
+/// every read (the sheet itself, both alerts' own listing, and a click on one of its target rows,
+/// `onTargetSelected`) in place, mirroring `OcptBreakdownTargetInspector`'s own convention: the panel
+/// takes the real callbacks and nulls them out itself, so a control added later cannot be gated in
+/// one place and forgotten in the other. [onTargetSelected] is never withheld: selecting writes
+/// nothing whatever a previewed version's own gating says.
 class OcptBreakdownSceneInspector extends StatelessWidget {
   /// The selected scene, or null while nothing at all is selected — the mode's own empty message is
   /// shown then.
@@ -49,6 +63,14 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
   /// written to.
   final ValueChanged<String>? onNotesChanged;
 
+  /// Called with a flagged tag's id when its "to check" alert row's `Mark as checked` action is
+  /// clicked, or null while it may not be answered.
+  final ValueChanged<String>? onTagNeedsCheckCleared;
+
+  /// Called with a flagged tag's id when its "to check" alert row's `Remove` action is clicked, or
+  /// null while it may not be answered.
+  final ValueChanged<String>? onFlaggedTagRemoved;
+
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
   /// of this panel may write through.
   final bool isReadOnly;
@@ -62,6 +84,8 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     required this.onTargetSelected,
     required this.onStatusChanged,
     required this.onNotesChanged,
+    required this.onTagNeedsCheckCleared,
+    required this.onFlaggedTagRemoved,
     this.isReadOnly = false,
   });
 
@@ -83,6 +107,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
 
     final targets = ocptBreakdownSceneTargetsOf(scene, targetById);
     final toFindTargets = targets.where((target) => target.status == OcptElementStatus.toFind);
+    final flaggedTags = scene.tags.where((tag) => tag.needsCheck).toList();
     final buckets = ocptBreakdownSceneBarBucketsOf(scene, targetById);
 
     return ListView(
@@ -129,6 +154,11 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
 
         if (toFindTargets.isNotEmpty) ...[
           _buildToFindAlert(context, tr, toFindTargets.toList()),
+          const SizedBox(height: 16),
+        ],
+
+        if (flaggedTags.isNotEmpty) ...[
+          _buildToCheckAlert(context, tr, flaggedTags),
           const SizedBox(height: 16),
         ],
 
@@ -215,6 +245,100 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The warning callout listing [flaggedTags] — this class's own doc comment for what each row
+  /// offers and why both its actions act straight away, with no inline confirmation of their own.
+  Widget _buildToCheckAlert(BuildContext context, Tr tr, List<OcptBreakdownTag> flaggedTags) {
+    final theme = Theme.of(context);
+    final color = ocptWarningColor(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 16, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  tr.breakdownSceneInspectorNeedsCheckAlertTitle(flaggedTags.length),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          for (final tag in flaggedTags) _buildNeedsCheckRow(context, tr, tag),
+        ],
+      ),
+    );
+  }
+
+  /// One row of [_buildToCheckAlert]: [tag]'s own passage, verbatim, and the name of the target it
+  /// points at — [targetById] resolving to nothing (a tombstoned catalogue row, per
+  /// `OcptBreakdownSnapshot.build`'s own doc comment) shows the passage alone rather than crashing —
+  /// then, unless [isReadOnly], its two actions.
+  Widget _buildNeedsCheckRow(BuildContext context, Tr tr, OcptBreakdownTag tag) {
+    final theme = Theme.of(context);
+    final color = ocptWarningColor(context);
+    final target = targetById[(tag.targetKind, tag.targetId)];
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            target == null
+                ? tr.breakdownSceneInspectorNeedsCheckRowNoTarget(tag.taggedText)
+                : tr.breakdownSceneInspectorNeedsCheckRow(tag.taggedText, target.name),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
+          ),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 4,
+            runSpacing: 2,
+            children: [
+              TextButton(
+                onPressed: isReadOnly || onTagNeedsCheckCleared == null
+                    ? null
+                    : () => onTagNeedsCheckCleared!(tag.id),
+                style: TextButton.styleFrom(
+                  foregroundColor: color,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(tr.breakdownSceneInspectorNeedsCheckClearAction),
+              ),
+              TextButton(
+                onPressed: isReadOnly || onFlaggedTagRemoved == null
+                    ? null
+                    : () => onFlaggedTagRemoved!(tag.id),
+                style: TextButton.styleFrom(
+                  foregroundColor: color,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(tr.breakdownSceneInspectorNeedsCheckRemoveAction),
+              ),
+            ],
           ),
         ],
       ),

@@ -54,6 +54,7 @@ OcptBreakdownTag _buildTag({
   required String sceneId,
   required OcptBreakdownTargetKind targetKind,
   required String targetId,
+  bool needsCheck = false,
 }) => OcptBreakdownTag(
   id: "$sceneId-$targetId",
   sceneId: sceneId,
@@ -62,7 +63,7 @@ OcptBreakdownTag _buildTag({
   startOffset: 0,
   endOffset: 1,
   taggedText: "x",
-  needsCheck: false,
+  needsCheck: needsCheck,
 );
 
 /// Builds an element target of [category] named [name].
@@ -221,5 +222,31 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBreakdownScenePanel)));
     expect(find.text(tr.breakdownScenesEmptyHint), findsOneWidget);
+  });
+
+  testWidgets("marks only the scenes holding a flagged tag with a warning icon", (tester) async {
+    final flaggedScene = _buildScene(
+      id: "scene-4",
+      position: 3,
+      heading: "INT. ATTIC - NIGHT",
+      tags: [
+        _buildTag(
+          sceneId: "scene-4",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: "el-1",
+          needsCheck: true,
+        ),
+      ],
+    );
+
+    await pumpPanel(
+      tester,
+      selectedSceneId: null,
+      scenes: [untaggedScene, taggedScene, flaggedScene],
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptBreakdownScenePanel)));
+    expect(find.byTooltip(tr.breakdownTagNeedsCheckTooltip), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
   });
 }

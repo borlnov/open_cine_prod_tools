@@ -78,6 +78,13 @@ class OcptBreakdownSnapshot extends Equatable {
   /// the mode header's progress bar.
   final int doneSceneCount;
 
+  /// The number of live tags, across the whole screenplay, whose [OcptBreakdownTag.needsCheck] is
+  /// set — the status bar's own "N to check" counter. Counted off the raw tags passed to
+  /// [OcptBreakdownSnapshot.build] rather than off [targets]: a tag whose catalogue row has been
+  /// tombstoned is dropped from [targets] (its own doc comment) but is still a live tag a save
+  /// could have flagged, and the scene inspector's own "to check" alert must still list it.
+  final int needsCheckTagCount;
+
   /// Class constructor
   const OcptBreakdownSnapshot({
     required this.screenplayId,
@@ -91,6 +98,7 @@ class OcptBreakdownSnapshot extends Equatable {
     required this.usedCategoryCount,
     required this.toFindCount,
     required this.doneSceneCount,
+    required this.needsCheckTagCount,
   });
 
   /// Builds an [OcptBreakdownSnapshot] for [screenplayId] by joining [scenes] (with empty tags),
@@ -198,6 +206,7 @@ class OcptBreakdownSnapshot extends Equatable {
       doneSceneCount: scenes
           .where((scene) => scene.status == OcptBreakdownSceneStatus.done)
           .length,
+      needsCheckTagCount: tags.where((tag) => tag.needsCheck).length,
     );
   }
 
@@ -206,7 +215,8 @@ class OcptBreakdownSnapshot extends Equatable {
   String toString() =>
       "OcptBreakdownSnapshot(screenplayId: $screenplayId, sceneCount: ${scenes.length}, "
       "taggedTargetCount: $taggedTargetCount, usedCategoryCount: $usedCategoryCount, "
-      "toFindCount: $toFindCount, doneSceneCount: $doneSceneCount)";
+      "toFindCount: $toFindCount, doneSceneCount: $doneSceneCount, "
+      "needsCheckTagCount: $needsCheckTagCount)";
 
   /// Object properties
   @override
@@ -222,5 +232,6 @@ class OcptBreakdownSnapshot extends Equatable {
     usedCategoryCount,
     toFindCount,
     doneSceneCount,
+    needsCheckTagCount,
   ];
 }

@@ -1221,6 +1221,51 @@ void main() {
     },
   );
 
+  test(
+    "marking a flagged tag as checked clears needsCheck without moving its offsets",
+    () async {
+      await writeTaggedElement();
+      // The tagged word is gone from the scene: the next save flags the tag rather than
+      // re-anchoring it, mirroring `OcptBreakdownService.reconcileTags`'s own "text is gone" test.
+      await writeScreenplay("INT. HOUSE - DAY\n\nA torch sits on the desk.\n");
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.needsCheckTagCount == 1);
+      final flaggedTag = loaded.scenes.single.tags.single;
+      expect(flaggedTag.needsCheck, isTrue);
+
+      bloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: flaggedTag.id));
+      final state = await waitForState(bloc, (state) => state.needsCheckTagCount == 0);
+
+      final clearedTag = state.scenes.single.tags.single;
+      expect(clearedTag.needsCheck, isFalse);
+      expect(clearedTag.startOffset, flaggedTag.startOffset);
+      expect(clearedTag.endOffset, flaggedTag.endOffset);
+
+      await bloc.close();
+    },
+  );
+
+  test(
+    "removing a flagged tag tombstones it and drops its target from the snapshot",
+    () async {
+      await writeTaggedElement();
+      await writeScreenplay("INT. HOUSE - DAY\n\nA torch sits on the desk.\n");
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.needsCheckTagCount == 1);
+      final flaggedTagId = loaded.scenes.single.tags.single.id;
+
+      bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: flaggedTagId));
+      final state = await waitForState(bloc, (state) => state.needsCheckTagCount == 0);
+
+      expect(state.taggedTargetCount, 0);
+      expect(state.scenes.single.tags, isEmpty);
+
+      await bloc.close();
+    },
+  );
+
   test("flushPendingFieldEdits writes a pending element field edit directly, bypassing the debounce",
       () async {
     final tagged = await writeTaggedElement();

@@ -43,6 +43,7 @@ OcptBreakdownTag _buildTag({
   required OcptBreakdownTargetKind targetKind,
   required String targetId,
   int startOffset = 0,
+  bool needsCheck = false,
 }) => OcptBreakdownTag(
   id: id,
   sceneId: sceneId,
@@ -51,7 +52,7 @@ OcptBreakdownTag _buildTag({
   startOffset: startOffset,
   endOffset: startOffset + 3,
   taggedText: "tag",
-  needsCheck: false,
+  needsCheck: needsCheck,
 );
 
 /// Builds an element named [name] of [category] and [status].
@@ -347,6 +348,48 @@ void main() {
       );
 
       expect(snapshot.doneSceneCount, 1);
+    });
+
+    test("needsCheckTagCount counts every live flagged tag, target gone or not", () {
+      final scene = _buildScene(id: "scene-1", position: 0);
+      final element = _buildElement(id: "element-1", name: "Desk lamp");
+
+      final snapshot = OcptBreakdownSnapshot.build(
+        screenplayId: "screenplay",
+        scenes: [scene],
+        tags: [
+          _buildTag(
+            id: "tag-flagged",
+            sceneId: "scene-1",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-1",
+            needsCheck: true,
+          ),
+          _buildTag(
+            id: "tag-flagged-gone",
+            sceneId: "scene-1",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-gone",
+            startOffset: 10,
+            needsCheck: true,
+          ),
+          _buildTag(
+            id: "tag-fine",
+            sceneId: "scene-1",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-1",
+            startOffset: 20,
+          ),
+        ],
+        elements: [element],
+        roles: const [],
+        sets: const [],
+        people: const [],
+      );
+
+      // Both flagged tags count, including the one whose target has been dropped from `targets`.
+      expect(snapshot.needsCheckTagCount, 2);
+      expect(snapshot.targets, hasLength(1));
     });
   });
 }

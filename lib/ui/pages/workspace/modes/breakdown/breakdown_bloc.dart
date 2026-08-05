@@ -188,6 +188,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownPopoverTargetLinkedEvent>(_onPopoverTargetLinked);
     on<OcptBreakdownPopoverElementCreationRequestedEvent>(_onPopoverElementCreationRequested);
     on<OcptBreakdownTagWriteErrorDismissedEvent>(_onTagWriteErrorDismissed);
+    on<OcptBreakdownTagNeedsCheckClearedEvent>(_onTagNeedsCheckCleared);
+    on<OcptBreakdownFlaggedTagRemovedEvent>(_onFlaggedTagRemoved);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -1200,5 +1202,43 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(
       state.copyWith(snapshot: await _loadSnapshot(project), isTagRemovalPending: false),
     );
+  }
+
+  /// Clears tag `event.tagId`'s own `needsCheck` flag through
+  /// `OcptBreakdownService.clearTagNeedsCheck`, then reloads the snapshot: the flag feeds the scene
+  /// panel's own warning mark and the status bar's "to check" counter, both of which must be read
+  /// back from the database rather than patched in place.
+  ///
+  /// A no-op while no project is open, mirroring [_onTagRemovalConfirmed]'s own defensive check.
+  Future<void> _onTagNeedsCheckCleared(
+    OcptBreakdownTagNeedsCheckClearedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _breakdownService.clearTagNeedsCheck(database: project.database, tagId: event.tagId);
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+  }
+
+  /// Removes tag `event.tagId` for good through `OcptBreakdownService.deleteTag`, then reloads the
+  /// snapshot, mirroring [_onTagNeedsCheckCleared] in every respect but the write it performs.
+  ///
+  /// A no-op while no project is open, mirroring [_onTagRemovalConfirmed]'s own defensive check.
+  Future<void> _onFlaggedTagRemoved(
+    OcptBreakdownFlaggedTagRemovedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _breakdownService.deleteTag(database: project.database, tagId: event.tagId);
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
   }
 }

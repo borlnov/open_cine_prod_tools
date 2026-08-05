@@ -378,6 +378,46 @@ void main() {
     });
   });
 
+  group("clearTagNeedsCheck", () {
+    test("clears the flag alone, leaving the offsets exactly where they are", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one two.\n");
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final roleId = await createRole();
+      final start = sceneText.indexOf("two");
+      final tagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: start,
+        endOffset: start + "two".length,
+        taggedText: "two",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+
+      const newText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: newText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      await breakdownService.reconcileTags(
+        database: database,
+        screenplayId: screenplayId,
+        currentFountainText: newText,
+      );
+      expect((await readTag(tagId)).needsCheck, isTrue);
+
+      await breakdownService.clearTagNeedsCheck(database: database, tagId: tagId);
+
+      final tag = await readTag(tagId);
+      expect(tag.needsCheck, isFalse);
+      expect(tag.startOffset, start);
+      expect(tag.endOffset, start + "two".length);
+    });
+  });
+
   group("createElementAndTag", () {
     test("mints the element with a generated code and toFind status, and tags it", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
@@ -1049,6 +1089,7 @@ Action two three.
             startOffset: 0,
             endOffset: 3,
             taggedText: "one",
+            needsCheck: const Value(true),
           ),
         );
 
@@ -1061,6 +1102,7 @@ Action two three.
       targetKind: OcptBreakdownTargetKind.role,
       targetId: "role-1",
     );
+    await breakdownService.clearTagNeedsCheck(database: preview, tagId: "tag-1");
     await breakdownService.deleteTag(database: preview, tagId: "tag-1");
     final createdPair = await breakdownService.createElementAndTag(
       database: preview,
@@ -1091,6 +1133,7 @@ Action two three.
     expect(tags.single.id, "tag-1");
     expect(tags.single.isDeleted, isFalse);
     expect(tags.single.startOffset, 0);
+    expect(tags.single.needsCheck, isTrue);
 
     expect(await preview.select(preview.ocptElementsTable).get(), isEmpty);
     expect(await preview.select(preview.ocptSceneBreakdownsTable).get(), isEmpty);

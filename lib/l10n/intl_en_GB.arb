@@ -5215,6 +5215,17 @@
       }
     }
   },
+  "breakdownStatsToCheck": "{count, plural, one{{count} to check} other{{count} to check}}",
+  "@breakdownStatsToCheck": {
+    "description": "Number of live tags, across the whole screenplay, a save could not re-anchor",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "breakdownLegendTitle": "Categories",
   "@breakdownLegendTitle": {
     "description": "Title of the breakdown mode's category legend",
@@ -5429,6 +5440,56 @@
         "type": "int"
       }
     }
+  },
+  "breakdownSceneInspectorNeedsCheckAlertTitle": "{count, plural, one{{count} tag to check} other{{count} tags to check}}",
+  "@breakdownSceneInspectorNeedsCheckAlertTitle": {
+    "description": "Title of the scene inspector's second warning callout",
+    "context": "Displayed above the list of tags a save could not re-anchor",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckRow": "\"{passage}\" · {targetName}",
+  "@breakdownSceneInspectorNeedsCheckRow": {
+    "description": "One row of the scene inspector's \"to check\" alert: the tagged passage and the target it points at",
+    "context": "Displayed in the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {
+      "passage": {
+        "type": "String"
+      },
+      "targetName": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckRowNoTarget": "\"{passage}\"",
+  "@breakdownSceneInspectorNeedsCheckRowNoTarget": {
+    "description": "One row of the scene inspector's \"to check\" alert whose target has been dropped from the snapshot",
+    "context": "Displayed in the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {
+      "passage": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckClearAction": "Mark as checked",
+  "@breakdownSceneInspectorNeedsCheckClearAction": {
+    "description": "Clears a flagged tag's own needsCheck flag, leaving its offsets untouched",
+    "context": "Displayed on a row of the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorNeedsCheckRemoveAction": "Remove",
+  "@breakdownSceneInspectorNeedsCheckRemoveAction": {
+    "description": "Removes a flagged tag for good",
+    "context": "Displayed on a row of the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {}
   },
   "breakdownSceneInspectorTargetsSectionTitle": "Tagged elements",
   "@breakdownSceneInspectorTargetsSectionTitle": {

@@ -471,3 +471,41 @@ class OcptBreakdownTagWriteErrorDismissedEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownTagWriteErrorDismissedEvent();
 }
+
+/// Clears `needsCheck` on tag [tagId], dispatched by `OcptBreakdownSceneInspector`'s own "to check"
+/// alert's `Mark as checked` action.
+///
+/// A single pick, not typing, so it is written immediately and rides no field-edit debounce, and
+/// it acts straight away with no further confirmation: the alert itself is the question, exactly
+/// as `OcptRemovedRoleBanner`'s own actions do.
+class OcptBreakdownTagNeedsCheckClearedEvent extends OcptBreakdownEvent {
+  /// The id of the tag whose flag is cleared.
+  final String tagId;
+
+  /// Class constructor
+  const OcptBreakdownTagNeedsCheckClearedEvent({required this.tagId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tagId];
+}
+
+/// Removes tag [tagId] for good, dispatched by `OcptBreakdownSceneInspector`'s own "to check" alert's
+/// `Remove` action.
+///
+/// Mirrors [OcptBreakdownTagNeedsCheckClearedEvent] in every respect but the write it performs:
+/// acts straight away, with no inline confirmation of its own — this is a different tag-removal
+/// path than [OcptBreakdownTagRemovalConfirmedEvent], which answers a two-step confirmation asked
+/// about the *selected target's* tags; this one answers the "to check" alert's own row, named by
+/// its tag id directly, and needs none.
+class OcptBreakdownFlaggedTagRemovedEvent extends OcptBreakdownEvent {
+  /// The id of the tag to remove.
+  final String tagId;
+
+  /// Class constructor
+  const OcptBreakdownFlaggedTagRemovedEvent({required this.tagId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tagId];
+}

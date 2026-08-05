@@ -55,6 +55,7 @@ OcptBreakdownTag _buildTag({
   required OcptBreakdownTargetKind targetKind,
   required String targetId,
   String taggedText = "a lamp",
+  bool needsCheck = false,
 }) => OcptBreakdownTag(
   id: id,
   sceneId: sceneId,
@@ -63,7 +64,7 @@ OcptBreakdownTag _buildTag({
   startOffset: 0,
   endOffset: taggedText.length,
   taggedText: taggedText,
-  needsCheck: false,
+  needsCheck: needsCheck,
 );
 
 /// Builds an element target of [category]/[status].
@@ -93,6 +94,8 @@ void main() {
           onTargetSelected: _noop3,
           onStatusChanged: null,
           onNotesChanged: null,
+          onTagNeedsCheckCleared: null,
+          onFlaggedTagRemoved: null,
         ),
       ),
     );
@@ -112,6 +115,8 @@ void main() {
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
           onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
         ),
       ),
     );
@@ -150,6 +155,8 @@ void main() {
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
           onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
         ),
       ),
     );
@@ -185,6 +192,8 @@ void main() {
           onTargetSelected: (kind, id, sceneId) => reported.add((kind, id, sceneId)),
           onStatusChanged: (_) {},
           onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
         ),
       ),
     );
@@ -208,6 +217,8 @@ void main() {
           onTargetSelected: _noop3,
           onStatusChanged: reported.add,
           onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
         ),
       ),
     );
@@ -233,6 +244,8 @@ void main() {
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
           onNotesChanged: reported.add,
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
         ),
       ),
     );
@@ -260,6 +273,8 @@ void main() {
           onTargetSelected: _noop3,
           onStatusChanged: statusReported.add,
           onNotesChanged: notesReported.add,
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
           isReadOnly: true,
         ),
       ),
@@ -277,6 +292,135 @@ void main() {
     final fieldWidget = tester.widget<TextField>(find.byType(TextField));
     expect(fieldWidget.onChanged, isNull);
     expect(notesReported, isEmpty);
+  });
+
+  testWidgets(
+    "the to-check alert lists a flagged tag and reports its two actions",
+    (tester) async {
+      final clearedTagIds = <String>[];
+      final removedTagIds = <String>[];
+      final target = _buildElementTarget(id: "element-1", name: "Desk lamp");
+      final scene = _buildScene(
+        id: "scene-1",
+        tags: [
+          _buildTag(
+            id: "tag-1",
+            sceneId: "scene-1",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-1",
+            needsCheck: true,
+          ),
+        ],
+      );
+      final targetById = ocptBreakdownTargetsById([target]);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptBreakdownSceneInspector(
+            scene: scene,
+            targetById: targetById,
+            notesValue: "",
+            onTargetSelected: _noop3,
+            onStatusChanged: (_) {},
+            onNotesChanged: (_) {},
+            onTagNeedsCheckCleared: clearedTagIds.add,
+            onFlaggedTagRemoved: removedTagIds.add,
+          ),
+        ),
+      );
+
+      expect(find.text("1 tag to check"), findsOneWidget);
+      expect(find.text('"a lamp" · Desk lamp'), findsOneWidget);
+
+      await tester.tap(find.text("Mark as checked"));
+      await tester.pump();
+      expect(clearedTagIds, ["tag-1"]);
+
+      await tester.tap(find.text("Remove"));
+      await tester.pump();
+      expect(removedTagIds, ["tag-1"]);
+    },
+  );
+
+  testWidgets(
+    "a flagged tag whose target is gone is still listed, by its passage alone",
+    (tester) async {
+      final scene = _buildScene(
+        id: "scene-1",
+        tags: [
+          _buildTag(
+            id: "tag-1",
+            sceneId: "scene-1",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-gone",
+            needsCheck: true,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptBreakdownSceneInspector(
+            scene: scene,
+            targetById: const {},
+            notesValue: "",
+            onTargetSelected: _noop3,
+            onStatusChanged: (_) {},
+            onNotesChanged: (_) {},
+            onTagNeedsCheckCleared: (_) {},
+            onFlaggedTagRemoved: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text("1 tag to check"), findsOneWidget);
+      expect(find.text('"a lamp"'), findsOneWidget);
+    },
+  );
+
+  testWidgets("isReadOnly withholds the to-check alert's two actions", (tester) async {
+    final clearedTagIds = <String>[];
+    final removedTagIds = <String>[];
+    final target = _buildElementTarget(id: "element-1", name: "Desk lamp");
+    final scene = _buildScene(
+      id: "scene-1",
+      tags: [
+        _buildTag(
+          id: "tag-1",
+          sceneId: "scene-1",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: "element-1",
+          needsCheck: true,
+        ),
+      ],
+    );
+    final targetById = ocptBreakdownTargetsById([target]);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: targetById,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: clearedTagIds.add,
+          onFlaggedTagRemoved: removedTagIds.add,
+          isReadOnly: true,
+        ),
+      ),
+    );
+
+    // The alert still reads…
+    expect(find.text("1 tag to check"), findsOneWidget);
+    expect(find.text('"a lamp" · Desk lamp'), findsOneWidget);
+
+    // …but neither of its actions writes.
+    final clearButton = tester.widget<TextButton>(find.widgetWithText(TextButton, "Mark as checked"));
+    expect(clearButton.onPressed, isNull);
+    final removeButton = tester.widget<TextButton>(find.widgetWithText(TextButton, "Remove"));
+    expect(removeButton.onPressed, isNull);
   });
 }
 

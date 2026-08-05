@@ -9,13 +9,16 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_category_legend.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
-/// The breakdown mode's left dock: one row per scene, each showing its number, heading, a bar per
-/// category (or role/set kind) its tags cover and how many distinct things are tagged in it, and
-/// its own breakdown status on the right — then, under a divider, the category legend
-/// ([OcptBreakdownCategoryLegend]).
+/// The breakdown mode's left dock: one row per scene, each showing its number — with a small ⚠
+/// beside it while the scene holds at least one tag a save could not re-anchor
+/// (`OcptBreakdownTag.needsCheck`), mirroring `OcptShotListSequencePanel`'s own mark on a flagged
+/// shot's code — heading, a bar per category (or role/set kind) its tags cover and how many
+/// distinct things are tagged in it, and its own breakdown status on the right — then, under a
+/// divider, the category legend ([OcptBreakdownCategoryLegend]).
 ///
 /// Width-agnostic, like the shot list's own sequence panel: it fills whatever width its parent
 /// `OcptWorkspaceDock` gives it and owns no background of its own. Clicking a row selects that
@@ -124,7 +127,8 @@ class OcptBreakdownScenePanel extends StatelessWidget {
   }
 }
 
-/// One scene of the panel: its own clickable row.
+/// One scene of the panel: its own clickable row, a ⚠ beside its number when it holds a flagged
+/// tag.
 class _SceneEntry extends StatelessWidget {
   /// The scene this entry shows.
   final OcptBreakdownScene scene;
@@ -175,6 +179,18 @@ class _SceneEntry extends StatelessWidget {
                   ),
                 ),
               ),
+              if (scene.tags.any((tag) => tag.needsCheck))
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Tooltip(
+                    message: tr.breakdownTagNeedsCheckTooltip,
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 12,
+                      color: ocptWarningColor(context),
+                    ),
+                  ),
+                ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
