@@ -687,5 +687,7 @@
   "projectSettingsCurrencySectionTitle": "Devise",
   "projectSettingsCurrencyLabel": "Devise",
   "projectSettingsPageFormatSectionTitle": "Format de page",
-  "projectSettingsPageFormatLabel": "Format de page"
+  "projectSettingsPageFormatLabel": "Format de page",
+  "workspaceModeBreakdown": "Dépouillement",
+  "workspaceModeLabelBreakdown": "Dépouillement du scénario"
 }

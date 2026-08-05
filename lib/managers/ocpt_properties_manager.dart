@@ -129,6 +129,26 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     "RESOURCES_RIGHT_DOCK_FRACTION",
   );
 
+  /// This is the key used to store the breakdown mode's left (scenes) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction] and
+  /// [resourcesLeftDockFraction] for the same reason the three are kept apart from each other.
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final breakdownLeftDockFraction = SharedPreferencesItem<double>("BREAKDOWN_LEFT_DOCK_FRACTION");
+
+  /// This is the key used to store the breakdown mode's right (versions) dock width, as a fraction
+  /// of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction] and
+  /// [resourcesRightDockFraction] for the same reason. Loading it returns null if nothing has been
+  /// stored yet, which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the
+  /// call site.
+  final breakdownRightDockFraction = SharedPreferencesItem<double>(
+    "BREAKDOWN_RIGHT_DOCK_FRACTION",
+  );
+
   /// This is the key used to store which optional columns of the shot list table are visible, as
   /// the [OcptShotListColumn] names joined by [_shotListColumnsSeparator].
   ///

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_schedule_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_mode.dart';
@@ -66,6 +67,7 @@ class _WorkspaceView extends StatelessWidget {
   /// Builds the active production mode's own page.
   Widget _buildActiveMode(OcptWorkspaceMode mode) => switch (mode) {
     OcptWorkspaceMode.screenplay => const EditorPage(),
+    OcptWorkspaceMode.breakdown => const OcptBreakdownMode(),
     OcptWorkspaceMode.budget => const OcptBudgetMode(),
     OcptWorkspaceMode.schedule => const OcptScheduleMode(),
     OcptWorkspaceMode.shotList => const OcptShotListMode(),

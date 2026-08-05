@@ -5072,5 +5072,19 @@
     "context": "Displayed next to the page format dropdown in the page format section",
     "type": "text",
     "placeholders": {}
+  },
+  "workspaceModeBreakdown": "Breakdown",
+  "@workspaceModeBreakdown": {
+    "description": "Short label of the breakdown production mode",
+    "context": "Displayed under the mode's icon in the workspace's bottom mode switcher",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelBreakdown": "Script breakdown",
+  "@workspaceModeLabelBreakdown": {
+    "description": "Label of the breakdown production mode",
+    "context": "Displayed in the workspace toolbar, between the mode's own toolbar actions and the shell's own chrome",
+    "type": "text",
+    "placeholders": {}
   }
 }
