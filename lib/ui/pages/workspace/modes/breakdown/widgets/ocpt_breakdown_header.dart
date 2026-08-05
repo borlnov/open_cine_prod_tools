@@ -19,6 +19,17 @@ const double _ocptBreakdownProgressBarWidth = 110;
 /// The height of the header's own progress track, in logical pixels.
 const double _ocptBreakdownProgressBarHeight = 5;
 
+/// The narrowest the header is drawn with its progress track at all, in logical pixels: under
+/// this, the switch and the search field are the only things left, since a control that cannot be
+/// dropped (they are the only way to change what the centre shows) outranks a read-out that is
+/// also printed elsewhere — see [OcptBreakdownHeader]'s own doc comment.
+const double _ocptBreakdownHeaderProgressBarMinWidth = 620;
+
+/// The narrowest the header is drawn with its hint and its progress **label**, in logical pixels.
+/// Under this, the track alone carries the progress, tooltipped with the very label that was
+/// dropped.
+const double _ocptBreakdownHeaderFullWidth = 1000;
+
 /// The breakdown mode's own header band, sitting above the centre view: the `Script`/`Recap`
 /// switch, the search field beside it, a muted hint contextual to whichever view is active, and —
 /// pushed to the right by a spacer — the pass's own progress (targets tagged, scenes done) as a
@@ -29,6 +40,16 @@ const double _ocptBreakdownProgressBarHeight = 5;
 /// the switch and the search field filter what the centre shows, they never write to the project
 /// database — so, like `OcptBreakdownRecapTable`, this widget needs no `isReadOnly` flag: a
 /// previewed version withholds nothing this header offers.
+///
+/// **The band sheds what it cannot fit rather than overflowing**, since the centre it sits above is
+/// only guaranteed the 320 px floor `OcptWorkspaceDock` leaves it: under
+/// [_ocptBreakdownHeaderFullWidth] the hint and the progress label go, the track then carrying that
+/// very label as its tooltip; under [_ocptBreakdownHeaderProgressBarMinWidth] the track goes too,
+/// leaving the switch and the field, which then shrinks in turn. Nothing is lost by that: the two
+/// controls are the only way to change what the centre shows, while the counters they make room for
+/// are read-outs the status bar and the scene panel's own header already print. The two texts
+/// ellipsize on top of all that, so a translation longer than the English never overflows between
+/// two thresholds either.
 class OcptBreakdownHeader extends StatelessWidget {
   /// Which of the two views is currently active, the switch's own value.
   final OcptBreakdownCentreView centreView;
@@ -69,38 +90,75 @@ class OcptBreakdownHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
+    final progressLabel =
+        "${tr.breakdownStatsTagged(taggedTargetCount)} · "
+        "${tr.breakdownHeaderScenesProgressLabel(doneSceneCount, sceneCount)}";
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Row(
-        children: [
-          _OcptBreakdownViewSwitch(value: centreView, onChanged: onCentreViewSelected),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: _ocptBreakdownSearchFieldWidth,
-            child: _OcptBreakdownSearchField(query: searchQuery, onChanged: onSearchQueryChanged),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              centreView == OcptBreakdownCentreView.script
-                  ? tr.breakdownHeaderScriptHint
-                  : tr.breakdownHeaderRecapHint,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ),
-          const Spacer(),
-          Text(
-            "${tr.breakdownStatsTagged(taggedTargetCount)} · "
-            "${tr.breakdownHeaderScenesProgressLabel(doneSceneCount, sceneCount)}",
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(width: 12),
-          _OcptBreakdownProgressBar(done: doneSceneCount, total: sceneCount),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isProgressBarShown =
+              constraints.maxWidth >= _ocptBreakdownHeaderProgressBarMinWidth;
+          final isFullyShown = constraints.maxWidth >= _ocptBreakdownHeaderFullWidth;
+
+          return Row(
+            children: [
+              _OcptBreakdownViewSwitch(value: centreView, onChanged: onCentreViewSelected),
+              const SizedBox(width: 12),
+              // Loose, so the field keeps its full width wherever there is room for it and shrinks
+              // rather than pushing the row past its constraints where there is not.
+              Flexible(
+                flex: 3,
+                child: SizedBox(
+                  width: _ocptBreakdownSearchFieldWidth,
+                  child: _OcptBreakdownSearchField(
+                    query: searchQuery,
+                    onChanged: onSearchQueryChanged,
+                  ),
+                ),
+              ),
+              if (isFullyShown) ...[
+                const SizedBox(width: 12),
+                Flexible(
+                  flex: 2,
+                  child: Text(
+                    centreView == OcptBreakdownCentreView.script
+                        ? tr.breakdownHeaderScriptHint
+                        : tr.breakdownHeaderRecapHint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+              if (isProgressBarShown) ...[
+                const Spacer(),
+                if (isFullyShown) ...[
+                  Flexible(
+                    flex: 4,
+                    child: Text(
+                      progressLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Tooltip(
+                  message: progressLabel,
+                  child: _OcptBreakdownProgressBar(done: doneSceneCount, total: sceneCount),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }

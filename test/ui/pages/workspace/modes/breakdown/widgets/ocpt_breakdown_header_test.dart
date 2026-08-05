@@ -9,16 +9,23 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
 
-/// The width the header is pumped at — wide enough that every element (the switch, the 260 px
-/// search field, the hint and the progress label/bar) fits without dropping anything, which the
-/// header's own layout does not attempt in the first place (unlike the status bar's own
-/// narrow-width degradation).
+/// The width the header is pumped at by default — wide enough that every element (the switch, the
+/// 260 px search field, the hint and the progress label/bar) is shown, the header dropping the
+/// last two of those in turn as its band narrows (see the three degradation tests at the end).
 const double _headerWidth = 1100;
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band
-/// [_headerWidth] wide. Widens the test surface well past that first — the default 800×600 test
-/// surface would otherwise clamp the header before it gets the chance to show every element.
-Widget _wrapInApp(Widget child) => MaterialApp(
+/// A band too narrow for the hint and the progress label, but wide enough for the progress track.
+const double _narrowHeaderWidth = 700;
+
+/// A band too narrow for the progress track itself, leaving the switch and the search field alone
+/// — narrower than the 320 px floor `OcptWorkspaceDock` guarantees the centre this header sits
+/// above, so nothing narrower than this is reachable in the app at all.
+const double _tinyHeaderWidth = 320;
+
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band [width]
+/// wide. The caller widens the test surface past that first — the default 800×600 test surface
+/// would otherwise clamp the header before it gets the chance to show every element.
+Widget _wrapInApp(Widget child, {required double width}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -29,7 +36,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(
     body: Align(
       alignment: Alignment.topLeft,
-      child: SizedBox(width: _headerWidth, height: 80, child: child),
+      child: SizedBox(width: width, height: 80, child: child),
     ),
   ),
 );
@@ -43,8 +50,9 @@ void main() {
     int taggedTargetCount = 3,
     int doneSceneCount = 1,
     int sceneCount = 4,
+    double width = _headerWidth,
   }) async {
-    tester.view.physicalSize = const Size(_headerWidth + 200, 600);
+    tester.view.physicalSize = Size(width + 200, 600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -63,6 +71,7 @@ void main() {
           doneSceneCount: doneSceneCount,
           sceneCount: sceneCount,
         ),
+        width: width,
       ),
     );
     await tester.pumpAndSettle();
@@ -168,5 +177,46 @@ void main() {
     final fill = tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox));
 
     expect(fill.widthFactor, 0);
+  });
+
+  testWidgets("a narrow band drops the hint and the progress label, keeping the bar", (
+    tester,
+  ) async {
+    await pumpHeader(tester, width: _narrowHeaderWidth, taggedTargetCount: 7, doneSceneCount: 2, sceneCount: 5);
+    final tr = Tr.of(tester.element(find.byType(OcptBreakdownHeader)));
+    final progressLabel =
+        "${tr.breakdownStatsTagged(7)} · ${tr.breakdownHeaderScenesProgressLabel(2, 5)}";
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(tr.breakdownHeaderScriptSegmentLabel), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text(tr.breakdownHeaderScriptHint), findsNothing);
+    expect(find.text(progressLabel), findsNothing);
+    // The label the band no longer has room for is what the track it kept is tooltipped with, so
+    // the numbers are moved rather than lost.
+    expect(find.byTooltip(progressLabel), findsOneWidget);
+  });
+
+  testWidgets("a band narrower still drops the progress bar too, keeping the two controls", (
+    tester,
+  ) async {
+    await pumpHeader(tester, width: _tinyHeaderWidth);
+    final tr = Tr.of(tester.element(find.byType(OcptBreakdownHeader)));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(tr.breakdownHeaderScriptSegmentLabel), findsOneWidget);
+    expect(find.text(tr.breakdownHeaderRecapSegmentLabel), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(FractionallySizedBox), findsNothing);
+  });
+
+  testWidgets("the search field shrinks rather than overflowing its band", (tester) async {
+    await pumpHeader(tester, width: _tinyHeaderWidth);
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byType(TextField)).width,
+      lessThan(_tinyHeaderWidth),
+    );
   });
 }
