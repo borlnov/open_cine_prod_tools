@@ -5086,5 +5086,133 @@
     "context": "Displayed in the workspace toolbar, between the mode's own toolbar actions and the shell's own chrome",
     "type": "text",
     "placeholders": {}
+  },
+  "breakdownScenesPanelTitle": "Scenes",
+  "@breakdownScenesPanelTitle": {
+    "description": "Title of the breakdown mode's left dock",
+    "context": "Displayed above the scene list of the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownScenesDoneCount": "{done}/{total} done",
+  "@breakdownScenesDoneCount": {
+    "description": "How many of the screenplay's scenes are marked done, of the total",
+    "context": "Displayed next to the breakdown mode's left dock title",
+    "type": "text",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownScenesEmptyHint": "Scene headings will appear here as you write.",
+  "@breakdownScenesEmptyHint": {
+    "description": "Hint shown while the screenplay has no scene yet",
+    "context": "Displayed in the breakdown mode's left dock and in its centre script view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneElementsCount": "{count, plural, one{{count} element} other{{count} elements}}",
+  "@breakdownSceneElementsCount": {
+    "description": "Number of distinct targets tagged in one scene",
+    "context": "Displayed under a scene's heading in the breakdown mode's left dock, and beside it in the script view",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSceneStatusToDo": "To do",
+  "@breakdownSceneStatusToDo": {
+    "description": "A scene's breakdown status: not started yet",
+    "context": "Displayed on the right of a scene's row in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneStatusInProgress": "In progress",
+  "@breakdownSceneStatusInProgress": {
+    "description": "A scene's breakdown status: being broken down",
+    "context": "Displayed on the right of a scene's row in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneStatusDone": "Done",
+  "@breakdownSceneStatusDone": {
+    "description": "A scene's breakdown status: complete",
+    "context": "Displayed on the right of a scene's row in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTargetKindRoleLabel": "Characters",
+  "@breakdownTargetKindRoleLabel": {
+    "description": "Label of a role target's bar (a character or a block of extras)",
+    "context": "Tooltip of a scene row's bar in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTargetKindSetLabel": "Set",
+  "@breakdownTargetKindSetLabel": {
+    "description": "Label of a set target's bar",
+    "context": "Tooltip of a scene row's bar in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRightDockVersionsTabLabel": "Versions",
+  "@breakdownRightDockVersionsTabLabel": {
+    "description": "Label of the breakdown mode's right dock's single tab",
+    "context": "Displayed in the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRightDockCloseTooltip": "Close panel",
+  "@breakdownRightDockCloseTooltip": {
+    "description": "Tooltip of the breakdown mode's right dock close button",
+    "context": "Displayed on hover over the × button of the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownResetPanelLayoutAction": "Reset panel layout",
+  "@breakdownResetPanelLayoutAction": {
+    "description": "Action restoring the breakdown mode's two dock fractions to their defaults",
+    "context": "Displayed in the breakdown mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownStatsTagged": "{count, plural, one{{count} tagged} other{{count} tagged}}",
+  "@breakdownStatsTagged": {
+    "description": "Number of distinct targets tagged across the whole screenplay",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownStatsCategories": "{count, plural, one{{count} category} other{{count} categories}}",
+  "@breakdownStatsCategories": {
+    "description": "Number of distinct categories (or role/set kinds) among the tagged targets",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownStatsToFind": "{count, plural, one{{count} to find} other{{count} to find}}",
+  "@breakdownStatsToFind": {
+    "description": "Number of tagged elements still marked as to find",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -689,5 +689,20 @@
   "projectSettingsPageFormatSectionTitle": "Format de page",
   "projectSettingsPageFormatLabel": "Format de page",
   "workspaceModeBreakdown": "Dépouillement",
-  "workspaceModeLabelBreakdown": "Dépouillement du scénario"
+  "workspaceModeLabelBreakdown": "Dépouillement du scénario",
+  "breakdownScenesPanelTitle": "Scènes",
+  "breakdownScenesDoneCount": "{done}/{total} terminées",
+  "breakdownScenesEmptyHint": "Les têtes de scène apparaîtront ici au fil de l'écriture.",
+  "breakdownSceneElementsCount": "{count, plural, one{{count} élément} other{{count} éléments}}",
+  "breakdownSceneStatusToDo": "À faire",
+  "breakdownSceneStatusInProgress": "En cours",
+  "breakdownSceneStatusDone": "Terminé",
+  "breakdownTargetKindRoleLabel": "Personnages",
+  "breakdownTargetKindSetLabel": "Décor",
+  "breakdownRightDockVersionsTabLabel": "Versions",
+  "breakdownRightDockCloseTooltip": "Fermer le panneau",
+  "breakdownResetPanelLayoutAction": "Réinitialiser la disposition des panneaux",
+  "breakdownStatsTagged": "{count, plural, one{{count} taggé} other{{count} taggés}}",
+  "breakdownStatsCategories": "{count, plural, one{{count} catégorie} other{{count} catégories}}",
+  "breakdownStatsToFind": "{count, plural, one{{count} à trouver} other{{count} à trouver}}"
 }
