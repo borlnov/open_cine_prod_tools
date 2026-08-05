@@ -222,7 +222,6 @@ void main() {
               onContactChanged: onContactChanged ?? (personId) {},
               onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
               setFieldValueOf: (setId, field) => switch (field) {
-                OcptSetField.code => "",
                 OcptSetField.name => "Cuisine",
                 OcptSetField.notes => "",
               },

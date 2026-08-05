@@ -79,17 +79,32 @@ void main() {
       expect((await readElement(vehicleId)).code, "VEH-1");
     });
 
-    test("createElement leaves a hand-written code out of its numbering", () async {
-      final firstId = await createElement("Valise");
+    test("updateElement renumbers the code when the category actually changes", () async {
+      await createElement("Valise");
+      final movedId = await createElement("Renault 4L");
+      expect((await readElement(movedId)).code, "PRP-2");
+
       await elementsService.updateElement(
         database: database,
-        elementId: firstId,
-        code: const Value("malle noire"),
+        elementId: movedId,
+        category: const Value(OcptElementCategory.vehicle),
       );
 
-      final secondId = await createElement("Lampe torche");
+      expect((await readElement(movedId)).code, "VEH-1");
+    });
 
-      expect((await readElement(secondId)).code, "PRP-1");
+    test("updateElement leaves the code alone when the category doesn't change", () async {
+      await createElement("Valise");
+      final elementId = await createElement("Lampe torche");
+
+      await elementsService.updateElement(
+        database: database,
+        elementId: elementId,
+        category: const Value(OcptElementCategory.prop),
+        name: const Value("Lampe frontale"),
+      );
+
+      expect((await readElement(elementId)).code, "PRP-2");
     });
 
     test("createElement in the middle keeps sortKey ordering", () async {

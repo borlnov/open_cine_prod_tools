@@ -135,6 +135,16 @@ const _v8CurrencyDdl = '''
 ALTER TABLE "project_info" ADD COLUMN "currency_code" TEXT NOT NULL DEFAULT 'EUR';
 ''';
 
+// The two tables and the one column version 9 added on top of the fixtures above: the breakdown
+// pass's own tables, and `elements.status`. The column is composed as an `ALTER TABLE`, for the
+// reason [_v8CurrencyDdl] gives — [_v6ResourcesDdl] already declares `elements` without it.
+// `sets.code` exists here and is empty, which is exactly the state version 10 fills in.
+const _v9BreakdownDdl = '''
+CREATE TABLE "breakdown_tags" ("id" TEXT NOT NULL, "scene_id" TEXT NOT NULL REFERENCES scenes (id), "target_kind" TEXT NOT NULL, "element_id" TEXT NULL REFERENCES elements (id), "role_id" TEXT NULL REFERENCES roles (id), "set_id" TEXT NULL REFERENCES sets (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "tagged_text" TEXT NOT NULL, "needs_check" INTEGER NOT NULL DEFAULT 0 CHECK ("needs_check" IN (0, 1)), "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "scene_breakdowns" ("id" TEXT NOT NULL, "scene_id" TEXT NOT NULL REFERENCES scenes (id), "status" TEXT NOT NULL DEFAULT 'toDo', "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+ALTER TABLE "elements" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'toFind';
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -281,10 +291,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 9.
+    // anything but version 10.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 9);
+    expect(await readSchemaVersion(freshDatabase), 10);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -336,6 +346,11 @@ void main() {
         '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl$_v8CurrencyDdl',
         8,
       ),
+      (
+        'upgraded_from_v9.ocpt',
+        '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl$_v8CurrencyDdl$_v9BreakdownDdl',
+        9,
+      ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -352,7 +367,7 @@ void main() {
         reason: "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 9);
+      expect(await readSchemaVersion(database), 10);
 
       await database.close();
     }
@@ -440,7 +455,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 9.
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -558,7 +573,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -614,7 +629,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says version 9.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -648,7 +663,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says version 9.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -793,7 +808,7 @@ void main() {
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
     // (d) the file now says version 9.
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -844,7 +859,7 @@ void main() {
     expect(availability.isDeleted, isFalse);
 
     // (c) the file now says version 9.
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -878,7 +893,7 @@ void main() {
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
     // (c) the file now says version 9.
-    expect(await readSchemaVersion(database), 9);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -968,8 +983,63 @@ void main() {
       throwsA(isA<sqlite3.SqliteException>()),
     );
 
-    // (e) the file now says version 9.
-    expect(await readSchemaVersion(database), 9);
+    // (e) the file now says version 10.
+    expect(await readSchemaVersion(database), 10);
+
+    await database.close();
+  });
+
+  test('a v9 database migrates on, gaining a code for every set it already held', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v9.ocpt');
+
+    // The shape version 9 left behind: every table the app has, `sets.code` among them — declared
+    // since version 6 and left empty, back when it was a field the user typed into by hand.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute(_v6ResourcesDdl);
+    legacyDb.execute(_v7LocationAvailabilitiesDdl);
+    legacyDb.execute(_v8CurrencyDdl);
+    legacyDb.execute(_v9BreakdownDdl);
+    legacyDb.execute('PRAGMA user_version = 9;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute("INSERT INTO locations (id, name) VALUES ('location1', 'Maison');");
+    legacyDb.execute(
+      "INSERT INTO sets (id, location_id, code, name, sort_key) VALUES "
+      "('set1', 'location1', '', 'Cuisine', 'a'), "
+      "('set2', 'location1', 'B', 'Jardin', 'b'), "
+      "('set3', 'location1', '', 'Escalier', 'c'), "
+      "('set4', 'location1', '', 'Cave', 'd');",
+    );
+    // A tombstoned set is left out of the backfill entirely: it is not on any sheet to be read
+    // from, and numbering it would burn a code for nothing.
+    legacyDb.execute(
+      "INSERT INTO sets (id, location_id, code, name, sort_key, is_deleted) VALUES "
+      "('set5', 'location1', '', 'Grenier', 'e', 1);",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived: this step adds no column and creates no table.
+    await expectCommonRowsSurvived(database);
+
+    final sets =
+        await (database.select(database.ocptSetsTable)
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+            .get();
+
+    // (b) the sets with no code got one, numbered around the `B` somebody had typed — which is
+    // left exactly as it was.
+    expect(sets.map((row) => (row.id, row.code)), [
+      ('set1', 'C'),
+      ('set2', 'B'),
+      ('set3', 'D'),
+      ('set4', 'E'),
+      ('set5', ''),
+    ]);
+
+    // (c) the file now says version 10.
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });

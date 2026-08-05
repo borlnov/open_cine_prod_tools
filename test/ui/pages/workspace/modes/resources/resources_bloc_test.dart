@@ -797,7 +797,7 @@ void main() {
     expect(state.pendingSetFieldEdits, isEmpty);
 
     bloc.add(
-      OcptResourcesSetFieldChangedEvent(setId: setId, field: OcptSetField.code, rawValue: "A"),
+      OcptResourcesSetFieldChangedEvent(setId: setId, field: OcptSetField.notes, rawValue: "Nord"),
     );
     await waitForState(bloc, (state) => state.pendingSetFieldEdits.isNotEmpty);
 
@@ -908,8 +908,9 @@ void main() {
     await bloc.close();
   });
 
-  // A generated code is a default and follows the category; a typed one is a decision and does not.
-  test("changing an element's category renumbers a generated code, never a typed one", () async {
+  // Nobody can type a code, so one that no longer says which department the item comes from could
+  // never be repaired: it follows every category change.
+  test("changing an element's category renumbers its code", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
 
@@ -927,15 +928,6 @@ void main() {
     await waitForState(bloc, (state) => state.selectedElement!.code == "VEH-1");
 
     bloc.add(
-      OcptResourcesElementFieldChangedEvent(
-        elementId: elementId,
-        field: OcptElementField.code,
-        rawValue: "4L jaune",
-      ),
-    );
-    await waitForState(bloc, (state) => state.selectedElement!.code == "4L jaune");
-
-    bloc.add(
       OcptResourcesElementCategoryChangedEvent(
         elementId: elementId,
         category: OcptElementCategory.costume,
@@ -945,7 +937,7 @@ void main() {
       bloc,
       (state) => state.selectedElement!.category == OcptElementCategory.costume,
     );
-    expect(state.selectedElement!.code, "4L jaune");
+    expect(state.selectedElement!.code, "COS-1");
 
     await bloc.close();
   });

@@ -57,6 +57,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_set_code.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 part 'ocpt_project_database.g.dart';
@@ -174,7 +175,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   /// The database options used by this database.
   ///
@@ -206,9 +207,11 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// location may be shot in. From 7 to 8 it adds `project_info.currencyCode`, defaulting an
   /// existing file to EUR exactly as a freshly created one would if the device locale couldn't
   /// suggest anything better. From 8 to 9 it creates [OcptBreakdownTagsTable] and
-  /// [OcptSceneBreakdownsTable], the breakdown pass's own tables, and adds `elements.status`. Every
-  /// step is additive, as ADR 0007 requires: every new column carries a default (or is nullable),
-  /// so the rows a project already had stay valid without being rewritten.
+  /// [OcptSceneBreakdownsTable], the breakdown pass's own tables, and adds `elements.status`. From
+  /// 9 to 10 it adds **no column at all**: it fills the `sets.code` a set now carries from the
+  /// moment it is created (see [_backfillSetCodes]). Every step is additive, as ADR 0007 requires:
+  /// every new column carries a default (or is nullable), so the rows a project already had stay
+  /// valid without being rewritten.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -297,11 +300,48 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
           await m.addColumn(ocptElementsTable, ocptElementsTable.status);
         }
       }
+
+      if (from < 10 && from >= 6) {
+        await _backfillSetCodes();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Writes a code onto every live `sets` row that has none, in the order the sets are already
+  /// read in, so a project made before schema version 10 comes out of the migration looking exactly
+  /// like one made after it.
+  ///
+  /// Only the empty ones are written: back when the field was typed by hand, somebody may have put
+  /// something in it, and `ocptSetCodeOf` numbers around whatever it does not recognise rather than
+  /// over it.
+  ///
+  /// Guarded by `from >= 6` at its call site, `sets` having been created by the version 6 step
+  /// above — from which it comes out empty, so there is nothing to fill.
+  ///
+  /// Written in raw SQL rather than through the generated API, for the reason [_backfillSortKeys]
+  /// gives.
+  Future<void> _backfillSetCodes() async {
+    final rows = await customSelect(
+      'SELECT id, code FROM sets WHERE is_deleted = 0 ORDER BY sort_key, id',
+    ).get();
+
+    final codes = [for (final row in rows) row.data['code'] as String? ?? ""];
+
+    for (var i = 0; i < rows.length; i++) {
+      if (codes[i].trim().isNotEmpty) {
+        continue;
+      }
+
+      codes[i] = ocptSetCodeOf(existingCodes: codes);
+      await customStatement('UPDATE sets SET code = ? WHERE id = ?', [
+        codes[i],
+        rows[i].data['id'],
+      ]);
+    }
+  }
 
   /// Writes a `sortKey` onto every `shots` and `shot_characters` row that predates schema version
   /// 3, preserving the order those rows already had under `position`.

@@ -1339,8 +1339,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
             elementId: elementId,
             notes: Value(rawValue),
           );
-        case OcptElementField.code ||
-            OcptElementField.ownerNotes ||
+        case OcptElementField.ownerNotes ||
             OcptElementField.storageNotes ||
             OcptElementField.cost ||
             OcptElementField.purposeNotes:

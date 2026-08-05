@@ -588,7 +588,6 @@ class _BreakdownViewState extends State<_BreakdownView> {
     OcptElementField.subCategory => element.subCategory,
     OcptElementField.quantity => element.quantity,
     OcptElementField.notes => element.notes,
-    OcptElementField.code ||
     OcptElementField.ownerNotes ||
     OcptElementField.storageNotes ||
     OcptElementField.cost ||

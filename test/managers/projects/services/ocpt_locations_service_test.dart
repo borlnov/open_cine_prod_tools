@@ -238,6 +238,37 @@ void main() {
       expect(locations.single.sets.map((set) => set.name), ["Hangar", "Jardin"]);
     });
 
+    test("createSet codes a set across the whole project, not within its location", () async {
+      final firstLocationId = (await locationsService.createLocation(
+        database: database,
+        name: "Maison",
+      ))!;
+      final secondLocationId = (await locationsService.createLocation(
+        database: database,
+        name: "Hangar",
+      ))!;
+
+      await locationsService.createSet(
+        database: database,
+        locationId: firstLocationId,
+        name: "Cuisine",
+      );
+      await locationsService.createSet(
+        database: database,
+        locationId: firstLocationId,
+        name: "Jardin",
+      );
+      await locationsService.createSet(
+        database: database,
+        locationId: secondLocationId,
+        name: "Atelier",
+      );
+
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations.first.sets.map((set) => set.code), ["A", "B"]);
+      expect(locations.last.sets.single.code, "C");
+    });
+
     test("updateSet only touches the fields it's given a Value for", () async {
       final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
       final setId = (await locationsService.createSet(
@@ -246,11 +277,15 @@ void main() {
         name: "Hangar",
       ))!;
 
-      await locationsService.updateSet(database: database, setId: setId, code: const Value("A"));
+      await locationsService.updateSet(
+        database: database,
+        setId: setId,
+        notes: const Value("Nord"),
+      );
 
       final locations = await locationsService.loadLocations(database: database);
       final set = locations.single.sets.single;
-      expect(set.code, "A");
+      expect(set.notes, "Nord");
       expect(set.name, "Hangar");
     });
 

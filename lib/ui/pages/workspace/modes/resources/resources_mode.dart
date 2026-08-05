@@ -789,7 +789,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     return switch (field) {
       OcptElementField.name => element.name,
-      OcptElementField.code => element.code,
       OcptElementField.subCategory => element.subCategory,
       OcptElementField.quantity => element.quantity,
       OcptElementField.ownerNotes => element.ownerNotes,
@@ -857,7 +856,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
       for (final set in location.sets) {
         if (set.id == setId) {
           return switch (field) {
-            OcptSetField.code => set.code,
             OcptSetField.name => set.name,
             OcptSetField.notes => set.notes,
           };

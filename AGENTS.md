@@ -101,7 +101,7 @@ schedule, call sheets, budget, script supervisor reports, storyboard, and a cast
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
-| 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
+| 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`) then v10 (a code backfilled onto every set), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
 
 ## Ways of working
 
@@ -293,7 +293,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v9 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v10 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
   `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
@@ -451,6 +451,17 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   and changed only by moving the whole set (`OcptLocationsService.moveSetToLocation`, the sets
   card's own move control, which re-allocates the `sortKey` in the destination), so a set filed
   under the wrong house is repaired rather than deleted and retyped.
+  A **code is the app's own**, never typed: `OcptElementsService.createElement` mints an element's
+  (`ocptElementCodeOf`, `PRP-3`, numbered within its category) and `OcptLocationsService.createSet`
+  mints a set's (`ocptSetCodeOf`, `A`, `B`, … `AA`, numbered across the whole project — a set has
+  no category, so a constant prefix would say nothing, and the two shapes can never be confused for
+  one another). Neither is among `OcptElementField`/`OcptSetField`'s entries and neither has a field
+  on a sheet: `OcptResourcesCodeReadOut` reads it out. The one thing that ever rewrites one is a
+  category change, and `updateElement` owns that rule rather than a bloc, so the breakdown's own
+  category chips get it without knowing it exists — a prefix that stopped saying which department
+  an item comes from could not be corrected by hand. Schema v10 is the same rule applied backwards:
+  it adds no column and fills the `sets.code` an older project left empty, numbering around
+  anything it does not recognise rather than over it.
   Everything writes the moment it changes, except the sheets' typed free-text fields: those ride
   one 2 s debounce shared by the five `pending…FieldEdits` maps, flushed together on a selection
   change, a tab change, a version preview and the mode leaving the tree. A field may **flag** what

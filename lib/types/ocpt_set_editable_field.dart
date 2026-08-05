@@ -12,11 +12,9 @@
 ///
 /// Every case maps onto one `OcptLocationsService.updateSet` argument of the same name. Which
 /// scenes are shot in a set is not one of them: picking a scene is a menu pick, written
-/// immediately.
+/// immediately. Neither is its code, which is the app's own — `OcptLocationsService.createSet`
+/// mints it and nothing rewrites it, so `OcptResourcesCodeReadOut` reads it out instead.
 enum OcptSetField {
-  /// Maps to `updateSet`'s `code`.
-  code,
-
   /// Maps to `updateSet`'s `name`.
   name,
 

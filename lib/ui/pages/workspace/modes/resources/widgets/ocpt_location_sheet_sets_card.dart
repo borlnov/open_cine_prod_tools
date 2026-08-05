@@ -8,15 +8,17 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_code_read_out.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
-/// The width of a set's code field: a code is `A`, `B`, `EXT-1` — never a sentence.
+/// The width of a set's code read-out: a code is `A`, `B`, `AC` — never a sentence.
 const double _codeFieldWidth = 72;
 
-/// "Sets in this location": one row per [OcptSet] — its code, its name, its notes, the scenes shot
-/// in it, and the control removing it — over the action adding another.
+/// "Sets in this location": one row per [OcptSet] — its code (read out, never typed: it is the
+/// app's own, minted by `OcptLocationsService.createSet`), its name, its notes, the scenes shot in
+/// it, and the control removing it — over the action adding another.
 ///
 /// The scenes are here rather than on a screen of their own because this is where the answer is
 /// known: the user is looking at "Cuisine" and knows scene 12 happens in it. The picker offers the
@@ -117,8 +119,8 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     );
   }
 
-  /// One set: its code and name on the first line, its notes on the second, and the scenes shot in
-  /// it on the third.
+  /// One set: its code and its name on the first line, its notes on the second, and the scenes
+  /// shot in it on the third.
   Widget _buildSetRow(BuildContext context, Tr tr, OcptSet set) {
     final theme = Theme.of(context);
     final onSetRemoved = this.onSetRemoved;
@@ -137,7 +139,10 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
             children: [
               SizedBox(
                 width: _codeFieldWidth,
-                child: _buildSetField(set, OcptSetField.code, tr.resourcesSetCodeLabel),
+                child: OcptResourcesCodeReadOut(
+                  label: tr.resourcesSetCodeLabel,
+                  code: set.code,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(child: _buildSetField(set, OcptSetField.name, tr.resourcesSetNameLabel)),
