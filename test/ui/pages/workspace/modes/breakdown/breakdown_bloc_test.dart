@@ -1549,6 +1549,42 @@ void main() {
     await bloc.close();
   });
 
+  test("renaming a set rides the field-edit debounce and lands on the catalogue row", () async {
+    await writeScreenplay("INT. CUISINE - DAY\n\nA lamp sits on the desk.\n");
+    final project = projectsManager.currentProject!;
+    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
+        .single
+        .id;
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.scenes.length == 1);
+
+    bloc.add(
+      OcptBreakdownSceneSetCreationRequestedEvent(
+        sceneId: sceneId,
+        locationId: null,
+        name: "CUISINE",
+      ),
+    );
+    final created = await waitForState(bloc, (state) => state.sets.length == 1);
+    final setId = created.sets.single.id;
+
+    bloc.add(OcptBreakdownSetNameChangedEvent(setId: setId, rawValue: "Cuisine des Martin"));
+    // Pending first: the rename reads back immediately, before the debounce has written anything.
+    var state = await waitForState(bloc, (state) => state.pendingSetNameEdits.isNotEmpty);
+    expect(state.setNameValueOf(setId, "CUISINE"), "Cuisine des Martin");
+    expect(state.sets.single.name, "CUISINE");
+
+    bloc.add(const OcptBreakdownFieldEditFlushRequestedEvent());
+    state = await waitForState(bloc, (state) => state.pendingSetNameEdits.isEmpty);
+
+    expect(state.sets.single.name, "Cuisine des Martin");
+    // The location minted to hold it keeps the name it was given: the two are renamed apart.
+    expect(state.locations.single.name, "CUISINE");
+
+    await bloc.close();
+  });
+
   test("tag removal with no target selected leaves the tag untouched", () async {
     final tagged = await writeTaggedElement();
     final bloc = buildBloc();

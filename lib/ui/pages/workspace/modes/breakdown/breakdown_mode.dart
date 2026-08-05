@@ -495,6 +495,32 @@ class _BreakdownViewState extends State<_BreakdownView> {
           : state.elementFieldValueOf(element.id, field, _storedElementFieldValue(element, field)),
       onBackToSceneRequested: () =>
           bloc.add(const OcptBreakdownTargetSelectionClearedEvent()),
+      nameValue: switch (target.kind) {
+        OcptBreakdownTargetKind.element => element == null
+            ? target.name
+            : state.elementFieldValueOf(element.id, OcptElementField.name, element.name),
+        OcptBreakdownTargetKind.set => state.setNameValueOf(target.id, target.name),
+        OcptBreakdownTargetKind.role => target.name,
+      },
+      onNameChanged: isReadOnly
+          ? null
+          : switch (target.kind) {
+              // A role's name is the screenplay's: `OcptRoleIndexService` reconciles it from the
+              // cue, so a rename here would be undone by the next save.
+              OcptBreakdownTargetKind.role => null,
+              OcptBreakdownTargetKind.element => element == null
+                  ? null
+                  : (rawValue) => bloc.add(
+                      OcptBreakdownElementFieldChangedEvent(
+                        elementId: element.id,
+                        field: OcptElementField.name,
+                        rawValue: rawValue,
+                      ),
+                    ),
+              OcptBreakdownTargetKind.set => (rawValue) => bloc.add(
+                OcptBreakdownSetNameChangedEvent(setId: target.id, rawValue: rawValue),
+              ),
+            },
       onStatusChanged: isReadOnly || element == null
           ? null
           : (status) => bloc.add(

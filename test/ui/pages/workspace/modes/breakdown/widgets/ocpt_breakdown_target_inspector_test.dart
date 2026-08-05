@@ -232,6 +232,8 @@ void main() {
           scenes: [scene],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -283,6 +285,9 @@ void main() {
           scenes: [scene],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "LÉA",
+          // A role's name is the screenplay's, so the panel reads it out rather than offering it.
+          onNameChanged: null,
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -321,6 +326,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: reported.add,
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -356,6 +363,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: reported.add,
           onFieldChanged: (_, __) {},
@@ -391,6 +400,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (field, value) {
@@ -414,10 +425,12 @@ void main() {
     expect(reported, ["1960s"]);
   });
 
-  testWidgets("typing into the name field reports it and heads the panel with it", (tester) async {
+  testWidgets("the panel's own title is the name field, and typing into it reports it", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     final reported = <String>[];
-    var name = "";
+    var name = "Desk lamp";
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -429,17 +442,17 @@ void main() {
             bringer: null,
             people: const [],
             scenes: const [],
-            // What the bloc's own pending field edits give the panel back while the debounce runs.
-            fieldValueOf: (field) => field == OcptElementField.name ? name : "",
+            fieldValueOf: (_) => "",
             onBackToSceneRequested: () {},
+            // What the bloc's own pending rename gives the panel back while the debounce runs.
+            nameValue: name,
+            onNameChanged: (value) {
+              reported.add(value);
+              setState(() => name = value);
+            },
             onStatusChanged: (_) {},
             onCategoryChanged: (_) {},
-            onFieldChanged: (field, value) {
-              if (field == OcptElementField.name) {
-                reported.add(value);
-                setState(() => name = value);
-              }
-            },
+            onFieldChanged: (_, __) {},
             onOwnerChanged: (_) {},
             onBringerChanged: (_) {},
             onOccurrenceSelected: (_) {},
@@ -452,20 +465,24 @@ void main() {
       ),
     );
 
-    // The panel is headed with the target's own name until the field is touched.
-    expect(find.text("Desk lamp"), findsOneWidget);
+    // The title carries the name, and it is the only place the panel does: the details below hold
+    // the sub-category, the quantity and the notes, never a second field repeating it.
+    final title = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.controller?.text == "Desk lamp",
+    );
+    expect(title, findsOneWidget);
+    expect(_fieldLabelled("Name"), findsNothing);
 
-    await tester.enterText(_fieldLabelled("Name"), "Queen's crown");
+    await tester.enterText(title, "Queen's crown");
     await tester.pump();
 
     expect(reported, ["Queen's crown"]);
-    // Headed with what was just typed, rather than with the name the snapshot still holds: the
-    // write only lands once the field debounce has.
     expect(find.text("Desk lamp"), findsNothing);
-    expect(find.text("Queen's crown"), findsWidgets);
   });
 
-  testWidgets("the name field shows the element's own stored name", (tester) async {
+  testWidgets("a target that may not be renamed reads its name out rather than offering it", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
 
     await tester.pumpWidget(
@@ -477,8 +494,10 @@ void main() {
           bringer: null,
           people: const [],
           scenes: const [],
-          fieldValueOf: (field) => field == OcptElementField.name ? "Desk lamp" : "",
+          fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: null,
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -493,7 +512,13 @@ void main() {
       ),
     );
 
-    expect(tester.widget<TextField>(_fieldLabelled("Name")).controller?.text, "Desk lamp");
+    expect(find.text("Desk lamp"), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is TextField && widget.controller?.text == "Desk lamp",
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets("clicking an occurrence row reports its own scene", (tester) async {
@@ -524,6 +549,8 @@ void main() {
           scenes: [scene],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -562,6 +589,8 @@ void main() {
           scenes: [sceneA, sceneB],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -599,6 +628,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -635,6 +666,8 @@ void main() {
           scenes: [scene],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -680,6 +713,8 @@ void main() {
             scenes: [scene],
             fieldValueOf: (_) => "",
             onBackToSceneRequested: () {},
+            nameValue: "Desk lamp",
+            onNameChanged: (_) {},
             onStatusChanged: null,
             onCategoryChanged: null,
             onFieldChanged: null,
@@ -724,6 +759,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -763,6 +800,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: null,
           onCategoryChanged: null,
           onFieldChanged: null,
@@ -800,6 +839,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: (_) {},
           onCategoryChanged: (_) {},
           onFieldChanged: (_, __) {},
@@ -842,6 +883,8 @@ void main() {
           scenes: const [],
           fieldValueOf: (_) => "",
           onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
           onStatusChanged: null,
           onCategoryChanged: null,
           onFieldChanged: null,

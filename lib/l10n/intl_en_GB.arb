@@ -5342,13 +5342,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "breakdownElementNameLabel": "Name",
-  "@breakdownElementNameLabel": {
-    "description": "Label of an element's own name field, the name every surface of the mode shows it under",
-    "context": "Displayed above the target inspector's first details field",
-    "type": "text",
-    "placeholders": {}
-  },
   "breakdownElementNotesLabel": "Notes",
   "@breakdownElementNotesLabel": {
     "description": "Label of an element's own free-text notes field",

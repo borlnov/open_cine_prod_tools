@@ -546,6 +546,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   outside the location sheet holding it (`ocptBreakdownSetLabel`), which is why
   `OcptBreakdownSnapshot` carries the whole `locations` catalogue and derives `locationNameById`
   from it.
+  The target inspector's **title is its name field**: an element or a set created from the popover
+  carries the passage's own wording, and the moment to correct that is while reading it, not after
+  scrolling past a status grid to a field repeating it. Renaming there renames the catalogue row
+  itself, so the script's tooltips, the legend, the recap and the resources mode all follow — a set
+  riding `pendingSetNameEdits` on the same debounce an element's fields do. A **role** is the one
+  kind read out rather than typed into, its name being the screenplay's.
   The left dock is the scene list (status, a colour bar per category present, counts) over the
   category legend, whose entries toggle their category's highlighting; the right dock is
   `Inspector` + the shared `Versions` tab, the inspector showing the selected target's sheet or —

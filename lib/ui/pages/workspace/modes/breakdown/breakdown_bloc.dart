@@ -189,6 +189,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownElementStatusChangedEvent>(_onElementStatusChanged);
     on<OcptBreakdownElementCategoryChangedEvent>(_onElementCategoryChanged);
     on<OcptBreakdownElementFieldChangedEvent>(_onElementFieldChanged);
+    on<OcptBreakdownSetNameChangedEvent>(_onSetNameChanged);
     on<OcptBreakdownFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptBreakdownElementOwnerChangedEvent>(_onElementOwnerChanged);
     on<OcptBreakdownElementBringerChangedEvent>(_onElementBringerChanged);
@@ -291,6 +292,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         lastRightDockTab: lastRightDockTab,
         pendingElementFieldEdits: const {},
         pendingSceneNotesEdits: const {},
+        pendingSetNameEdits: const {},
         clearPendingTagAnchor: true,
         clearPendingTagRange: true,
         hasTagWriteError: false,
@@ -1225,6 +1227,24 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     });
   }
 
+  /// Records the raw text just typed into the title of set `event.setId` as a pending rename,
+  /// visible immediately, and (re)starts the same field-edit debounce [_onElementFieldChanged] does.
+  Future<void> _onSetNameChanged(
+    OcptBreakdownSetNameChangedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final pending = Map<String, String>.of(state.pendingSetNameEdits)
+      ..[event.setId] = event.rawValue;
+    emitter(state.copyWith(pendingSetNameEdits: pending));
+
+    _fieldEditTimer?.cancel();
+    _fieldEditTimer = Timer(_fieldEditDebounce, () {
+      if (!isClosed) {
+        add(const OcptBreakdownFieldEditFlushRequestedEvent());
+      }
+    });
+  }
+
   /// Writes every pending element field edit and every pending scene notes edit once the
   /// field-edit debounce elapses with no further typing.
   Future<void> _onFieldEditFlushRequested(
@@ -1249,14 +1269,19 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
     final pendingElementFields = state.pendingElementFieldEdits;
     final pendingSceneNotes = state.pendingSceneNotesEdits;
-    if (pendingElementFields.isEmpty && pendingSceneNotes.isEmpty) {
+    final pendingSetNames = state.pendingSetNameEdits;
+    if (pendingElementFields.isEmpty && pendingSceneNotes.isEmpty && pendingSetNames.isEmpty) {
       return;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(
-        state.copyWith(pendingElementFieldEdits: const {}, pendingSceneNotesEdits: const {}),
+        state.copyWith(
+          pendingElementFieldEdits: const {},
+          pendingSceneNotesEdits: const {},
+          pendingSetNameEdits: const {},
+        ),
       );
       return;
     }
@@ -1266,6 +1291,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         database: project.database,
         elementFields: pendingElementFields,
         sceneNotes: pendingSceneNotes,
+        setNames: pendingSetNames,
       );
       final snapshot = await _loadSnapshot(project);
       emitter(
@@ -1273,6 +1299,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           snapshot: snapshot,
           pendingElementFieldEdits: const {},
           pendingSceneNotesEdits: const {},
+          pendingSetNameEdits: const {},
         ),
       );
 
@@ -1285,7 +1312,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       appLogger().e("A problem occurred when tried to flush a pending breakdown field edit of the "
           "project at ${project.path}: $error");
       emitter(
-        state.copyWith(pendingElementFieldEdits: const {}, pendingSceneNotesEdits: const {}),
+        state.copyWith(
+          pendingElementFieldEdits: const {},
+          pendingSceneNotesEdits: const {},
+          pendingSetNameEdits: const {},
+        ),
       );
     }
   }
@@ -1309,7 +1340,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
     final pendingElementFields = state.pendingElementFieldEdits;
     final pendingSceneNotes = state.pendingSceneNotesEdits;
-    if (pendingElementFields.isEmpty && pendingSceneNotes.isEmpty) {
+    final pendingSetNames = state.pendingSetNameEdits;
+    if (pendingElementFields.isEmpty && pendingSceneNotes.isEmpty && pendingSetNames.isEmpty) {
       return;
     }
 
@@ -1323,6 +1355,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         database: project.database,
         elementFields: pendingElementFields,
         sceneNotes: pendingSceneNotes,
+        setNames: pendingSetNames,
       );
     } catch (error) {
       appLogger().e("A problem occurred when tried to flush a pending breakdown field edit of the "
@@ -1334,11 +1367,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// each (only `name`, `subCategory`, `quantity` and `notes` ever land here — the target
   /// inspector's other fields are single picks written immediately by their own event, see this
   /// bloc's own doc comment) into the matching named argument, then every entry of [sceneNotes]
-  /// through `OcptBreakdownService.updateSceneBreakdown`.
+  /// through `OcptBreakdownService.updateSceneBreakdown`, then every entry of [setNames] through
+  /// `OcptLocationsService.updateSet`.
   Future<void> _writeAllPendingFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptElementField), String> elementFields,
     required Map<String, String> sceneNotes,
+    required Map<String, String> setNames,
   }) async {
     for (final entry in elementFields.entries) {
       final (elementId, field) = entry.key;
@@ -1385,6 +1420,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         database: database,
         sceneId: entry.key,
         notes: Value(entry.value),
+      );
+    }
+
+    for (final entry in setNames.entries) {
+      await _locationsService.updateSet(
+        database: database,
+        setId: entry.key,
+        name: Value(entry.value),
       );
     }
   }

@@ -50,17 +50,20 @@ class _OcptBreakdownOccurrence {
 /// The right dock's `Inspector` tab while a target is selected: a colour swatch and the target's
 /// name, its category (or role/set kind) and scene count, then — **element targets only**, a role
 /// or a set having neither a status nor the fields below — its status chips, its category chips and
-/// its details (name, sub-category, quantity, notes, owner, who brings it), then every target's own
+/// its details (sub-category, quantity, notes, owner, who brings it), then every target's own
 /// occurrences in the screenplay, its suggested ones (§3.4 of the plan this ships under: a repeated
 /// occurrence is offered, never applied — [suggestions] read the same way [scenes] is, verbatim
 /// passages the target inspector shows and, unless [isReadOnly], offers to tag), and the two
 /// trailing actions every kind offers.
 ///
-/// The name field is where an element tagged from the script is given the label it is read under
-/// everywhere else: creating one from the popover names it after the passage it was tagged from,
-/// which is the passage's wording rather than the production's — "crown" the word, not `Queen's
-/// crown, act III`. Renaming it here renames the element itself, so the script's own tooltips, the
-/// legend, the recap table and the resources mode all follow.
+/// The panel's **title is the name field**: creating an element or a set from the popover names it
+/// after the passage it was tagged from, which is the passage's wording rather than the
+/// production's — "crown" the word, not `Queen's crown, act III` — and the moment to correct that
+/// is while reading it. Renaming here renames the catalogue row itself, so the script's own
+/// tooltips, the legend, the recap table and the resources mode all follow. A role is the one kind
+/// read out rather than typed into: its name is the screenplay's, `OcptRoleIndexService`
+/// reconciling it from the cue, so renaming it here would only make the two disagree until the next
+/// save.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`: the mode is the only caller, wiring every
 /// callback to `OcptBreakdownBloc` events and resolving [fieldValueOf] from the bloc's own pending
@@ -68,10 +71,10 @@ class _OcptBreakdownOccurrence {
 /// carrying its own live tags — is read once, internally, to build the occurrences section: there is
 /// no scroll-to-passage in this change, a click only selects the occurrence's own scene.
 ///
-/// [isReadOnly] withholds every control that writes — the status and category chips, the three
-/// fields, the two person pickers, a suggested occurrence's own add control and the tag-removal
-/// action — while leaving every read (the sheet itself, the occurrences and the suggested
-/// occurrences alike, and their jump, `Open in Resources`) in place, mirroring
+/// [isReadOnly] withholds every control that writes — the title field, the status and category
+/// chips, the three fields, the two person pickers, a suggested occurrence's own add control and
+/// the tag-removal action — while leaving every read (the sheet itself, the occurrences and the
+/// suggested occurrences alike, and their jump, `Open in Resources`) in place, mirroring
 /// `OcptShotInspectorPanel`'s own convention: the panel takes the real callbacks and nulls them out
 /// itself, so a control added later cannot be gated in one place and forgotten in the other.
 class OcptBreakdownTargetInspector extends StatelessWidget {
@@ -105,6 +108,16 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
   /// Called when the "back to the scene sheet" link at the top of the panel is clicked. Never
   /// withheld: it only clears the selection, which writes nothing.
   final VoidCallback onBackToSceneRequested;
+
+  /// [target]'s current name — a pending rename still sitting in the bloc's own debounce, or the
+  /// record's own stored one — resolved by the mode, whichever kind of row [target] points at.
+  final String nameValue;
+
+  /// Called with the title field's raw text on every keystroke, or null while [target] may not be
+  /// renamed: a role, whose name is the screenplay's (`OcptRoleIndexService` reconciles it from the
+  /// cue, and renaming it here would only make the two disagree until the next save), or a
+  /// previewed version.
+  final ValueChanged<String>? onNameChanged;
 
   /// Called with the status just picked, or null while it may not be changed.
   final ValueChanged<OcptElementStatus>? onStatusChanged;
@@ -166,6 +179,8 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     required this.scenes,
     required this.fieldValueOf,
     required this.onBackToSceneRequested,
+    required this.nameValue,
+    required this.onNameChanged,
     required this.onStatusChanged,
     required this.onCategoryChanged,
     required this.onFieldChanged,
@@ -202,7 +217,9 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              // The swatch lines up with the first line of the title: a read-out sits where its
+              // text does, a field sits lower by the height of its own input box's top padding.
+              padding: EdgeInsets.only(top: onNameChanged == null ? 4 : 14),
               child: Container(
                 width: 9,
                 height: 9,
@@ -213,9 +230,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: Text(_displayedName(element), style: theme.textTheme.titleSmall),
-            ),
+            Expanded(child: _buildTitle(context, theme)),
           ],
         ),
         const SizedBox(height: 4),
@@ -313,19 +328,13 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     );
   }
 
-  /// The name, sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
+  /// The sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
+  ///
+  /// The name is not among them: it is the panel's own title ([_buildTitle]), where the thing being
+  /// renamed is the thing being read.
   Widget _buildDetails(BuildContext context, Tr tr, OcptElement element) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      OcptResourcesSheetField(
-        ownerId: element.id,
-        label: tr.breakdownElementNameLabel,
-        value: fieldValueOf(OcptElementField.name),
-        onChanged: onFieldChanged == null
-            ? null
-            : (value) => onFieldChanged!(OcptElementField.name, value),
-      ),
-      const SizedBox(height: 10),
       OcptResourcesSheetField(
         ownerId: element.id,
         label: tr.resourcesElementSubCategoryLabel,
@@ -552,18 +561,30 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
           ),
   ];
 
-  /// The name shown at the top of the panel: whatever the name field currently holds while
-  /// [element] is one, so a rename reads back as it is typed rather than only once the field
-  /// debounce has landed and the snapshot has been read again, and [OcptBreakdownTarget.name] in
-  /// every other case — a role, a set, or an element whose name has just been emptied, which the
-  /// panel would otherwise head with nothing at all.
-  String _displayedName(OcptElement? element) {
-    if (element == null) {
-      return target.name;
+  /// The panel's title: [target]'s name, typed into directly when it may be renamed and read out
+  /// as plain text when it may not.
+  ///
+  /// The rename lives here rather than among the details below because this *is* the thing being
+  /// renamed: an element or a set created from the script carries the passage's own wording, and
+  /// the moment to correct it is while reading the name, not after scrolling past a status grid to
+  /// find a field repeating it.
+  Widget _buildTitle(BuildContext context, ThemeData theme) {
+    final onNameChanged = this.onNameChanged;
+    final style = theme.textTheme.titleSmall;
+
+    if (onNameChanged == null) {
+      return Text(nameValue, style: style);
     }
 
-    final pendingName = fieldValueOf(OcptElementField.name).trim();
-    return pendingName.isEmpty ? target.name : pendingName;
+    // Keyed by the kind as well as the id, so switching from an element to a set that happens to
+    // carry the same id resets the field rather than keeping the name it was showing.
+    return OcptResourcesSheetField(
+      ownerId: "${target.kind.name}/${target.id}",
+      label: "",
+      value: nameValue,
+      textStyle: style,
+      onChanged: onNameChanged,
+    );
   }
 
   /// One section title, the accent-coloured header the mock-up uses to separate the panel's

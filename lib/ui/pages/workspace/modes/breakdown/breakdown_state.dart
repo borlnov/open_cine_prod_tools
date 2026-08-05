@@ -56,10 +56,10 @@ class OcptBreakdownIoNotice extends Equatable {
 /// The state of `OcptBreakdownBloc`.
 ///
 /// Selecting a target or a scene, hiding a legend key, switching [centreView] and typing into
-/// [searchQuery] all write nothing to the project database. [pendingElementFieldEdits] and
-/// [pendingSceneNotesEdits] are the pending field edits this state
-/// carries, the selected target's own free-text fields and the selected scene's own breakdown
-/// notes riding the debounce every other mode's `pending…FieldEdits` map does — see
+/// [searchQuery] all write nothing to the project database. [pendingElementFieldEdits],
+/// [pendingSceneNotesEdits] and [pendingSetNameEdits] are the pending field edits this state
+/// carries, the selected target's own free-text fields, the selected scene's own breakdown notes
+/// and a set's own name riding the debounce every other mode's `pending…FieldEdits` map does — see
 /// `OcptBreakdownBloc`'s own doc comment. [pendingTagAnchor] and [pendingTagRange] are likewise
 /// ephemeral and write nothing on their own: the range interaction they drive only touches the
 /// database once the popover it opens answers with a link or an element creation.
@@ -160,6 +160,12 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [sceneNotesValueOf] is what the scene inspector's notes field reads instead of the scene's own
   /// stored value while an edit is pending here.
   final Map<String, String> pendingSceneNotesEdits;
+
+  /// A set's name still sitting in the field-edit debounce, keyed by the set's id, over the same
+  /// timer as the two maps above. The name is the only field of a set the target inspector's own
+  /// title offers, a set having no sheet of its own here. [setNameValueOf] is what that title reads
+  /// instead of the set's own stored name while a rename is pending.
+  final Map<String, String> pendingSetNameEdits;
 
   /// The first word clicked of a range not yet closed, or null while none is open — the script
   /// view's own cue to mark that word as pending. Cleared the moment the range closes (successfully
@@ -361,6 +367,12 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   String sceneNotesValueOf(String sceneId, String storedValue) =>
       pendingSceneNotesEdits[sceneId] ?? storedValue;
 
+  /// [setId]'s current name — a rename still sitting in [pendingSetNameEdits], or [storedValue]
+  /// (the set's own name, read off the selected target at the call site) otherwise, mirroring
+  /// [elementFieldValueOf].
+  String setNameValueOf(String setId, String storedValue) =>
+      pendingSetNameEdits[setId] ?? storedValue;
+
   /// Class constructor
   const OcptBreakdownState({
     required this.isLoading,
@@ -379,6 +391,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.lastRightDockTab,
     required this.pendingElementFieldEdits,
     required this.pendingSceneNotesEdits,
+    required this.pendingSetNameEdits,
     required this.pendingTagAnchor,
     required this.pendingTagRange,
     required this.hasTagWriteError,
@@ -412,6 +425,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       lastRightDockTab = OcptBreakdownRightDockTab.inspector,
       pendingElementFieldEdits = const {},
       pendingSceneNotesEdits = const {},
+      pendingSetNameEdits = const {},
       pendingTagAnchor = null,
       pendingTagRange = null,
       hasTagWriteError = false,
@@ -433,8 +447,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [pendingTagAnchor] and [pendingTagRange] all legitimately go back to null while the mode is
   /// alive (a fresh load, a selection dropped, the dock closed, an anchor replaced or a range
   /// resolved), so each has its own clear flag instead. [hiddenLegendKeys],
-  /// [pendingElementFieldEdits] and [pendingSceneNotesEdits] are each replaced wholesale rather
-  /// than merged — the caller (the bloc's own legend and field-edit handlers) always computes the
+  /// [pendingElementFieldEdits], [pendingSceneNotesEdits] and [pendingSetNameEdits] are each
+  /// replaced wholesale rather than merged — the caller (the bloc's own legend and field-edit handlers) always computes the
   /// full next map or set. [searchQuery] needs no clear flag either: an empty string is already a
   /// perfectly valid value for it (the field cleared), so `searchQuery: ""` is passed like any other
   /// value rather than through a `clear…` flag.
@@ -464,6 +478,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownRightDockTab? lastRightDockTab,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     Map<String, String>? pendingSceneNotesEdits,
+    Map<String, String>? pendingSetNameEdits,
     OcptBreakdownPendingTagAnchor? pendingTagAnchor,
     bool clearPendingTagAnchor = false,
     OcptBreakdownPendingTagRange? pendingTagRange,
@@ -520,6 +535,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
       pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
       pendingSceneNotesEdits: pendingSceneNotesEdits ?? this.pendingSceneNotesEdits,
+      pendingSetNameEdits: pendingSetNameEdits ?? this.pendingSetNameEdits,
       pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
       pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
       hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
@@ -597,6 +613,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     lastRightDockTab,
     pendingElementFieldEdits,
     pendingSceneNotesEdits,
+    pendingSetNameEdits,
     pendingTagAnchor,
     pendingTagRange,
     hasTagWriteError,

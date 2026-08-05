@@ -444,6 +444,27 @@ class OcptBreakdownSceneSetLinkedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
+/// Renames set [setId] to [rawValue], dispatched on every keystroke of the target inspector's own
+/// title while a set is selected.
+///
+/// The set sibling of [OcptBreakdownElementFieldChangedEvent], and it rides the very same debounce:
+/// a set has no sheet of its own here, only the name the popover gave it after the passage that
+/// named it, which is exactly what the title is for.
+class OcptBreakdownSetNameChangedEvent extends OcptBreakdownEvent {
+  /// The id of the set being renamed.
+  final String setId;
+
+  /// The raw text the title field now holds.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptBreakdownSetNameChangedEvent({required this.setId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, rawValue];
+}
+
 /// Creates a set named [name] inside location [locationId] — or inside a location minted along with
 /// it when that is null — and says scene [sceneId] is shot in it, dispatched by the scene
 /// inspector's own `Create a set…` control.
