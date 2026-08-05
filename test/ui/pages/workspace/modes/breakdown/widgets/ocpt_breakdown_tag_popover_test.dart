@@ -27,6 +27,22 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   ),
 );
 
+/// Wraps [child] in an app with no `Stack` of its own — what the anchor tests need, the popover
+/// being painted into the app's own overlay rather than beside its caller.
+Widget _wrapAnchorInApp(Widget child) => MaterialApp(
+  localizationsDelegates: const [
+    Tr.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: Tr.delegate.supportedLocales,
+  home: Scaffold(body: child),
+);
+
+/// Names the word the anchor tests hang the popover off, so their assertions can measure it.
+const Key _anchorWordKey = Key("anchor-word");
+
 /// Builds a candidate of [kind] named [name], tagged in [taggedSceneCount] scenes. [category]
 /// defaults to [OcptElementCategory.prop] for an element candidate (the popover's own palette
 /// lookup requires one) and stays null for a role or a set, exactly as a real candidate would.
@@ -45,6 +61,81 @@ OcptBreakdownSearchCandidate _candidate({
 );
 
 void main() {
+  /// Pumps a scrolling column with [topInset] of empty space above the anchored word, inside a
+  /// window [windowHeight] tall, and reports the word's own rect and the popover's.
+  Future<(Rect word, Rect popover)> pumpAnchoredPopover(
+    WidgetTester tester, {
+    required double topInset,
+    double windowHeight = 600,
+  }) async {
+    await tester.binding.setSurfaceSize(Size(800, windowHeight));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _wrapAnchorInApp(
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(height: topInset),
+              OcptBreakdownTagPopoverAnchor(
+                popover: OcptBreakdownTagPopover(
+                  taggedText: "crown",
+                  candidates: const [],
+                  onCandidateSelected: (_) {},
+                  onCategorySelected: (_, __) {},
+                  onOpenInResourcesRequested: () {},
+                  onClose: () {},
+                ),
+                child: const Text("crown", key: _anchorWordKey),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+    // The popover is only shown from the frame after the word is laid out — the very frame its own
+    // placement is measured in.
+    await tester.pumpAndSettle();
+
+    return (
+      tester.getRect(find.byKey(_anchorWordKey)),
+      tester.getRect(find.byType(OcptBreakdownTagPopover)),
+    );
+  }
+
+  testWidgets("the popover opens under the word while the window has the room for it", (
+    tester,
+  ) async {
+    final (word, popover) = await pumpAnchoredPopover(tester, topInset: 20);
+
+    expect(popover.top, greaterThanOrEqualTo(word.bottom));
+    expect(popover.bottom, lessThanOrEqualTo(600));
+  });
+
+  testWidgets("the popover opens above the word when the window has no room under it", (
+    tester,
+  ) async {
+    final (word, popover) = await pumpAnchoredPopover(tester, topInset: 500);
+
+    expect(popover.bottom, lessThanOrEqualTo(word.top));
+    expect(popover.top, greaterThanOrEqualTo(0));
+  });
+
+  testWidgets("the popover is capped to the room the window leaves it", (tester) async {
+    final (word, popover) = await pumpAnchoredPopover(
+      tester,
+      topInset: 300,
+      windowHeight: 400,
+    );
+
+    // Neither side is tall enough for the whole panel, so it is squeezed into the better one and
+    // scrolls the rest rather than hanging off the window.
+    expect(popover.bottom, lessThanOrEqualTo(word.top));
+    expect(popover.top, greaterThanOrEqualTo(0));
+    expect(popover.height, lessThan(400));
+  });
+
   testWidgets("shows the passage in quotes, pre-filled and focused in the search field", (
     tester,
   ) async {

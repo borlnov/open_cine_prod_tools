@@ -20,10 +20,34 @@ const double _ocptBreakdownTagPopoverWidth = 340;
 /// creation grid) starts scrolling, in logical pixels.
 const double _ocptBreakdownTagPopoverMaxHeight = 480;
 
-/// Anchors [popover] under [child] using an [OverlayPortal] and a [LayerLink]/
+/// The gap kept between the anchoring word and the popover, in logical pixels.
+const double _ocptBreakdownTagPopoverGap = 6;
+
+/// The margin kept between the popover and the overlay's own edges, in logical pixels.
+const double _ocptBreakdownTagPopoverOverlayMargin = 12;
+
+/// The room the popover wants under the word before it is drawn above it instead, in logical
+/// pixels: enough for the header, the field and the first rows of the matches — under that, the
+/// panel is worth flipping rather than squeezing.
+const double _ocptBreakdownTagPopoverPreferredHeight = 260;
+
+/// The shortest the popover is ever drawn, in logical pixels, whichever side of the word it ends up
+/// on: a window too short for even this leaves nothing worth flipping to, and the panel keeps a
+/// usable height rather than collapsing to a sliver.
+const double _ocptBreakdownTagPopoverMinHeight = 160;
+
+/// Anchors [popover] to [child] using an [OverlayPortal] and a [LayerLink]/
 /// [CompositedTransformFollower] pair, so the popover paints into the app's own [Overlay] — above the
 /// script sheet's `SingleChildScrollView`, which would otherwise clip it — rather than being measured
 /// by hand.
+///
+/// **It is drawn under the word only while the overlay has the room for it**: a word near the bottom
+/// of the window would otherwise hang the panel off the edge, its category grid and its footer out of
+/// reach. The side is picked from the room actually left on each side of the word
+/// ([_ocptBreakdownTagPopoverPreferredHeight]), and the panel is then capped to that room, its own
+/// middle scrolling for the rest — the popover's height is a maximum, never a fixed size, so capping
+/// it is enough. The anchoring word rides the script sheet's own scroll view, so the decision is
+/// taken again whenever that scroll offset moves.
 ///
 /// A fresh instance is what opens the popover: `OcptBreakdownScriptView` only ever builds this
 /// wrapper around the one word `OcptBreakdownState.pendingTagRange` closed on, replacing the plain
@@ -52,12 +76,19 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
   /// Links this word's own geometry to the popover's `CompositedTransformFollower`.
   final LayerLink _link = LayerLink();
 
+  /// The scroll position the anchoring word rides on — the script sheet's own — or null while this
+  /// widget is used outside a scroll view. Scrolling moves the word within the overlay, so the side
+  /// the popover is drawn on has to be decided again: the link keeps the panel *on* the word by
+  /// itself, it knows nothing of the edge it may be pushed past.
+  ScrollPosition? _scrollPosition;
+
   @override
   void initState() {
     super.initState();
     // `OverlayPortalController.show()` must not be called while the tree is being built, so the
     // very first reveal is deferred to right after this frame — the one frame of lag is not worth
-    // measuring anything by hand to avoid.
+    // measuring anything by hand to avoid, and the word is laid out by then, which is what the
+    // placement below is measured from.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _controller.show();
@@ -66,20 +97,114 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final position = Scrollable.maybeOf(context)?.position;
+    if (position != _scrollPosition) {
+      _scrollPosition?.removeListener(_handleGeometryChanged);
+      _scrollPosition = position;
+      position?.addListener(_handleGeometryChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollPosition?.removeListener(_handleGeometryChanged);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => CompositedTransformTarget(
     link: _link,
     child: OverlayPortal(
       controller: _controller,
-      overlayChildBuilder: (context) => CompositedTransformFollower(
-        link: _link,
-        targetAnchor: Alignment.bottomCenter,
-        followerAnchor: Alignment.topCenter,
-        offset: const Offset(0, 6),
-        child: Align(alignment: Alignment.topCenter, child: widget.popover),
-      ),
+      overlayChildBuilder: _buildOverlayChild,
       child: widget.child,
     ),
   );
+
+  /// The popover, followed onto the word and placed on whichever side of it the overlay has the
+  /// room for, capped to that very room — see [OcptBreakdownTagPopoverAnchor]'s own doc comment.
+  Widget _buildOverlayChild(BuildContext overlayContext) {
+    final placement = _placementIn(overlayContext);
+
+    return CompositedTransformFollower(
+      link: _link,
+      targetAnchor: placement.isAbove ? Alignment.topCenter : Alignment.bottomCenter,
+      followerAnchor: placement.isAbove ? Alignment.bottomCenter : Alignment.topCenter,
+      offset: Offset(
+        0,
+        placement.isAbove ? -_ocptBreakdownTagPopoverGap : _ocptBreakdownTagPopoverGap,
+      ),
+      child: Align(
+        alignment: placement.isAbove ? Alignment.bottomCenter : Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: placement.maxHeight),
+          child: widget.popover,
+        ),
+      ),
+    );
+  }
+
+  /// Where the popover is drawn: under the word while the overlay leaves
+  /// [_ocptBreakdownTagPopoverPreferredHeight] under it, above it while the room there is both
+  /// short of that and worse than what is left above, and capped either way to the room that side
+  /// actually has.
+  ///
+  /// Falls back to the panel's own default (under the word, its full height) while either box is
+  /// missing — a frame in which nothing has been laid out yet is not a frame to measure.
+  _OcptBreakdownTagPopoverPlacement _placementIn(BuildContext overlayContext) {
+    final anchorBox = context.findRenderObject() as RenderBox?;
+    final overlayBox = Overlay.of(overlayContext).context.findRenderObject() as RenderBox?;
+    if (anchorBox == null ||
+        !anchorBox.attached ||
+        !anchorBox.hasSize ||
+        overlayBox == null ||
+        !overlayBox.attached ||
+        !overlayBox.hasSize) {
+      return const _OcptBreakdownTagPopoverPlacement(
+        isAbove: false,
+        maxHeight: _ocptBreakdownTagPopoverMaxHeight,
+      );
+    }
+
+    final overlayTop = overlayBox.localToGlobal(Offset.zero).dy;
+    final overlayBottom = overlayTop + overlayBox.size.height;
+    final anchorTop = anchorBox.localToGlobal(Offset.zero).dy;
+    final anchorBottom = anchorTop + anchorBox.size.height;
+
+    const inset = _ocptBreakdownTagPopoverGap + _ocptBreakdownTagPopoverOverlayMargin;
+    final roomBelow = overlayBottom - anchorBottom - inset;
+    final roomAbove = anchorTop - overlayTop - inset;
+    final isAbove = roomBelow < _ocptBreakdownTagPopoverPreferredHeight && roomAbove > roomBelow;
+    final room = isAbove ? roomAbove : roomBelow;
+
+    return _OcptBreakdownTagPopoverPlacement(
+      isAbove: isAbove,
+      maxHeight: room.clamp(_ocptBreakdownTagPopoverMinHeight, _ocptBreakdownTagPopoverMaxHeight),
+    );
+  }
+
+  /// Rebuilds the overlay child so [_placementIn] is measured again, the word having moved.
+  void _handleGeometryChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+}
+
+/// Where [_OcptBreakdownTagPopoverAnchorState] draws the popover, once measured: the side of the
+/// word it goes on, and the height it may not exceed there.
+class _OcptBreakdownTagPopoverPlacement {
+  /// Whether the popover is drawn above the word rather than under it.
+  final bool isAbove;
+
+  /// The tallest the popover may be drawn on that side, its own middle scrolling past that.
+  final double maxHeight;
+
+  /// Class constructor
+  const _OcptBreakdownTagPopoverPlacement({required this.isAbove, required this.maxHeight});
 }
 
 /// The popover a range closes on: the passage in quotes, a search field pre-filled with it and
