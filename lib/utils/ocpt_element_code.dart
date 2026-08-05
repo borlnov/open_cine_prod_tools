@@ -7,11 +7,12 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 /// What separates a generated code's prefix from its number: `PRP-3`.
 const String _codeSeparator = "-";
 
-/// The shape of a code this file generated and nobody has edited since: three upper-case letters,
-/// the separator, then a number with no leading zero.
+/// The shape of a code this file generated: three upper-case letters, the separator, then a number
+/// with no leading zero.
 ///
-/// Anchored at both ends on purpose — `PRP-3 (bureau)` is a code someone typed over a generated
-/// one, and must be left alone by [ocptElementCodeIsGeneratedFor].
+/// Anchored at both ends on purpose: a code left over from the builds where the field was typed by
+/// hand (`PRP-3 (bureau)`, `4L jaune`) must not be read as a number reserving one, so
+/// [ocptElementCodeOf] numbers around it rather than over it.
 final RegExp _generatedCodePattern = RegExp(r"^([A-Z]{3})-([1-9]\d*)$");
 
 /// The three-letter prefix a generated code carries for [category].
@@ -21,9 +22,9 @@ final RegExp _generatedCodePattern = RegExp(r"^([A-Z]{3})-([1-9]\d*)$");
 /// codes. That is the same reason `shots.abbreviation` holds the letters rather than the label they
 /// came from.
 ///
-/// Every prefix is three letters and no two categories share one, which is what lets
-/// [ocptElementCodeIsGeneratedFor] tell "this code still describes its category" from "somebody
-/// typed this".
+/// Every prefix is three letters and no two categories share one, so a code always says which
+/// department the item it names comes from — which is why `OcptElementsService.updateElement`
+/// regenerates it the moment an element changes category.
 String ocptElementCodePrefixOf(OcptElementCategory category) => switch (category) {
   OcptElementCategory.prop => "PRP",
   OcptElementCategory.setDressing => "SET",
@@ -71,20 +72,4 @@ String ocptElementCodeOf({
   }
 
   return "$prefix$_codeSeparator${highest + 1}";
-}
-
-/// Whether [code] is exactly what [ocptElementCodeOf] would have produced for [category] — the
-/// prefix of that category followed by a number — and therefore a code the user has never touched.
-///
-/// This is what makes a category change safe to follow with a new code: an element moved from props
-/// to vehicles while still wearing `PRP-4` gets `VEH-1`, but one whose code somebody typed
-/// (`4L jaune`, or a `PRP-4` kept on purpose after the move) keeps it. A hand-written code is a
-/// decision; a generated one is a default.
-bool ocptElementCodeIsGeneratedFor({
-  required String code,
-  required OcptElementCategory category,
-}) {
-  final match = _generatedCodePattern.firstMatch(code.trim());
-
-  return match != null && match.group(1) == ocptElementCodePrefixOf(category);
 }

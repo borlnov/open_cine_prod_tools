@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_summary.dart';
 
@@ -30,13 +30,13 @@ Future<void> _useTallSurface(WidgetTester tester) async {
 }
 
 /// A realistic scene: heading, an action line, a character cue, a parenthetical and a dialogue
-/// line, matching the fixture `OcptShotCoverageLayout.of`'s own tests use.
+/// line, matching the fixture `OcptScriptWordLayout.of`'s own tests use.
 const _sceneId = "scene-1";
 const _sceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\nJOHN\n(whispering)\nHello there.';
 
 /// Builds the layout every test in this file lays its scene out from.
-OcptShotCoverageLayout _buildLayout() =>
-    OcptShotCoverageLayout.of(sceneId: _sceneId, sceneText: _sceneText);
+OcptScriptWordLayout _buildLayout() =>
+    OcptScriptWordLayout.of(sceneId: _sceneId, sceneText: _sceneText);
 
 /// Builds an [OcptShotCoverageRange] test double with sensible defaults for the fields a given
 /// test doesn't care about.
@@ -57,7 +57,7 @@ OcptShotCoverageRange _buildRange({
 /// Builds a summary with a sensible default of every field, only the fields a given test cares
 /// about overridden.
 Widget _buildSummary({
-  OcptShotCoverageLayout? layout,
+  OcptScriptWordLayout? layout,
   List<OcptShotCoverageRange> ownRanges = const [],
   Map<String, List<OcptShotCoverageRange>> otherShotsRanges = const {},
   Set<String> staleRangeIds = const {},

@@ -10,6 +10,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_sheets_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
@@ -17,6 +18,8 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xls
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
@@ -37,12 +40,14 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
 /// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
-/// annotated screenplay PDF, and its resources catalogue as a second, four-sheet XLSX workbook.
+/// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, and its
+/// breakdown as one printed sheet per scene.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
-/// [scenarioCoveragePdfService] and [resourcesXlsxExportService], and the "save as" location
-/// picking to [saveLocationService] — the six services this manager owns (RFL18).
+/// [scenarioCoveragePdfService], [resourcesXlsxExportService] and [breakdownSheetsPdfService], and
+/// the "save as" location picking to [saveLocationService] — the seven services this manager owns
+/// (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -62,6 +67,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service building the resources catalogue's four-sheet XLSX workbook.
   final OcptResourcesXlsxExportService resourcesXlsxExportService;
 
+  /// The service rendering the breakdown sheets PDF.
+  final OcptBreakdownSheetsPdfService breakdownSheetsPdfService;
+
   /// The service showing the native "save as" dialog and resolving the chosen path.
   final OcptSaveLocationService saveLocationService;
 
@@ -75,10 +83,10 @@ class OcptExportManager extends AbsWithLifeCycle {
          saveLocationService: saveLocationService,
        );
 
-  /// Class constructor, taking the one font loader both PDF renderers share.
+  /// Class constructor, taking the one font loader every PDF renderer shares.
   ///
-  /// Handing them the same [OcptCourierPrimeFontsLoader] is what keeps the app from decoding the 4
-  /// embedded Courier Prime TTFs twice, however many exports of either kind it runs.
+  /// Handing them all the same [OcptCourierPrimeFontsLoader] is what keeps the app from decoding
+  /// the 4 embedded Courier Prime TTFs once per renderer, however many exports of any kind it runs.
   OcptExportManager._({
     required OcptCourierPrimeFontsLoader fontsLoader,
     required FileSelectorManager? fileSelectorManager,
@@ -88,6 +96,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        fountainIoService = const OcptFountainIoService(),
        pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
        scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
+       breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(fontsLoader: fontsLoader),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -225,6 +234,49 @@ class OcptExportManager extends AbsWithLifeCycle {
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
     bytes: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
   );
+
+  /// Renders the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and shows the
+  /// native save dialog to write them out.
+  ///
+  /// [document] is the screenplay [snapshot]'s scenes were indexed against, read for each scene's
+  /// own length alone (see the service's own doc comment). [labels] carries every localized string
+  /// the document itself holds (the scene titles, the section headings, the status and category
+  /// labels and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
+  /// this manager has no `Tr` of its own. Returns the path of the written file, or null if the user
+  /// cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
+  Future<String?> exportBreakdownSheets({
+    required FountainDocument document,
+    required OcptBreakdownSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBreakdownSheetsLabels labels,
+    required String projectName,
+    required bool onlyDoneScenes,
+    required bool includeNotes,
+    required bool includeToFindList,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await breakdownSheetsPdfService.generate(
+      document: document,
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      onlyDoneScenes: onlyDoneScenes,
+      includeNotes: includeNotes,
+      includeToFindList: includeToFindList,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: breakdownSheetsPdfService.sheetsFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
 
   /// Shows the native save dialog and writes [bytes] to the chosen location.
   ///

@@ -17,10 +17,10 @@ read the same guide. Edit `AGENTS.md`; never replace the symlink with a copy.
 
 Open Cine Prod Tools is an **open-source suite of film-production tools** (Apache-2.0,
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
-découpage technique (shot lists), the scenario coverage per shot and the resources catalogue (the
-people, the cast, the locations and the physical elements) ship alongside it, and the long-term
-roadmap adds, in priority order: shooting schedule, call sheets, budget, script supervisor
-reports, storyboard, the per-scene breakdown screen, and a casting tracker.
+découpage technique (shot lists), the scenario coverage per shot, the resources catalogue (the
+people, the cast, the locations and the physical elements) and the script breakdown
+(*dépouillement*) ship alongside it, and the long-term roadmap adds, in priority order: shooting
+schedule, call sheets, budget, script supervisor reports, storyboard, and a casting tracker.
 
 - Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
   released by the CI (see the Architecture section) but has never been run on a Mac — there is
@@ -53,6 +53,14 @@ reports, storyboard, the per-scene breakdown screen, and a casting tracker.
   Default mode: styled block editor (super_editor) with the real screenplay layout. Alternate
   mode: raw Fountain text with a side-by-side paper-simulated preview (white page even in dark
   theme). Courier Prime everywhere (source, preview, PDF).
+- **An irreversible action is always confirmed by a dialog**, never by an inline yes/no: deleting a
+  record, removing a breakdown tag, replacing the screenplay with an imported file all go through
+  `OcptConfirmDialog` (`lib/ui/widgets/`), which the *page or mode* opens — a widget only ever asks
+  (a nullable `on…Requested` callback), it never carries the question itself. The caller owns every
+  word of it and `isDestructive`. A new action that cannot be undone reuses this dialog; a second
+  confirmation widget must not appear. The one standing exception is the `Versions` dock panel,
+  whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**, a list of
+  cards having no other way to say *which* one is being talked about.
 - **Before creating any new view/screen, ask Benoit design questions first** (layout, style,
   references). He shapes the UI himself.
 
@@ -93,6 +101,7 @@ reports, storyboard, the per-scene breakdown screen, and a casting tracker.
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
+| 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`) then v10 (a code backfilled onto every set), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
 
 ## Ways of working
 
@@ -169,9 +178,23 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 - Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
-  only state is `{ OcptWorkspaceMode mode, bool isLoading }` — it owns *which* production mode is
-  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, shotList,
-  resources, schedule, budget }` — the three implemented modes first, the two empty ones last — is
+  state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest }` —
+  it owns *which* production mode is active, nothing about that mode's own content. The reveal
+  request is the one exception that proves the rule, and the bloc **never reads inside it**: a mode
+  sending the user to another one *for a reason* (the breakdown's `Open in Resources`, meaning "this
+  very element, over there") attaches an `OcptWorkspaceRevealRequest` (`lib/models/`, sealed, today
+  `OcptResourcesRevealRequest { tab, recordId? }`) to `OcptWorkspaceModeSelectedEvent`; the bloc
+  transports it, `WorkspacePage` hands it to the mode that recognizes its own subtype and to no
+  other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
+  **one-shot** by construction: the destination bloc takes it as a *constructor* argument (an event
+  would race the load, which clears every selection) and nulls it in that first load, so entering or
+  leaving a version preview — which reloads through the same handler — doesn't yank the user back;
+  a plain switch from the mode switcher carries none and clears whatever an earlier one left. A
+  `recordId` that is null, or that names a row tombstoned since, only opens the tab. A set is
+  revealed as **its location** (`OcptSet.locationId`, resolved by the asking mode), a set having no
+  sheet of its own. `OcptWorkspaceMode { screenplay, breakdown,
+  shotList, resources, schedule, budget }` — the four implemented modes first, in the order the work
+  happens in (write, break down, shoot-list), the two empty ones last — is
   persisted through `OcptPropertiesManager.workspaceMode` by **name** rather than by index (modelled
   on `editorMode`), so opening a project restores the last mode used and reordering the enum is
   safe. `OcptWorkspaceShell` is a
@@ -190,8 +213,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
   before this refactor), the shot list mode is `OcptShotListMode`
   (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), the resources mode is
-  `OcptResourcesMode` (`lib/ui/pages/workspace/modes/resources/`, owning `OcptResourcesBloc`), and
-  the two remaining
+  `OcptResourcesMode` (`lib/ui/pages/workspace/modes/resources/`, owning `OcptResourcesBloc`), the
+  breakdown mode is `OcptBreakdownMode` (`lib/ui/pages/workspace/modes/breakdown/`, owning
+  `OcptBreakdownBloc`), and the two remaining
   ones are stateless `OcptBudgetMode`/`OcptScheduleMode` widgets rendering a shared empty state —
   no bloc, no data, "coming in a future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
   `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
@@ -269,8 +293,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v8 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the thirteen resources tables, `row_field_versions`,
+- Persistence: drift schema v10 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
+  `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -290,7 +315,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  seventeen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  nineteen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
   plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
   independent of the schema
@@ -306,7 +331,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   doesn't mean "there was none": the column has never been nullable, so a version that predates it
   did have a currency, it simply never recorded which one, and
   `OcptProjectVersionsService.restoreVersion` reads that null as "leave the project's currency
-  untouched" — the opposite of what the empty-list entries mean. Counters shown on a card
+  untouched" — the opposite of what the empty-list entries mean. Format 5 (the breakdown) does both
+  at once: `breakdown_tags` and `scene_breakdowns` materialise as empty lists, while `elements`
+  gains `status` filled with `toFind` — not a "leave it alone" null, because a version captured
+  before that column existed has no live value anywhere to leave alone, so the column's own default
+  is the honest reading. Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
@@ -355,16 +384,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and six services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and seven services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
-  annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook) and
+  annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook),
+  `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene) and
   `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
-  to a default location silently). The two PDF services share one `OcptCourierPrimeFontsLoader`
-  (handed to both by the manager, so the 4 embedded TTFs are decoded once) and one
-  `OcptScriptPagePainter`, which owns the positioned line drawing both of them start from. The home
+  to a default location silently). The three PDF services share one `OcptCourierPrimeFontsLoader`
+  (handed to each by the manager, so the 4 embedded TTFs are decoded once) and one
+  `OcptScriptPagePainter` — the two script exports for the positioned line drawing they both start
+  from, the breakdown sheets for its metrics and fonts alone, their pages flowing rather than
+  typeset. The home
   page's "Import a screenplay…" action and the editor's `⋮` export / export-to-PDF /
   import-and-replace menu all go through the manager; the screenplay text itself is always written
   through `OcptScreenplayService.saveScreenplayText`, never by hand.
@@ -414,7 +446,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   covered in two) and to an **element** (`scene_elements`, the *dépouillement* link, carrying the
   quantity and the note that belong to that scene alone). `ocptSceneSetSuggestionOf`
   (`lib/utils/`, pure and tested) reduces a heading to the place it names and *offers* the best set
-  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets.
+  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets. A set's
+  **location is not one of its fields**: it is what the set belongs to, chosen when it is created
+  and changed only by moving the whole set (`OcptLocationsService.moveSetToLocation`, the sets
+  card's own move control, which re-allocates the `sortKey` in the destination), so a set filed
+  under the wrong house is repaired rather than deleted and retyped.
+  A **code is the app's own**, never typed: `OcptElementsService.createElement` mints an element's
+  (`ocptElementCodeOf`, `PRP-3`, numbered within its category) and `OcptLocationsService.createSet`
+  mints a set's (`ocptSetCodeOf`, `A`, `B`, … `AA`, numbered across the whole project — a set has
+  no category, so a constant prefix would say nothing, and the two shapes can never be confused for
+  one another). Neither is among `OcptElementField`/`OcptSetField`'s entries and neither has a field
+  on a sheet: `OcptResourcesCodeReadOut` reads it out. The one thing that ever rewrites one is a
+  category change, and `updateElement` owns that rule rather than a bloc, so the breakdown's own
+  category chips get it without knowing it exists — a prefix that stopped saying which department
+  an item comes from could not be corrected by hand. Schema v10 is the same rule applied backwards:
+  it adds no column and fills the `sets.code` an older project left empty, numbering around
+  anything it does not recognise rather than over it.
   Everything writes the moment it changes, except the sheets' typed free-text fields: those ride
   one 2 s debounce shared by the five `pending…FieldEdits` maps, flushed together on a selection
   change, a tab change, a version preview and the mode leaving the tree. A field may **flag** what
@@ -422,14 +469,102 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   sheets autosave as they are typed, so a field that refused an incomplete value would refuse
   nearly every keystroke.
   Each sheet ends on its own `Delete this …` action (`OcptResourcesDeleteAction`, which only asks),
-  and the four of them are answered by one `OcptResourcesDeleteConfirmDialog` opened by the mode —
-  a **dialog**, as in the shot list, never an inline yes/no, so a deletion is confirmed the same way
-  wherever it is asked from; only the wording differs, and it is the caller's. The removed-role
+  and the four of them are answered by one `OcptConfirmDialog` opened by the mode, as in the shot
+  list and the breakdown; only the wording differs, and it is the caller's. The removed-role
   banner is the one exception: it deletes straight away, being that question itself.
   The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
   localized labels a row shows; the header count then reports what is on screen while the status
   bar keeps counting the whole catalogue. The `⋮` menu exports the four-sheet workbook (above).
+- Breakdown mode (`lib/ui/pages/workspace/modes/breakdown/`): the *dépouillement* — reading the
+  script once and tagging what the shoot must provide. It is the pass that fills the catalogues the
+  resources mode holds, so it sits between the screenplay and the shot list in the mode switcher.
+  A **tag** (`breakdown_tags`, ADR 0014) is the anchor between a passage of the screenplay and the
+  catalogue row it calls for: a discriminator (`OcptBreakdownTargetKind { element, role, set }`)
+  plus three nullable foreign keys, exactly one non-null. A character is never an `elements` row —
+  it is the `roles` row `OcptRoleIndexService` already reconciled from the cue — and a place is a
+  `sets` row, which is why a tag points at one of three tables rather than one.
+  Offsets are **scene-relative**, as `shot_coverages` are, and the tag stores its passage
+  **verbatim** (`taggedText`) where `shot_coverages` stores only a digest: the text is what lets a
+  shifted tag be re-anchored rather than merely flagged, and what the occurrence suggestions match.
+  `OcptBreakdownService` (owned by `OcptProjectsManager` beside the resources services) writes them,
+  and creating a tag **ensures the link it implies** in the same transaction — a `scene_elements`
+  row for an element, a `scene_sets` row for a set, nothing for a role, the tag being that link
+  itself. Removing a tag **never** removes that link row: the resources mode lets a user link an
+  element to a scene by hand with no tag at all, and the breakdown cannot tell its link from that
+  one, so the inspector asks about the removal as a separate question.
+  `reconcileTags` joins `OcptSceneIndexService`/`OcptRoleIndexService` on the screenplay save path,
+  **after** the scene index is rebuilt since it needs the new `charStart`: a tag whose slice still
+  matches is left alone, one whose stored text is found **exactly once** in the scene is re-anchored
+  silently, and only zero or several matches raise `needsCheck` — surfaced the way
+  `shots.needsCheck` is. It writes nothing when nothing changed, running as it does on every save.
+  `scene_breakdowns` holds how far the pass has got per scene (`OcptBreakdownSceneStatus { toDo,
+  inProgress, done }`, **held by hand** — a scene may legitimately need nothing and still have been
+  read), one live row per scene created on the first write, never eagerly; a scene with no row reads
+  as `toDo`. `elements.status` (`OcptElementStatus { toFind, reserved, beingMade, confirmed }`) is
+  the column the mode's chips and the "to find" counters read, and the resources mode's element
+  sheet carries the same control; the three existing booleans answer a different question (on the
+  truck? given back?) and stay untouched.
+  The centre is either the **script view** — the whole screenplay typeset as a paper sheet, every
+  word clickable, tagged passages highlighted in their category's colour — or the **recap**
+  cross-table (one row per target, one column per scene), switched from the mode's own header band.
+  Tagging is a two-click range: a first click opens an anchor, a second closes it and opens
+  `OcptBreakdownTagPopover`, whose search field is **pre-filled with the passage** and whose results
+  are grouped by kind; clicking a result links, clicking a **category chip** creates the element in
+  that category and tags it in one write, then hands off to the inspector where the rest of the
+  sheet is. Elements and **sets** are the two things creatable here — a role's existence belongs to
+  the screenplay, `OcptRoleIndexService` reconciling it from the cue, so inventing one would be
+  inventing a character. A set has no such source: the script names the place and the project has
+  never heard of it, so the popover's own `Create a set` control picks the location holding it out
+  of the ones the project has, or mints one named after it (`OcptBreakdownService.createSetAndTag`,
+  the sibling of `createElementAndTag`, rolling *every* write back when the tag half is refused).
+  `Open in Resources` is offered beside them for everything else. Tags never overlap
+  (the mode greys the affordance, `OcptBreakdownService` guarantees it), and a click on an
+  already-tagged word therefore **selects its target** rather than starting a range — deliberately
+  *not* what the same click does in `OcptShotCoverageDialog`, where it removes the range: here a tag
+  has a sheet worth inspecting, and losing one by mis-clicking while reading is the worse failure.
+  A repeated occurrence elsewhere in the script is **offered, never applied**
+  (`lib/utils/ocpt_breakdown_suggestions.dart`, whole-word and diacritic-folded), the principle
+  `ocptSceneSetSuggestionOf` already follows. The header's search filters the recap's **rows** and
+  never its columns, and typing into it from the script view switches to the recap carrying the
+  text: the script is a reading surface, and the answer to "where is this?" is a table.
+  The scene inspector's own **sets row** is the one part of the mode that is not about tags: it
+  reads and writes `scene_sets` directly (`OcptBreakdownSceneSetLinkedEvent`/`…UnlinkedEvent` onto
+  `OcptLocationsService`), so a link made by hand in the resources mode shows here and one made here
+  shows there — no tag is created, nothing is highlighted, and unlinking leaves every tag pointing
+  at that set exactly where it is. It sits at the top of the sheet because that is where a
+  breakdown sheet names its décor, and its picker offers `ocptSceneSetSuggestionOf`'s answer first,
+  marked as a suggestion and never applied. Beside that picker it **creates** one
+  (`OcptLocationsService.createSetLinkedToScene`, the tagless sibling of `createSetAndTag`, minting
+  the location too when the menu's own "in a new location" entry is picked): a scene whose place
+  the project has never heard of is the ordinary case at the start of a pass, and the name is not
+  asked for — it is `ocptSceneHeadingPlaceOf`'s reading of the heading, resolved by the mode so the
+  menu and the event can never derive it differently. Every entry of a set-creation menu carries a
+  **non-null** value (`ocptNewLocationMenuValue`): `PopupMenuButton` reads a null result as "the
+  menu was dismissed" and never calls `onSelected` for it, so an entry valued null silently does
+  nothing. A set is shown as `<set> · <location>` everywhere
+  outside the location sheet holding it (`ocptBreakdownSetLabel`), which is why
+  `OcptBreakdownSnapshot` carries the whole `locations` catalogue and derives `locationNameById`
+  from it.
+  The target inspector's **title is its name field**: an element or a set created from the popover
+  carries the passage's own wording, and the moment to correct that is while reading it, not after
+  scrolling past a status grid to a field repeating it. Renaming there renames the catalogue row
+  itself, so the script's tooltips, the legend, the recap and the resources mode all follow — a set
+  riding `pendingSetNameEdits` on the same debounce an element's fields do. A **role** is the one
+  kind read out rather than typed into, its name being the screenplay's.
+  The left dock is the scene list (status, a colour bar per category present, counts) over the
+  category legend, whose entries toggle their category's highlighting; the right dock is
+  `Inspector` + the shared `Versions` tab, the inspector showing the selected target's sheet or —
+  with nothing selected — the selected scene's own breakdown sheet. `lib/constants/
+  ocpt_breakdown_palette.dart` maps a colour **per category** rather than per rank (unlike a shot's
+  coverage colour): a category must read the same in every project and every export. The `⋮` menu
+  exports the breakdown sheets PDF (above).
+  The target inspector's `Open in Resources` is the app's one cross-mode navigation: it switches to
+  the resources mode **and lands on the record's own sheet**, through the reveal request the
+  workspace shell carries (above) — an element on the elements tab, a role on the roles tab, and a
+  set as the location that holds it. The popover's own `Open in Resources` deliberately carries
+  none: it is only ever shown when the search names no role and no set, so there is no sheet to land
+  on — the user is going there to create one.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
@@ -533,8 +668,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptProjectVersionCard`/
   `OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is the one panel of the dock
   that is about the **project** rather than the mode showing it, so it is hosted by every mode's
-  dock (`OcptEditorRightDockTab.versions`, `OcptShotListRightDockTab.versions` and
-  `OcptResourcesRightDockTab.versions`, the resources dock's only tab) and built from
+  dock (`OcptEditorRightDockTab.versions`, `OcptShotListRightDockTab.versions`,
+  `OcptResourcesRightDockTab.versions` — the resources dock's only tab — and
+  `OcptBreakdownRightDockTab.versions`) and built from
   `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
   `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
   `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
@@ -546,7 +682,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   reload **must** emit `previewedVersionId`, read from `OcptProjectsManager.currentProject`, in the
   same state as the data it just read, or the mode draws one frame of a version's content with the
   working copy's editing affordances still on it). A mode also decides *when* the working copy is
-  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — the three modes
+  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — the four modes
   do it on opening the `Versions` tab and on a save landing while it is already open, and the mixin
   throttles that path to one capture every 2 s, since it reads the whole project; the captures that
   follow an operation which just changed the project are never throttled.
@@ -582,14 +718,24 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   rather than disabled where it can be: the save control, the format controls, the `⋮` entries
   that rewrite (import & replace, page setup, title page), the metadata panel's "Edit…", the shot
   list's `+ Shot`, its orphan delete buttons, its inspector controls and its deleted-character
-  banner actions, and every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
-  sub-list rows and delete actions. What only reads stays: the exports, the scene/sequence panels,
-  the statistics, the resources search and the app-wide display preferences.
+  banner actions, every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
+  sub-list rows and delete actions, and — in the breakdown mode — the word click that opens a range
+  (nulling that one callback withholds the whole tagging path, since no anchor can open and no
+  popover ever has a range to show), the status and category chips, the scene status control, its
+  sets row's picker and chip dismissals, every
+  notes field, the suggestion acceptances and the tag removal. What only reads stays: the exports,
+  the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
+  scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word
+  still selects its target, since selecting writes nothing — plus the app-wide display preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
   Flutter's own "no callback, no affordance" idiom); a composite panel
-  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`, and each of the resources mode's
-  four sheets) takes an `isReadOnly` flag instead and hands its own parts the null callbacks, so a
-  control added later can't be gated in one place and forgotten in the other.
+  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`, each of the resources mode's
+  four sheets, and the breakdown's `OcptBreakdownTargetInspector`/`OcptBreakdownSceneInspector`)
+  takes an `isReadOnly` flag instead and hands its own parts the null callbacks, so a
+  control added later can't be gated in one place and forgotten in the other. Entering a preview
+  additionally clears every *pending* write state a mode holds — the breakdown's open tag anchor,
+  its popover range and its debounced field edits — so no half-started gesture survives into a
+  version's read.
   `OcptWorkspaceReadOnlyBanner` carries the two ways out of a preview:
   `Start from this version` (a plain restore of the version being read, which asks nothing further —
   the banner is that question, and `OcptProjectsManager.restoreProjectVersion` leaves the preview on
@@ -641,6 +787,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 ARB files: `lib/l10n/intl_en_GB.arb` (main) + `lib/l10n/intl_fr.arb`; generated `Tr` class via
 `dart run intl_utils:generate`. Every user-visible string goes through `Tr.of(context)`, added
 to both ARB files.
+
+**In French, a screenplay's scene is « une séquence »** — never « une scène », which in this trade
+names something else. The one fixed idiom that keeps the word is « mise en scène » (the shot
+inspector's directing notes). English is untouched: the code, the ARB keys, the models and the
+tables all say `scene`, and so does the English UI. This is a naming rule about the French UI
+alone, and a new key must not reintroduce the other word.
 
 ## Verification gates
 

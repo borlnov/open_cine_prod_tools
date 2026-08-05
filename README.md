@@ -48,21 +48,34 @@ status bar.
 
 ![The screenplay editor showing a formatted screenplay, with a scene list docked on the left](docs/screenshots/screenplay-editor.png)
 
-The raw Fountain mode, with the paper-simulated preview and the docked syntax guide beside it.
+The raw Fountain mode, with the paper-simulated preview beside it.
 
 ![The Fountain source on the left, its rendered screenplay preview on the right](docs/screenshots/fountain-source-and-preview.png)
 
-The shot list mode, here in the dark theme: one sequence per scene, and a shot table whose columns
-you choose.
+The breakdown mode: the script read as a page, every word clickable, and each tagged passage
+highlighted in the colour of the category it belongs to.
 
-![The shot list showing three shots with their characters, shot size, framing and camera move](docs/screenshots/shot-list-dark.png)
+![The breakdown script view, with tagged passages highlighted in their category's colour](docs/screenshots/breakdown-script.png)
+
+The same pass seen as a table: one row per element, character or set, one column per scene.
+
+![The breakdown recap, a cross-table of every tagged target against the four scenes](docs/screenshots/breakdown-recap.png)
+
+The resources mode, on the catalogue the breakdown fills: each element with its code, where it
+comes from, and the scenes that need it.
+
+![The elements tab of the resources mode, coded elements listed on the left](docs/screenshots/resources-elements.png)
+
+The shot list mode: one sequence per scene, and a shot table whose columns you choose.
+
+![The shot list showing four shots with their characters, shot size, framing and camera move](docs/screenshots/shot-list.png)
 
 ## Features
 
 What the app does today:
 
 - A workspace shell around the open project - toolbar, resizable side docks, status bar - with a
-  bottom mode switcher for the production tools. Screenplay, shot list and resources are
+  bottom mode switcher for the production tools. Screenplay, breakdown, shot list and resources are
   implemented; schedule and budget are still empty states (see [Roadmap](#roadmap)). Dock sizes and
   the mode you were last in come back with the project.
 - A styled WYSIWYG screenplay mode with the real page layout: a block-type dropdown, Tab cycling
@@ -72,6 +85,14 @@ What the app does today:
   syntax guide in the right dock.
 - A scene dock to navigate the screenplay, and live statistics in the status bar: pages, scenes,
   characters, words and signs.
+- A breakdown mode (dépouillement): the script read once, as a page, tagging what the shoot must
+  provide. Two clicks mark a passage and a popover links it to an element, a character or a set -
+  or creates the element, in its category, in one write. A character is never invented here: it is
+  the role the screenplay already named. Every tag is stored with its passage verbatim, so an edit
+  that shifts it is followed automatically when the words are still there once, and flagged for you
+  only when they are not. The same pass reads as a cross-table, one row per target and one column
+  per scene, and every scene carries its own progress and its own sheet. Exports the breakdown
+  sheets to PDF, one per scene.
 - A shot list mode (découpage technique): one sequence per scene, a shot table whose columns you
   choose, and a shot inspector for shot size, framing, camera move, lens, recording format, sound,
   estimated duration, planned takes, shooting day, status, notes, and difficulty rated separately
@@ -86,15 +107,19 @@ What the app does today:
   they may be shot in, and a catalogue of everything that has to be on set and is not a person -
   props, costumes, vehicles, equipment - with who owns it, who brings it and whether it is secured,
   ready or already back. Scenes are linked to the sets they are shot in and to the elements they
-  need. Photos and signed documents are referenced by path rather than copied into the project
-  file. Exports to XLSX, one sheet per tab.
+  need. Elements and sets carry a code the app mints itself (`PRP-3`, `A`) rather than one you have
+  to type and keep unique. Photos and signed documents are referenced by path rather than copied
+  into the project file. Exports to XLSX, one sheet per tab.
+- Project versions: named, permanent checkpoints of the whole project, previewed read-only before
+  you commit to anything and restored as an edit rather than a reset - the state a restore replaces
+  is itself kept as a version, so going back is never a one-way door.
 - A scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage each shot covers, the passages no shot covers washed grey, and optional
   legend and summary pages - so you can see, page by page, what your découpage still leaves out.
 - `.fountain` import and export.
 - PDF export with an options dialog, page numbers, optional scene numbers, and embedded Courier
   Prime.
-- Page setup: page format and margins.
+- Page setup: page format and margins, and a per-project currency.
 - Autosave.
 - English (`en_GB`) and French interfaces.
 - A system-following light/dark theme.
@@ -108,7 +133,6 @@ Planned production tools, in priority order:
 - Budget
 - Script supervisor reports
 - Storyboard
-- A per-scene breakdown screen
 - Casting tracker
 
 ## Platforms

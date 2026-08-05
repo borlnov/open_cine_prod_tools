@@ -21,10 +21,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
@@ -40,7 +39,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_element_code.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -125,6 +123,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The running field-edit debounce timer, if any.
   Timer? _fieldEditTimer;
 
+  /// What the first load should open on, handed over by the mode that sent the user here, or null
+  /// to open on the mode's own default.
+  ///
+  /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
+  /// load goes through the very same handler (entering or leaving a version preview calls
+  /// [reloadFromProjectDatabase], which is [_onLoadRequested]), and re-applying it there would
+  /// yank the user back to a record they may well have navigated away from.
+  OcptResourcesRevealRequest? _pendingRevealRequest;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -141,7 +148,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptElementsService? elementsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+    OcptResourcesRevealRequest? revealRequest,
+  }) : _pendingRevealRequest = revealRequest,
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
@@ -209,6 +218,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSetAddedEvent>(_onSetAdded);
     on<OcptResourcesSetFieldChangedEvent>(_onSetFieldChanged);
     on<OcptResourcesSetRemovedEvent>(_onSetRemoved);
+    on<OcptResourcesSetLocationChangedEvent>(_onSetLocationChanged);
     on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
     on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
     on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
@@ -302,22 +312,74 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final snapshot = await _loadSnapshot(project);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
 
+    final revealRequest = _pendingRevealRequest;
+    _pendingRevealRequest = null;
+
     emitter(
-      state.copyWith(
-        isLoading: false,
-        title: project.name,
-        currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
-        previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
-        snapshot: snapshot,
-        clearSelectedPersonId: true,
-        clearSelectedRoleId: true,
-        clearSelectedLocationId: true,
-        clearSelectedElementId: true,
-        leftDockFraction: leftDockFraction,
-        rightDockFraction: rightDockFraction,
+      _revealed(
+        state.copyWith(
+          isLoading: false,
+          title: project.name,
+          currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
+          previewedVersionId: previewedVersion?.id,
+          clearPreviewedVersionId: previewedVersion == null,
+          snapshot: snapshot,
+          clearSelectedPersonId: true,
+          clearSelectedRoleId: true,
+          clearSelectedLocationId: true,
+          clearSelectedElementId: true,
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
+        ),
+        revealRequest,
       ),
     );
+  }
+
+  /// [loaded] with [revealRequest]'s own tab active and its record selected, or [loaded] untouched
+  /// while there is no request — the ordinary case.
+  ///
+  /// Applied to the loaded state rather than emitted after it: the load clears all four selections,
+  /// so a selection landing beside it rather than inside it would be racing the very handler that
+  /// wipes it.
+  ///
+  /// A request naming no record, or one that isn't in the catalogue it was looked for in, only
+  /// selects the tab. That is the truthful reading of a request naming a row tombstoned since it
+  /// was built — the mode has a tab to show, and no sheet to show on it — and it is why this reads
+  /// the loaded snapshot rather than trusting the id.
+  OcptResourcesState _revealed(
+    OcptResourcesState loaded,
+    OcptResourcesRevealRequest? revealRequest,
+  ) {
+    if (revealRequest == null) {
+      return loaded;
+    }
+
+    final tabbed = loaded.copyWith(activeTab: revealRequest.tab);
+    final recordId = revealRequest.recordId;
+    final snapshot = loaded.snapshot;
+    if (recordId == null || snapshot == null) {
+      return tabbed;
+    }
+
+    return switch (revealRequest.tab) {
+      OcptResourcesTab.people =>
+        snapshot.people.any((person) => person.id == recordId)
+            ? tabbed.copyWith(selectedPersonId: recordId)
+            : tabbed,
+      OcptResourcesTab.roles =>
+        snapshot.roles.any((role) => role.id == recordId)
+            ? tabbed.copyWith(selectedRoleId: recordId)
+            : tabbed,
+      OcptResourcesTab.locations =>
+        snapshot.locations.any((location) => location.id == recordId)
+            ? tabbed.copyWith(selectedLocationId: recordId)
+            : tabbed,
+      OcptResourcesTab.elements =>
+        snapshot.elements.any((element) => element.id == recordId)
+            ? tabbed.copyWith(selectedElementId: recordId)
+            : tabbed,
+    };
   }
 
   /// Reads the whole resources catalogue of [project], joining the four services' own reads into
@@ -1083,12 +1145,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     required String rawValue,
   }) async {
     switch (field) {
-      case OcptSetField.code:
-        await _locationsService.updateSet(
-          database: database,
-          setId: setId,
-          code: Value(rawValue),
-        );
       case OcptSetField.name:
         await _locationsService.updateSet(
           database: database,
@@ -1140,12 +1196,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           database: database,
           elementId: elementId,
           name: Value(rawValue),
-        );
-      case OcptElementField.code:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          code: Value(rawValue),
         );
       case OcptElementField.subCategory:
         await _elementsService.updateElement(
@@ -1802,6 +1852,21 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
+  /// Moves set `event.setId` to location `event.locationId`, written immediately. The set leaves
+  /// the sheet currently shown, which is what the reloaded snapshot then says.
+  Future<void> _onSetLocationChanged(
+    OcptResourcesSetLocationChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "move set ${event.setId} to location ${event.locationId}",
+    action: (project) => _locationsService.moveSetToLocation(
+      database: project.database,
+      setId: event.setId,
+      locationId: event.locationId,
+    ),
+  );
+
   /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately.
   Future<void> _onSceneAssignedToSet(
     OcptResourcesSceneAssignedToSetEvent event,
@@ -2138,16 +2203,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesElementCategoryChangedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    // A code typed a second ago is still sitting in the debounce, and it is precisely what decides
-    // whether the code below may be regenerated: flushing first is what tells a hand-written code
-    // from a generated one.
-    await _flushPendingFieldEdits(emitter);
-
-    final element = _elementOf(event.elementId);
-    if (element == null) {
-      return;
-    }
-
     await _writeCatalogueChange(
       emitter: emitter,
       logContext: "change the category of element ${event.elementId}",
@@ -2155,50 +2210,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         database: project.database,
         elementId: event.elementId,
         category: Value(event.category),
-        code: _codeAfterCategoryChangeOf(element: element, category: event.category),
-      ),
-    );
-  }
-
-  /// The element [elementId] identifies in the current snapshot, or null when the snapshot has no
-  /// such element (a stale event about a row deleted underneath).
-  OcptElement? _elementOf(String elementId) {
-    for (final element in state.elements) {
-      if (element.id == elementId) {
-        return element;
-      }
-    }
-
-    return null;
-  }
-
-  /// The code [element] is given as it moves to [category]: a freshly generated one, or
-  /// [Value.absent] to leave the one it already carries alone.
-  ///
-  /// A code is regenerated only when the user never chose it — it is empty, or it is still exactly
-  /// what `ocptElementCodeOf` produced for the category the element is leaving. Anything else is a
-  /// decision (`4L jaune`, or a `PRP-4` deliberately kept across the move) and survives the change,
-  /// the same way a shot's `abbreviation` is deduced once and never overwritten afterwards.
-  Value<String> _codeAfterCategoryChangeOf({
-    required OcptElement element,
-    required OcptElementCategory category,
-  }) {
-    final code = element.code.trim();
-    final isGenerated =
-        code.isEmpty || ocptElementCodeIsGeneratedFor(code: code, category: element.category);
-    if (!isGenerated) {
-      return const Value.absent();
-    }
-
-    return Value(
-      ocptElementCodeOf(
-        category: category,
-        // The element's own code is left out: it is about to stop belonging to the category it is
-        // numbered in, so it must not reserve a number there — and it can never collide with the
-        // numbers of the category it is joining.
-        existingCodes: state.elements
-            .where((other) => other.id != element.id)
-            .map((other) => other.code),
       ),
     );
   }

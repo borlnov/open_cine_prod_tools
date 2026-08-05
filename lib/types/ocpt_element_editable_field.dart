@@ -12,15 +12,16 @@
 /// who brings it and the three tracking flags are each a single pick or a single tick rather than
 /// typing, so they are written immediately by their own bloc events.
 ///
+/// `code` is absent for a different reason again: it is the app's own
+/// (`OcptElementsService.createElement` mints it, a category change is the only thing that ever
+/// rewrites it), so no sheet offers to type into it — `OcptResourcesCodeReadOut` reads it out.
+///
 /// The per-scene quantity and notes of a `scene_elements` link are absent for a different reason:
 /// they belong to the link, not to the element, and their row debounces them locally and reports
 /// the whole link at once, exactly as an unavailability's reason does.
 enum OcptElementField {
   /// Maps to `updateElement`'s `name`.
   name,
-
-  /// Maps to `updateElement`'s `code`.
-  code,
 
   /// Maps to `updateElement`'s `subCategory`.
   subCategory,

@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
@@ -169,7 +169,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// dialog, or null while none is being drawn (no click yet, or the range was just closed or
   /// removed).
   ///
-  /// Its two fields are the anchor word's own scene-relative `OcptShotCoverageWord` offsets, which
+  /// Its two fields are the anchor word's own scene-relative `OcptScriptWord` offsets, which
   /// identify it on their own — a range may span several blocks, so the block a click lands in
   /// never takes part in the decision. Cleared whenever the selected shot or sequence changes, and
   /// after every coverage write (see `OcptShotListBloc`'s own doc comment on its coverage
@@ -267,13 +267,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// scene's few hundred characters out is cheap, and caching it here would only mean
   /// invalidating it by hand on every snapshot or [screenplayText] reload instead of simply
   /// calling this again.
-  OcptShotCoverageLayout? buildSelectedCoverageLayout() {
+  OcptScriptWordLayout? buildSelectedCoverageLayout() {
     final sequence = selectedSequence;
     if (selectedShot == null || sequence is! OcptSceneShotSequence) {
       return null;
     }
 
-    return OcptShotCoverageLayout.of(
+    return OcptScriptWordLayout.of(
       sceneId: sequence.sceneId,
       sceneText: screenplayText.substring(sequence.charStart, sequence.charEnd),
     );
@@ -316,7 +316,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// than through the coarser, shot-wide `OcptShotCoverageRange.isStale` (which mirrors the whole
   /// shot's `needsCheck` flag): this is what lets the inspector's `modified` badge mark exactly
   /// the blocks whose covered text actually changed.
-  Set<String> staleCoverageRangeIdsOfSelectedShot(OcptShotCoverageLayout layout) {
+  Set<String> staleCoverageRangeIdsOfSelectedShot(OcptScriptWordLayout layout) {
     final shot = selectedShot;
     if (shot == null) {
       return const {};

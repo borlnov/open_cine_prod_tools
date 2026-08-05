@@ -8,6 +8,9 @@ import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -34,6 +37,10 @@ void main() {
     shotListService: shotListService,
     shotCoverageService: coverageService,
     roleIndexService: OcptRoleIndexService(),
+    breakdownService: OcptBreakdownService(
+      elementsService: OcptElementsService(),
+      locationsService: OcptLocationsService(),
+    ),
   );
   const screenplayId = "screenplay-1";
 

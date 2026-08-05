@@ -84,6 +84,14 @@ class OcptProjectVersionPayload extends Equatable {
   /// reference, and the file it names may now be dangling — a normal state, not an error.
   final List<OcptAssetRow> assets;
 
+  /// The `breakdown_tags` rows of the project: the passages tagged during the breakdown pass,
+  /// anchored to the catalogue row (an element, a role or a set) each one calls for.
+  final List<OcptBreakdownTagRow> breakdownTags;
+
+  /// The `scene_breakdowns` rows of the project: how far the breakdown pass has got, scene by
+  /// scene, held by hand rather than deduced.
+  final List<OcptSceneBreakdownRow> sceneBreakdowns;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -134,6 +142,8 @@ class OcptProjectVersionPayload extends Equatable {
     required this.elements,
     required this.sceneElements,
     required this.assets,
+    required this.breakdownTags,
+    required this.sceneBreakdowns,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -150,7 +160,8 @@ class OcptProjectVersionPayload extends Equatable {
       "personUnavailabilities: ${personUnavailabilities.length}, roles: ${roles.length}, "
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
-      "assets: ${assets.length}, rowFieldVersions: ${rowFieldVersions.length}, "
+      "assets: ${assets.length}, breakdownTags: ${breakdownTags.length}, "
+      "sceneBreakdowns: ${sceneBreakdowns.length}, rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode)";
 
   /// Object properties
@@ -173,6 +184,8 @@ class OcptProjectVersionPayload extends Equatable {
     elements,
     sceneElements,
     assets,
+    breakdownTags,
+    sceneBreakdowns,
     rowFieldVersions,
     pageSetup,
     settingsJson,

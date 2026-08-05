@@ -11,6 +11,7 @@ import 'package:act_local_storage_manager/act_local_storage_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -33,7 +34,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
 /// visibility preference, the last used workspace mode, the shot list mode's own dock
 /// fractions, visible table columns and last right dock tab, the resources mode's own dock
-/// fractions, and the id identifying this replica of the app ([loadOrCreateDeviceId]).
+/// fractions, the breakdown mode's own dock fractions and last right dock tab, and the id
+/// identifying this replica of the app ([loadOrCreateDeviceId]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -127,6 +129,37 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
   final resourcesRightDockFraction = SharedPreferencesItem<double>(
     "RESOURCES_RIGHT_DOCK_FRACTION",
+  );
+
+  /// This is the key used to store the breakdown mode's left (scenes) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction] and
+  /// [resourcesLeftDockFraction] for the same reason the three are kept apart from each other.
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final breakdownLeftDockFraction = SharedPreferencesItem<double>("BREAKDOWN_LEFT_DOCK_FRACTION");
+
+  /// This is the key used to store the breakdown mode's right (versions) dock width, as a fraction
+  /// of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction] and
+  /// [resourcesRightDockFraction] for the same reason. Loading it returns null if nothing has been
+  /// stored yet, which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the
+  /// call site.
+  final breakdownRightDockFraction = SharedPreferencesItem<double>(
+    "BREAKDOWN_RIGHT_DOCK_FRACTION",
+  );
+
+  /// This is the key used to store the tab the breakdown mode's right dock last showed, so
+  /// reopening the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptBreakdownRightDockTab.inspector].
+  final breakdownLastRightDockTab = SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String>(
+    "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
+    parser: _parseBreakdownRightDockTab,
+    castTo: (value) => value.name,
   );
 
   /// This is the key used to store which optional columns of the shot list table are visible, as
@@ -322,6 +355,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     }
 
     appLogger().w("The shot list right dock tab stored in the local storage: $value, isn't a "
+        "known tab, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptBreakdownRightDockTab].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptBreakdownRightDockTab] values.
+  static OcptBreakdownRightDockTab? _parseBreakdownRightDockTab(String value) {
+    for (final tab in OcptBreakdownRightDockTab.values) {
+      if (tab.name == value) {
+        return tab;
+      }
+    }
+
+    appLogger().w("The breakdown right dock tab stored in the local storage: $value, isn't a "
         "known tab, we can't convert it");
     return null;
   }

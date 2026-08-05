@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
@@ -12,6 +13,8 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
@@ -444,6 +447,88 @@ void main() {
       expect(saveLocationService.lastExtensions, const [
         OcptShotListXlsxExportService.xlsxFileExtension,
       ]);
+    });
+  });
+
+  group('exportBreakdownSheets', () {
+    final document = const FountainParser().parse("INT. KITCHEN - DAY\n\nJohn walks in.\n");
+    final snapshot = OcptBreakdownSnapshot.build(
+      screenplayId: "screenplay",
+      scenes: const [],
+      tags: const [],
+      elements: const [],
+      roles: const [],
+      sets: const [],
+      locations: const [],
+      people: const [],
+    );
+    const labels = OcptBreakdownSheetsLabels(
+      fileNameSuffix: "breakdown",
+      documentTitle: "Breakdown sheets",
+      sceneTitles: {},
+      statusLabel: "Breakdown",
+      lengthLabel: "Length",
+      notesLabel: "Breakdown notes",
+      targetsSectionTitle: "What the scene needs",
+      toFindSectionTitle: "Still to find",
+      nameHeader: "Name",
+      statusHeader: "Status",
+      ownerHeader: "Owner",
+      sceneStatusLabels: {},
+      elementStatusLabels: {},
+      elementCategoryLabels: {},
+      roleGroupLabel: "Roles",
+      setGroupLabel: "Sets",
+      emptySceneNote: "Nothing tagged in this scene.",
+      emptyDocumentNote: "No scene to print.",
+    );
+
+    Future<String?> export(OcptExportManager manager) => manager.exportBreakdownSheets(
+      document: document,
+      snapshot: snapshot,
+      pageSetup: const OcptPageSetup.standard(),
+      labels: labels,
+      projectName: "My Movie",
+      onlyDoneScenes: false,
+      includeNotes: true,
+      includeToFindList: true,
+      fileTypeLabel: "PDF document",
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      expect(await export(manager), isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a PDF and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - breakdown.pdf");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      expect(await export(manager), chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+    });
+
+    test('suggests the file name computed by OcptBreakdownSheetsPdfService, suffixed', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await export(manager);
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - breakdown.pdf");
+      expect(saveLocationService.lastFileTypeLabel, "PDF document");
+      expect(saveLocationService.lastExtensions, const ["pdf"]);
     });
   });
 }

@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 /// Shared by the screenplay editor's block-type dropdown (`OcptEditorBlockTypeDropdown`, which
 /// never offers [FountainLineType.blank] as a manual choice) and the shot list's scenario coverage
 /// editor (`OcptShotCoverageEditor`, whose blocks are always non-blank source lines by
-/// construction — a blank line contributes no `OcptShotCoverageBlock` of its own, see that class's
+/// construction — a blank line contributes no `OcptScriptWordBlock` of its own, see that class's
 /// doc comment), so the two could never end up labelling the same type differently.
 ///
 /// [FountainLineType.blank] is nonetheless given its own explicit (empty) branch rather than a

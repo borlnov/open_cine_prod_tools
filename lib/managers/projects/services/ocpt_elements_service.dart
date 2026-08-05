@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_element_code.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
@@ -99,6 +100,14 @@ class OcptElementsService {
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderElement] and [deleteElement].
   ///
+  /// `code` is not among the arguments: it is the app's own, minted by [createElement] and rewritten
+  /// **here and nowhere else**, whenever [category] genuinely changes (see
+  /// [_codeAfterCategoryChangeOf]). A code says which department an item comes from, and nobody can
+  /// type one, so an element that moves from props to vehicles and keeps `PRP-4` would be lying
+  /// about itself with no way for the user to correct it. Owning that rule here rather than in a
+  /// bloc is what makes it true of every mode: the breakdown's own category chips get it without
+  /// knowing it exists.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateElement({
     required OcptProjectDatabase database,
@@ -106,9 +115,9 @@ class OcptElementsService {
     Value<OcptElementCategory> category = const Value.absent(),
     Value<String> subCategory = const Value.absent(),
     Value<String> name = const Value.absent(),
-    Value<String> code = const Value.absent(),
     Value<String> quantity = const Value.absent(),
     Value<OcptElementSourceKind> sourceKind = const Value.absent(),
+    Value<OcptElementStatus> status = const Value.absent(),
     Value<String?> ownerPersonId = const Value.absent(),
     Value<String> ownerNotes = const Value.absent(),
     Value<String?> broughtByPersonId = const Value.absent(),
@@ -125,6 +134,12 @@ class OcptElementsService {
       return;
     }
 
+    final code = await _codeAfterCategoryChangeOf(
+      database: database,
+      elementId: elementId,
+      category: category,
+    );
+
     await (database.update(
       database.ocptElementsTable,
     )..where((table) => table.id.equals(elementId) & table.isDeleted.not())).write(
@@ -135,6 +150,7 @@ class OcptElementsService {
         code: code,
         quantity: quantity,
         sourceKind: sourceKind,
+        status: status,
         ownerPersonId: ownerPersonId,
         ownerNotes: ownerNotes,
         broughtByPersonId: broughtByPersonId,
@@ -146,6 +162,44 @@ class OcptElementsService {
         purposeNotes: purposeNotes,
         notes: notes,
         photoAssetId: photoAssetId,
+      ),
+    );
+  }
+
+  /// The code element [elementId] is given as [category] is written onto it: a freshly generated
+  /// one (`ocptElementCodeOf`, numbered within the category it is joining), or [Value.absent] when
+  /// there is nothing to rewrite.
+  ///
+  /// Nothing is rewritten when [category] is absent (the caller is changing something else
+  /// entirely), when the element has disappeared underneath (a stale write), or when the category
+  /// written is the one the element already had — the last of the three being the one that matters:
+  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props would
+  /// hand it `PRP-4` for no reason at all.
+  Future<Value<String>> _codeAfterCategoryChangeOf({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required Value<OcptElementCategory> category,
+  }) async {
+    if (!category.present) {
+      return const Value.absent();
+    }
+
+    final rows = await _liveElementRows(database);
+    final current = rows.where((row) => row.id == elementId).firstOrNull;
+    if (current == null || current.category == category.value) {
+      return const Value.absent();
+    }
+
+    return Value(
+      ocptElementCodeOf(
+        category: category.value,
+        // The element's own code is left out: it is about to stop belonging to the category it is
+        // numbered in, so it must not reserve a number there — and it can never collide with the
+        // numbers of the category it is joining.
+        existingCodes: [
+          for (final row in rows)
+            if (row.id != elementId) row.code,
+        ],
       ),
     );
   }

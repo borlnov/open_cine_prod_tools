@@ -4,8 +4,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/ocpt_schedule_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_mode.dart';
@@ -50,7 +52,7 @@ class _WorkspaceView extends StatelessWidget {
 
         return Column(
           children: [
-            Expanded(child: _buildActiveMode(state.mode)),
+            Expanded(child: _buildActiveMode(state)),
             OcptWorkspaceModeSwitcher(
               activeMode: state.mode,
               onModeSelected: (mode) => context.read<OcptWorkspaceBloc>().add(
@@ -64,11 +66,22 @@ class _WorkspaceView extends StatelessWidget {
   );
 
   /// Builds the active production mode's own page.
-  Widget _buildActiveMode(OcptWorkspaceMode mode) => switch (mode) {
+  ///
+  /// A mode is handed [OcptWorkspaceState.revealRequest] only when the request is one it knows how
+  /// to honour; anything else is simply not passed on, so a request meant for another mode never
+  /// reaches this one. It stays null in the ordinary case, the mode then opening on its own
+  /// default.
+  Widget _buildActiveMode(OcptWorkspaceState state) => switch (state.mode) {
     OcptWorkspaceMode.screenplay => const EditorPage(),
+    OcptWorkspaceMode.breakdown => const OcptBreakdownMode(),
     OcptWorkspaceMode.budget => const OcptBudgetMode(),
     OcptWorkspaceMode.schedule => const OcptScheduleMode(),
     OcptWorkspaceMode.shotList => const OcptShotListMode(),
-    OcptWorkspaceMode.resources => const OcptResourcesMode(),
+    OcptWorkspaceMode.resources => OcptResourcesMode(
+      revealRequest: switch (state.revealRequest) {
+        final OcptResourcesRevealRequest request => request,
+        _ => null,
+      },
+    ),
   };
 }

@@ -3937,6 +3937,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesMoveSetTooltip": "Move this set to another location",
+  "@resourcesMoveSetTooltip": {
+    "description": "Tooltip of the control handing a set to another location",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMoveSetMenuTitle": "Move to…",
+  "@resourcesMoveSetMenuTitle": {
+    "description": "Heading of the menu listing the locations a set may be moved to",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesSetCodeLabel": "Code",
   "@resourcesSetCodeLabel": {
     "description": "Label of a set's short code field",
@@ -5070,6 +5084,838 @@
   "@projectSettingsPageFormatLabel": {
     "description": "Label of the page format dropdown",
     "context": "Displayed next to the page format dropdown in the page format section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeBreakdown": "Breakdown",
+  "@workspaceModeBreakdown": {
+    "description": "Short label of the breakdown production mode",
+    "context": "Displayed under the mode's icon in the workspace's bottom mode switcher",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceModeLabelBreakdown": "Script breakdown",
+  "@workspaceModeLabelBreakdown": {
+    "description": "Label of the breakdown production mode",
+    "context": "Displayed in the workspace toolbar, between the mode's own toolbar actions and the shell's own chrome",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownScenesPanelTitle": "Scenes",
+  "@breakdownScenesPanelTitle": {
+    "description": "Title of the breakdown mode's left dock",
+    "context": "Displayed above the scene list of the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownScenesDoneCount": "{done}/{total} done",
+  "@breakdownScenesDoneCount": {
+    "description": "How many of the screenplay's scenes are marked done, of the total",
+    "context": "Displayed next to the breakdown mode's left dock title",
+    "type": "text",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownScenesEmptyHint": "Scene headings will appear here as you write.",
+  "@breakdownScenesEmptyHint": {
+    "description": "Hint shown while the screenplay has no scene yet",
+    "context": "Displayed in the breakdown mode's left dock and in its centre script view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneElementsCount": "{count, plural, one{{count} element} other{{count} elements}}",
+  "@breakdownSceneElementsCount": {
+    "description": "Number of distinct targets tagged in one scene",
+    "context": "Displayed under a scene's heading in the breakdown mode's left dock, and beside it in the script view",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSceneStatusToDo": "To do",
+  "@breakdownSceneStatusToDo": {
+    "description": "A scene's breakdown status: not started yet",
+    "context": "Displayed on the right of a scene's row in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneStatusInProgress": "In progress",
+  "@breakdownSceneStatusInProgress": {
+    "description": "A scene's breakdown status: being broken down",
+    "context": "Displayed on the right of a scene's row in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneStatusDone": "Done",
+  "@breakdownSceneStatusDone": {
+    "description": "A scene's breakdown status: complete",
+    "context": "Displayed on the right of a scene's row in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTargetKindRoleLabel": "Characters",
+  "@breakdownTargetKindRoleLabel": {
+    "description": "Label of a role target's bar (a character or a block of extras)",
+    "context": "Tooltip of a scene row's bar in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTargetKindSetLabel": "Set",
+  "@breakdownTargetKindSetLabel": {
+    "description": "Label of a set target's bar",
+    "context": "Tooltip of a scene row's bar in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRightDockVersionsTabLabel": "Versions",
+  "@breakdownRightDockVersionsTabLabel": {
+    "description": "Label of the breakdown mode's right dock's single tab",
+    "context": "Displayed in the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRightDockCloseTooltip": "Close panel",
+  "@breakdownRightDockCloseTooltip": {
+    "description": "Tooltip of the breakdown mode's right dock close button",
+    "context": "Displayed on hover over the × button of the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownResetPanelLayoutAction": "Reset panel layout",
+  "@breakdownResetPanelLayoutAction": {
+    "description": "Action restoring the breakdown mode's two dock fractions to their defaults",
+    "context": "Displayed in the breakdown mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownStatsTagged": "{count, plural, one{{count} tagged} other{{count} tagged}}",
+  "@breakdownStatsTagged": {
+    "description": "Number of distinct targets tagged across the whole screenplay",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownStatsCategories": "{count, plural, one{{count} category} other{{count} categories}}",
+  "@breakdownStatsCategories": {
+    "description": "Number of distinct categories (or role/set kinds) among the tagged targets",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownStatsToFind": "{count, plural, one{{count} to find} other{{count} to find}}",
+  "@breakdownStatsToFind": {
+    "description": "Number of tagged elements still marked as to find",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownStatsToCheck": "{count, plural, one{{count} to check} other{{count} to check}}",
+  "@breakdownStatsToCheck": {
+    "description": "Number of live tags, across the whole screenplay, a save could not re-anchor",
+    "context": "Displayed in the breakdown mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownLegendTitle": "Categories",
+  "@breakdownLegendTitle": {
+    "description": "Title of the breakdown mode's category legend",
+    "context": "Displayed above the legend, under the scene list, in the breakdown mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownLegendShowAllAction": "Show all",
+  "@breakdownLegendShowAllAction": {
+    "description": "Action revealing every legend key hidden from the script view's highlighting",
+    "context": "Displayed next to the legend's title, only while at least one key is hidden",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTagNeedsCheckTooltip": "This passage may have moved and no longer matches its tag. Check it.",
+  "@breakdownTagNeedsCheckTooltip": {
+    "description": "Explains why a tagged passage is underlined in the workspace's warning colour",
+    "context": "Tooltip of a word of the script view whose tag needs a check",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRightDockInspectorTabLabel": "Inspector",
+  "@breakdownRightDockInspectorTabLabel": {
+    "description": "Label of the breakdown mode's right dock's Inspector tab",
+    "context": "Displayed in the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownInspectorNoSelectionHint": "Select a scene or a tagged word to see its sheet.",
+  "@breakdownInspectorNoSelectionHint": {
+    "description": "Shown in the Inspector tab while nothing at all is selected",
+    "context": "Displayed in the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownInspectorBackToSceneAction": "← Scene sheet",
+  "@breakdownInspectorBackToSceneAction": {
+    "description": "Clears the selected target, going back to its scene's own sheet",
+    "context": "Displayed at the top of the breakdown mode's target inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownInspectorSceneCountLabel": "{count, plural, one{{count} scene} other{{count} scenes}}",
+  "@breakdownInspectorSceneCountLabel": {
+    "description": "Number of distinct scenes a target is tagged in",
+    "context": "Displayed under the target inspector's own name, after the category or kind label",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownElementStatusSectionTitle": "Status",
+  "@breakdownElementStatusSectionTitle": {
+    "description": "Title of the target inspector's status section",
+    "context": "Displayed above the status chips, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusToFind": "To find",
+  "@breakdownElementStatusToFind": {
+    "description": "An element's status: nobody has secured it yet",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusReserved": "Reserved",
+  "@breakdownElementStatusReserved": {
+    "description": "An element's status: reserved but not yet in hand",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusBeingMade": "Being made",
+  "@breakdownElementStatusBeingMade": {
+    "description": "An element's status: being made or built rather than sourced",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusConfirmed": "Confirmed",
+  "@breakdownElementStatusConfirmed": {
+    "description": "An element's status: secured and confirmed for the shoot",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementCategorySectionTitle": "Category",
+  "@breakdownElementCategorySectionTitle": {
+    "description": "Title of the target inspector's category section",
+    "context": "Displayed above the category grid, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementDetailsSectionTitle": "Details",
+  "@breakdownElementDetailsSectionTitle": {
+    "description": "Title of the target inspector's details section",
+    "context": "Displayed above the name, sub-category, quantity, notes, owner and who-brings-it fields, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementNotesLabel": "Notes",
+  "@breakdownElementNotesLabel": {
+    "description": "Label of an element's own free-text notes field",
+    "context": "Displayed above the target inspector's notes field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownOccurrencesSectionTitle": "Occurrences in the screenplay",
+  "@breakdownOccurrencesSectionTitle": {
+    "description": "Title of the target inspector's occurrences section",
+    "context": "Displayed above the list of the target's own live tags",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownOccurrenceSceneLabel": "Scene {number} · {heading}",
+  "@breakdownOccurrenceSceneLabel": {
+    "description": "Heading of one occurrence row: the scene it is in",
+    "context": "Displayed above an occurrence's own quoted extract",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      },
+      "heading": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSuggestedOccurrencesSectionTitle": "Suggested occurrences ({count})",
+  "@breakdownSuggestedOccurrencesSectionTitle": {
+    "description": "Title of the target inspector's suggested-occurrences section, with the number of rows it lists",
+    "context": "Displayed above the list of passages that read like the target's own tags but are not tagged",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSuggestionAcceptAction": "Tag this passage",
+  "@breakdownSuggestionAcceptAction": {
+    "description": "Tooltip of a suggested occurrence's own add control",
+    "context": "Shown on a suggested-occurrence row's trailing icon button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownOpenInResourcesAction": "Open in Resources",
+  "@breakdownOpenInResourcesAction": {
+    "description": "Switches the workspace to the resources mode",
+    "context": "Displayed at the bottom of the target inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownAction": "Remove from the breakdown",
+  "@breakdownRemoveFromBreakdownAction": {
+    "description": "Asks to remove the selected target's tags from the selected scene",
+    "context": "Displayed at the bottom of the target inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownConfirmTitle": "Remove from the breakdown?",
+  "@breakdownRemoveFromBreakdownConfirmTitle": {
+    "description": "Asks whether the selected target's tags really are to leave the selected scene",
+    "context": "Title of the tag-removal confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownConfirmMessage": "This removes the tag from this scene. The link it created in Resources, if any, stays.",
+  "@breakdownRemoveFromBreakdownConfirmMessage": {
+    "description": "Explains that the scene_elements/scene_sets link a tag once ensured is not removed with it",
+    "context": "Displayed by the tag-removal confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownConfirmAction": "Remove",
+  "@breakdownRemoveFromBreakdownConfirmAction": {
+    "description": "Confirms the tag removal for good",
+    "context": "Displayed by the tag-removal confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownCancelAction": "Cancel",
+  "@breakdownRemoveFromBreakdownCancelAction": {
+    "description": "Dismisses the tag-removal confirmation without removing anything",
+    "context": "Displayed by the tag-removal confirmation dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorTitle": "Scene {number}",
+  "@breakdownSceneInspectorTitle": {
+    "description": "Heading of the selected scene's own breakdown sheet",
+    "context": "Displayed at the top of the scene inspector",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSceneInspectorTaggedLabel": "Tagged",
+  "@breakdownSceneInspectorTaggedLabel": {
+    "description": "Label of the scene inspector's tagged-targets stat tile",
+    "context": "Displayed above the tile's own count",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorToFindLabel": "To find",
+  "@breakdownSceneInspectorToFindLabel": {
+    "description": "Label of the scene inspector's still-to-find stat tile",
+    "context": "Displayed above the tile's own count",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorStatusLabel": "Status",
+  "@breakdownSceneInspectorStatusLabel": {
+    "description": "Label of the scene inspector's own breakdown status stat tile",
+    "context": "Displayed above the tile's own status label",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorAlertTitle": "{count, plural, one{{count} element still to find} other{{count} elements still to find}}",
+  "@breakdownSceneInspectorAlertTitle": {
+    "description": "Title of the scene inspector's warning callout",
+    "context": "Displayed above the comma-joined names of the elements still to find",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckAlertTitle": "{count, plural, one{{count} tag to check} other{{count} tags to check}}",
+  "@breakdownSceneInspectorNeedsCheckAlertTitle": {
+    "description": "Title of the scene inspector's second warning callout",
+    "context": "Displayed above the list of tags a save could not re-anchor",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckRow": "\"{passage}\" · {targetName}",
+  "@breakdownSceneInspectorNeedsCheckRow": {
+    "description": "One row of the scene inspector's \"to check\" alert: the tagged passage and the target it points at",
+    "context": "Displayed in the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {
+      "passage": {
+        "type": "String"
+      },
+      "targetName": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckRowNoTarget": "\"{passage}\"",
+  "@breakdownSceneInspectorNeedsCheckRowNoTarget": {
+    "description": "One row of the scene inspector's \"to check\" alert whose target has been dropped from the snapshot",
+    "context": "Displayed in the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {
+      "passage": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSceneInspectorNeedsCheckClearAction": "Mark as checked",
+  "@breakdownSceneInspectorNeedsCheckClearAction": {
+    "description": "Clears a flagged tag's own needsCheck flag, leaving its offsets untouched",
+    "context": "Displayed on a row of the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorNeedsCheckRemoveAction": "Remove",
+  "@breakdownSceneInspectorNeedsCheckRemoveAction": {
+    "description": "Removes a flagged tag for good",
+    "context": "Displayed on a row of the scene inspector's \"to check\" alert",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorSetsLabel": "Sets",
+  "@breakdownSceneInspectorSetsLabel": {
+    "description": "Heading of the row naming the sets a scene is shot in",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorNoSetHint": "No set yet",
+  "@breakdownSceneInspectorNoSetHint": {
+    "description": "Says the scene is not linked to any set yet",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorAddSetAction": "Set",
+  "@breakdownSceneInspectorAddSetAction": {
+    "description": "Label of the chip opening the picker adding a set to the scene",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorCreateSetAction": "Create a set…",
+  "@breakdownSceneInspectorCreateSetAction": {
+    "description": "Label of the chip opening the menu creating a set named after the scene's heading",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorCreateSetMenuTitle": "Create \"{set}\" in…",
+  "@breakdownSceneInspectorCreateSetMenuTitle": {
+    "description": "Heading of the creation menu, naming the set the scene's heading gives it",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {
+      "set": {
+        "type": "String",
+        "example": "CUISINE"
+      }
+    }
+  },
+  "breakdownSceneInspectorCreateSetInOption": "In {location}",
+  "@breakdownSceneInspectorCreateSetInOption": {
+    "description": "Entry creating the set inside an existing location",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "Maison des Martin"
+      }
+    }
+  },
+  "breakdownSceneInspectorCreateSetInNewLocationOption": "In a new location",
+  "@breakdownSceneInspectorCreateSetInNewLocationOption": {
+    "description": "Entry creating a location named after the set, to hold it",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorSetSuggestedOption": "{set} — suggested",
+  "@breakdownSceneInspectorSetSuggestedOption": {
+    "description": "Entry of the set picker whose name matches the scene's own heading",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {
+      "set": {
+        "type": "String",
+        "example": "Cuisine · Maison des Martin"
+      }
+    }
+  },
+  "breakdownSceneInspectorTargetsSectionTitle": "Tagged elements",
+  "@breakdownSceneInspectorTargetsSectionTitle": {
+    "description": "Title of the scene inspector's own targets section",
+    "context": "Displayed above the scene's targets, grouped by category",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorEmptyHint": "Nothing tagged for this scene yet. Click a word or a passage in the script to break it down.",
+  "@breakdownSceneInspectorEmptyHint": {
+    "description": "Shown while the selected scene has no live tag at all",
+    "context": "Displayed in place of the scene inspector's own targets section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorFooterHint": "Tagged elements feed Resources › Elements and the day's call sheet.",
+  "@breakdownSceneInspectorFooterHint": {
+    "description": "Explains what the scene's own tagged elements are used for downstream",
+    "context": "Displayed at the bottom of the scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneNotesLabel": "Breakdown notes",
+  "@breakdownSceneNotesLabel": {
+    "description": "Label of a scene's own free-text breakdown notes field",
+    "context": "Displayed above the scene inspector's notes field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPendingAnchorTooltip": "Click the end of the passage to tag it.",
+  "@breakdownPendingAnchorTooltip": {
+    "description": "Explains the pending anchor mark",
+    "context": "Tooltip of the script view's own pending anchor word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownBlockedWordTooltip": "This would overlap an already tagged passage.",
+  "@breakdownBlockedWordTooltip": {
+    "description": "Explains why a word is not a click target while a range is being drawn",
+    "context": "Tooltip of the script view's own greyed-out word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverFieldHint": "Search, or name the element to create",
+  "@breakdownPopoverFieldHint": {
+    "description": "Placeholder of the tag popover's own search/name field",
+    "context": "Displayed in the tag popover's field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverRolesGroupTitle": "Roles",
+  "@breakdownPopoverRolesGroupTitle": {
+    "description": "Title of the tag popover's own role matches group",
+    "context": "Displayed above the popover's matching roles",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverSetsGroupTitle": "Sets",
+  "@breakdownPopoverSetsGroupTitle": {
+    "description": "Title of the tag popover's own set matches group",
+    "context": "Displayed above the popover's matching sets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverElementsGroupTitle": "Elements",
+  "@breakdownPopoverElementsGroupTitle": {
+    "description": "Title of the tag popover's own element matches group",
+    "context": "Displayed above the popover's matching elements",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverCreateSetAction": "Create a set…",
+  "@breakdownPopoverCreateSetAction": {
+    "description": "Opens the menu creating a set from the tagged passage",
+    "context": "Displayed in the breakdown mode's tag popover",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverCreateSetInOption": "In {location}",
+  "@breakdownPopoverCreateSetInOption": {
+    "description": "Entry creating the set inside an existing location",
+    "context": "Displayed in the breakdown mode's tag popover",
+    "type": "text",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "Maison des Martin"
+      }
+    }
+  },
+  "breakdownPopoverCreateSetInNewLocationOption": "In a new location",
+  "@breakdownPopoverCreateSetInNewLocationOption": {
+    "description": "Entry creating a location named after the set, to hold it",
+    "context": "Displayed in the breakdown mode's tag popover",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverCreateElementTitle": "Create an element",
+  "@breakdownPopoverCreateElementTitle": {
+    "description": "Title of the tag popover's own category grid",
+    "context": "Displayed above the popover's category chips",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverFooterHint": "Click a match to link it, or pick a category to create and tag a new element.",
+  "@breakdownPopoverFooterHint": {
+    "description": "Explains what a click does, at the bottom of the tag popover",
+    "context": "Displayed at the bottom of the tag popover",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTagWriteError": "This tag could not be saved. Try again.",
+  "@breakdownTagWriteError": {
+    "description": "Reports that the popover's last link or element creation was refused",
+    "context": "Shown as a SnackBar in the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderScriptSegmentLabel": "Script",
+  "@breakdownHeaderScriptSegmentLabel": {
+    "description": "Label of the header's own switch segment that shows the script view",
+    "context": "Displayed inside the breakdown mode's header, at the top of the centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderRecapSegmentLabel": "Recap",
+  "@breakdownHeaderRecapSegmentLabel": {
+    "description": "Label of the header's own switch segment that shows the recap view",
+    "context": "Displayed inside the breakdown mode's header, at the top of the centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderSearchHint": "Search…",
+  "@breakdownHeaderSearchHint": {
+    "description": "Placeholder of the breakdown mode's header search field",
+    "context": "Displayed inside the search field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderSearchClearTooltip": "Clear search",
+  "@breakdownHeaderSearchClearTooltip": {
+    "description": "Tooltip of the breakdown mode's header search field's own clear button",
+    "context": "Displayed on hover over the × button inside the search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderScriptHint": "Select a word to break it down.",
+  "@breakdownHeaderScriptHint": {
+    "description": "Hint shown in the header while the script view is active",
+    "context": "Displayed beside the header's own search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderRecapHint": "Filter the elements below.",
+  "@breakdownHeaderRecapHint": {
+    "description": "Hint shown in the header while the recap view is active",
+    "context": "Displayed beside the header's own search field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownHeaderScenesProgressLabel": "{done}/{total} scenes broken down",
+  "@breakdownHeaderScenesProgressLabel": {
+    "description": "How many of the screenplay's scenes are marked done, of the total",
+    "context": "Displayed at the right of the breakdown mode's header, beside the progress bar",
+    "type": "text",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownRecapColumnElement": "Element",
+  "@breakdownRecapColumnElement": {
+    "description": "Header label of the recap table's own name column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapColumnStatus": "Status",
+  "@breakdownRecapColumnStatus": {
+    "description": "Header label of the recap table's own status column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapColumnOwner": "Owner",
+  "@breakdownRecapColumnOwner": {
+    "description": "Header label of the recap table's own owner column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapColumnOccurrences": "Occ.",
+  "@breakdownRecapColumnOccurrences": {
+    "description": "Header label of the recap table's own occurrence-count column",
+    "context": "Displayed at the top of the recap table",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapSceneColumnLabel": "SC {number}",
+  "@breakdownRecapSceneColumnLabel": {
+    "description": "Header label of one of the recap table's own scene columns",
+    "context": "Displayed at the top of the recap table, one per scene",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownRecapNothingTaggedHint": "Nothing has been tagged yet. Click a word in the script to break it down.",
+  "@breakdownRecapNothingTaggedHint": {
+    "description": "Shown in place of the recap table while the screenplay carries no tag at all",
+    "context": "Displayed in the breakdown mode's centre area, in the recap view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRecapNoMatchesHint": "No element, role or set matches \"{query}\".",
+  "@breakdownRecapNoMatchesHint": {
+    "description": "Shown in place of the recap table once the header's search filtered every row out",
+    "context": "Displayed in the breakdown mode's centre area, in the recap view",
+    "type": "text",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownExportSheetsMenuAction": "Export the breakdown sheets…",
+  "@breakdownExportSheetsMenuAction": {
+    "description": "Action exporting one breakdown sheet per scene, as a PDF",
+    "context": "Displayed in the overflow menu of the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsDialogTitle": "Export the breakdown sheets",
+  "@breakdownExportSheetsDialogTitle": {
+    "description": "Title of the dialog picking the options the breakdown sheets export runs with",
+    "context": "Displayed as a dialog over the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsOnlyDoneLabel": "Only the scenes marked as done",
+  "@breakdownExportSheetsOnlyDoneLabel": {
+    "description": "Checkbox restricting the exported sheets to the scenes whose breakdown is complete",
+    "context": "Displayed in the breakdown sheets export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsNotesLabel": "Include each scene's breakdown notes",
+  "@breakdownExportSheetsNotesLabel": {
+    "description": "Checkbox including a scene's own breakdown notes on its sheet",
+    "context": "Displayed in the breakdown sheets export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsToFindLabel": "Include what is still to find",
+  "@breakdownExportSheetsToFindLabel": {
+    "description": "Checkbox including, at the end of a sheet, the list of the scene's elements still to find",
+    "context": "Displayed in the breakdown sheets export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsFileTypeLabel": "PDF document",
+  "@breakdownExportSheetsFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the breakdown sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsFileNameSuffix": "breakdown",
+  "@breakdownExportSheetsFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - breakdown.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsDocumentTitle": "Breakdown sheets",
+  "@breakdownExportSheetsDocumentTitle": {
+    "description": "Name of the document, printed beside the project name above every sheet",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsLengthLabel": "Length",
+  "@breakdownExportSheetsLengthLabel": {
+    "description": "Label of the scene's length in page eighths, printed beside its breakdown status",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsEmptySceneNote": "Nothing has been tagged in this scene.",
+  "@breakdownExportSheetsEmptySceneNote": {
+    "description": "Note printed on the sheet of a scene no element, role or set is tagged in",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsEmptyDocumentNote": "No scene has been broken down yet.",
+  "@breakdownExportSheetsEmptyDocumentNote": {
+    "description": "Note printed on the single page of an export no scene at all was selected for",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsSuccessMessage": "Exported to {path}",
+  "@breakdownExportSheetsSuccessMessage": {
+    "description": "Message shown when the breakdown sheets were successfully exported to a PDF file",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownExportSheetsError": "The breakdown sheets could not be exported.",
+  "@breakdownExportSheetsError": {
+    "description": "Error shown when exporting the breakdown sheets to a PDF file failed",
+    "context": "Displayed as a SnackBar over the breakdown mode",
     "type": "text",
     "placeholders": {}
   }

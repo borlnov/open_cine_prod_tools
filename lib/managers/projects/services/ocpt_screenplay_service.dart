@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -15,9 +16,10 @@ import 'package:uuid/uuid.dart';
 /// Loads and saves a screenplay's Fountain text, taking safety snapshots along the way.
 ///
 /// [saveScreenplayText] also reconciles the scene index and the cast (`OcptRoleIndexService`)
-/// against the newly saved text, and re-checks the shots' scenario coverage — all three on the
-/// save path itself rather than on the editor's parse debounce, and for the same reason each
-/// time: a director does not want a scene, a role or a coverage flag appearing and disappearing
+/// against the newly saved text, re-checks the shots' scenario coverage, and re-anchors the
+/// breakdown tags (`OcptBreakdownService.reconcileTags`) — all four on the save path itself
+/// rather than on the editor's parse debounce, and for the same reason each time: a director
+/// does not want a scene, a role, a coverage flag or a tag appearing, disappearing or drifting
 /// mid-keystroke.
 ///
 /// {@template open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
@@ -52,16 +54,21 @@ class OcptScreenplayService {
   /// The service used to reconcile the cast against the newly saved text's speaking characters.
   final OcptRoleIndexService _roleIndexService;
 
+  /// The service used to re-anchor, or flag, the breakdown tags against the newly saved text.
+  final OcptBreakdownService _breakdownService;
+
   /// Class constructor
   const OcptScreenplayService({
     required OcptSceneIndexService sceneIndexService,
     required OcptShotListService shotListService,
     required OcptShotCoverageService shotCoverageService,
     required OcptRoleIndexService roleIndexService,
+    required OcptBreakdownService breakdownService,
   }) : _sceneIndexService = sceneIndexService,
        _shotListService = shotListService,
        _shotCoverageService = shotCoverageService,
-       _roleIndexService = roleIndexService;
+       _roleIndexService = roleIndexService,
+       _breakdownService = breakdownService;
 
   /// Loads the current Fountain text of the screenplay [screenplayId] in [database].
   Future<String> loadScreenplayText({
@@ -118,16 +125,19 @@ class OcptScreenplayService {
   /// `OcptShotListService.detachShotsFromDeletedScenes` as `onScenesDeleted`, so a scene removed by
   /// this save orphans its shots rather than silently dropping them — reconciles the cast against
   /// the same parsed document (`OcptRoleIndexService.reconcile`), re-checks the shots' scenario
-  /// coverage against the text just saved, and prunes old snapshots, all within a single
+  /// coverage against the text just saved, re-anchors the breakdown tags against the same text
+  /// (`OcptBreakdownService.reconcileTags`), and prunes old snapshots, all within a single
   /// transaction.
   ///
-  /// The coverage re-check and the cast reconciliation deliberately happen here, on save, and never
-  /// on the editor's parse debounce: staleness is what raises a shot's `needsCheck` flag, and a
-  /// speaking character's appearance or disappearance is what raises or clears a role's
-  /// `orphanedName` — in both cases a director does not want the flag flickering mid-keystroke. The
-  /// cast is reconciled right after the scene index (it reads the parsed [FountainDocument], not
-  /// the scenes the scene index just wrote) and before the coverage re-check, which reads the
-  /// scenes' `charStart`/`charEnd` as the new text has just redefined them.
+  /// The coverage re-check, the cast reconciliation and the tag reconciliation deliberately happen
+  /// here, on save, and never on the editor's parse debounce: staleness is what raises a shot's
+  /// `needsCheck` flag, a speaking character's appearance or disappearance is what raises or clears
+  /// a role's `orphanedName`, and a shifted or vanished passage is what re-anchors or flags a tag —
+  /// in every case a director does not want the flag flickering mid-keystroke. The cast is
+  /// reconciled right after the scene index (it reads the parsed [FountainDocument], not the scenes
+  /// the scene index just wrote); the coverage re-check and the tag reconciliation both come after
+  /// that, since both read the scenes' `charStart`/`charEnd` as the new text has just redefined
+  /// them, and both re-check stored anchors against the text just saved.
   ///
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
@@ -182,6 +192,12 @@ class OcptScreenplayService {
       );
 
       await _shotCoverageService.refreshStaleness(
+        database: database,
+        screenplayId: screenplayId,
+        currentFountainText: fountainText,
+      );
+
+      await _breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
         currentFountainText: fountainText,

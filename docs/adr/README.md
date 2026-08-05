@@ -60,6 +60,7 @@ number is a stable identifier other documents and commits can reference.
 | [0011](0011-macos-distribution-outside-the-app-store.md) | macOS distribution outside the App Store | Accepted |
 | [0012](0012-source-provenance-in-the-paginator.md) | Source provenance in the paginator | Accepted |
 | [0013](0013-binary-assets-referenced-by-path.md) | Binary assets referenced by path | Accepted |
+| [0014](0014-breakdown-tags-as-the-script-to-catalogue-anchor.md) | Breakdown tags as the script-to-catalogue anchor | Accepted |
 
 ## Candidates
 

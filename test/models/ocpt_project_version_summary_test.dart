@@ -40,6 +40,8 @@ void main() {
     elements: const [],
     sceneElements: const [],
     assets: const [],
+    breakdownTags: const [],
+    sceneBreakdowns: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,

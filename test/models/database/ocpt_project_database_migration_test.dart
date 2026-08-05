@@ -8,9 +8,12 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -118,6 +121,28 @@ CREATE TABLE "local_erasures" ("person_id" TEXT NOT NULL REFERENCES people (id),
 // `currency_code`, which version 8 adds.
 const _v7LocationAvailabilitiesDdl = '''
 CREATE TABLE "location_availabilities" ("id" TEXT NOT NULL, "location_id" TEXT NOT NULL REFERENCES locations (id), "start_date" TEXT NOT NULL, "end_date" TEXT NOT NULL, "weekdays" INTEGER NOT NULL DEFAULT 127, "slot" TEXT NOT NULL DEFAULT 'fullDay', "start_minute" INTEGER NULL, "end_minute" INTEGER NULL, "kind" TEXT NOT NULL DEFAULT 'available', "note" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+''';
+
+// The one column version 8 added on top of [_v5Ddl]/[_v6ResourcesDdl]/
+// [_v7LocationAvailabilitiesDdl]: `project_info.currency_code`. Composed as an
+// `ALTER TABLE … ADD COLUMN`, matching what the real migration step does to an existing table —
+// `_v5Ddl` already declares the full `CREATE TABLE` for `project_info` without this column, so it
+// cannot be redeclared here. `onCreate`'s own statement for a fresh version 8 file instead inlines
+// the column right after `page_format`
+// (`… "page_format" TEXT NOT NULL, "currency_code" TEXT NOT NULL DEFAULT 'EUR', "settings_json" …`);
+// the test compares column sets, not order, so either position is fine.
+const _v8CurrencyDdl = '''
+ALTER TABLE "project_info" ADD COLUMN "currency_code" TEXT NOT NULL DEFAULT 'EUR';
+''';
+
+// The two tables and the one column version 9 added on top of the fixtures above: the breakdown
+// pass's own tables, and `elements.status`. The column is composed as an `ALTER TABLE`, for the
+// reason [_v8CurrencyDdl] gives — [_v6ResourcesDdl] already declares `elements` without it.
+// `sets.code` exists here and is empty, which is exactly the state version 10 fills in.
+const _v9BreakdownDdl = '''
+CREATE TABLE "breakdown_tags" ("id" TEXT NOT NULL, "scene_id" TEXT NOT NULL REFERENCES scenes (id), "target_kind" TEXT NOT NULL, "element_id" TEXT NULL REFERENCES elements (id), "role_id" TEXT NULL REFERENCES roles (id), "set_id" TEXT NULL REFERENCES sets (id), "start_offset" INTEGER NOT NULL, "end_offset" INTEGER NOT NULL, "tagged_text" TEXT NOT NULL, "needs_check" INTEGER NOT NULL DEFAULT 0 CHECK ("needs_check" IN (0, 1)), "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "scene_breakdowns" ("id" TEXT NOT NULL, "scene_id" TEXT NOT NULL REFERENCES scenes (id), "status" TEXT NOT NULL DEFAULT 'toDo', "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+ALTER TABLE "elements" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'toFind';
 ''';
 
 void main() {
@@ -266,10 +291,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 7.
+    // anything but version 10.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 8);
+    expect(await readSchemaVersion(freshDatabase), 10);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -298,6 +323,8 @@ void main() {
       'scene_elements',
       'assets',
       'local_erasures',
+      'breakdown_tags',
+      'scene_breakdowns',
     });
 
     // And every file an earlier version could have left behind, brought up by `onUpgrade`: each
@@ -313,6 +340,16 @@ void main() {
         'upgraded_from_v7.ocpt',
         '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl',
         7,
+      ),
+      (
+        'upgraded_from_v8.ocpt',
+        '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl$_v8CurrencyDdl',
+        8,
+      ),
+      (
+        'upgraded_from_v9.ocpt',
+        '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl$_v8CurrencyDdl$_v9BreakdownDdl',
+        9,
       ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
@@ -330,7 +367,7 @@ void main() {
         reason: "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 8);
+      expect(await readSchemaVersion(database), 10);
 
       await database.close();
     }
@@ -417,8 +454,8 @@ void main() {
     // (d) so do the version 5 project versions, pointed at by the project header.
     await expectProjectVersionsAreUsable(database);
 
-    // (e) the schema version stored in the file is now 5.
-    expect(await readSchemaVersion(database), 8);
+    // (e) the schema version stored in the file is now 9.
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -522,7 +559,7 @@ void main() {
     expect(characters.every((row) => row.sortKey.isNotEmpty && !row.isDeleted), isTrue);
 
     // (e) the sidecar table was created, the project versions are usable, and the file now says
-    // version 5.
+    // version 9.
     await database
         .into(database.ocptRowFieldVersionsTable)
         .insert(
@@ -536,7 +573,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 8);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -590,9 +627,9 @@ void main() {
     final projectInfoBefore = await database.select(database.ocptProjectInfoTable).getSingle();
     expect(projectInfoBefore.currentVersionId, isNull);
 
-    // (d) the version 5 shape is in place and usable, and the file now says version 5.
+    // (d) the version 5 shape is in place and usable, and the file now says version 9.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 8);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -624,9 +661,9 @@ void main() {
     expect(shot.shotSize, "Plan moyen");
     expect(shot.abbreviation, "PM");
 
-    // (b) the version 5 shape is in place and usable, and the file now says version 5.
+    // (b) the version 5 shape is in place and usable, and the file now says version 9.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 8);
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -770,8 +807,8 @@ void main() {
     )..where((table) => table.personId.equals("person1"))).go();
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
-    // (d) the file now says version 8.
-    expect(await readSchemaVersion(database), 8);
+    // (d) the file now says version 9.
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -821,8 +858,8 @@ void main() {
     expect(availability.kind, OcptLocationAvailabilityKind.available);
     expect(availability.isDeleted, isFalse);
 
-    // (c) the file now says version 8.
-    expect(await readSchemaVersion(database), 8);
+    // (c) the file now says version 9.
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });
@@ -855,8 +892,154 @@ void main() {
         .write(const OcptProjectInfoTableCompanion(currencyCode: Value("USD")));
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
-    // (c) the file now says version 8.
-    expect(await readSchemaVersion(database), 8);
+    // (c) the file now says version 9.
+    expect(await readSchemaVersion(database), 10);
+
+    await database.close();
+  });
+
+  test('a v8 database migrates on, gaining the breakdown tables', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v8.ocpt');
+
+    // The shape version 8 left behind: every resources table and the currency column, but no
+    // breakdown tables and no `elements.status` column.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute(_v6ResourcesDdl);
+    legacyDb.execute(_v7LocationAvailabilitiesDdl);
+    legacyDb.execute(_v8CurrencyDdl);
+    legacyDb.execute('PRAGMA user_version = 8;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute(
+      "INSERT INTO elements (id, category, name, source_kind) VALUES ('element1', 'prop', "
+      "'Valise', 'owned');",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived untouched, the element included: this step
+    // only creates two tables and adds one column.
+    await expectCommonRowsSurvived(database);
+
+    final element = await database.select(database.ocptElementsTable).getSingle();
+    expect(element.id, "element1");
+    expect(element.name, "Valise");
+
+    // (b) the new column exists and holds its own default on the pre-existing row — the honest
+    // value for an element nobody has ever given a status.
+    expect(element.status, OcptElementStatus.toFind);
+
+    // (c) the two new tables exist, are usable, and reference the rows the file already held.
+    await database
+        .into(database.ocptBreakdownTagsTable)
+        .insert(
+          OcptBreakdownTagsTableCompanion.insert(
+            id: "tag1",
+            sceneId: "scene1",
+            targetKind: OcptBreakdownTargetKind.element,
+            elementId: const Value("element1"),
+            startOffset: 0,
+            endOffset: 4,
+            taggedText: "desk",
+          ),
+        );
+
+    final tag = await database.select(database.ocptBreakdownTagsTable).getSingle();
+    expect(tag.sceneId, "scene1");
+    expect(tag.targetKind, OcptBreakdownTargetKind.element);
+    expect(tag.elementId, "element1");
+    expect(tag.roleId, isNull);
+    expect(tag.setId, isNull);
+    expect(tag.needsCheck, isFalse);
+    expect(tag.isDeleted, isFalse);
+
+    await database
+        .into(database.ocptSceneBreakdownsTable)
+        .insert(OcptSceneBreakdownsTableCompanion.insert(id: "sceneBreakdown1", sceneId: "scene1"));
+
+    final sceneBreakdown = await database.select(database.ocptSceneBreakdownsTable).getSingle();
+    expect(sceneBreakdown.sceneId, "scene1");
+    expect(sceneBreakdown.status, OcptBreakdownSceneStatus.toDo);
+    expect(sceneBreakdown.notes, "");
+    expect(sceneBreakdown.isDeleted, isFalse);
+
+    // (d) `PRAGMA foreign_keys` really is enforced for the new table: a tag naming no scene the
+    // file holds is refused.
+    await expectLater(
+      database
+          .into(database.ocptBreakdownTagsTable)
+          .insert(
+            OcptBreakdownTagsTableCompanion.insert(
+              id: "tag2",
+              sceneId: "no-such-scene",
+              targetKind: OcptBreakdownTargetKind.element,
+              elementId: const Value("element1"),
+              startOffset: 0,
+              endOffset: 4,
+              taggedText: "desk",
+            ),
+          ),
+      throwsA(isA<sqlite3.SqliteException>()),
+    );
+
+    // (e) the file now says version 10.
+    expect(await readSchemaVersion(database), 10);
+
+    await database.close();
+  });
+
+  test('a v9 database migrates on, gaining a code for every set it already held', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v9.ocpt');
+
+    // The shape version 9 left behind: every table the app has, `sets.code` among them — declared
+    // since version 6 and left empty, back when it was a field the user typed into by hand.
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute(_v6ResourcesDdl);
+    legacyDb.execute(_v7LocationAvailabilitiesDdl);
+    legacyDb.execute(_v8CurrencyDdl);
+    legacyDb.execute(_v9BreakdownDdl);
+    legacyDb.execute('PRAGMA user_version = 9;');
+    seedCommonRows(legacyDb);
+    legacyDb.execute("INSERT INTO locations (id, name) VALUES ('location1', 'Maison');");
+    legacyDb.execute(
+      "INSERT INTO sets (id, location_id, code, name, sort_key) VALUES "
+      "('set1', 'location1', '', 'Cuisine', 'a'), "
+      "('set2', 'location1', 'B', 'Jardin', 'b'), "
+      "('set3', 'location1', '', 'Escalier', 'c'), "
+      "('set4', 'location1', '', 'Cave', 'd');",
+    );
+    // A tombstoned set is left out of the backfill entirely: it is not on any sheet to be read
+    // from, and numbering it would burn a code for nothing.
+    legacyDb.execute(
+      "INSERT INTO sets (id, location_id, code, name, sort_key, is_deleted) VALUES "
+      "('set5', 'location1', '', 'Grenier', 'e', 1);",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived: this step adds no column and creates no table.
+    await expectCommonRowsSurvived(database);
+
+    final sets =
+        await (database.select(database.ocptSetsTable)
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+            .get();
+
+    // (b) the sets with no code got one, numbered around the `B` somebody had typed — which is
+    // left exactly as it was.
+    expect(sets.map((row) => (row.id, row.code)), [
+      ('set1', 'C'),
+      ('set2', 'B'),
+      ('set3', 'D'),
+      ('set4', 'E'),
+      ('set5', ''),
+    ]);
+
+    // (c) the file now says version 10.
+    expect(await readSchemaVersion(database), 10);
 
     await database.close();
   });

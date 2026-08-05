@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -120,6 +121,7 @@ OcptElement _element({
   required String name,
   OcptElementCategory category = OcptElementCategory.prop,
 }) => OcptElement(
+      status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: "",

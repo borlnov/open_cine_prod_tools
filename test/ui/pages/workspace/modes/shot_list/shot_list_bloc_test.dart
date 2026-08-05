@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -348,7 +348,7 @@ void main() {
   Future<void> drawCoverageRange(
     OcptShotListBloc bloc, {
     required String shotId,
-    required OcptShotCoverageBlock block,
+    required OcptScriptWordBlock block,
   }) async {
     bloc.add(
       OcptShotListCoverageWordClickedEvent(
@@ -1281,7 +1281,7 @@ void main() {
     final layout = state.buildSelectedCoverageLayout()!;
     final heading = layout.blocks.firstWhere((block) => block.text == "INT. HOUSE - DAY");
 
-    Future<void> drawWord(OcptShotCoverageWord word) async {
+    Future<void> drawWord(OcptScriptWord word) async {
       final rangeCountBefore = state.selectedShot!.coverageRanges.length;
       for (var click = 0; click < 2; click++) {
         bloc.add(

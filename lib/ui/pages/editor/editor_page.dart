@@ -18,7 +18,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controll
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_import_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
@@ -37,6 +36,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
 /// center (depending on the persisted `OcptEditorMode`), the collapsible scene panel on the left,
@@ -560,7 +560,15 @@ class _EditorViewState extends State<_EditorView> {
   /// confirmed the replacement.
   Future<void> _requestImportAndReplace(BuildContext context) async {
     final bloc = context.read<OcptEditorBloc>();
-    final confirmed = await OcptEditorImportConfirmDialog.show(context);
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.editorImportConfirmTitle,
+      message: tr.editorImportConfirmMessage,
+      cancelLabel: tr.editorImportConfirmCancelAction,
+      confirmLabel: tr.editorImportConfirmReplaceAction,
+      isDestructive: false,
+    );
     if (confirmed != true) {
       return;
     }

@@ -69,6 +69,10 @@ class OcptLocationSheet extends StatelessWidget {
   /// scene picker.
   final List<OcptSceneRef> scenes;
 
+  /// Every location of the project other than [location], `(id, name)`, offered by the sets card's
+  /// own move control as the places a set may be handed to.
+  final List<(String, String)> otherLocations;
+
   /// The ids of the scenes already shot in some set, this location's or another's.
   final Set<String> assignedSceneIds;
 
@@ -113,6 +117,9 @@ class OcptLocationSheet extends StatelessWidget {
 
   /// Called with a set's id when its remove control is clicked.
   final ValueChanged<String> onSetRemoved;
+
+  /// Called with a set's id and the location it is moved to.
+  final void Function(String setId, String locationId) onSetLocationChanged;
 
   /// Called with a scene and the set it is now shot in.
   final void Function(String sceneId, String setId) onSceneAssigned;
@@ -171,6 +178,7 @@ class OcptLocationSheet extends StatelessWidget {
     required this.contact,
     required this.people,
     required this.scenes,
+    required this.otherLocations,
     required this.assignedSceneIds,
     required this.suggestedSetIdBySceneId,
     this.isReadOnly = false,
@@ -185,6 +193,7 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onSetFieldChanged,
     required this.onSetAdded,
     required this.onSetRemoved,
+    required this.onSetLocationChanged,
     required this.onSceneAssigned,
     required this.onSceneRemoved,
     required this.onPhotoAddRequested,
@@ -248,6 +257,7 @@ class OcptLocationSheet extends StatelessWidget {
           const SizedBox(height: 12),
           OcptLocationSheetSetsCard(
             sets: location.sets,
+            otherLocations: otherLocations,
             scenes: scenes,
             assignedSceneIds: assignedSceneIds,
             suggestedSetIdBySceneId: suggestedSetIdBySceneId,
@@ -255,6 +265,7 @@ class OcptLocationSheet extends StatelessWidget {
             onSetFieldChanged: isReadOnly ? null : onSetFieldChanged,
             onSetAdded: isReadOnly ? null : onSetAdded,
             onSetRemoved: isReadOnly ? null : onSetRemoved,
+            onSetLocationChanged: isReadOnly ? null : onSetLocationChanged,
             onSceneAssigned: isReadOnly ? null : onSceneAssigned,
             onSceneRemoved: isReadOnly ? null : onSceneRemoved,
           ),

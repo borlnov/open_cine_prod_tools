@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_set_code.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 import 'package:uuid/uuid.dart';
 
@@ -323,6 +324,13 @@ class OcptLocationsService {
   /// Creates a new set named [name] inside location [locationId], appended at the end of that
   /// location's sets, and returns its freshly generated id.
   ///
+  /// The set's code is generated here and nowhere else (`ocptSetCodeOf`, the first letters no live
+  /// set of the **project** already carries), exactly as `OcptElementsService.createElement`
+  /// generates an element's: it is the app's own identifier for the set rather than something the
+  /// user is asked for, so no sheet offers to type it and a caller minting a set as a side effect
+  /// of something else — the breakdown naming a décor while reading — cannot end up with one
+  /// without a code.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createSet({
     required OcptProjectDatabase database,
@@ -343,6 +351,7 @@ class OcptLocationsService {
             id: id,
             locationId: locationId,
             name: name,
+            code: Value(ocptSetCodeOf(existingCodes: await _liveSetCodes(database))),
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),
@@ -352,14 +361,65 @@ class OcptLocationsService {
     return id;
   }
 
+  /// Creates a new set named [name] and says scene [sceneId] is shot in it, in one transaction.
+  ///
+  /// [locationId] names the place holding it. Passing null creates **a location of its own**, named
+  /// [name] too, for the reason `OcptBreakdownService.createSetAndTag` gives from the other side: a
+  /// set has no existence outside a location, and somebody reading a scene and meeting a place the
+  /// project has never heard of should not have to leave for another tab to invent one first. The
+  /// two are renamed apart afterwards, `Cuisine` in `Cuisine` being an honest first guess rather
+  /// than a claim.
+  ///
+  /// Writes **no tag**: this is the plain `scene_sets` link, the fact that a scene is shot
+  /// somewhere, which the breakdown mode's scene sheet and the resources mode's own set row both
+  /// state without a passage of the script being involved.
+  ///
+  /// Returns null, and rolls every write back, when any of them refuses.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> createSetLinkedToScene({
+    required OcptProjectDatabase database,
+    required String sceneId,
+    required String name,
+    String? locationId,
+  }) async {
+    if (database.refusesUserWrite("createSetLinkedToScene")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final holdingLocationId =
+          locationId ?? await createLocation(database: database, name: name);
+      if (holdingLocationId == null) {
+        return null;
+      }
+
+      final setId = await createSet(
+        database: database,
+        locationId: holdingLocationId,
+        name: name,
+      );
+      if (setId == null) {
+        return null;
+      }
+
+      return await assignSceneToSet(database: database, sceneId: sceneId, setId: setId) == null
+          ? null
+          : setId;
+    });
+  }
+
   /// Updates the fields of set [setId] in [database] that are passed as something other than
   /// [Value.absent].
+  ///
+  /// `code` is not among them, and neither is `locationId`, for the same kind of reason: a set's
+  /// code is the app's own ([createSet] mints it, nothing ever rewrites it), and its location is
+  /// what it belongs to ([moveSetToLocation] hands it over). Neither is a field of the sheet.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateSet({
     required OcptProjectDatabase database,
     required String setId,
-    Value<String> code = const Value.absent(),
     Value<String> name = const Value.absent(),
     Value<String> notes = const Value.absent(),
   }) async {
@@ -370,7 +430,42 @@ class OcptLocationsService {
     await (database.update(
       database.ocptSetsTable,
     )..where((table) => table.id.equals(setId) & table.isDeleted.not())).write(
-      OcptSetsTableCompanion(code: code, name: name, notes: notes),
+      OcptSetsTableCompanion(name: name, notes: notes),
+    );
+  }
+
+  /// Moves set [setId] to location [locationId], appended at the end of that location's sets.
+  ///
+  /// The one column [updateSet] deliberately does not write: a set's location is what it *is*, not
+  /// one of its fields, and a set moves as a whole — it leaves the sheet it was being edited on.
+  /// Its scenes, its notes and its code come along untouched, which is the whole point: a set filed
+  /// under the wrong house is repaired rather than deleted and typed again, `deleteSet` tombstoning
+  /// its `scene_sets` links along with it.
+  ///
+  /// A fresh `sortKey` is allocated in the destination: the one it held ranked it among its former
+  /// siblings, and means nothing among its new ones.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> moveSetToLocation({
+    required OcptProjectDatabase database,
+    required String setId,
+    required String locationId,
+  }) async {
+    if (database.refusesUserWrite("moveSetToLocation")) {
+      return;
+    }
+
+    final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
+
+    await (database.update(
+      database.ocptSetsTable,
+    )..where((table) => table.id.equals(setId) & table.isDeleted.not())).write(
+      OcptSetsTableCompanion(
+        locationId: Value(locationId),
+        sortKey: Value(
+          ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+        ),
+      ),
     );
   }
 
@@ -846,6 +941,19 @@ class OcptLocationsService {
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// The code of every live set of [database], whichever location it belongs to — what
+  /// [createSet] numbers a new code from, a set's code being unique across the whole project rather
+  /// than within its location (`ocptSetCodeOf`).
+  Future<List<String>> _liveSetCodes(OcptProjectDatabase database) async {
+    final query = database.selectOnly(database.ocptSetsTable)
+      ..addColumns([database.ocptSetsTable.code])
+      ..where(database.ocptSetsTable.isDeleted.not());
+
+    final rows = await query.get();
+
+    return [for (final row in rows) row.read(database.ocptSetsTable.code) ?? ""];
+  }
 
   /// Every live set row of location [locationId], ordered by `sortKey`.
   Future<List<OcptSetRow>> _liveSetRowsOfLocation({

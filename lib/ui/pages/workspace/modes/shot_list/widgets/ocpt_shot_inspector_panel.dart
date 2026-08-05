@@ -5,8 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -69,7 +69,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
   /// [shot]'s scene, laid out into the scenario coverage editor's blocks and words, or null for
   /// an orphaned shot (its scene's text is gone). Ignored while [shot] is null.
-  final OcptShotCoverageLayout? coverageLayout;
+  final OcptScriptWordLayout? coverageLayout;
 
   /// Every other shot's coverage ranges of [coverageLayout]'s scene, keyed by that shot's code.
   /// Ignored while [shot] is null.

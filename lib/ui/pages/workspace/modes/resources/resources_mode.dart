@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
@@ -28,7 +29,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
@@ -40,8 +40,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
@@ -60,12 +63,22 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 /// withheld affordances: it only filters what is already on screen, so it stays available while a
 /// version is being previewed too.
 class OcptResourcesMode extends StatelessWidget {
+  /// What this mode should open on, handed over by the mode that sent the user here — today the
+  /// breakdown's `Open in Resources` — or null to open on the mode's own default.
+  ///
+  /// It reaches [OcptResourcesBloc] through its constructor rather than as an event, so the tab and
+  /// the selection are part of the very first loaded state: the load clears every selection, and an
+  /// event racing it would be applied before or after it depending on the day.
+  final OcptResourcesRevealRequest? revealRequest;
+
   /// Creates the resources mode.
-  const OcptResourcesMode({super.key});
+  const OcptResourcesMode({super.key, this.revealRequest});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptResourcesBloc(), child: const _ResourcesView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptResourcesBloc(revealRequest: revealRequest),
+    child: _ResourcesView(hasRevealRequest: revealRequest != null),
+  );
 }
 
 /// The content of [OcptResourcesMode], separated from it so [OcptResourcesMode] only wires the
@@ -75,8 +88,12 @@ class OcptResourcesMode extends StatelessWidget {
 /// controller: the live dock fractions must survive a rebuild and be mutated imperatively while a
 /// divider is being dragged, without emitting a bloc state per frame.
 class _ResourcesView extends StatefulWidget {
+  /// Whether the bloc this view was mounted with was handed a reveal request, and the workspace
+  /// therefore still holds one to clear.
+  final bool hasRevealRequest;
+
   /// Class constructor
-  const _ResourcesView();
+  const _ResourcesView({required this.hasRevealRequest});
 
   @override
   State<_ResourcesView> createState() => _ResourcesViewState();
@@ -92,6 +109,20 @@ class _ResourcesViewState extends State<_ResourcesView> {
     leftFraction: OcptWorkspaceDock.leftDefaultFraction,
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.hasRevealRequest) {
+      // The bloc already has the request — it was handed it at construction, above — so all that
+      // is left is telling the workspace it has been taken into account. That is what makes a
+      // reveal one-shot: coming back to this mode later rebuilds it with no request at all, and it
+      // opens on its own default. Dispatched here rather than during the build that reads it,
+      // since emitting a state while the tree is being built is not allowed.
+      context.read<OcptWorkspaceBloc>().add(const OcptWorkspaceRevealRequestConsumedEvent());
+    }
+  }
 
   @override
   void deactivate() {
@@ -428,8 +459,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
     };
   }
 
-  /// Asks [OcptResourcesDeleteConfirmDialog] the question [title] states, then dispatches [event]
-  /// if the user answered `Delete`.
+  /// Asks [OcptConfirmDialog] the question [title] states, then dispatches [event] if the user
+  /// answered `Delete`.
   ///
   /// The four tabs share this one path, so a record is deleted the same way whichever it belongs
   /// to — the way `OcptShotListMode._handleDeleteRequested` already asks it. Only the wording
@@ -441,11 +472,14 @@ class _ResourcesViewState extends State<_ResourcesView> {
     required OcptResourcesEvent event,
   }) async {
     final bloc = context.read<OcptResourcesBloc>();
+    final tr = Tr.of(context);
 
-    final confirmed = await OcptResourcesDeleteConfirmDialog.show(
+    final confirmed = await OcptConfirmDialog.show(
       context,
       title: title,
       message: message,
+      cancelLabel: tr.resourcesDeleteConfirmCancelAction,
+      confirmLabel: tr.resourcesDeleteConfirmDeleteAction,
     );
     if (confirmed != true) {
       return;
@@ -531,6 +565,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       contact: _personOf(state, selectedLocation.contactPersonId),
       people: state.people,
       scenes: state.scenes,
+      otherLocations: _otherLocationsOf(state, selectedLocation.id),
       assignedSceneIds: _assignedSceneIdsOf(state),
       suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
       isReadOnly: state.isPreviewingVersion,
@@ -571,6 +606,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onSetAdded: () => bloc.add(OcptResourcesSetAddedEvent(locationId: selectedLocation.id)),
       onSetRemoved: (setId) => bloc.add(OcptResourcesSetRemovedEvent(setId: setId)),
+      onSetLocationChanged: (setId, locationId) =>
+          bloc.add(OcptResourcesSetLocationChangedEvent(setId: setId, locationId: locationId)),
       onSceneAssigned: (sceneId, setId) =>
           bloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
       onSceneRemoved: (sceneId, setId) =>
@@ -752,7 +789,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     return switch (field) {
       OcptElementField.name => element.name,
-      OcptElementField.code => element.code,
       OcptElementField.subCategory => element.subCategory,
       OcptElementField.quantity => element.quantity,
       OcptElementField.ownerNotes => element.ownerNotes,
@@ -762,6 +798,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptElementField.notes => element.notes,
     };
   }
+
+  /// Every location of the project other than [locationId], `(id, name)`, in the order the list
+  /// panel shows them — the destinations the sets card's own move control offers.
+  List<(String, String)> _otherLocationsOf(OcptResourcesState state, String locationId) => [
+    for (final location in state.locations)
+      if (location.id != locationId) (location.id, location.name),
+  ];
 
   /// The ids of every scene already shot in a set, of this location or of another.
   ///
@@ -813,7 +856,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
       for (final set in location.sets) {
         if (set.id == setId) {
           return switch (field) {
-            OcptSetField.code => set.code,
             OcptSetField.name => set.name,
             OcptSetField.notes => set.notes,
           };

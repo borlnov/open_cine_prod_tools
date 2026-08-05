@@ -33,6 +33,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     super.registerMixinEvents();
     on<OcptWorkspaceLoadRequestedEvent>(_onLoadRequested);
     on<OcptWorkspaceModeSelectedEvent>(_onModeSelected);
+    on<OcptWorkspaceRevealRequestConsumedEvent>(_onRevealRequestConsumed);
   }
 
   /// Loads the persisted workspace mode, defaulting to [OcptWorkspaceMode.screenplay].
@@ -44,12 +45,34 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     emitter(state.copyWith(isLoading: false, mode: mode));
   }
 
-  /// Applies and persists the mode selected from the bottom mode switcher.
+  /// Applies and persists the mode selected from the bottom mode switcher, or by another mode
+  /// sending the user there.
+  ///
+  /// `event.revealRequest` is carried into the state untouched and never read here: what a mode
+  /// should land on is that mode's own business, and this bloc only owns which one is active
+  /// (ADR 0006). A switch that names nothing — every switch the mode switcher itself makes —
+  /// clears whatever an earlier one left behind, so a request can never outlive the switch it was
+  /// made for.
   Future<void> _onModeSelected(
     OcptWorkspaceModeSelectedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
-    emitter(state.copyWith(mode: event.mode));
+    emitter(
+      state.copyWith(
+        mode: event.mode,
+        revealRequest: event.revealRequest,
+        clearRevealRequest: event.revealRequest == null,
+      ),
+    );
     await _propertiesManager.workspaceMode.store(event.mode);
   }
+
+  /// Clears the reveal request the mode that was just opened reports having taken into account.
+  ///
+  /// Nothing is persisted here: a reveal is a one-shot handover between two modes of one session,
+  /// not a preference. Only the mode itself is ever persisted.
+  Future<void> _onRevealRequestConsumed(
+    OcptWorkspaceRevealRequestConsumedEvent event,
+    Emitter<OcptWorkspaceState> emitter,
+  ) async => emitter(state.copyWith(clearRevealRequest: true));
 }

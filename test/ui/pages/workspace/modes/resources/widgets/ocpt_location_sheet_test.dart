@@ -174,9 +174,11 @@ void main() {
     OcptPerson? contact,
     List<OcptPerson> people = const [],
     List<OcptSceneRef> scenes = const [],
+    List<(String, String)> otherLocations = const [],
     Set<String> assignedSceneIds = const {},
     Map<String, String> suggestedSetIdBySceneId = const {},
     bool isReadOnly = false,
+    void Function(String setId, String locationId)? onSetLocationChanged,
     void Function(String sceneId, String setId)? onSceneAssigned,
     void Function(String sceneId, String setId)? onSceneRemoved,
     VoidCallback? onSetAdded,
@@ -208,6 +210,7 @@ void main() {
               contact: contact,
               people: people,
               scenes: scenes,
+              otherLocations: otherLocations,
               assignedSceneIds: assignedSceneIds,
               suggestedSetIdBySceneId: suggestedSetIdBySceneId,
               isReadOnly: isReadOnly,
@@ -219,13 +222,13 @@ void main() {
               onContactChanged: onContactChanged ?? (personId) {},
               onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
               setFieldValueOf: (setId, field) => switch (field) {
-                OcptSetField.code => "",
                 OcptSetField.name => "Cuisine",
                 OcptSetField.notes => "",
               },
               onSetFieldChanged: (setId, field, rawValue) {},
               onSetAdded: onSetAdded ?? () {},
               onSetRemoved: (setId) {},
+              onSetLocationChanged: onSetLocationChanged ?? (setId, locationId) {},
               onSceneAssigned: onSceneAssigned ?? (sceneId, setId) {},
               onSceneRemoved: onSceneRemoved ?? (sceneId, setId) {},
               onPhotoAddRequested: onPhotoAddRequested ?? () {},
@@ -651,5 +654,32 @@ void main() {
     expect(find.byTooltip(tr.resourcesRemoveDocumentTooltip), findsNothing);
     // What only reads stays: the reference itself is still named.
     expect(find.text("a.pdf"), findsOneWidget);
+  });
+
+  testWidgets("a set is handed to another location through its own move control", (tester) async {
+    (String, String)? moved;
+
+    await pumpSheet(
+      tester,
+      location: _location(sets: [_set()]),
+      otherLocations: const [("l2", "Le hangar")],
+      onSetLocationChanged: (setId, locationId) => moved = (setId, locationId),
+    );
+
+    final tr = await Tr.delegate.load(const Locale("en", "GB"));
+    await tester.tap(find.byTooltip(tr.resourcesMoveSetTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Le hangar"));
+    await tester.pumpAndSettle();
+
+    expect(moved, ("s1", "l2"));
+  });
+
+  testWidgets("the move control is dropped while the project has nowhere to move to",
+      (tester) async {
+    await pumpSheet(tester, location: _location(sets: [_set()]));
+
+    final tr = await Tr.delegate.load(const Locale("en", "GB"));
+    expect(find.byTooltip(tr.resourcesMoveSetTooltip), findsNothing);
   });
 }

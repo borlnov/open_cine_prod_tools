@@ -64,30 +64,4 @@ void main() {
       );
     });
   });
-
-  group("ocptElementCodeIsGeneratedFor", () {
-    test("recognises its own output", () {
-      expect(
-        ocptElementCodeIsGeneratedFor(code: "PRP-4", category: OcptElementCategory.prop),
-        isTrue,
-      );
-    });
-
-    test("refuses the code of another category", () {
-      expect(
-        ocptElementCodeIsGeneratedFor(code: "PRP-4", category: OcptElementCategory.vehicle),
-        isFalse,
-      );
-    });
-
-    test("refuses a code somebody typed", () {
-      for (final code in const ["4L jaune", "PRP-4 bis", "PRP4", "", "  "]) {
-        expect(
-          ocptElementCodeIsGeneratedFor(code: code, category: OcptElementCategory.prop),
-          isFalse,
-          reason: "$code is not a generated code",
-        );
-      }
-    });
-  });
 }
