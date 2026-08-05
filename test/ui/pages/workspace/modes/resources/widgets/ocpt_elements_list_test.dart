@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_elements_list.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a dock-sized
@@ -37,6 +38,7 @@ OcptElement _element({
   bool isReadyForShoot = false,
   bool isReturned = false,
 }) => OcptElement(
+      status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: subCategory,

@@ -600,6 +600,120 @@ Action three four.
     );
   });
 
+  group("loadScenes", () {
+    test(
+      "loads every live scene in position order, joined with its scene_breakdowns row, tags left empty",
+      () async {
+        await screenplayService.saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''',
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+        final scenes = await readScenes();
+        final houseScene = scenes.firstWhere((row) => row.heading == "INT. HOUSE - DAY");
+        final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
+
+        await breakdownService.updateSceneBreakdown(
+          database: database,
+          sceneId: houseScene.id,
+          status: const Value(OcptBreakdownSceneStatus.done),
+          notes: const Value("Needs a period lamp"),
+        );
+        await breakdownService.createTag(
+          database: database,
+          sceneId: houseScene.id,
+          startOffset: 0,
+          endOffset: 3,
+          taggedText: "one",
+          targetKind: OcptBreakdownTargetKind.role,
+          targetId: await createRole(),
+        );
+
+        final loaded = await breakdownService.loadScenes(
+          database: database,
+          screenplayId: screenplayId,
+        );
+
+        expect(loaded.map((scene) => scene.id), [houseScene.id, streetScene.id]);
+
+        final loadedHouse = loaded.firstWhere((scene) => scene.id == houseScene.id);
+        expect(loadedHouse.status, OcptBreakdownSceneStatus.done);
+        expect(loadedHouse.notes, "Needs a period lamp");
+        // The tags are left for OcptBreakdownSnapshot.build to attach, not loaded here.
+        expect(loadedHouse.tags, isEmpty);
+
+        final loadedStreet = loaded.firstWhere((scene) => scene.id == streetScene.id);
+        expect(loadedStreet.status, OcptBreakdownSceneStatus.toDo);
+        expect(loadedStreet.notes, "");
+      },
+    );
+
+    test("filters out a tombstoned scene", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scenes = await readScenes();
+      final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
+
+      await (database.update(
+        database.ocptScenesTable,
+      )..where((table) => table.id.equals(streetScene.id))).write(
+        const OcptScenesTableCompanion(isDeleted: Value(true)),
+      );
+
+      final loaded = await breakdownService.loadScenes(
+        database: database,
+        screenplayId: screenplayId,
+      );
+
+      expect(loaded.any((scene) => scene.id == streetScene.id), isFalse);
+    });
+
+    test("filters out a tombstoned scene_breakdowns row, reading the scene as toDo again", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: scene.id,
+        status: const Value(OcptBreakdownSceneStatus.done),
+      );
+      final breakdownRow = (await readSceneBreakdown(scene.id))!;
+      await (database.update(
+        database.ocptSceneBreakdownsTable,
+      )..where((table) => table.id.equals(breakdownRow.id))).write(
+        const OcptSceneBreakdownsTableCompanion(isDeleted: Value(true)),
+      );
+
+      final loaded = await breakdownService.loadScenes(
+        database: database,
+        screenplayId: screenplayId,
+      );
+
+      expect(loaded.single.status, OcptBreakdownSceneStatus.toDo);
+      expect(loaded.single.notes, "");
+    });
+  });
+
   group("reconcileTags", () {
     test("leaves an unchanged tag untouched", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one two.\n");

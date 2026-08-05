@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_elements_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
@@ -247,6 +248,7 @@ OcptElement _buildElement({
   String? broughtByPersonId,
   List<OcptSceneElementLink> sceneLinks = const [],
 }) => OcptElement(
+      status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: "",

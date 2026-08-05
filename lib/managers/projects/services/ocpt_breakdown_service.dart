@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -120,6 +121,38 @@ class OcptBreakdownService {
     rows.sort((a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!));
 
     return rows;
+  }
+
+  /// Loads every live scene of [screenplayId] in [database], in `position` order, each joined with
+  /// its live `scene_breakdowns` row through [loadSceneBreakdowns] — never re-queried here — and
+  /// carrying an empty [OcptBreakdownScene.tags] list.
+  ///
+  /// The tags are left for `OcptBreakdownSnapshot.build` to attach: this method mirrors
+  /// `OcptLocationsService.loadScenes` in reading only the scenes, and [loadTags] already exists to
+  /// read the other half — reading it twice, once per caller, would be the two ways of building a
+  /// snapshot silently drifting apart.
+  Future<List<OcptBreakdownScene>> loadScenes({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final sceneRows =
+        await (database.select(database.ocptScenesTable)
+              ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
+              ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+            .get();
+
+    final breakdownRowsBySceneId = {
+      for (final row in await loadSceneBreakdowns(database: database, screenplayId: screenplayId))
+        row.sceneId: row,
+    };
+
+    return [
+      for (final sceneRow in sceneRows)
+        OcptBreakdownScene.fromRows(
+          sceneRow: sceneRow,
+          breakdownRow: breakdownRowsBySceneId[sceneRow.id],
+        ),
+    ];
   }
 
   /// Tags the scene-relative `[startOffset, endOffset)` passage [taggedText] of scene [sceneId],

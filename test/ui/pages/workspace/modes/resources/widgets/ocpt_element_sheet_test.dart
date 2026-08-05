@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
@@ -82,6 +83,7 @@ OcptElement _element({
   bool isSecured = false,
   List<OcptSceneElementLink> sceneLinks = const [],
 }) => OcptElement(
+      status: OcptElementStatus.toFind,
   id: "e1",
   category: OcptElementCategory.prop,
   subCategory: "",

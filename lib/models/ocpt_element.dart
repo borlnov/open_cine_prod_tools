@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
 /// Anything that must be present on a given shooting day and is not a person. See
 /// `OcptElementsTable`'s own doc comment for why one table covers every department.
@@ -37,6 +38,14 @@ class OcptElement extends Equatable {
 
   /// Where this element comes from, or is going to.
   final OcptElementSourceKind sourceKind;
+
+  /// How far this element is towards being ready for the shoot.
+  ///
+  /// Deliberately distinct from [isSecured], [isReadyForShoot] and [isReturned]: those three
+  /// answer "on the truck? given back?" — a logistics question asked once the thing exists —
+  /// while this one says whether it exists at all yet, which is what the breakdown pass records
+  /// as it reads the script.
+  final OcptElementStatus status;
 
   /// Who owns this element, when they are in the address book. → `OcptPerson`
   final String? ownerPersonId;
@@ -88,6 +97,7 @@ class OcptElement extends Equatable {
     required this.code,
     required this.quantity,
     required this.sourceKind,
+    required this.status,
     required this.ownerPersonId,
     required this.ownerNotes,
     required this.broughtByPersonId,
@@ -114,6 +124,7 @@ class OcptElement extends Equatable {
     code: row.code,
     quantity: row.quantity,
     sourceKind: row.sourceKind,
+    status: row.status,
     ownerPersonId: row.ownerPersonId,
     ownerNotes: row.ownerNotes,
     broughtByPersonId: row.broughtByPersonId,
@@ -142,6 +153,7 @@ class OcptElement extends Equatable {
     code,
     quantity,
     sourceKind,
+    status,
     ownerPersonId,
     ownerNotes,
     broughtByPersonId,
