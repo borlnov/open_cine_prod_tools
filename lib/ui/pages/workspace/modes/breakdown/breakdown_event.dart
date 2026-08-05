@@ -44,8 +44,8 @@ class OcptBreakdownProjectSettingsChangedEvent extends OcptBreakdownEvent {
   const OcptBreakdownProjectSettingsChangedEvent();
 }
 
-/// Selects scene [sceneId], dispatched by a row of `OcptBreakdownScenePanel` or by a heading row of
-/// `OcptBreakdownScriptView`.
+/// Selects scene [sceneId], dispatched by a row of `OcptBreakdownScenePanel` — the left dock's own
+/// list, which selects a scene without touching the right dock.
 ///
 /// A scene id that no longer exists in the current snapshot (a stale click on a list rebuilt
 /// underneath) is ignored rather than selecting nothing.
@@ -55,6 +55,28 @@ class OcptBreakdownSceneSelectedEvent extends OcptBreakdownEvent {
 
   /// Class constructor
   const OcptBreakdownSceneSelectedEvent({required this.sceneId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId];
+}
+
+/// Selects scene [sceneId] **and shows its own breakdown sheet**, dispatched by a click on one of
+/// `OcptBreakdownScriptView`'s own heading rows.
+///
+/// The centre views' own convention, which [OcptBreakdownTargetSelectedEvent] already follows for a
+/// tagged word and the recap table for a row: a click in the script lands the user on the sheet of
+/// whatever they clicked, without a second gesture. So this additionally drops the selected target
+/// — the scene's sheet is what the inspector shows precisely while no target is selected — and
+/// opens the right dock on its `Inspector` tab. The left dock's own list deliberately does neither
+/// (see [OcptBreakdownSceneSelectedEvent]): browsing scenes there is reading, not asking for a
+/// sheet.
+class OcptBreakdownSceneHeadingSelectedEvent extends OcptBreakdownEvent {
+  /// The id of the scene whose heading was clicked.
+  final String sceneId;
+
+  /// Class constructor
+  const OcptBreakdownSceneHeadingSelectedEvent({required this.sceneId});
 
   /// Object properties
   @override

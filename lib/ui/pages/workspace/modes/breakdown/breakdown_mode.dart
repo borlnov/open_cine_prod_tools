@@ -282,7 +282,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
       targetById: ocptBreakdownTargetsById(state.targets),
       pageSetup: state.pageSetup,
       selectedSceneId: state.selectedSceneId,
-      onSceneSelected: (sceneId) => bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId)),
+      onSceneSelected: (sceneId) =>
+          bloc.add(OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId)),
       hiddenLegendKeys: state.hiddenLegendKeys,
       selectedTargetRef: state.selectedTargetRef,
       onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(

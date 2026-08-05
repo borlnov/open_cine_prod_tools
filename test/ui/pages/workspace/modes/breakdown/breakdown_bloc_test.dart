@@ -233,6 +233,90 @@ void main() {
     await bloc.close();
   });
 
+  test("selecting a scene from the left dock leaves the right dock alone", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(
+      const OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: "not-a-scene",
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedTargetRef != null);
+
+    bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId));
+    final state = await waitForState(bloc, (state) => state.selectedSceneId != null);
+
+    expect(
+      state.selectedTargetRef,
+      isNotNull,
+      reason: "browsing the left dock's list is reading, so it must not drop the sheet the "
+          "inspector is showing",
+    );
+
+    await bloc.close();
+  });
+
+  test("clicking a scene heading shows the scene's own sheet in the inspector", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(
+      const OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: "not-a-scene",
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedTargetRef != null);
+
+    bloc.add(OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId));
+    final state = await waitForState(bloc, (state) => state.selectedTargetRef == null);
+
+    expect(state.selectedSceneId, sceneId);
+    expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
+    expect(state.lastRightDockTab, OcptBreakdownRightDockTab.inspector);
+
+    await bloc.close();
+  });
+
+  test("clicking a scene heading opens a closed right dock on the inspector", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+    expect(loaded.rightDockTab, isNull);
+
+    bloc.add(OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId));
+    final state = await waitForState(bloc, (state) => state.rightDockTab != null);
+
+    expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
+    expect(state.selectedSceneId, sceneId);
+
+    await bloc.close();
+  });
+
+  test("clicking a heading naming a scene that no longer exists is ignored", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+    bloc.add(const OcptBreakdownSceneHeadingSelectedEvent(sceneId: "not-a-scene"));
+    // Nothing to wait for since nothing should change; give the event a moment to be processed.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.selectedSceneId, isNull);
+    expect(bloc.state.rightDockTab, isNull);
+
+    await bloc.close();
+  });
+
   test("selecting a scene id that no longer exists is ignored", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
     final bloc = buildBloc();

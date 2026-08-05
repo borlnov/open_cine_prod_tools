@@ -159,6 +159,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownBackRequestedEvent>(_onBackRequested);
     on<OcptBreakdownProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptBreakdownSceneSelectedEvent>(_onSceneSelected);
+    on<OcptBreakdownSceneHeadingSelectedEvent>(_onSceneHeadingSelected);
     on<OcptBreakdownLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptBreakdownRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptBreakdownRightDockToggledEvent>(_onRightDockToggled);
@@ -370,7 +371,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWith(pageSetup: pageSetup));
   }
 
-  /// Selects scene `event.sceneId`.
+  /// Selects scene `event.sceneId`, touching neither the selected target nor the right dock — the
+  /// left dock's own list, and the target inspector's occurrence jump, both mean only this much.
+  /// [_onSceneHeadingSelected] is the louder sibling the script view's headings use.
   ///
   /// A scene id that no longer exists in the current snapshot (a stale click on a panel rebuilt
   /// underneath) is ignored rather than selecting nothing. Flushes any pending field edit
@@ -388,6 +391,40 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     emitter(state.copyWith(selectedSceneId: event.sceneId, isTagRemovalPending: false));
+  }
+
+  /// Selects scene `event.sceneId` **and shows its own breakdown sheet**, dispatched by a click on
+  /// one of the script view's heading rows.
+  ///
+  /// Everything [_onSceneSelected] does, plus the two things that make the sheet actually appear:
+  /// the selected target is dropped — the scene inspector is what the `Inspector` tab shows
+  /// precisely while none is selected — and the right dock is opened on that tab, a closed one
+  /// opening there and one already showing `Versions` switching. This is
+  /// [_onTargetSelected]'s own hand-off, applied to a scene: a click in the centre lands the user
+  /// on the sheet of whatever they clicked. The left dock's scene list deliberately keeps the
+  /// quieter [_onSceneSelected] instead.
+  Future<void> _onSceneHeadingSelected(
+    OcptBreakdownSceneHeadingSelectedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final exists = state.scenes.any((scene) => scene.id == event.sceneId);
+    if (!exists) {
+      return;
+    }
+
+    await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+
+    emitter(
+      state.copyWith(
+        selectedSceneId: event.sceneId,
+        clearSelectedTargetRef: true,
+        rightDockTab: OcptBreakdownRightDockTab.inspector,
+        lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+        isTagRemovalPending: false,
+      ),
+    );
   }
 
   /// Selects the scene of one of the selected target's occurrences, dispatched by a row of
