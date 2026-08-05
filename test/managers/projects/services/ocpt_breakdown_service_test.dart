@@ -483,6 +483,90 @@ void main() {
     });
   });
 
+  group("createSetAndTag", () {
+    test("mints the set inside the location given, tags it and ensures the link", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+      final locationId = (await locationsService.createLocation(
+        database: database,
+        name: "Maison des Martin",
+      ))!;
+
+      final result = await breakdownService.createSetAndTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: 0,
+        endOffset: 3,
+        taggedText: "one",
+        name: "Cuisine",
+        locationId: locationId,
+      );
+
+      expect(result, isNotNull);
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations.single.sets.single.id, result!.setId);
+      expect(locations.single.sets.single.name, "Cuisine");
+
+      final tag = await readTag(result.tagId);
+      expect(tag.targetKind, OcptBreakdownTargetKind.set);
+      expect(tag.setId, result.setId);
+
+      expect(await readLiveSceneSets(), hasLength(1));
+    });
+
+    test("mints a location of its own, named after the set, when given none", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
+
+      final result = await breakdownService.createSetAndTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: 0,
+        endOffset: 3,
+        taggedText: "one",
+        name: "Cuisine",
+      );
+
+      expect(result, isNotNull);
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations.single.name, "Cuisine");
+      expect(locations.single.sets.single.id, result!.setId);
+    });
+
+    test("rolls every write back when the tag half is refused", () async {
+      final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one two three.\n");
+      final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+          .fountainText
+          .substring(scene.charStart, scene.charEnd);
+      final roleId = await createRole();
+
+      // Occupy the whole range first, so the creation's own tag overlaps and is refused.
+      final start = sceneText.indexOf("one");
+      final end = sceneText.indexOf("three") + "three".length;
+      await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: start,
+        endOffset: end,
+        taggedText: sceneText.substring(start, end),
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      );
+
+      final result = await breakdownService.createSetAndTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: start,
+        endOffset: end,
+        taggedText: sceneText.substring(start, end),
+        name: "Cuisine",
+      );
+
+      expect(result, isNull);
+      // Neither the set nor the location minted to hold it survives the tag that was their point.
+      expect(await locationsService.loadLocations(database: database), isEmpty);
+      expect(await readLiveTags(), hasLength(1));
+    });
+  });
+
   group("updateSceneBreakdown", () {
     test("creates the row on first write, updates it on the second without duplicating it", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
@@ -1114,6 +1198,14 @@ Action two three.
       category: OcptElementCategory.prop,
       sourceKind: OcptElementSourceKind.owned,
     );
+    final createdSetPair = await breakdownService.createSetAndTag(
+      database: preview,
+      sceneId: "scene-1",
+      startOffset: 10,
+      endOffset: 13,
+      taggedText: "one",
+      name: "Cuisine",
+    );
     await breakdownService.updateSceneBreakdown(
       database: preview,
       sceneId: "scene-1",
@@ -1127,6 +1219,7 @@ Action two three.
 
     expect(createdTagId, isNull);
     expect(createdPair, isNull);
+    expect(createdSetPair, isNull);
 
     final tags = await preview.select(preview.ocptBreakdownTagsTable).get();
     expect(tags, hasLength(1));
@@ -1136,6 +1229,8 @@ Action two three.
     expect(tags.single.needsCheck, isTrue);
 
     expect(await preview.select(preview.ocptElementsTable).get(), isEmpty);
+    expect(await preview.select(preview.ocptLocationsTable).get(), isEmpty);
+    expect(await preview.select(preview.ocptSetsTable).get(), isEmpty);
     expect(await preview.select(preview.ocptSceneBreakdownsTable).get(), isEmpty);
   });
 }

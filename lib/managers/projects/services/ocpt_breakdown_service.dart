@@ -27,8 +27,8 @@ class _OcptBreakdownTagRefused implements Exception {
 ///
 /// Takes [OcptElementsService] and [OcptLocationsService] through its constructor, exactly as
 /// `OcptScreenplayService` takes its own collaborators, so a caller cannot mint an element or a
-/// scene ↔ catalogue link by a second, divergent route: [createTag] and [createElementAndTag] both
-/// go through the same two services the resources mode itself uses.
+/// scene ↔ catalogue link by a second, divergent route: [createTag], [createElementAndTag] and
+/// [createSetAndTag] all go through the same two services the resources mode itself uses.
 ///
 /// **A tag removal never removes the link it once ensured.** [deleteTag] tombstones the tag alone:
 /// the resources mode lets a user link an element to a scene, or a scene to a set, by hand with no
@@ -330,6 +330,77 @@ class OcptBreakdownService {
         }
 
         return (elementId: elementId, tagId: tagId);
+      });
+    } on _OcptBreakdownTagRefused {
+      return null;
+    }
+  }
+
+  /// Creates a new set named [name] and tags the scene-relative `[startOffset, endOffset)` passage
+  /// [taggedText] of scene [sceneId] with it, in one transaction — the sibling of
+  /// [createElementAndTag], for the one catalogue row the breakdown pass may also mint.
+  ///
+  /// [locationId] names the place holding it. Passing null creates **a location of its own**, named
+  /// [name] too: a set has no existence outside a location, and a user reading the script and
+  /// meeting a place the project has never heard of should not have to leave for the resources mode
+  /// to invent one first. The two are renamed apart there afterwards, `Cuisine` in `Cuisine` being
+  /// the honest first guess and not a claim.
+  ///
+  /// Both writes go through `OcptLocationsService`, exactly as [createElementAndTag] mints its
+  /// element through `OcptElementsService`, and the tag itself through [createTag] — so the
+  /// `scene_sets` link the tag implies is ensured by the one code path that ensures it everywhere.
+  ///
+  /// Returns null, and rolls **every** write back, when any of them refuses: a preview database, or
+  /// a range overlapping a live tag of the scene.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<({String setId, String tagId})?> createSetAndTag({
+    required OcptProjectDatabase database,
+    required String sceneId,
+    required int startOffset,
+    required int endOffset,
+    required String taggedText,
+    required String name,
+    String? locationId,
+  }) async {
+    if (database.refusesUserWrite("createSetAndTag")) {
+      return null;
+    }
+
+    try {
+      return await database.transaction(() async {
+        final holdingLocationId =
+            locationId ?? await _locationsService.createLocation(database: database, name: name);
+        if (holdingLocationId == null) {
+          // The preview guard tripped inside createLocation: nothing was written yet.
+          return null;
+        }
+
+        final setId = await _locationsService.createSet(
+          database: database,
+          locationId: holdingLocationId,
+          name: name,
+        );
+        if (setId == null) {
+          return null;
+        }
+
+        final tagId = await createTag(
+          database: database,
+          sceneId: sceneId,
+          startOffset: startOffset,
+          endOffset: endOffset,
+          taggedText: taggedText,
+          targetKind: OcptBreakdownTargetKind.set,
+          targetId: setId,
+        );
+        if (tagId == null) {
+          // The range overlaps a live tag: the set — and the location minted to hold it, if one
+          // was — must not survive the tag that was the whole point of creating them.
+          throw const _OcptBreakdownTagRefused();
+        }
+
+        return (setId: setId, tagId: tagId);
       });
     } on _OcptBreakdownTagRefused {
       return null;

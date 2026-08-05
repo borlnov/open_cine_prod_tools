@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
@@ -289,6 +290,15 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
 
   /// The whole set catalogue of [snapshot] (empty while nothing is loaded), the sibling of [roles].
   List<OcptSet> get sets => snapshot?.sets ?? const [];
+
+  /// The whole location catalogue of [snapshot] (empty while nothing is loaded) — what
+  /// `ocptSceneSetSuggestionOf` reads to answer what a scene's heading suggests, and what the tag
+  /// popover offers as the places a set it creates may go into.
+  List<OcptLocation> get locations => snapshot?.locations ?? const [];
+
+  /// The name of every live location of [snapshot], keyed by id — what names the place each of
+  /// [sets] belongs to (`ocptBreakdownSetLabel`). Empty while nothing is loaded.
+  Map<String, String> get locationNameById => snapshot?.locationNameById ?? const {};
 
   /// The candidates the tag popover searches, built once from [snapshot] — empty while nothing is
   /// loaded, exactly as every other snapshot-derived getter here.

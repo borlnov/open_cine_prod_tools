@@ -228,6 +228,7 @@ void main() {
     elements: elements,
     roles: [if (taggedRole != null) taggedRole],
     sets: const [],
+    locations: const [],
     people: people,
   );
 
@@ -407,6 +408,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 

@@ -459,6 +459,7 @@ void main() {
       elements: const [],
       roles: const [],
       sets: const [],
+      locations: const [],
       people: const [],
     );
     const labels = OcptBreakdownSheetsLabels(

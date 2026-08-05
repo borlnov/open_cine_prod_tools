@@ -45,6 +45,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The breakdown production mode (dépouillement du scénario): the scene list and, under it, the
 /// category legend on the left, the mode's own header band and, under it, either the whole
@@ -356,6 +357,10 @@ class _BreakdownViewState extends State<_BreakdownView> {
           bloc.add(OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId)),
       hiddenLegendKeys: state.hiddenLegendKeys,
       selectedTargetRef: state.selectedTargetRef,
+      locations: [for (final location in state.locations) (location.id, location.name)],
+      onPopoverSetCreationRequested: (locationId, name) => bloc.add(
+        OcptBreakdownPopoverSetCreationRequestedEvent(locationId: locationId, name: name),
+      ),
       onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
         OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
       ),
@@ -414,6 +419,19 @@ class _BreakdownViewState extends State<_BreakdownView> {
       return OcptBreakdownSceneInspector(
         scene: scene,
         targetById: ocptBreakdownTargetsById(state.targets),
+        sets: state.sets,
+        locationNameById: state.locationNameById,
+        suggestedSetId: scene == null
+            ? null
+            : ocptSceneSetSuggestionOf(heading: scene.heading, locations: state.locations),
+        onSetLinked: isReadOnly || scene == null
+            ? null
+            : (setId) =>
+                  bloc.add(OcptBreakdownSceneSetLinkedEvent(sceneId: scene.id, setId: setId)),
+        onSetUnlinked: isReadOnly || scene == null
+            ? null
+            : (setId) =>
+                  bloc.add(OcptBreakdownSceneSetUnlinkedEvent(sceneId: scene.id, setId: setId)),
         notesValue: scene == null ? "" : state.sceneNotesValueOf(scene.id, scene.notes),
         onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
           OcptBreakdownTargetSelectedEvent(

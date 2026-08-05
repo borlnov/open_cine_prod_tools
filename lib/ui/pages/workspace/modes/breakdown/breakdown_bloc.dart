@@ -182,6 +182,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownTargetSelectionClearedEvent>(_onTargetSelectionCleared);
     on<OcptBreakdownWordClickedEvent>(_onWordClicked);
     on<OcptBreakdownSceneStatusChangedEvent>(_onSceneStatusChanged);
+    on<OcptBreakdownSceneSetLinkedEvent>(_onSceneSetLinked);
+    on<OcptBreakdownSceneSetUnlinkedEvent>(_onSceneSetUnlinked);
     on<OcptBreakdownSceneNotesChangedEvent>(_onSceneNotesChanged);
     on<OcptBreakdownElementStatusChangedEvent>(_onElementStatusChanged);
     on<OcptBreakdownElementCategoryChangedEvent>(_onElementCategoryChanged);
@@ -194,6 +196,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownTagRangeCancelledEvent>(_onTagRangeCancelled);
     on<OcptBreakdownPopoverTargetLinkedEvent>(_onPopoverTargetLinked);
     on<OcptBreakdownPopoverElementCreationRequestedEvent>(_onPopoverElementCreationRequested);
+    on<OcptBreakdownPopoverSetCreationRequestedEvent>(_onPopoverSetCreationRequested);
     on<OcptBreakdownTagWriteErrorDismissedEvent>(_onTagWriteErrorDismissed);
     on<OcptBreakdownTagNeedsCheckClearedEvent>(_onTagNeedsCheckCleared);
     on<OcptBreakdownFlaggedTagRemovedEvent>(_onFlaggedTagRemoved);
@@ -345,6 +348,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       elements: elements,
       roles: roles,
       sets: [for (final location in locations) ...location.sets],
+      locations: locations,
       people: people,
     );
   }
@@ -944,6 +948,56 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
+  /// Creates a new set named `event.name` — inside `event.locationId`, or inside a location minted
+  /// along with it when that is null — and tags [OcptBreakdownState.pendingTagRange]'s own passage
+  /// with it, in one write (`OcptBreakdownService.createSetAndTag`), dispatched by the popover's own
+  /// `Create a set` control.
+  ///
+  /// The exact mirror of [_onPopoverElementCreationRequested], down to the selection it lands on:
+  /// the new set's own sheet, on the `Inspector` tab.
+  Future<void> _onPopoverSetCreationRequested(
+    OcptBreakdownPopoverSetCreationRequestedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    final range = state.pendingTagRange;
+    if (project == null || range == null || state.isPreviewingVersion) {
+      return;
+    }
+
+    await _flushPendingFieldEdits(emitter);
+
+    final trimmedName = event.name.trim();
+    final result = await _breakdownService.createSetAndTag(
+      database: project.database,
+      sceneId: range.sceneId,
+      startOffset: range.startOffset,
+      endOffset: range.endOffset,
+      taggedText: range.taggedText,
+      name: trimmedName.isEmpty ? range.taggedText : trimmedName,
+      locationId: event.locationId,
+    );
+
+    if (result == null) {
+      emitter(state.copyWith(hasTagWriteError: true));
+      return;
+    }
+
+    await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+    emitter(
+      state.copyWith(
+        clearPendingTagAnchor: true,
+        clearPendingTagRange: true,
+        snapshot: await _loadSnapshot(project),
+        selectedTargetRef: (OcptBreakdownTargetKind.set, result.setId),
+        selectedSceneId: range.sceneId,
+        rightDockTab: OcptBreakdownRightDockTab.inspector,
+        lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+        hasTagWriteError: false,
+      ),
+    );
+  }
+
   /// Tags one of the selected target's own suggested occurrences, dispatched by a click on the add
   /// control of one of `OcptBreakdownTargetInspector`'s own "Suggested occurrences" rows — the
   /// writer's second route onto `OcptBreakdownService.createTag`, [_onPopoverTargetLinked] being
@@ -1013,6 +1067,50 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       database: project.database,
       sceneId: event.sceneId,
       status: Value(event.status),
+    );
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+  }
+
+  /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately through the very
+  /// service the resources mode writes that link with, then reloads the snapshot — the sets a scene
+  /// is shot in are read off `OcptSet.sceneIds`, so the row has to come back from the database.
+  ///
+  /// Writes no tag: linking a scene to a set is a fact about the scene, not a passage of the script.
+  Future<void> _onSceneSetLinked(
+    OcptBreakdownSceneSetLinkedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _locationsService.assignSceneToSet(
+      database: project.database,
+      sceneId: event.sceneId,
+      setId: event.setId,
+    );
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+  }
+
+  /// Says scene `event.sceneId` is no longer shot in set `event.setId`, the mirror of
+  /// [_onSceneSetLinked]. Leaves every tag pointing at that set untouched, for the reason
+  /// `OcptBreakdownService.deleteTag` gives from the other side.
+  Future<void> _onSceneSetUnlinked(
+    OcptBreakdownSceneSetUnlinkedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _locationsService.removeSceneFromSet(
+      database: project.database,
+      sceneId: event.sceneId,
+      setId: event.setId,
     );
 
     emitter(state.copyWith(snapshot: await _loadSnapshot(project)));

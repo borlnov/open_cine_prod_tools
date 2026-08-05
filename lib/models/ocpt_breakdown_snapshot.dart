@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
@@ -59,8 +60,18 @@ class OcptBreakdownSnapshot extends Equatable {
   final List<OcptRole> roles;
 
   /// The whole set catalogue, verbatim, as passed to [OcptBreakdownSnapshot.build] — the sibling of
-  /// [roles], for the same reason.
+  /// [roles], for the same reason. Flattened across the locations: a set carries the id of the one
+  /// holding it ([OcptSet.locationId]), and [locationNameById] is what turns that into a name.
   final List<OcptSet> sets;
+
+  /// The whole location catalogue, verbatim, as passed to [OcptBreakdownSnapshot.build] — each
+  /// location still carrying its own sets, which [sets] is the flattening of.
+  ///
+  /// Carried whole rather than as a name lookup because two callers need more than the names: the
+  /// tag popover offers these as the places a set it creates may go into, and
+  /// `ocptSceneSetSuggestionOf` reads a location's name *and* its sets to answer what a heading
+  /// suggests. [locationNameById] is the lookup itself, derived here so no caller builds its own.
+  final List<OcptLocation> locations;
 
   /// `targets.length`: the status bar's "N targets tagged".
   final int taggedTargetCount;
@@ -94,6 +105,7 @@ class OcptBreakdownSnapshot extends Equatable {
     required this.people,
     required this.roles,
     required this.sets,
+    required this.locations,
     required this.taggedTargetCount,
     required this.usedCategoryCount,
     required this.toFindCount,
@@ -118,6 +130,7 @@ class OcptBreakdownSnapshot extends Equatable {
     required List<OcptElement> elements,
     required List<OcptRole> roles,
     required List<OcptSet> sets,
+    required List<OcptLocation> locations,
     required List<OcptPerson> people,
   }) {
     final tagsBySceneId = <String, List<OcptBreakdownTag>>{};
@@ -200,6 +213,7 @@ class OcptBreakdownSnapshot extends Equatable {
       people: people,
       roles: roles,
       sets: sets,
+      locations: locations,
       taggedTargetCount: targets.length,
       usedCategoryCount: targets.map((target) => target.color).toSet().length,
       toFindCount: targets.where((target) => target.status == OcptElementStatus.toFind).length,
@@ -218,6 +232,17 @@ class OcptBreakdownSnapshot extends Equatable {
       "toFindCount: $toFindCount, doneSceneCount: $doneSceneCount, "
       "needsCheckTagCount: $needsCheckTagCount)";
 
+  /// The name of every location of [locations], keyed by id — what names the place a set belongs
+  /// to.
+  ///
+  /// A set has no sheet of its own, so it is only ever shown *somewhere*: the scene inspector's own
+  /// sets row and the tag popover's set group both read a set as `<set> · <location>`
+  /// (`ocptBreakdownSetLabel`), two sets called `Cuisine` in two houses being the very case the
+  /// catalogue exists to tell apart.
+  Map<String, String> get locationNameById => {
+    for (final location in locations) location.id: location.name,
+  };
+
   /// Object properties
   @override
   List<Object?> get props => [
@@ -228,6 +253,7 @@ class OcptBreakdownSnapshot extends Equatable {
     people,
     roles,
     sets,
+    locations,
     taggedTargetCount,
     usedCategoryCount,
     toFindCount,

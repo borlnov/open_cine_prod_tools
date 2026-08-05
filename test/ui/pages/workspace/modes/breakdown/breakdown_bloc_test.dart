@@ -1468,6 +1468,43 @@ void main() {
     await bloc.close();
   });
 
+  test("linking a scene to a set writes the link alone, and unlinking drops it", () async {
+    await writeScreenplay("INT. CUISINE - DAY\n\nA lamp sits on the desk.\n");
+    final project = projectsManager.currentProject!;
+    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
+        .single
+        .id;
+    final locationId = (await projectsManager.locationsService.createLocation(
+      database: project.database,
+      name: "Maison des Martin",
+    ))!;
+    final setId = (await projectsManager.locationsService.createSet(
+      database: project.database,
+      locationId: locationId,
+      name: "Cuisine",
+    ))!;
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.scenes.length == 1);
+
+    bloc.add(OcptBreakdownSceneSetLinkedEvent(sceneId: sceneId, setId: setId));
+    var state = await waitForState(
+      bloc,
+      (state) => state.sets.any((set) => set.sceneIds.contains(sceneId)),
+    );
+    // Linking a scene to a set is a fact about the scene, not a passage of the script.
+    expect(state.taggedTargetCount, 0);
+
+    bloc.add(OcptBreakdownSceneSetUnlinkedEvent(sceneId: sceneId, setId: setId));
+    state = await waitForState(
+      bloc,
+      (state) => state.sets.every((set) => !set.sceneIds.contains(sceneId)),
+    );
+    expect(state.sets, hasLength(1));
+
+    await bloc.close();
+  });
+
   test("tag removal with no target selected leaves the tag untouched", () async {
     final tagged = await writeTaggedElement();
     final bloc = buildBloc();

@@ -153,6 +153,14 @@ class OcptBreakdownScriptView extends StatelessWidget {
   /// clicked, creating a new element and tagging the pending range with it.
   final void Function(OcptElementCategory category, String name) onPopoverElementCreationRequested;
 
+  /// Every location of the project, `(id, name)`, offered by the popover's own `Create a set`
+  /// control as the place a new set goes into.
+  final List<(String, String)> locations;
+
+  /// Called with the location a new set belongs to — null for one minted along with it — and the
+  /// popover's own field text, creating that set and tagging the pending range with it.
+  final void Function(String? locationId, String name) onPopoverSetCreationRequested;
+
   /// Called when the popover's own `Open in Resources` action is clicked (shown only while its
   /// search comes back with no role and no set).
   final VoidCallback onOpenInResourcesRequested;
@@ -176,6 +184,8 @@ class OcptBreakdownScriptView extends StatelessWidget {
     required this.onPopoverCancelled,
     required this.onPopoverTargetLinked,
     required this.onPopoverElementCreationRequested,
+    required this.locations,
+    required this.onPopoverSetCreationRequested,
     required this.onOpenInResourcesRequested,
   });
 
@@ -229,6 +239,8 @@ class OcptBreakdownScriptView extends StatelessWidget {
                         onPopoverCancelled: onPopoverCancelled,
                         onPopoverTargetLinked: onPopoverTargetLinked,
                         onPopoverElementCreationRequested: onPopoverElementCreationRequested,
+                        locations: locations,
+                        onPopoverSetCreationRequested: onPopoverSetCreationRequested,
                         onOpenInResourcesRequested: onOpenInResourcesRequested,
                       ),
                   ],
@@ -303,6 +315,14 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
   /// Forwarded from [OcptBreakdownScriptView].
   final void Function(OcptElementCategory category, String name) onPopoverElementCreationRequested;
 
+  /// Every location of the project, `(id, name)`, offered by the popover's own `Create a set`
+  /// control as the place a new set goes into.
+  final List<(String, String)> locations;
+
+  /// Called with the location a new set belongs to — null for one minted along with it — and the
+  /// popover's own field text, creating that set and tagging the pending range with it.
+  final void Function(String? locationId, String name) onPopoverSetCreationRequested;
+
   /// Forwarded from [OcptBreakdownScriptView].
   final VoidCallback onOpenInResourcesRequested;
 
@@ -324,6 +344,8 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     required this.onPopoverCancelled,
     required this.onPopoverTargetLinked,
     required this.onPopoverElementCreationRequested,
+    required this.locations,
+    required this.onPopoverSetCreationRequested,
     required this.onOpenInResourcesRequested,
   });
 
@@ -367,6 +389,8 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
                 onPopoverCancelled: onPopoverCancelled,
                 onPopoverTargetLinked: onPopoverTargetLinked,
                 onPopoverElementCreationRequested: onPopoverElementCreationRequested,
+                locations: locations,
+                onPopoverSetCreationRequested: onPopoverSetCreationRequested,
                 onOpenInResourcesRequested: onOpenInResourcesRequested,
               ),
         ],
@@ -522,6 +546,14 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
   /// Forwarded from [OcptBreakdownScriptView].
   final void Function(OcptElementCategory category, String name) onPopoverElementCreationRequested;
 
+  /// Every location of the project, `(id, name)`, offered by the popover's own `Create a set`
+  /// control as the place a new set goes into.
+  final List<(String, String)> locations;
+
+  /// Called with the location a new set belongs to — null for one minted along with it — and the
+  /// popover's own field text, creating that set and tagging the pending range with it.
+  final void Function(String? locationId, String name) onPopoverSetCreationRequested;
+
   /// Forwarded from [OcptBreakdownScriptView].
   final VoidCallback onOpenInResourcesRequested;
 
@@ -542,6 +574,8 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
     required this.onPopoverCancelled,
     required this.onPopoverTargetLinked,
     required this.onPopoverElementCreationRequested,
+    required this.locations,
+    required this.onPopoverSetCreationRequested,
     required this.onOpenInResourcesRequested,
   });
 
@@ -719,6 +753,8 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
         candidates: candidates,
         onCandidateSelected: (candidate) => onPopoverTargetLinked(candidate.kind, candidate.id),
         onCategorySelected: onPopoverElementCreationRequested,
+        locations: locations,
+        onSetCreationSelected: onPopoverSetCreationRequested,
         onOpenInResourcesRequested: onOpenInResourcesRequested,
         onClose: onPopoverCancelled,
       ),

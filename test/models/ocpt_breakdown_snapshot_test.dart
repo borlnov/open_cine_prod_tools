@@ -128,6 +128,7 @@ void main() {
         elements: [element],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 
@@ -184,6 +185,7 @@ void main() {
         elements: [elementToFind, elementConfirmed],
         roles: [role],
         sets: [set],
+        locations: const [],
         people: const [],
       );
 
@@ -219,6 +221,7 @@ void main() {
         elements: [propOne, propTwo],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 
@@ -243,6 +246,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 
@@ -294,6 +298,7 @@ void main() {
         elements: [elementZip, elementAsh],
         roles: [roleZoe, roleAlex],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 
@@ -317,6 +322,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 
@@ -344,6 +350,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 
@@ -384,6 +391,7 @@ void main() {
         elements: [element],
         roles: const [],
         sets: const [],
+        locations: const [],
         people: const [],
       );
 

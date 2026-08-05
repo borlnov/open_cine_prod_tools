@@ -209,8 +209,15 @@ class _OcptBreakdownTagPopoverPlacement {
 
 /// The popover a range closes on: the passage in quotes, a search field pre-filled with it and
 /// focused, the matches from [candidates] grouped `Roles`/`Sets`/`Elements`, the `Create an element`
-/// category grid, an `Open in Resources` action shown when the search names no role and no set, and a
-/// trailing hint.
+/// category grid, the `Create a set` control, an `Open in Resources` action shown when the search
+/// names no role and no set, and a trailing hint.
+///
+/// **An element and a set are the two things this popover may create; a role is not.** A role exists
+/// because a character speaks in the screenplay — `OcptRoleIndexService` reconciles it from the cue
+/// — so inventing one here would be inventing a character. A set has no such source: the script
+/// names the place (`INT. CUISINE`) but nothing in the project knows it yet, and sending the user to
+/// the resources mode to invent a location first would break the one reading the whole mode exists
+/// for. Its location is therefore picked here, from [locations], or minted along with it.
 ///
 /// The field's own text is both the query [candidates] are filtered against
 /// (`ocptBreakdownSearchCatalogues`) and the name a category chip's creation would use — there is no
@@ -237,6 +244,19 @@ class OcptBreakdownTagPopover extends StatefulWidget {
   /// clicked, creating a new element in that category and tagging the passage with it.
   final void Function(OcptElementCategory category, String name) onCategorySelected;
 
+  /// Every location of the project, `(id, name)`, offered by the `Create a set` control as the
+  /// place the new set goes into. May be empty — a project with no location at all then only offers
+  /// creating one along with the set.
+  final List<(String, String)> locations;
+
+  /// Called with the location the new set belongs to and the field's own current text when the
+  /// `Create a set` control is answered, creating that set and tagging the passage with it.
+  ///
+  /// A null location id means **a new location of its own**, named after the set: a place the
+  /// project has never heard of has to come into existence somewhere, and the sheet where the two
+  /// are told apart is in the resources mode.
+  final void Function(String? locationId, String name) onSetCreationSelected;
+
   /// Called when `Open in Resources` is clicked (shown only while the search names no role and no
   /// set).
   final VoidCallback onOpenInResourcesRequested;
@@ -252,6 +272,8 @@ class OcptBreakdownTagPopover extends StatefulWidget {
     required this.candidates,
     required this.onCandidateSelected,
     required this.onCategorySelected,
+    required this.locations,
+    required this.onSetCreationSelected,
     required this.onOpenInResourcesRequested,
     required this.onClose,
   });
@@ -354,6 +376,10 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                             child: _buildCategoryGrid(context, tr),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            child: _buildSetCreationControl(context, tr),
                           ),
                           if (_results.roles.isEmpty && _results.sets.isEmpty)
                             Padding(
@@ -509,6 +535,31 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
           onTap: () => widget.onCategorySelected(category, _nameFromField()),
         ),
     ],
+  );
+
+  /// The `Create a set` control: a menu naming every location the set could go into, plus the entry
+  /// minting a location of its own for it.
+  ///
+  /// A menu rather than a chip grid, unlike the element categories right above it: a project has as
+  /// many locations as it has, and they are the user's own names rather than a fixed list.
+  Widget _buildSetCreationControl(BuildContext context, Tr tr) => PopupMenuButton<String?>(
+    tooltip: "",
+    // A null value is the "in a new location" entry: PopupMenuItem's own default, spelled out by
+    // the entry below rather than by an argument the analyzer would call redundant.
+    onSelected: (locationId) => widget.onSetCreationSelected(locationId, _nameFromField()),
+    itemBuilder: (context) => [
+      for (final (id, name) in widget.locations)
+        PopupMenuItem<String?>(value: id, child: Text(tr.breakdownPopoverCreateSetInOption(name))),
+      if (widget.locations.isNotEmpty) const PopupMenuDivider(),
+      PopupMenuItem<String?>(child: Text(tr.breakdownPopoverCreateSetInNewLocationOption)),
+    ],
+    // A chip rather than a button, the way every other picker of the app anchors its own menu (the
+    // location sheet's scenes, the scene inspector's sets): the tap belongs to the menu, and a
+    // button with no `onPressed` of its own would read as disabled.
+    child: Chip(
+      avatar: const Icon(Icons.add, size: 14),
+      label: Text(tr.breakdownPopoverCreateSetAction),
+    ),
   );
 
   /// The name a creation would use: the field's own trimmed text, falling back to the untouched

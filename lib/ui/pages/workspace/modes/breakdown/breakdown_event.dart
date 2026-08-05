@@ -423,6 +423,48 @@ class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
+/// Says scene [sceneId] is shot in set [setId], dispatched by the scene inspector's own sets picker.
+///
+/// **Not** a tagging: no passage of the script is involved, no tag is created, and nothing is
+/// highlighted. It writes the `scene_sets` link alone — the very link the resources mode's own
+/// location sheet writes from the other side — so a scene may name its décor without a word of the
+/// screenplay having to spell it.
+class OcptBreakdownSceneSetLinkedEvent extends OcptBreakdownEvent {
+  /// The id of the scene shot in [setId].
+  final String sceneId;
+
+  /// The id of the set it is shot in.
+  final String setId;
+
+  /// Class constructor
+  const OcptBreakdownSceneSetLinkedEvent({required this.sceneId, required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, setId];
+}
+
+/// Says scene [sceneId] is no longer shot in set [setId], dispatched by one of the scene
+/// inspector's own set chips being dismissed.
+///
+/// Drops the `scene_sets` link alone and **leaves every tag pointing at that set exactly where it
+/// is**: a tag is a passage of the script, the link is a fact about the scene, and
+/// `OcptBreakdownService.deleteTag` already refuses to conflate the two from the other side.
+class OcptBreakdownSceneSetUnlinkedEvent extends OcptBreakdownEvent {
+  /// The id of the scene no longer shot in [setId].
+  final String sceneId;
+
+  /// The id of the set it is no longer shot in.
+  final String setId;
+
+  /// Class constructor
+  const OcptBreakdownSceneSetUnlinkedEvent({required this.sceneId, required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, setId];
+}
+
 /// Removes the selected target's tags from the selected scene for good, dispatched by the mode once
 /// its `OcptConfirmDialog` — opened by `OcptBreakdownTargetInspector`'s own `Remove from the
 /// breakdown` action — has already been answered.
@@ -476,6 +518,33 @@ class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownEve
   /// Object properties
   @override
   List<Object?> get props => [...super.props, category, name];
+}
+
+/// Creates a new set named [name], inside location [locationId] or inside one minted along with it
+/// when that is null, and tags `OcptBreakdownState.pendingTagRange`'s own passage with it, in one
+/// write — dispatched by the tag popover's own `Create a set` control.
+///
+/// The sibling of [OcptBreakdownPopoverElementCreationRequestedEvent], for the second and last thing
+/// the breakdown pass may bring into existence: see `OcptBreakdownTagPopover`'s own doc comment for
+/// why a role is not one of them.
+class OcptBreakdownPopoverSetCreationRequestedEvent extends OcptBreakdownEvent {
+  /// The id of the location holding the new set, or null for a location minted along with it and
+  /// named after it.
+  final String? locationId;
+
+  /// The new set's own name, read off the popover's search field at the moment the control was
+  /// answered.
+  final String name;
+
+  /// Class constructor
+  const OcptBreakdownPopoverSetCreationRequestedEvent({
+    required this.locationId,
+    required this.name,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId, name];
 }
 
 /// Dismisses the transient notice that the last tag write — the popover's own link or element

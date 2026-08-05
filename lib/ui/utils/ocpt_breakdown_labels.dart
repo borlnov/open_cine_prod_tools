@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -131,4 +132,17 @@ Color ocptElementStatusColor(BuildContext context, OcptElementStatus status) {
     OcptElementStatus.confirmed =>
       theme.extension<OcptSpecificColors>()?.shotStatusShot ?? theme.colorScheme.primary,
   };
+}
+
+/// How a set is named wherever it is shown outside the location sheet that holds it: `Cuisine ·
+/// Maison des Martin`.
+///
+/// A set has no sheet of its own, so its own name is regularly not enough to tell it apart — two
+/// houses each having a `Cuisine` is the very case `sets` exists to distinguish. The location is
+/// dropped, rather than shown as an empty tail, when [locationNameById] does not name it: a
+/// location tombstoned underneath, which the reload that follows will drop the set along with.
+String ocptBreakdownSetLabel(OcptSet set, Map<String, String> locationNameById) {
+  final locationName = locationNameById[set.locationId];
+
+  return locationName == null || locationName.isEmpty ? set.name : "${set.name} · $locationName";
 }

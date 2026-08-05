@@ -142,6 +142,8 @@ Widget _buildView({
   onPopoverCancelled: () {},
   onPopoverTargetLinked: (_, __) {},
   onPopoverElementCreationRequested: (_, __) {},
+  locations: const [],
+  onPopoverSetCreationRequested: (_, __) {},
   onOpenInResourcesRequested: () {},
 );
 

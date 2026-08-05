@@ -3937,6 +3937,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesMoveSetTooltip": "Move this set to another location",
+  "@resourcesMoveSetTooltip": {
+    "description": "Tooltip of the control handing a set to another location",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMoveSetMenuTitle": "Move to…",
+  "@resourcesMoveSetMenuTitle": {
+    "description": "Heading of the menu listing the locations a set may be moved to",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesSetCodeLabel": "Code",
   "@resourcesSetCodeLabel": {
     "description": "Label of a set's short code field",
@@ -5516,6 +5530,39 @@
     "type": "text",
     "placeholders": {}
   },
+  "breakdownSceneInspectorSetsLabel": "Sets",
+  "@breakdownSceneInspectorSetsLabel": {
+    "description": "Heading of the row naming the sets a scene is shot in",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorNoSetHint": "No set yet",
+  "@breakdownSceneInspectorNoSetHint": {
+    "description": "Says the scene is not linked to any set yet",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorAddSetAction": "Set",
+  "@breakdownSceneInspectorAddSetAction": {
+    "description": "Label of the chip opening the picker adding a set to the scene",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorSetSuggestedOption": "{set} — suggested",
+  "@breakdownSceneInspectorSetSuggestedOption": {
+    "description": "Entry of the set picker whose name matches the scene's own heading",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {
+      "set": {
+        "type": "String",
+        "example": "Cuisine · Maison des Martin"
+      }
+    }
+  },
   "breakdownSceneInspectorTargetsSectionTitle": "Tagged elements",
   "@breakdownSceneInspectorTargetsSectionTitle": {
     "description": "Title of the scene inspector's own targets section",
@@ -5583,6 +5630,32 @@
   "@breakdownPopoverElementsGroupTitle": {
     "description": "Title of the tag popover's own element matches group",
     "context": "Displayed above the popover's matching elements",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverCreateSetAction": "Create a set…",
+  "@breakdownPopoverCreateSetAction": {
+    "description": "Opens the menu creating a set from the tagged passage",
+    "context": "Displayed in the breakdown mode's tag popover",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverCreateSetInOption": "In {location}",
+  "@breakdownPopoverCreateSetInOption": {
+    "description": "Entry creating the set inside an existing location",
+    "context": "Displayed in the breakdown mode's tag popover",
+    "type": "text",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "Maison des Martin"
+      }
+    }
+  },
+  "breakdownPopoverCreateSetInNewLocationOption": "In a new location",
+  "@breakdownPopoverCreateSetInNewLocationOption": {
+    "description": "Entry creating a location named after the set, to hold it",
+    "context": "Displayed in the breakdown mode's tag popover",
     "type": "text",
     "placeholders": {}
   },

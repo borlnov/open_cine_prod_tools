@@ -446,7 +446,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   covered in two) and to an **element** (`scene_elements`, the *dépouillement* link, carrying the
   quantity and the note that belong to that scene alone). `ocptSceneSetSuggestionOf`
   (`lib/utils/`, pure and tested) reduces a heading to the place it names and *offers* the best set
-  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets.
+  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets. A set's
+  **location is not one of its fields**: it is what the set belongs to, chosen when it is created
+  and changed only by moving the whole set (`OcptLocationsService.moveSetToLocation`, the sets
+  card's own move control, which re-allocates the `sortKey` in the destination), so a set filed
+  under the wrong house is repaired rather than deleted and retyped.
   Everything writes the moment it changes, except the sheets' typed free-text fields: those ride
   one 2 s debounce shared by the five `pending…FieldEdits` maps, flushed together on a selection
   change, a tab change, a version preview and the mode leaving the tree. A field may **flag** what
@@ -497,8 +501,13 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptBreakdownTagPopover`, whose search field is **pre-filled with the passage** and whose results
   are grouped by kind; clicking a result links, clicking a **category chip** creates the element in
   that category and tags it in one write, then hands off to the inspector where the rest of the
-  sheet is. Only elements are creatable here — a role's existence belongs to the screenplay and a
-  set belongs to a location — so the popover offers `Open in Resources` instead. Tags never overlap
+  sheet is. Elements and **sets** are the two things creatable here — a role's existence belongs to
+  the screenplay, `OcptRoleIndexService` reconciling it from the cue, so inventing one would be
+  inventing a character. A set has no such source: the script names the place and the project has
+  never heard of it, so the popover's own `Create a set` control picks the location holding it out
+  of the ones the project has, or mints one named after it (`OcptBreakdownService.createSetAndTag`,
+  the sibling of `createElementAndTag`, rolling *every* write back when the tag half is refused).
+  `Open in Resources` is offered beside them for everything else. Tags never overlap
   (the mode greys the affordance, `OcptBreakdownService` guarantees it), and a click on an
   already-tagged word therefore **selects its target** rather than starting a range — deliberately
   *not* what the same click does in `OcptShotCoverageDialog`, where it removes the range: here a tag
@@ -508,6 +517,16 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `ocptSceneSetSuggestionOf` already follows. The header's search filters the recap's **rows** and
   never its columns, and typing into it from the script view switches to the recap carrying the
   text: the script is a reading surface, and the answer to "where is this?" is a table.
+  The scene inspector's own **sets row** is the one part of the mode that is not about tags: it
+  reads and writes `scene_sets` directly (`OcptBreakdownSceneSetLinkedEvent`/`…UnlinkedEvent` onto
+  `OcptLocationsService`), so a link made by hand in the resources mode shows here and one made here
+  shows there — no tag is created, nothing is highlighted, and unlinking leaves every tag pointing
+  at that set exactly where it is. It sits at the top of the sheet because that is where a
+  breakdown sheet names its décor, and its picker offers `ocptSceneSetSuggestionOf`'s answer first,
+  marked as a suggestion and never applied. A set is shown as `<set> · <location>` everywhere
+  outside the location sheet holding it (`ocptBreakdownSetLabel`), which is why
+  `OcptBreakdownSnapshot` carries the whole `locations` catalogue and derives `locationNameById`
+  from it.
   The left dock is the scene list (status, a colour bar per category present, counts) over the
   category legend, whose entries toggle their category's highlighting; the right dock is
   `Inspector` + the shared `Versions` tab, the inspector showing the selected target's sheet or —
@@ -677,7 +696,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   banner actions, every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
   sub-list rows and delete actions, and — in the breakdown mode — the word click that opens a range
   (nulling that one callback withholds the whole tagging path, since no anchor can open and no
-  popover ever has a range to show), the status and category chips, the scene status control, every
+  popover ever has a range to show), the status and category chips, the scene status control, its
+  sets row's picker and chip dismissals, every
   notes field, the suggestion acceptances and the tag removal. What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word

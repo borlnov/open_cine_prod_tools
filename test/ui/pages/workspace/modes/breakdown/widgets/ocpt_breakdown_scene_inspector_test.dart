@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
+import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -46,6 +47,21 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: "",
   tags: tags,
+);
+
+/// Builds a set of location `location-1`, shot in [sceneIds].
+OcptSet _buildSet({
+  required String id,
+  required String name,
+  String locationId = "location-1",
+  List<String> sceneIds = const [],
+}) => OcptSet(
+  id: id,
+  locationId: locationId,
+  code: "",
+  name: name,
+  notes: "",
+  sceneIds: sceneIds,
 );
 
 /// Builds a live tag of [taggedText] pointing at [targetKind]/[targetId].
@@ -90,6 +106,11 @@ void main() {
         const OcptBreakdownSceneInspector(
           scene: null,
           targetById: {},
+          sets: [],
+          locationNameById: {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: null,
@@ -111,6 +132,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: const {},
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -151,6 +177,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: targetById,
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -188,6 +219,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: targetById,
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "",
           onTargetSelected: (kind, id, sceneId) => reported.add((kind, id, sceneId)),
           onStatusChanged: (_) {},
@@ -213,6 +249,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: const {},
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: reported.add,
@@ -240,6 +281,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: const {},
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "Fragile prop",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -269,6 +315,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: const {},
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "Fragile prop",
           onTargetSelected: _noop3,
           onStatusChanged: statusReported.add,
@@ -319,6 +370,11 @@ void main() {
           OcptBreakdownSceneInspector(
             scene: scene,
             targetById: targetById,
+            sets: const [],
+            locationNameById: const {},
+            suggestedSetId: null,
+            onSetLinked: null,
+            onSetUnlinked: null,
             notesValue: "",
             onTargetSelected: _noop3,
             onStatusChanged: (_) {},
@@ -363,6 +419,11 @@ void main() {
           OcptBreakdownSceneInspector(
             scene: scene,
             targetById: const {},
+            sets: const [],
+            locationNameById: const {},
+            suggestedSetId: null,
+            onSetLinked: null,
+            onSetUnlinked: null,
             notesValue: "",
             onTargetSelected: _noop3,
             onStatusChanged: (_) {},
@@ -401,6 +462,11 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: scene,
           targetById: targetById,
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -421,6 +487,75 @@ void main() {
     expect(clearButton.onPressed, isNull);
     final removeButton = tester.widget<TextButton>(find.widgetWithText(TextButton, "Remove"));
     expect(removeButton.onPressed, isNull);
+  });
+
+  testWidgets("names the sets the scene is shot in, and offers the rest", (tester) async {
+    final linkedSetIds = <String>[];
+    final unlinkedSetIds = <String>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: _buildScene(id: "scene-1"),
+          targetById: const {},
+          sets: [
+            _buildSet(id: "set-kitchen", name: "Cuisine", sceneIds: const ["scene-1"]),
+            _buildSet(id: "set-garden", name: "Jardin"),
+          ],
+          locationNameById: const {"location-1": "Maison des Martin"},
+          suggestedSetId: "set-garden",
+          onSetLinked: linkedSetIds.add,
+          onSetUnlinked: unlinkedSetIds.add,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
+        ),
+      ),
+    );
+
+    // The set the scene is shot in is a chip, named with the location holding it; the other one is
+    // only in the picker, marked there as this heading's own suggestion.
+    expect(find.text("Cuisine · Maison des Martin"), findsOneWidget);
+    expect(find.text("Jardin · Maison des Martin"), findsNothing);
+
+    await tester.tap(find.text("Set"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Jardin · Maison des Martin — suggested"));
+    await tester.pumpAndSettle();
+
+    expect(linkedSetIds, ["set-garden"]);
+    expect(unlinkedSetIds, isEmpty);
+  });
+
+  testWidgets("a read-only sheet names its sets but offers no picker and no dismissal", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: _buildScene(id: "scene-1"),
+          targetById: const {},
+          sets: [_buildSet(id: "set-kitchen", name: "Cuisine", sceneIds: const ["scene-1"])],
+          locationNameById: const {"location-1": "Maison des Martin"},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: null,
+          onNotesChanged: null,
+          onTagNeedsCheckCleared: null,
+          onFlaggedTagRemoved: null,
+          isReadOnly: true,
+        ),
+      ),
+    );
+
+    expect(find.text("Cuisine · Maison des Martin"), findsOneWidget);
+    expect(find.text("Set"), findsNothing);
   });
 }
 

@@ -96,6 +96,7 @@ OcptBreakdownSnapshot _snapshot() {
     ],
     roles: const [],
     sets: const [],
+    locations: const [],
     people: const [],
   );
 }

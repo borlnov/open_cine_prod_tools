@@ -83,6 +83,8 @@ void main() {
                   candidates: const [],
                   onCandidateSelected: (_) {},
                   onCategorySelected: (_, __) {},
+                  locations: const [],
+                  onSetCreationSelected: (_, __) {},
                   onOpenInResourcesRequested: () {},
                   onClose: () {},
                 ),
@@ -146,6 +148,8 @@ void main() {
           candidates: const [],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () {},
         ),
@@ -167,6 +171,8 @@ void main() {
           candidates: const [],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () => closed = true,
         ),
@@ -188,6 +194,8 @@ void main() {
           candidates: const [],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () => closed = true,
         ),
@@ -209,6 +217,8 @@ void main() {
           candidates: const [],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () => closed = true,
         ),
@@ -245,6 +255,8 @@ void main() {
           ],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () {},
         ),
@@ -283,6 +295,8 @@ void main() {
           ],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () {},
         ),
@@ -310,6 +324,8 @@ void main() {
           candidates: [candidate],
           onCandidateSelected: (picked) => linked = picked,
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () {},
         ),
@@ -332,6 +348,8 @@ void main() {
           candidates: const [],
           onCandidateSelected: (_) {},
           onCategorySelected: (category, name) => created = (category, name),
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () {},
         ),
@@ -355,6 +373,50 @@ void main() {
     expect(created, (OcptElementCategory.prop, "Desk lamp, 1960s"));
   });
 
+  testWidgets("creating a set offers every location, and one of its own", (tester) async {
+    (String?, String)? created;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownTagPopover(
+          taggedText: "CUISINE",
+          candidates: const [],
+          onCandidateSelected: (_) {},
+          onCategorySelected: (_, __) {},
+          locations: const [("location-1", "Maison des Martin")],
+          onSetCreationSelected: (locationId, name) => created = (locationId, name),
+          onOpenInResourcesRequested: () {},
+          onClose: () {},
+        ),
+      ),
+    );
+
+    final tr = await Tr.delegate.load(const Locale("en", "GB"));
+
+    // The control sits inside the popover's own internal scroll view, below the category grid, so
+    // the menu is opened through its anchor's own callback rather than by a simulated tap that
+    // would first need to scroll it into view.
+    final anchor = tester.widget<PopupMenuButton<String?>>(
+      find.ancestor(
+        of: find.text(tr.breakdownPopoverCreateSetAction),
+        matching: find.byType(PopupMenuButton<String?>),
+      ),
+    );
+    final entries = anchor.itemBuilder(tester.element(find.byType(OcptBreakdownTagPopover)));
+    final values = [
+      for (final entry in entries)
+        if (entry is PopupMenuItem<String?>) entry.value,
+    ];
+
+    expect(values, ["location-1", null]);
+
+    anchor.onSelected!(null);
+    await tester.pump();
+
+    // The name is the field's own text, which the passage pre-filled.
+    expect(created, (null, "CUISINE"));
+  });
+
   testWidgets("Open in Resources is offered when the search names no role and no set", (
     tester,
   ) async {
@@ -367,6 +429,8 @@ void main() {
           candidates: [_candidate(kind: OcptBreakdownTargetKind.element, name: "Desk lamp")],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () => requested = true,
           onClose: () {},
         ),
@@ -399,6 +463,8 @@ void main() {
           candidates: [_candidate(kind: OcptBreakdownTargetKind.role, name: "LÉA")],
           onCandidateSelected: (_) {},
           onCategorySelected: (_, __) {},
+          locations: const [],
+          onSetCreationSelected: (_, __) {},
           onOpenInResourcesRequested: () {},
           onClose: () {},
         ),
