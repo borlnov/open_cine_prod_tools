@@ -4,8 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -314,7 +314,7 @@ class OcptCoverageSummaryRow extends Equatable {
   final int shotCount;
 
   /// How many words the scene's text holds at all, as the coverage editor counts them
-  /// ([OcptShotCoverageLayout] blocks and words). Always 0 for the orphan group.
+  /// ([OcptScriptWordLayout] blocks and words). Always 0 for the orphan group.
   final int wordCount;
 
   /// How many of those [wordCount] words at least one shot covers, counted as a union so a word
@@ -907,7 +907,7 @@ class OcptScenarioCoverageLayout extends Equatable {
 
   /// The summary page's rows, one per sequence of [snapshot] in its own order.
   ///
-  /// The word counts go through [OcptShotCoverageLayout], the very model the coverage editor lays
+  /// The word counts go through [OcptScriptWordLayout], the very model the coverage editor lays
   /// a scene out with, so what the summary calls covered is exactly what the editor calls covered.
   static List<OcptCoverageSummaryRow> _summaryOf({
     required OcptShotListSnapshot snapshot,
@@ -942,7 +942,7 @@ class OcptScenarioCoverageLayout extends Equatable {
   ) {
     final start = sequence.charStart.clamp(0, screenplayText.length);
     final end = sequence.charEnd.clamp(start, screenplayText.length);
-    final layout = OcptShotCoverageLayout.of(
+    final layout = OcptScriptWordLayout.of(
       sceneId: sequence.sceneId,
       sceneText: screenplayText.substring(start, end),
     );
@@ -976,7 +976,7 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// The blocks of [layout] a shot can meaningfully cover: everything but the scene headings, which
   /// name the scene rather than play in it and are left out of the whole coverage report — the
   /// washes drawn on the page as much as the figures measuring them.
-  static List<OcptShotCoverageBlock> _coverableBlocksOf(OcptShotCoverageLayout layout) => [
+  static List<OcptScriptWordBlock> _coverableBlocksOf(OcptScriptWordLayout layout) => [
     for (final block in layout.blocks)
       if (block.type != FountainLineType.sceneHeading) block,
   ];
@@ -998,15 +998,15 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// uncovered words of one block make one extract; each is cut at [_maxUncoveredExtractLength]
   /// characters and the list itself at [_maxUncoveredExtracts] entries.
   static List<String> _uncoveredExtractsOf(
-    OcptShotCoverageLayout layout,
-    List<OcptShotCoverageBlock> blocks,
+    OcptScriptWordLayout layout,
+    List<OcptScriptWordBlock> blocks,
     List<OcptShotCoverageRange> ranges,
   ) {
     final extracts = <String>[];
 
     for (final block in blocks) {
-      OcptShotCoverageWord? first;
-      OcptShotCoverageWord? last;
+      OcptScriptWord? first;
+      OcptScriptWord? last;
 
       /// Closes the run of uncovered words accumulated so far, if any, into an extract.
       void flush() {

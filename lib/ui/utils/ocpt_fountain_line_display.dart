@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 
 /// One run of a word's printed text: the characters themselves and the inline emphasis they carry.
 ///
@@ -23,11 +23,11 @@ typedef OcptFountainDisplayRun = ({String text, FountainInlineStyle style});
 /// highlight both extend over that whitespace.
 ///
 /// **The source offsets are untouched.** This only decides what is *shown*: a word still covers
-/// exactly the `OcptShotCoverageWord.startOffset`/`endOffset` range it always did, markers
+/// exactly the `OcptScriptWord.startOffset`/`endOffset` range it always did, markers
 /// included, so a coverage range recorded from a click keeps pointing at the source text the
 /// screenplay actually holds. That is why this returns display runs per existing word rather than
 /// re-splitting a cleaned-up string into new words.
-List<List<OcptFountainDisplayRun>> ocptFountainWordDisplayRuns(OcptShotCoverageBlock block) {
+List<List<OcptFountainDisplayRun>> ocptFountainWordDisplayRuns(OcptScriptWordBlock block) {
   final line = block.text;
   final styles = List<FountainInlineStyle>.filled(line.length, FountainInlineStyle.plain);
   final isVisible = List<bool>.filled(line.length, true);

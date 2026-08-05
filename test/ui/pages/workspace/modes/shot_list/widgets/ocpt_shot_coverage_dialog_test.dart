@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 
@@ -36,13 +36,13 @@ Future<void> _useLargeSurface(WidgetTester tester) async {
 }
 
 /// A realistic scene: heading, an action line, a character cue, a parenthetical and a dialogue
-/// line, matching the fixture `OcptShotCoverageLayout.of`'s own tests use.
+/// line, matching the fixture `OcptScriptWordLayout.of`'s own tests use.
 const _sceneId = "scene-1";
 const _sceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\nJOHN\n(whispering)\nHello there.';
 
 /// Builds the layout every test in this file lays its scene out from.
-OcptShotCoverageLayout _buildLayout() =>
-    OcptShotCoverageLayout.of(sceneId: _sceneId, sceneText: _sceneText);
+OcptScriptWordLayout _buildLayout() =>
+    OcptScriptWordLayout.of(sceneId: _sceneId, sceneText: _sceneText);
 
 /// Builds an [OcptShotCoverageRange] test double with sensible defaults for the fields a given
 /// test doesn't care about.
@@ -63,7 +63,7 @@ OcptShotCoverageRange _buildRange({
 /// Builds a dialog with a sensible default of every field, only the fields a given test cares
 /// about overridden.
 Widget _buildDialog({
-  OcptShotCoverageLayout? layout,
+  OcptScriptWordLayout? layout,
   List<OcptShotCoverageRange> ownRanges = const [],
   Map<String, List<OcptShotCoverageRange>> otherShotsRanges = const {},
   OcptShotCoverageAnchor? pendingAnchor,
@@ -111,7 +111,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildDialog(
-          layout: OcptShotCoverageLayout.of(
+          layout: OcptScriptWordLayout.of(
             sceneId: _sceneId,
             sceneText: ".INT. HOUSE - DAY #3#\n\nJohn *walks* in.",
           ),

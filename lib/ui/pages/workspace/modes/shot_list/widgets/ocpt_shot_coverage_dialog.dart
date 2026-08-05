@@ -8,7 +8,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
@@ -55,7 +55,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
   final String sequenceHeading;
 
   /// The sequence, laid out into blocks and words.
-  final OcptShotCoverageLayout layout;
+  final OcptScriptWordLayout layout;
 
   /// The page setup the sheet is typeset with, so the sequence reads exactly as it does in the
   /// screenplay mode's own preview.
@@ -211,7 +211,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
 /// own preview lays the same text out.
 class _OcptShotCoverageSheet extends StatelessWidget {
   /// The sequence laid out into blocks and words.
-  final OcptShotCoverageLayout layout;
+  final OcptScriptWordLayout layout;
 
   /// The pixel geometry the sheet is typeset with.
   final OcptEditorPreviewLayout previewLayout;
@@ -282,10 +282,10 @@ class _OcptShotCoverageSheet extends StatelessWidget {
 /// and alignment, followed by the `Also covered by` caption when another shot covers part of it.
 class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// The layout [block] belongs to.
-  final OcptShotCoverageLayout layout;
+  final OcptScriptWordLayout layout;
 
   /// The block rendered.
-  final OcptShotCoverageBlock block;
+  final OcptScriptWordBlock block;
 
   /// Whether the source leaves a blank line between this block and the next one, which is the only
   /// place the sheet leaves a vertical gap.
@@ -359,7 +359,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
                         WidgetSpan(
                           alignment: PlaceholderAlignment.baseline,
                           baseline: TextBaseline.alphabetic,
-                          child: _OcptShotCoverageWord(
+                          child: _OcptScriptWord(
                             runs: displayRuns[i],
                             isUppercase: printStyle.isUppercase,
                             style: baseStyle,
@@ -420,23 +420,23 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
 
   /// How [word] is currently painted: the anchor of a range being drawn wins over every coverage,
   /// and this shot's own coverage wins over another shot's.
-  _OcptShotCoverageWordState _stateOf(OcptShotCoverageWord word) {
+  _OcptScriptWordState _stateOf(OcptScriptWord word) {
     if (pendingAnchor?.wordStartOffset == word.startOffset) {
-      return _OcptShotCoverageWordState.anchor;
+      return _OcptScriptWordState.anchor;
     }
     if (layout.isWordCovered(word, ownRanges)) {
-      return _OcptShotCoverageWordState.own;
+      return _OcptScriptWordState.own;
     }
     if (otherShotsRanges.values.any((ranges) => layout.isWordCovered(word, ranges))) {
-      return _OcptShotCoverageWordState.other;
+      return _OcptScriptWordState.other;
     }
 
-    return _OcptShotCoverageWordState.plain;
+    return _OcptScriptWordState.plain;
   }
 }
 
 /// How one word of the sheet is painted.
-enum _OcptShotCoverageWordState {
+enum _OcptScriptWordState {
   /// Covered by no shot at all: plain paper text.
   plain,
 
@@ -460,7 +460,7 @@ enum _OcptShotCoverageWordState {
 /// `#N#`) are resolved into real emphasis instead of being shown — exactly as the raw mode's paper
 /// preview resolves them. The offsets the click reports are the source ones all the same, markers
 /// included.
-class _OcptShotCoverageWord extends StatelessWidget {
+class _OcptScriptWord extends StatelessWidget {
   /// The word's printed runs, whitespace and inline emphasis included.
   final List<OcptFountainDisplayRun> runs;
 
@@ -471,13 +471,13 @@ class _OcptShotCoverageWord extends StatelessWidget {
   final TextStyle style;
 
   /// How the word is currently painted.
-  final _OcptShotCoverageWordState state;
+  final _OcptScriptWordState state;
 
   /// Called when the word is clicked.
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptShotCoverageWord({
+  const _OcptScriptWord({
     required this.runs,
     required this.isUppercase,
     required this.style,
@@ -491,12 +491,12 @@ class _OcptShotCoverageWord extends StatelessWidget {
     final accent = colorScheme.primary;
 
     final background = switch (state) {
-      _OcptShotCoverageWordState.plain => null,
-      _OcptShotCoverageWordState.own => accent.withValues(alpha: _ocptOwnCoverageAlpha),
-      _OcptShotCoverageWordState.other => accent.withValues(alpha: _ocptOtherCoverageAlpha),
-      _OcptShotCoverageWordState.anchor => accent,
+      _OcptScriptWordState.plain => null,
+      _OcptScriptWordState.own => accent.withValues(alpha: _ocptOwnCoverageAlpha),
+      _OcptScriptWordState.other => accent.withValues(alpha: _ocptOtherCoverageAlpha),
+      _OcptScriptWordState.anchor => accent,
     };
-    final baseStyle = state == _OcptShotCoverageWordState.anchor
+    final baseStyle = state == _OcptScriptWordState.anchor
         ? style.copyWith(color: colorScheme.onPrimary)
         : style;
 

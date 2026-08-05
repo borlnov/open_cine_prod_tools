@@ -6,28 +6,28 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 
-/// A single clickable word of a [OcptShotCoverageBlock], as the scenario coverage editor lays it
-/// out from a scene's text.
+/// A single clickable word of a [OcptScriptWordBlock], as a scene's text is laid out for the
+/// word-level click gesture the app uses to designate a passage.
 ///
 /// [startOffset] and [endOffset] are, like every offset in this file, scene-relative (relative to
-/// the owning [OcptShotCoverageLayout.sceneText], itself already sliced out of the screenplay's
+/// the owning [OcptScriptWordLayout.sceneText], itself already sliced out of the screenplay's
 /// whole text): [endOffset] is exclusive, so `sceneText.substring(startOffset, endOffset)` always
 /// yields back [text].
-class OcptShotCoverageWord extends Equatable {
+class OcptScriptWord extends Equatable {
   /// This word's exact source text, punctuation included (a word is a whitespace-delimited run of
   /// non-whitespace characters, so trailing punctuation stays attached to it).
   final String text;
 
-  /// The scene-relative character offset, in the owning [OcptShotCoverageLayout.sceneText], at
+  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], at
   /// which this word starts.
   final int startOffset;
 
-  /// The scene-relative character offset, in the owning [OcptShotCoverageLayout.sceneText], one
+  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], one
   /// past this word's last character.
   final int endOffset;
 
   /// Class constructor
-  const OcptShotCoverageWord({
+  const OcptScriptWord({
     required this.text,
     required this.startOffset,
     required this.endOffset,
@@ -36,7 +36,7 @@ class OcptShotCoverageWord extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptShotCoverageWord(text: $text, startOffset: $startOffset, endOffset: $endOffset)";
+      "OcptScriptWord(text: $text, startOffset: $startOffset, endOffset: $endOffset)";
 
   /// Object properties
   @override
@@ -45,30 +45,30 @@ class OcptShotCoverageWord extends Equatable {
 
 /// One non-blank source line of a scene, laid out into its clickable [words].
 ///
-/// A block never spans more than one Fountain source line, but a coverage *range* may well span
+/// A block never spans more than one Fountain source line, but a designated *range* may well span
 /// several blocks: the click interaction closes a range wherever the second click lands, so a
 /// block is a unit of rendering and labelling, never a boundary the model enforces.
-class OcptShotCoverageBlock extends Equatable {
-  /// This block's line's [FountainLineType], as classified by [OcptShotCoverageLayout.of], shown
+class OcptScriptWordBlock extends Equatable {
+  /// This block's line's [FountainLineType], as classified by [OcptScriptWordLayout.of], shown
   /// as the block's label in the inspector.
   final FountainLineType type;
 
   /// This block's exact source line text.
   final String text;
 
-  /// The scene-relative character offset, in the owning [OcptShotCoverageLayout.sceneText], at
+  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], at
   /// which this block's line starts.
   final int startOffset;
 
-  /// The scene-relative character offset, in the owning [OcptShotCoverageLayout.sceneText], one
+  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], one
   /// past this block's line's last character (i.e. excluding the newline that follows it).
   final int endOffset;
 
   /// This block's words, in source order.
-  final List<OcptShotCoverageWord> words;
+  final List<OcptScriptWord> words;
 
   /// Class constructor
-  const OcptShotCoverageBlock({
+  const OcptScriptWordBlock({
     required this.type,
     required this.text,
     required this.startOffset,
@@ -79,7 +79,7 @@ class OcptShotCoverageBlock extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptShotCoverageBlock(type: $type, startOffset: $startOffset, endOffset: $endOffset, "
+      "OcptScriptWordBlock(type: $type, startOffset: $startOffset, endOffset: $endOffset, "
       "wordCount: ${words.length})";
 
   /// Object properties
@@ -87,19 +87,24 @@ class OcptShotCoverageBlock extends Equatable {
   List<Object?> get props => [type, text, startOffset, endOffset, words];
 }
 
-/// A scene's text, laid out into the blocks and words the scenario coverage editor renders and
-/// the shot list bloc reasons with.
+/// A scene's text, laid out into the blocks and words every screen that lets the user click a
+/// passage of the script renders and reasons with — the scenario coverage editor first, and the
+/// breakdown pass since.
 ///
-/// Built once per scene by [OcptShotCoverageLayout.of] from the scene's own text (sliced out of
+/// Built once per scene by [OcptScriptWordLayout.of] from the scene's own text (sliced out of
 /// the screenplay's whole text using `OcptSceneShotSequence.charStart`/`charEnd`), this is the
-/// single place that converts between the word-level interaction the mock-up describes and the
-/// character-offset ranges `OcptShotCoverageService` actually stores (see that service's class
-/// doc comment for why storage is offset-based rather than word-index-based).
+/// single place that converts between that word-level interaction and the character-offset ranges
+/// `OcptShotCoverageService` and `OcptBreakdownService` actually store (see the former's class doc
+/// comment for why storage is offset-based rather than word-index-based).
+///
+/// The query methods taking an [OcptShotCoverageRange] list belong to the scenario coverage alone:
+/// laying a scene out into clickable words is what the two features share, not what either of them
+/// then stores against it.
 ///
 /// Every query method below takes the shot(s)' whole [OcptShotCoverageRange] list — which may
 /// include ranges of scenes other than this one, since a shot can cover more than one scene's
 /// text — and **ignores any range whose [OcptShotCoverageRange.sceneId] differs from [sceneId]**.
-class OcptShotCoverageLayout extends Equatable {
+class OcptScriptWordLayout extends Equatable {
   /// The scene this layout was built from.
   final String sceneId;
 
@@ -111,23 +116,23 @@ class OcptShotCoverageLayout extends Equatable {
   /// block of its own, which is what a renderer reads the gap between two consecutive blocks'
   /// offsets as: adjacent lines are one character apart (their newline), anything wider means the
   /// source left a blank line there.
-  final List<OcptShotCoverageBlock> blocks;
+  final List<OcptScriptWordBlock> blocks;
 
   /// Class constructor
-  const OcptShotCoverageLayout({
+  const OcptScriptWordLayout({
     required this.sceneId,
     required this.sceneText,
     required this.blocks,
   });
 
-  /// Lays [sceneText] (scene [sceneId]'s own text) out into [OcptShotCoverageLayout.blocks].
+  /// Lays [sceneText] (scene [sceneId]'s own text) out into [OcptScriptWordLayout.blocks].
   ///
   /// Classifies every line of [sceneText] in one `FountainLineClassifier.classify` call: a scene
   /// always starts at its own heading, so classifying its lines in isolation from the rest of the
   /// document is correct here — no `FountainLineType` rule looks outside the one line immediately
   /// before or after the line being classified (see that classifier's doc comment), and a scene
   /// never has lines from a previous scene immediately above its own heading.
-  factory OcptShotCoverageLayout.of({required String sceneId, required String sceneText}) {
+  factory OcptScriptWordLayout.of({required String sceneId, required String sceneText}) {
     final lines = sceneText.split("\n");
 
     final lineStarts = List<int>.filled(lines.length, 0);
@@ -141,7 +146,7 @@ class OcptShotCoverageLayout extends Equatable {
 
     final types = const FountainLineClassifier().classify(lines);
 
-    final blocks = <OcptShotCoverageBlock>[];
+    final blocks = <OcptScriptWordBlock>[];
     for (var i = 0; i < lines.length; i++) {
       if (types[i] == FountainLineType.blank) {
         continue;
@@ -149,9 +154,9 @@ class OcptShotCoverageLayout extends Equatable {
 
       final line = lines[i];
       final lineStart = lineStarts[i];
-      final words = <OcptShotCoverageWord>[
+      final words = <OcptScriptWord>[
         for (final match in RegExp(r'\S+').allMatches(line))
-          OcptShotCoverageWord(
+          OcptScriptWord(
             text: match.group(0)!,
             startOffset: lineStart + match.start,
             endOffset: lineStart + match.end,
@@ -159,7 +164,7 @@ class OcptShotCoverageLayout extends Equatable {
       ];
 
       blocks.add(
-        OcptShotCoverageBlock(
+        OcptScriptWordBlock(
           type: types[i],
           text: line,
           startOffset: lineStart,
@@ -169,12 +174,12 @@ class OcptShotCoverageLayout extends Equatable {
       );
     }
 
-    return OcptShotCoverageLayout(sceneId: sceneId, sceneText: sceneText, blocks: blocks);
+    return OcptScriptWordLayout(sceneId: sceneId, sceneText: sceneText, blocks: blocks);
   }
 
   /// The block whose `[startOffset, endOffset)` contains [offset], or null if [offset] falls on a
   /// blank line or outside every block.
-  OcptShotCoverageBlock? blockContaining(int offset) {
+  OcptScriptWordBlock? blockContaining(int offset) {
     for (final block in blocks) {
       if (offset >= block.startOffset && offset < block.endOffset) {
         return block;
@@ -187,8 +192,8 @@ class OcptShotCoverageLayout extends Equatable {
   /// order-insensitive: closing a range by clicking backwards (the second click lands on a word
   /// before the first) yields the same range as clicking the same two words forwards.
   ({int startOffset, int endOffset}) rangeBetween(
-    OcptShotCoverageWord first,
-    OcptShotCoverageWord second,
+    OcptScriptWord first,
+    OcptScriptWord second,
   ) {
     final startOffset = first.startOffset <= second.startOffset
         ? first.startOffset
@@ -198,7 +203,7 @@ class OcptShotCoverageLayout extends Equatable {
   }
 
   /// Whether any of [ranges] (ignoring every range not of [sceneId]) overlaps [word].
-  bool isWordCovered(OcptShotCoverageWord word, Iterable<OcptShotCoverageRange> ranges) =>
+  bool isWordCovered(OcptScriptWord word, Iterable<OcptShotCoverageRange> ranges) =>
       _rangesOfThisScene(ranges).any((range) => _overlaps(range, word.startOffset, word.endOffset));
 
   /// The number of distinct words, across every block of this layout, covered by at least one of
@@ -223,7 +228,7 @@ class OcptShotCoverageLayout extends Equatable {
   /// The ranges of [ranges] (ignoring every range not of [sceneId]) that overlap [block]: the
   /// inspector's "also covered by" set for that block, and what decides its `modified` badge.
   List<OcptShotCoverageRange> rangesIn(
-    OcptShotCoverageBlock block,
+    OcptScriptWordBlock block,
     Iterable<OcptShotCoverageRange> ranges,
   ) => _rangesOfThisScene(
     ranges,
@@ -258,7 +263,7 @@ class OcptShotCoverageLayout extends Equatable {
   /// The blocks [range] covers any part of, in reading order: what the inspector labels a quoted
   /// extract with (`ACTION → DIALOGUE` for a range running from one into the other) now that a
   /// range may span more than one of them.
-  List<OcptShotCoverageBlock> blocksSpannedBy(OcptShotCoverageRange range) => [
+  List<OcptScriptWordBlock> blocksSpannedBy(OcptShotCoverageRange range) => [
     if (range.sceneId == sceneId)
       for (final block in blocks)
         if (_overlaps(range, block.startOffset, block.endOffset)) block,
@@ -356,7 +361,7 @@ class OcptShotCoverageLayout extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptShotCoverageLayout(sceneId: $sceneId, blockCount: ${blocks.length})";
+  String toString() => "OcptScriptWordLayout(sceneId: $sceneId, blockCount: ${blocks.length})";
 
   /// Object properties
   @override

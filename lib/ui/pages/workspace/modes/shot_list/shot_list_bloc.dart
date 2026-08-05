@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -1217,12 +1217,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     final range = layout.rangeBetween(
-      OcptShotCoverageWord(
+      OcptScriptWord(
         text: layout.sceneText.substring(anchor.wordStartOffset, anchor.wordEndOffset),
         startOffset: anchor.wordStartOffset,
         endOffset: anchor.wordEndOffset,
       ),
-      OcptShotCoverageWord(
+      OcptScriptWord(
         text: layout.sceneText.substring(event.wordStartOffset, event.wordEndOffset),
         startOffset: event.wordStartOffset,
         endOffset: event.wordEndOffset,
@@ -1265,7 +1265,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   Future<void> _attachCharactersCoveredBy({
     required OcptOpenProjectModel project,
     required String shotId,
-    required OcptShotCoverageLayout layout,
+    required OcptScriptWordLayout layout,
     required ({int startOffset, int endOffset}) range,
   }) async {
     final attached = state.snapshot?.shotsById[shotId]?.characters ?? const <String>[];

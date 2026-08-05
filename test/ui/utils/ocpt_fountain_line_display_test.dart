@@ -4,17 +4,17 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_display.dart';
 
 /// Lays [sceneText] out and returns the block at [index], the unit
 /// [ocptFountainWordDisplayRuns] works on.
-OcptShotCoverageBlock _blockOf(String sceneText, {int index = 0}) =>
-    OcptShotCoverageLayout.of(sceneId: "scene-1", sceneText: sceneText).blocks[index];
+OcptScriptWordBlock _blockOf(String sceneText, {int index = 0}) =>
+    OcptScriptWordLayout.of(sceneId: "scene-1", sceneText: sceneText).blocks[index];
 
 /// The whole printed text of [block]'s words, runs and words concatenated back together: what the
 /// coverage sheet ends up showing for that line.
-String _printedTextOf(OcptShotCoverageBlock block) => ocptFountainWordDisplayRuns(
+String _printedTextOf(OcptScriptWordBlock block) => ocptFountainWordDisplayRuns(
   block,
 ).expand((runs) => runs).map((run) => run.text).join();
 
@@ -90,7 +90,7 @@ void main() {
     test("only strips a marker where its own line type may carry one", () {
       // A trailing `#N#` is a scene heading's scene number; a dialogue line ending the same way is
       // just text, and keeps it.
-      final layout = OcptShotCoverageLayout.of(
+      final layout = OcptScriptWordLayout.of(
         sceneId: "scene-1",
         sceneText: "INT. HOUSE - DAY\n\nJOHN\nRoom #3#",
       );

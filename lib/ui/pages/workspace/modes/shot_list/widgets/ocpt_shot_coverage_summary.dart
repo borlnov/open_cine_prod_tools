@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// quote (nor to select), and a short hint replaces both the list and the button.
 class OcptShotCoverageSummary extends StatelessWidget {
   /// The selected shot's sequence, laid out into blocks and words, or null for an orphaned shot.
-  final OcptShotCoverageLayout? layout;
+  final OcptScriptWordLayout? layout;
 
   /// The selected shot's own coverage ranges.
   final List<OcptShotCoverageRange> ownRanges;
@@ -115,7 +115,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
 
   /// The total number of words across every block of [layout], the denominator of the footer's
   /// `N words covered of M` counter.
-  int _totalWordCount(OcptShotCoverageLayout layout) =>
+  int _totalWordCount(OcptScriptWordLayout layout) =>
       layout.blocks.fold(0, (total, block) => total + block.words.length);
 }
 
@@ -125,7 +125,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
 /// other shots covering the same text.
 class _OcptShotCoverageExtract extends StatelessWidget {
   /// The layout [range] was recorded against.
-  final OcptShotCoverageLayout layout;
+  final OcptScriptWordLayout layout;
 
   /// The range quoted.
   final OcptShotCoverageRange range;

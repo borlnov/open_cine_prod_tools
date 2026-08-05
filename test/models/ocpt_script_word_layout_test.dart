@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
@@ -37,9 +37,9 @@ void main() {
   // cue, a parenthetical, and a dialogue line.
   const sceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\nJOHN\n(whispering)\nHello there.';
 
-  group("OcptShotCoverageLayout.of", () {
+  group("OcptScriptWordLayout.of", () {
     test("skips blank lines, keeping one block per non-blank source line", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
 
       expect(layout.blocks.map((block) => block.text), [
         "INT. HOUSE - DAY",
@@ -51,7 +51,7 @@ void main() {
     });
 
     test("classifies a realistic scene's lines by Fountain line type", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
 
       expect(layout.blocks.map((block) => block.type), [
         FountainLineType.sceneHeading,
@@ -63,7 +63,7 @@ void main() {
     });
 
     test("every word's offsets round-trip through sceneText.substring", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
 
       for (final block in layout.blocks) {
         for (final word in block.words) {
@@ -73,14 +73,14 @@ void main() {
     });
 
     test("keeps punctuation attached to the word it touches", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
 
       final heading = layout.blocks.first;
       expect(heading.words.map((word) => word.text), ["INT.", "HOUSE", "-", "DAY"]);
     });
 
     test("a block's own startOffset/endOffset exclude the line's trailing newline", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
 
       final heading = layout.blocks.first;
       expect(heading.startOffset, 0);
@@ -89,7 +89,7 @@ void main() {
     });
 
     test("leaves a wider gap between two blocks the source separates with a blank line", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final heading = layout.blocks[0];
       final action = layout.blocks[1];
       final character = layout.blocks[2];
@@ -107,11 +107,11 @@ void main() {
       const withoutTrailingNewline = "INT. HOUSE - DAY\n\nAction.";
       const withTrailingNewline = "INT. HOUSE - DAY\n\nAction.\n";
 
-      final layoutWithout = OcptShotCoverageLayout.of(
+      final layoutWithout = OcptScriptWordLayout.of(
         sceneId: sceneId,
         sceneText: withoutTrailingNewline,
       );
-      final layoutWith = OcptShotCoverageLayout.of(
+      final layoutWith = OcptScriptWordLayout.of(
         sceneId: sceneId,
         sceneText: withTrailingNewline,
       );
@@ -124,9 +124,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.blockContaining", () {
+  group("OcptScriptWordLayout.blockContaining", () {
     test("returns the block holding the given offset", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final actionBlock = layout.blocks[1];
 
       final found = layout.blockContaining(actionBlock.startOffset + 2);
@@ -135,7 +135,7 @@ void main() {
     });
 
     test("returns null for an offset on a blank line", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       // Offset right after "INT. HOUSE - DAY\n": the blank line.
       final blankLineOffset = "INT. HOUSE - DAY\n".length;
 
@@ -143,9 +143,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.rangeBetween", () {
+  group("OcptScriptWordLayout.rangeBetween", () {
     test("is order-insensitive: clicking backwards yields the same range as clicking forwards", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final headingWords = layout.blocks.first.words;
       final first = headingWords[0];
       final second = headingWords[2];
@@ -159,9 +159,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.blocksSpannedBy", () {
+  group("OcptScriptWordLayout.blocksSpannedBy", () {
     test("returns the single block a range stays inside", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final heading = layout.blocks.first;
 
       final spanned = layout.blocksSpannedBy(
@@ -176,7 +176,7 @@ void main() {
     });
 
     test("returns every block a range runs through, in reading order", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final action = layout.blocks[1];
       final dialogue = layout.blocks.last;
 
@@ -192,7 +192,7 @@ void main() {
     });
 
     test("ignores a range of another scene", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final heading = layout.blocks.first;
 
       final spanned = layout.blocksSpannedBy(
@@ -207,9 +207,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.isWordCovered", () {
+  group("OcptScriptWordLayout.isWordCovered", () {
     test("true when a range overlaps the word, ignoring ranges of another scene", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final word = layout.blocks.first.words.first; // "INT."
 
       final coveringRange = _buildRange(
@@ -228,7 +228,7 @@ void main() {
     });
 
     test("false when no range overlaps the word", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final headingWords = layout.blocks.first.words;
       final untouchedWord = headingWords.last; // "DAY"
       final rangeOverFirstWord = _buildRange(
@@ -241,9 +241,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.countCoveredWords", () {
+  group("OcptScriptWordLayout.countCoveredWords", () {
     test("counts a union: overlapping ranges over the same word count it once", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final headingWords = layout.blocks.first.words; // INT. / HOUSE / - / DAY
 
       // Both ranges cover "INT." and "HOUSE", overlapping each other entirely.
@@ -264,7 +264,7 @@ void main() {
     });
 
     test("ignores ranges of another scene", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final otherSceneRange = _buildRange(
         sceneId: "some-other-scene",
         startOffset: 0,
@@ -275,7 +275,7 @@ void main() {
     });
 
     test("sums distinct words covered by non-overlapping ranges", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final headingWords = layout.blocks.first.words;
 
       final rangeOverInt = _buildRange(
@@ -295,9 +295,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.rangesIn", () {
+  group("OcptScriptWordLayout.rangesIn", () {
     test("returns only the ranges overlapping the given block, ignoring other scenes", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final headingBlock = layout.blocks.first;
       final actionBlock = layout.blocks[1];
 
@@ -330,9 +330,9 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.rangeAt", () {
+  group("OcptScriptWordLayout.rangeAt", () {
     test("returns the range covering the given offset", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final word = layout.blocks.first.words.first;
       final range = _buildRange(
         sceneId: sceneId,
@@ -344,7 +344,7 @@ void main() {
     });
 
     test("returns null when no range covers the offset, or only another scene's does", () {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneText);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
       final word = layout.blocks.first.words.first;
       final otherSceneRange = _buildRange(
         sceneId: "some-other-scene",
@@ -357,7 +357,7 @@ void main() {
     });
   });
 
-  group("OcptShotCoverageLayout.charactersCoveredBy", () {
+  group("OcptScriptWordLayout.charactersCoveredBy", () {
     // Two speakers, the second one cued twice, so first-appearance order and deduplication are
     // both observable; JOHN's cue carries an extension and a forcing marker, neither of which may
     // reach the name the shot list stores.
@@ -365,8 +365,8 @@ void main() {
         '(whispering)\nHello there.\n\nSARAH\nHello back.\n\nThey wait.\n\nJOHN\nStill here.';
 
     /// The layout of [dialogueSceneText], and the span of the block whose text is [blockText].
-    (OcptShotCoverageLayout, OcptShotCoverageBlock) layoutAndBlock(String blockText) {
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: dialogueSceneText);
+    (OcptScriptWordLayout, OcptScriptWordBlock) layoutAndBlock(String blockText) {
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: dialogueSceneText);
       return (layout, layout.blocks.firstWhere((block) => block.text == blockText));
     }
 
@@ -419,7 +419,7 @@ void main() {
     test("names the character a covered action line introduces in capitals", () {
       const sceneWithSilentRole = 'INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nJOHN\n'
           'Hello there.';
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneWithSilentRole);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneWithSilentRole);
       final action = layout.blocks.firstWhere((block) => block.text.startsWith("ELISA"));
 
       // ELISA never speaks; the action line is the only place the scene names her.
@@ -433,7 +433,7 @@ void main() {
       // No blank line under it, so the heading is classified as an action line: its location and
       // its time of day must still never be attached to a shot as characters.
       const sceneWithTightHeading = 'EXT. Rue de Lyon - NUIT\nMARIE marche vite.';
-      final layout = OcptShotCoverageLayout.of(sceneId: sceneId, sceneText: sceneWithTightHeading);
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneWithTightHeading);
       final heading = layout.blocks.first;
 
       expect(
@@ -512,7 +512,7 @@ John walks in.
         (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText;
     final sceneText = wholeFountainText.substring(scene.charStart, scene.charEnd);
 
-    final layout = OcptShotCoverageLayout.of(sceneId: scene.id, sceneText: sceneText);
+    final layout = OcptScriptWordLayout.of(sceneId: scene.id, sceneText: sceneText);
     // Deliberately across two blocks: the heading's first word to the action line's last one.
     final range = layout.rangeBetween(
       layout.blocks.first.words.first,
