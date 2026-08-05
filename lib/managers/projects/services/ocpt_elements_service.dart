@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_element_code.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
@@ -109,6 +110,7 @@ class OcptElementsService {
     Value<String> code = const Value.absent(),
     Value<String> quantity = const Value.absent(),
     Value<OcptElementSourceKind> sourceKind = const Value.absent(),
+    Value<OcptElementStatus> status = const Value.absent(),
     Value<String?> ownerPersonId = const Value.absent(),
     Value<String> ownerNotes = const Value.absent(),
     Value<String?> broughtByPersonId = const Value.absent(),
@@ -135,6 +137,7 @@ class OcptElementsService {
         code: code,
         quantity: quantity,
         sourceKind: sourceKind,
+        status: status,
         ownerPersonId: ownerPersonId,
         ownerNotes: ownerNotes,
         broughtByPersonId: broughtByPersonId,

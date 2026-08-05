@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -38,6 +39,19 @@ class OcptBreakdownSnapshot extends Equatable {
   /// `roles`/`sets` passed to [OcptBreakdownSnapshot.build].
   final List<OcptBreakdownTarget> targets;
 
+  /// The whole `elements` catalogue, verbatim, as passed to [OcptBreakdownSnapshot.build].
+  ///
+  /// [OcptBreakdownTarget] deliberately carries only the two fields the script view's highlighting
+  /// and the recap need (`category`/`status`, see that class's own doc comment); the target
+  /// inspector's Details section reads the raw row for the rest — sub-category, quantity, notes, the
+  /// owner and who brings it — rather than the model growing fields only one caller wants.
+  final List<OcptElement> elements;
+
+  /// The whole address book, verbatim, as passed to [OcptBreakdownSnapshot.build] — what the target
+  /// inspector's owner and who-brings-it pickers offer, and what resolves an element's
+  /// `ownerPersonId`/`broughtByPersonId` into a name.
+  final List<OcptPerson> people;
+
   /// `targets.length`: the status bar's "N targets tagged".
   final int taggedTargetCount;
 
@@ -59,6 +73,8 @@ class OcptBreakdownSnapshot extends Equatable {
     required this.screenplayId,
     required this.scenes,
     required this.targets,
+    required this.elements,
+    required this.people,
     required this.taggedTargetCount,
     required this.usedCategoryCount,
     required this.toFindCount,
@@ -67,7 +83,8 @@ class OcptBreakdownSnapshot extends Equatable {
 
   /// Builds an [OcptBreakdownSnapshot] for [screenplayId] by joining [scenes] (with empty tags),
   /// [tags] and the three catalogues [elements]/[roles]/[sets], deriving [targets] and the four
-  /// counts from them.
+  /// counts from them. [people] is carried through verbatim, as [elements] itself is — see their own
+  /// doc comments for why the inspector needs the raw rows rather than the derived [targets] alone.
   ///
   /// A tag pointing at a catalogue row that is gone — tombstoned underneath, so it no longer appears
   /// in [elements]/[roles]/[sets] — is **dropped from [targets] but kept on its scene**: the tag row
@@ -80,6 +97,7 @@ class OcptBreakdownSnapshot extends Equatable {
     required List<OcptElement> elements,
     required List<OcptRole> roles,
     required List<OcptSet> sets,
+    required List<OcptPerson> people,
   }) {
     final tagsBySceneId = <String, List<OcptBreakdownTag>>{};
     for (final tag in tags) {
@@ -157,6 +175,8 @@ class OcptBreakdownSnapshot extends Equatable {
       screenplayId: screenplayId,
       scenes: scenesWithTags,
       targets: targets,
+      elements: elements,
+      people: people,
       taggedTargetCount: targets.length,
       usedCategoryCount: targets.map((target) => target.color).toSet().length,
       toFindCount: targets.where((target) => target.status == OcptElementStatus.toFind).length,
@@ -179,6 +199,8 @@ class OcptBreakdownSnapshot extends Equatable {
     screenplayId,
     scenes,
     targets,
+    elements,
+    people,
     taggedTargetCount,
     usedCategoryCount,
     toFindCount,

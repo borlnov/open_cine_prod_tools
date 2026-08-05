@@ -10,9 +10,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -86,15 +89,48 @@ void main() {
     );
   }
 
+  /// Writes a one-scene screenplay, an element tagged in it, and returns the scene and element
+  /// ids the rest of a test writes against.
+  Future<({String sceneId, String elementId})> writeTaggedElement() async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+    final project = projectsManager.currentProject!;
+    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
+        .single
+        .id;
+
+    final elementId = await projectsManager.elementsService.createElement(
+      database: project.database,
+      name: "Desk lamp",
+      category: OcptElementCategory.prop,
+      sourceKind: OcptElementSourceKind.owned,
+    );
+
+    await projectsManager.breakdownService.createTag(
+      database: project.database,
+      sceneId: sceneId,
+      startOffset: 2,
+      endOffset: 6,
+      taggedText: "lamp",
+      targetKind: OcptBreakdownTargetKind.element,
+      targetId: elementId!,
+    );
+
+    return (sceneId: sceneId, elementId: elementId);
+  }
+
   /// Builds a bloc wired to the test project. [overrideProjectsManager] lets a test swap in a
   /// manager of its own (already holding an open project), for the one that needs to observe it.
+  /// [fieldEditDebounce] defaults to a short duration so tests exercising the field-edit debounce
+  /// don't have to wait out the real 2 s one.
   OcptBreakdownBloc buildBloc({
     OcptRouterManager? routerManager,
     OcptProjectsManager? overrideProjectsManager,
+    Duration fieldEditDebounce = const Duration(milliseconds: 30),
   }) => OcptBreakdownBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
+    fieldEditDebounce: fieldEditDebounce,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -516,6 +552,283 @@ void main() {
 
     expect(state.isPreviewingVersion, isFalse);
     expect(state.scenes, isNotEmpty);
+
+    await bloc.close();
+  });
+
+  test("selecting a target opens the right dock on the Inspector tab", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, isNull);
+
+    bloc.add(
+      const OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: "el-1",
+        sceneId: "scene-1",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.rightDockTab != null);
+
+    expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
+    expect(state.lastRightDockTab, OcptBreakdownRightDockTab.inspector);
+
+    await bloc.close();
+  });
+
+  test("the right dock toggle reopens the last tab explicitly selected, persisted across entries",
+      () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions),
+    );
+    await waitForState(bloc, (state) => state.rightDockTab == OcptBreakdownRightDockTab.versions);
+
+    bloc.add(const OcptBreakdownRightDockClosedEvent());
+    await waitForState(bloc, (state) => state.rightDockTab == null);
+
+    bloc.add(const OcptBreakdownRightDockToggledEvent());
+    final reopened = await waitForState(bloc, (state) => state.rightDockTab != null);
+    expect(reopened.rightDockTab, OcptBreakdownRightDockTab.versions);
+
+    await bloc.close();
+
+    expect(await propertiesManager.breakdownLastRightDockTab.load(), OcptBreakdownRightDockTab.versions);
+
+    final nextEntry = buildBloc();
+    final loaded = await waitForState(nextEntry, (state) => !state.isLoading);
+    expect(loaded.lastRightDockTab, OcptBreakdownRightDockTab.versions);
+
+    await nextEntry.close();
+  });
+
+  test("changing an element's status writes it immediately and reloads the snapshot", () async {
+    final tagged = await writeTaggedElement();
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementStatusChangedEvent(
+        elementId: tagged.elementId,
+        status: OcptElementStatus.confirmed,
+      ),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.targets.single.status == OcptElementStatus.confirmed,
+    );
+
+    expect(state.toFindCount, 0);
+
+    await bloc.close();
+  });
+
+  test("changing an element's category writes it immediately and reloads the snapshot", () async {
+    final tagged = await writeTaggedElement();
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementCategoryChangedEvent(
+        elementId: tagged.elementId,
+        category: OcptElementCategory.vehicle,
+      ),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.targets.single.category == OcptElementCategory.vehicle,
+    );
+
+    expect(state.targets.single.color, isNot(0));
+
+    await bloc.close();
+  });
+
+  test("typing into an element field debounces then writes it, clearing the pending edit",
+      () async {
+    final tagged = await writeTaggedElement();
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementFieldChangedEvent(
+        elementId: tagged.elementId,
+        field: OcptElementField.subCategory,
+        rawValue: "1960s",
+      ),
+    );
+    final pending = await waitForState(bloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
+    expect(
+      pending.elementFieldValueOf(tagged.elementId, OcptElementField.subCategory, ""),
+      "1960s",
+    );
+
+    final flushed = await waitForState(bloc, (state) => state.pendingElementFieldEdits.isEmpty);
+    expect(flushed.selectedElement, isNull); // nothing selected here, just checking it flushed
+
+    final elements = await projectsManager.elementsService.loadElements(
+      database: projectsManager.currentProject!.database,
+    );
+    expect(elements.single.subCategory, "1960s");
+
+    await bloc.close();
+  });
+
+  test("changing an element's owner writes it immediately", () async {
+    final tagged = await writeTaggedElement();
+    final project = projectsManager.currentProject!;
+    final personId = await projectsManager.peopleService.createPerson(database: project.database);
+    expect(personId, isNotNull);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementOwnerChangedEvent(elementId: tagged.elementId, personId: personId),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.elements.isNotEmpty && state.elements.single.ownerPersonId == personId,
+    );
+
+    expect(state.elements.single.ownerPersonId, personId);
+
+    await bloc.close();
+  });
+
+  test("changing an element's who-brings-it writes it immediately", () async {
+    final tagged = await writeTaggedElement();
+    final project = projectsManager.currentProject!;
+    final personId = await projectsManager.peopleService.createPerson(database: project.database);
+    expect(personId, isNotNull);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementBringerChangedEvent(elementId: tagged.elementId, personId: personId),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.elements.isNotEmpty && state.elements.single.broughtByPersonId == personId,
+    );
+
+    expect(state.elements.single.broughtByPersonId, personId);
+
+    await bloc.close();
+  });
+
+  test("the loaded snapshot carries the address book for the inspector's pickers", () async {
+    final project = projectsManager.currentProject!;
+    final personId = await projectsManager.peopleService.createPerson(database: project.database);
+    expect(personId, isNotNull);
+
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => state.people.isNotEmpty);
+
+    expect(state.people.single.id, personId);
+
+    await bloc.close();
+  });
+
+  test("an occurrence click selects its own scene", () async {
+    await writeScreenplay(
+      "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n",
+    );
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.length == 2);
+    final gardenSceneId = loaded.scenes[1].id;
+
+    bloc.add(OcptBreakdownOccurrenceSelectedEvent(sceneId: gardenSceneId));
+    final state = await waitForState(bloc, (state) => state.selectedSceneId == gardenSceneId);
+
+    expect(state.selectedSceneId, gardenSceneId);
+
+    await bloc.close();
+  });
+
+  test("tag removal asks first, and cancelling leaves the tag untouched", () async {
+    final tagged = await writeTaggedElement();
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownTargetSelectedEvent(
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: tagged.elementId,
+        sceneId: tagged.sceneId,
+      ),
+    );
+    await waitForState(bloc, (state) => state.selectedTarget != null);
+
+    bloc.add(const OcptBreakdownTagRemovalRequestedEvent());
+    await waitForState(bloc, (state) => state.isTagRemovalPending);
+
+    bloc.add(const OcptBreakdownTagRemovalCancelledEvent());
+    final state = await waitForState(bloc, (state) => !state.isTagRemovalPending);
+
+    expect(state.taggedTargetCount, 1);
+
+    await bloc.close();
+  });
+
+  test(
+    "tag removal confirmed removes the tag but keeps the scene_elements link it once ensured",
+    () async {
+      final tagged = await writeTaggedElement();
+      final project = projectsManager.currentProject!;
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+      bloc.add(
+        OcptBreakdownTargetSelectedEvent(
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: tagged.elementId,
+          sceneId: tagged.sceneId,
+        ),
+      );
+      await waitForState(bloc, (state) => state.selectedTarget != null);
+
+      bloc.add(const OcptBreakdownTagRemovalRequestedEvent());
+      await waitForState(bloc, (state) => state.isTagRemovalPending);
+
+      bloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
+      final state = await waitForState(bloc, (state) => state.taggedTargetCount == 0);
+
+      expect(state.isTagRemovalPending, isFalse);
+
+      final elements = await projectsManager.elementsService.loadElements(
+        database: project.database,
+      );
+      expect(elements.single.sceneLinks, isNotEmpty);
+
+      await bloc.close();
+    },
+  );
+
+  test("flushPendingFieldEdits writes a pending element field edit directly, bypassing the debounce",
+      () async {
+    final tagged = await writeTaggedElement();
+    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementFieldChangedEvent(
+        elementId: tagged.elementId,
+        field: OcptElementField.notes,
+        rawValue: "handle with care",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
+
+    await bloc.flushPendingFieldEdits();
+
+    final elements = await projectsManager.elementsService.loadElements(
+      database: projectsManager.currentProject!.database,
+    );
+    expect(elements.single.notes, "handle with care");
 
     await bloc.close();
   });

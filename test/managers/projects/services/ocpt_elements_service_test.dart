@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -122,6 +123,19 @@ void main() {
       expect(row.isSecured, isTrue);
       expect(row.isReadyForShoot, isFalse); // untouched, still its column default
       expect(row.name, "Valise"); // untouched
+    });
+
+    test("updateElement writes a new status", () async {
+      final id = await createElement("Valise");
+      expect((await readElement(id)).status, OcptElementStatus.toFind);
+
+      await elementsService.updateElement(
+        database: database,
+        elementId: id,
+        status: const Value(OcptElementStatus.confirmed),
+      );
+
+      expect((await readElement(id)).status, OcptElementStatus.confirmed);
     });
 
     test("reorderElement moves an element by writing exactly one row", () async {

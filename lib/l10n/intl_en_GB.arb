@@ -5235,5 +5235,213 @@
     "context": "Tooltip of a word of the script view whose tag needs a check",
     "type": "text",
     "placeholders": {}
+  },
+  "breakdownRightDockInspectorTabLabel": "Inspector",
+  "@breakdownRightDockInspectorTabLabel": {
+    "description": "Label of the breakdown mode's right dock's Inspector tab",
+    "context": "Displayed in the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownInspectorNoSelectionHint": "Select a scene or a tagged word to see its sheet.",
+  "@breakdownInspectorNoSelectionHint": {
+    "description": "Shown in the Inspector tab while nothing at all is selected",
+    "context": "Displayed in the breakdown mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownInspectorBackToSceneAction": "← Scene sheet",
+  "@breakdownInspectorBackToSceneAction": {
+    "description": "Clears the selected target, going back to its scene's own sheet",
+    "context": "Displayed at the top of the breakdown mode's target inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownInspectorSceneCountLabel": "{count, plural, one{{count} scene} other{{count} scenes}}",
+  "@breakdownInspectorSceneCountLabel": {
+    "description": "Number of distinct scenes a target is tagged in",
+    "context": "Displayed under the target inspector's own name, after the category or kind label",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownElementStatusSectionTitle": "Status",
+  "@breakdownElementStatusSectionTitle": {
+    "description": "Title of the target inspector's status section",
+    "context": "Displayed above the status chips, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusToFind": "To find",
+  "@breakdownElementStatusToFind": {
+    "description": "An element's status: nobody has secured it yet",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusReserved": "Reserved",
+  "@breakdownElementStatusReserved": {
+    "description": "An element's status: reserved but not yet in hand",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusBeingMade": "Being made",
+  "@breakdownElementStatusBeingMade": {
+    "description": "An element's status: being made or built rather than sourced",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementStatusConfirmed": "Confirmed",
+  "@breakdownElementStatusConfirmed": {
+    "description": "An element's status: secured and confirmed for the shoot",
+    "context": "Displayed on a status chip and a status pill",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementCategorySectionTitle": "Category",
+  "@breakdownElementCategorySectionTitle": {
+    "description": "Title of the target inspector's category section",
+    "context": "Displayed above the category grid, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementDetailsSectionTitle": "Details",
+  "@breakdownElementDetailsSectionTitle": {
+    "description": "Title of the target inspector's details section",
+    "context": "Displayed above the sub-category, quantity, notes, owner and who-brings-it fields, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementNotesLabel": "Notes",
+  "@breakdownElementNotesLabel": {
+    "description": "Label of an element's own free-text notes field",
+    "context": "Displayed above the target inspector's notes field",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownOccurrencesSectionTitle": "Occurrences in the screenplay",
+  "@breakdownOccurrencesSectionTitle": {
+    "description": "Title of the target inspector's occurrences section",
+    "context": "Displayed above the list of the target's own live tags",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownOccurrenceSceneLabel": "Scene {number} · {heading}",
+  "@breakdownOccurrenceSceneLabel": {
+    "description": "Heading of one occurrence row: the scene it is in",
+    "context": "Displayed above an occurrence's own quoted extract",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      },
+      "heading": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownOpenInResourcesAction": "Open in Resources",
+  "@breakdownOpenInResourcesAction": {
+    "description": "Switches the workspace to the resources mode",
+    "context": "Displayed at the bottom of the target inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownAction": "Remove from the breakdown",
+  "@breakdownRemoveFromBreakdownAction": {
+    "description": "Asks to remove the selected target's tags from the selected scene",
+    "context": "Displayed at the bottom of the target inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownConfirmMessage": "This removes the tag from this scene. The link it created in Resources, if any, stays.",
+  "@breakdownRemoveFromBreakdownConfirmMessage": {
+    "description": "Explains that the scene_elements/scene_sets link a tag once ensured is not removed with it",
+    "context": "Displayed by the target inspector's inline tag-removal confirmation",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownConfirmAction": "Remove",
+  "@breakdownRemoveFromBreakdownConfirmAction": {
+    "description": "Confirms the tag removal for good",
+    "context": "Displayed by the target inspector's inline tag-removal confirmation",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownRemoveFromBreakdownCancelAction": "Cancel",
+  "@breakdownRemoveFromBreakdownCancelAction": {
+    "description": "Dismisses the inline tag-removal confirmation without removing anything",
+    "context": "Displayed by the target inspector's inline tag-removal confirmation",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorTitle": "Scene {number}",
+  "@breakdownSceneInspectorTitle": {
+    "description": "Heading of the selected scene's own breakdown sheet",
+    "context": "Displayed at the top of the scene inspector",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownSceneInspectorTaggedLabel": "Tagged",
+  "@breakdownSceneInspectorTaggedLabel": {
+    "description": "Label of the scene inspector's tagged-targets stat tile",
+    "context": "Displayed above the tile's own count",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorToFindLabel": "To find",
+  "@breakdownSceneInspectorToFindLabel": {
+    "description": "Label of the scene inspector's still-to-find stat tile",
+    "context": "Displayed above the tile's own count",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorStatusLabel": "Status",
+  "@breakdownSceneInspectorStatusLabel": {
+    "description": "Label of the scene inspector's own breakdown status stat tile",
+    "context": "Displayed above the tile's own status label",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorAlertTitle": "{count, plural, one{{count} element still to find} other{{count} elements still to find}}",
+  "@breakdownSceneInspectorAlertTitle": {
+    "description": "Title of the scene inspector's warning callout",
+    "context": "Displayed above the comma-joined names of the elements still to find",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "breakdownSceneInspectorTargetsSectionTitle": "Tagged elements",
+  "@breakdownSceneInspectorTargetsSectionTitle": {
+    "description": "Title of the scene inspector's own targets section",
+    "context": "Displayed above the scene's targets, grouped by category",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorEmptyHint": "Nothing tagged for this scene yet. Click a word or a passage in the script to break it down.",
+  "@breakdownSceneInspectorEmptyHint": {
+    "description": "Shown while the selected scene has no live tag at all",
+    "context": "Displayed in place of the scene inspector's own targets section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorFooterHint": "Tagged elements feed Resources › Elements and the day's call sheet.",
+  "@breakdownSceneInspectorFooterHint": {
+    "description": "Explains what the scene's own tagged elements are used for downstream",
+    "context": "Displayed at the bottom of the scene inspector",
+    "type": "text",
+    "placeholders": {}
   }
 }

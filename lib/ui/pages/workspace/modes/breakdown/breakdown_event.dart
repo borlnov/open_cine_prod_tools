@@ -5,6 +5,9 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 
 /// The events handled by `OcptBreakdownBloc`.
@@ -140,10 +143,11 @@ class OcptBreakdownLegendShowAllRequestedEvent extends OcptBreakdownEvent {
 
 /// Selects target [targetKind]/[targetId] in the inspector, dispatched by a click on one of its
 /// tagged words in `OcptBreakdownScriptView` — [sceneId] is the scene that click happened in, which
-/// this event also selects, so the left dock and the sheet stay in step.
+/// this event also selects, so the left dock and the sheet stay in step. Opens the right dock on the
+/// `Inspector` tab.
 ///
-/// Selecting writes nothing to the project database (breakdown plan §6.3), so this is never withheld
-/// for a previewed version's sake.
+/// Selecting writes nothing to the project database, so this is never withheld for a previewed
+/// version's sake.
 class OcptBreakdownTargetSelectedEvent extends OcptBreakdownEvent {
   /// The kind of the target to select.
   final OcptBreakdownTargetKind targetKind;
@@ -166,8 +170,8 @@ class OcptBreakdownTargetSelectedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, targetKind, targetId, sceneId];
 }
 
-/// Clears the currently selected target, dispatched by whichever affordance a later milestone's
-/// target inspector offers to leave it (this milestone builds no such affordance itself).
+/// Clears the currently selected target, dispatched by `OcptBreakdownTargetInspector`'s own
+/// "back to the scene" affordance.
 class OcptBreakdownTargetSelectionClearedEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownTargetSelectionClearedEvent();
@@ -176,8 +180,8 @@ class OcptBreakdownTargetSelectionClearedEvent extends OcptBreakdownEvent {
 /// Records a click on a word of the script view that overlaps no live tag, or one whose tag's target
 /// has been dropped from the snapshot, dispatched by `OcptBreakdownScriptView`.
 ///
-/// `OcptBreakdownBloc` does nothing with this today — see its own handler's doc comment for which
-/// later milestone closes the loop with the range interaction and the popover.
+/// `OcptBreakdownBloc` does nothing with this today — see its own handler's doc comment for what
+/// closes the loop with the range interaction and the popover.
 class OcptBreakdownWordClickedEvent extends OcptBreakdownEvent {
   /// The id of the scene the clicked word belongs to.
   final String sceneId;
@@ -198,4 +202,141 @@ class OcptBreakdownWordClickedEvent extends OcptBreakdownEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, sceneId, wordStartOffset, wordEndOffset];
+}
+
+/// Selects the scene of one of the selected target's occurrences, dispatched by a row of
+/// `OcptBreakdownTargetInspector`'s own occurrences section.
+class OcptBreakdownOccurrenceSelectedEvent extends OcptBreakdownEvent {
+  /// The id of the occurrence's own scene.
+  final String sceneId;
+
+  /// Class constructor
+  const OcptBreakdownOccurrenceSelectedEvent({required this.sceneId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId];
+}
+
+/// Writes a new status onto element [elementId] immediately, dispatched by a click on one of
+/// `OcptBreakdownTargetInspector`'s status chips.
+class OcptBreakdownElementStatusChangedEvent extends OcptBreakdownEvent {
+  /// The id of the element whose status changed.
+  final String elementId;
+
+  /// The status just picked.
+  final OcptElementStatus status;
+
+  /// Class constructor
+  const OcptBreakdownElementStatusChangedEvent({required this.elementId, required this.status});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, status];
+}
+
+/// Writes a new category onto element [elementId] immediately, dispatched by a click on one of
+/// `OcptBreakdownTargetInspector`'s category chips.
+class OcptBreakdownElementCategoryChangedEvent extends OcptBreakdownEvent {
+  /// The id of the element whose category changed.
+  final String elementId;
+
+  /// The category just picked.
+  final OcptElementCategory category;
+
+  /// Class constructor
+  const OcptBreakdownElementCategoryChangedEvent({required this.elementId, required this.category});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, category];
+}
+
+/// Records the raw text just typed into [field] of element [elementId] as a pending edit, dispatched
+/// on every keystroke into one of `OcptBreakdownTargetInspector`'s Details fields.
+class OcptBreakdownElementFieldChangedEvent extends OcptBreakdownEvent {
+  /// The id of the element being edited.
+  final String elementId;
+
+  /// Which of the element's own fields is being edited — only `subCategory`, `quantity` and `notes`
+  /// are ever named here, the target inspector's other fields being single picks written
+  /// immediately by their own event.
+  final OcptElementField field;
+
+  /// The field's raw text, as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptBreakdownElementFieldChangedEvent({
+    required this.elementId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, field, rawValue];
+}
+
+/// Fired by the field-edit debounce timer once it elapses with no further typing: writes every
+/// pending element field edit.
+///
+/// Not meant to be dispatched by a widget; the bloc dispatches it itself.
+class OcptBreakdownFieldEditFlushRequestedEvent extends OcptBreakdownEvent {
+  /// Class constructor
+  const OcptBreakdownFieldEditFlushRequestedEvent();
+}
+
+/// Writes a new owner onto element [elementId] immediately, dispatched by
+/// `OcptBreakdownTargetInspector`'s own owner picker.
+class OcptBreakdownElementOwnerChangedEvent extends OcptBreakdownEvent {
+  /// The id of the element whose owner changed.
+  final String elementId;
+
+  /// The id of the person just picked, or null to clear the owner.
+  final String? personId;
+
+  /// Class constructor
+  const OcptBreakdownElementOwnerChangedEvent({required this.elementId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, personId];
+}
+
+/// Writes a new who-brings-it onto element [elementId] immediately, dispatched by
+/// `OcptBreakdownTargetInspector`'s own who-brings-it picker.
+class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownEvent {
+  /// The id of the element whose who-brings-it changed.
+  final String elementId;
+
+  /// The id of the person just picked, or null to clear it.
+  final String? personId;
+
+  /// Class constructor
+  const OcptBreakdownElementBringerChangedEvent({required this.elementId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, personId];
+}
+
+/// Shows the inline confirmation of "remove this target's tags from the selected scene", dispatched
+/// by `OcptBreakdownTargetInspector`'s own `Remove from the breakdown` action.
+class OcptBreakdownTagRemovalRequestedEvent extends OcptBreakdownEvent {
+  /// Class constructor
+  const OcptBreakdownTagRemovalRequestedEvent();
+}
+
+/// Hides the inline tag-removal confirmation currently shown.
+class OcptBreakdownTagRemovalCancelledEvent extends OcptBreakdownEvent {
+  /// Class constructor
+  const OcptBreakdownTagRemovalCancelledEvent();
+}
+
+/// Removes the selected target's tags from the selected scene for good, dispatched by the inline
+/// tag-removal confirmation's own answer.
+class OcptBreakdownTagRemovalConfirmedEvent extends OcptBreakdownEvent {
+  /// Class constructor
+  const OcptBreakdownTagRemovalConfirmedEvent();
 }

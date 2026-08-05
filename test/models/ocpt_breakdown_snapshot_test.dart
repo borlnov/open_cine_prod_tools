@@ -127,6 +127,7 @@ void main() {
         elements: [element],
         roles: const [],
         sets: const [],
+        people: const [],
       );
 
       expect(snapshot.targets, hasLength(1));
@@ -182,6 +183,7 @@ void main() {
         elements: [elementToFind, elementConfirmed],
         roles: [role],
         sets: [set],
+        people: const [],
       );
 
       expect(snapshot.taggedTargetCount, 4);
@@ -216,6 +218,7 @@ void main() {
         elements: [propOne, propTwo],
         roles: const [],
         sets: const [],
+        people: const [],
       );
 
       expect(snapshot.taggedTargetCount, 2);
@@ -239,6 +242,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        people: const [],
       );
 
       expect(snapshot.targets, isEmpty);
@@ -289,6 +293,7 @@ void main() {
         elements: [elementZip, elementAsh],
         roles: [roleZoe, roleAlex],
         sets: const [],
+        people: const [],
       );
 
       expect(snapshot.scenes.map((scene) => scene.id), ["scene-1", "scene-2"]);
@@ -311,6 +316,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        people: const [],
       );
 
       expect(snapshot.scenes.single.status, OcptBreakdownSceneStatus.toDo);
@@ -337,6 +343,7 @@ void main() {
         elements: const [],
         roles: const [],
         sets: const [],
+        people: const [],
       );
 
       expect(snapshot.doneSceneCount, 1);

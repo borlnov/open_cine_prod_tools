@@ -6,11 +6,14 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -18,10 +21,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 
 /// The state of `OcptBreakdownBloc`.
 ///
-/// Unlike the resources or shot list modes' own state, this one carries no pending field edit of
-/// any kind: selecting a target writes nothing to the project database, and nothing here writes to
-/// it yet either — see `OcptBreakdownBloc.flushPendingProjectWrites`'s own doc comment for what
-/// will need one once the scene notes and the target inspector's own fields land.
+/// Selecting a target or a scene, and hiding a legend key, write nothing to the project database.
+/// [pendingElementFieldEdits] is the one pending field edit this state carries, the selected
+/// target's own free-text fields riding the debounce every other mode's `pending…FieldEdits` map
+/// does — see `OcptBreakdownBloc`'s own doc comment.
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     with MixinOcptProjectVersionsState<OcptBreakdownState> {
   /// Whether the breakdown read is still being loaded from the project database.
@@ -64,10 +67,34 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   final bool isListPanelVisible;
 
   /// The right dock's currently active tab, or null if the dock is closed.
-  ///
-  /// Only one tab exists to reopen ([OcptBreakdownRightDockTab.versions]), exactly as the resources
-  /// mode's own right dock, so this mode keeps no "last tab" preference of its own.
   final OcptBreakdownRightDockTab? rightDockTab;
+
+  /// The tab the toolbar's right-dock toggle reopens a closed dock on: the last one explicitly
+  /// selected (`OcptBreakdownRightDockTabSelectedEvent`), mirroring
+  /// `OcptShotListState.lastRightDockTab`.
+  ///
+  /// Persisted through `OcptPropertiesManager.breakdownLastRightDockTab`, loaded once on entry.
+  /// Selecting a target additionally forces both this and [rightDockTab] to
+  /// [OcptBreakdownRightDockTab.inspector], since that hand-off — landing on the target's own sheet
+  /// without a second gesture — is the whole point of the selection.
+  final OcptBreakdownRightDockTab lastRightDockTab;
+
+  /// Whether the inline confirmation of "remove this target's tags from the selected scene" is
+  /// shown, in place of `OcptBreakdownTargetInspector`'s own trailing action.
+  ///
+  /// A single flag rather than an id-keyed pending map (`OcptProjectVersionsPanel`'s own idiom for
+  /// the very same inline-confirmation shape): the inspector only ever asks this about the
+  /// currently selected target, so there is only ever one question to ask at a time. Reset to false
+  /// by every handler that changes the selection or reloads the snapshot, so a stale confirmation
+  /// never survives to a different target's sheet.
+  final bool isTagRemovalPending;
+
+  /// A typed field of the selected target's own sheet still sitting in the field-edit debounce,
+  /// keyed by the element's id and which `OcptElementField` it is — `subCategory`, `quantity` or
+  /// `notes`, the only three the target inspector ever edits — mirroring
+  /// `OcptResourcesState.pendingElementFieldEdits`. [elementFieldValueOf] is what a field reads
+  /// instead of the element's own stored value while an edit is pending here.
+  final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
   /// The left (scene) dock's width, as a fraction of the mode's content row width.
   ///
@@ -142,9 +169,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   }
 
   /// The target [selectedTargetRef] identifies, or null if none is selected (or the selected one
-  /// disappeared from a freshly loaded [snapshot]) — the script view's tagged words and, once a
-  /// later milestone adds it, the right dock's target inspector both read this rather than
-  /// [selectedTargetRef] itself.
+  /// disappeared from a freshly loaded [snapshot]) — the script view's tagged words and the right
+  /// dock's target inspector both read this rather than [selectedTargetRef] itself.
   OcptBreakdownTarget? get selectedTarget {
     final selectedTargetRef = this.selectedTargetRef;
     if (selectedTargetRef == null) {
@@ -161,6 +187,40 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     return null;
   }
 
+  /// The whole `elements` catalogue of [snapshot] (empty while nothing is loaded).
+  List<OcptElement> get elements => snapshot?.elements ?? const [];
+
+  /// The whole address book of [snapshot] (empty while nothing is loaded), offered by the target
+  /// inspector's owner and who-brings-it pickers.
+  List<OcptPerson> get people => snapshot?.people ?? const [];
+
+  /// The raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is null,
+  /// names something other than an element, or — like [selectedTarget] itself — has disappeared
+  /// from a freshly loaded [snapshot]. What the target inspector's Status, Category and Details
+  /// sections read: [selectedTarget] itself deliberately carries only the two fields the script
+  /// view's highlighting and the recap need.
+  OcptElement? get selectedElement {
+    final selectedTarget = this.selectedTarget;
+    if (selectedTarget == null || selectedTarget.kind != OcptBreakdownTargetKind.element) {
+      return null;
+    }
+
+    for (final element in elements) {
+      if (element.id == selectedTarget.id) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  /// [elementId]'s current value for `field` — a pending edit still sitting in
+  /// [pendingElementFieldEdits], or [storedValue] (the element's own value, read off [selectedElement]
+  /// at the call site) otherwise, exactly as `OcptShotListState`/`OcptResourcesState` resolve their
+  /// own pending field edits.
+  String elementFieldValueOf(String elementId, OcptElementField field, String storedValue) =>
+      pendingElementFieldEdits[(elementId, field)] ?? storedValue;
+
   /// Class constructor
   const OcptBreakdownState({
     required this.isLoading,
@@ -173,6 +233,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.selectedTargetRef,
     required this.isListPanelVisible,
     required this.rightDockTab,
+    required this.lastRightDockTab,
+    required this.isTagRemovalPending,
+    required this.pendingElementFieldEdits,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.projectVersions,
@@ -196,6 +259,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       selectedTargetRef = null,
       isListPanelVisible = true,
       rightDockTab = null,
+      lastRightDockTab = OcptBreakdownRightDockTab.inspector,
+      isTagRemovalPending = false,
+      pendingElementFieldEdits = const {},
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       projectVersions = const [],
@@ -211,9 +277,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded, so
   /// it needs no clear flag. [selectedSceneId], [selectedTargetRef] and [rightDockTab] all
   /// legitimately go back to null while the mode is alive (a fresh load, a selection dropped, the
-  /// dock closed), so each has its own clear flag instead. [hiddenLegendKeys] is replaced wholesale
-  /// rather than merged — the caller (the bloc's own legend handlers) always computes the full next
-  /// set.
+  /// dock closed), so each has its own clear flag instead. [hiddenLegendKeys] and
+  /// [pendingElementFieldEdits] are each replaced wholesale rather than merged — the caller (the
+  /// bloc's own legend and field-edit handlers) always computes the full next map or set.
   @override
   OcptBreakdownState copyWith({
     bool? isLoading,
@@ -229,6 +295,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     bool? isListPanelVisible,
     OcptBreakdownRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
+    OcptBreakdownRightDockTab? lastRightDockTab,
+    bool? isTagRemovalPending,
+    Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     double? leftDockFraction,
     double? rightDockFraction,
     List<OcptProjectVersion>? projectVersions,
@@ -255,6 +324,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectedTargetRef: clearSelectedTargetRef ? null : (selectedTargetRef ?? this.selectedTargetRef),
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
+    isTagRemovalPending: isTagRemovalPending ?? this.isTagRemovalPending,
+    pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     projectVersions: projectVersions ?? this.projectVersions,
@@ -322,6 +394,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectedTargetRef,
     isListPanelVisible,
     rightDockTab,
+    lastRightDockTab,
+    isTagRemovalPending,
+    pendingElementFieldEdits,
     leftDockFraction,
     rightDockFraction,
   ];
