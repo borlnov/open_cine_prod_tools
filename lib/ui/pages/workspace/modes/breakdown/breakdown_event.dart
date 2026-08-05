@@ -444,6 +444,35 @@ class OcptBreakdownSceneSetLinkedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
+/// Creates a set named [name] inside location [locationId] — or inside a location minted along with
+/// it when that is null — and says scene [sceneId] is shot in it, dispatched by the scene
+/// inspector's own `Create a set…` control.
+///
+/// The sibling of [OcptBreakdownPopoverSetCreationRequestedEvent] for the sheet rather than the
+/// script: it writes **no tag**, there being no passage involved, and [name] is the place the
+/// scene's own heading names rather than a passage the user selected.
+class OcptBreakdownSceneSetCreationRequestedEvent extends OcptBreakdownEvent {
+  /// The id of the scene the new set is shot in.
+  final String sceneId;
+
+  /// The location holding the new set, or null to mint one named [name] to hold it.
+  final String? locationId;
+
+  /// The name the new set is given.
+  final String name;
+
+  /// Class constructor
+  const OcptBreakdownSceneSetCreationRequestedEvent({
+    required this.sceneId,
+    required this.locationId,
+    required this.name,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, locationId, name];
+}
+
 /// Says scene [sceneId] is no longer shot in set [setId], dispatched by one of the scene
 /// inspector's own set chips being dismissed.
 ///

@@ -17,6 +17,16 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
+/// The value the "in a new location" entry of a set-creation menu carries, standing for "no
+/// location: mint one to hold it".
+///
+/// A sentinel rather than the null it means: `PopupMenuButton` completes its route with null when
+/// the menu is **dismissed**, and calls `onSelected` only for a non-null value — an entry whose
+/// value is null is therefore indistinguishable from a click outside the menu, and silently does
+/// nothing. The empty string can never be a location id (`Uuid().v4()` never produces one), so it
+/// is free to mean this.
+const String ocptNewLocationMenuValue = "";
+
 /// The display label of the breakdown status [status], read by the scene panel's own status column.
 String ocptBreakdownSceneStatusLabel(Tr tr, OcptBreakdownSceneStatus status) => switch (status) {
   OcptBreakdownSceneStatus.toDo => tr.breakdownSceneStatusToDo,

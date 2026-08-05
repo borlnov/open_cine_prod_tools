@@ -184,6 +184,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownSceneStatusChangedEvent>(_onSceneStatusChanged);
     on<OcptBreakdownSceneSetLinkedEvent>(_onSceneSetLinked);
     on<OcptBreakdownSceneSetUnlinkedEvent>(_onSceneSetUnlinked);
+    on<OcptBreakdownSceneSetCreationRequestedEvent>(_onSceneSetCreationRequested);
     on<OcptBreakdownSceneNotesChangedEvent>(_onSceneNotesChanged);
     on<OcptBreakdownElementStatusChangedEvent>(_onElementStatusChanged);
     on<OcptBreakdownElementCategoryChangedEvent>(_onElementCategoryChanged);
@@ -1090,6 +1091,35 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       database: project.database,
       sceneId: event.sceneId,
       setId: event.setId,
+    );
+
+    emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+  }
+
+  /// Creates a set named `event.name` — inside `event.locationId`, or inside a location minted along
+  /// with it when that is null — and says scene `event.sceneId` is shot in it, in one write
+  /// (`OcptLocationsService.createSetLinkedToScene`), dispatched by the scene inspector's own
+  /// `Create a set…` control.
+  ///
+  /// Writes no tag, exactly as [_onSceneSetLinked] doesn't: this is the sheet naming its décor, not
+  /// a passage of the script being tagged. The selection is left where it is for the same reason —
+  /// the user is filling in this scene's sheet, and the set they just created is already on it as a
+  /// chip.
+  Future<void> _onSceneSetCreationRequested(
+    OcptBreakdownSceneSetCreationRequestedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null || state.isPreviewingVersion) {
+      return;
+    }
+
+    final trimmedName = event.name.trim();
+    await _locationsService.createSetLinkedToScene(
+      database: project.database,
+      sceneId: event.sceneId,
+      name: trimmedName.isEmpty ? event.name : trimmedName,
+      locationId: event.locationId,
     );
 
     emitter(state.copyWith(snapshot: await _loadSnapshot(project)));

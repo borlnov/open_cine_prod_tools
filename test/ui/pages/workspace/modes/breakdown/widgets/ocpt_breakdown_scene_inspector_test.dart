@@ -111,6 +111,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: null,
@@ -137,6 +140,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -182,6 +188,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -224,6 +233,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: (kind, id, sceneId) => reported.add((kind, id, sceneId)),
           onStatusChanged: (_) {},
@@ -254,6 +266,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: reported.add,
@@ -286,6 +301,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "Fragile prop",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -320,6 +338,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "Fragile prop",
           onTargetSelected: _noop3,
           onStatusChanged: statusReported.add,
@@ -375,6 +396,9 @@ void main() {
             suggestedSetId: null,
             onSetLinked: null,
             onSetUnlinked: null,
+            locations: const [],
+            newSetName: "",
+            onSetCreationRequested: null,
             notesValue: "",
             onTargetSelected: _noop3,
             onStatusChanged: (_) {},
@@ -424,6 +448,9 @@ void main() {
             suggestedSetId: null,
             onSetLinked: null,
             onSetUnlinked: null,
+            locations: const [],
+            newSetName: "",
+            onSetCreationRequested: null,
             notesValue: "",
             onTargetSelected: _noop3,
             onStatusChanged: (_) {},
@@ -467,6 +494,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -506,6 +536,9 @@ void main() {
           suggestedSetId: "set-garden",
           onSetLinked: linkedSetIds.add,
           onSetUnlinked: unlinkedSetIds.add,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -543,6 +576,9 @@ void main() {
           suggestedSetId: null,
           onSetLinked: null,
           onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: null,
@@ -556,6 +592,56 @@ void main() {
 
     expect(find.text("Cuisine · Maison des Martin"), findsOneWidget);
     expect(find.text("Set"), findsNothing);
+    expect(find.text("Create a set…"), findsNothing);
+  });
+
+  testWidgets("creates a set named after the heading, in the location picked", (tester) async {
+    final creationLocationIds = <String?>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: _buildScene(id: "scene-1"),
+          targetById: const {},
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: (_) {},
+          onSetUnlinked: (_) {},
+          locations: const [("location-1", "Maison des Martin")],
+          newSetName: "CUISINE",
+          onSetCreationRequested: creationLocationIds.add,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
+        ),
+      ),
+    );
+
+    // The project holds no set at all, so there is nothing to pick — only something to create.
+    expect(find.text("Set"), findsNothing);
+
+    await tester.tap(find.text("Create a set…"));
+    await tester.pumpAndSettle();
+
+    // The menu says what it is about to create before it asks where.
+    expect(find.text('Create "CUISINE" in…'), findsOneWidget);
+
+    await tester.tap(find.text("In Maison des Martin"));
+    await tester.pumpAndSettle();
+
+    expect(creationLocationIds, ["location-1"]);
+
+    // And the entry minting a location to hold it reports null rather than an id.
+    await tester.tap(find.text("Create a set…"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("In a new location"));
+    await tester.pumpAndSettle();
+
+    expect(creationLocationIds, ["location-1", null]);
   });
 }
 

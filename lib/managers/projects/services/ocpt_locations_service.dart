@@ -361,6 +361,54 @@ class OcptLocationsService {
     return id;
   }
 
+  /// Creates a new set named [name] and says scene [sceneId] is shot in it, in one transaction.
+  ///
+  /// [locationId] names the place holding it. Passing null creates **a location of its own**, named
+  /// [name] too, for the reason `OcptBreakdownService.createSetAndTag` gives from the other side: a
+  /// set has no existence outside a location, and somebody reading a scene and meeting a place the
+  /// project has never heard of should not have to leave for another tab to invent one first. The
+  /// two are renamed apart afterwards, `Cuisine` in `Cuisine` being an honest first guess rather
+  /// than a claim.
+  ///
+  /// Writes **no tag**: this is the plain `scene_sets` link, the fact that a scene is shot
+  /// somewhere, which the breakdown mode's scene sheet and the resources mode's own set row both
+  /// state without a passage of the script being involved.
+  ///
+  /// Returns null, and rolls every write back, when any of them refuses.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> createSetLinkedToScene({
+    required OcptProjectDatabase database,
+    required String sceneId,
+    required String name,
+    String? locationId,
+  }) async {
+    if (database.refusesUserWrite("createSetLinkedToScene")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final holdingLocationId =
+          locationId ?? await createLocation(database: database, name: name);
+      if (holdingLocationId == null) {
+        return null;
+      }
+
+      final setId = await createSet(
+        database: database,
+        locationId: holdingLocationId,
+        name: name,
+      );
+      if (setId == null) {
+        return null;
+      }
+
+      return await assignSceneToSet(database: database, sceneId: sceneId, setId: setId) == null
+          ? null
+          : setId;
+    });
+  }
+
   /// Updates the fields of set [setId] in [database] that are passed as something other than
   /// [Value.absent].
   ///

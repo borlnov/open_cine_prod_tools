@@ -25,7 +25,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 ///
 /// The sets row ([_buildSetsRow]) is the one part of this sheet that is not about tags: it reads and
 /// writes the `scene_sets` link directly, so a link made by hand in the resources mode shows here
-/// too, and one made here shows there. It is where a breakdown sheet names its décor, which is why
+/// too, and one made here shows there. It both links an existing set ([_buildSetPicker]) and
+/// **creates** one ([_buildSetCreationControl]), a scene whose place the project has never heard of
+/// being the ordinary case at the start of a breakdown pass rather than an edge one. It is where a breakdown sheet names its décor, which is why
 /// it sits at the top rather than among the tagged targets below. Adding a set is **not** tagging a
 /// passage: no tag is created, nothing in the script is highlighted, and removing a set here leaves
 /// every tag pointing at it exactly where it is — the tag and the link are two separate facts, as
@@ -44,8 +46,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// do in the resources mode.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`. [isReadOnly] withholds every control that
-/// writes — the status chips, the sets row's own picker and chip dismissals, the notes field and the
-/// "to check" alert's two actions — while leaving
+/// writes — the status chips, the sets row's own picker, creation control and chip dismissals, the
+/// notes field and the "to check" alert's two actions — while leaving
 /// every read (the sheet itself, both alerts' own listing, and a click on one of its target rows,
 /// `onTargetSelected`) in place, mirroring `OcptBreakdownTargetInspector`'s own convention: the panel
 /// takes the real callbacks and nulls them out itself, so a control added later cannot be gated in
@@ -81,6 +83,21 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
   /// Called with a set's id when its chip is dismissed, saying [scene] is no longer shot in it;
   /// null under the same condition as [onSetLinked].
   final ValueChanged<String>? onSetUnlinked;
+
+  /// Every live location of the project, `(id, name)`, offered as the place a set created from this
+  /// sheet is filed under. Empty while the project has none, the menu then offering its own
+  /// "in a new location" entry alone.
+  final List<(String, String)> locations;
+
+  /// The name a set created from this sheet is given — the place [scene]'s own heading names
+  /// (`ocptSceneHeadingPlaceOf`), resolved by the mode so this panel derives nothing. Shown in the
+  /// creation menu's heading so the user reads what they are about to create; the mode sends the
+  /// same name back down with the event.
+  final String newSetName;
+
+  /// Called with the location holding the set to create — null meaning "in a new location of its
+  /// own" — or itself null while it may not be written.
+  final ValueChanged<String?>? onSetCreationRequested;
 
   /// [scene]'s current value for its own breakdown notes — a pending edit still in the bloc's own
   /// debounce, or the scene's own stored value. Ignored while [scene] is null.
@@ -118,6 +135,9 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     required this.suggestedSetId,
     required this.onSetLinked,
     required this.onSetUnlinked,
+    required this.locations,
+    required this.newSetName,
+    required this.onSetCreationRequested,
     required this.notesValue,
     required this.onTargetSelected,
     required this.onStatusChanged,
@@ -285,6 +305,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
             onDeleted: onSetUnlinked == null ? null : () => onSetUnlinked(set.id),
           ),
         if (onSetLinked != null) _buildSetPicker(context, tr, scene),
+        if (onSetCreationRequested != null) _buildSetCreationControl(context, tr),
       ],
     );
   }
@@ -292,9 +313,9 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
   /// The `+ Set` picker: every set [scene] is not already shot in, the suggested one first.
   ///
   /// Drawn only while there is something left to offer — a project whose every set already covers
-  /// this scene, or one with no set at all, shows the chips (or the hint) alone. Creating a set is
-  /// deliberately **not** offered here: a set belongs to a location, and the place that question is
-  /// answered is the script view's own tag popover, which knows the passage that names it.
+  /// this scene, or one with no set at all, shows the chips (or the hint) alone, the control beside
+  /// it ([_buildSetCreationControl]) then being the only way forward, which is exactly right: a
+  /// project that has never heard of this place has nothing to pick.
   Widget _buildSetPicker(BuildContext context, Tr tr, OcptBreakdownScene scene) {
     final onSetLinked = this.onSetLinked!;
 
@@ -337,6 +358,40 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       ),
     );
   }
+
+  /// The `Create a set…` control: the same menu the tag popover's own offers — every location of
+  /// the project, then the entry minting one named after the set — headed by the name the new set
+  /// will carry, [newSetName].
+  ///
+  /// The name is not asked for. It is the place [scene]'s heading already names, which is the
+  /// answer in nearly every case, and the chip it lands as is renamed on the spot in the resources
+  /// mode if it is not: asking for it here would put a dialog between a reader and the sheet they
+  /// are filling in, which is the friction this control exists to remove.
+  Widget _buildSetCreationControl(BuildContext context, Tr tr) => PopupMenuButton<String>(
+    tooltip: "",
+    onSelected: (value) =>
+        onSetCreationRequested!(value == ocptNewLocationMenuValue ? null : value),
+    itemBuilder: (context) => [
+      PopupMenuItem<String>(
+        enabled: false,
+        child: Text(tr.breakdownSceneInspectorCreateSetMenuTitle(newSetName)),
+      ),
+      for (final (id, name) in locations)
+        PopupMenuItem<String>(
+          value: id,
+          child: Text(tr.breakdownSceneInspectorCreateSetInOption(name)),
+        ),
+      if (locations.isNotEmpty) const PopupMenuDivider(),
+      PopupMenuItem<String>(
+        value: ocptNewLocationMenuValue,
+        child: Text(tr.breakdownSceneInspectorCreateSetInNewLocationOption),
+      ),
+    ],
+    child: Chip(
+      avatar: const Icon(Icons.add_home_work_outlined, size: 14),
+      label: Text(tr.breakdownSceneInspectorCreateSetAction),
+    ),
+  );
 
   /// The warning callout naming [toFindTargets], comma-joined.
   Widget _buildToFindAlert(BuildContext context, Tr tr, List<OcptBreakdownTarget> toFindTargets) {

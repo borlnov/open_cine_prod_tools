@@ -534,7 +534,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   shows there — no tag is created, nothing is highlighted, and unlinking leaves every tag pointing
   at that set exactly where it is. It sits at the top of the sheet because that is where a
   breakdown sheet names its décor, and its picker offers `ocptSceneSetSuggestionOf`'s answer first,
-  marked as a suggestion and never applied. A set is shown as `<set> · <location>` everywhere
+  marked as a suggestion and never applied. Beside that picker it **creates** one
+  (`OcptLocationsService.createSetLinkedToScene`, the tagless sibling of `createSetAndTag`, minting
+  the location too when the menu's own "in a new location" entry is picked): a scene whose place
+  the project has never heard of is the ordinary case at the start of a pass, and the name is not
+  asked for — it is `ocptSceneHeadingPlaceOf`'s reading of the heading, resolved by the mode so the
+  menu and the event can never derive it differently. Every entry of a set-creation menu carries a
+  **non-null** value (`ocptNewLocationMenuValue`): `PopupMenuButton` reads a null result as "the
+  menu was dismissed" and never calls `onSelected` for it, so an entry valued null silently does
+  nothing. A set is shown as `<set> · <location>` everywhere
   outside the location sheet holding it (`ocptBreakdownSetLabel`), which is why
   `OcptBreakdownSnapshot` carries the whole `locations` catalogue and derives `locationNameById`
   from it.

@@ -5551,6 +5551,44 @@
     "type": "text",
     "placeholders": {}
   },
+  "breakdownSceneInspectorCreateSetAction": "Create a set…",
+  "@breakdownSceneInspectorCreateSetAction": {
+    "description": "Label of the chip opening the menu creating a set named after the scene's heading",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorCreateSetMenuTitle": "Create \"{set}\" in…",
+  "@breakdownSceneInspectorCreateSetMenuTitle": {
+    "description": "Heading of the creation menu, naming the set the scene's heading gives it",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {
+      "set": {
+        "type": "String",
+        "example": "CUISINE"
+      }
+    }
+  },
+  "breakdownSceneInspectorCreateSetInOption": "In {location}",
+  "@breakdownSceneInspectorCreateSetInOption": {
+    "description": "Entry creating the set inside an existing location",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "Maison des Martin"
+      }
+    }
+  },
+  "breakdownSceneInspectorCreateSetInNewLocationOption": "In a new location",
+  "@breakdownSceneInspectorCreateSetInNewLocationOption": {
+    "description": "Entry creating a location named after the set, to hold it",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
   "breakdownSceneInspectorSetSuggestedOption": "{set} — suggested",
   "@breakdownSceneInspectorSetSuggestedOption": {
     "description": "Entry of the set picker whose name matches the scene's own heading",

@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a `Stack` large
@@ -396,24 +397,28 @@ void main() {
     // The control sits inside the popover's own internal scroll view, below the category grid, so
     // the menu is opened through its anchor's own callback rather than by a simulated tap that
     // would first need to scroll it into view.
-    final anchor = tester.widget<PopupMenuButton<String?>>(
+    final anchor = tester.widget<PopupMenuButton<String>>(
       find.ancestor(
         of: find.text(tr.breakdownPopoverCreateSetAction),
-        matching: find.byType(PopupMenuButton<String?>),
+        matching: find.byType(PopupMenuButton<String>),
       ),
     );
     final entries = anchor.itemBuilder(tester.element(find.byType(OcptBreakdownTagPopover)));
     final values = [
       for (final entry in entries)
-        if (entry is PopupMenuItem<String?>) entry.value,
+        if (entry is PopupMenuItem<String>) entry.value,
     ];
 
-    expect(values, ["location-1", null]);
+    // Every entry carries a **non-null** value, `ocptNewLocationMenuValue` included: a
+    // `PopupMenuButton` reads a null result as "the menu was dismissed" and never calls
+    // `onSelected` for it, so an entry valued null would silently do nothing.
+    expect(values, ["location-1", ocptNewLocationMenuValue]);
 
-    anchor.onSelected!(null);
+    anchor.onSelected!(ocptNewLocationMenuValue);
     await tester.pump();
 
-    // The name is the field's own text, which the passage pre-filled.
+    // The name is the field's own text, which the passage pre-filled, and the sentinel comes back
+    // out as the null the callback's contract is written in.
     expect(created, (null, "CUISINE"));
   });
 

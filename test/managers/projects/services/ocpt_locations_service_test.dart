@@ -346,6 +346,39 @@ void main() {
       await insertScene(id: "scene-2", position: 1, heading: "EXT. JARDIN - NUIT");
     });
 
+    test("createSetLinkedToScene mints a location of its own when given none", () async {
+      final setId = await locationsService.createSetLinkedToScene(
+        database: database,
+        sceneId: "scene-1",
+        name: "CUISINE",
+      );
+
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations, hasLength(1));
+      expect(locations.single.name, "CUISINE");
+      expect(locations.single.sets.single.id, setId);
+      expect(locations.single.sets.single.name, "CUISINE");
+      expect(locations.single.sets.single.sceneIds, ["scene-1"]);
+    });
+
+    test("createSetLinkedToScene files the set under the location it's given", () async {
+      final locationId = (await locationsService.createLocation(
+        database: database,
+        name: "Maison",
+      ))!;
+
+      await locationsService.createSetLinkedToScene(
+        database: database,
+        sceneId: "scene-1",
+        name: "Cuisine",
+        locationId: locationId,
+      );
+
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations, hasLength(1));
+      expect(locations.single.sets.single.sceneIds, ["scene-1"]);
+    });
+
     test("moveSetToLocation hands a set over with its scenes, appended at the end", () async {
       final fromId = (await locationsService.createLocation(database: database, name: "A"))!;
       final toId = (await locationsService.createLocation(database: database, name: "B"))!;

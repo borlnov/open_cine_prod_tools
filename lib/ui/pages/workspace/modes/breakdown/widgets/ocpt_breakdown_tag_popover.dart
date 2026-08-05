@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
@@ -542,16 +543,20 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
   ///
   /// A menu rather than a chip grid, unlike the element categories right above it: a project has as
   /// many locations as it has, and they are the user's own names rather than a fixed list.
-  Widget _buildSetCreationControl(BuildContext context, Tr tr) => PopupMenuButton<String?>(
+  Widget _buildSetCreationControl(BuildContext context, Tr tr) => PopupMenuButton<String>(
     tooltip: "",
-    // A null value is the "in a new location" entry: PopupMenuItem's own default, spelled out by
-    // the entry below rather than by an argument the analyzer would call redundant.
-    onSelected: (locationId) => widget.onSetCreationSelected(locationId, _nameFromField()),
+    onSelected: (value) => widget.onSetCreationSelected(
+      value == ocptNewLocationMenuValue ? null : value,
+      _nameFromField(),
+    ),
     itemBuilder: (context) => [
       for (final (id, name) in widget.locations)
-        PopupMenuItem<String?>(value: id, child: Text(tr.breakdownPopoverCreateSetInOption(name))),
+        PopupMenuItem<String>(value: id, child: Text(tr.breakdownPopoverCreateSetInOption(name))),
       if (widget.locations.isNotEmpty) const PopupMenuDivider(),
-      PopupMenuItem<String?>(child: Text(tr.breakdownPopoverCreateSetInNewLocationOption)),
+      PopupMenuItem<String>(
+        value: ocptNewLocationMenuValue,
+        child: Text(tr.breakdownPopoverCreateSetInNewLocationOption),
+      ),
     ],
     // A chip rather than a button, the way every other picker of the app anchors its own menu (the
     // location sheet's scenes, the scene inspector's sets): the tap belongs to the menu, and a

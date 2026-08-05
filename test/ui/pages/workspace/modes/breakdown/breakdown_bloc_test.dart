@@ -1505,6 +1505,50 @@ void main() {
     await bloc.close();
   });
 
+  test("creating a set from the scene sheet mints its location too, and no tag", () async {
+    await writeScreenplay("INT. CUISINE - DAY\n\nA lamp sits on the desk.\n");
+    final project = projectsManager.currentProject!;
+    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
+        .single
+        .id;
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.scenes.length == 1);
+
+    // The project has never heard of this place: no location to file the set under, so one is
+    // minted along with it.
+    bloc.add(
+      OcptBreakdownSceneSetCreationRequestedEvent(
+        sceneId: sceneId,
+        locationId: null,
+        name: "CUISINE",
+      ),
+    );
+    var state = await waitForState(bloc, (state) => state.sets.length == 1);
+
+    expect(state.sets.single.name, "CUISINE");
+    expect(state.sets.single.sceneIds, [sceneId]);
+    expect(state.locations.single.name, "CUISINE");
+    // Naming a scene's décor is not tagging a passage of the script.
+    expect(state.taggedTargetCount, 0);
+
+    // A second one goes into the location the first minted, rather than into another of its own.
+    bloc.add(
+      OcptBreakdownSceneSetCreationRequestedEvent(
+        sceneId: sceneId,
+        locationId: state.locations.single.id,
+        name: "SALON",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.sets.length == 2);
+
+    expect(state.locations, hasLength(1));
+    expect(state.sets.map((set) => set.name), ["CUISINE", "SALON"]);
+    expect(state.sets.map((set) => set.code), ["A", "B"]);
+
+    await bloc.close();
+  });
+
   test("tag removal with no target selected leaves the tag untouched", () async {
     final tagged = await writeTaggedElement();
     final bloc = buildBloc();

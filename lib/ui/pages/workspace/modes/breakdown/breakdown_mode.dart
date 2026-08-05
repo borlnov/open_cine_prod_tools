@@ -407,6 +407,17 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
+  /// The name a set created from the scene sheet of a scene headed [heading] is given: the place
+  /// that heading names (`ocptSceneHeadingPlaceOf` — its interior/exterior prefix and its time of
+  /// day dropped), falling back to the whole heading when there is nothing left of it.
+  ///
+  /// Resolved here rather than in the panel, so the name shown in the creation menu and the name
+  /// the event carries can never be two different derivations of the same heading.
+  String _newSetNameOf(String heading) {
+    final place = ocptSceneHeadingPlaceOf(heading);
+    return place.isEmpty ? heading : place;
+  }
+
   /// Builds the `Inspector` tab's own content: the selected target's sheet, or — while nothing is
   /// selected — the selected scene's own breakdown sheet.
   Widget _buildInspector(BuildContext context, OcptBreakdownState state) {
@@ -432,6 +443,17 @@ class _BreakdownViewState extends State<_BreakdownView> {
             ? null
             : (setId) =>
                   bloc.add(OcptBreakdownSceneSetUnlinkedEvent(sceneId: scene.id, setId: setId)),
+        locations: [for (final location in state.locations) (location.id, location.name)],
+        newSetName: scene == null ? "" : _newSetNameOf(scene.heading),
+        onSetCreationRequested: isReadOnly || scene == null
+            ? null
+            : (locationId) => bloc.add(
+                OcptBreakdownSceneSetCreationRequestedEvent(
+                  sceneId: scene.id,
+                  locationId: locationId,
+                  name: _newSetNameOf(scene.heading),
+                ),
+              ),
         notesValue: scene == null ? "" : state.sceneNotesValueOf(scene.id, scene.notes),
         onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
           OcptBreakdownTargetSelectedEvent(
