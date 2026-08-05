@@ -40,19 +40,23 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// category legend on the left, the whole screenplay typeset as a paper sheet in the centre, and the
 /// `Inspector`/`Versions` right dock.
 ///
-/// The script view lets every word be clicked — a tagged one selects its target, any other one
-/// reports its own offsets for the range interaction a later change adds — and selecting a target
-/// opens the right dock on its `Inspector` tab, where `OcptBreakdownTargetInspector` shows its sheet;
-/// selecting a scene with no target selected shows that scene's own breakdown sheet instead,
-/// `OcptBreakdownSceneInspector`. There is **no save control and no mode-specific toolbar action** —
-/// the shell simply isn't handed one, rather than showing an inert one — since every write here (the
-/// target inspector's chips, pickers and fields, and the tag removal) is written by its own event
-/// rather than a single save; the target inspector's three free-text fields still autosave on the 2 s
-/// debounce every field like it does elsewhere in the app.
+/// The script view lets every word be clicked — a tagged one selects its target, and selecting a
+/// target opens the right dock on its `Inspector` tab, where `OcptBreakdownTargetInspector` shows its
+/// sheet; selecting a scene with no target selected shows that scene's own breakdown sheet instead,
+/// `OcptBreakdownSceneInspector`. Any other word drives the range interaction: a first click opens an
+/// anchor, a second one in the same scene closes it and opens `OcptBreakdownTagPopover`, which links
+/// the passage to an existing target or creates a new element and tags it in one click — either way
+/// landing the selection on it, on the `Inspector` tab, exactly as clicking an already-tagged word
+/// does. There is **no save control and no mode-specific toolbar action** — the shell simply isn't
+/// handed one, rather than showing an inert one — since every write here (the popover's own links and
+/// creations, the target inspector's chips, pickers and fields, and the tag removal) is written by
+/// its own event rather than a single save; the target inspector's three free-text fields still
+/// autosave on the 2 s debounce every field like it does elsewhere in the app.
 ///
 /// While a project version is being previewed, the mode shows that version's own read instead of
 /// the working copy's, and carries the shell's read-only banner naming it, exactly as the resources
-/// and shot list modes do; the inspector then withholds every control that writes (see
+/// and shot list modes do; the range interaction is withheld outright (`_buildScriptView`'s own doc
+/// comment), and the inspector withholds every control that writes (see
 /// [OcptBreakdownTargetInspector]'s own doc comment) while leaving both inspectors fully readable.
 class OcptBreakdownMode extends StatelessWidget {
   /// Creates the breakdown mode.
@@ -197,28 +201,50 @@ class _BreakdownViewState extends State<_BreakdownView> {
   }
 
   /// Builds the shell's `centre`: the whole screenplay typeset as a paper sheet, its words clickable.
-  Widget _buildScriptView(BuildContext context, OcptBreakdownState state) => OcptBreakdownScriptView(
-    screenplayText: state.screenplayText,
-    scenes: state.scenes,
-    targetById: ocptBreakdownTargetsById(state.targets),
-    pageSetup: state.pageSetup,
-    selectedSceneId: state.selectedSceneId,
-    onSceneSelected: (sceneId) => context.read<OcptBreakdownBloc>().add(
-      OcptBreakdownSceneSelectedEvent(sceneId: sceneId),
-    ),
-    hiddenLegendKeys: state.hiddenLegendKeys,
-    selectedTargetRef: state.selectedTargetRef,
-    onTargetSelected: (targetKind, targetId, sceneId) => context.read<OcptBreakdownBloc>().add(
-      OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
-    ),
-    onWordClicked: (sceneId, wordStartOffset, wordEndOffset) => context.read<OcptBreakdownBloc>().add(
-      OcptBreakdownWordClickedEvent(
-        sceneId: sceneId,
-        wordStartOffset: wordStartOffset,
-        wordEndOffset: wordEndOffset,
+  ///
+  /// [OcptBreakdownScriptView.onWordClicked] alone is what withholds the whole range interaction
+  /// while a version is being previewed: nulling it out is enough, since no anchor can open and
+  /// therefore no popover ever has a range to show.
+  Widget _buildScriptView(BuildContext context, OcptBreakdownState state) {
+    final bloc = context.read<OcptBreakdownBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptBreakdownScriptView(
+      screenplayText: state.screenplayText,
+      scenes: state.scenes,
+      targetById: ocptBreakdownTargetsById(state.targets),
+      pageSetup: state.pageSetup,
+      selectedSceneId: state.selectedSceneId,
+      onSceneSelected: (sceneId) => bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId)),
+      hiddenLegendKeys: state.hiddenLegendKeys,
+      selectedTargetRef: state.selectedTargetRef,
+      onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
+        OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
       ),
-    ),
-  );
+      onWordClicked: isReadOnly
+          ? null
+          : (sceneId, wordStartOffset, wordEndOffset) => bloc.add(
+              OcptBreakdownWordClickedEvent(
+                sceneId: sceneId,
+                wordStartOffset: wordStartOffset,
+                wordEndOffset: wordEndOffset,
+              ),
+            ),
+      pendingTagAnchor: state.pendingTagAnchor,
+      pendingTagRange: state.pendingTagRange,
+      candidates: state.searchCandidates,
+      onPopoverCancelled: () => bloc.add(const OcptBreakdownTagRangeCancelledEvent()),
+      onPopoverTargetLinked: (targetKind, targetId) => bloc.add(
+        OcptBreakdownPopoverTargetLinkedEvent(targetKind: targetKind, targetId: targetId),
+      ),
+      onPopoverElementCreationRequested: (category, name) => bloc.add(
+        OcptBreakdownPopoverElementCreationRequestedEvent(category: category, name: name),
+      ),
+      onOpenInResourcesRequested: () => context.read<OcptWorkspaceBloc>().add(
+        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.resources),
+      ),
+    );
+  }
 
   /// Builds the right dock, the shell's `rightPanel`, or null while the dock is closed.
   Widget? _buildRightDock(BuildContext context, OcptBreakdownState state) {
@@ -444,6 +470,13 @@ class _BreakdownViewState extends State<_BreakdownView> {
       leftFraction: state.leftDockFraction,
       rightFraction: state.rightDockFraction,
     );
+
+    if (state.hasTagWriteError) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(Tr.of(context).breakdownTagWriteError)));
+      context.read<OcptBreakdownBloc>().add(const OcptBreakdownTagWriteErrorDismissedEvent());
+    }
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {

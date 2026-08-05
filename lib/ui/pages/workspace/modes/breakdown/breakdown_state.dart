@@ -11,6 +11,9 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -18,13 +21,16 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
 /// The state of `OcptBreakdownBloc`.
 ///
 /// Selecting a target or a scene, and hiding a legend key, write nothing to the project database.
 /// [pendingElementFieldEdits] is the one pending field edit this state carries, the selected
 /// target's own free-text fields riding the debounce every other mode's `pending…FieldEdits` map
-/// does — see `OcptBreakdownBloc`'s own doc comment.
+/// does — see `OcptBreakdownBloc`'s own doc comment. [pendingTagAnchor] and [pendingTagRange] are
+/// likewise ephemeral and write nothing on their own: the range interaction they drive only
+/// touches the database once the popover it opens answers with a link or an element creation.
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     with MixinOcptProjectVersionsState<OcptBreakdownState> {
   /// Whether the breakdown read is still being loaded from the project database.
@@ -95,6 +101,20 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// `OcptResourcesState.pendingElementFieldEdits`. [elementFieldValueOf] is what a field reads
   /// instead of the element's own stored value while an edit is pending here.
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
+
+  /// The first word clicked of a range not yet closed, or null while none is open — the script
+  /// view's own cue to mark that word as pending. Cleared the moment the range closes (successfully
+  /// or by falling into another scene, which simply replaces it) or is cancelled outright.
+  final OcptBreakdownPendingTagAnchor? pendingTagAnchor;
+
+  /// A range just closed by a second click, awaiting the popover's own answer, or null while none
+  /// is — the script view's cue to anchor `OcptBreakdownTagPopover` under the word that closed it.
+  final OcptBreakdownPendingTagRange? pendingTagRange;
+
+  /// Whether the popover's last write (a link or an element creation) was refused — the overlap, or
+  /// a preview database that slipped through — and a transient notice should tell the user rather
+  /// than the popover silently closing. Reset the moment it has been shown once.
+  final bool hasTagWriteError;
 
   /// The left (scene) dock's width, as a fraction of the mode's content row width.
   ///
@@ -194,6 +214,20 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// inspector's owner and who-brings-it pickers.
   List<OcptPerson> get people => snapshot?.people ?? const [];
 
+  /// The whole cast of [snapshot] (empty while nothing is loaded), one of the three raw catalogues
+  /// [searchCandidates] flattens for the tag popover.
+  List<OcptRole> get roles => snapshot?.roles ?? const [];
+
+  /// The whole set catalogue of [snapshot] (empty while nothing is loaded), the sibling of [roles].
+  List<OcptSet> get sets => snapshot?.sets ?? const [];
+
+  /// The candidates the tag popover searches, built once from [snapshot] — empty while nothing is
+  /// loaded, exactly as every other snapshot-derived getter here.
+  List<OcptBreakdownSearchCandidate> get searchCandidates {
+    final snapshot = this.snapshot;
+    return snapshot == null ? const [] : ocptBreakdownSearchCandidatesOf(snapshot);
+  }
+
   /// The raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is null,
   /// names something other than an element, or — like [selectedTarget] itself — has disappeared
   /// from a freshly loaded [snapshot]. What the target inspector's Status, Category and Details
@@ -236,6 +270,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.lastRightDockTab,
     required this.isTagRemovalPending,
     required this.pendingElementFieldEdits,
+    required this.pendingTagAnchor,
+    required this.pendingTagRange,
+    required this.hasTagWriteError,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.projectVersions,
@@ -262,6 +299,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       lastRightDockTab = OcptBreakdownRightDockTab.inspector,
       isTagRemovalPending = false,
       pendingElementFieldEdits = const {},
+      pendingTagAnchor = null,
+      pendingTagRange = null,
+      hasTagWriteError = false,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       projectVersions = const [],
@@ -275,9 +315,10 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded, so
-  /// it needs no clear flag. [selectedSceneId], [selectedTargetRef] and [rightDockTab] all
-  /// legitimately go back to null while the mode is alive (a fresh load, a selection dropped, the
-  /// dock closed), so each has its own clear flag instead. [hiddenLegendKeys] and
+  /// it needs no clear flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
+  /// [pendingTagAnchor] and [pendingTagRange] all legitimately go back to null while the mode is
+  /// alive (a fresh load, a selection dropped, the dock closed, an anchor replaced or a range
+  /// resolved), so each has its own clear flag instead. [hiddenLegendKeys] and
   /// [pendingElementFieldEdits] are each replaced wholesale rather than merged — the caller (the
   /// bloc's own legend and field-edit handlers) always computes the full next map or set.
   @override
@@ -298,6 +339,11 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownRightDockTab? lastRightDockTab,
     bool? isTagRemovalPending,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
+    OcptBreakdownPendingTagAnchor? pendingTagAnchor,
+    bool clearPendingTagAnchor = false,
+    OcptBreakdownPendingTagRange? pendingTagRange,
+    bool clearPendingTagRange = false,
+    bool? hasTagWriteError,
     double? leftDockFraction,
     double? rightDockFraction,
     List<OcptProjectVersion>? projectVersions,
@@ -327,6 +373,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     isTagRemovalPending: isTagRemovalPending ?? this.isTagRemovalPending,
     pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
+    pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
+    pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
+    hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     projectVersions: projectVersions ?? this.projectVersions,
@@ -397,6 +446,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     lastRightDockTab,
     isTagRemovalPending,
     pendingElementFieldEdits,
+    pendingTagAnchor,
+    pendingTagRange,
+    hasTagWriteError,
     leftDockFraction,
     rightDockFraction,
   ];

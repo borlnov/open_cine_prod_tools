@@ -11,13 +11,17 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_display.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
 /// A tagged word's target selected by the caret/list, exactly as the bloc's own state holds it:
 /// `(kind, id)`.
@@ -71,12 +75,18 @@ const double _ocptWordVerticalPadding = 2;
 /// no colour to paint and is left plain, never crashing.
 ///
 /// Clicking a word that overlaps a live tag whose target resolves reports that target upward through
-/// [onTargetSelected], together with the scene the click happened in. Clicking any other word — one
-/// covered by no tag, or by a tag whose target is gone — reports its own scene-relative offsets
-/// through [onWordClicked]; `OcptBreakdownBloc` does nothing with it yet (see its own handler's doc
-/// comment for which later milestone closes that loop with the range interaction and the popover).
-/// Selecting writes nothing, so neither callback is ever withheld for a previewed version's sake —
-/// see this mode's own doc comment.
+/// [onTargetSelected], together with the scene the click happened in — never withheld, since
+/// selecting writes nothing. Clicking any other word — one covered by no tag, or by a tag whose
+/// target is gone — reports its own scene-relative offsets through [onWordClicked], which drives the
+/// range interaction (`OcptBreakdownBloc._onWordClicked`): a first click opens [pendingTagAnchor], a
+/// second one in the same scene closes it into [pendingTagRange], the cue this view reads to open
+/// [OcptBreakdownTagPopover] — through [OcptBreakdownTagPopoverAnchor], anchored under the very word
+/// the second click landed on — offering [candidates] to link to or an element category to create
+/// from. [onWordClicked] is null while a version is being previewed, withholding the whole gesture
+/// on a read-only project: a plain word then paints and reads exactly as before, it simply stops
+/// being a click target. While [pendingTagAnchor] is open in a scene, a plain word whose range with
+/// it would overlap a live tag of that scene is not a click target at all either — greyed out rather
+/// than merely refused on click, so the user never discovers the refusal by trying it.
 ///
 /// Only a scene's heading row stays row-level clickable, selecting that scene — shown with a tinted
 /// accent bar and its own tagged-target count on the right, exactly as before this milestone.
@@ -114,8 +124,38 @@ class OcptBreakdownScriptView extends StatelessWidget {
   onTargetSelected;
 
   /// Called with a clicked word's own scene id and scene-relative start/end offsets, when the word
-  /// is covered by no live tag or by one whose target is gone.
-  final void Function(String sceneId, int wordStartOffset, int wordEndOffset) onWordClicked;
+  /// is covered by no live tag or by one whose target is gone — or null while a version is being
+  /// previewed, withholding the whole range interaction: no anchor can open, so no popover ever has
+  /// a range to show either.
+  final void Function(String sceneId, int wordStartOffset, int wordEndOffset)? onWordClicked;
+
+  /// The first word clicked of a range not yet closed, or null while none is — the word it names is
+  /// marked as such.
+  final OcptBreakdownPendingTagAnchor? pendingTagAnchor;
+
+  /// A range just closed by a second click, awaiting the popover's own answer, or null while none
+  /// is — the cue to open [OcptBreakdownTagPopover] under the word that closed it.
+  final OcptBreakdownPendingTagRange? pendingTagRange;
+
+  /// The whole catalogue the popover searches, built once by the mode from the loaded snapshot
+  /// (`ocptBreakdownSearchCandidatesOf`).
+  final List<OcptBreakdownSearchCandidate> candidates;
+
+  /// Called when the popover's own × close button, `Escape` or a tap outside it clears the pending
+  /// range and the anchor alike.
+  final VoidCallback onPopoverCancelled;
+
+  /// Called with a match's own kind and id when one of the popover's match rows is clicked, linking
+  /// the pending range to it.
+  final void Function(OcptBreakdownTargetKind targetKind, String targetId) onPopoverTargetLinked;
+
+  /// Called with a category and the popover's own field text when one of its category chips is
+  /// clicked, creating a new element and tagging the pending range with it.
+  final void Function(OcptElementCategory category, String name) onPopoverElementCreationRequested;
+
+  /// Called when the popover's own `Open in Resources` action is clicked (shown only while its
+  /// search comes back with no role and no set).
+  final VoidCallback onOpenInResourcesRequested;
 
   /// Class constructor
   const OcptBreakdownScriptView({
@@ -130,6 +170,13 @@ class OcptBreakdownScriptView extends StatelessWidget {
     required this.selectedTargetRef,
     required this.onTargetSelected,
     required this.onWordClicked,
+    required this.pendingTagAnchor,
+    required this.pendingTagRange,
+    required this.candidates,
+    required this.onPopoverCancelled,
+    required this.onPopoverTargetLinked,
+    required this.onPopoverElementCreationRequested,
+    required this.onOpenInResourcesRequested,
   });
 
   @override
@@ -176,6 +223,13 @@ class OcptBreakdownScriptView extends StatelessWidget {
                         selectedTargetRef: selectedTargetRef,
                         onTargetSelected: onTargetSelected,
                         onWordClicked: onWordClicked,
+                        pendingTagAnchor: pendingTagAnchor,
+                        pendingTagRange: pendingTagRange,
+                        candidates: candidates,
+                        onPopoverCancelled: onPopoverCancelled,
+                        onPopoverTargetLinked: onPopoverTargetLinked,
+                        onPopoverElementCreationRequested: onPopoverElementCreationRequested,
+                        onOpenInResourcesRequested: onOpenInResourcesRequested,
                       ),
                   ],
                 ),
@@ -229,7 +283,28 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
   onTargetSelected;
 
   /// Forwarded from [OcptBreakdownScriptView].
-  final void Function(String sceneId, int wordStartOffset, int wordEndOffset) onWordClicked;
+  final void Function(String sceneId, int wordStartOffset, int wordEndOffset)? onWordClicked;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownPendingTagAnchor? pendingTagAnchor;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownPendingTagRange? pendingTagRange;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final List<OcptBreakdownSearchCandidate> candidates;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final VoidCallback onPopoverCancelled;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(OcptBreakdownTargetKind targetKind, String targetId) onPopoverTargetLinked;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(OcptElementCategory category, String name) onPopoverElementCreationRequested;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final VoidCallback onOpenInResourcesRequested;
 
   /// Class constructor
   const _OcptBreakdownSceneSheet({
@@ -243,6 +318,13 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     required this.selectedTargetRef,
     required this.onTargetSelected,
     required this.onWordClicked,
+    required this.pendingTagAnchor,
+    required this.pendingTagRange,
+    required this.candidates,
+    required this.onPopoverCancelled,
+    required this.onPopoverTargetLinked,
+    required this.onPopoverElementCreationRequested,
+    required this.onOpenInResourcesRequested,
   });
 
   @override
@@ -279,6 +361,13 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
                 isFollowedByBlankLine: _isFollowedByBlankLine(layout, i),
                 onTargetSelected: onTargetSelected,
                 onWordClicked: onWordClicked,
+                pendingTagAnchor: pendingTagAnchor,
+                pendingTagRange: pendingTagRange,
+                candidates: candidates,
+                onPopoverCancelled: onPopoverCancelled,
+                onPopoverTargetLinked: onPopoverTargetLinked,
+                onPopoverElementCreationRequested: onPopoverElementCreationRequested,
+                onOpenInResourcesRequested: onOpenInResourcesRequested,
               ),
         ],
       ),
@@ -413,7 +502,28 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
   onTargetSelected;
 
   /// Forwarded from [OcptBreakdownScriptView].
-  final void Function(String sceneId, int wordStartOffset, int wordEndOffset) onWordClicked;
+  final void Function(String sceneId, int wordStartOffset, int wordEndOffset)? onWordClicked;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownPendingTagAnchor? pendingTagAnchor;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final OcptBreakdownPendingTagRange? pendingTagRange;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final List<OcptBreakdownSearchCandidate> candidates;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final VoidCallback onPopoverCancelled;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(OcptBreakdownTargetKind targetKind, String targetId) onPopoverTargetLinked;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final void Function(OcptElementCategory category, String name) onPopoverElementCreationRequested;
+
+  /// Forwarded from [OcptBreakdownScriptView].
+  final VoidCallback onOpenInResourcesRequested;
 
   /// Class constructor
   const _OcptBreakdownScriptBlock({
@@ -426,6 +536,13 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
     required this.isFollowedByBlankLine,
     required this.onTargetSelected,
     required this.onWordClicked,
+    required this.pendingTagAnchor,
+    required this.pendingTagRange,
+    required this.candidates,
+    required this.onPopoverCancelled,
+    required this.onPopoverTargetLinked,
+    required this.onPopoverElementCreationRequested,
+    required this.onOpenInResourcesRequested,
   });
 
   @override
@@ -457,13 +574,7 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
                     WidgetSpan(
                       alignment: PlaceholderAlignment.baseline,
                       baseline: TextBaseline.alphabetic,
-                      child: _OcptBreakdownWord(
-                        runs: displayRuns[i],
-                        isUppercase: printStyle.isUppercase,
-                        style: baseStyle,
-                        paint: _paintOf(block.words[i]),
-                        onTap: () => _onWordTapped(block.words[i]),
-                      ),
+                      child: _wordWidgetAt(block.words[i], displayRuns[i], printStyle, baseStyle),
                     ),
                 ],
               ),
@@ -488,46 +599,131 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
     return null;
   }
 
-  /// How [word] is painted: plain for an untagged word, for one whose tag's target has been dropped
-  /// from the snapshot, or for one whose legend key is currently hidden — otherwise the target's own
-  /// colour, strengthened and ringed when it is [selectedTargetRef], and underlined when the tag
-  /// [OcptBreakdownTag.needsCheck].
-  _OcptBreakdownWordPaint _paintOf(OcptScriptWord word) {
-    final tag = _tagCovering(word);
-    if (tag == null) {
-      return _OcptBreakdownWordPaint.plain;
-    }
-
-    final target = targetById[(tag.targetKind, tag.targetId)];
-    if (target == null) {
-      return _OcptBreakdownWordPaint.plain;
-    }
-
-    if (hiddenLegendKeys.contains(ocptBreakdownLegendKeyOf(target))) {
-      return _OcptBreakdownWordPaint.plain;
-    }
-
-    return _OcptBreakdownWordPaint(
-      color: Color(target.color),
-      isSelected: selectedTargetRef == (target.kind, target.id),
-      needsCheck: tag.needsCheck,
-      tooltipTargetName: target.name,
-    );
+  /// Whether [word] is the very word [pendingTagAnchor] names in this scene.
+  bool _isPendingAnchor(OcptScriptWord word) {
+    final anchor = pendingTagAnchor;
+    return anchor != null &&
+        anchor.sceneId == scene.id &&
+        anchor.wordStartOffset == word.startOffset &&
+        anchor.wordEndOffset == word.endOffset;
   }
 
-  /// Reports [word]'s tap upward: its tag's target through [onTargetSelected] when one resolves —
+  /// Whether [word] is the exact word [pendingTagRange] closed on — where
+  /// [OcptBreakdownTagPopoverAnchor] mounts the popover.
+  bool _isPopoverAnchorWord(OcptScriptWord word) {
+    final range = pendingTagRange;
+    return range != null &&
+        range.sceneId == scene.id &&
+        range.closingWordStartOffset == word.startOffset &&
+        range.closingWordEndOffset == word.endOffset;
+  }
+
+  /// Whether closing a range between [pendingTagAnchor] and [word] would overlap a live tag of
+  /// [scene] — computed cheaply, straight over the scene's own (typically short) tag list, exactly
+  /// as `OcptBreakdownBloc._onWordClicked` itself refuses the same overlap. False while no anchor is
+  /// open in this scene, or for a word already covered by a live tag: a tagged word is never this
+  /// kind of click target to begin with, it is always ordinary tagged word instead.
+  bool _isBlockedByAnchor(OcptScriptWord word) {
+    final anchor = pendingTagAnchor;
+    if (anchor == null || anchor.sceneId != scene.id) {
+      return false;
+    }
+
+    final startOffset = anchor.wordStartOffset <= word.startOffset
+        ? anchor.wordStartOffset
+        : word.startOffset;
+    final endOffset = anchor.wordEndOffset >= word.endOffset ? anchor.wordEndOffset : word.endOffset;
+
+    return scene.tags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
+  }
+
+  /// How [word] is painted: the tagged rules `OcptBreakdownScriptView`'s own doc comment describes,
+  /// then — for a plain word — the pending anchor's own distinct mark, then the greyed-out mark of a
+  /// word blocked by it, and plain otherwise.
+  _OcptBreakdownWordPaint _paintOf(OcptScriptWord word) {
+    final tag = _tagCovering(word);
+    if (tag != null) {
+      final target = targetById[(tag.targetKind, tag.targetId)];
+      if (target == null || hiddenLegendKeys.contains(ocptBreakdownLegendKeyOf(target))) {
+        return _OcptBreakdownWordPaint.plain;
+      }
+
+      return _OcptBreakdownWordPaint(
+        color: Color(target.color),
+        isSelected: selectedTargetRef == (target.kind, target.id),
+        needsCheck: tag.needsCheck,
+        tooltipTargetName: target.name,
+      );
+    }
+
+    if (_isPendingAnchor(word)) {
+      return _OcptBreakdownWordPaint.pendingAnchor;
+    }
+
+    if (_isBlockedByAnchor(word)) {
+      return _OcptBreakdownWordPaint.blocked;
+    }
+
+    return _OcptBreakdownWordPaint.plain;
+  }
+
+  /// [word]'s own click callback: its tag's target through [onTargetSelected] when one resolves —
   /// selecting it, and (per `OcptBreakdownBloc._onTargetSelected`) the scene the click happened in,
-  /// so the left dock and the sheet stay in step — or the word's own scene-relative offsets through
-  /// [onWordClicked] otherwise. A hidden legend key never changes this: hiding a category withholds
-  /// its paint, not its click.
-  void _onWordTapped(OcptScriptWord word) {
+  /// so the left dock and the sheet stay in step — never null, since selecting writes nothing. A
+  /// hidden legend key never changes this: hiding a category withholds its paint, not its click.
+  ///
+  /// Otherwise null while [onWordClicked] itself is (a previewed version withholding the whole range
+  /// interaction) or while [_isBlockedByAnchor] says so — neither is a click target at all, not
+  /// merely one whose click is refused — and [onWordClicked] with the word's own scene-relative
+  /// offsets in every other case.
+  VoidCallback? _onTapFor(OcptScriptWord word) {
     final tag = _tagCovering(word);
     final target = tag == null ? null : targetById[(tag.targetKind, tag.targetId)];
     if (target != null) {
-      onTargetSelected(target.kind, target.id, scene.id);
-    } else {
-      onWordClicked(scene.id, word.startOffset, word.endOffset);
+      return () => onTargetSelected(target.kind, target.id, scene.id);
     }
+
+    final onWordClicked = this.onWordClicked;
+    if (onWordClicked == null || _isBlockedByAnchor(word)) {
+      return null;
+    }
+
+    return () => onWordClicked(scene.id, word.startOffset, word.endOffset);
+  }
+
+  /// The widget rendered for [word] at its [runs]/[printStyle]/[baseStyle]: the plain click target,
+  /// or — for the one word [_isPopoverAnchorWord] names — that same target anchoring
+  /// [OcptBreakdownTagPopover] under it through [OcptBreakdownTagPopoverAnchor].
+  Widget _wordWidgetAt(
+    OcptScriptWord word,
+    List<OcptFountainDisplayRun> runs,
+    FountainPrintStyle printStyle,
+    TextStyle baseStyle,
+  ) {
+    final wordWidget = _OcptBreakdownWord(
+      runs: runs,
+      isUppercase: printStyle.isUppercase,
+      style: baseStyle,
+      paint: _paintOf(word),
+      onTap: _onTapFor(word),
+    );
+
+    if (!_isPopoverAnchorWord(word)) {
+      return wordWidget;
+    }
+
+    final range = pendingTagRange!;
+    return OcptBreakdownTagPopoverAnchor(
+      popover: OcptBreakdownTagPopover(
+        taggedText: range.taggedText,
+        candidates: candidates,
+        onCandidateSelected: (candidate) => onPopoverTargetLinked(candidate.kind, candidate.id),
+        onCategorySelected: onPopoverElementCreationRequested,
+        onOpenInResourcesRequested: onOpenInResourcesRequested,
+        onClose: onPopoverCancelled,
+      ),
+      child: wordWidget,
+    );
   }
 }
 
@@ -583,7 +779,8 @@ TextStyle _runStyleOf(FountainInlineStyle style, TextStyle base) => switch (styl
 /// How one word of the sheet is painted, decided once by `_OcptBreakdownScriptBlock` per word from
 /// its own tag (if any) — see that class's own `_paintOf` for the rules.
 class _OcptBreakdownWordPaint {
-  /// The tagged target's own colour, or null for a plain word (untagged, or its target gone).
+  /// The tagged target's own colour, or null for a plain word (untagged, or its target gone) and for
+  /// the two transient marks below, which never use a category colour.
   final Color? color;
 
   /// Whether this word's tag belongs to the currently selected target.
@@ -595,16 +792,33 @@ class _OcptBreakdownWordPaint {
   /// The tagged target's own name, shown as this word's tooltip — null for a plain word.
   final String? tooltipTargetName;
 
+  /// Whether this word is the pending anchor of a range not yet closed — a distinct, obviously
+  /// transient mark, never a category colour, since the anchor itself is not yet any category at
+  /// all.
+  final bool isPendingAnchor;
+
+  /// Whether this word is not a click target because closing a range on it, from the pending
+  /// anchor, would overlap a live tag — greyed out rather than merely refused on click.
+  final bool isBlocked;
+
   /// Class constructor
   const _OcptBreakdownWordPaint({
     this.color,
     this.isSelected = false,
     this.needsCheck = false,
     this.tooltipTargetName,
+    this.isPendingAnchor = false,
+    this.isBlocked = false,
   });
 
   /// A plain word: no tag, or one whose target does not resolve.
   static const plain = _OcptBreakdownWordPaint();
+
+  /// The first word clicked of a range not yet closed.
+  static const pendingAnchor = _OcptBreakdownWordPaint(isPendingAnchor: true);
+
+  /// A word that would overlap a live tag if the pending anchor's range closed on it.
+  static const blocked = _OcptBreakdownWordPaint(isBlocked: true);
 }
 
 /// One clickable word of the sheet, painted per its [paint], its whole box (the glyphs, the
@@ -628,8 +842,10 @@ class _OcptBreakdownWord extends StatelessWidget {
   /// How this word is painted.
   final _OcptBreakdownWordPaint paint;
 
-  /// Called when the word is clicked.
-  final VoidCallback onTap;
+  /// Called when the word is clicked, or null when it is not a click target at all — a version
+  /// being previewed withholding the whole range interaction, or [_OcptBreakdownWordPaint.isBlocked]
+  /// saying closing a range on it would overlap a live tag.
+  final VoidCallback? onTap;
 
   /// Class constructor
   const _OcptBreakdownWord({
@@ -643,23 +859,41 @@ class _OcptBreakdownWord extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final theme = Theme.of(context);
     final color = paint.color;
 
-    final background = color?.withValues(
-      alpha: paint.isSelected ? _ocptBreakdownSelectedTagAlpha : _ocptBreakdownTagAlpha,
-    );
-
+    Color? background;
     var textStyle = style;
-    if (paint.needsCheck) {
-      textStyle = textStyle.copyWith(
-        decoration: TextDecoration.underline,
-        decorationStyle: TextDecorationStyle.dashed,
-        decorationColor: ocptWarningColor(context),
+    String? tooltip;
+
+    if (paint.isPendingAnchor) {
+      background = theme.colorScheme.primary;
+      textStyle = textStyle.copyWith(color: theme.colorScheme.onPrimary);
+      tooltip = tr.breakdownPendingAnchorTooltip;
+    } else if (paint.isBlocked) {
+      textStyle = textStyle.copyWith(color: textStyle.color?.withValues(alpha: 0.35));
+      tooltip = tr.breakdownBlockedWordTooltip;
+    } else {
+      background = color?.withValues(
+        alpha: paint.isSelected ? _ocptBreakdownSelectedTagAlpha : _ocptBreakdownTagAlpha,
       );
+      if (paint.needsCheck) {
+        textStyle = textStyle.copyWith(
+          decoration: TextDecoration.underline,
+          decorationStyle: TextDecorationStyle.dashed,
+          decorationColor: ocptWarningColor(context),
+        );
+      }
+      final tooltipTargetName = paint.tooltipTargetName;
+      if (tooltipTargetName != null) {
+        tooltip = paint.needsCheck
+            ? "$tooltipTargetName\n${tr.breakdownTagNeedsCheckTooltip}"
+            : tooltipTargetName;
+      }
     }
 
     final content = MouseRegion(
-      cursor: SystemMouseCursors.click,
+      cursor: onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -688,16 +922,10 @@ class _OcptBreakdownWord extends StatelessWidget {
       ),
     );
 
-    final tooltipTargetName = paint.tooltipTargetName;
-    if (tooltipTargetName == null) {
+    if (tooltip == null) {
       return content;
     }
 
-    return Tooltip(
-      message: paint.needsCheck
-          ? "$tooltipTargetName\n${tr.breakdownTagNeedsCheckTooltip}"
-          : tooltipTargetName,
-      child: content,
-    );
+    return Tooltip(message: tooltip, child: content);
   }
 }

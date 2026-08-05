@@ -19,12 +19,15 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -55,6 +58,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 /// leaving the tree ([flushPendingFieldEdits], called by the mode's own `deactivate()`). Every other
 /// write the target inspector offers — the status, the category, the owner, who brings it, and the
 /// tag removal — is a single pick rather than typing, so it is written immediately by its own event.
+///
+/// [_onWordClicked] owns the script view's range interaction: a first click opens
+/// [OcptBreakdownState.pendingTagAnchor], a second one in the same scene closes it into
+/// [OcptBreakdownState.pendingTagRange] — the script view's own cue to open the tag popover — and
+/// [_onPopoverTargetLinked]/[_onPopoverElementCreationRequested] are the popover's two ways of
+/// answering it, both going through [_breakdownService] (`createTag`/`createElementAndTag`) and both
+/// ending the same way: the popover closes, the anchor clears, the snapshot reloads and the linked
+/// or newly created target is selected on the `Inspector` tab.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
@@ -166,6 +177,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownTagRemovalRequestedEvent>(_onTagRemovalRequested);
     on<OcptBreakdownTagRemovalCancelledEvent>(_onTagRemovalCancelled);
     on<OcptBreakdownTagRemovalConfirmedEvent>(_onTagRemovalConfirmed);
+    on<OcptBreakdownTagRangeCancelledEvent>(_onTagRangeCancelled);
+    on<OcptBreakdownPopoverTargetLinkedEvent>(_onPopoverTargetLinked);
+    on<OcptBreakdownPopoverElementCreationRequestedEvent>(_onPopoverElementCreationRequested);
+    on<OcptBreakdownTagWriteErrorDismissedEvent>(_onTagWriteErrorDismissed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -225,6 +240,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           clearPreviewedVersionId: true,
+          clearPendingTagAnchor: true,
+          clearPendingTagRange: true,
+          hasTagWriteError: false,
         ),
       );
       return;
@@ -251,6 +269,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         lastRightDockTab: lastRightDockTab,
         pendingElementFieldEdits: const {},
         isTagRemovalPending: false,
+        clearPendingTagAnchor: true,
+        clearPendingTagRange: true,
+        hasTagWriteError: false,
       ),
     );
   }
@@ -542,15 +563,234 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   }
 
   /// Records a click on a plain word of the script view — one that overlaps no live tag, or one
-  /// whose tag's target has been dropped from the snapshot.
+  /// whose tag's target has been dropped from the snapshot — driving the range interaction:
   ///
-  /// A no-op today, kept only to answer `OcptBreakdownScriptView.onWordClicked`: the click target
-  /// and the tag highlighting are built, the range interaction and the popover that turn a plain
-  /// word's click into a new tag are not — a later change closes that loop.
+  /// - **no pending anchor, or one belonging to another scene**: this word becomes the (new)
+  ///   anchor, and its scene becomes the selected one — a tag belongs to one scene, so an anchor
+  ///   spanning two would mean nothing;
+  /// - **an anchor already open in this very scene**: the range closes on the two words,
+  ///   order-insensitive exactly as `OcptScriptWordLayout.rangeBetween` is (the smaller start, the
+  ///   larger end), unless it would overlap a live tag of the scene — the script view already greys
+  ///   such a word out of the click target it builds, but a click that reaches here regardless (a
+  ///   stale one, or a direct test) is refused the same way `OcptBreakdownService.createTag` itself
+  ///   would refuse it, and the anchor is kept rather than cleared, so the user can try a different
+  ///   second click without starting over. Otherwise the range is recorded as
+  ///   [OcptBreakdownState.pendingTagRange] — its passage sliced verbatim out of the scene's own
+  ///   text — which is the script view's cue to open the popover, anchored under this very word.
+  ///
+  /// Ignored outright while a version is being previewed (the mode never wires this callback then,
+  /// so this only guards a direct call reaching past that) or while a range is already closed and
+  /// awaiting the popover's own answer: a further click on the sheet behind an open popover means
+  /// nothing until that popover is resolved or cancelled.
+  ///
+  /// Flushes any pending element field edit first, mirroring every other selection-changing
+  /// handler, and drops whatever tag-removal confirmation the previous selection was showing.
   Future<void> _onWordClicked(
     OcptBreakdownWordClickedEvent event,
     Emitter<OcptBreakdownState> emitter,
-  ) async {}
+  ) async {
+    if (state.isPreviewingVersion || state.pendingTagRange != null) {
+      return;
+    }
+
+    final anchor = state.pendingTagAnchor;
+
+    if (anchor == null || anchor.sceneId != event.sceneId) {
+      await _flushPendingElementFieldEdits(emitter);
+
+      final sceneExists = state.scenes.any((scene) => scene.id == event.sceneId);
+      emitter(
+        state.copyWith(
+          pendingTagAnchor: (
+            sceneId: event.sceneId,
+            wordStartOffset: event.wordStartOffset,
+            wordEndOffset: event.wordEndOffset,
+          ),
+          selectedSceneId: sceneExists ? event.sceneId : null,
+          clearSelectedSceneId: !sceneExists,
+          isTagRemovalPending: false,
+        ),
+      );
+      return;
+    }
+
+    OcptBreakdownScene? scene;
+    for (final candidate in state.scenes) {
+      if (candidate.id == event.sceneId) {
+        scene = candidate;
+        break;
+      }
+    }
+    if (scene == null) {
+      // Stale click: the anchor's own scene disappeared from a snapshot rebuilt underneath.
+      emitter(state.copyWith(clearPendingTagAnchor: true));
+      return;
+    }
+
+    final startOffset = anchor.wordStartOffset <= event.wordStartOffset
+        ? anchor.wordStartOffset
+        : event.wordStartOffset;
+    final endOffset = anchor.wordEndOffset >= event.wordEndOffset
+        ? anchor.wordEndOffset
+        : event.wordEndOffset;
+
+    final overlapsLiveTag = scene.tags.any(
+      (tag) => startOffset < tag.endOffset && tag.startOffset < endOffset,
+    );
+    if (overlapsLiveTag) {
+      return;
+    }
+
+    final sceneStart = scene.charStart.clamp(0, state.screenplayText.length);
+    final sceneEnd = scene.charEnd.clamp(sceneStart, state.screenplayText.length);
+    final sceneText = state.screenplayText.substring(sceneStart, sceneEnd);
+    final clampedStart = startOffset.clamp(0, sceneText.length);
+    final clampedEnd = endOffset.clamp(clampedStart, sceneText.length);
+
+    await _flushPendingElementFieldEdits(emitter);
+    emitter(
+      state.copyWith(
+        clearPendingTagAnchor: true,
+        pendingTagRange: (
+          sceneId: event.sceneId,
+          startOffset: startOffset,
+          endOffset: endOffset,
+          taggedText: sceneText.substring(clampedStart, clampedEnd),
+          closingWordStartOffset: event.wordStartOffset,
+          closingWordEndOffset: event.wordEndOffset,
+        ),
+        hasTagWriteError: false,
+      ),
+    );
+  }
+
+  /// Clears the pending anchor and the closed range alike, dispatched by the popover's own × close
+  /// button, `Escape`, or a tap outside it: the user changed their mind about the passage, not just
+  /// about where it should go.
+  Future<void> _onTagRangeCancelled(
+    OcptBreakdownTagRangeCancelledEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(clearPendingTagAnchor: true, clearPendingTagRange: true, hasTagWriteError: false),
+    );
+  }
+
+  /// Links [OcptBreakdownState.pendingTagRange]'s own passage to the existing `event.targetKind`/
+  /// `event.targetId`, dispatched by a click on one of the popover's own match rows.
+  ///
+  /// A stale click (no pending range, or a previewed version — the popover never withstands either)
+  /// is ignored. On success — `OcptBreakdownService.createTag` returning a tag id — closes the
+  /// popover, clears the anchor, reloads the snapshot and selects the linked target on the `Inspector`
+  /// tab, exactly what selecting a tagged word already does (see [_onTargetSelected]): linking *is*
+  /// what makes this passage a tagged word. A refusal (the overlap, or a preview database that
+  /// slipped past the guard above) leaves the range and the popover exactly as they were, surfacing
+  /// [OcptBreakdownState.hasTagWriteError] instead of silently closing on the user.
+  Future<void> _onPopoverTargetLinked(
+    OcptBreakdownPopoverTargetLinkedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    final range = state.pendingTagRange;
+    if (project == null || range == null || state.isPreviewingVersion) {
+      return;
+    }
+
+    await _flushPendingElementFieldEdits(emitter);
+
+    final tagId = await _breakdownService.createTag(
+      database: project.database,
+      sceneId: range.sceneId,
+      startOffset: range.startOffset,
+      endOffset: range.endOffset,
+      taggedText: range.taggedText,
+      targetKind: event.targetKind,
+      targetId: event.targetId,
+    );
+
+    if (tagId == null) {
+      emitter(state.copyWith(hasTagWriteError: true));
+      return;
+    }
+
+    await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+    emitter(
+      state.copyWith(
+        clearPendingTagAnchor: true,
+        clearPendingTagRange: true,
+        snapshot: await _loadSnapshot(project),
+        selectedTargetRef: (event.targetKind, event.targetId),
+        selectedSceneId: range.sceneId,
+        rightDockTab: OcptBreakdownRightDockTab.inspector,
+        lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+        isTagRemovalPending: false,
+        hasTagWriteError: false,
+      ),
+    );
+  }
+
+  /// Creates a new `event.category` element named `event.name` and tags
+  /// [OcptBreakdownState.pendingTagRange]'s own passage with it, in one write
+  /// (`OcptBreakdownService.createElementAndTag`), dispatched by a click on one of the popover's own
+  /// category chips.
+  ///
+  /// Mirrors [_onPopoverTargetLinked] in every other respect: a stale call is ignored, success closes
+  /// the popover and hands the new element off to the `Inspector` tab, and a refusal keeps the range
+  /// and the popover, surfacing [OcptBreakdownState.hasTagWriteError]. `OcptElementSourceKind.owned`
+  /// is the same default the resources mode's own element sheet creates with, so the two modes mint
+  /// an element identically.
+  Future<void> _onPopoverElementCreationRequested(
+    OcptBreakdownPopoverElementCreationRequestedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    final range = state.pendingTagRange;
+    if (project == null || range == null || state.isPreviewingVersion) {
+      return;
+    }
+
+    await _flushPendingElementFieldEdits(emitter);
+
+    final trimmedName = event.name.trim();
+    final result = await _breakdownService.createElementAndTag(
+      database: project.database,
+      sceneId: range.sceneId,
+      startOffset: range.startOffset,
+      endOffset: range.endOffset,
+      taggedText: range.taggedText,
+      name: trimmedName.isEmpty ? range.taggedText : trimmedName,
+      category: event.category,
+      sourceKind: OcptElementSourceKind.owned,
+    );
+
+    if (result == null) {
+      emitter(state.copyWith(hasTagWriteError: true));
+      return;
+    }
+
+    await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+    emitter(
+      state.copyWith(
+        clearPendingTagAnchor: true,
+        clearPendingTagRange: true,
+        snapshot: await _loadSnapshot(project),
+        selectedTargetRef: (OcptBreakdownTargetKind.element, result.elementId),
+        selectedSceneId: range.sceneId,
+        rightDockTab: OcptBreakdownRightDockTab.inspector,
+        lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+        isTagRemovalPending: false,
+        hasTagWriteError: false,
+      ),
+    );
+  }
+
+  /// Dismisses the transient notice that the popover's last write was refused.
+  Future<void> _onTagWriteErrorDismissed(
+    OcptBreakdownTagWriteErrorDismissedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    emitter(state.copyWith(hasTagWriteError: false));
+  }
 
   /// Writes the selected element's new status immediately — a single pick, not typing, so it rides
   /// no debounce — then reloads the snapshot so the script view's colours, the legend, the scene

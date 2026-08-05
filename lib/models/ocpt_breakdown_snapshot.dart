@@ -52,6 +52,16 @@ class OcptBreakdownSnapshot extends Equatable {
   /// `ownerPersonId`/`broughtByPersonId` into a name.
   final List<OcptPerson> people;
 
+  /// The whole cast, verbatim, as passed to [OcptBreakdownSnapshot.build] — kept for the same
+  /// reason [elements] is: the tag popover's search (`ocptBreakdownSearchCandidatesOf`) has to
+  /// offer a role that has never been tagged before, which [targets] alone cannot answer, since a
+  /// catalogue row nobody tagged yet is not a target of this snapshot at all.
+  final List<OcptRole> roles;
+
+  /// The whole set catalogue, verbatim, as passed to [OcptBreakdownSnapshot.build] — the sibling of
+  /// [roles], for the same reason.
+  final List<OcptSet> sets;
+
   /// `targets.length`: the status bar's "N targets tagged".
   final int taggedTargetCount;
 
@@ -75,6 +85,8 @@ class OcptBreakdownSnapshot extends Equatable {
     required this.targets,
     required this.elements,
     required this.people,
+    required this.roles,
+    required this.sets,
     required this.taggedTargetCount,
     required this.usedCategoryCount,
     required this.toFindCount,
@@ -83,8 +95,9 @@ class OcptBreakdownSnapshot extends Equatable {
 
   /// Builds an [OcptBreakdownSnapshot] for [screenplayId] by joining [scenes] (with empty tags),
   /// [tags] and the three catalogues [elements]/[roles]/[sets], deriving [targets] and the four
-  /// counts from them. [people] is carried through verbatim, as [elements] itself is — see their own
-  /// doc comments for why the inspector needs the raw rows rather than the derived [targets] alone.
+  /// counts from them. [people], [elements], [roles] and [sets] are all carried through verbatim —
+  /// see their own doc comments for why the inspector and the tag popover need the raw rows rather
+  /// than the derived [targets] alone.
   ///
   /// A tag pointing at a catalogue row that is gone — tombstoned underneath, so it no longer appears
   /// in [elements]/[roles]/[sets] — is **dropped from [targets] but kept on its scene**: the tag row
@@ -177,6 +190,8 @@ class OcptBreakdownSnapshot extends Equatable {
       targets: targets,
       elements: elements,
       people: people,
+      roles: roles,
+      sets: sets,
       taggedTargetCount: targets.length,
       usedCategoryCount: targets.map((target) => target.color).toSet().length,
       toFindCount: targets.where((target) => target.status == OcptElementStatus.toFind).length,
@@ -201,6 +216,8 @@ class OcptBreakdownSnapshot extends Equatable {
     targets,
     elements,
     people,
+    roles,
+    sets,
     taggedTargetCount,
     usedCategoryCount,
     toFindCount,

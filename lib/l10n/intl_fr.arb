@@ -734,5 +734,14 @@
   "breakdownSceneInspectorAlertTitle": "{count, plural, one{{count} élément encore à trouver} other{{count} éléments encore à trouver}}",
   "breakdownSceneInspectorTargetsSectionTitle": "Éléments dépouillés",
   "breakdownSceneInspectorEmptyHint": "Rien n'est encore dépouillé pour cette scène. Cliquez un mot ou un passage du scénario pour le dépouiller.",
-  "breakdownSceneInspectorFooterHint": "Les éléments dépouillés alimentent Ressources › Éléments et la feuille de service du jour."
+  "breakdownSceneInspectorFooterHint": "Les éléments dépouillés alimentent Ressources › Éléments et la feuille de service du jour.",
+  "breakdownPendingAnchorTooltip": "Cliquez la fin du passage pour le dépouiller.",
+  "breakdownBlockedWordTooltip": "Cela chevaucherait un passage déjà dépouillé.",
+  "breakdownPopoverFieldHint": "Rechercher, ou nommer l'élément à créer",
+  "breakdownPopoverRolesGroupTitle": "Personnages",
+  "breakdownPopoverSetsGroupTitle": "Décors",
+  "breakdownPopoverElementsGroupTitle": "Éléments",
+  "breakdownPopoverCreateElementTitle": "Créer un élément",
+  "breakdownPopoverFooterHint": "Cliquez une correspondance pour la lier, ou choisissez une catégorie pour créer et dépouiller un nouvel élément.",
+  "breakdownTagWriteError": "Ce dépouillement n'a pas pu être enregistré. Réessayez."
 }

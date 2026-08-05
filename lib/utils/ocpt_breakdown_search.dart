@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
@@ -185,4 +186,45 @@ int _compareCandidates(
   }
 
   return a.id.compareTo(b.id);
+}
+
+/// The candidates the tag popover searches, flattened out of [snapshot]'s three raw catalogues
+/// ([OcptBreakdownSnapshot.elements]/[OcptBreakdownSnapshot.roles]/[OcptBreakdownSnapshot.sets]) —
+/// never out of [OcptBreakdownSnapshot.targets] alone, which only ever names a thing **already**
+/// tagged somewhere and would therefore hide a role or a set the breakdown pass has not reached
+/// yet, even though it is exactly what the popover exists to offer a link to.
+///
+/// [OcptBreakdownSearchCandidate.taggedSceneCount] is read off the matching `OcptBreakdownTarget`
+/// when the row is already tagged somewhere, 0 otherwise.
+List<OcptBreakdownSearchCandidate> ocptBreakdownSearchCandidatesOf(OcptBreakdownSnapshot snapshot) {
+  final taggedSceneCountByRef = {
+    for (final target in snapshot.targets) (target.kind, target.id): target.sceneIds.length,
+  };
+
+  return [
+    for (final element in snapshot.elements)
+      OcptBreakdownSearchCandidate(
+        kind: OcptBreakdownTargetKind.element,
+        id: element.id,
+        name: element.name,
+        category: element.category,
+        taggedSceneCount: taggedSceneCountByRef[(OcptBreakdownTargetKind.element, element.id)] ?? 0,
+      ),
+    for (final role in snapshot.roles)
+      OcptBreakdownSearchCandidate(
+        kind: OcptBreakdownTargetKind.role,
+        id: role.id,
+        name: role.name,
+        category: null,
+        taggedSceneCount: taggedSceneCountByRef[(OcptBreakdownTargetKind.role, role.id)] ?? 0,
+      ),
+    for (final set in snapshot.sets)
+      OcptBreakdownSearchCandidate(
+        kind: OcptBreakdownTargetKind.set,
+        id: set.id,
+        name: set.name,
+        category: null,
+        taggedSceneCount: taggedSceneCountByRef[(OcptBreakdownTargetKind.set, set.id)] ?? 0,
+      ),
+  ];
 }

@@ -12,13 +12,16 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_script_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
 /// Wraps [child] in the app's own light theme — the sheet paints its backdrop from the
 /// `OcptSpecificColors` extension, which only a theme built from [ocptTheme] carries — plus the
@@ -118,6 +121,10 @@ Widget _buildView({
   void Function(OcptBreakdownTargetKind targetKind, String targetId, String sceneId)?
   onTargetSelected,
   void Function(String sceneId, int wordStartOffset, int wordEndOffset)? onWordClicked,
+  bool isWordClickWithheld = false,
+  OcptBreakdownPendingTagAnchor? pendingTagAnchor,
+  OcptBreakdownPendingTagRange? pendingTagRange,
+  List<OcptBreakdownSearchCandidate> candidates = const [],
 }) => OcptBreakdownScriptView(
   screenplayText: _sceneText,
   scenes: [scene ?? _buildScene()],
@@ -128,7 +135,14 @@ Widget _buildView({
   hiddenLegendKeys: hiddenLegendKeys,
   selectedTargetRef: selectedTargetRef,
   onTargetSelected: onTargetSelected ?? (_, __, ___) {},
-  onWordClicked: onWordClicked ?? (_, __, ___) {},
+  onWordClicked: isWordClickWithheld ? null : (onWordClicked ?? (_, __, ___) {}),
+  pendingTagAnchor: pendingTagAnchor,
+  pendingTagRange: pendingTagRange,
+  candidates: candidates,
+  onPopoverCancelled: () {},
+  onPopoverTargetLinked: (_, __) {},
+  onPopoverElementCreationRequested: (_, __) {},
+  onOpenInResourcesRequested: () {},
 );
 
 void main() {
@@ -312,5 +326,140 @@ void main() {
     await tester.pump();
 
     expect(reported, (_sceneId, sitsWord.startOffset, sitsWord.endOffset));
+  });
+
+  testWidgets("a plain word click is withheld while a version is previewed, its own tap doing nothing", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+
+    await tester.pumpWidget(_wrapInApp(_buildView(isWordClickWithheld: true)));
+
+    // Must not throw: the word simply has no click callback at all.
+    await tester.tap(find.text("sits "));
+    await tester.pump();
+  });
+
+  testWidgets("a tagged word still selects its target while a version is previewed", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+    final target = _buildElementTarget();
+    (OcptBreakdownTargetKind, String, String)? reported;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          scene: _buildScene(tags: [_buildTag(word: _actionWords[1])]),
+          targets: [target],
+          isWordClickWithheld: true,
+          onTargetSelected: (kind, id, sceneId) => reported = (kind, id, sceneId),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text("lamp "));
+    await tester.pump();
+
+    expect(reported, (OcptBreakdownTargetKind.element, target.id, _sceneId));
+  });
+
+  testWidgets("the pending anchor word is marked distinctly, not with a category colour", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+    final anchorWord = _actionWords[1];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = Theme.of(tester.element(find.text("lamp "))).colorScheme;
+    final decoration = _decorationOfWord(tester, "lamp ");
+    expect(decoration?.color, colorScheme.primary);
+    final text = tester.widget<Text>(find.text("lamp "));
+    expect(text.style?.color, colorScheme.onPrimary);
+  });
+
+  testWidgets(
+    "a word whose range with the pending anchor would overlap a live tag is not a click target",
+    (tester) async {
+      await _useLargeSurface(tester);
+      // The live tag covers "sits" (word index 2); the anchor is "A" (word index 0).
+      final scene = _buildScene(tags: [_buildTag(word: _actionWords[2])]);
+      final target = _buildElementTarget();
+      var wordClicked = false;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          _buildView(
+            scene: scene,
+            targets: [target],
+            pendingTagAnchor: (
+              sceneId: _sceneId,
+              wordStartOffset: _actionWords[0].startOffset,
+              wordEndOffset: _actionWords[0].endOffset,
+            ),
+            onWordClicked: (_, __, ___) => wordClicked = true,
+          ),
+        ),
+      );
+
+      // "lamp" (index 1) closes before the tag starts: not blocked, still a click target.
+      final lampStyle = tester.widget<Text>(find.text("lamp ")).style;
+      expect(lampStyle?.color?.a, 1.0);
+
+      // "on" (index 3) would close a range crossing the tag over "sits": blocked, greyed out and
+      // not a click target at all.
+      final onStyle = tester.widget<Text>(find.text("on ")).style;
+      expect(onStyle?.color?.a, lessThan(1.0));
+
+      await tester.tap(find.text("on "));
+      await tester.pump();
+      expect(wordClicked, isFalse);
+
+      await tester.tap(find.text("lamp "));
+      await tester.pump();
+      expect(wordClicked, isTrue);
+    },
+  );
+
+  testWidgets("a closed range opens the popover, anchored under the word that closed it", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+    final anchorWord = _actionWords[1];
+    final closingWord = _actionWords[5];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagRange: (
+            sceneId: _sceneId,
+            startOffset: anchorWord.startOffset,
+            endOffset: closingWord.endOffset,
+            taggedText: "lamp sits on the desk.",
+            closingWordStartOffset: closingWord.startOffset,
+            closingWordEndOffset: closingWord.endOffset,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(OcptBreakdownTagPopoverAnchor), findsOneWidget);
+
+    // The overlay entry is only revealed after the first post-frame callback.
+    await tester.pump();
+
+    expect(find.byType(OcptBreakdownTagPopover), findsOneWidget);
+    expect(find.text('"lamp sits on the desk."'), findsOneWidget);
   });
 }

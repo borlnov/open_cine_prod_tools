@@ -5443,5 +5443,68 @@
     "context": "Displayed at the bottom of the scene inspector",
     "type": "text",
     "placeholders": {}
+  },
+  "breakdownPendingAnchorTooltip": "Click the end of the passage to tag it.",
+  "@breakdownPendingAnchorTooltip": {
+    "description": "Explains the pending anchor mark",
+    "context": "Tooltip of the script view's own pending anchor word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownBlockedWordTooltip": "This would overlap an already tagged passage.",
+  "@breakdownBlockedWordTooltip": {
+    "description": "Explains why a word is not a click target while a range is being drawn",
+    "context": "Tooltip of the script view's own greyed-out word",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverFieldHint": "Search, or name the element to create",
+  "@breakdownPopoverFieldHint": {
+    "description": "Placeholder of the tag popover's own search/name field",
+    "context": "Displayed in the tag popover's field while it is empty",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverRolesGroupTitle": "Roles",
+  "@breakdownPopoverRolesGroupTitle": {
+    "description": "Title of the tag popover's own role matches group",
+    "context": "Displayed above the popover's matching roles",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverSetsGroupTitle": "Sets",
+  "@breakdownPopoverSetsGroupTitle": {
+    "description": "Title of the tag popover's own set matches group",
+    "context": "Displayed above the popover's matching sets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverElementsGroupTitle": "Elements",
+  "@breakdownPopoverElementsGroupTitle": {
+    "description": "Title of the tag popover's own element matches group",
+    "context": "Displayed above the popover's matching elements",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverCreateElementTitle": "Create an element",
+  "@breakdownPopoverCreateElementTitle": {
+    "description": "Title of the tag popover's own category grid",
+    "context": "Displayed above the popover's category chips",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownPopoverFooterHint": "Click a match to link it, or pick a category to create and tag a new element.",
+  "@breakdownPopoverFooterHint": {
+    "description": "Explains what a click does, at the bottom of the tag popover",
+    "context": "Displayed at the bottom of the tag popover",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownTagWriteError": "This tag could not be saved. Try again.",
+  "@breakdownTagWriteError": {
+    "description": "Reports that the popover's last link or element creation was refused",
+    "context": "Shown as a SnackBar in the breakdown mode",
+    "type": "text",
+    "placeholders": {}
   }
 }
