@@ -40,6 +40,7 @@ void main() {
     shotListService: OcptShotListService(),
     shotCoverageService: OcptShotCoverageService(),
     roleIndexService: roleIndexService,
+    breakdownService: breakdownService,
   );
   const screenplayId = "screenplay-1";
 

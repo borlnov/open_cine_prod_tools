@@ -5,12 +5,16 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
@@ -20,11 +24,19 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const screenplayId = "screenplay-1";
+  const roleIndexService = OcptRoleIndexService();
+  const elementsService = OcptElementsService();
+  const locationsService = OcptLocationsService();
+  const breakdownService = OcptBreakdownService(
+    elementsService: elementsService,
+    locationsService: locationsService,
+  );
   const service = OcptScreenplayService(
     sceneIndexService: OcptSceneIndexService(),
     shotListService: OcptShotListService(),
     shotCoverageService: OcptShotCoverageService(),
-    roleIndexService: OcptRoleIndexService(),
+    roleIndexService: roleIndexService,
+    breakdownService: breakdownService,
   );
 
   late OcptProjectDatabase database;
@@ -275,5 +287,247 @@ void main() {
     expect(row.name, "Passerby");
     expect(row.isFromScreenplay, isFalse);
     expect(row.orphanedName, isNull);
+  });
+
+  group('saveScreenplayText reconciles the breakdown tags against the newly saved text', () {
+    Future<List<OcptSceneRow>> readScenes() =>
+        (database.select(database.ocptScenesTable)
+              ..where((row) => row.isDeleted.equals(false))
+              ..orderBy([(row) => OrderingTerm.asc(row.position)]))
+            .get();
+
+    Future<OcptBreakdownTagRow> readTag(String id) => (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    /// Creates a role of [screenplayId], a stand-in tag target since `OcptRoleIndexService.reconcile`
+    /// is out of scope here.
+    Future<String> createRole() => roleIndexService
+        .addRole(database: database, screenplayId: screenplayId, name: "LÉA", kind: OcptRoleKind.silent)
+        .then((id) => id!);
+
+    test(
+      'a tag whose passage is unchanged is left untouched, and a stale needsCheck is cleared',
+      () async {
+        const text = "INT. HOUSE - DAY\n\nAction one two.\n";
+        await service.saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+        final scene = (await readScenes()).single;
+        final sceneText = text.substring(scene.charStart, scene.charEnd);
+        final roleId = await createRole();
+        final start = sceneText.indexOf("two");
+        final tagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: scene.id,
+          startOffset: start,
+          endOffset: start + "two".length,
+          taggedText: "two",
+          targetKind: OcptBreakdownTargetKind.role,
+          targetId: roleId,
+        ))!;
+        // Simulate a tag left needing attention by an earlier, unrelated save, so this save's
+        // reconciliation has something to clear.
+        await (database.update(
+          database.ocptBreakdownTagsTable,
+        )..where((table) => table.id.equals(tagId))).write(
+          const OcptBreakdownTagsTableCompanion(needsCheck: Value(true)),
+        );
+
+        // The same text saved again: nothing about the tagged passage changed.
+        await service.saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+
+        final tag = await readTag(tagId);
+        expect(tag.startOffset, start);
+        expect(tag.endOffset, start + "two".length);
+        expect(tag.needsCheck, isFalse);
+      },
+    );
+
+    test(
+      'an edit in a preceding scene shifts the tagged scene but never its own offsets',
+      () async {
+        const originalText = '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''';
+        await service.saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: originalText,
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+        final streetScene = (await readScenes()).firstWhere(
+          (row) => row.heading == "EXT. STREET - NIGHT",
+        );
+        final sceneText = originalText.substring(streetScene.charStart, streetScene.charEnd);
+        final roleId = await createRole();
+        final start = sceneText.indexOf("two");
+        final tagId = (await breakdownService.createTag(
+          database: database,
+          sceneId: streetScene.id,
+          startOffset: start,
+          endOffset: start + "two".length,
+          taggedText: "two",
+          targetKind: OcptBreakdownTargetKind.role,
+          targetId: roleId,
+        ))!;
+
+        // Only the house scene, above the tagged one, grows.
+        const editedText = '''
+INT. HOUSE - DAY
+
+Action one, with a lot more happening in this scene now.
+
+EXT. STREET - NIGHT
+
+Action two three.
+''';
+        await service.saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: editedText,
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+
+        final newStreetScene = (await readScenes()).firstWhere(
+          (row) => row.heading == "EXT. STREET - NIGHT",
+        );
+        // The scene itself moved further into the document...
+        expect(newStreetScene.charStart, isNot(streetScene.charStart));
+        // ...but the tag's scene-relative offsets, untouched by an edit outside its own scene,
+        // did not move.
+        final tag = await readTag(tagId);
+        expect(tag.startOffset, start);
+        expect(tag.endOffset, start + "two".length);
+        expect(tag.needsCheck, isFalse);
+      },
+    );
+
+    test('an edit earlier inside the tagged scene re-anchors the tag silently', () async {
+      const text = "INT. HOUSE - DAY\n\nAction one two.\n";
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: text,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final sceneText = text.substring(scene.charStart, scene.charEnd);
+      final roleId = await createRole();
+      final start = sceneText.indexOf("two");
+      final tagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: start,
+        endOffset: start + "two".length,
+        taggedText: "two",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+
+      const editedText = "INT. HOUSE - DAY\n\nAction one, with a lot more happening, two.\n";
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: editedText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final newScene = (await readScenes()).single;
+      final newSceneText = editedText.substring(newScene.charStart, newScene.charEnd);
+      final tag = await readTag(tagId);
+      // Re-anchored to the new position of the same words, silently.
+      expect(tag.startOffset, isNot(start));
+      expect(newSceneText.substring(tag.startOffset, tag.endOffset), "two");
+      expect(tag.needsCheck, isFalse);
+    });
+
+    test('a passage that no longer occurs at all is flagged, offsets left alone', () async {
+      const text = "INT. HOUSE - DAY\n\nAction one two.\n";
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: text,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final sceneText = text.substring(scene.charStart, scene.charEnd);
+      final roleId = await createRole();
+      final start = sceneText.indexOf("two");
+      final tagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: start,
+        endOffset: start + "two".length,
+        taggedText: "two",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+
+      const editedText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: editedText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final tag = await readTag(tagId);
+      expect(tag.needsCheck, isTrue);
+      expect(tag.startOffset, start);
+      expect(tag.endOffset, start + "two".length);
+    });
+
+    test('a passage that now occurs twice is flagged, offsets left alone', () async {
+      const text = "INT. HOUSE - DAY\n\nAction alpha beta.\n";
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: text,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final scene = (await readScenes()).single;
+      final sceneText = text.substring(scene.charStart, scene.charEnd);
+      final roleId = await createRole();
+      final start = sceneText.indexOf("beta");
+      final tagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene.id,
+        startOffset: start,
+        endOffset: start + "beta".length,
+        taggedText: "beta",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+
+      // Inserting a word before "alpha" shifts the stored offset off "beta", and a second "beta"
+      // appears right after the first: now ambiguous.
+      const editedText = "INT. HOUSE - DAY\n\nAction extra alpha beta beta.\n";
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: editedText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final tag = await readTag(tagId);
+      expect(tag.needsCheck, isTrue);
+      expect(tag.startOffset, start);
+      expect(tag.endOffset, start + "beta".length);
+    });
   });
 }

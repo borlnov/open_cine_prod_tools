@@ -149,6 +149,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           shotListService: OcptShotListService(),
           shotCoverageService: OcptShotCoverageService(),
           roleIndexService: OcptRoleIndexService(),
+          breakdownService: OcptBreakdownService(
+            elementsService: OcptElementsService(),
+            locationsService: OcptLocationsService(),
+          ),
         ),
       ),
       screenplayService = const OcptScreenplayService(
@@ -156,6 +160,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         shotListService: OcptShotListService(),
         shotCoverageService: OcptShotCoverageService(),
         roleIndexService: OcptRoleIndexService(),
+        breakdownService: OcptBreakdownService(
+          elementsService: OcptElementsService(),
+          locationsService: OcptLocationsService(),
+        ),
       ),
       peopleService = const OcptPeopleService(),
       roleIndexService = const OcptRoleIndexService(),
