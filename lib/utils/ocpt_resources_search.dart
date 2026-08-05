@@ -42,6 +42,21 @@ const Map<String, String> _ocptDiacriticsFoldingMap = {
   "æ": "ae",
 };
 
+/// Lower-cases the single code point [rune] and folds it, through
+/// [_ocptDiacriticsFoldingMap], to its plain search equivalent — one letter for almost every rune,
+/// two for `œ`/`æ`.
+///
+/// Exposed on its own, beside [ocptResourcesSearchNormalized] (built directly on top of it), for a
+/// caller that must keep track of where each folded character came from in the original text —
+/// `ocpt_breakdown_suggestions.dart`'s own index map is the one so far — since
+/// [ocptResourcesSearchNormalized] trims its input first and is therefore **not**
+/// offset-preserving: folding rune by rune, through this function, is what lets such a caller
+/// build its own position-preserving fold instead.
+String ocptResourcesSearchFoldedRune(int rune) {
+  final char = String.fromCharCode(rune).toLowerCase();
+  return _ocptDiacriticsFoldingMap[char] ?? char;
+}
+
 /// Trims [value], lower-cases it and folds every accented character
 /// [_ocptDiacriticsFoldingMap] knows about to its plain equivalent, so two spellings of the same
 /// word that only differ by case, accents or stray leading/trailing whitespace (a space bar
@@ -49,14 +64,13 @@ const Map<String, String> _ocptDiacriticsFoldingMap = {
 ///
 /// Every caller that needs to compare two pieces of text for a search match goes through this
 /// (directly, or through [ocptResourcesSearchMatches]), so no two tabs of the resources mode can
-/// ever disagree about what "the same text" means.
+/// ever disagree about what "the same text" means. Built on [ocptResourcesSearchFoldedRune],
+/// folding [value] one rune at a time.
 String ocptResourcesSearchNormalized(String value) {
-  final lowerCased = value.trim().toLowerCase();
   final buffer = StringBuffer();
 
-  for (final rune in lowerCased.runes) {
-    final char = String.fromCharCode(rune);
-    buffer.write(_ocptDiacriticsFoldingMap[char] ?? char);
+  for (final rune in value.trim().runes) {
+    buffer.write(ocptResourcesSearchFoldedRune(rune));
   }
 
   return buffer.toString();
