@@ -105,6 +105,13 @@ class _OcptFoldedSceneText {
 /// entry per (target, scene, range), the user confirming each one before it becomes a tag of its
 /// own (§3.4/§5.4 of the plan this ships under: a repeated occurrence is offered, never applied).
 ///
+/// [target] restricts the search to the tags of that one `(kind, id)`, which is what the only
+/// caller so far ever asks for — the inspector shows the **selected** target's suggestions alone.
+/// Passing it is not merely a filter over the whole result: the tags of every other target are
+/// never searched for at all, and on a feature-length screenplay that is the difference between
+/// scanning each scene once per tag of one target and once per tag of the entire breakdown. Left
+/// null, every target's tags are searched.
+///
 /// For every live tag of every scene whose `taggedText` holds at least one letter or digit (a tag
 /// made only of punctuation is skipped: matching it would mean nearly everywhere), every scene of
 /// [scenes] — including the tag's own — is searched for it, diacritic- and case-folded through
@@ -130,8 +137,13 @@ class _OcptFoldedSceneText {
 List<OcptBreakdownSuggestion> ocptBreakdownSuggestionsOf({
   required List<OcptBreakdownScene> scenes,
   required String screenplayText,
+  (OcptBreakdownTargetKind, String)? target,
 }) {
-  final liveTags = [for (final scene in scenes) ...scene.tags];
+  final liveTags = [
+    for (final scene in scenes)
+      for (final tag in scene.tags)
+        if (target == null || (tag.targetKind, tag.targetId) == target) tag,
+  ];
   if (liveTags.isEmpty) {
     return const [];
   }

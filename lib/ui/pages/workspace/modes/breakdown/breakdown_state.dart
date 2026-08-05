@@ -90,6 +90,20 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [snapshot].
   final (OcptBreakdownTargetKind, String)? selectedTargetRef;
 
+  /// [selectedTarget]'s own suggested occurrences — passages elsewhere in the screenplay that read
+  /// like one of its tags but are not tagged themselves (`ocptBreakdownSuggestionsOf`), offered by
+  /// the target inspector's own "Suggested occurrences" section. Empty while nothing is loaded or
+  /// no target is selected.
+  ///
+  /// A **stored** field rather than a getter over [snapshot], unlike [searchCandidates] and every
+  /// other derived read here: answering it means folding every scene of the screenplay rune by
+  /// rune, which on a feature-length one costs tens of milliseconds — far too much for something
+  /// the mode reads on every rebuild, and this mode rebuilds on every keystroke into a notes field.
+  /// [copyWith] is what computes it, and only when one of the three things it derives from
+  /// ([snapshot], [screenplayText] and [selectedTargetRef]) actually changes, so the cost is paid
+  /// once per selection change or snapshot reload and no handler can forget to refresh it.
+  final List<OcptBreakdownSuggestion> selectedTargetSuggestions;
+
   /// Whether the left (scene) dock is shown.
   final bool isListPanelVisible;
 
@@ -262,21 +276,25 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     return snapshot == null ? const [] : ocptBreakdownSearchCandidatesOf(snapshot);
   }
 
-  /// [selectedTarget]'s own suggested occurrences — passages elsewhere in the screenplay that read
-  /// like one of its tags but are not tagged themselves (`ocptBreakdownSuggestionsOf`), offered by
-  /// the target inspector's own "Suggested occurrences" section. Empty while nothing is loaded or no
-  /// target is selected, mirroring [searchCandidates]'s own guard.
-  List<OcptBreakdownSuggestion> get selectedTargetSuggestions {
-    final selectedTargetRef = this.selectedTargetRef;
-    if (selectedTargetRef == null) {
+  /// [selectedTarget]'s own suggested occurrences, computed from scratch by [copyWith] whenever one
+  /// of the three things it derives from changes, and carried over unchanged otherwise.
+  ///
+  /// Empty while no target is selected — a passage is only ever suggested *for* something, and the
+  /// section that shows these is the selected target's own.
+  static List<OcptBreakdownSuggestion> _suggestionsOf({
+    required OcptBreakdownSnapshot? snapshot,
+    required String screenplayText,
+    required (OcptBreakdownTargetKind, String)? selectedTargetRef,
+  }) {
+    if (snapshot == null || selectedTargetRef == null) {
       return const [];
     }
 
-    final (kind, id) = selectedTargetRef;
-    return [
-      for (final suggestion in ocptBreakdownSuggestionsOf(scenes: scenes, screenplayText: screenplayText))
-        if (suggestion.targetKind == kind && suggestion.targetId == id) suggestion,
-    ];
+    return ocptBreakdownSuggestionsOf(
+      scenes: snapshot.scenes,
+      screenplayText: screenplayText,
+      target: selectedTargetRef,
+    );
   }
 
   /// The raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is null,
@@ -324,6 +342,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.selectedSceneId,
     required this.hiddenLegendKeys,
     required this.selectedTargetRef,
+    required this.selectedTargetSuggestions,
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -356,6 +375,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       selectedSceneId = null,
       hiddenLegendKeys = const {},
       selectedTargetRef = null,
+      selectedTargetSuggestions = const [],
       isListPanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptBreakdownRightDockTab.inspector,
@@ -387,6 +407,12 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// full next map or set. [searchQuery] needs no clear flag either: an empty string is already a
   /// perfectly valid value for it (the field cleared), so `searchQuery: ""` is passed like any other
   /// value rather than through a `clear…` flag.
+  ///
+  /// [selectedTargetSuggestions] is the one field this recomputes rather than carries over, and it
+  /// does so only when one of the three things it derives from ([snapshot], [screenplayText] and
+  /// [selectedTargetRef]) has actually changed — see that field for why it is stored rather than
+  /// derived on read. The first two are compared by identity, so a reloaded snapshot recomputes
+  /// even when the project's tags happen to have come back exactly the same.
   @override
   OcptBreakdownState copyWith({
     bool? isLoading,
@@ -428,46 +454,65 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     bool clearVersionPendingRenameId = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
     bool clearProjectVersionNotice = false,
-  }) => OcptBreakdownState(
-    isLoading: isLoading ?? this.isLoading,
-    title: title ?? this.title,
-    screenplayText: screenplayText ?? this.screenplayText,
-    pageSetup: pageSetup ?? this.pageSetup,
-    snapshot: snapshot ?? this.snapshot,
-    centreView: centreView ?? this.centreView,
-    searchQuery: searchQuery ?? this.searchQuery,
-    selectedSceneId: clearSelectedSceneId ? null : (selectedSceneId ?? this.selectedSceneId),
-    hiddenLegendKeys: hiddenLegendKeys ?? this.hiddenLegendKeys,
-    selectedTargetRef: clearSelectedTargetRef ? null : (selectedTargetRef ?? this.selectedTargetRef),
-    isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
-    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
-    lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-    isTagRemovalPending: isTagRemovalPending ?? this.isTagRemovalPending,
-    pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
-    pendingSceneNotesEdits: pendingSceneNotesEdits ?? this.pendingSceneNotesEdits,
-    pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
-    pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
-    hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
-    leftDockFraction: leftDockFraction ?? this.leftDockFraction,
-    rightDockFraction: rightDockFraction ?? this.rightDockFraction,
-    projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId
+  }) {
+    final nextSnapshot = snapshot ?? this.snapshot;
+    final nextScreenplayText = screenplayText ?? this.screenplayText;
+    final nextSelectedTargetRef = clearSelectedTargetRef
         ? null
-        : (previewedVersionId ?? this.previewedVersionId),
-    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-    versionPendingDeletionId: clearVersionPendingDeletionId
-        ? null
-        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-    versionPendingRestoreId: clearVersionPendingRestoreId
-        ? null
-        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-    versionPendingRenameId: clearVersionPendingRenameId
-        ? null
-        : (versionPendingRenameId ?? this.versionPendingRenameId),
-    projectVersionNotice: clearProjectVersionNotice
-        ? null
-        : (projectVersionNotice ?? this.projectVersionNotice),
-  );
+        : (selectedTargetRef ?? this.selectedTargetRef);
+    final keepsSuggestions =
+        identical(nextSnapshot, this.snapshot) &&
+        identical(nextScreenplayText, this.screenplayText) &&
+        nextSelectedTargetRef == this.selectedTargetRef;
+
+    return OcptBreakdownState(
+      isLoading: isLoading ?? this.isLoading,
+      title: title ?? this.title,
+      screenplayText: nextScreenplayText,
+      pageSetup: pageSetup ?? this.pageSetup,
+      snapshot: nextSnapshot,
+      centreView: centreView ?? this.centreView,
+      searchQuery: searchQuery ?? this.searchQuery,
+      selectedSceneId: clearSelectedSceneId ? null : (selectedSceneId ?? this.selectedSceneId),
+      hiddenLegendKeys: hiddenLegendKeys ?? this.hiddenLegendKeys,
+      selectedTargetRef: nextSelectedTargetRef,
+      selectedTargetSuggestions: keepsSuggestions
+          ? selectedTargetSuggestions
+          : _suggestionsOf(
+              snapshot: nextSnapshot,
+              screenplayText: nextScreenplayText,
+              selectedTargetRef: nextSelectedTargetRef,
+            ),
+      isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
+      rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+      lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
+      isTagRemovalPending: isTagRemovalPending ?? this.isTagRemovalPending,
+      pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
+      pendingSceneNotesEdits: pendingSceneNotesEdits ?? this.pendingSceneNotesEdits,
+      pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
+      pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
+      hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
+      leftDockFraction: leftDockFraction ?? this.leftDockFraction,
+      rightDockFraction: rightDockFraction ?? this.rightDockFraction,
+      projectVersions: projectVersions ?? this.projectVersions,
+      previewedVersionId: clearPreviewedVersionId
+          ? null
+          : (previewedVersionId ?? this.previewedVersionId),
+      workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
+      versionPendingDeletionId: clearVersionPendingDeletionId
+          ? null
+          : (versionPendingDeletionId ?? this.versionPendingDeletionId),
+      versionPendingRestoreId: clearVersionPendingRestoreId
+          ? null
+          : (versionPendingRestoreId ?? this.versionPendingRestoreId),
+      versionPendingRenameId: clearVersionPendingRenameId
+          ? null
+          : (versionPendingRenameId ?? this.versionPendingRenameId),
+      projectVersionNotice: clearProjectVersionNotice
+          ? null
+          : (projectVersionNotice ?? this.projectVersionNotice),
+    );
+  }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   @override

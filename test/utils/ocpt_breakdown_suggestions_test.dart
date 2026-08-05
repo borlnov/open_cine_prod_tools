@@ -568,4 +568,94 @@ void main() {
       );
     });
   });
+
+  group("ocptBreakdownSuggestionsOf — the target filter", () {
+    test("searches the named target's tags alone, and every target's when given none", () {
+      const sceneAText = "A desk lamp beside the brass key.\n";
+      const sceneBText = "He grabs the brass key under the desk lamp.\n";
+      final screenplayText = sceneAText + sceneBText;
+
+      final sceneA = _scene(
+        id: "scene-a",
+        position: 0,
+        charStart: 0,
+        charEnd: sceneAText.length,
+        tags: [
+          _tag(
+            id: "tag-lamp",
+            sceneId: "scene-a",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-lamp",
+            startOffset: sceneAText.indexOf("desk lamp"),
+            endOffset: sceneAText.indexOf("desk lamp") + "desk lamp".length,
+            taggedText: "desk lamp",
+          ),
+          _tag(
+            id: "tag-key",
+            sceneId: "scene-a",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-key",
+            startOffset: sceneAText.indexOf("brass key"),
+            endOffset: sceneAText.indexOf("brass key") + "brass key".length,
+            taggedText: "brass key",
+          ),
+        ],
+      );
+      final sceneB = _scene(
+        id: "scene-b",
+        position: 1,
+        charStart: sceneAText.length,
+        charEnd: screenplayText.length,
+      );
+
+      final everyTarget = ocptBreakdownSuggestionsOf(
+        scenes: [sceneA, sceneB],
+        screenplayText: screenplayText,
+      );
+      expect(
+        everyTarget.map((suggestion) => suggestion.targetId),
+        containsAll(<String>["element-lamp", "element-key"]),
+      );
+
+      final lampOnly = ocptBreakdownSuggestionsOf(
+        scenes: [sceneA, sceneB],
+        screenplayText: screenplayText,
+        target: (OcptBreakdownTargetKind.element, "element-lamp"),
+      );
+      expect(lampOnly, hasLength(1));
+      expect(lampOnly.single.targetId, "element-lamp");
+      expect(lampOnly.single.sceneId, "scene-b");
+      expect(lampOnly.single.text, "desk lamp");
+    });
+
+    test("a target with no tag of its own is suggested nothing", () {
+      const sceneText = "A desk lamp glows.\n";
+      final scene = _scene(
+        id: "scene-a",
+        position: 0,
+        charStart: 0,
+        charEnd: sceneText.length,
+        tags: [
+          _tag(
+            id: "tag-lamp",
+            sceneId: "scene-a",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "element-lamp",
+            startOffset: sceneText.indexOf("desk lamp"),
+            endOffset: sceneText.indexOf("desk lamp") + "desk lamp".length,
+            taggedText: "desk lamp",
+          ),
+        ],
+      );
+
+      expect(
+        ocptBreakdownSuggestionsOf(
+          scenes: [scene],
+          screenplayText: sceneText,
+          target: (OcptBreakdownTargetKind.role, "role-lea"),
+        ),
+        isEmpty,
+      );
+    });
+  });
 }
