@@ -374,6 +374,41 @@ class OcptLocationsService {
     );
   }
 
+  /// Moves set [setId] to location [locationId], appended at the end of that location's sets.
+  ///
+  /// The one column [updateSet] deliberately does not write: a set's location is what it *is*, not
+  /// one of its fields, and a set moves as a whole — it leaves the sheet it was being edited on.
+  /// Its scenes, its notes and its code come along untouched, which is the whole point: a set filed
+  /// under the wrong house is repaired rather than deleted and typed again, `deleteSet` tombstoning
+  /// its `scene_sets` links along with it.
+  ///
+  /// A fresh `sortKey` is allocated in the destination: the one it held ranked it among its former
+  /// siblings, and means nothing among its new ones.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> moveSetToLocation({
+    required OcptProjectDatabase database,
+    required String setId,
+    required String locationId,
+  }) async {
+    if (database.refusesUserWrite("moveSetToLocation")) {
+      return;
+    }
+
+    final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
+
+    await (database.update(
+      database.ocptSetsTable,
+    )..where((table) => table.id.equals(setId) & table.isDeleted.not())).write(
+      OcptSetsTableCompanion(
+        locationId: Value(locationId),
+        sortKey: Value(
+          ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+        ),
+      ),
+    );
+  }
+
   /// Tombstones set [setId] in [database] and the `scene_sets` links onto it along with it.
   ///
   /// {@macro open_cine_prod_tools.tombstones}

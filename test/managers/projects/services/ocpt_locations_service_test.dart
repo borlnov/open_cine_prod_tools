@@ -311,6 +311,26 @@ void main() {
       await insertScene(id: "scene-2", position: 1, heading: "EXT. JARDIN - NUIT");
     });
 
+    test("moveSetToLocation hands a set over with its scenes, appended at the end", () async {
+      final fromId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final toId = (await locationsService.createLocation(database: database, name: "B"))!;
+      await locationsService.createSet(database: database, locationId: toId, name: "Salon");
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: fromId,
+        name: "Cuisine",
+      ))!;
+      await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+
+      await locationsService.moveSetToLocation(database: database, setId: setId, locationId: toId);
+
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations.first.sets, isEmpty);
+      // Appended rather than slotted in: the sortKey it held ranked it among its former siblings.
+      expect(locations.last.sets.map((set) => set.name), ["Salon", "Cuisine"]);
+      expect(locations.last.sets.last.sceneIds, ["scene-1"]);
+    });
+
     test("assignSceneToSet links a scene to a set and loadLocations reads it back", () async {
       final setId = await createSetInNewLocation("Cuisine");
 

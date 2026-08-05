@@ -221,6 +221,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSetAddedEvent>(_onSetAdded);
     on<OcptResourcesSetFieldChangedEvent>(_onSetFieldChanged);
     on<OcptResourcesSetRemovedEvent>(_onSetRemoved);
+    on<OcptResourcesSetLocationChangedEvent>(_onSetLocationChanged);
     on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
     on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
     on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
@@ -1865,6 +1866,21 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       ),
     );
   }
+
+  /// Moves set `event.setId` to location `event.locationId`, written immediately. The set leaves
+  /// the sheet currently shown, which is what the reloaded snapshot then says.
+  Future<void> _onSetLocationChanged(
+    OcptResourcesSetLocationChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "move set ${event.setId} to location ${event.locationId}",
+    action: (project) => _locationsService.moveSetToLocation(
+      database: project.database,
+      setId: event.setId,
+      locationId: event.locationId,
+    ),
+  );
 
   /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately.
   Future<void> _onSceneAssignedToSet(

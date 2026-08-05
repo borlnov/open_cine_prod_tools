@@ -25,9 +25,18 @@ const double _codeFieldWidth = 72;
 /// is two sets), and the scenes already shot in another set last, under their own heading — those
 /// are offered rather than hidden because a scene is regularly covered in two sets, and picking one
 /// **adds** this set to it. Dropping the wrong set is its chip's own control.
+///
+/// A set filed under the wrong place is **moved**, never retyped: its row carries the control
+/// handing it to another location, which is the only way a set's location ever changes — it is what
+/// a set belongs to rather than one of its fields, so it is not among [OcptSetField]'s entries.
 class OcptLocationSheetSetsCard extends StatelessWidget {
   /// The sets of the location this card belongs to, in display order.
   final List<OcptSet> sets;
+
+  /// Every **other** location of the project, `(id, name)`, offered as the destinations a set may
+  /// be moved to. Empty while this is the project's only location, the move control then being
+  /// dropped altogether: there is nowhere to move to.
+  final List<(String, String)> otherLocations;
 
   /// Every scene of the project's screenplay, in source order.
   final List<OcptSceneRef> scenes;
@@ -53,6 +62,9 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
   /// Called with a set's id when its remove control is clicked, or null while it may not be used.
   final ValueChanged<String>? onSetRemoved;
 
+  /// Called with a set's id and the location it is moved to, or null while it may not be used.
+  final void Function(String setId, String locationId)? onSetLocationChanged;
+
   /// Called with a scene and the set it is now shot in, or null while it may not be used.
   final void Function(String sceneId, String setId)? onSceneAssigned;
 
@@ -63,6 +75,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
   const OcptLocationSheetSetsCard({
     super.key,
     required this.sets,
+    required this.otherLocations,
     required this.scenes,
     required this.assignedSceneIds,
     required this.suggestedSetIdBySceneId,
@@ -70,6 +83,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     required this.onSetFieldChanged,
     required this.onSetAdded,
     required this.onSetRemoved,
+    required this.onSetLocationChanged,
     required this.onSceneAssigned,
     required this.onSceneRemoved,
   });
@@ -127,6 +141,13 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(child: _buildSetField(set, OcptSetField.name, tr.resourcesSetNameLabel)),
+              if (onSetLocationChanged != null && otherLocations.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Padding(
+                  padding: const EdgeInsets.only(top: 14),
+                  child: _buildMoveButton(tr, set),
+                ),
+              ],
               if (onSetRemoved != null) ...[
                 const SizedBox(width: 6),
                 Padding(
@@ -146,6 +167,23 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
           _buildScenesRow(context, tr, set),
         ],
       ),
+    );
+  }
+
+  /// The control handing [set] to another location: every other location of the project, picked
+  /// from a menu. The set leaves this sheet the moment one is picked, which is what a move is.
+  Widget _buildMoveButton(Tr tr, OcptSet set) {
+    final onSetLocationChanged = this.onSetLocationChanged!;
+
+    return PopupMenuButton<String>(
+      tooltip: tr.resourcesMoveSetTooltip,
+      icon: const Icon(Icons.drive_file_move_outline, size: 16),
+      onSelected: (locationId) => onSetLocationChanged(set.id, locationId),
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(enabled: false, child: Text(tr.resourcesMoveSetMenuTitle)),
+        for (final (id, name) in otherLocations)
+          PopupMenuItem<String>(value: id, child: Text(name)),
+      ],
     );
   }
 

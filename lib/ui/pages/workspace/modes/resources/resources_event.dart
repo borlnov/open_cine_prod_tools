@@ -786,6 +786,25 @@ class OcptResourcesSetRemovedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
+/// Moves set [setId] to location [locationId], written immediately.
+///
+/// The set leaves the sheet it was being edited on — that is what a move is — taking its code, its
+/// notes and its scenes with it (`OcptLocationsService.moveSetToLocation`).
+class OcptResourcesSetLocationChangedEvent extends OcptResourcesEvent {
+  /// The id of the set being moved.
+  final String setId;
+
+  /// The id of the location it now belongs to.
+  final String locationId;
+
+  /// Class constructor
+  const OcptResourcesSetLocationChangedEvent({required this.setId, required this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, locationId];
+}
+
 /// Says scene [sceneId] is shot in set [setId], written immediately.
 ///
 /// A scene may be shot in several sets, so this **adds** to whatever sets it already has (see

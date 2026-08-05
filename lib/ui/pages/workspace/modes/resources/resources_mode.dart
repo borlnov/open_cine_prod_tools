@@ -565,6 +565,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       contact: _personOf(state, selectedLocation.contactPersonId),
       people: state.people,
       scenes: state.scenes,
+      otherLocations: _otherLocationsOf(state, selectedLocation.id),
       assignedSceneIds: _assignedSceneIdsOf(state),
       suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
       isReadOnly: state.isPreviewingVersion,
@@ -605,6 +606,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onSetAdded: () => bloc.add(OcptResourcesSetAddedEvent(locationId: selectedLocation.id)),
       onSetRemoved: (setId) => bloc.add(OcptResourcesSetRemovedEvent(setId: setId)),
+      onSetLocationChanged: (setId, locationId) =>
+          bloc.add(OcptResourcesSetLocationChangedEvent(setId: setId, locationId: locationId)),
       onSceneAssigned: (sceneId, setId) =>
           bloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
       onSceneRemoved: (sceneId, setId) =>
@@ -796,6 +799,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptElementField.notes => element.notes,
     };
   }
+
+  /// Every location of the project other than [locationId], `(id, name)`, in the order the list
+  /// panel shows them — the destinations the sets card's own move control offers.
+  List<(String, String)> _otherLocationsOf(OcptResourcesState state, String locationId) => [
+    for (final location in state.locations)
+      if (location.id != locationId) (location.id, location.name),
+  ];
 
   /// The ids of every scene already shot in a set, of this location or of another.
   ///
