@@ -17,10 +17,10 @@ read the same guide. Edit `AGENTS.md`; never replace the symlink with a copy.
 
 Open Cine Prod Tools is an **open-source suite of film-production tools** (Apache-2.0,
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
-découpage technique (shot lists), the scenario coverage per shot and the resources catalogue (the
-people, the cast, the locations and the physical elements) ship alongside it, and the long-term
-roadmap adds, in priority order: shooting schedule, call sheets, budget, script supervisor
-reports, storyboard, the per-scene breakdown screen, and a casting tracker.
+découpage technique (shot lists), the scenario coverage per shot, the resources catalogue (the
+people, the cast, the locations and the physical elements) and the script breakdown
+(*dépouillement*) ship alongside it, and the long-term roadmap adds, in priority order: shooting
+schedule, call sheets, budget, script supervisor reports, storyboard, and a casting tracker.
 
 - Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
   released by the CI (see the Architecture section) but has never been run on a Mac — there is
@@ -93,6 +93,7 @@ reports, storyboard, the per-scene breakdown screen, and a casting tracker.
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
+| 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
 
 ## Ways of working
 
@@ -170,8 +171,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 - Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
   only state is `{ OcptWorkspaceMode mode, bool isLoading }` — it owns *which* production mode is
-  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, shotList,
-  resources, schedule, budget }` — the three implemented modes first, the two empty ones last — is
+  active, nothing about that mode's own content. `OcptWorkspaceMode { screenplay, breakdown,
+  shotList, resources, schedule, budget }` — the four implemented modes first, in the order the work
+  happens in (write, break down, shoot-list), the two empty ones last — is
   persisted through `OcptPropertiesManager.workspaceMode` by **name** rather than by index (modelled
   on `editorMode`), so opening a project restores the last mode used and reordering the enum is
   safe. `OcptWorkspaceShell` is a
@@ -190,8 +192,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `EditorPage` (still under `lib/ui/pages/editor/`, unmoved, owning `OcptEditorBloc` exactly as
   before this refactor), the shot list mode is `OcptShotListMode`
   (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), the resources mode is
-  `OcptResourcesMode` (`lib/ui/pages/workspace/modes/resources/`, owning `OcptResourcesBloc`), and
-  the two remaining
+  `OcptResourcesMode` (`lib/ui/pages/workspace/modes/resources/`, owning `OcptResourcesBloc`), the
+  breakdown mode is `OcptBreakdownMode` (`lib/ui/pages/workspace/modes/breakdown/`, owning
+  `OcptBreakdownBloc`), and the two remaining
   ones are stateless `OcptBudgetMode`/`OcptScheduleMode` widgets rendering a shared empty state —
   no bloc, no data, "coming in a future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
   `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
@@ -269,8 +272,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v8 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the thirteen resources tables, `row_field_versions`,
+- Persistence: drift schema v9 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
+  `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -290,7 +294,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  seventeen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  nineteen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
   plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
   independent of the schema
@@ -306,7 +310,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   doesn't mean "there was none": the column has never been nullable, so a version that predates it
   did have a currency, it simply never recorded which one, and
   `OcptProjectVersionsService.restoreVersion` reads that null as "leave the project's currency
-  untouched" — the opposite of what the empty-list entries mean. Counters shown on a card
+  untouched" — the opposite of what the empty-list entries mean. Format 5 (the breakdown) does both
+  at once: `breakdown_tags` and `scene_breakdowns` materialise as empty lists, while `elements`
+  gains `status` filled with `toFind` — not a "leave it alone" null, because a version captured
+  before that column existed has no live value anywhere to leave alone, so the column's own default
+  is the honest reading. Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
@@ -355,16 +363,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and six services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and seven services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
-  annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook) and
+  annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook),
+  `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene) and
   `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
-  to a default location silently). The two PDF services share one `OcptCourierPrimeFontsLoader`
-  (handed to both by the manager, so the 4 embedded TTFs are decoded once) and one
-  `OcptScriptPagePainter`, which owns the positioned line drawing both of them start from. The home
+  to a default location silently). The three PDF services share one `OcptCourierPrimeFontsLoader`
+  (handed to each by the manager, so the 4 embedded TTFs are decoded once) and one
+  `OcptScriptPagePainter` — the two script exports for the positioned line drawing they both start
+  from, the breakdown sheets for its metrics and fonts alone, their pages flowing rather than
+  typeset. The home
   page's "Import a screenplay…" action and the editor's `⋮` export / export-to-PDF /
   import-and-replace menu all go through the manager; the screenplay text itself is always written
   through `OcptScreenplayService.saveScreenplayText`, never by hand.
@@ -430,6 +441,60 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
   localized labels a row shows; the header count then reports what is on screen while the status
   bar keeps counting the whole catalogue. The `⋮` menu exports the four-sheet workbook (above).
+- Breakdown mode (`lib/ui/pages/workspace/modes/breakdown/`): the *dépouillement* — reading the
+  script once and tagging what the shoot must provide. It is the pass that fills the catalogues the
+  resources mode holds, so it sits between the screenplay and the shot list in the mode switcher.
+  A **tag** (`breakdown_tags`, ADR 0014) is the anchor between a passage of the screenplay and the
+  catalogue row it calls for: a discriminator (`OcptBreakdownTargetKind { element, role, set }`)
+  plus three nullable foreign keys, exactly one non-null. A character is never an `elements` row —
+  it is the `roles` row `OcptRoleIndexService` already reconciled from the cue — and a place is a
+  `sets` row, which is why a tag points at one of three tables rather than one.
+  Offsets are **scene-relative**, as `shot_coverages` are, and the tag stores its passage
+  **verbatim** (`taggedText`) where `shot_coverages` stores only a digest: the text is what lets a
+  shifted tag be re-anchored rather than merely flagged, and what the occurrence suggestions match.
+  `OcptBreakdownService` (owned by `OcptProjectsManager` beside the resources services) writes them,
+  and creating a tag **ensures the link it implies** in the same transaction — a `scene_elements`
+  row for an element, a `scene_sets` row for a set, nothing for a role, the tag being that link
+  itself. Removing a tag **never** removes that link row: the resources mode lets a user link an
+  element to a scene by hand with no tag at all, and the breakdown cannot tell its link from that
+  one, so the inspector asks about the removal as a separate question.
+  `reconcileTags` joins `OcptSceneIndexService`/`OcptRoleIndexService` on the screenplay save path,
+  **after** the scene index is rebuilt since it needs the new `charStart`: a tag whose slice still
+  matches is left alone, one whose stored text is found **exactly once** in the scene is re-anchored
+  silently, and only zero or several matches raise `needsCheck` — surfaced the way
+  `shots.needsCheck` is. It writes nothing when nothing changed, running as it does on every save.
+  `scene_breakdowns` holds how far the pass has got per scene (`OcptBreakdownSceneStatus { toDo,
+  inProgress, done }`, **held by hand** — a scene may legitimately need nothing and still have been
+  read), one live row per scene created on the first write, never eagerly; a scene with no row reads
+  as `toDo`. `elements.status` (`OcptElementStatus { toFind, reserved, beingMade, confirmed }`) is
+  the column the mode's chips and the "to find" counters read, and the resources mode's element
+  sheet carries the same control; the three existing booleans answer a different question (on the
+  truck? given back?) and stay untouched.
+  The centre is either the **script view** — the whole screenplay typeset as a paper sheet, every
+  word clickable, tagged passages highlighted in their category's colour — or the **recap**
+  cross-table (one row per target, one column per scene), switched from the mode's own header band.
+  Tagging is a two-click range: a first click opens an anchor, a second closes it and opens
+  `OcptBreakdownTagPopover`, whose search field is **pre-filled with the passage** and whose results
+  are grouped by kind; clicking a result links, clicking a **category chip** creates the element in
+  that category and tags it in one write, then hands off to the inspector where the rest of the
+  sheet is. Only elements are creatable here — a role's existence belongs to the screenplay and a
+  set belongs to a location — so the popover offers `Open in Resources` instead. Tags never overlap
+  (the mode greys the affordance, `OcptBreakdownService` guarantees it), and a click on an
+  already-tagged word therefore **selects its target** rather than starting a range — deliberately
+  *not* what the same click does in `OcptShotCoverageDialog`, where it removes the range: here a tag
+  has a sheet worth inspecting, and losing one by mis-clicking while reading is the worse failure.
+  A repeated occurrence elsewhere in the script is **offered, never applied**
+  (`lib/utils/ocpt_breakdown_suggestions.dart`, whole-word and diacritic-folded), the principle
+  `ocptSceneSetSuggestionOf` already follows. The header's search filters the recap's **rows** and
+  never its columns, and typing into it from the script view switches to the recap carrying the
+  text: the script is a reading surface, and the answer to "where is this?" is a table.
+  The left dock is the scene list (status, a colour bar per category present, counts) over the
+  category legend, whose entries toggle their category's highlighting; the right dock is
+  `Inspector` + the shared `Versions` tab, the inspector showing the selected target's sheet or —
+  with nothing selected — the selected scene's own breakdown sheet. `lib/constants/
+  ocpt_breakdown_palette.dart` maps a colour **per category** rather than per rank (unlike a shot's
+  coverage colour): a category must read the same in every project and every export. The `⋮` menu
+  exports the breakdown sheets PDF (above).
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
@@ -533,8 +598,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptProjectVersionCard`/
   `OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is the one panel of the dock
   that is about the **project** rather than the mode showing it, so it is hosted by every mode's
-  dock (`OcptEditorRightDockTab.versions`, `OcptShotListRightDockTab.versions` and
-  `OcptResourcesRightDockTab.versions`, the resources dock's only tab) and built from
+  dock (`OcptEditorRightDockTab.versions`, `OcptShotListRightDockTab.versions`,
+  `OcptResourcesRightDockTab.versions` — the resources dock's only tab — and
+  `OcptBreakdownRightDockTab.versions`) and built from
   `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
   `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
   `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
@@ -546,7 +612,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   reload **must** emit `previewedVersionId`, read from `OcptProjectsManager.currentProject`, in the
   same state as the data it just read, or the mode draws one frame of a version's content with the
   working copy's editing affordances still on it). A mode also decides *when* the working copy is
-  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — the three modes
+  worth re-reading, by dispatching `OcptProjectWorkingCopyRefreshRequestedEvent` — the four modes
   do it on opening the `Versions` tab and on a save landing while it is already open, and the mixin
   throttles that path to one capture every 2 s, since it reads the whole project; the captures that
   follow an operation which just changed the project are never throttled.
@@ -582,14 +648,23 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   rather than disabled where it can be: the save control, the format controls, the `⋮` entries
   that rewrite (import & replace, page setup, title page), the metadata panel's "Edit…", the shot
   list's `+ Shot`, its orphan delete buttons, its inspector controls and its deleted-character
-  banner actions, and every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
-  sub-list rows and delete actions. What only reads stays: the exports, the scene/sequence panels,
-  the statistics, the resources search and the app-wide display preferences.
+  banner actions, every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
+  sub-list rows and delete actions, and — in the breakdown mode — the word click that opens a range
+  (nulling that one callback withholds the whole tagging path, since no anchor can open and no
+  popover ever has a range to show), the status and category chips, the scene status control, every
+  notes field, the suggestion acceptances and the tag removal. What only reads stays: the exports,
+  the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
+  scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word
+  still selects its target, since selecting writes nothing — plus the app-wide display preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
   Flutter's own "no callback, no affordance" idiom); a composite panel
-  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`, and each of the resources mode's
-  four sheets) takes an `isReadOnly` flag instead and hands its own parts the null callbacks, so a
-  control added later can't be gated in one place and forgotten in the other.
+  (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`, each of the resources mode's
+  four sheets, and the breakdown's `OcptBreakdownTargetInspector`/`OcptBreakdownSceneInspector`)
+  takes an `isReadOnly` flag instead and hands its own parts the null callbacks, so a
+  control added later can't be gated in one place and forgotten in the other. Entering a preview
+  additionally clears every *pending* write state a mode holds — the breakdown's open tag anchor,
+  its popover range, its tag-removal confirmation and its debounced field edits — so no half-started
+  gesture survives into a version's read.
   `OcptWorkspaceReadOnlyBanner` carries the two ways out of a preview:
   `Start from this version` (a plain restore of the version being read, which asks nothing further —
   the banner is that question, and `OcptProjectsManager.restoreProjectVersion` leaves the preview on
