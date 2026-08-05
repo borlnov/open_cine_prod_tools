@@ -50,6 +50,21 @@ const double _ocptRecapMutedDotDiameter = 4;
 /// The opacity a muted dot's own colour is drawn at.
 const double _ocptRecapMutedDotAlpha = 0.35;
 
+/// The room the vertical scroll bar's own thumb takes at the right edge of the rows, in logical
+/// pixels — read off the ambient [ScrollbarThemeData] rather than repeated here, so the gutter
+/// follows `ocpt_theme.dart`'s own scroll bar rather than drifting from it.
+///
+/// A desktop scroll bar is painted **over** the viewport it scrolls, and this table's own last
+/// column sits hard against that edge: without a gutter, the thumb covers the `Occ.` count. The
+/// rows are therefore laid out this much narrower than the table, and the header row carries a
+/// trailing spacer of the same width so its columns stay aligned with theirs.
+double _ocptRecapScrollbarGutterOf(BuildContext context) {
+  final scrollbarTheme = Theme.of(context).scrollbarTheme;
+  final thickness = scrollbarTheme.thickness?.resolve(const {}) ?? 0;
+
+  return thickness + 2 * (scrollbarTheme.crossAxisMargin ?? 0);
+}
+
 /// The breakdown mode's recap view: a scrollable cross-table, one row per tagged target, one
 /// column per scene, grouped by category — the mock-up's own cross-table, over the tags and the
 /// three catalogues the app already reconciles from the screenplay and the resources mode, rather
@@ -155,11 +170,13 @@ class OcptBreakdownRecapTable extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final scrollbarGutter = _ocptRecapScrollbarGutterOf(context);
         final fixedWidth =
             _ocptRecapStatusColumnWidth +
             _ocptRecapOwnerColumnWidth +
             _ocptRecapOccurrenceColumnWidth +
-            scenes.length * _ocptRecapSceneColumnWidth;
+            scenes.length * _ocptRecapSceneColumnWidth +
+            scrollbarGutter;
         final elementWidth = math.max(
           _ocptRecapElementColumnMinWidth,
           constraints.maxWidth - fixedWidth,
@@ -173,9 +190,14 @@ class OcptBreakdownRecapTable extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _RecapHeaderRow(elementWidth: elementWidth, scenes: scenes),
+                _RecapHeaderRow(
+                  elementWidth: elementWidth,
+                  scenes: scenes,
+                  scrollbarGutter: scrollbarGutter,
+                ),
                 Expanded(
                   child: ListView(
+                    padding: EdgeInsets.only(right: scrollbarGutter),
                     children: [
                       for (final entry in ocptBreakdownLegendEntriesOf(targets))
                         if (matchingByKey[entry.key] case final groupTargets?)
@@ -234,8 +256,17 @@ class _RecapHeaderRow extends StatelessWidget {
   /// Every scene of the loaded snapshot, one column each.
   final List<OcptBreakdownScene> scenes;
 
+  /// The width of the trailing spacer this row ends on, keeping its own columns aligned with the
+  /// rows underneath — which are laid out that much narrower, so the vertical scroll bar's thumb
+  /// has somewhere of its own to sit (see [_ocptRecapScrollbarGutterOf]).
+  final double scrollbarGutter;
+
   /// Class constructor
-  const _RecapHeaderRow({required this.elementWidth, required this.scenes});
+  const _RecapHeaderRow({
+    required this.elementWidth,
+    required this.scenes,
+    required this.scrollbarGutter,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -292,6 +323,7 @@ class _RecapHeaderRow extends StatelessWidget {
                 ),
               ),
             ),
+            SizedBox(width: scrollbarGutter),
           ],
         ),
       ),

@@ -591,6 +591,53 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    "the occurrence column clears the vertical scroll bar's own gutter",
+    (tester) async {
+      const scrollbarThickness = 10.0;
+      const scrollbarMargin = 2.0;
+      const gutter = scrollbarThickness + 2 * scrollbarMargin;
+
+      final target = _buildElementTarget(
+        id: "element-1",
+        name: "Desk lamp",
+        sceneIds: ["scene-1"],
+        occurrenceCount: 5,
+      );
+
+      await _pumpInApp(
+        tester,
+        Theme(
+          data: ThemeData(
+            scrollbarTheme: const ScrollbarThemeData(
+              thickness: WidgetStatePropertyAll(scrollbarThickness),
+              crossAxisMargin: scrollbarMargin,
+            ),
+          ),
+          child: OcptBreakdownRecapTable(
+            scenes: [_buildScene(id: "scene-1")],
+            targets: [target],
+            elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+            people: const [],
+            searchQuery: "",
+            selectedTargetRef: null,
+            onTargetSelected: _noop3,
+          ),
+        ),
+      );
+
+      final tableRight = tester.getTopRight(find.byType(OcptBreakdownRecapTable)).dx;
+      final countRight = tester.getTopRight(find.text("5")).dx;
+
+      expect(
+        countRight,
+        lessThanOrEqualTo(tableRight - gutter),
+        reason: "the scroll bar's thumb is painted over the rows' own right edge, so the last "
+            "column has to stop short of it",
+      );
+    },
+  );
 }
 
 /// A no-op `onTargetSelected` for tests that never click a row.
