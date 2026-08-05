@@ -5313,7 +5313,14 @@
   "breakdownElementDetailsSectionTitle": "Details",
   "@breakdownElementDetailsSectionTitle": {
     "description": "Title of the target inspector's details section",
-    "context": "Displayed above the sub-category, quantity, notes, owner and who-brings-it fields, element targets only",
+    "context": "Displayed above the name, sub-category, quantity, notes, owner and who-brings-it fields, element targets only",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownElementNameLabel": "Name",
+  "@breakdownElementNameLabel": {
+    "description": "Label of an element's own name field, the name every surface of the mode shows it under",
+    "context": "Displayed above the target inspector's first details field",
     "type": "text",
     "placeholders": {}
   },

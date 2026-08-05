@@ -441,13 +441,14 @@ class _BreakdownViewState extends State<_BreakdownView> {
     return null;
   }
 
-  /// [element]'s own stored value for `field` — only `subCategory`, `quantity` and `notes` are ever
-  /// asked for, the target inspector's other fields being single picks rather than typed text.
+  /// [element]'s own stored value for `field` — only `name`, `subCategory`, `quantity` and `notes`
+  /// are ever asked for, the target inspector's other fields being single picks rather than typed
+  /// text.
   String _storedElementFieldValue(OcptElement element, OcptElementField field) => switch (field) {
+    OcptElementField.name => element.name,
     OcptElementField.subCategory => element.subCategory,
     OcptElementField.quantity => element.quantity,
     OcptElementField.notes => element.notes,
-    OcptElementField.name ||
     OcptElementField.code ||
     OcptElementField.ownerNotes ||
     OcptElementField.storageNotes ||

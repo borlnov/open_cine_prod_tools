@@ -49,8 +49,14 @@ class _OcptBreakdownOccurrence {
 /// The right dock's `Inspector` tab while a target is selected: a colour swatch and the target's
 /// name, its category (or role/set kind) and scene count, then — **element targets only**, a role
 /// or a set having neither a status nor the fields below — its status chips, its category chips and
-/// its details (sub-category, quantity, notes, owner, who brings it), then every target's own
+/// its details (name, sub-category, quantity, notes, owner, who brings it), then every target's own
 /// occurrences in the screenplay and the two trailing actions every kind offers.
+///
+/// The name field is where an element tagged from the script is given the label it is read under
+/// everywhere else: creating one from the popover names it after the passage it was tagged from,
+/// which is the passage's wording rather than the production's — "crown" the word, not `Queen's
+/// crown, act III`. Renaming it here renames the element itself, so the script's own tooltips, the
+/// legend, the recap table and the resources mode all follow.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`: the mode is the only caller, wiring every
 /// callback to `OcptBreakdownBloc` events and resolving [fieldValueOf] from the bloc's own pending
@@ -202,7 +208,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(target.name, style: theme.textTheme.titleSmall),
+              child: Text(_displayedName(element), style: theme.textTheme.titleSmall),
             ),
           ],
         ),
@@ -293,10 +299,19 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     );
   }
 
-  /// The sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
+  /// The name, sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
   Widget _buildDetails(BuildContext context, Tr tr, OcptElement element) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      OcptResourcesSheetField(
+        ownerId: element.id,
+        label: tr.breakdownElementNameLabel,
+        value: fieldValueOf(OcptElementField.name),
+        onChanged: onFieldChanged == null
+            ? null
+            : (value) => onFieldChanged!(OcptElementField.name, value),
+      ),
+      const SizedBox(height: 10),
       OcptResourcesSheetField(
         ownerId: element.id,
         label: tr.resourcesElementSubCategoryLabel,
@@ -445,6 +460,20 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
             extract: tag.taggedText,
           ),
   ];
+
+  /// The name shown at the top of the panel: whatever the name field currently holds while
+  /// [element] is one, so a rename reads back as it is typed rather than only once the field
+  /// debounce has landed and the snapshot has been read again, and [OcptBreakdownTarget.name] in
+  /// every other case — a role, a set, or an element whose name has just been emptied, which the
+  /// panel would otherwise head with nothing at all.
+  String _displayedName(OcptElement? element) {
+    if (element == null) {
+      return target.name;
+    }
+
+    final pendingName = fieldValueOf(OcptElementField.name).trim();
+    return pendingName.isEmpty ? target.name : pendingName;
+  }
 
   /// One section title, the accent-coloured header the mock-up uses to separate the panel's
   /// sections, mirroring `OcptShotInspectorPanel._sectionTitle`.

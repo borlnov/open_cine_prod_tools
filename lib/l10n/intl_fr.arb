@@ -719,6 +719,7 @@
   "breakdownElementStatusConfirmed": "Confirmé",
   "breakdownElementCategorySectionTitle": "Catégorie",
   "breakdownElementDetailsSectionTitle": "Détails",
+  "breakdownElementNameLabel": "Nom",
   "breakdownElementNotesLabel": "Notes",
   "breakdownOccurrencesSectionTitle": "Occurrences dans le scénario",
   "breakdownOccurrenceSceneLabel": "Scène {number} · {heading}",

@@ -50,7 +50,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 /// to the project database, so none of the three is ever flushed by [flushPendingProjectWrites] and
 /// all three live only in this bloc's own state.
 ///
-/// The selected target's three free-text fields (`OcptElementField.subCategory`/`.quantity`/
+/// The selected target's four free-text fields (`OcptElementField.name`/`.subCategory`/`.quantity`/
 /// `.notes`) and the selected scene's own breakdown notes are what write here through typing, and
 /// they ride the same debounce idiom `OcptResourcesBloc`'s five `pending…FieldEdits` maps do: an
 /// edit is held in [OcptBreakdownState.pendingElementFieldEdits] or
@@ -1052,10 +1052,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   }
 
   /// Writes every entry of [elementFields] through `OcptElementsService.updateElement`, translating
-  /// each (only `subCategory`, `quantity` and `notes` ever land here — the target inspector's other
-  /// fields are single picks written immediately by their own event, see this bloc's own doc
-  /// comment) into the matching named argument, then every entry of [sceneNotes] through
-  /// `OcptBreakdownService.updateSceneBreakdown`.
+  /// each (only `name`, `subCategory`, `quantity` and `notes` ever land here — the target
+  /// inspector's other fields are single picks written immediately by their own event, see this
+  /// bloc's own doc comment) into the matching named argument, then every entry of [sceneNotes]
+  /// through `OcptBreakdownService.updateSceneBreakdown`.
   Future<void> _writeAllPendingFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptElementField), String> elementFields,
@@ -1066,6 +1066,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       final rawValue = entry.value;
 
       switch (field) {
+        case OcptElementField.name:
+          await _elementsService.updateElement(
+            database: database,
+            elementId: elementId,
+            name: Value(rawValue),
+          );
         case OcptElementField.subCategory:
           await _elementsService.updateElement(
             database: database,
@@ -1084,8 +1090,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
             elementId: elementId,
             notes: Value(rawValue),
           );
-        case OcptElementField.name ||
-            OcptElementField.code ||
+        case OcptElementField.code ||
             OcptElementField.ownerNotes ||
             OcptElementField.storageNotes ||
             OcptElementField.cost ||

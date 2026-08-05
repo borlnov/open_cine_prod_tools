@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -181,6 +182,16 @@ OcptPerson _buildPerson({required String id, String firstName = "Jean", String l
       skills: const [],
       unavailabilities: const [],
     );
+
+/// The text field of the details field labelled [label] — the labels are rendered upper-cased, and
+/// the panel now holds several fields, so no test may reach for `find.byType(TextField).first`.
+Finder _fieldLabelled(String label) => find.descendant(
+  of: find.ancestor(
+    of: find.text(label.toUpperCase()),
+    matching: find.byType(OcptResourcesSheetField),
+  ),
+  matching: find.byType(TextField),
+);
 
 void main() {
   testWidgets("an element target shows its status, category and details sections", (tester) async {
@@ -391,9 +402,93 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextField).first, "1960s");
+    await tester.enterText(_fieldLabelled("Sub-category"), "1960s");
 
     expect(reported, ["1960s"]);
+  });
+
+  testWidgets("typing into the name field reports it and heads the panel with it", (tester) async {
+    await _useTallSurface(tester);
+    final reported = <String>[];
+    var name = "";
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        StatefulBuilder(
+          builder: (context, setState) => OcptBreakdownTargetInspector(
+            target: _buildElementTarget(),
+            element: _buildElement(),
+            owner: null,
+            bringer: null,
+            people: const [],
+            scenes: const [],
+            // What the bloc's own pending field edits give the panel back while the debounce runs.
+            fieldValueOf: (field) => field == OcptElementField.name ? name : "",
+            onBackToSceneRequested: () {},
+            onStatusChanged: (_) {},
+            onCategoryChanged: (_) {},
+            onFieldChanged: (field, value) {
+              if (field == OcptElementField.name) {
+                reported.add(value);
+                setState(() => name = value);
+              }
+            },
+            onOwnerChanged: (_) {},
+            onBringerChanged: (_) {},
+            onOccurrenceSelected: (_) {},
+            onOpenInResourcesRequested: () {},
+            isTagRemovalPending: false,
+            onTagRemovalRequested: () {},
+            onTagRemovalCancelled: () {},
+            onTagRemovalConfirmed: () {},
+          ),
+        ),
+      ),
+    );
+
+    // The panel is headed with the target's own name until the field is touched.
+    expect(find.text("Desk lamp"), findsOneWidget);
+
+    await tester.enterText(_fieldLabelled("Name"), "Queen's crown");
+    await tester.pump();
+
+    expect(reported, ["Queen's crown"]);
+    // Headed with what was just typed, rather than with the name the snapshot still holds: the
+    // write only lands once the field debounce has.
+    expect(find.text("Desk lamp"), findsNothing);
+    expect(find.text("Queen's crown"), findsWidgets);
+  });
+
+  testWidgets("the name field shows the element's own stored name", (tester) async {
+    await _useTallSurface(tester);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownTargetInspector(
+          target: _buildElementTarget(),
+          element: _buildElement(),
+          owner: null,
+          bringer: null,
+          people: const [],
+          scenes: const [],
+          fieldValueOf: (field) => field == OcptElementField.name ? "Desk lamp" : "",
+          onBackToSceneRequested: () {},
+          onStatusChanged: (_) {},
+          onCategoryChanged: (_) {},
+          onFieldChanged: (_, __) {},
+          onOwnerChanged: (_) {},
+          onBringerChanged: (_) {},
+          onOccurrenceSelected: (_) {},
+          onOpenInResourcesRequested: () {},
+          isTagRemovalPending: false,
+          onTagRemovalRequested: () {},
+          onTagRemovalCancelled: () {},
+          onTagRemovalConfirmed: () {},
+        ),
+      ),
+    );
+
+    expect(tester.widget<TextField>(_fieldLabelled("Name")).controller?.text, "Desk lamp");
   });
 
   testWidgets("clicking an occurrence row reports its own scene", (tester) async {

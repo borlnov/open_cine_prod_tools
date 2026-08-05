@@ -1063,6 +1063,32 @@ void main() {
     await bloc.close();
   });
 
+  test("renaming an element through the name field writes it and renames its target", () async {
+    final tagged = await writeTaggedElement();
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+    bloc.add(
+      OcptBreakdownElementFieldChangedEvent(
+        elementId: tagged.elementId,
+        field: OcptElementField.name,
+        rawValue: "Queen's crown",
+      ),
+    );
+
+    // The snapshot is read again once the debounce lands, so every surface naming the target — the
+    // script's tooltips, the legend, the recap table — follows the new name.
+    final renamed = await waitForState(bloc, (state) => state.targets.single.name == "Queen's crown");
+    expect(renamed.pendingElementFieldEdits, isEmpty);
+
+    final elements = await projectsManager.elementsService.loadElements(
+      database: projectsManager.currentProject!.database,
+    );
+    expect(elements.single.name, "Queen's crown");
+
+    await bloc.close();
+  });
+
   test("changing an element's owner writes it immediately", () async {
     final tagged = await writeTaggedElement();
     final project = projectsManager.currentProject!;
