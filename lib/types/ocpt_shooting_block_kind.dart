@@ -6,7 +6,7 @@
 ///
 /// A day's timetable is a chain of these, in order — `shooting_day_blocks`. Every kind but
 /// [shot] and [hold] is a milestone the reference call sheets interleave between shots
-/// (preparation, hair and make-up, a meal, a travel move, the wrap).
+/// (preparation, hair and make-up, a meal, a break, a travel move, the wrap).
 enum OcptShootingBlockKind {
   /// This block is a shot from the shot list.
   shot,
@@ -19,6 +19,9 @@ enum OcptShootingBlockKind {
 
   /// This block is a meal break.
   meal,
+
+  /// This block is a break that is not a meal — the coffee or technical pause a day is cut by.
+  pause,
 
   /// This block is a move from one place to another.
   travel,

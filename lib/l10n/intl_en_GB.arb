@@ -6024,6 +6024,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleBlockKindPause": "Break",
+  "@scheduleBlockKindPause": {
+    "description": "Label of a break block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleBlockKindTravel": "Travel",
   "@scheduleBlockKindTravel": {
     "description": "Label of a travel block of a shooting day's timetable",

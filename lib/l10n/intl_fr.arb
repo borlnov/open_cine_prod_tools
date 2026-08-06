@@ -809,6 +809,7 @@
   "scheduleBlockKindPreparation": "Préparation",
   "scheduleBlockKindHairMakeUp": "HMC",
   "scheduleBlockKindMeal": "Repas",
+  "scheduleBlockKindPause": "Pause",
   "scheduleBlockKindTravel": "Déplacement",
   "scheduleBlockKindWrap": "Rangement",
   "scheduleBlockKindHold": "Créneau libre",
