@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -202,9 +203,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
   /// which version is being previewed alongside the read it just performed (see that hook's own
-  /// doc comment). The selection, the placing in progress and any pending field edit are always
-  /// cleared on a (re)load: a preview or a restore changes the whole database underneath, so a
-  /// stale one is dropped rather than trusted to still mean the same thing.
+  /// doc comment). The block selection, the placing in progress and any pending field edit are
+  /// always cleared on a (re)load: a preview or a restore changes the whole database underneath, so
+  /// a stale one is dropped rather than trusted to still mean the same thing. The selected **day**
+  /// is dropped for the same reason and then chosen afresh out of what was just read, by
+  /// [_defaultSelectedDayOf] — never carried over.
   Future<void> _onLoadRequested(
     OcptScheduleLoadRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -250,6 +253,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     );
     final people = await _peopleService.loadPeople(database: project.database);
 
+    final defaultDay = _defaultSelectedDayOf(snapshot.days);
+
     emitter(
       state.copyWith(
         isLoading: false,
@@ -261,8 +266,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         locations: locations,
         roles: roles,
         people: people,
-        agendaAnchorDate: snapshot.days.isEmpty ? DateTime.now() : snapshot.days.first.date,
-        clearSelectedDayId: true,
+        agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
+        selectedDayId: defaultDay?.id,
+        clearSelectedDayId: defaultDay == null,
         clearSelectedBlockId: true,
         clearPlacingShotId: true,
         pendingFieldEdits: const {},
@@ -271,6 +277,39 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         lastRightDockTab: lastRightDockTab,
       ),
     );
+  }
+
+  /// The day a load lands on: the one dated today, failing that the next one still to come, and
+  /// failing that the last one shot — null only for a project holding no day at all.
+  ///
+  /// The mode opens on the day view, which without a selection shows nothing but a hint, so a load
+  /// has to name a day rather than leave the user to hunt for one. "Where the production is today"
+  /// is the honest reading of that: mid-shoot it is the day being shot, before it starts the first
+  /// one, and once it is over the last — never a day chosen for being first in the list.
+  ///
+  /// [days] arrives in `dayNumber` order, which is `sortKey` order and not necessarily date order:
+  /// a day inserted late sits where the user put it. The scan therefore compares dates rather than
+  /// trusting the order, and falls back on the list's own last entry.
+  OcptShootingDay? _defaultSelectedDayOf(List<OcptShootingDay> days) {
+    if (days.isEmpty) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    OcptShootingDay? nextToCome;
+
+    for (final day in days) {
+      final date = DateTime(day.date.year, day.date.month, day.date.day);
+      if (date == today) {
+        return day;
+      }
+      if (date.isAfter(today) && (nextToCome == null || date.isBefore(nextToCome.date))) {
+        nextToCome = day;
+      }
+    }
+
+    return nextToCome ?? days.last;
   }
 
   /// Reads [project]'s whole schedule.

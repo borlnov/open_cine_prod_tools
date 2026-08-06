@@ -101,7 +101,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// once built.
   final List<OcptPerson> people;
 
-  /// The id of the currently selected day, or null while none is.
+  /// The id of the currently selected day, or null while none is — which, past a load, only
+  /// happens in a project holding no day at all: the mode opens on the day view, so a load picks a
+  /// day to show rather than landing the user on an empty surface.
   final String? selectedDayId;
 
   /// The id of the currently selected block, or null while none is. Always the id of a block
@@ -404,7 +406,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       people = const [],
       selectedDayId = null,
       selectedBlockId = null,
-      centreView = OcptScheduleCentreView.agenda,
+      centreView = OcptScheduleCentreView.day,
       agendaMode = OcptScheduleAgendaMode.strip,
       agendaAnchorDate = DateTime.now(),
       isListPanelVisible = true,
