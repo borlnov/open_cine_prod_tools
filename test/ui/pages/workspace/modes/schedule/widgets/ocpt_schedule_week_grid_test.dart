@@ -87,7 +87,8 @@ void main() {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
     final block = _buildBlock(id: "block-1");
     // 19:00 → 03:00 the following morning: `endMinute` (1620) exceeds a bare 24 h (1440).
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 1140, endMinute: 1620, durationMinutes: 480),
       ],
@@ -122,7 +123,8 @@ void main() {
   testWidgets("a day with no sun times draws no shading band", (tester) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
     final block = _buildBlock(id: "block-1");
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
@@ -155,7 +157,8 @@ void main() {
   testWidgets("a shading band is drawn once sun times are available", (tester) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
     final block = _buildBlock(id: "block-1");
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],

@@ -135,7 +135,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           isDaySelected: state.selectedDayId != null,
           selectedDayEndMinute: state.selectedDayId == null
               ? null
-              : state.timelineOfDay(state.selectedDayId!)?.dayEndMinute,
+              : state.timelinesOfDay(state.selectedDayId!)?.dayEndMinute,
         ),
         dockLayoutController: _dockLayoutController,
         onDockFractionsChanged: (fractions) => context.read<OcptScheduleBloc>().add(
@@ -268,7 +268,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         firstLocationByDayId: firstLocationByDayId,
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
-        timelineOf: state.timelineOfDay,
+        timelineOf: state.timelinesOfDay,
         placingShotId: state.placingShotId,
         onDaySelected: (dayId) => bloc.add(OcptScheduleDaySelectedEvent(dayId: dayId)),
         onPlaceHereRequested: isReadOnly || state.placingShotId == null
@@ -289,7 +289,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         firstLocationByDayId: firstLocationByDayId,
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
-        timelineOf: state.timelineOfDay,
+        timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
         selectedDayId: state.selectedDayId,
         onDayOpenRequested: (dayId) => _openDay(context, dayId),
@@ -300,7 +300,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         days: state.days,
         slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
         firstLocationByDayId: firstLocationByDayId,
-        timelineOf: state.timelineOfDay,
+        timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
         selectedDayId: state.selectedDayId,
         onDayOpenRequested: (dayId) => _openDay(context, dayId),
@@ -330,7 +330,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       day: day,
       slots: state.selectedDaySlots,
       blocks: state.selectedDayBlocks,
-      timeline: state.timelineOfDay(day.id),
+      timeline: state.timelinesOfDay(day.id),
       sunTimes: state.sunTimesOfDay(day.id),
       locationById: state.locationById,
       setById: state.setById,
@@ -532,7 +532,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptShootingTimelineEntry? blockEntry;
     if (block != null) {
       final entries =
-          state.timelineOfDay(state.selectedDayId ?? "")?.entries ?? const <OcptShootingTimelineEntry>[];
+          state.timelinesOfDay(state.selectedDayId ?? "")?.entries ?? const <OcptShootingTimelineEntry>[];
       for (final entry in entries) {
         if (entry.blockId == block.id) {
           blockEntry = entry;
@@ -548,7 +548,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       slots: state.selectedDaySlots,
       locationById: state.locationById,
       setById: state.setById,
-      timeline: state.selectedDayId == null ? null : state.timelineOfDay(state.selectedDayId!),
+      timeline: state.selectedDayId == null ? null : state.timelinesOfDay(state.selectedDayId!),
       sunTimes: state.selectedDayId == null ? null : state.sunTimesOfDay(state.selectedDayId!),
       crewNoteValue: day == null
           ? ""

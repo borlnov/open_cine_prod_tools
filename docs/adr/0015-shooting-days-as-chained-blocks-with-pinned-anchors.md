@@ -35,22 +35,19 @@ really are fixed.
 A shooting day is a **chain of blocks**, in `sortKey` order, each carrying a `durationMinutes`
 (nullable — a shot block with none falls back to the shot's own estimate, then to the mode's
 default) and an optional `anchorMinute`. The chain is computed by one pure function,
-`ocptComputeShootingDayTimeline` (`lib/utils/ocpt_shooting_day_timeline.dart`), implementing the
+`ocptComputeSlotTimeline` (`lib/utils/ocpt_shooting_day_timeline.dart`), implementing the
 rule stated once in `docs/plans/schedule-mode.md` §5:
 
-1. The chain starts at the first slot's `crewCallMinute`.
+1. The chain starts at the slot's own `startMinute`.
 2. Each block starts where the previous one ended and lasts its own duration.
 3. A block carrying an `anchorMinute` starts **exactly** there, unconditionally; the chain resumes
    from its end.
 4. When the chain's position was already later than an anchor, that is an **over-run**: reported
    in the result rather than silently absorbed by pushing the anchor later.
-5. A block whose slot calls its crew later than the chain's current position pulls the chain
-   forward to meet them, rather than starting a second crew mid-morning because an earlier one
-   finished early.
 
-No clock time is stored anywhere except `shooting_slots.crewCallMinute`/`castCallMinute` and a
-block's own `anchorMinute`. Every other time shown in the UI — a block's start, its end, an actor's
-computed PAT band, "estimated wrap" — is read out of this one function's result, never stored.
+No clock time is stored anywhere except `shooting_slots.startMinute` and a block's own
+`anchorMinute`. Every other time shown in the UI — a block's start, its end, an actor's computed
+PAT band, "estimated wrap" — is read out of this one function's result, never stored.
 
 ## Consequences
 
@@ -68,10 +65,10 @@ practice, but it does mean there is no `shooting_day_blocks.startMinute` column 
 report query against — a report needs the function, not the table.
 
 An over-run is a **diagnostic on the block whose anchor could not be honoured**, not a claim about
-the whole day: rule 3 still pins that block to its anchor exactly, which can pull the chain
+the whole slot: rule 3 still pins that block to its anchor exactly, which can pull the chain
 backward and make the blocks after it finish *earlier* than an unconstrained sum of durations
 would. The flag says "this block's own anchor conflicted with what came before it", nothing more —
-a reader has to keep that scope in mind rather than reading an over-run as "the day ran long by
+a reader has to keep that scope in mind rather than reading an over-run as "the slot ran long by
 this much".
 
 The function takes plain value types of its own (`OcptShootingTimelineBlock`) rather than drift
@@ -94,3 +91,36 @@ its `shots` row) into one of these before calling it.
   rejected explicitly by rule 4. A schedule that quietly moves a legally-mandated meal break to
   keep the numbers tidy is worse than one that says, in red, that the plan no longer fits — the
   person reading it can then actually fix the real problem instead of trusting a lie.
+
+## Amendment (schedule mode M1')
+
+`docs/plans/schedule-slots-and-computed-convocations.md` §2.1 amends the decision above: a day no
+longer runs **one** chain shared by every slot, it runs **one chain per slot**, each starting at
+that slot's own `startMinute` (the renamed `crewCallMinute`).
+
+- **Rule 5 is dropped.** It read: "a block whose slot calls its crew later than the chain's current
+  position pulls the chain forward to meet them, rather than starting a second crew mid-morning
+  because an earlier one finished early." It existed only to patch the single-chain model, where a
+  second slot's blocks were interleaved into the same sequence as the first's; now that every slot
+  chains on its own, from its own start, there is nothing left for it to patch.
+- `ocptComputeShootingDayTimeline` is renamed `ocptComputeSlotTimeline` and takes one slot's
+  `blocks` and that slot's own `slotStartMinute` (**non-null** — a slot's `startMinute` is a
+  required column from schema v12 on, so the old "no first crew call to start from" caller error
+  disappears with it). Its result type is renamed `OcptShootingSlotTimeline`, and its
+  `dayEndMinute` field is renamed `endMinute` — a fact about one slot, not one day.
+- A day's own timetable is the new, thin `ocptComputeShootingDayTimelines`, a loop over
+  `ocptComputeSlotTimeline` that joins every slot's own `OcptShootingSlotTimeline` into one
+  `OcptShootingDayTimelines` — a map of slot id → timeline, the two per-entry lists flattened for a
+  reader that doesn't care which slot produced a block, and a `dayEndMinute` that is the
+  **maximum** over every slot's own `endMinute` (null when every slot is empty): a day ends when
+  its last unit wraps.
+- **Two slots of a day may now overlap in wall-clock time, and that is legal, not a conflict this
+  layer reports.** A production splits a day into slots precisely so two units can shoot at once;
+  serialising them into one chain, as before this amendment, drew a sequence that never happened
+  whenever they did. Whether one *person* ends up convoked in both at the same moment is a
+  different question — M3's presence alerts, not this one.
+
+Rules 1-4 above, and everything this record's Consequences and Alternatives sections say about
+them, are otherwise unchanged: only their scope narrows from "the day" to "the slot". See ADR 0017
+for the convocation rules this amendment enables — a slot's own computed call, wrap and PAT times,
+built on top of its own `OcptShootingSlotTimeline`.

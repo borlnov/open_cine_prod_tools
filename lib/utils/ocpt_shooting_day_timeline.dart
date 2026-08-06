@@ -2,19 +2,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One block of a shooting day's timetable, already resolved out of its `shooting_day_blocks` row
-/// (and, for a shot block, out of the `shots` row it points at) by the caller —
-/// [ocptComputeShootingDayTimeline] itself knows nothing of drift or of the schedule mode's own
-/// enums, on purpose: it is the one place the plan's chaining rule (§5) is implemented, and it must
-/// stay reachable from a plain unit test.
+/// One block of a slot's timetable, already resolved out of its `shooting_day_blocks` row (and,
+/// for a shot block, out of the `shots` row it points at) by the caller — [ocptComputeSlotTimeline]
+/// itself knows nothing of drift or of the schedule mode's own enums, on purpose: it is the one
+/// place the plan's chaining rule (§2.1 of `docs/plans/schedule-slots-and-computed-convocations.md`)
+/// is implemented, and it must stay reachable from a plain unit test.
 class OcptShootingTimelineBlock {
-  /// Builds a block to feed to [ocptComputeShootingDayTimeline].
+  /// Builds a block to feed to [ocptComputeSlotTimeline].
   const OcptShootingTimelineBlock({
     required this.id,
     this.durationMinutes,
     this.fallbackDurationMinutes,
     this.anchorMinute,
-    this.slotCallMinute,
   });
 
   /// The block's own id (`shooting_day_blocks.id`), echoed back on every [OcptShootingTimelineEntry]
@@ -31,13 +30,8 @@ class OcptShootingTimelineBlock {
   final int? fallbackDurationMinutes;
 
   /// The block's `anchorMinute`, when it is pinned. A pinned block starts **exactly** here,
-  /// unconditionally — see rule 3 on [ocptComputeShootingDayTimeline].
+  /// unconditionally — see rule 3 on [ocptComputeSlotTimeline].
   final int? anchorMinute;
-
-  /// The `crewCallMinute` of the slot this block sits in, when it sits in one. Used by rule 5: a
-  /// slot's own crew arriving later than the chain's current position pulls the chain forward to
-  /// meet them, rather than starting them mid-morning because an earlier slot ran short.
-  final int? slotCallMinute;
 }
 
 /// One block placed on the timeline: where it starts, where it ends, and how long it actually ran
@@ -63,7 +57,7 @@ class OcptShootingTimelineEntry {
   final int endMinute;
 
   /// The duration this entry actually used: the block's own, its fallback, or the mode's default —
-  /// whichever [ocptComputeShootingDayTimeline] fell back to.
+  /// whichever [ocptComputeSlotTimeline] fell back to.
   final int durationMinutes;
 }
 
@@ -89,11 +83,11 @@ class OcptTimelineOverrun {
   final int anchorMinute;
 }
 
-/// The result of chaining a day's blocks: every block placed, every anchor that could not be
-/// honoured, and where the day ends.
-class OcptShootingDayTimeline {
+/// The result of chaining one slot's blocks: every block placed, every anchor that could not be
+/// honoured, and where the slot ends.
+class OcptShootingSlotTimeline {
   /// Builds a computed timeline.
-  const OcptShootingDayTimeline({required this.entries, required this.overruns, required this.dayEndMinute});
+  const OcptShootingSlotTimeline({required this.entries, required this.overruns, required this.endMinute});
 
   /// Every block placed, in the order it was given.
   final List<OcptShootingTimelineEntry> entries;
@@ -102,14 +96,23 @@ class OcptShootingDayTimeline {
   final List<OcptTimelineOverrun> overruns;
 
   /// The minute the last block ends at, or null when there was nothing to place at all — see
-  /// [ocptComputeShootingDayTimeline]'s doc comment on the empty-day case.
-  final int? dayEndMinute;
+  /// [ocptComputeSlotTimeline]'s doc comment on the empty-slot case.
+  final int? endMinute;
 }
 
-/// Chains [blocks], in the order given, into a computed [OcptShootingDayTimeline] — the rule stated
-/// in `docs/plans/schedule-mode.md` §5 and recorded as ADR 0015, implemented exactly once, here.
+/// Chains [blocks], in the order given, into a computed [OcptShootingSlotTimeline] — the rule
+/// stated in `docs/plans/schedule-slots-and-computed-convocations.md` §2.1 and recorded as ADR
+/// 0015 (amended by that plan), implemented exactly once, here.
 ///
-/// 1. The chain starts at [firstCrewCallMinute].
+/// A slot owns its own chain: it starts at [slotStartMinute] and runs only over that slot's own
+/// [blocks], independently of every other slot of the day. Two slots of one day may therefore
+/// overlap in wall-clock time once their two timelines are read side by side — a second unit
+/// shooting at the same hour as the first — and **that is legal, not a conflict this function (or
+/// anything built on it) reports**: a production splits a day into slots precisely so two crews can
+/// work at once. Whether one *person* ends up convoked in both at the same moment is a different
+/// question, answered elsewhere (M3's presence alerts), not here.
+///
+/// 1. The chain starts at [slotStartMinute].
 /// 2. Each block starts where the previous one ended, and lasts [OcptShootingTimelineBlock
 ///    .durationMinutes] — or, when that is null, [OcptShootingTimelineBlock.fallbackDurationMinutes]
 ///    — or, when that is null too, [defaultDurationMinutes].
@@ -123,29 +126,22 @@ class OcptShootingDayTimeline {
 ///    the minute the chain had reached and the anchor. The block still starts at the anchor (rule 3
 ///    is not an exception to itself) — nothing here "pushes" the anchor later to make it fit, which
 ///    is the one thing rule 4 exists to refuse doing silently. Because the chain is pulled backward
-///    to the anchor regardless, the rest of the day is computed from that earlier point too, and can
+///    to the anchor regardless, the rest of the slot is computed from that earlier point too, and can
 ///    therefore finish **earlier** than a naive sum of every duration would suggest: the over-run
-///    is a true statement about *this* block's own conflict, not a claim that the whole day grew
+///    is a true statement about *this* block's own conflict, not a claim that the whole slot grew
 ///    longer by the same amount.
-/// 5. Before either of the above, a block belonging to a slot whose [OcptShootingTimelineBlock
-///    .slotCallMinute] is **later** than the chain's current position pulls the chain forward to
-///    meet it: a second crew called at 11:00 does not start at 10:20 because the morning ran short.
-///    A slot call **earlier** than the chain's position changes nothing — the chain never jumps
-///    backward for a slot, only an anchor can pull it back, and only rule 3/4 above says when that
-///    over-runs.
 ///
-/// [firstCrewCallMinute] is only read when [blocks] is non-empty — see the empty-list case below —
-/// and it is a caller error to pass one that is null while [blocks] is not: nothing schedules a
-/// block for a day with no slot to call a first crew from in the first place, so this is not a state
-/// the function tries to guess its way through. It throws an [ArgumentError] instead of inventing a
-/// start.
+/// There used to be a rule 5, pulling the chain forward to meet a second slot's own later call —
+/// it existed only because one chain served a whole day; now that every slot runs its own, from its
+/// own [slotStartMinute], there is nothing left for it to patch, and it is gone.
 ///
-/// An **empty** [blocks] list — a day with nothing placed on it yet, which is also what "a day with
-/// no slot at all" looks like from here, since a slotless day can hold no blocks either — returns no
-/// entries, no over-runs and a null [OcptShootingDayTimeline.dayEndMinute]: there is nothing to call
-/// "the end" of a day that has not been given any content, which is a different fact from a day
-/// whose one block ends the instant it begins ([OcptShootingDayTimeline.dayEndMinute] equal to
-/// [firstCrewCallMinute] in that case).
+/// [slotStartMinute] is only read when [blocks] is non-empty — see the empty-list case below.
+///
+/// An **empty** [blocks] list — a slot with nothing placed on it yet — returns no entries, no
+/// over-runs and a null [OcptShootingSlotTimeline.endMinute]: there is nothing to call "the end" of
+/// a slot that has not been given any content, which is a different fact from a slot whose one block
+/// ends the instant it begins ([OcptShootingSlotTimeline.endMinute] equal to [slotStartMinute] in
+/// that case).
 ///
 /// A block's own resolved duration ([OcptShootingTimelineBlock.durationMinutes], its
 /// [OcptShootingTimelineBlock.fallbackDurationMinutes] or [defaultDurationMinutes], whichever is
@@ -154,28 +150,20 @@ class OcptShootingDayTimeline {
 /// means "run backward in time" by a duration alone, unlike a pinned anchor, which says exactly
 /// that in a way the day view can show and the user chose deliberately. A negative duration throws
 /// an [ArgumentError] rather than silently reversing the chain.
-OcptShootingDayTimeline ocptComputeShootingDayTimeline({
+OcptShootingSlotTimeline ocptComputeSlotTimeline({
   required List<OcptShootingTimelineBlock> blocks,
-  required int? firstCrewCallMinute,
+  required int slotStartMinute,
   required int defaultDurationMinutes,
 }) {
   if (blocks.isEmpty) {
-    return const OcptShootingDayTimeline(entries: [], overruns: [], dayEndMinute: null);
-  }
-  if (firstCrewCallMinute == null) {
-    throw ArgumentError.notNull("firstCrewCallMinute");
+    return const OcptShootingSlotTimeline(entries: [], overruns: [], endMinute: null);
   }
 
-  var current = firstCrewCallMinute;
+  var current = slotStartMinute;
   final entries = <OcptShootingTimelineEntry>[];
   final overruns = <OcptTimelineOverrun>[];
 
   for (final block in blocks) {
-    final slotCallMinute = block.slotCallMinute;
-    if (slotCallMinute != null && slotCallMinute > current) {
-      current = slotCallMinute; // Rule 5.
-    }
-
     final anchorMinute = block.anchorMinute;
     if (anchorMinute != null) {
       if (current > anchorMinute) {
@@ -199,5 +187,85 @@ OcptShootingDayTimeline ocptComputeShootingDayTimeline({
     current = end;
   }
 
-  return OcptShootingDayTimeline(entries: entries, overruns: overruns, dayEndMinute: current);
+  return OcptShootingSlotTimeline(entries: entries, overruns: overruns, endMinute: current);
+}
+
+/// One slot of a day, ready to be chained by [ocptComputeShootingDayTimelines]: its own id, its own
+/// start and its own blocks, in the order [ocptComputeSlotTimeline] should place them in.
+class OcptShootingTimelineSlot {
+  /// Builds a slot to feed to [ocptComputeShootingDayTimelines].
+  const OcptShootingTimelineSlot({required this.id, required this.startMinute, required this.blocks});
+
+  /// The slot's own id (`shooting_slots.id`).
+  final String id;
+
+  /// The slot's own `startMinute` — the one clock time still typed by hand (§2.4 of
+  /// `docs/plans/schedule-slots-and-computed-convocations.md`), and the point [ocptComputeSlotTimeline]
+  /// starts this slot's chain at.
+  final int startMinute;
+
+  /// This slot's own blocks, in `sortKey` order — a block belongs to exactly one slot, so no block
+  /// of the day appears in more than one [OcptShootingTimelineSlot].
+  final List<OcptShootingTimelineBlock> blocks;
+}
+
+/// The result of chaining every slot of a day, each independently: a day is a **set of parallel
+/// chains**, not one — see [ocptComputeShootingDayTimelines]'s own doc comment.
+class OcptShootingDayTimelines {
+  /// Builds a computed set of timelines.
+  const OcptShootingDayTimelines({required this.bySlotId, required this.entries, required this.overruns, required this.dayEndMinute});
+
+  /// Each slot's own [OcptShootingSlotTimeline], keyed by [OcptShootingTimelineSlot.id].
+  final Map<String, OcptShootingSlotTimeline> bySlotId;
+
+  /// Every entry of every slot, flattened: the slots in the order they were given to
+  /// [ocptComputeShootingDayTimelines], and within a slot, its own chain order. Exists so a reader
+  /// that only cares about a block's own placement (the day view, a call sheet) doesn't have to
+  /// know which slot produced it.
+  final List<OcptShootingTimelineEntry> entries;
+
+  /// Every over-run of every slot, flattened the same way as [entries].
+  final List<OcptTimelineOverrun> overruns;
+
+  /// The **maximum** of every slot's own [OcptShootingSlotTimeline.endMinute] — a day ends when its
+  /// last unit wraps. Null when every slot is empty (see [OcptShootingSlotTimeline.endMinute]'s own
+  /// doc comment on what "empty" means for one slot).
+  final int? dayEndMinute;
+}
+
+/// Computes [slots]' own [OcptShootingSlotTimeline] independently — a thin loop over
+/// [ocptComputeSlotTimeline], one call per slot, joined into one [OcptShootingDayTimelines].
+///
+/// A day used to be chained as a single sequence; it no longer is. Two slots of a day — two units
+/// shooting at different locations, or the same crew split across a morning and an evening booking
+/// — each carry their own crew, their own place and their own hours, and serialising them into one
+/// chain would draw a sequence that never happened whenever they run at once. Reading them apart
+/// like this is what makes that (legal) overlap visible rather than silently flattened away.
+OcptShootingDayTimelines ocptComputeShootingDayTimelines({
+  required List<OcptShootingTimelineSlot> slots,
+  required int defaultDurationMinutes,
+}) {
+  final bySlotId = <String, OcptShootingSlotTimeline>{};
+  final entries = <OcptShootingTimelineEntry>[];
+  final overruns = <OcptTimelineOverrun>[];
+  int? dayEndMinute;
+
+  for (final slot in slots) {
+    final timeline = ocptComputeSlotTimeline(
+      blocks: slot.blocks,
+      slotStartMinute: slot.startMinute,
+      defaultDurationMinutes: defaultDurationMinutes,
+    );
+
+    bySlotId[slot.id] = timeline;
+    entries.addAll(timeline.entries);
+    overruns.addAll(timeline.overruns);
+
+    final slotEndMinute = timeline.endMinute;
+    if (slotEndMinute != null && (dayEndMinute == null || slotEndMinute > dayEndMinute)) {
+      dayEndMinute = slotEndMinute;
+    }
+  }
+
+  return OcptShootingDayTimelines(bySlotId: bySlotId, entries: entries, overruns: overruns, dayEndMinute: dayEndMinute);
 }

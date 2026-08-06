@@ -81,7 +81,8 @@ OcptShot _buildShot({required String id, required String code, OcptShotStatus st
 void main() {
   testWidgets("a block's computed start time is shown from the timeline", (tester) async {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, label: "Lunch");
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
@@ -114,7 +115,8 @@ void main() {
 
   testWidgets("an over-run block is marked in the error colour", (tester) async {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, anchorMinute: 480);
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
@@ -148,7 +150,8 @@ void main() {
 
   testWidgets("the ± controls dispatch a new duration", (tester) async {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
@@ -186,7 +189,8 @@ void main() {
   testWidgets("a drag-to-reorder gesture dispatches the reorder event", (tester) async {
     final blockA = _buildBlock(id: "block-a", label: "Prep");
     final blockB = _buildBlock(id: "block-b", kind: OcptShootingBlockKind.meal, label: "Lunch");
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-a", startMinute: 480, endMinute: 510, durationMinutes: 30),
         OcptShootingTimelineEntry(blockId: "block-b", startMinute: 510, endMinute: 540, durationMinutes: 30),
@@ -227,7 +231,8 @@ void main() {
   testWidgets("the shot status control dispatches the status just picked", (tester) async {
     final shot = _buildShot(id: "shot-1", code: "4/1");
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1");
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
@@ -272,7 +277,8 @@ void main() {
   testWidgets("every writing affordance is withheld when the mode is read-only", (tester) async {
     final shot = _buildShot(id: "shot-1", code: "4/1");
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1");
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
@@ -316,7 +322,8 @@ void main() {
   testWidgets("a pinned block's anchor can be retyped to the minute it exists for", (tester) async {
     // The meal break was pinned wherever the chain had reached; the legal start is 13:00.
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, anchorMinute: 745);
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 745, endMinute: 790, durationMinutes: 45),
       ],
@@ -353,7 +360,8 @@ void main() {
 
   testWidgets("an unpinned block offers no anchor field, only the pin", (tester) async {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
-    const timeline = OcptShootingDayTimeline(
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
       entries: [
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 525, durationMinutes: 45),
       ],

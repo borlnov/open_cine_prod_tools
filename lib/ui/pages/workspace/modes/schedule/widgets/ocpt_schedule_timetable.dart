@@ -32,7 +32,7 @@ class OcptScheduleTimetable extends StatelessWidget {
   final List<OcptShootingDayBlock> blocks;
 
   /// The day's own computed timetable, or null while it has nothing placed yet.
-  final OcptShootingDayTimeline? timeline;
+  final OcptShootingDayTimelines? timeline;
 
   /// Resolves a shot id to the shot it names.
   final OcptShot? Function(String shotId) shotOf;

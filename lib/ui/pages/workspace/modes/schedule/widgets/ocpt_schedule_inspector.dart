@@ -41,7 +41,7 @@ class OcptScheduleInspector extends StatelessWidget {
   final Map<String, OcptSet> setById;
 
   /// The selected day's own computed timetable, or null while it has nothing placed yet.
-  final OcptShootingDayTimeline? timeline;
+  final OcptShootingDayTimelines? timeline;
 
   /// The selected day's own computed sun times, or null while its first slot has no location with
   /// coordinates.

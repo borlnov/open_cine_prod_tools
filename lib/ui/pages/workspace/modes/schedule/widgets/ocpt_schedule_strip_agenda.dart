@@ -40,7 +40,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   final OcptShot? Function(String shotId) shotOf;
 
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed yet.
-  final OcptShootingDayTimeline? Function(String dayId) timelineOf;
+  final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
   /// The id of the shot currently being *placed*, or null while none is.
   final String? placingShotId;
@@ -131,7 +131,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   final OcptShot? Function(String shotId) shotOf;
 
   /// This day's own computed timetable, or null while it has nothing placed.
-  final OcptShootingDayTimeline? timeline;
+  final OcptShootingDayTimelines? timeline;
 
   /// Whether a *placing* is currently in progress (for any shot) — when true and the mode isn't
   /// read-only, the card offers its own "Place here" prompt.

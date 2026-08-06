@@ -42,7 +42,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   final Map<String, OcptLocation?> firstLocationByDayId;
 
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed.
-  final OcptShootingDayTimeline? Function(String dayId) timelineOf;
+  final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
   /// Resolves a day id to its own computed sun times, or null while its first slot has no location
   /// with coordinates.
@@ -139,7 +139,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
   final OcptLocation? location;
 
   /// [day]'s own computed timetable, or null while it has nothing placed (or [day] is null).
-  final OcptShootingDayTimeline? timeline;
+  final OcptShootingDayTimelines? timeline;
 
   /// [day]'s own computed sun times, or null while its first slot has no location with
   /// coordinates (or [day] is null).

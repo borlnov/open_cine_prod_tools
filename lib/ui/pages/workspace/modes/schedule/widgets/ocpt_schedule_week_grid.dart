@@ -47,7 +47,7 @@ const double _ocptWeekGridHourLineAlpha = 0.45;
 ///
 /// **The grid's own vertical range covers whatever the timelines it draws actually return**, never
 /// a bare 24 hours: a night shoot's blocks may end past minute 1440, and the grid's own bottom
-/// bound stretches to meet them (`ocptComputeShootingDayTimeline`'s own convention — see
+/// bound stretches to meet them (`ocptComputeShootingDayTimelines`'s own convention — see
 /// `lib/utils/ocpt_day_minute.dart`). A day with no sun-time figures at all (no coordinates pinned
 /// on its first slot's location) draws no shading band for that column rather than a wrong one.
 ///
@@ -73,7 +73,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   final OcptShot? Function(String shotId) shotOf;
 
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed.
-  final OcptShootingDayTimeline? Function(String dayId) timelineOf;
+  final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
   /// Resolves a day id to its own computed sun times, or null while its first slot has no location
   /// with coordinates.
@@ -204,7 +204,7 @@ DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 /// bare 24 hours.
 (int, int) _ocptWeekGridRange(
   List<OcptShootingDay?> weekDays,
-  OcptShootingDayTimeline? Function(String dayId) timelineOf,
+  OcptShootingDayTimelines? Function(String dayId) timelineOf,
 ) {
   var startMinute = _ocptWeekGridDefaultStartHour * 60;
   var endMinute = _ocptWeekGridDefaultEndHour * 60;
@@ -318,7 +318,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
 
   /// This column's own computed timetable, or null while it has nothing placed (or there is no
   /// shooting day on this date).
-  final OcptShootingDayTimeline? timeline;
+  final OcptShootingDayTimelines? timeline;
 
   /// This column's own computed sun times, or null while its first slot has no location with
   /// coordinates (or there is no shooting day on this date).

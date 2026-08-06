@@ -20,7 +20,7 @@ class OcptScheduleStatusBar extends StatelessWidget {
   final int shotsLeftToPlaceCount;
 
   /// Whether a day is selected at all, which [selectedDayEndMinute] alone cannot say: a day holding
-  /// no block yet has no end either (`ocptComputeShootingDayTimeline` returns a null one for an
+  /// no block yet has no end either (`ocptComputeShootingDayTimelines` returns a null one for an
   /// empty day), and telling the user nothing is selected when they have just created a day and are
   /// looking at it is simply false.
   final bool isDaySelected;

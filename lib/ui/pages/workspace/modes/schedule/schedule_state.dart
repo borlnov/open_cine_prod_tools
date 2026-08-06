@@ -72,7 +72,7 @@ class OcptScheduleUnplacedGroup extends Equatable {
 class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     with MixinOcptProjectVersionsState<OcptScheduleState> {
   /// The duration, in minutes, a block resolves to when it has neither its own `durationMinutes`
-  /// nor (for a shot block) an estimate to fall back to — `ocptComputeShootingDayTimeline`'s own
+  /// nor (for a shot block) an estimate to fall back to — `ocptComputeShootingDayTimelines`'s own
   /// `defaultDurationMinutes`, decided once here so every timeline this state computes agrees.
   static const int defaultBlockDurationMinutes = 30;
 
@@ -297,37 +297,56 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return groups;
   }
 
-  /// [dayId]'s own computed timetable (ADR 0015), or null while it has no live slot to start the
-  /// chain from (see `ocptComputeShootingDayTimeline`'s own empty-list case).
+  /// [dayId]'s own computed timelines (ADR 0015, amended per
+  /// `docs/plans/schedule-slots-and-computed-convocations.md`), one chain per live slot, joined
+  /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
+  /// all.
+  ///
+  /// A block whose own `slotId` is still null is left out of every chain: the column stays
+  /// nullable until the next milestone's migration makes it required and backfills it, so there is
+  /// no slot to place an orphan block under yet — no fallback is invented here, it simply doesn't
+  /// show on the day's timetable until that migration runs.
   ///
   /// Computed here rather than stored, exactly as `docs/plans/schedule-mode.md` §8 asks: reading it
   /// costs nothing beyond a handful of list lookups already held in memory, and storing it would be
   /// one more thing every write to that day's blocks would have to remember to invalidate.
-  OcptShootingDayTimeline? timelineOfDay(String dayId) {
-    final blocks = snapshot?.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
-    if (blocks.isEmpty) {
+  OcptShootingDayTimelines? timelinesOfDay(String dayId) {
+    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+    if (slots.isEmpty) {
       return null;
     }
 
-    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    final slotCallMinuteById = {for (final slot in slots) slot.id: slot.crewCallMinute};
+    final blocks = snapshot?.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
+    final blocksBySlotId = <String, List<OcptShootingDayBlock>>{};
+    for (final block in blocks) {
+      final slotId = block.slotId;
+      if (slotId == null) {
+        continue; // No slot to chain it under yet — see this method's own doc comment.
+      }
+      (blocksBySlotId[slotId] ??= <OcptShootingDayBlock>[]).add(block);
+    }
 
-    final timelineBlocks = [
-      for (final block in blocks)
-        OcptShootingTimelineBlock(
-          id: block.id,
-          durationMinutes: block.durationMinutes,
-          fallbackDurationMinutes: block.kind == OcptShootingBlockKind.shot && block.shotId != null
-              ? _durationMinutesOfShot(block.shotId!)
-              : null,
-          anchorMinute: block.anchorMinute,
-          slotCallMinute: block.slotId == null ? null : slotCallMinuteById[block.slotId],
+    final timelineSlots = [
+      for (final slot in slots)
+        OcptShootingTimelineSlot(
+          id: slot.id,
+          startMinute: slot.crewCallMinute,
+          blocks: [
+            for (final block in blocksBySlotId[slot.id] ?? const <OcptShootingDayBlock>[])
+              OcptShootingTimelineBlock(
+                id: block.id,
+                durationMinutes: block.durationMinutes,
+                fallbackDurationMinutes: block.kind == OcptShootingBlockKind.shot && block.shotId != null
+                    ? _durationMinutesOfShot(block.shotId!)
+                    : null,
+                anchorMinute: block.anchorMinute,
+              ),
+          ],
         ),
     ];
 
-    return ocptComputeShootingDayTimeline(
-      blocks: timelineBlocks,
-      firstCrewCallMinute: slots.isEmpty ? null : slots.first.crewCallMinute,
+    return ocptComputeShootingDayTimelines(
+      slots: timelineSlots,
       defaultDurationMinutes: defaultBlockDurationMinutes,
     );
   }
