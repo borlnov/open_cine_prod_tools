@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
@@ -37,15 +39,23 @@ const String _noLocationOption = "";
 /// from every group id — the same convention as [_noLocationOption], for the same reason.
 const String _noGroupOption = "";
 
+/// The width every crew or cast card of a slot's own people sections claims when there is room for
+/// it — the cast card's own pre-wrap width, wide enough for its three read-only clocks with margin
+/// to spare, so the app never needs two different card widths for the two kinds of person.
+/// [OcptScheduleSlotCard.build] never hands a card more than half its own body width, though: a
+/// half narrower than this shrinks every card of that half down to fit instead of overflowing it.
+const double _personCardWidth = 230;
+
 /// One slot's own card in the day view: its label, its location and set, its own **start**
-/// minute — the one clock left on a slot (§2.4 of
-/// `docs/plans/schedule-slots-and-computed-convocations.md`) — then the two columns
-/// `docs/plans/schedule-mode.md` §8 and Benoit's own M1 decision #1 ask for — `Équipe technique`,
-/// grouped by department, and `Comédiens` — each ending on its own `+ Crew member`/`+ Cast` footer
-/// opening a person or role picker right there on the card, with no duplicate list anywhere in the
-/// right dock — and, below both, this slot's **own** [OcptScheduleTimetable] (M2'): a day used to
-/// carry one timetable shared by every slot; now each card draws its own, over its own [blocks]
-/// alone, chained by its own [timeline].
+/// minute — the one clock left on a slot — then a row of two halves, `Équipe technique` (grouped by
+/// department, foldable — see [_OcptScheduleCrewSection]) and `Comédiens`, each ending on its own
+/// `+ Crew member`/`+ Cast` footer opening a person or role picker right there on the card, with no
+/// duplicate list anywhere in the right dock — and, below both, this slot's **own**
+/// [OcptScheduleTimetable]: a day used to carry one timetable shared by every slot; now each card
+/// draws its own, over its own [blocks] alone, chained by its own [timeline]. Neither half is ever
+/// handed more than half the card's own body width, and every crew or cast card within its own half
+/// wraps at [_personCardWidth] (shrunk to fit when that half is narrower), so a wide day view flows
+/// several cards per row instead of leaving the sides empty.
 ///
 /// **A crew or cast row's own arrival and PAT band are read-outs, never fields**: they are
 /// [convocations]' own computed answer (ADR 0017) for that row, and moving a block is what changes
@@ -280,7 +290,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
                 const SizedBox(width: 11),
                 Expanded(child: _buildHeaderFields(context)),
                 const SizedBox(width: 11),
-                _buildTimesColumn(context),
+                _buildStartField(context),
                 if (onDeletionRequested != null)
                   PopupMenuButton<VoidCallback>(
                     icon: const Icon(Icons.more_vert, size: 16),
@@ -299,19 +309,35 @@ class OcptScheduleSlotCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-            child: Wrap(
-              spacing: 22,
-              runSpacing: 14,
-              children: [
-                SizedBox(
-                  width: 320,
-                  child: _buildCrewColumn(context),
-                ),
-                SizedBox(
-                  width: 230,
-                  child: _buildCastColumn(context),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Neither half is ever handed more than half the row's own width; a card's own
+                // fixed width shrinks to fit when that half is narrower than it, so a narrow day
+                // view never overflows the card the way two hard-coded column widths once could.
+                final cardWidth = math.min(_personCardWidth, (constraints.maxWidth - 22) / 2);
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _OcptScheduleCrewSection(
+                        crew: slot.crew,
+                        personById: personById,
+                        people: people,
+                        groups: groups,
+                        convocations: convocations?.crew ?? const <OcptCrewConvocation>[],
+                        cardWidth: cardWidth,
+                        onCrewMemberAdded: onCrewMemberAdded,
+                        onCrewMemberPositionChanged: onCrewMemberPositionChanged,
+                        onCrewMemberRemoved: onCrewMemberRemoved,
+                        onCrewMemberLeadChanged: onCrewMemberLeadChanged,
+                        onCrewMemberGroupChanged: onCrewMemberGroupChanged,
+                      ),
+                    ),
+                    const SizedBox(width: 22),
+                    Expanded(child: _buildCastColumn(context, cardWidth)),
+                  ],
+                );
+              },
             ),
           ),
           Padding(
@@ -474,14 +500,14 @@ class OcptScheduleSlotCard extends StatelessWidget {
   );
 
   /// The header's own start field — the one clock a slot still carries, right-aligned.
-  Widget _buildTimesColumn(BuildContext context) {
+  Widget _buildStartField(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text("${tr.scheduleSlotCrewBandLabel} ", style: theme.textTheme.labelSmall),
+        Text("${tr.scheduleSlotStartLabel} ", style: theme.textTheme.labelSmall),
         OcptScheduleMinuteField(
           minute: slot.startMinute,
           isClearable: false,
@@ -494,113 +520,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
     );
   }
 
-  /// The `Équipe technique` column: [slot]'s own crew rows grouped by department, then the
-  /// `+ Crew member` footer.
-  Widget _buildCrewColumn(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final byDepartment = <OcptCrewDepartment?, List<OcptShootingSlotCrewMember>>{};
-    for (final member in slot.crew) {
-      final department = ocptCrewPositionDepartmentOf(member.positionId);
-      byDepartment.putIfAbsent(department, () => []).add(member);
-    }
-    final convocationById = {
-      for (final convocation in convocations?.crew ?? const <OcptCrewConvocation>[])
-        convocation.id: convocation,
-    };
-    final groupById = {for (final group in groups) group.id: group};
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tr.scheduleSlotCrewColumnTitle.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 7),
-        if (slot.crew.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              tr.scheduleSlotCrewEmptyHint,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          )
-        else
-          for (final department in byDepartment.keys)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    department == null
-                        ? tr.scheduleSlotUnassignedDepartmentLabel
-                        : ocptCrewDepartmentLabel(tr, department),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  for (final member in byDepartment[department]!)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: _OcptScheduleCrewMemberRow(
-                        key: ValueKey(member.id),
-                        member: member,
-                        person: personById[member.personId],
-                        convocation: convocationById[member.id],
-                        groups: groups,
-                        groupById: groupById,
-                        onPositionChanged: onCrewMemberPositionChanged == null
-                            ? null
-                            : (positionId) => onCrewMemberPositionChanged!(member.id, positionId),
-                        onRemoved: onCrewMemberRemoved == null
-                            ? null
-                            : () => onCrewMemberRemoved!(member.id),
-                        onLeadChanged: onCrewMemberLeadChanged == null
-                            ? null
-                            : (leadMinutes) => onCrewMemberLeadChanged!(member.id, leadMinutes),
-                        onGroupChanged: onCrewMemberGroupChanged == null
-                            ? null
-                            : (groupId) => onCrewMemberGroupChanged!(member.id, groupId),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        if (onCrewMemberAdded != null)
-          PopupMenuButton<String>(
-            tooltip: "",
-            onSelected: onCrewMemberAdded,
-            itemBuilder: (context) => [
-              for (final person in people)
-                PopupMenuItem<String>(
-                  value: person.id,
-                  child: Text(
-                    person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName,
-                  ),
-                ),
-            ],
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.add, size: 14),
-                const SizedBox(width: 4),
-                Text(tr.scheduleAddCrewMemberAction, style: theme.textTheme.labelSmall),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// The `Comédiens` column: [slot]'s own convoked roles, then the `+ Cast` footer.
-  Widget _buildCastColumn(BuildContext context) {
+  /// The `Comédiens` half: [slot]'s own convoked roles wrapped at [cardWidth] each, then the
+  /// `+ Cast` footer. Never folds, unlike [_OcptScheduleCrewSection] — Benoit only asked for the
+  /// crew half to.
+  Widget _buildCastColumn(BuildContext context, double cardWidth) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final convocationById = {
@@ -629,28 +552,39 @@ class OcptScheduleSlotCard extends StatelessWidget {
             ),
           )
         else
-          for (final member in slot.cast)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: _OcptScheduleCastRoleRow(
-                key: ValueKey(member.id),
-                member: member,
-                role: roleById[member.roleId],
-                person: roleById[member.roleId]?.personId == null
-                    ? null
-                    : personById[roleById[member.roleId]!.personId],
-                convocation: convocationById[member.id],
-                groups: groups,
-                groupById: groupById,
-                onRemoved: onCastRoleRemoved == null ? null : () => onCastRoleRemoved!(member.id),
-                onLeadChanged: onCastRoleLeadChanged == null
-                    ? null
-                    : (leadMinutes) => onCastRoleLeadChanged!(member.id, leadMinutes),
-                onGroupChanged: onCastRoleGroupChanged == null
-                    ? null
-                    : (groupId) => onCastRoleGroupChanged!(member.id, groupId),
-              ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final member in slot.cast)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _OcptScheduleCastRoleRow(
+                      key: ValueKey(member.id),
+                      member: member,
+                      role: roleById[member.roleId],
+                      person: roleById[member.roleId]?.personId == null
+                          ? null
+                          : personById[roleById[member.roleId]!.personId],
+                      convocation: convocationById[member.id],
+                      groups: groups,
+                      groupById: groupById,
+                      onRemoved: onCastRoleRemoved == null
+                          ? null
+                          : () => onCastRoleRemoved!(member.id),
+                      onLeadChanged: onCastRoleLeadChanged == null
+                          ? null
+                          : (leadMinutes) => onCastRoleLeadChanged!(member.id, leadMinutes),
+                      onGroupChanged: onCastRoleGroupChanged == null
+                          ? null
+                          : (groupId) => onCastRoleGroupChanged!(member.id, groupId),
+                    ),
+                  ),
+              ],
             ),
+          ),
         if (onCastRoleAdded != null)
           PopupMenuButton<String>(
             tooltip: "",
@@ -668,6 +602,213 @@ class OcptScheduleSlotCard extends StatelessWidget {
               ],
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// The `Équipe technique` half of [OcptScheduleSlotCard]'s own body: [crew] grouped by department,
+/// each department's own cards wrapped at [cardWidth], then the `+ Crew member` footer — folded
+/// away by a click on the title, along with the cards themselves, so a folded section still says
+/// how many people it holds (`Tr.scheduleSlotCrewCount`) rather than reading as an empty one.
+/// **Only this half folds**, Benoit having asked for the crew one alone; the fold is a per-view
+/// reading preference held in [State], never in the bloc or the properties manager — nothing is
+/// lost by it resetting the next time the card is built.
+class _OcptScheduleCrewSection extends StatefulWidget {
+  /// The slot's own crew assignments, in `sortKey` order.
+  final List<OcptShootingSlotCrewMember> crew;
+
+  /// The whole address book, keyed by id — what a crew row's own name is read off.
+  final Map<String, OcptPerson> personById;
+
+  /// The whole address book, in display order — what the `+ Crew member` picker offers.
+  final List<OcptPerson> people;
+
+  /// The day's own live groups — what a crew row's own group picker offers.
+  final List<OcptShootingDayGroup> groups;
+
+  /// The slot's own computed crew convocations (ADR 0017) — what every crew row's own read-out is
+  /// drawn from.
+  final List<OcptCrewConvocation> convocations;
+
+  /// The width every crew card of this half claims — see [_personCardWidth]'s own doc comment.
+  final double cardWidth;
+
+  /// Called with the id of the person picked by the `+ Crew member` footer, or null while withheld.
+  final ValueChanged<String>? onCrewMemberAdded;
+
+  /// Called with a crew assignment's id and the catalogue position just picked, or null while
+  /// withheld.
+  final void Function(String crewMemberId, String positionId)? onCrewMemberPositionChanged;
+
+  /// Called with a crew assignment's id when its row's remove control is clicked, or null while
+  /// withheld.
+  final ValueChanged<String>? onCrewMemberRemoved;
+
+  /// Called with a crew assignment's id and its own new lead time (null to clear it back to
+  /// reading its group's), or null while withheld.
+  final void Function(String crewMemberId, int? leadMinutes)? onCrewMemberLeadChanged;
+
+  /// Called with a crew assignment's id and the group just picked (null for "no group"), or null
+  /// while withheld.
+  final void Function(String crewMemberId, String? groupId)? onCrewMemberGroupChanged;
+
+  /// Class constructor
+  const _OcptScheduleCrewSection({
+    required this.crew,
+    required this.personById,
+    required this.people,
+    required this.groups,
+    required this.convocations,
+    required this.cardWidth,
+    required this.onCrewMemberAdded,
+    required this.onCrewMemberPositionChanged,
+    required this.onCrewMemberRemoved,
+    required this.onCrewMemberLeadChanged,
+    required this.onCrewMemberGroupChanged,
+  });
+
+  @override
+  State<_OcptScheduleCrewSection> createState() => _OcptScheduleCrewSectionState();
+}
+
+/// The state of [_OcptScheduleCrewSection]: owns the fold, expanded by default.
+class _OcptScheduleCrewSectionState extends State<_OcptScheduleCrewSection> {
+  /// Whether the section's own cards and footer are shown.
+  bool _isExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final byDepartment = <OcptCrewDepartment?, List<OcptShootingSlotCrewMember>>{};
+    for (final member in widget.crew) {
+      final department = ocptCrewPositionDepartmentOf(member.positionId);
+      byDepartment.putIfAbsent(department, () => []).add(member);
+    }
+    final convocationById = {
+      for (final convocation in widget.convocations) convocation.id: convocation,
+    };
+    final groupById = {for (final group in widget.groups) group.id: group};
+    final titleStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          mouseCursor: ocptClickableCursor,
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _isExpanded ? Icons.expand_less : Icons.expand_more,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 2),
+              Text(tr.scheduleSlotCrewColumnTitle.toUpperCase(), style: titleStyle),
+              if (!_isExpanded) ...[
+                const SizedBox(width: 6),
+                Text(
+                  tr.scheduleSlotCrewCount(widget.crew.length),
+                  style: titleStyle?.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (_isExpanded) ...[
+          const SizedBox(height: 7),
+          if (widget.crew.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                tr.scheduleSlotCrewEmptyHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          else
+            for (final department in byDepartment.keys)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      department == null
+                          ? tr.scheduleSlotUnassignedDepartmentLabel
+                          : ocptCrewDepartmentLabel(tr, department),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final member in byDepartment[department]!)
+                          SizedBox(
+                            width: widget.cardWidth,
+                            child: _OcptScheduleCrewMemberRow(
+                              key: ValueKey(member.id),
+                              member: member,
+                              person: widget.personById[member.personId],
+                              convocation: convocationById[member.id],
+                              groups: widget.groups,
+                              groupById: groupById,
+                              onPositionChanged: widget.onCrewMemberPositionChanged == null
+                                  ? null
+                                  : (positionId) =>
+                                      widget.onCrewMemberPositionChanged!(member.id, positionId),
+                              onRemoved: widget.onCrewMemberRemoved == null
+                                  ? null
+                                  : () => widget.onCrewMemberRemoved!(member.id),
+                              onLeadChanged: widget.onCrewMemberLeadChanged == null
+                                  ? null
+                                  : (leadMinutes) =>
+                                      widget.onCrewMemberLeadChanged!(member.id, leadMinutes),
+                              onGroupChanged: widget.onCrewMemberGroupChanged == null
+                                  ? null
+                                  : (groupId) =>
+                                      widget.onCrewMemberGroupChanged!(member.id, groupId),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          if (widget.onCrewMemberAdded != null)
+            PopupMenuButton<String>(
+              tooltip: "",
+              onSelected: widget.onCrewMemberAdded,
+              itemBuilder: (context) => [
+                for (final person in widget.people)
+                  PopupMenuItem<String>(
+                    value: person.id,
+                    child: Text(
+                      person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName,
+                    ),
+                  ),
+              ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, size: 14),
+                  const SizedBox(width: 4),
+                  Text(tr.scheduleAddCrewMemberAction, style: theme.textTheme.labelSmall),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }

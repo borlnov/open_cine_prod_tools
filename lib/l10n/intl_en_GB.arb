@@ -6609,9 +6609,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleSlotCrewBandLabel": "Crew",
-  "@scheduleSlotCrewBandLabel": {
-    "description": "Label of a slot card's own crew call/wrap band",
+  "scheduleSlotStartLabel": "Start",
+  "@scheduleSlotStartLabel": {
+    "description": "Label of a slot card's own start minute field",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {}
@@ -6629,6 +6629,17 @@
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleSlotCrewCount": "{count, plural, one{{count} person} other{{count} people}}",
+  "@scheduleSlotCrewCount": {
+    "description": "How many people the crew column holds, shown beside its title while it is folded",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "scheduleSlotCrewEmptyHint": "No crew member convoked yet.",
   "@scheduleSlotCrewEmptyHint": {

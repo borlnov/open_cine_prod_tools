@@ -703,4 +703,48 @@ void main() {
     expect(addedOnSlotOne, [OcptShootingBlockKind.meal]);
     expect(addedOnSlotTwo, isEmpty);
   });
+
+  testWidgets(
+    "the crew section shows by default, folds on a tap and unfolds on a second one",
+    (tester) async {
+      final crew = [
+        const OcptShootingSlotCrewMember(
+          id: "crew-1",
+          slotId: "slot-1",
+          personId: "person-1",
+          positionId: "director",
+          customLabel: "",
+          groupId: null,
+          leadMinutes: null,
+          notes: "",
+        ),
+      ];
+
+      await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, crew: crew)));
+      await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+
+      // Expanded by default: the crew card and its own footer are both on screen.
+      expect(find.text("Léa"), findsOneWidget);
+      expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
+      expect(find.text(tr.scheduleSlotCrewCount(1)), findsNothing);
+
+      // A tap on the title folds the section away: the card and the footer are both gone, and the
+      // title itself now says how many people it still holds.
+      await tester.tap(find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase()));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Léa"), findsNothing);
+      expect(find.text(tr.scheduleAddCrewMemberAction), findsNothing);
+      expect(find.text(tr.scheduleSlotCrewCount(1)), findsOneWidget);
+
+      // A second tap brings both back, and the count read-out goes with them.
+      await tester.tap(find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase()));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Léa"), findsOneWidget);
+      expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
+      expect(find.text(tr.scheduleSlotCrewCount(1)), findsNothing);
+    },
+  );
 }
