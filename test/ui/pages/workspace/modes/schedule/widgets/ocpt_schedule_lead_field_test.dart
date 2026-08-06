@@ -45,9 +45,19 @@ void main() {
 
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.controller?.text, "");
-    // The hint carries the unit too: unlike the suffix, Material only draws it while the field is
-    // empty and unfocused, which is exactly when the hint alone speaks for the field.
-    expect(field.decoration?.hintText, "20 min");
+    expect(field.decoration?.hintText, "20");
+    // The unit is drawn beside the field rather than as its decoration's own suffix, which Material
+    // withholds from an empty, unfocused field — i.e. from exactly the row reading its group's
+    // figure.
+    expect(find.text("min"), findsOneWidget);
+  });
+
+  testWidgets("an editable field carrying its own value still shows the unit", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(OcptScheduleLeadField(leadMinutes: 30, isClearable: true, onChanged: (_) {})),
+    );
+
+    expect(find.text("min"), findsOneWidget);
   });
 
   testWidgets("typing a figure and submitting reports it", (tester) async {

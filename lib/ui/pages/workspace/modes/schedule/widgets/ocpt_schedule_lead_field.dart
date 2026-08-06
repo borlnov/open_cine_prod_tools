@@ -4,6 +4,15 @@
 
 import 'package:flutter/material.dart';
 
+/// The unit every lead time in this mode is expressed in, printed beside the figure in both of
+/// [OcptScheduleLeadField]'s own states — deliberately not localized: `min` is the symbol, and it
+/// is the same one in both UI languages.
+const String _ocptScheduleMinutesUnit = "min";
+
+/// How wide the typed figure's own box is, in logical pixels — the unit now sits outside it, so it
+/// only has to hold three digits.
+const double _ocptScheduleLeadFieldWidth = 56;
+
 /// A compact field editing one of the schedule's own lead-time columns
 /// (`shooting_day_groups.leadMinutes`, a crew or cast row's own `leadMinutes` override) — how many
 /// minutes before the moment a person is needed they have to be there (ADR 0017).
@@ -151,12 +160,12 @@ class _OcptScheduleLeadFieldState extends State<OcptScheduleLeadField> {
     if (onChanged == null) {
       final ownValue = widget.leadMinutes;
       if (ownValue != null) {
-        return Text("$ownValue min", style: theme.textTheme.bodySmall);
+        return Text("$ownValue $_ocptScheduleMinutesUnit", style: theme.textTheme.bodySmall);
       }
 
       final inherited = widget.inheritedLeadMinutes;
       return Text(
-        inherited == null ? "—" : "$inherited min",
+        inherited == null ? "—" : "$inherited $_ocptScheduleMinutesUnit",
         style: theme.textTheme.bodySmall?.copyWith(
           fontStyle: FontStyle.italic,
           color: theme.colorScheme.onSurfaceVariant,
@@ -166,24 +175,37 @@ class _OcptScheduleLeadFieldState extends State<OcptScheduleLeadField> {
 
     final inherited = widget.inheritedLeadMinutes;
 
-    return SizedBox(
-      width: 76,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: TextInputType.number,
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(
-          isDense: true,
-          suffixText: "min",
-          hintText: inherited == null ? null : "$inherited min",
-          hintStyle: theme.textTheme.bodySmall?.copyWith(
-            fontStyle: FontStyle.italic,
-            color: theme.colorScheme.onSurfaceVariant,
+    // The unit is a plain [Text] beside the field rather than the decoration's own `suffixText`:
+    // Material only paints a suffix while the field has text or the focus, so a row reading its
+    // group's figure — an empty field showing that figure as a hint — lost the `min` exactly when
+    // the reader most needs to know what unit the number is in.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: _ocptScheduleLeadFieldWidth,
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            onSubmitted: (_) => _commit(),
+            keyboardType: TextInputType.number,
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: inherited == null ? null : "$inherited",
+              hintStyle: theme.textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(width: 4),
+        Text(
+          _ocptScheduleMinutesUnit,
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      ],
     );
   }
 }
