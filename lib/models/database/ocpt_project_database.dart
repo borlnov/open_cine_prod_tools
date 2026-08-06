@@ -144,9 +144,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   final bool isPreview;
 
   /// Opens (creating it if needed) the project database stored at [file].
-  OcptProjectDatabase(File file)
-    : isPreview = false,
-      super(NativeDatabase(file));
+  OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
 
   /// Opens a project database backed by an in-memory SQLite instance: the connection a version
   /// preview is hydrated into ([isPreview] true), and the one the tests run against.
@@ -213,8 +211,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// second (e.g. a burst of saves), which would make them tie when ordered by `createdAt` and
   /// break `OcptScreenplayService`'s "most recent" pruning.
   @override
-  DriftDatabaseOptions get options =>
-      const DriftDatabaseOptions(storeDateTimeAsText: true);
+  DriftDatabaseOptions get options => const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   /// How an existing `.ocpt` file is brought up to the current [schemaVersion]. See
   /// `docs/adr/0007-schema-migration-policy.md` for what a schema version means for a user's
@@ -287,27 +284,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 3) {
         await m.addColumn(ocptScreenplaysTable, ocptScreenplaysTable.isDeleted);
-        await m.addColumn(
-          ocptScreenplaySnapshotsTable,
-          ocptScreenplaySnapshotsTable.isDeleted,
-        );
+        await m.addColumn(ocptScreenplaySnapshotsTable, ocptScreenplaySnapshotsTable.isDeleted);
         await m.addColumn(ocptScenesTable, ocptScenesTable.isDeleted);
 
         if (from >= 2) {
           await m.addColumn(ocptShotsTable, ocptShotsTable.sortKey);
           await m.addColumn(ocptShotsTable, ocptShotsTable.isDeleted);
-          await m.addColumn(
-            ocptShotCharactersTable,
-            ocptShotCharactersTable.sortKey,
-          );
-          await m.addColumn(
-            ocptShotCharactersTable,
-            ocptShotCharactersTable.isDeleted,
-          );
-          await m.addColumn(
-            ocptShotCoveragesTable,
-            ocptShotCoveragesTable.isDeleted,
-          );
+          await m.addColumn(ocptShotCharactersTable, ocptShotCharactersTable.sortKey);
+          await m.addColumn(ocptShotCharactersTable, ocptShotCharactersTable.isDeleted);
+          await m.addColumn(ocptShotCoveragesTable, ocptShotCoveragesTable.isDeleted);
         }
 
         await m.createTable(ocptRowFieldVersionsTable);
@@ -320,10 +305,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 5) {
         await m.createTable(ocptProjectVersionsTable);
-        await m.addColumn(
-          ocptProjectInfoTable,
-          ocptProjectInfoTable.currentVersionId,
-        );
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currentVersionId);
       }
 
       if (from < 6) {
@@ -351,10 +333,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       }
 
       if (from < 8) {
-        await m.addColumn(
-          ocptProjectInfoTable,
-          ocptProjectInfoTable.currencyCode,
-        );
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currencyCode);
       }
 
       if (from < 9) {
@@ -483,10 +462,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     for (final row in liveSlots) {
       final slotId = row.data['id'] as String;
       liveSlotIds.add(slotId);
-      firstSlotIdByDay.putIfAbsent(
-        row.data['shooting_day_id'] as String,
-        () => slotId,
-      );
+      firstSlotIdByDay.putIfAbsent(row.data['shooting_day_id'] as String, () => slotId);
     }
 
     final blocks = await customSelect(
@@ -508,16 +484,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         continue;
       }
 
-      await customStatement(
-        'UPDATE shooting_day_blocks SET slot_id = ? WHERE id = ?',
-        [firstSlotId, blockId],
-      );
+      await customStatement('UPDATE shooting_day_blocks SET slot_id = ? WHERE id = ?', [
+        firstSlotId,
+        blockId,
+      ]);
     }
 
     for (final blockId in blockIdsToDelete) {
-      await customStatement('DELETE FROM shooting_day_blocks WHERE id = ?', [
-        blockId,
-      ]);
+      await customStatement('DELETE FROM shooting_day_blocks WHERE id = ?', [blockId]);
     }
   }
 
@@ -560,9 +534,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         ocptShootingSlotsTable,
         newColumns: [ocptShootingSlotsTable.startMinute],
         columnTransformer: {
-          ocptShootingSlotsTable.startMinute: const CustomExpression<int>(
-            'crew_call_minute',
-          ),
+          ocptShootingSlotsTable.startMinute: const CustomExpression<int>('crew_call_minute'),
         },
       ),
     );
@@ -578,10 +550,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       // ignore: experimental_member_use
       TableMigration(
         ocptShootingSlotCrewTable,
-        newColumns: [
-          ocptShootingSlotCrewTable.groupId,
-          ocptShootingSlotCrewTable.leadMinutes,
-        ],
+        newColumns: [ocptShootingSlotCrewTable.groupId, ocptShootingSlotCrewTable.leadMinutes],
       ),
     );
 
@@ -590,10 +559,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       // ignore: experimental_member_use
       TableMigration(
         ocptShootingSlotCastTable,
-        newColumns: [
-          ocptShootingSlotCastTable.groupId,
-          ocptShootingSlotCastTable.leadMinutes,
-        ],
+        newColumns: [ocptShootingSlotCastTable.groupId, ocptShootingSlotCastTable.leadMinutes],
       ),
     );
   }
@@ -613,10 +579,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// the schema, that describe what the file actually holds.
   Future<void> _backfillSortKeys() async {
     await _backfillGroups(
-      selectSql:
-          'SELECT id, screenplay_id, scene_id FROM shots ORDER BY position, id',
-      groupKeyOf: (row) =>
-          "${row.data['screenplay_id']}/${row.data['scene_id']}",
+      selectSql: 'SELECT id, screenplay_id, scene_id FROM shots ORDER BY position, id',
+      groupKeyOf: (row) => "${row.data['screenplay_id']}/${row.data['scene_id']}",
       updateSql: 'UPDATE shots SET sort_key = ? WHERE id = ?',
       updateArgsOf: (row) => [row.data['id']],
     );
@@ -626,8 +590,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
           'SELECT shot_id, character_name FROM shot_characters '
           'ORDER BY position, character_name',
       groupKeyOf: (row) => "${row.data['shot_id']}",
-      updateSql:
-          'UPDATE shot_characters SET sort_key = ? WHERE shot_id = ? AND character_name = ?',
+      updateSql: 'UPDATE shot_characters SET sort_key = ? WHERE shot_id = ? AND character_name = ?',
       updateArgsOf: (row) => [row.data['shot_id'], row.data['character_name']],
     );
   }

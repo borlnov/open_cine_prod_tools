@@ -684,15 +684,14 @@ class OcptProjectVersionCodec {
   /// The map has to cover every format from the oldest readable one up to
   /// `currentPayloadFormat - 1`, without a hole, or [decode] refuses the payload rather than
   /// guessing.
-  static const _payloadUpgrades =
-      <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{
-        1: _upgradeFormat1To2,
-        2: _upgradeFormat2To3,
-        3: _upgradeFormat3To4,
-        4: _upgradeFormat4To5,
-        5: _upgradeFormat5To6,
-        6: _upgradeFormat6To7,
-      };
+  static const _payloadUpgrades = <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{
+    1: _upgradeFormat1To2,
+    2: _upgradeFormat2To3,
+    3: _upgradeFormat3To4,
+    4: _upgradeFormat4To5,
+    5: _upgradeFormat5To6,
+    6: _upgradeFormat6To7,
+  };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
   /// (`people` down to `assets`) simply didn't exist yet, so this materialises them as **empty
@@ -855,16 +854,12 @@ class OcptProjectVersionCodec {
         continue;
       }
       liveSlotIds.add(slot[_idKey] as String);
-      liveSlotsByDay
-          .putIfAbsent(slot[_shootingDayIdKey] as String, () => [])
-          .add(slot);
+      liveSlotsByDay.putIfAbsent(slot[_shootingDayIdKey] as String, () => []).add(slot);
     }
     for (final entry in liveSlotsByDay.entries) {
       final ordered = [...entry.value]
         ..sort((a, b) {
-          final sortKeyComparison = (a[_sortKeyKey] as String).compareTo(
-            b[_sortKeyKey] as String,
-          );
+          final sortKeyComparison = (a[_sortKeyKey] as String).compareTo(b[_sortKeyKey] as String);
           return sortKeyComparison != 0
               ? sortKeyComparison
               : (a[_idKey] as String).compareTo(b[_idKey] as String);
@@ -905,56 +900,34 @@ class OcptProjectVersionCodec {
   /// [currentPayloadFormat].
   String encode(OcptProjectVersionPayload payload) => jsonEncode({
     _payloadFormatKey: currentPayloadFormat,
-    _screenplaysKey: [
-      for (final row in payload.screenplays) _screenplayToJson(row),
-    ],
+    _screenplaysKey: [for (final row in payload.screenplays) _screenplayToJson(row)],
     _scenesKey: [for (final row in payload.scenes) _sceneToJson(row)],
     _shotsKey: [for (final row in payload.shots) _shotToJson(row)],
-    _shotCharactersKey: [
-      for (final row in payload.shotCharacters) _shotCharacterToJson(row),
-    ],
-    _shotCoveragesKey: [
-      for (final row in payload.shotCoverages) _shotCoverageToJson(row),
-    ],
+    _shotCharactersKey: [for (final row in payload.shotCharacters) _shotCharacterToJson(row)],
+    _shotCoveragesKey: [for (final row in payload.shotCoverages) _shotCoverageToJson(row)],
     _peopleKey: [for (final row in payload.people) _personToJson(row)],
-    _personPositionsKey: [
-      for (final row in payload.personPositions) _personPositionToJson(row),
-    ],
-    _personSkillsKey: [
-      for (final row in payload.personSkills) _personSkillToJson(row),
-    ],
+    _personPositionsKey: [for (final row in payload.personPositions) _personPositionToJson(row)],
+    _personSkillsKey: [for (final row in payload.personSkills) _personSkillToJson(row)],
     _personUnavailabilitiesKey: [
-      for (final row in payload.personUnavailabilities)
-        _personUnavailabilityToJson(row),
+      for (final row in payload.personUnavailabilities) _personUnavailabilityToJson(row),
     ],
     _rolesKey: [for (final row in payload.roles) _roleToJson(row)],
     _locationsKey: [for (final row in payload.locations) _locationToJson(row)],
     _locationAvailabilitiesKey: [
-      for (final row in payload.locationAvailabilities)
-        _locationAvailabilityToJson(row),
+      for (final row in payload.locationAvailabilities) _locationAvailabilityToJson(row),
     ],
     _setsKey: [for (final row in payload.sets) _setToJson(row)],
     _sceneSetsKey: [for (final row in payload.sceneSets) _sceneSetToJson(row)],
     _elementsKey: [for (final row in payload.elements) _elementToJson(row)],
-    _sceneElementsKey: [
-      for (final row in payload.sceneElements) _sceneElementToJson(row),
-    ],
+    _sceneElementsKey: [for (final row in payload.sceneElements) _sceneElementToJson(row)],
     _assetsKey: [for (final row in payload.assets) _assetToJson(row)],
-    _breakdownTagsKey: [
-      for (final row in payload.breakdownTags) _breakdownTagToJson(row),
-    ],
-    _sceneBreakdownsKey: [
-      for (final row in payload.sceneBreakdowns) _sceneBreakdownToJson(row),
-    ],
-    _shootingDaysKey: [
-      for (final row in payload.shootingDays) _shootingDayToJson(row),
-    ],
+    _breakdownTagsKey: [for (final row in payload.breakdownTags) _breakdownTagToJson(row)],
+    _sceneBreakdownsKey: [for (final row in payload.sceneBreakdowns) _sceneBreakdownToJson(row)],
+    _shootingDaysKey: [for (final row in payload.shootingDays) _shootingDayToJson(row)],
     _shootingDayGroupsKey: [
       for (final row in payload.shootingDayGroups) _shootingDayGroupToJson(row),
     ],
-    _shootingSlotsKey: [
-      for (final row in payload.shootingSlots) _shootingSlotToJson(row),
-    ],
+    _shootingSlotsKey: [for (final row in payload.shootingSlots) _shootingSlotToJson(row)],
     _shootingSlotCrewKey: [
       for (final row in payload.shootingSlotCrew) _shootingSlotCrewToJson(row),
     ],
@@ -967,9 +940,7 @@ class OcptProjectVersionCodec {
     _shootingPresencesKey: [
       for (final row in payload.shootingPresences) _shootingPresenceToJson(row),
     ],
-    _rowFieldVersionsKey: [
-      for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row),
-    ],
+    _rowFieldVersionsKey: [for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row)],
     _projectSettingsKey: {
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
@@ -988,8 +959,9 @@ class OcptProjectVersionCodec {
   ///
   /// Never throws: every failure comes back as an [OcptProjectVersionPayloadStatus], because the
   /// caller of a decode is always about to tell the user why a version can't be opened.
-  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>
-  decode(String payloadJson) {
+  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> decode(
+    String payloadJson,
+  ) {
     try {
       final decoded = jsonDecode(payloadJson);
       if (decoded is! Map<String, dynamic>) {
@@ -1013,17 +985,11 @@ class OcptProjectVersionCodec {
         value: _payloadFromJson(_upgraded(decoded, payloadFormat)),
       );
     } on _OcptPayloadFormatError catch (error) {
-      appLogger().e(
-        "The project version payload can't be read: ${error.reason}",
-      );
-      return const ResultWithStatus(
-        status: OcptProjectVersionPayloadStatus.malformedPayload,
-      );
+      appLogger().e("The project version payload can't be read: ${error.reason}");
+      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     } on FormatException catch (error) {
       appLogger().e("The project version payload isn't valid JSON: $error");
-      return const ResultWithStatus(
-        status: OcptProjectVersionPayloadStatus.malformedPayload,
-      );
+      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     }
   }
 
@@ -1081,15 +1047,10 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _sceneToJson,
       ),
-      _shotsKey: _canonicalRows(
-        payload.shots,
-        primaryKeyOf: (row) => row.id,
-        toJson: _shotToJson,
-      ),
+      _shotsKey: _canonicalRows(payload.shots, primaryKeyOf: (row) => row.id, toJson: _shotToJson),
       _shotCharactersKey: _canonicalRows(
         payload.shotCharacters,
-        primaryKeyOf: (row) =>
-            ocptCompositeRowStampKey([row.shotId, row.characterName]),
+        primaryKeyOf: (row) => ocptCompositeRowStampKey([row.shotId, row.characterName]),
         toJson: _shotCharacterToJson,
       ),
       _shotCoveragesKey: _canonicalRows(
@@ -1117,11 +1078,7 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _personUnavailabilityToJson,
       ),
-      _rolesKey: _canonicalRows(
-        payload.roles,
-        primaryKeyOf: (row) => row.id,
-        toJson: _roleToJson,
-      ),
+      _rolesKey: _canonicalRows(payload.roles, primaryKeyOf: (row) => row.id, toJson: _roleToJson),
       _locationsKey: _canonicalRows(
         payload.locations,
         primaryKeyOf: (row) => row.id,
@@ -1132,11 +1089,7 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _locationAvailabilityToJson,
       ),
-      _setsKey: _canonicalRows(
-        payload.sets,
-        primaryKeyOf: (row) => row.id,
-        toJson: _setToJson,
-      ),
+      _setsKey: _canonicalRows(payload.sets, primaryKeyOf: (row) => row.id, toJson: _setToJson),
       _sceneSetsKey: _canonicalRows(
         payload.sceneSets,
         primaryKeyOf: (row) => row.id,
@@ -1219,31 +1172,22 @@ class OcptProjectVersionCodec {
     required String Function(D row) primaryKeyOf,
     required Map<String, dynamic> Function(D row) toJson,
   }) {
-    final sortedRows = [...rows]
-      ..sort((a, b) => primaryKeyOf(a).compareTo(primaryKeyOf(b)));
+    final sortedRows = [...rows]..sort((a, b) => primaryKeyOf(a).compareTo(primaryKeyOf(b)));
 
-    return [
-      for (final row in sortedRows)
-        SplayTreeMap<String, dynamic>.of(toJson(row)),
-    ];
+    return [for (final row in sortedRows) SplayTreeMap<String, dynamic>.of(toJson(row))];
   }
 
   /// Replays the [_payloadUpgrades] steps that take [json], written in [payloadFormat], up to
   /// [currentPayloadFormat].
   ///
   /// Returns [json] itself when it is already current, which is the only case that exists so far.
-  static Map<String, dynamic> _upgraded(
-    Map<String, dynamic> json,
-    int payloadFormat,
-  ) {
+  static Map<String, dynamic> _upgraded(Map<String, dynamic> json, int payloadFormat) {
     var upgraded = json;
 
     for (var format = payloadFormat; format < currentPayloadFormat; format++) {
       final upgrade = _payloadUpgrades[format];
       if (upgrade == null) {
-        throw _OcptPayloadFormatError(
-          "no upgrade step knows how to read the format $format",
-        );
+        throw _OcptPayloadFormatError("no upgrade step knows how to read the format $format");
       }
 
       upgraded = upgrade(upgraded);
@@ -1258,99 +1202,59 @@ class OcptProjectVersionCodec {
     final pageMargins = _object(json, _pageMarginsKey);
 
     return OcptProjectVersionPayload(
-      screenplays: [
-        for (final row in _rows(json, _screenplaysKey))
-          _screenplayFromJson(row),
-      ],
+      screenplays: [for (final row in _rows(json, _screenplaysKey)) _screenplayFromJson(row)],
       scenes: [for (final row in _rows(json, _scenesKey)) _sceneFromJson(row)],
       shots: [for (final row in _rows(json, _shotsKey)) _shotFromJson(row)],
       shotCharacters: [
-        for (final row in _rows(json, _shotCharactersKey))
-          _shotCharacterFromJson(row),
+        for (final row in _rows(json, _shotCharactersKey)) _shotCharacterFromJson(row),
       ],
-      shotCoverages: [
-        for (final row in _rows(json, _shotCoveragesKey))
-          _shotCoverageFromJson(row),
-      ],
+      shotCoverages: [for (final row in _rows(json, _shotCoveragesKey)) _shotCoverageFromJson(row)],
       people: [for (final row in _rows(json, _peopleKey)) _personFromJson(row)],
       personPositions: [
-        for (final row in _rows(json, _personPositionsKey))
-          _personPositionFromJson(row),
+        for (final row in _rows(json, _personPositionsKey)) _personPositionFromJson(row),
       ],
-      personSkills: [
-        for (final row in _rows(json, _personSkillsKey))
-          _personSkillFromJson(row),
-      ],
+      personSkills: [for (final row in _rows(json, _personSkillsKey)) _personSkillFromJson(row)],
       personUnavailabilities: [
         for (final row in _rows(json, _personUnavailabilitiesKey))
           _personUnavailabilityFromJson(row),
       ],
       roles: [for (final row in _rows(json, _rolesKey)) _roleFromJson(row)],
-      locations: [
-        for (final row in _rows(json, _locationsKey)) _locationFromJson(row),
-      ],
+      locations: [for (final row in _rows(json, _locationsKey)) _locationFromJson(row)],
       locationAvailabilities: [
         for (final row in _rows(json, _locationAvailabilitiesKey))
           _locationAvailabilityFromJson(row),
       ],
       sets: [for (final row in _rows(json, _setsKey)) _setFromJson(row)],
-      sceneSets: [
-        for (final row in _rows(json, _sceneSetsKey)) _sceneSetFromJson(row),
-      ],
-      elements: [
-        for (final row in _rows(json, _elementsKey)) _elementFromJson(row),
-      ],
-      sceneElements: [
-        for (final row in _rows(json, _sceneElementsKey))
-          _sceneElementFromJson(row),
-      ],
+      sceneSets: [for (final row in _rows(json, _sceneSetsKey)) _sceneSetFromJson(row)],
+      elements: [for (final row in _rows(json, _elementsKey)) _elementFromJson(row)],
+      sceneElements: [for (final row in _rows(json, _sceneElementsKey)) _sceneElementFromJson(row)],
       assets: [for (final row in _rows(json, _assetsKey)) _assetFromJson(row)],
-      breakdownTags: [
-        for (final row in _rows(json, _breakdownTagsKey))
-          _breakdownTagFromJson(row),
-      ],
+      breakdownTags: [for (final row in _rows(json, _breakdownTagsKey)) _breakdownTagFromJson(row)],
       sceneBreakdowns: [
-        for (final row in _rows(json, _sceneBreakdownsKey))
-          _sceneBreakdownFromJson(row),
+        for (final row in _rows(json, _sceneBreakdownsKey)) _sceneBreakdownFromJson(row),
       ],
-      shootingDays: [
-        for (final row in _rows(json, _shootingDaysKey))
-          _shootingDayFromJson(row),
-      ],
+      shootingDays: [for (final row in _rows(json, _shootingDaysKey)) _shootingDayFromJson(row)],
       shootingDayGroups: [
-        for (final row in _rows(json, _shootingDayGroupsKey))
-          _shootingDayGroupFromJson(row),
+        for (final row in _rows(json, _shootingDayGroupsKey)) _shootingDayGroupFromJson(row),
       ],
-      shootingSlots: [
-        for (final row in _rows(json, _shootingSlotsKey))
-          _shootingSlotFromJson(row),
-      ],
+      shootingSlots: [for (final row in _rows(json, _shootingSlotsKey)) _shootingSlotFromJson(row)],
       shootingSlotCrew: [
-        for (final row in _rows(json, _shootingSlotCrewKey))
-          _shootingSlotCrewFromJson(row),
+        for (final row in _rows(json, _shootingSlotCrewKey)) _shootingSlotCrewFromJson(row),
       ],
       shootingSlotCast: [
-        for (final row in _rows(json, _shootingSlotCastKey))
-          _shootingSlotCastFromJson(row),
+        for (final row in _rows(json, _shootingSlotCastKey)) _shootingSlotCastFromJson(row),
       ],
       shootingDayBlocks: [
-        for (final row in _rows(json, _shootingDayBlocksKey))
-          _shootingDayBlockFromJson(row),
+        for (final row in _rows(json, _shootingDayBlocksKey)) _shootingDayBlockFromJson(row),
       ],
       shootingPresences: [
-        for (final row in _rows(json, _shootingPresencesKey))
-          _shootingPresenceFromJson(row),
+        for (final row in _rows(json, _shootingPresencesKey)) _shootingPresenceFromJson(row),
       ],
       rowFieldVersions: [
-        for (final row in _rows(json, _rowFieldVersionsKey))
-          _rowFieldVersionFromJson(row),
+        for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
       ],
       pageSetup: OcptPageSetup(
-        format: _enum(
-          projectSettings,
-          _pageFormatKey,
-          OcptPageFormat.values.asNameMap(),
-        ),
+        format: _enum(projectSettings, _pageFormatKey, OcptPageFormat.values.asNameMap()),
         margins: FountainPageMargins(
           leftInches: _double(pageMargins, _marginLeftKey),
           rightInches: _double(pageMargins, _marginRightKey),
@@ -1373,14 +1277,13 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `screenplays` row.
-  static OcptScreenplayRow _screenplayFromJson(Map<String, dynamic> json) =>
-      OcptScreenplayRow(
-        id: _string(json, _idKey),
-        title: _string(json, _titleKey),
-        fountainText: _string(json, _fountainTextKey),
-        updatedAt: _dateTime(json, _updatedAtKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
+  static OcptScreenplayRow _screenplayFromJson(Map<String, dynamic> json) => OcptScreenplayRow(
+    id: _string(json, _idKey),
+    title: _string(json, _titleKey),
+    fountainText: _string(json, _fountainTextKey),
+    updatedAt: _dateTime(json, _updatedAtKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `scenes` row.
   static Map<String, dynamic> _sceneToJson(OcptSceneRow row) => {
@@ -1462,34 +1365,28 @@ class OcptProjectVersionCodec {
     notes: _string(json, _notesKey),
     locationNotes: _string(json, _locationNotesKey),
     needsCheck: _bool(json, _needsCheckKey),
-    checkReason: _nullableEnum(
-      json,
-      _checkReasonKey,
-      OcptShotCheckReason.values.asNameMap(),
-    ),
+    checkReason: _nullableEnum(json, _checkReasonKey, OcptShotCheckReason.values.asNameMap()),
     isDeleted: _bool(json, _isDeletedKey),
   );
 
   /// Serializes one `shot_characters` row.
-  static Map<String, dynamic> _shotCharacterToJson(OcptShotCharacterRow row) =>
-      {
-        _shotIdKey: row.shotId,
-        _characterNameKey: row.characterName,
-        _positionKey: row.position,
-        _sortKeyKey: row.sortKey,
-        _isDeletedKey: row.isDeleted,
-      };
+  static Map<String, dynamic> _shotCharacterToJson(OcptShotCharacterRow row) => {
+    _shotIdKey: row.shotId,
+    _characterNameKey: row.characterName,
+    _positionKey: row.position,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
 
   /// Parses one `shot_characters` row.
-  static OcptShotCharacterRow _shotCharacterFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShotCharacterRow(
-    shotId: _string(json, _shotIdKey),
-    characterName: _string(json, _characterNameKey),
-    position: _int(json, _positionKey),
-    sortKey: _string(json, _sortKeyKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShotCharacterRow _shotCharacterFromJson(Map<String, dynamic> json) =>
+      OcptShotCharacterRow(
+        shotId: _string(json, _shotIdKey),
+        characterName: _string(json, _characterNameKey),
+        position: _int(json, _positionKey),
+        sortKey: _string(json, _sortKeyKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shot_coverages` row.
   static Map<String, dynamic> _shotCoverageToJson(OcptShotCoverageRow row) => {
@@ -1553,52 +1450,45 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `people` row.
-  static OcptPersonRow _personFromJson(Map<String, dynamic> json) =>
-      OcptPersonRow(
-        id: _string(json, _idKey),
-        sortKey: _string(json, _sortKeyKey),
-        isDeleted: _bool(json, _isDeletedKey),
-        firstName: _string(json, _firstNameKey),
-        lastName: _string(json, _lastNameKey),
-        email: _string(json, _emailKey),
-        phone: _string(json, _phoneKey),
-        addressLine1: _string(json, _addressLine1Key),
-        addressLine2: _string(json, _addressLine2Key),
-        postalCode: _string(json, _postalCodeKey),
-        city: _string(json, _cityKey),
-        region: _string(json, _regionKey),
-        country: _string(json, _countryKey),
-        colorIndex: _int(json, _colorIndexKey),
-        birthDate: _nullableDateTime(json, _birthDateKey),
-        minorNotes: _string(json, _minorNotesKey),
-        isTransportAutonomous: _nullableBool(json, _isTransportAutonomousKey),
-        accommodationNotes: _string(json, _accommodationNotesKey),
-        travelNotes: _string(json, _travelNotesKey),
-        dietaryNotes: _string(json, _dietaryNotesKey),
-        allergies: _string(json, _allergiesKey),
-        measurementHeight: _string(json, _measurementHeightKey),
-        measurementChest: _string(json, _measurementChestKey),
-        measurementWaist: _string(json, _measurementWaistKey),
-        measurementHips: _string(json, _measurementHipsKey),
-        sizeTop: _string(json, _sizeTopKey),
-        sizeBottom: _string(json, _sizeBottomKey),
-        sizeShoes: _string(json, _sizeShoesKey),
-        hmcNotes: _string(json, _hmcNotesKey),
-        imageRightsStatus: _enum(
-          json,
-          _imageRightsStatusKey,
-          OcptImageRightsStatus.values.asNameMap(),
-        ),
-        imageRightsDate: _nullableDateTime(json, _imageRightsDateKey),
-        imageRightsAssetId: _nullableString(json, _imageRightsAssetIdKey),
-        photoAssetId: _nullableString(json, _photoAssetIdKey),
-        notes: _string(json, _notesKey),
-      );
+  static OcptPersonRow _personFromJson(Map<String, dynamic> json) => OcptPersonRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    firstName: _string(json, _firstNameKey),
+    lastName: _string(json, _lastNameKey),
+    email: _string(json, _emailKey),
+    phone: _string(json, _phoneKey),
+    addressLine1: _string(json, _addressLine1Key),
+    addressLine2: _string(json, _addressLine2Key),
+    postalCode: _string(json, _postalCodeKey),
+    city: _string(json, _cityKey),
+    region: _string(json, _regionKey),
+    country: _string(json, _countryKey),
+    colorIndex: _int(json, _colorIndexKey),
+    birthDate: _nullableDateTime(json, _birthDateKey),
+    minorNotes: _string(json, _minorNotesKey),
+    isTransportAutonomous: _nullableBool(json, _isTransportAutonomousKey),
+    accommodationNotes: _string(json, _accommodationNotesKey),
+    travelNotes: _string(json, _travelNotesKey),
+    dietaryNotes: _string(json, _dietaryNotesKey),
+    allergies: _string(json, _allergiesKey),
+    measurementHeight: _string(json, _measurementHeightKey),
+    measurementChest: _string(json, _measurementChestKey),
+    measurementWaist: _string(json, _measurementWaistKey),
+    measurementHips: _string(json, _measurementHipsKey),
+    sizeTop: _string(json, _sizeTopKey),
+    sizeBottom: _string(json, _sizeBottomKey),
+    sizeShoes: _string(json, _sizeShoesKey),
+    hmcNotes: _string(json, _hmcNotesKey),
+    imageRightsStatus: _enum(json, _imageRightsStatusKey, OcptImageRightsStatus.values.asNameMap()),
+    imageRightsDate: _nullableDateTime(json, _imageRightsDateKey),
+    imageRightsAssetId: _nullableString(json, _imageRightsAssetIdKey),
+    photoAssetId: _nullableString(json, _photoAssetIdKey),
+    notes: _string(json, _notesKey),
+  );
 
   /// Serializes one `person_positions` row.
-  static Map<String, dynamic> _personPositionToJson(
-    OcptPersonPositionRow row,
-  ) => {
+  static Map<String, dynamic> _personPositionToJson(OcptPersonPositionRow row) => {
     _idKey: row.id,
     _personIdKey: row.personId,
     _positionIdKey: row.positionId,
@@ -1608,16 +1498,15 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `person_positions` row.
-  static OcptPersonPositionRow _personPositionFromJson(
-    Map<String, dynamic> json,
-  ) => OcptPersonPositionRow(
-    id: _string(json, _idKey),
-    personId: _string(json, _personIdKey),
-    positionId: _string(json, _positionIdKey),
-    customLabel: _string(json, _customLabelKey),
-    sortKey: _string(json, _sortKeyKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptPersonPositionRow _personPositionFromJson(Map<String, dynamic> json) =>
+      OcptPersonPositionRow(
+        id: _string(json, _idKey),
+        personId: _string(json, _personIdKey),
+        positionId: _string(json, _positionIdKey),
+        customLabel: _string(json, _customLabelKey),
+        sortKey: _string(json, _sortKeyKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `person_skills` row.
   static Map<String, dynamic> _personSkillToJson(OcptPersonSkillRow row) => {
@@ -1629,19 +1518,16 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `person_skills` row.
-  static OcptPersonSkillRow _personSkillFromJson(Map<String, dynamic> json) =>
-      OcptPersonSkillRow(
-        id: _string(json, _idKey),
-        personId: _string(json, _personIdKey),
-        label: _string(json, _labelKey),
-        sortKey: _string(json, _sortKeyKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
+  static OcptPersonSkillRow _personSkillFromJson(Map<String, dynamic> json) => OcptPersonSkillRow(
+    id: _string(json, _idKey),
+    personId: _string(json, _personIdKey),
+    label: _string(json, _labelKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `person_unavailabilities` row.
-  static Map<String, dynamic> _personUnavailabilityToJson(
-    OcptPersonUnavailabilityRow row,
-  ) => {
+  static Map<String, dynamic> _personUnavailabilityToJson(OcptPersonUnavailabilityRow row) => {
     _idKey: row.id,
     _personIdKey: row.personId,
     _startDateKey: row.startDate.toIso8601String(),
@@ -1654,19 +1540,18 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `person_unavailabilities` row.
-  static OcptPersonUnavailabilityRow _personUnavailabilityFromJson(
-    Map<String, dynamic> json,
-  ) => OcptPersonUnavailabilityRow(
-    id: _string(json, _idKey),
-    personId: _string(json, _personIdKey),
-    startDate: _dateTime(json, _startDateKey),
-    endDate: _dateTime(json, _endDateKey),
-    slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
-    startMinute: _nullableInt(json, _startMinuteKey),
-    endMinute: _nullableInt(json, _endMinuteKey),
-    reason: _string(json, _reasonKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptPersonUnavailabilityRow _personUnavailabilityFromJson(Map<String, dynamic> json) =>
+      OcptPersonUnavailabilityRow(
+        id: _string(json, _idKey),
+        personId: _string(json, _personIdKey),
+        startDate: _dateTime(json, _startDateKey),
+        endDate: _dateTime(json, _endDateKey),
+        slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
+        startMinute: _nullableInt(json, _startMinuteKey),
+        endMinute: _nullableInt(json, _endMinuteKey),
+        reason: _string(json, _reasonKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `roles` row.
   static Map<String, dynamic> _roleToJson(OcptRoleRow row) => {
@@ -1725,42 +1610,35 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `locations` row.
-  static OcptLocationRow _locationFromJson(Map<String, dynamic> json) =>
-      OcptLocationRow(
-        id: _string(json, _idKey),
-        name: _string(json, _nameKey),
-        colorIndex: _int(json, _colorIndexKey),
-        addressLine1: _string(json, _addressLine1Key),
-        addressLine2: _string(json, _addressLine2Key),
-        postalCode: _string(json, _postalCodeKey),
-        city: _string(json, _cityKey),
-        region: _string(json, _regionKey),
-        country: _string(json, _countryKey),
-        latitude: _nullableDouble(json, _latitudeKey),
-        longitude: _nullableDouble(json, _longitudeKey),
-        contactPersonId: _nullableString(json, _contactPersonIdKey),
-        contactNotes: _string(json, _contactNotesKey),
-        permitStatus: _enum(
-          json,
-          _permitStatusKey,
-          OcptPermitStatus.values.asNameMap(),
-        ),
-        permitLabel: _string(json, _permitLabelKey),
-        permitDate: _nullableDateTime(json, _permitDateKey),
-        permitAssetId: _nullableString(json, _permitAssetIdKey),
-        parkingNotes: _string(json, _parkingNotesKey),
-        powerNotes: _string(json, _powerNotesKey),
-        facilitiesNotes: _string(json, _facilitiesNotesKey),
-        constraintsNotes: _string(json, _constraintsNotesKey),
-        notes: _string(json, _notesKey),
-        sortKey: _string(json, _sortKeyKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
+  static OcptLocationRow _locationFromJson(Map<String, dynamic> json) => OcptLocationRow(
+    id: _string(json, _idKey),
+    name: _string(json, _nameKey),
+    colorIndex: _int(json, _colorIndexKey),
+    addressLine1: _string(json, _addressLine1Key),
+    addressLine2: _string(json, _addressLine2Key),
+    postalCode: _string(json, _postalCodeKey),
+    city: _string(json, _cityKey),
+    region: _string(json, _regionKey),
+    country: _string(json, _countryKey),
+    latitude: _nullableDouble(json, _latitudeKey),
+    longitude: _nullableDouble(json, _longitudeKey),
+    contactPersonId: _nullableString(json, _contactPersonIdKey),
+    contactNotes: _string(json, _contactNotesKey),
+    permitStatus: _enum(json, _permitStatusKey, OcptPermitStatus.values.asNameMap()),
+    permitLabel: _string(json, _permitLabelKey),
+    permitDate: _nullableDateTime(json, _permitDateKey),
+    permitAssetId: _nullableString(json, _permitAssetIdKey),
+    parkingNotes: _string(json, _parkingNotesKey),
+    powerNotes: _string(json, _powerNotesKey),
+    facilitiesNotes: _string(json, _facilitiesNotesKey),
+    constraintsNotes: _string(json, _constraintsNotesKey),
+    notes: _string(json, _notesKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `location_availabilities` row.
-  static Map<String, dynamic> _locationAvailabilityToJson(
-    OcptLocationAvailabilityRow row,
-  ) => {
+  static Map<String, dynamic> _locationAvailabilityToJson(OcptLocationAvailabilityRow row) => {
     _idKey: row.id,
     _locationIdKey: row.locationId,
     _startDateKey: row.startDate.toIso8601String(),
@@ -1775,25 +1653,20 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `location_availabilities` row.
-  static OcptLocationAvailabilityRow _locationAvailabilityFromJson(
-    Map<String, dynamic> json,
-  ) => OcptLocationAvailabilityRow(
-    id: _string(json, _idKey),
-    locationId: _string(json, _locationIdKey),
-    startDate: _dateTime(json, _startDateKey),
-    endDate: _dateTime(json, _endDateKey),
-    weekdays: _int(json, _weekdaysKey),
-    slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
-    startMinute: _nullableInt(json, _startMinuteKey),
-    endMinute: _nullableInt(json, _endMinuteKey),
-    kind: _enum(
-      json,
-      _kindKey,
-      OcptLocationAvailabilityKind.values.asNameMap(),
-    ),
-    note: _string(json, _noteKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptLocationAvailabilityRow _locationAvailabilityFromJson(Map<String, dynamic> json) =>
+      OcptLocationAvailabilityRow(
+        id: _string(json, _idKey),
+        locationId: _string(json, _locationIdKey),
+        startDate: _dateTime(json, _startDateKey),
+        endDate: _dateTime(json, _endDateKey),
+        weekdays: _int(json, _weekdaysKey),
+        slot: _enum(json, _slotKey, OcptDayPartSlot.values.asNameMap()),
+        startMinute: _nullableInt(json, _startMinuteKey),
+        endMinute: _nullableInt(json, _endMinuteKey),
+        kind: _enum(json, _kindKey, OcptLocationAvailabilityKind.values.asNameMap()),
+        note: _string(json, _noteKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `sets` row.
   static Map<String, dynamic> _setToJson(OcptSetRow row) => {
@@ -1826,13 +1699,12 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `scene_sets` row.
-  static OcptSceneSetRow _sceneSetFromJson(Map<String, dynamic> json) =>
-      OcptSceneSetRow(
-        id: _string(json, _idKey),
-        sceneId: _string(json, _sceneIdKey),
-        setId: _string(json, _setIdKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
+  static OcptSceneSetRow _sceneSetFromJson(Map<String, dynamic> json) => OcptSceneSetRow(
+    id: _string(json, _idKey),
+    sceneId: _string(json, _sceneIdKey),
+    setId: _string(json, _setIdKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `elements` row.
   static Map<String, dynamic> _elementToJson(OcptElementRow row) => {
@@ -1860,38 +1732,29 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `elements` row.
-  static OcptElementRow _elementFromJson(Map<String, dynamic> json) =>
-      OcptElementRow(
-        id: _string(json, _idKey),
-        sortKey: _string(json, _sortKeyKey),
-        isDeleted: _bool(json, _isDeletedKey),
-        category: _enum(
-          json,
-          _categoryKey,
-          OcptElementCategory.values.asNameMap(),
-        ),
-        subCategory: _string(json, _subCategoryKey),
-        name: _string(json, _nameKey),
-        code: _string(json, _codeKey),
-        quantity: _string(json, _quantityKey),
-        sourceKind: _enum(
-          json,
-          _sourceKindKey,
-          OcptElementSourceKind.values.asNameMap(),
-        ),
-        ownerPersonId: _nullableString(json, _ownerPersonIdKey),
-        ownerNotes: _string(json, _ownerNotesKey),
-        broughtByPersonId: _nullableString(json, _broughtByPersonIdKey),
-        storageNotes: _string(json, _storageNotesKey),
-        status: _enum(json, _statusKey, OcptElementStatus.values.asNameMap()),
-        isSecured: _bool(json, _isSecuredKey),
-        isReadyForShoot: _bool(json, _isReadyForShootKey),
-        isReturned: _bool(json, _isReturnedKey),
-        cost: _nullableInt(json, _costKey),
-        purposeNotes: _string(json, _purposeNotesKey),
-        notes: _string(json, _notesKey),
-        photoAssetId: _nullableString(json, _photoAssetIdKey),
-      );
+  static OcptElementRow _elementFromJson(Map<String, dynamic> json) => OcptElementRow(
+    id: _string(json, _idKey),
+    sortKey: _string(json, _sortKeyKey),
+    isDeleted: _bool(json, _isDeletedKey),
+    category: _enum(json, _categoryKey, OcptElementCategory.values.asNameMap()),
+    subCategory: _string(json, _subCategoryKey),
+    name: _string(json, _nameKey),
+    code: _string(json, _codeKey),
+    quantity: _string(json, _quantityKey),
+    sourceKind: _enum(json, _sourceKindKey, OcptElementSourceKind.values.asNameMap()),
+    ownerPersonId: _nullableString(json, _ownerPersonIdKey),
+    ownerNotes: _string(json, _ownerNotesKey),
+    broughtByPersonId: _nullableString(json, _broughtByPersonIdKey),
+    storageNotes: _string(json, _storageNotesKey),
+    status: _enum(json, _statusKey, OcptElementStatus.values.asNameMap()),
+    isSecured: _bool(json, _isSecuredKey),
+    isReadyForShoot: _bool(json, _isReadyForShootKey),
+    isReturned: _bool(json, _isReturnedKey),
+    cost: _nullableInt(json, _costKey),
+    purposeNotes: _string(json, _purposeNotesKey),
+    notes: _string(json, _notesKey),
+    photoAssetId: _nullableString(json, _photoAssetIdKey),
+  );
 
   /// Serializes one `scene_elements` row.
   static Map<String, dynamic> _sceneElementToJson(OcptSceneElementRow row) => {
@@ -1962,11 +1825,7 @@ class OcptProjectVersionCodec {
       OcptBreakdownTagRow(
         id: _string(json, _idKey),
         sceneId: _string(json, _sceneIdKey),
-        targetKind: _enum(
-          json,
-          _targetKindKey,
-          OcptBreakdownTargetKind.values.asNameMap(),
-        ),
+        targetKind: _enum(json, _targetKindKey, OcptBreakdownTargetKind.values.asNameMap()),
         elementId: _nullableString(json, _elementIdKey),
         roleId: _nullableString(json, _roleIdKey),
         setId: _nullableString(json, _setIdKey),
@@ -1978,9 +1837,7 @@ class OcptProjectVersionCodec {
       );
 
   /// Serializes one `scene_breakdowns` row.
-  static Map<String, dynamic> _sceneBreakdownToJson(
-    OcptSceneBreakdownRow row,
-  ) => {
+  static Map<String, dynamic> _sceneBreakdownToJson(OcptSceneBreakdownRow row) => {
     _idKey: row.id,
     _sceneIdKey: row.sceneId,
     _statusKey: row.status.name,
@@ -1989,19 +1846,14 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `scene_breakdowns` row.
-  static OcptSceneBreakdownRow _sceneBreakdownFromJson(
-    Map<String, dynamic> json,
-  ) => OcptSceneBreakdownRow(
-    id: _string(json, _idKey),
-    sceneId: _string(json, _sceneIdKey),
-    status: _enum(
-      json,
-      _statusKey,
-      OcptBreakdownSceneStatus.values.asNameMap(),
-    ),
-    notes: _string(json, _notesKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptSceneBreakdownRow _sceneBreakdownFromJson(Map<String, dynamic> json) =>
+      OcptSceneBreakdownRow(
+        id: _string(json, _idKey),
+        sceneId: _string(json, _sceneIdKey),
+        status: _enum(json, _statusKey, OcptBreakdownSceneStatus.values.asNameMap()),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shooting_days` row.
   static Map<String, dynamic> _shootingDayToJson(OcptShootingDayRow row) => {
@@ -2017,27 +1869,20 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_days` row.
-  static OcptShootingDayRow _shootingDayFromJson(Map<String, dynamic> json) =>
-      OcptShootingDayRow(
-        id: _string(json, _idKey),
-        screenplayId: _string(json, _screenplayIdKey),
-        date: _dateTime(json, _dateKey),
-        sortKey: _string(json, _sortKeyKey),
-        status: _enum(
-          json,
-          _statusKey,
-          OcptShootingDayStatus.values.asNameMap(),
-        ),
-        crewNote: _string(json, _crewNoteKey),
-        weatherNote: _string(json, _weatherNoteKey),
-        notes: _string(json, _notesKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
+  static OcptShootingDayRow _shootingDayFromJson(Map<String, dynamic> json) => OcptShootingDayRow(
+    id: _string(json, _idKey),
+    screenplayId: _string(json, _screenplayIdKey),
+    date: _dateTime(json, _dateKey),
+    sortKey: _string(json, _sortKeyKey),
+    status: _enum(json, _statusKey, OcptShootingDayStatus.values.asNameMap()),
+    crewNote: _string(json, _crewNoteKey),
+    weatherNote: _string(json, _weatherNoteKey),
+    notes: _string(json, _notesKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `shooting_day_groups` row.
-  static Map<String, dynamic> _shootingDayGroupToJson(
-    OcptShootingDayGroupRow row,
-  ) => {
+  static Map<String, dynamic> _shootingDayGroupToJson(OcptShootingDayGroupRow row) => {
     _idKey: row.id,
     _shootingDayIdKey: row.shootingDayId,
     _sortKeyKey: row.sortKey,
@@ -2047,16 +1892,15 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_day_groups` row.
-  static OcptShootingDayGroupRow _shootingDayGroupFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShootingDayGroupRow(
-    id: _string(json, _idKey),
-    shootingDayId: _string(json, _shootingDayIdKey),
-    sortKey: _string(json, _sortKeyKey),
-    label: _string(json, _labelKey),
-    leadMinutes: _int(json, _leadMinutesKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShootingDayGroupRow _shootingDayGroupFromJson(Map<String, dynamic> json) =>
+      OcptShootingDayGroupRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        label: _string(json, _labelKey),
+        leadMinutes: _int(json, _leadMinutesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shooting_slots` row.
   static Map<String, dynamic> _shootingSlotToJson(OcptShootingSlotRow row) => {
@@ -2086,9 +1930,7 @@ class OcptProjectVersionCodec {
       );
 
   /// Serializes one `shooting_slot_crew` row.
-  static Map<String, dynamic> _shootingSlotCrewToJson(
-    OcptShootingSlotCrewRow row,
-  ) => {
+  static Map<String, dynamic> _shootingSlotCrewToJson(OcptShootingSlotCrewRow row) => {
     _idKey: row.id,
     _slotIdKey: row.slotId,
     _sortKeyKey: row.sortKey,
@@ -2102,25 +1944,22 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_slot_crew` row.
-  static OcptShootingSlotCrewRow _shootingSlotCrewFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShootingSlotCrewRow(
-    id: _string(json, _idKey),
-    slotId: _string(json, _slotIdKey),
-    sortKey: _string(json, _sortKeyKey),
-    personId: _string(json, _personIdKey),
-    positionId: _string(json, _positionIdKey),
-    customLabel: _string(json, _customLabelKey),
-    groupId: _nullableString(json, _groupIdKey),
-    leadMinutes: _nullableInt(json, _leadMinutesKey),
-    notes: _string(json, _notesKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShootingSlotCrewRow _shootingSlotCrewFromJson(Map<String, dynamic> json) =>
+      OcptShootingSlotCrewRow(
+        id: _string(json, _idKey),
+        slotId: _string(json, _slotIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        personId: _string(json, _personIdKey),
+        positionId: _string(json, _positionIdKey),
+        customLabel: _string(json, _customLabelKey),
+        groupId: _nullableString(json, _groupIdKey),
+        leadMinutes: _nullableInt(json, _leadMinutesKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shooting_slot_cast` row.
-  static Map<String, dynamic> _shootingSlotCastToJson(
-    OcptShootingSlotCastRow row,
-  ) => {
+  static Map<String, dynamic> _shootingSlotCastToJson(OcptShootingSlotCastRow row) => {
     _idKey: row.id,
     _slotIdKey: row.slotId,
     _roleIdKey: row.roleId,
@@ -2132,23 +1971,20 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_slot_cast` row.
-  static OcptShootingSlotCastRow _shootingSlotCastFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShootingSlotCastRow(
-    id: _string(json, _idKey),
-    slotId: _string(json, _slotIdKey),
-    roleId: _string(json, _roleIdKey),
-    sortKey: _string(json, _sortKeyKey),
-    groupId: _nullableString(json, _groupIdKey),
-    leadMinutes: _nullableInt(json, _leadMinutesKey),
-    notes: _string(json, _notesKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShootingSlotCastRow _shootingSlotCastFromJson(Map<String, dynamic> json) =>
+      OcptShootingSlotCastRow(
+        id: _string(json, _idKey),
+        slotId: _string(json, _slotIdKey),
+        roleId: _string(json, _roleIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        groupId: _nullableString(json, _groupIdKey),
+        leadMinutes: _nullableInt(json, _leadMinutesKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shooting_day_blocks` row.
-  static Map<String, dynamic> _shootingDayBlockToJson(
-    OcptShootingDayBlockRow row,
-  ) => {
+  static Map<String, dynamic> _shootingDayBlockToJson(OcptShootingDayBlockRow row) => {
     _idKey: row.id,
     _shootingDayIdKey: row.shootingDayId,
     _sortKeyKey: row.sortKey,
@@ -2163,26 +1999,23 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_day_blocks` row.
-  static OcptShootingDayBlockRow _shootingDayBlockFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShootingDayBlockRow(
-    id: _string(json, _idKey),
-    shootingDayId: _string(json, _shootingDayIdKey),
-    sortKey: _string(json, _sortKeyKey),
-    slotId: _string(json, _slotIdKey),
-    kind: _enum(json, _kindKey, OcptShootingBlockKind.values.asNameMap()),
-    shotId: _nullableString(json, _shotIdKey),
-    label: _string(json, _labelKey),
-    durationMinutes: _nullableInt(json, _durationMinutesKey),
-    anchorMinute: _nullableInt(json, _anchorMinuteKey),
-    notes: _string(json, _notesKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShootingDayBlockRow _shootingDayBlockFromJson(Map<String, dynamic> json) =>
+      OcptShootingDayBlockRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        slotId: _string(json, _slotIdKey),
+        kind: _enum(json, _kindKey, OcptShootingBlockKind.values.asNameMap()),
+        shotId: _nullableString(json, _shotIdKey),
+        label: _string(json, _labelKey),
+        durationMinutes: _nullableInt(json, _durationMinutesKey),
+        anchorMinute: _nullableInt(json, _anchorMinuteKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shooting_presences` row.
-  static Map<String, dynamic> _shootingPresenceToJson(
-    OcptShootingPresenceRow row,
-  ) => {
+  static Map<String, dynamic> _shootingPresenceToJson(OcptShootingPresenceRow row) => {
     _idKey: row.id,
     _shootingDayIdKey: row.shootingDayId,
     _personIdKey: row.personId,
@@ -2191,20 +2024,17 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_presences` row.
-  static OcptShootingPresenceRow _shootingPresenceFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShootingPresenceRow(
-    id: _string(json, _idKey),
-    shootingDayId: _string(json, _shootingDayIdKey),
-    personId: _string(json, _personIdKey),
-    code: _enum(json, _codeKey, OcptPresenceCode.values.asNameMap()),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShootingPresenceRow _shootingPresenceFromJson(Map<String, dynamic> json) =>
+      OcptShootingPresenceRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        personId: _string(json, _personIdKey),
+        code: _enum(json, _codeKey, OcptPresenceCode.values.asNameMap()),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `row_field_versions` row.
-  static Map<String, dynamic> _rowFieldVersionToJson(
-    OcptRowFieldVersionRow row,
-  ) => {
+  static Map<String, dynamic> _rowFieldVersionToJson(OcptRowFieldVersionRow row) => {
     _tableNameKey: row.targetTableName,
     _rowIdKey: row.rowId,
     _columnNameKey: row.columnName,
@@ -2213,21 +2043,17 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `row_field_versions` row.
-  static OcptRowFieldVersionRow _rowFieldVersionFromJson(
-    Map<String, dynamic> json,
-  ) => OcptRowFieldVersionRow(
-    targetTableName: _string(json, _tableNameKey),
-    rowId: _string(json, _rowIdKey),
-    columnName: _string(json, _columnNameKey),
-    version: _int(json, _versionKey),
-    deviceId: _string(json, _deviceIdKey),
-  );
+  static OcptRowFieldVersionRow _rowFieldVersionFromJson(Map<String, dynamic> json) =>
+      OcptRowFieldVersionRow(
+        targetTableName: _string(json, _tableNameKey),
+        rowId: _string(json, _rowIdKey),
+        columnName: _string(json, _columnNameKey),
+        version: _int(json, _versionKey),
+        deviceId: _string(json, _deviceIdKey),
+      );
 
   /// The list of JSON objects stored at [key] in [json].
-  static List<Map<String, dynamic>> _rows(
-    Map<String, dynamic> json,
-    String key,
-  ) {
+  static List<Map<String, dynamic>> _rows(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! List) {
       throw _OcptPayloadFormatError("'$key' isn't a list");
@@ -2238,9 +2064,7 @@ class OcptProjectVersionCodec {
         if (element is Map<String, dynamic>)
           element
         else
-          throw _OcptPayloadFormatError(
-            "an element of '$key' isn't a JSON object",
-          ),
+          throw _OcptPayloadFormatError("an element of '$key' isn't a JSON object"),
     ];
   }
 
@@ -2256,8 +2080,7 @@ class OcptProjectVersionCodec {
 
   /// The non-null string stored at [key] in [json].
   static String _string(Map<String, dynamic> json, String key) =>
-      _nullableString(json, key) ??
-      (throw _OcptPayloadFormatError("'$key' is missing"));
+      _nullableString(json, key) ?? (throw _OcptPayloadFormatError("'$key' is missing"));
 
   /// The string stored at [key] in [json], or null when the column it mirrors was null.
   static String? _nullableString(Map<String, dynamic> json, String key) {
@@ -2275,8 +2098,7 @@ class OcptProjectVersionCodec {
 
   /// The non-null integer stored at [key] in [json].
   static int _int(Map<String, dynamic> json, String key) =>
-      _nullableInt(json, key) ??
-      (throw _OcptPayloadFormatError("'$key' is missing"));
+      _nullableInt(json, key) ?? (throw _OcptPayloadFormatError("'$key' is missing"));
 
   /// The integer stored at [key] in [json], or null when the column it mirrors was null.
   static int? _nullableInt(Map<String, dynamic> json, String key) {
