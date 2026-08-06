@@ -43,6 +43,10 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
+  /// Resolves a day id to its own earliest arrival (`OcptScheduleState.dayArrivalMinute`), or null
+  /// while it has no live slot at all — what each card's own arrival-to-end range starts from.
+  final int? Function(String dayId) arrivalMinuteOf;
+
   /// Called with a day's id when its own header is clicked, selecting it and opening the day view.
   final ValueChanged<String> onDayOpenRequested;
 
@@ -58,6 +62,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.blocksByDayId,
     required this.shotOf,
     required this.timelineOf,
+    required this.arrivalMinuteOf,
     required this.onDayOpenRequested,
     required this.onBlockSelected,
   });
@@ -87,6 +92,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
           blocks: blocksByDayId[day.id] ?? const [],
           shotOf: shotOf,
           timeline: timelineOf(day.id),
+          arrivalMinute: arrivalMinuteOf(day.id),
           onSelected: () => onDayOpenRequested(day.id),
           onBlockSelected: (blockId) => onBlockSelected(blockId, day.id),
         );
@@ -115,6 +121,10 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   /// This day's own computed timetable, or null while it has nothing placed.
   final OcptShootingDayTimelines? timeline;
 
+  /// This day's own earliest arrival, or null while it has no live slot at all — see
+  /// `OcptScheduleState.dayArrivalMinute`.
+  final int? arrivalMinute;
+
   /// Called when the card's own header is clicked.
   final VoidCallback onSelected;
 
@@ -129,6 +139,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.blocks,
     required this.shotOf,
     required this.timeline,
+    required this.arrivalMinute,
     required this.onSelected,
     required this.onBlockSelected,
   });
@@ -215,9 +226,14 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          tr.scheduleDayEstimatedEnd(
-                            ocptScheduleDayMinuteRangeLabel(null, timeline?.dayEndMinute),
+                          tr.scheduleDayArrivalToEndLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          ocptScheduleDayMinuteRangeLabel(arrivalMinute, timeline?.dayEndMinute),
                           style: theme.textTheme.labelSmall,
                         ),
                         const SizedBox(height: 2),

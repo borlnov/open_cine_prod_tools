@@ -274,6 +274,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
+        arrivalMinuteOf: state.dayArrivalMinute,
         onDayOpenRequested: (dayId) => _openDay(context, dayId),
         onBlockSelected: (blockId, dayId) =>
             bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: dayId)),
@@ -330,6 +331,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       groupMemberCounts: state.groupMemberCountsOfDay(day.id),
       blocks: state.selectedDayBlocks,
       timeline: state.timelinesOfDay(day.id),
+      dayArrivalMinute: state.dayArrivalMinute(day.id),
       sunTimes: state.sunTimesOfDay(day.id),
       locationById: state.locationById,
       setById: state.setById,
@@ -632,6 +634,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       locationById: state.locationById,
       setById: state.setById,
       timeline: state.selectedDayId == null ? null : state.timelinesOfDay(state.selectedDayId!),
+      dayArrivalMinute: state.selectedDayId == null ? null : state.dayArrivalMinute(state.selectedDayId!),
       sunTimes: state.selectedDayId == null ? null : state.sunTimesOfDay(state.selectedDayId!),
       crewNoteValue: day == null
           ? ""

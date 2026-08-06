@@ -6236,16 +6236,12 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDayEstimatedEnd": "Estimated end {time}",
-  "@scheduleDayEstimatedEnd": {
-    "description": "A shooting day's own computed end of timetable",
+  "scheduleDayArrivalToEndLabel": "Arrival → end",
+  "@scheduleDayArrivalToEndLabel": {
+    "description": "Label of a strip agenda day card's own arrival-to-end range",
     "context": "Displayed on a strip agenda day card",
     "type": "text",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
+    "placeholders": {}
   },
   "scheduleDayNoShotsPlaced": "No shot placed",
   "@scheduleDayNoShotsPlaced": {
@@ -6360,9 +6356,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleInspectorPatToEndLabel": "PAT → estimated end",
-  "@scheduleInspectorPatToEndLabel": {
-    "description": "Label of the day inspector's own PAT to estimated end section",
+  "scheduleInspectorArrivalToEndLabel": "Arrival → estimated end",
+  "@scheduleInspectorArrivalToEndLabel": {
+    "description": "Label of the day inspector's own arrival to estimated end section",
     "context": "Displayed in the schedule mode's right dock",
     "type": "text",
     "placeholders": {}
@@ -6797,7 +6793,7 @@
   },
   "scheduleDaySummaryTotal": "{count, plural, one{{count} shot} other{{count} shots}} · {duration} of presence",
   "@scheduleDaySummaryTotal": {
-    "description": "The day's own shot count and duration of presence, from the first crew call to the estimated end",
+    "description": "The day's own shot count and duration of presence, from the first arrival to the estimated end",
     "context": "Displayed in the day view's own summary band",
     "type": "text",
     "placeholders": {

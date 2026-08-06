@@ -482,6 +482,46 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     );
   }
 
+  /// Day [dayId]'s own earliest arrival — the minimum, over every live slot of the day, of every
+  /// crew and cast convocation's own [OcptCrewConvocation.arrivalMinute]/
+  /// [OcptCastConvocation.arrivalMinute] ([convocationsOfSlot]) — or, for a day that convokes
+  /// nobody yet, the earliest of its own slots' [OcptShootingSlot.startMinute]s: someone still has
+  /// to walk in even before a single crew or cast row is entered. Null while [dayId] names no day
+  /// with a live slot at all.
+  ///
+  /// This is what "when does the day start" honestly means once a lead time exists: a slot's own
+  /// [OcptShootingSlot.startMinute] is only the moment its first block begins, and every convoked
+  /// person walks in ahead of that by their own lead — computed here rather than stored, for the
+  /// same reason [convocationsOfSlot] is.
+  int? dayArrivalMinute(String dayId) {
+    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+    if (slots.isEmpty) {
+      return null;
+    }
+
+    int? earliestArrival;
+    int? earliestStart;
+    for (final slot in slots) {
+      if (earliestStart == null || slot.startMinute < earliestStart) {
+        earliestStart = slot.startMinute;
+      }
+
+      final convocations = convocationsOfSlot(slot.id);
+      for (final crew in convocations?.crew ?? const <OcptCrewConvocation>[]) {
+        if (earliestArrival == null || crew.arrivalMinute < earliestArrival) {
+          earliestArrival = crew.arrivalMinute;
+        }
+      }
+      for (final cast in convocations?.cast ?? const <OcptCastConvocation>[]) {
+        if (earliestArrival == null || cast.arrivalMinute < earliestArrival) {
+          earliestArrival = cast.arrivalMinute;
+        }
+      }
+    }
+
+    return earliestArrival ?? earliestStart;
+  }
+
   /// How many live crew and cast rows of day [dayId] — across every one of its slots — point at
   /// each group, keyed by `OcptShootingDayGroup.id`. A group with no member at all has no entry
   /// here rather than a zero one, which is what the groups band's own member-count read-out treats

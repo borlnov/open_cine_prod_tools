@@ -106,6 +106,8 @@ OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Pre
 Future<void> _pumpInspector(
   WidgetTester tester, {
   OcptShootingDay? day,
+  OcptShootingDayTimelines? timeline,
+  int? dayArrivalMinute,
   OcptSunTimes? sunTimes,
   ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
   ValueChanged<String>? onCrewNoteChanged,
@@ -125,7 +127,8 @@ Future<void> _pumpInspector(
         slots: const [],
         locationById: const {},
         setById: const {},
-        timeline: null,
+        timeline: timeline,
+        dayArrivalMinute: dayArrivalMinute,
         sunTimes: sunTimes,
         crewNoteValue: day?.crewNote ?? "",
         weatherNoteValue: day?.weatherNote ?? "",
@@ -155,6 +158,8 @@ Future<void> _pumpInspector(
 Future<void> _pumpDayInspector(
   WidgetTester tester, {
   required OcptShootingDay day,
+  OcptShootingDayTimelines? timeline,
+  int? dayArrivalMinute,
   OcptSunTimes? sunTimes,
   ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
   ValueChanged<String>? onCrewNoteChanged,
@@ -162,6 +167,8 @@ Future<void> _pumpDayInspector(
 }) => _pumpInspector(
   tester,
   day: day,
+  timeline: timeline,
+  dayArrivalMinute: dayArrivalMinute,
   sunTimes: sunTimes,
   onDayStatusChanged: onDayStatusChanged,
   onCrewNoteChanged: onCrewNoteChanged,
@@ -169,7 +176,7 @@ Future<void> _pumpDayInspector(
 );
 
 void main() {
-  testWidgets("shows the selected day's own date, status and PAT-to-end read-outs", (
+  testWidgets("shows the selected day's own date, status and arrival-to-end read-outs", (
     tester,
   ) async {
     final day = _buildDay(status: OcptShootingDayStatus.shot);
@@ -178,8 +185,26 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
     expect(find.text(tr.scheduleInspectorDayTitle("D3")), findsOneWidget);
     expect(find.text(tr.scheduleDayStatusShot), findsOneWidget);
-    // No slot at all: PAT → end reads as an em dash rather than crashing.
+    // No arrival computed at all: arrival → end reads as an em dash rather than crashing.
     expect(find.text("—"), findsWidgets);
+  });
+
+  testWidgets("reads the arrival-to-end range off the given arrival, not the first slot start", (
+    tester,
+  ) async {
+    const timeline = OcptShootingDayTimelines(bySlotId: {}, entries: [], overruns: [], dayEndMinute: 1080);
+
+    await _pumpDayInspector(
+      tester,
+      day: _buildDay(),
+      timeline: timeline,
+      dayArrivalMinute: 450,
+      onDayStatusChanged: (_) {},
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+    expect(find.text(tr.scheduleInspectorArrivalToEndLabel.toUpperCase()), findsOneWidget);
+    expect(find.text("07:30 – 18:00"), findsOneWidget);
   });
 
   testWidgets("a day with no sun times shows the hint rather than crashing", (tester) async {

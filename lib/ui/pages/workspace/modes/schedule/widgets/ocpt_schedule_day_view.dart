@@ -62,6 +62,12 @@ class OcptScheduleDayView extends StatelessWidget {
   /// each slot card reads its own [OcptShootingDayTimelines.bySlotId] entry instead.
   final OcptShootingDayTimelines? timeline;
 
+  /// [day]'s own earliest arrival — the minimum crew/cast convocation arrival across every live
+  /// slot, or the earliest slot start while nobody is convoked yet
+  /// (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all. Read here
+  /// for the summary band's own arrival-to-end range and its own total duration.
+  final int? dayArrivalMinute;
+
   /// [day]'s own computed sun times, or null while its first slot has no location with
   /// coordinates.
   final OcptSunTimes? sunTimes;
@@ -223,6 +229,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.groupMemberCounts,
     required this.blocks,
     required this.timeline,
+    required this.dayArrivalMinute,
     required this.sunTimes,
     required this.locationById,
     required this.setById,
@@ -366,17 +373,16 @@ class OcptScheduleDayView extends StatelessWidget {
     );
   }
 
-  /// The day's own summary band: call → estimated end, sun times, weather and the total (shot
+  /// The day's own summary band: arrival → estimated end, sun times, weather and the total (shot
   /// count and duration of presence).
   Widget _buildSummaryBand(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final firstCallMinute = slots.isEmpty ? null : slots.first.startMinute;
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).length;
     final dayEndMinute = timeline?.dayEndMinute;
-    final totalLabel = dayEndMinute == null || firstCallMinute == null
+    final totalLabel = dayEndMinute == null || dayArrivalMinute == null
         ? tr.scheduleDayNoShotsPlaced
-        : tr.scheduleDaySummaryTotal(shotBlocks, ocptFormatMinuteDuration(dayEndMinute - firstCallMinute));
+        : tr.scheduleDaySummaryTotal(shotBlocks, ocptFormatMinuteDuration(dayEndMinute - dayArrivalMinute!));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
@@ -391,8 +397,8 @@ class OcptScheduleDayView extends StatelessWidget {
         children: [
           _buildSummaryField(
             context,
-            tr.scheduleInspectorPatToEndLabel,
-            ocptScheduleDayMinuteRangeLabel(firstCallMinute, dayEndMinute),
+            tr.scheduleInspectorArrivalToEndLabel,
+            ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, dayEndMinute),
           ),
           _buildSummaryField(context, tr.scheduleInspectorSunLabel, ocptScheduleSunTimesLine(tr, sunTimes)),
           _buildSummaryField(

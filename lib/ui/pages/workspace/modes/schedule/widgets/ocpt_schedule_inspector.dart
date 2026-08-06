@@ -45,6 +45,11 @@ class OcptScheduleInspector extends StatelessWidget {
   /// The selected day's own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? timeline;
 
+  /// The selected day's own earliest arrival — the minimum crew/cast convocation arrival across
+  /// every live slot, or the earliest slot start while nobody is convoked yet
+  /// (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all.
+  final int? dayArrivalMinute;
+
   /// The selected day's own computed sun times, or null while its first slot has no location with
   /// coordinates.
   final OcptSunTimes? sunTimes;
@@ -114,6 +119,7 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.locationById,
     required this.setById,
     required this.timeline,
+    required this.dayArrivalMinute,
     required this.sunTimes,
     required this.crewNoteValue,
     required this.weatherNoteValue,
@@ -165,7 +171,7 @@ class OcptScheduleInspector extends StatelessWidget {
     return _buildDayInspector(context, day);
   }
 
-  /// The day inspector: date, status, locations, sets, slots, the PAT band → the estimated end,
+  /// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
   /// the sun times and the UTC offset they were computed with, weather note, crew note.
   Widget _buildDayInspector(BuildContext context, OcptShootingDay day) {
     final theme = Theme.of(context);
@@ -179,7 +185,6 @@ class OcptScheduleInspector extends StatelessWidget {
       for (final slot in slots)
         if (slot.setId != null) setById[slot.setId]?.name,
     }.whereType<String>().toList();
-    final firstCallMinute = slots.isEmpty ? null : slots.first.startMinute;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -254,9 +259,9 @@ class OcptScheduleInspector extends StatelessWidget {
                 ),
         ),
         _OcptScheduleInspectorSection(
-          label: tr.scheduleInspectorPatToEndLabel,
+          label: tr.scheduleInspectorArrivalToEndLabel,
           child: Text(
-            ocptScheduleDayMinuteRangeLabel(firstCallMinute, timeline?.dayEndMinute),
+            ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, timeline?.dayEndMinute),
             style: theme.textTheme.bodySmall,
           ),
         ),

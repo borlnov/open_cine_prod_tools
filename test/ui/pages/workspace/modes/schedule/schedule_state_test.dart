@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -193,6 +194,100 @@ void main() {
 
       expect(castConvocation.patStartMinute, 480);
       expect(castConvocation.patEndMinute, 510);
+    });
+  });
+
+  group("dayArrivalMinute", () {
+    test("a crew member's own 30-minute lead pulls the arrival ahead of the slot's own start", () {
+      const slot = OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        startMinute: 480,
+        notes: "",
+        crew: [
+          OcptShootingSlotCrewMember(
+            id: "crew-1",
+            slotId: "slot-1",
+            personId: "person-1",
+            positionId: "",
+            customLabel: "Gaffer",
+            groupId: null,
+            leadMinutes: 30,
+            notes: "",
+          ),
+        ],
+        cast: [],
+      );
+      final day = OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026),
+        dayNumber: 1,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final snapshot = OcptScheduleSnapshot.build(
+        screenplayId: "screenplay-1",
+        days: [day],
+        groupsByDayId: const {},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: const {},
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      // The slot starts at 08:00 (480); the gaffer's own 30-minute lead pulls their arrival to
+      // 07:30 (450) — the day's own earliest arrival follows the convocation, not the slot's own
+      // start.
+      expect(state.dayArrivalMinute("day-1"), 450);
+    });
+
+    test("a day convoking nobody yet falls back to its earliest slot's own start", () {
+      const slot = OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        startMinute: 480,
+        notes: "",
+        crew: [],
+        cast: [],
+      );
+      final day = OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026),
+        dayNumber: 1,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final snapshot = OcptScheduleSnapshot.build(
+        screenplayId: "screenplay-1",
+        days: [day],
+        groupsByDayId: const {},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: const {},
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.dayArrivalMinute("day-1"), 480);
+    });
+
+    test("a day with no live slot at all answers null", () {
+      expect(OcptScheduleState.init().dayArrivalMinute("day-1"), isNull);
     });
   });
 

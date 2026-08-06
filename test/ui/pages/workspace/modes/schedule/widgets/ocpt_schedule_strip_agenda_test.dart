@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the centre column the strip agenda fills in the app.
@@ -104,6 +105,7 @@ void main() {
           blocksByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (_) => null,
+          arrivalMinuteOf: (_) => null,
           onDayOpenRequested: (_) {},
           onBlockSelected: (_, _) {},
         ),
@@ -127,6 +129,7 @@ void main() {
             blocksByDayId: const {},
             shotOf: (_) => null,
             timelineOf: (_) => null,
+            arrivalMinuteOf: (_) => null,
             onDayOpenRequested: (_) {},
             onBlockSelected: (_, _) {},
           ),
@@ -162,6 +165,7 @@ void main() {
           },
           shotOf: (shotId) => shotId == "shot-1" ? shot : null,
           timelineOf: (_) => null,
+          arrivalMinuteOf: (_) => null,
           onDayOpenRequested: (_) {},
           onBlockSelected: (blockId, dayId) => selections.add((blockId, dayId)),
         ),
@@ -174,6 +178,31 @@ void main() {
     await tester.pump();
 
     expect(selections, [("block-1", "day-1")]);
+  });
+
+  testWidgets("the card's own right column reads the day's own arrival-to-end range", (tester) async {
+    const timeline = OcptShootingDayTimelines(bySlotId: {}, entries: [], overruns: [], dayEndMinute: 1080);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleStripAgenda(
+          days: [dayOne],
+          selectedDayId: null,
+          firstLocationByDayId: const {},
+          blocksByDayId: const {},
+          shotOf: (_) => null,
+          timelineOf: (_) => timeline,
+          arrivalMinuteOf: (_) => 450,
+          onDayOpenRequested: (_) {},
+          onBlockSelected: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleStripAgenda)));
+    expect(find.text(tr.scheduleDayArrivalToEndLabel), findsOneWidget);
+    expect(find.text("07:30 – 18:00"), findsOneWidget);
   });
 
   testWidgets("the day header click reports the day's own id, requesting it be opened", (
@@ -190,6 +219,7 @@ void main() {
           blocksByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (_) => null,
+          arrivalMinuteOf: (_) => null,
           onDayOpenRequested: openedDayIds.add,
           onBlockSelected: (_, _) {},
         ),
