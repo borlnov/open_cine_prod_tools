@@ -329,6 +329,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     return OcptScheduleDayView(
       day: day,
       slots: state.selectedDaySlots,
+      groups: state.selectedDayGroups,
+      groupMemberCounts: state.groupMemberCountsOfDay(day.id),
       blocks: state.selectedDayBlocks,
       timeline: state.timelinesOfDay(day.id),
       sunTimes: state.sunTimesOfDay(day.id),
@@ -344,6 +346,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
       slotLabelValueOf: (slotId) {
         final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
         return state.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
+      },
+      groupLabelValueOf: (groupId) {
+        final group = state.selectedDayGroups.firstWhere((candidate) => candidate.id == groupId);
+        return state.fieldValueOf(groupId, OcptScheduleField.groupLabel, group.label);
       },
       slotConvocationsOf: state.convocationsOfSlot,
       onSlotAdded: isReadOnly ? null : () => bloc.add(OcptScheduleSlotCreatedEvent(dayId: day.id)),
@@ -368,6 +374,23 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotDeletionRequested: isReadOnly
           ? null
           : (slotId) => unawaited(_handleSlotDeletionRequested(context, slotId)),
+      onGroupLabelChanged: isReadOnly
+          ? null
+          : (groupId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: groupId,
+                field: OcptScheduleField.groupLabel,
+                rawValue: rawValue,
+              ),
+            ),
+      onGroupLeadChanged: isReadOnly
+          ? null
+          : (groupId, leadMinutes) =>
+                bloc.add(OcptScheduleGroupLeadChangedEvent(groupId: groupId, leadMinutes: leadMinutes)),
+      onGroupAdded: isReadOnly ? null : () => bloc.add(OcptScheduleGroupCreatedEvent(dayId: day.id)),
+      onGroupDeletionRequested: isReadOnly
+          ? null
+          : (groupId) => unawaited(_handleGroupDeletionRequested(context, groupId)),
       onSlotCrewMemberAdded: isReadOnly
           ? null
           : (slotId, personId) =>
@@ -384,12 +407,35 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (crewMemberId) =>
                 bloc.add(OcptScheduleSlotCrewMemberRemovedEvent(crewMemberId: crewMemberId)),
+      onSlotCrewMemberLeadChanged: isReadOnly
+          ? null
+          : (crewMemberId, leadMinutes) => bloc.add(
+              OcptScheduleSlotCrewMemberLeadChangedEvent(
+                crewMemberId: crewMemberId,
+                leadMinutes: leadMinutes,
+              ),
+            ),
+      onSlotCrewMemberGroupChanged: isReadOnly
+          ? null
+          : (crewMemberId, groupId) => bloc.add(
+              OcptScheduleSlotCrewMemberGroupChangedEvent(crewMemberId: crewMemberId, groupId: groupId),
+            ),
       onSlotCastRoleAdded: isReadOnly
           ? null
           : (slotId, roleId) => bloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
       onSlotCastRoleRemoved: isReadOnly
           ? null
           : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
+      onSlotCastRoleLeadChanged: isReadOnly
+          ? null
+          : (castRoleId, leadMinutes) => bloc.add(
+              OcptScheduleSlotCastRoleLeadChangedEvent(castRoleId: castRoleId, leadMinutes: leadMinutes),
+            ),
+      onSlotCastRoleGroupChanged: isReadOnly
+          ? null
+          : (castRoleId, groupId) => bloc.add(
+              OcptScheduleSlotCastRoleGroupChangedEvent(castRoleId: castRoleId, groupId: groupId),
+            ),
       onBlockSelected: (blockId) =>
           bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
       onBlockReordered: isReadOnly
@@ -465,6 +511,33 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     bloc.add(OcptScheduleBlockDeletionConfirmedEvent(blockId: blockId));
+  }
+
+  /// Asks `OcptConfirmDialog` whether group [groupId] really is to be deleted, then dispatches the
+  /// deletion if the user answered `Delete`. What the dialog says matters here specifically: unlike
+  /// a day, a slot or a block, deleting a group doesn't remove anybody from the day — it leaves
+  /// every crew and cast row that pointed at it with no group at all
+  /// (`OcptScheduleService.deleteGroup`'s own rule), which `scheduleDeleteGroupConfirmMessage` says
+  /// rather than the generic "this cannot be undone" the other three share.
+  Future<void> _handleGroupDeletionRequested(BuildContext context, String groupId) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.scheduleDeleteGroupConfirmTitle,
+      message: tr.scheduleDeleteGroupConfirmMessage,
+      cancelLabel: tr.scheduleDeleteDayCancelAction,
+      confirmLabel: tr.scheduleDeleteDayConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptScheduleGroupDeletionConfirmedEvent(groupId: groupId));
   }
 
   /// Builds the right dock, or null while it's closed.

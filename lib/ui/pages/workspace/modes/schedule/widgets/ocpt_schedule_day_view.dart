@@ -11,10 +11,12 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_groups_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
@@ -23,11 +25,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
-/// The day view: the mode's real working surface (`docs/plans/schedule-mode.md` §8) — the day's
-/// own summary band, then one [OcptScheduleSlotCard] per slot with its own `+ Slot` footer. A day
-/// used to draw one shared [OcptScheduleTimetable] of its own beneath every card; it no longer does
-/// (M2') — each card now draws its own, over that slot's own blocks alone, so [blocks] and
-/// [timeline] here only ever feed the summary band's own totals and each card's own slice of them.
+/// The day view: the mode's real working surface (`docs/plans/schedule-mode.md` §8) — the day's own
+/// summary band, then [OcptScheduleGroupsBand] (M2'), then one [OcptScheduleSlotCard] per slot with
+/// its own `+ Slot` footer. A day used to draw one shared [OcptScheduleTimetable] of its own beneath
+/// every card; it no longer does (M2') — each card now draws its own, over that slot's own blocks
+/// alone, so [blocks] and [timeline] here only ever feed the summary band's own totals and each
+/// card's own slice of them.
 ///
 /// Every writing affordance every one of its children exposes is threaded through as a nullable
 /// callback, withheld while a project version is being previewed — this widget itself withholds
@@ -38,6 +41,15 @@ class OcptScheduleDayView extends StatelessWidget {
 
   /// [day]'s own live slots, in `sortKey` order.
   final List<OcptShootingSlot> slots;
+
+  /// [day]'s own live groups, in `sortKey` order — what [OcptScheduleGroupsBand] lists and what
+  /// every slot card's own crew/cast group pickers offer.
+  final List<OcptShootingDayGroup> groups;
+
+  /// How many live crew and cast rows of [day] currently point at each group, keyed by id —
+  /// `OcptScheduleState.groupMemberCountsOfDay`'s own read, handed straight to
+  /// [OcptScheduleGroupsBand].
+  final Map<String, int> groupMemberCounts;
 
   /// [day]'s own live blocks, across every slot, in `sortKey` order — read here for the summary
   /// band's own totals, and handed whole to every [OcptScheduleSlotCard], each of which filters
@@ -85,6 +97,10 @@ class OcptScheduleDayView extends StatelessWidget {
   /// value).
   final String Function(String slotId) slotLabelValueOf;
 
+  /// Resolves a group's id to its own label, as currently held (a pending edit, or its stored
+  /// value) — [OcptScheduleGroupsBand]'s own `labelValueOf`.
+  final String Function(String groupId) groupLabelValueOf;
+
   /// Resolves a slot's id to its own computed convocations (ADR 0017), or null while none could be
   /// computed yet — what each slot card's own crew/cast read-outs are drawn from.
   final OcptSlotConvocations? Function(String slotId) slotConvocationsOf;
@@ -105,6 +121,19 @@ class OcptScheduleDayView extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onSlotDeletionRequested;
 
+  /// Called with a group's id and its raw label text on every keystroke, or null while withheld —
+  /// [OcptScheduleGroupsBand]'s own `onLabelChanged`.
+  final void Function(String groupId, String rawValue)? onGroupLabelChanged;
+
+  /// Called with a group's id and its own new lead time once committed, or null while withheld.
+  final void Function(String groupId, int leadMinutes)? onGroupLeadChanged;
+
+  /// Called when the groups band's own `+ Group` control is clicked, or null while withheld.
+  final VoidCallback? onGroupAdded;
+
+  /// Called with a group's id when its own delete control is clicked, or null while withheld.
+  final ValueChanged<String>? onGroupDeletionRequested;
+
   /// Called with a slot's id and the id of the person picked by its own `+ Crew member` footer, or
   /// null while withheld.
   final void Function(String slotId, String personId)? onSlotCrewMemberAdded;
@@ -117,6 +146,14 @@ class OcptScheduleDayView extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onSlotCrewMemberRemoved;
 
+  /// Called with a crew assignment's id and its own new lead time (null to clear it), or null while
+  /// withheld.
+  final void Function(String crewMemberId, int? leadMinutes)? onSlotCrewMemberLeadChanged;
+
+  /// Called with a crew assignment's id and the group just picked (null for "no group"), or null
+  /// while withheld.
+  final void Function(String crewMemberId, String? groupId)? onSlotCrewMemberGroupChanged;
+
   /// Called with a slot's id and the id of the role picked by its own `+ Cast` footer, or null
   /// while withheld.
   final void Function(String slotId, String roleId)? onSlotCastRoleAdded;
@@ -124,6 +161,14 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a cast convocation's id when its row's remove control is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSlotCastRoleRemoved;
+
+  /// Called with a cast convocation's id and its own new lead time (null to clear it), or null
+  /// while withheld.
+  final void Function(String castRoleId, int? leadMinutes)? onSlotCastRoleLeadChanged;
+
+  /// Called with a cast convocation's id and the group just picked (null for "no group"), or null
+  /// while withheld.
+  final void Function(String castRoleId, String? groupId)? onSlotCastRoleGroupChanged;
 
   /// Called with a block's id when its row is clicked.
   final ValueChanged<String> onBlockSelected;
@@ -160,6 +205,8 @@ class OcptScheduleDayView extends StatelessWidget {
     super.key,
     required this.day,
     required this.slots,
+    required this.groups,
+    required this.groupMemberCounts,
     required this.blocks,
     required this.timeline,
     required this.sunTimes,
@@ -173,17 +220,26 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.shotOf,
     required this.selectedBlockId,
     required this.slotLabelValueOf,
+    required this.groupLabelValueOf,
     required this.slotConvocationsOf,
     required this.onSlotAdded,
     required this.onSlotLabelChanged,
     required this.onSlotPlaceChanged,
     required this.onSlotStartChanged,
     required this.onSlotDeletionRequested,
+    required this.onGroupLabelChanged,
+    required this.onGroupLeadChanged,
+    required this.onGroupAdded,
+    required this.onGroupDeletionRequested,
     required this.onSlotCrewMemberAdded,
     required this.onSlotCrewMemberPositionChanged,
     required this.onSlotCrewMemberRemoved,
+    required this.onSlotCrewMemberLeadChanged,
+    required this.onSlotCrewMemberGroupChanged,
     required this.onSlotCastRoleAdded,
     required this.onSlotCastRoleRemoved,
+    required this.onSlotCastRoleLeadChanged,
+    required this.onSlotCastRoleGroupChanged,
     required this.onBlockSelected,
     required this.onBlockReordered,
     required this.onBlockDurationChanged,
@@ -202,6 +258,16 @@ class OcptScheduleDayView extends StatelessWidget {
       children: [
         _buildSummaryBand(context),
         const SizedBox(height: 16),
+        OcptScheduleGroupsBand(
+          groups: groups,
+          memberCountByGroupId: groupMemberCounts,
+          labelValueOf: groupLabelValueOf,
+          onLabelChanged: onGroupLabelChanged,
+          onLeadChanged: onGroupLeadChanged,
+          onGroupAdded: onGroupAdded,
+          onGroupDeletionRequested: onGroupDeletionRequested,
+        ),
+        const SizedBox(height: 16),
         for (final slot in slots)
           Padding(
             padding: const EdgeInsets.only(bottom: 11),
@@ -214,6 +280,7 @@ class OcptScheduleDayView extends StatelessWidget {
               roleById: roleById,
               people: people,
               roles: roles.where((role) => !slot.cast.any((cast) => cast.roleId == role.id)).toList(),
+              groups: groups,
               convocations: slotConvocationsOf(slot.id),
               labelValue: slotLabelValueOf(slot.id),
               onLabelChanged: onSlotLabelChanged == null
@@ -233,10 +300,14 @@ class OcptScheduleDayView extends StatelessWidget {
                   : (personId) => onSlotCrewMemberAdded!(slot.id, personId),
               onCrewMemberPositionChanged: onSlotCrewMemberPositionChanged,
               onCrewMemberRemoved: onSlotCrewMemberRemoved,
+              onCrewMemberLeadChanged: onSlotCrewMemberLeadChanged,
+              onCrewMemberGroupChanged: onSlotCrewMemberGroupChanged,
               onCastRoleAdded: onSlotCastRoleAdded == null
                   ? null
                   : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
               onCastRoleRemoved: onSlotCastRoleRemoved,
+              onCastRoleLeadChanged: onSlotCastRoleLeadChanged,
+              onCastRoleGroupChanged: onSlotCastRoleGroupChanged,
               blocks: blocks,
               timeline: timeline?.bySlotId[slot.id],
               shotOf: shotOf,

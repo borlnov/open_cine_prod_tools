@@ -268,6 +268,16 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         : (snapshot?.blocksByDayId[selectedDayId] ?? const []);
   }
 
+  /// [selectedDayId]'s own live groups, in `sortKey` order (empty while none is selected, or the
+  /// selected day carries none) — what the day view's own groups band lists, and what a slot card's
+  /// own group pickers offer.
+  List<OcptShootingDayGroup> get selectedDayGroups {
+    final selectedDayId = this.selectedDayId;
+    return selectedDayId == null
+        ? const []
+        : (snapshot?.groupsByDayId[selectedDayId] ?? const []);
+  }
+
   /// The live shots still to place, grouped by the sequence they belong to, sequences in their own
   /// screenplay order and each group's shots in their own sequence order. A sequence with nothing
   /// left to place has no entry at all.
@@ -412,6 +422,36 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
           ),
       ],
     );
+  }
+
+  /// How many live crew and cast rows of day [dayId] — across every one of its slots — point at
+  /// each group, keyed by `OcptShootingDayGroup.id`. A group with no member at all has no entry
+  /// here rather than a zero one, which is what the groups band's own member-count read-out treats
+  /// a missing key as.
+  ///
+  /// Both kinds count towards the same figure — a group is a bag of convoked people, crew and cast
+  /// alike (§2.3 of `docs/plans/schedule-slots-and-computed-convocations.md`) — computed on every
+  /// read rather than stored, for the same reason [unplacedGroups] is: nothing here rides a
+  /// per-keystroke timer that would need it cached.
+  Map<String, int> groupMemberCountsOfDay(String dayId) {
+    final counts = <String, int>{};
+
+    for (final slot in snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[]) {
+      for (final member in slot.crew) {
+        final groupId = member.groupId;
+        if (groupId != null) {
+          counts[groupId] = (counts[groupId] ?? 0) + 1;
+        }
+      }
+      for (final member in slot.cast) {
+        final groupId = member.groupId;
+        if (groupId != null) {
+          counts[groupId] = (counts[groupId] ?? 0) + 1;
+        }
+      }
+    }
+
+    return counts;
   }
 
   /// The roles [block] puts on the floor, fed to [ocptComputeSlotConvocations] as an

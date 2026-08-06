@@ -41,4 +41,8 @@ enum OcptScheduleField {
 
   /// `shooting_slot_cast.notes`.
   castMemberNotes,
+
+  /// `shooting_day_groups.label` — a named band of people called together ("Figuration", "Équipe
+  /// technique").
+  groupLabel,
 }

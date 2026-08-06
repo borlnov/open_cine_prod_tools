@@ -6730,5 +6730,79 @@
         "type": "String"
       }
     }
+  },
+  "scheduleLeadTimeLabel": "Lead",
+  "@scheduleLeadTimeLabel": {
+    "description": "Label beside a crew/cast row's or a group's own lead-time field",
+    "context": "Displayed in a day view slot card and the groups band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleGroupNoGroupOption": "No group",
+  "@scheduleGroupNoGroupOption": {
+    "description": "Entry of a crew/cast row's own group picker clearing it back to no group, and the read-out shown for a row that belongs to none",
+    "context": "Displayed in a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleGroupsBandTitle": "Groups",
+  "@scheduleGroupsBandTitle": {
+    "description": "Heading of the day view's own groups band",
+    "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleGroupsEmptyHint": "No group created yet.",
+  "@scheduleGroupsEmptyHint": {
+    "description": "Shown in the groups band for a day with no group yet",
+    "context": "Displayed in the day view's own groups band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddGroupAction": "Group",
+  "@scheduleAddGroupAction": {
+    "description": "Label of the groups band's own control creating a new group",
+    "context": "Displayed in the day view's own groups band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleGroupUnnamed": "Unnamed group",
+  "@scheduleGroupUnnamed": {
+    "description": "Shown for a group with no label, and as its label field's own hint",
+    "context": "Displayed in the day view's own groups band and a slot card's group pickers",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteGroupTooltip": "Delete this group…",
+  "@scheduleDeleteGroupTooltip": {
+    "description": "Tooltip of a group card's own delete control, asking for confirmation before deleting",
+    "context": "Displayed in the day view's own groups band",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteGroupConfirmTitle": "Delete this group?",
+  "@scheduleDeleteGroupConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a group",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteGroupConfirmMessage": "Its members will keep their own convocation, with no group. This cannot be undone.",
+  "@scheduleDeleteGroupConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a group, stating that its members stay on the day",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleGroupMemberCount": "{count, plural, one{{count} member} other{{count} members}}",
+  "@scheduleGroupMemberCount": {
+    "description": "How many crew and cast rows currently point at a group",
+    "context": "Displayed in the day view's own groups band",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

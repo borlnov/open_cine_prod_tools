@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
@@ -129,10 +130,15 @@ void main() {
     String slotId = "slot-1",
     List<OcptShootingSlotCrewMember> crew = const [],
     List<OcptShootingSlotCastMember> cast = const [],
+    List<OcptShootingDayGroup> groups = const [],
     OcptSlotConvocations? convocations,
     ValueChanged<String>? onCrewMemberAdded,
     ValueChanged<String>? onCastRoleAdded,
     VoidCallback? onDeletionRequested,
+    void Function(String crewMemberId, int? leadMinutes)? onCrewMemberLeadChanged,
+    void Function(String crewMemberId, String? groupId)? onCrewMemberGroupChanged,
+    void Function(String castRoleId, int? leadMinutes)? onCastRoleLeadChanged,
+    void Function(String castRoleId, String? groupId)? onCastRoleGroupChanged,
     List<OcptShootingDayBlock> blocks = const [],
     List<(String, String)> otherSlots = const [],
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
@@ -146,6 +152,7 @@ void main() {
     roleById: {role.id: role},
     people: [person],
     roles: [role],
+    groups: groups,
     convocations: convocations,
     labelValue: "Matin",
     onLabelChanged: isReadOnly ? null : (_) {},
@@ -155,8 +162,12 @@ void main() {
     onCrewMemberAdded: isReadOnly ? null : (onCrewMemberAdded ?? (_) {}),
     onCrewMemberPositionChanged: isReadOnly ? null : (_, _) {},
     onCrewMemberRemoved: isReadOnly ? null : (_) {},
+    onCrewMemberLeadChanged: isReadOnly ? null : (onCrewMemberLeadChanged ?? (_, _) {}),
+    onCrewMemberGroupChanged: isReadOnly ? null : (onCrewMemberGroupChanged ?? (_, _) {}),
     onCastRoleAdded: isReadOnly ? null : (onCastRoleAdded ?? (_) {}),
     onCastRoleRemoved: isReadOnly ? null : (_) {},
+    onCastRoleLeadChanged: isReadOnly ? null : (onCastRoleLeadChanged ?? (_, _) {}),
+    onCastRoleGroupChanged: isReadOnly ? null : (onCastRoleGroupChanged ?? (_, _) {}),
     blocks: blocks,
     timeline: null,
     shotOf: _noShot,
@@ -313,6 +324,214 @@ void main() {
         .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
         .where((field) => field.minute == 435 || field.minute == 510 || field.minute == 900);
     expect(castMinuteFields, everyElement(predicate<OcptScheduleMinuteField>((f) => f.onChanged == null)));
+  });
+
+  testWidgets("a crew row's own lead time reports what is typed into it", (tester) async {
+    final crew = [
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        groupId: null,
+        leadMinutes: 30,
+        notes: "",
+      ),
+    ];
+    final reported = <(String, int?)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          crew: crew,
+          onCrewMemberLeadChanged: (crewMemberId, leadMinutes) =>
+              reported.add((crewMemberId, leadMinutes)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The row's own lead (30) seeds the field's own editable text — found by that text, since the
+    // card's own slot label field is a `TextField` too — and typing a new one reports it against
+    // this row's id.
+    final leadFieldFinder = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.controller?.text == "30",
+    );
+    expect(leadFieldFinder, findsOneWidget);
+    await tester.enterText(leadFieldFinder, "45");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(reported, [("crew-1", 45)]);
+  });
+
+  testWidgets("a cast row with no lead of its own shows its group's, marked inherited", (
+    tester,
+  ) async {
+    final cast = [
+      const OcptShootingSlotCastMember(
+        id: "cast-1",
+        slotId: "slot-1",
+        roleId: "role-1",
+        groupId: "group-1",
+        leadMinutes: null,
+        notes: "",
+      ),
+    ];
+    const convocations = OcptSlotConvocations(
+      crew: [],
+      cast: [
+        OcptCastConvocation(
+          id: "cast-1",
+          arrivalMinute: 435,
+          patStartMinute: 510,
+          patEndMinute: 900,
+          leadMinutes: 60,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: false, cast: cast, convocations: convocations)),
+    );
+    await tester.pumpAndSettle();
+
+    // Nothing was typed for this row (`leadMinutes: null`); the group's own resolved figure (60)
+    // is shown as the field's own hint rather than a value the row claims for itself.
+    final leadField = tester.widget<TextField>(
+      find.byWidgetPredicate(
+        (widget) => widget is TextField && widget.decoration?.hintText == "60",
+      ),
+    );
+    expect(leadField.controller?.text, "");
+  });
+
+  testWidgets("a crew row's own group picker offers the day's groups and reports the one picked", (
+    tester,
+  ) async {
+    final crew = [
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        groupId: null,
+        leadMinutes: null,
+        notes: "",
+      ),
+    ];
+    const groups = [
+      OcptShootingDayGroup(id: "group-1", shootingDayId: "day-1", label: "Figuration", leadMinutes: 90),
+    ];
+    final reported = <(String, String?)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          crew: crew,
+          groups: groups,
+          onCrewMemberGroupChanged: (crewMemberId, groupId) => reported.add((crewMemberId, groupId)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    // No group picked yet: the button's own current label is "No group", unique on screen before
+    // the menu opens (the group's own distinct label appears only once the menu is up).
+    await tester.tap(find.text(tr.scheduleGroupNoGroupOption));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Figuration"));
+    await tester.pumpAndSettle();
+
+    expect(reported, [("crew-1", "group-1")]);
+  });
+
+  testWidgets("picking `No group` on a row already in one clears it back to none", (tester) async {
+    final crew = [
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        groupId: "group-1",
+        leadMinutes: null,
+        notes: "",
+      ),
+    ];
+    const groups = [
+      OcptShootingDayGroup(id: "group-1", shootingDayId: "day-1", label: "Figuration", leadMinutes: 90),
+    ];
+    final reported = <(String, String?)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          crew: crew,
+          groups: groups,
+          onCrewMemberGroupChanged: (crewMemberId, groupId) => reported.add((crewMemberId, groupId)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    // The row already belongs to "Figuration", so that is its button's own current label — unique
+    // before the menu opens.
+    await tester.tap(find.text("Figuration"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.scheduleGroupNoGroupOption).last);
+    await tester.pumpAndSettle();
+
+    expect(reported, [("crew-1", null)]);
+  });
+
+  testWidgets("every crew and cast row's own lead field and group picker are withheld read-only", (
+    tester,
+  ) async {
+    final crew = [
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        groupId: "group-1",
+        leadMinutes: 15,
+        notes: "",
+      ),
+    ];
+    final cast = [
+      const OcptShootingSlotCastMember(
+        id: "cast-1",
+        slotId: "slot-1",
+        roleId: "role-1",
+        groupId: null,
+        leadMinutes: 20,
+        notes: "",
+      ),
+    ];
+    const groups = [
+      OcptShootingDayGroup(id: "group-1", shootingDayId: "day-1", label: "Figuration", leadMinutes: 90),
+    ];
+
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: true, crew: crew, cast: cast, groups: groups)),
+    );
+    await tester.pumpAndSettle();
+
+    // Both figures still read out (plain text, own values), but nothing here is a `TextField`, and
+    // the group picker reads as plain text rather than a `PopupMenuButton`.
+    expect(find.text("15 min"), findsOneWidget);
+    expect(find.text("20 min"), findsOneWidget);
+    expect(find.text("Figuration"), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets("the card offers exactly one editable minute field: the slot's own start", (

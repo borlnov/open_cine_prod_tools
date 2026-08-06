@@ -900,5 +900,15 @@
   "scheduleAddSlotAction": "Créneau",
   "scheduleTimetableTitle": "Déroulé",
   "scheduleDaySummaryTotalLabel": "Total",
-  "scheduleDaySummaryTotal": "{count, plural, one{{count} plan} other{{count} plans}} · {duration} de présence"
+  "scheduleDaySummaryTotal": "{count, plural, one{{count} plan} other{{count} plans}} · {duration} de présence",
+  "scheduleLeadTimeLabel": "Battement",
+  "scheduleGroupNoGroupOption": "Aucun groupe",
+  "scheduleGroupsBandTitle": "Groupes",
+  "scheduleGroupsEmptyHint": "Aucun groupe créé pour l'instant.",
+  "scheduleAddGroupAction": "Groupe",
+  "scheduleGroupUnnamed": "Groupe sans nom",
+  "scheduleDeleteGroupTooltip": "Supprimer ce groupe…",
+  "scheduleDeleteGroupConfirmTitle": "Supprimer ce groupe ?",
+  "scheduleDeleteGroupConfirmMessage": "Ses membres garderont leur propre convocation, sans groupe. Cette action est irréversible.",
+  "scheduleGroupMemberCount": "{count, plural, one{{count} membre} other{{count} membres}}"
 }
