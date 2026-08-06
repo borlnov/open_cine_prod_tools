@@ -19,8 +19,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// chips (mock's `bandeDays`, `design.html` lines 129-168).
 ///
 /// It is purely informative: a placement is made and unmade in the day view's own timetables,
-/// where the block itself lives, not here. A chip only ever selects the block it names, and
-/// selecting a day only ever reads, so neither [onDaySelected] nor [onBlockSelected] is ever
+/// where the block itself lives, not here. A card's own header click opens that day, selecting it
+/// and switching the centre to the day view — the same "open this day" gesture the week and month
+/// presentations' own header/cell click already answers — while a chip only ever selects the block
+/// it names. Both only ever read, so neither [onDayOpenRequested] nor [onBlockSelected] is ever
 /// withheld.
 class OcptScheduleStripAgenda extends StatelessWidget {
   /// The live days to show, in `dayNumber` order.
@@ -41,8 +43,8 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
-  /// Called with a day's id when its own header is clicked.
-  final ValueChanged<String> onDaySelected;
+  /// Called with a day's id when its own header is clicked, selecting it and opening the day view.
+  final ValueChanged<String> onDayOpenRequested;
 
   /// Called with a block's id and its own day's id when a chip's own code/label is clicked.
   final void Function(String blockId, String dayId) onBlockSelected;
@@ -56,7 +58,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.blocksByDayId,
     required this.shotOf,
     required this.timelineOf,
-    required this.onDaySelected,
+    required this.onDayOpenRequested,
     required this.onBlockSelected,
   });
 
@@ -85,7 +87,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
           blocks: blocksByDayId[day.id] ?? const [],
           shotOf: shotOf,
           timeline: timelineOf(day.id),
-          onSelected: () => onDaySelected(day.id),
+          onSelected: () => onDayOpenRequested(day.id),
           onBlockSelected: (blockId) => onBlockSelected(blockId, day.id),
         );
       },

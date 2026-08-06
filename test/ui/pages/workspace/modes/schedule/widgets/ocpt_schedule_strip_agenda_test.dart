@@ -104,7 +104,7 @@ void main() {
           blocksByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (_) => null,
-          onDaySelected: (_) {},
+          onDayOpenRequested: (_) {},
           onBlockSelected: (_, _) {},
         ),
       ),
@@ -127,7 +127,7 @@ void main() {
             blocksByDayId: const {},
             shotOf: (_) => null,
             timelineOf: (_) => null,
-            onDaySelected: (_) {},
+            onDayOpenRequested: (_) {},
             onBlockSelected: (_, _) {},
           ),
         ),
@@ -162,7 +162,7 @@ void main() {
           },
           shotOf: (shotId) => shotId == "shot-1" ? shot : null,
           timelineOf: (_) => null,
-          onDaySelected: (_) {},
+          onDayOpenRequested: (_) {},
           onBlockSelected: (blockId, dayId) => selections.add((blockId, dayId)),
         ),
       ),
@@ -176,8 +176,10 @@ void main() {
     expect(selections, [("block-1", "day-1")]);
   });
 
-  testWidgets("the day header click reports the day's own id", (tester) async {
-    final selectedDayIds = <String>[];
+  testWidgets("the day header click reports the day's own id, requesting it be opened", (
+    tester,
+  ) async {
+    final openedDayIds = <String>[];
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -188,7 +190,7 @@ void main() {
           blocksByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (_) => null,
-          onDaySelected: selectedDayIds.add,
+          onDayOpenRequested: openedDayIds.add,
           onBlockSelected: (_, _) {},
         ),
       ),
@@ -198,6 +200,6 @@ void main() {
     await tester.tap(find.text("D1"));
     await tester.pump();
 
-    expect(selectedDayIds, ["day-1"]);
+    expect(openedDayIds, ["day-1"]);
   });
 }

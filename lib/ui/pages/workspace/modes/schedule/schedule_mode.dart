@@ -274,7 +274,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
-        onDaySelected: (dayId) => bloc.add(OcptScheduleDaySelectedEvent(dayId: dayId)),
+        onDayOpenRequested: (dayId) => _openDay(context, dayId),
         onBlockSelected: (blockId, dayId) =>
             bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: dayId)),
       ),
