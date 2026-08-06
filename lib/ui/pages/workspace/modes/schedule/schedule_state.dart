@@ -328,6 +328,38 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return groups;
   }
 
+  /// For every shot placed somewhere in the schedule, the day numbers it is placed on —
+  /// deduplicated and in ascending order — keyed by shot id. A shot with no live block placing it
+  /// has no entry here, read the same way an absent key reads everywhere else in this state: as
+  /// "unplaced". What the shot picker dialog's own already-placed mark reads.
+  ///
+  /// Built from [snapshot]'s own [OcptScheduleSnapshot.blocksByDayId], one entry per **day** a shot
+  /// is placed on rather than one per block, so a shot placed twice on the same day (interrupted by
+  /// the meal break and resumed after it) still reports that day's number once. Computed on every
+  /// read rather than stored, for the same reason [unplacedGroups] is: nothing here rides a
+  /// per-keystroke timer that would need it cached.
+  Map<String, List<int>> get placedDayNumbersByShotId {
+    final dayNumbersByShotId = <String, Set<int>>{};
+
+    for (final entry in snapshot?.blocksByDayId.entries ?? const <MapEntry<String, List<OcptShootingDayBlock>>>[]) {
+      final dayNumber = daysById[entry.key]?.dayNumber;
+      if (dayNumber == null) {
+        continue;
+      }
+
+      for (final block in entry.value) {
+        final shotId = block.shotId;
+        if (block.kind == OcptShootingBlockKind.shot && shotId != null) {
+          (dayNumbersByShotId[shotId] ??= <int>{}).add(dayNumber);
+        }
+      }
+    }
+
+    return {
+      for (final entry in dayNumbersByShotId.entries) entry.key: entry.value.toList()..sort(),
+    };
+  }
+
   /// [dayId]'s own computed timelines (ADR 0015, amended per
   /// `docs/plans/schedule-slots-and-computed-convocations.md`), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at

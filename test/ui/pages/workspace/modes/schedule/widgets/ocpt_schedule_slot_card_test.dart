@@ -144,6 +144,7 @@ void main() {
     List<OcptSceneShotSequence> sequences = const [],
     List<(String, String)> otherSlots = const [],
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
+    VoidCallback? onShotBlockRequested,
     void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
   }) => OcptScheduleSlotCard(
     slot: _buildSlot(id: slotId, crew: crew, cast: cast),
@@ -184,6 +185,7 @@ void main() {
     onBlockSequenceChanged: isReadOnly ? null : (_, _) {},
     onBlockDeletionRequested: isReadOnly ? null : (_) {},
     onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
+    onShotBlockRequested: isReadOnly ? null : (onShotBlockRequested ?? () {}),
     onBlockMovedToSlot: isReadOnly ? null : (onBlockMovedToSlot ?? (_, _) {}),
   );
 

@@ -912,5 +912,11 @@
   "scheduleDeleteGroupTooltip": "Supprimer ce groupe…",
   "scheduleDeleteGroupConfirmTitle": "Supprimer ce groupe ?",
   "scheduleDeleteGroupConfirmMessage": "Ses membres garderont leur propre convocation, sans groupe. Cette action est irréversible.",
-  "scheduleGroupMemberCount": "{count, plural, one{{count} membre} other{{count} membres}}"
+  "scheduleGroupMemberCount": "{count, plural, one{{count} membre} other{{count} membres}}",
+  "scheduleShotPickerDialogTitle": "Placer un plan",
+  "scheduleShotPickerSearchHint": "Rechercher un plan…",
+  "scheduleShotPickerNoResultsHint": "Aucun plan ne correspond à la recherche.",
+  "scheduleShotPickerEmptyHint": "Ce découpage ne contient encore aucun plan.",
+  "scheduleShotPickerAlreadyPlacedTooltip": "Déjà placé",
+  "scheduleShotPickerCancelAction": "Annuler"
 }

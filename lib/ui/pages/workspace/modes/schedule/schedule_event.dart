@@ -649,6 +649,32 @@ class OcptScheduleBlockCreatedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, slotId, kind];
 }
 
+/// Creates a new **shot** block inside slot [slotId], appended at the end of that slot's own
+/// timetable, dispatched once the mode's own shot picker dialog — opened by that slot card's own
+/// `+ Block` menu's `Shot` entry — resolves to a pick.
+///
+/// A **second event** rather than a `shotId` added to [OcptScheduleBlockCreatedEvent]: that event's
+/// own [OcptScheduleBlockCreatedEvent.kind] can never be [OcptShootingBlockKind.shot] (see its own
+/// doc comment), and giving it an optional `shotId` field that only ever accompanies that one kind
+/// would let a caller build an event naming a kind and a shot id that disagree with each other — a
+/// shape this event rules out by construction rather than one a handler would have to reject.
+/// `OcptScheduleService.placeShot` always creates, never moves: a shot may legitimately be placed
+/// more than once (interrupted by the meal break and resumed after it).
+class OcptScheduleShotBlockCreatedEvent extends OcptScheduleEvent {
+  /// The id of the slot the new block belongs to.
+  final String slotId;
+
+  /// The id of the shot being placed.
+  final String shotId;
+
+  /// Class constructor
+  const OcptScheduleShotBlockCreatedEvent({required this.slotId, required this.shotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, shotId];
+}
+
 /// Writes a new duration onto block [blockId] immediately, dispatched by its own slot card's own ±
 /// duration controls.
 class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {

@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_month_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_week_grid.dart';
@@ -464,11 +465,36 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onBlockAdded: isReadOnly
           ? null
           : (slotId, kind) => bloc.add(OcptScheduleBlockCreatedEvent(slotId: slotId, kind: kind)),
+      onShotBlockRequested: isReadOnly
+          ? null
+          : (slotId) => unawaited(_handleShotBlockRequested(context, slotId)),
       onBlockMovedToSlot: isReadOnly
           ? null
           : (blockId, targetSlotId) =>
                 bloc.add(OcptScheduleBlockMovedToSlotEvent(blockId: blockId, targetSlotId: targetSlotId)),
     );
+  }
+
+  /// Opens `OcptScheduleShotPickerDialog` for slot [slotId] — the slot card's own `+ Block` menu's
+  /// `Shot` entry — then dispatches [OcptScheduleShotBlockCreatedEvent] once the user picked a
+  /// shot. Does nothing while the dialog is dismissed with no pick.
+  Future<void> _handleShotBlockRequested(BuildContext context, String slotId) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final state = bloc.state;
+
+    final shotId = await OcptScheduleShotPickerDialog.show(
+      context,
+      sequences: state.shotListSnapshot?.sequences ?? const [],
+      placedDayNumbersByShotId: state.placedDayNumbersByShotId,
+    );
+    if (shotId == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
   }
 
   /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the

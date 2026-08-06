@@ -117,6 +117,7 @@ void main() {
     void Function(String blockId, String? sceneId)? onHoldSequenceChanged,
     ValueChanged<String>? onDeletionRequested,
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
+    VoidCallback? onShotBlockRequested,
     void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
   }) => OcptScheduleTimetable(
     slotId: "slot-1",
@@ -134,6 +135,7 @@ void main() {
     onHoldSequenceChanged: onHoldSequenceChanged,
     onDeletionRequested: onDeletionRequested,
     onBlockAdded: onBlockAdded,
+    onShotBlockRequested: onShotBlockRequested,
     onBlockMovedToSlot: onBlockMovedToSlot,
   );
 
@@ -414,6 +416,55 @@ void main() {
     expect(addedKind, OcptShootingBlockKind.meal);
   });
 
+  testWidgets("the `+ Block` menu offers a `Shot` entry, picking it calls onShotBlockRequested "
+      "rather than onBlockAdded", (tester) async {
+    OcptShootingBlockKind? addedKind;
+    var shotRequested = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: const [],
+          timeline: null,
+          onBlockAdded: (kind) => addedKind = kind,
+          onShotBlockRequested: () => shotRequested = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    await tester.tap(find.text(tr.scheduleAddBlockAction));
+    await tester.pumpAndSettle();
+
+    // The `Shot` entry sits first, ahead of every milestone/hold kind, with a divider between the
+    // two groups.
+    expect(
+      tester.getCenter(find.text(tr.scheduleBlockKindShot)).dy,
+      lessThan(tester.getCenter(find.text(tr.scheduleBlockKindMeal)).dy),
+    );
+    expect(find.byType(PopupMenuDivider), findsOneWidget);
+
+    await tester.tap(find.text(tr.scheduleBlockKindShot));
+    await tester.pumpAndSettle();
+
+    expect(shotRequested, isTrue);
+    expect(addedKind, isNull);
+  });
+
+  testWidgets("the `Shot` entry is absent when onShotBlockRequested is withheld", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(buildTimetable(blocks: const [], timeline: null, onBlockAdded: (_) {})),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    await tester.tap(find.text(tr.scheduleAddBlockAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.scheduleBlockKindShot), findsNothing);
+  });
+
   testWidgets("the `Move to…` entry is withheld when the day has no other slot", (tester) async {
     final block = _buildBlock(id: "block-1", label: "Prep");
     const timeline = OcptShootingSlotTimeline(
@@ -516,6 +567,7 @@ void main() {
                 onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
+                onShotBlockRequested: null,
                 onBlockMovedToSlot: (blockId, targetSlotId) => moved.add((blockId, targetSlotId)),
               ),
             ),
@@ -538,6 +590,7 @@ void main() {
                 onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
+                onShotBlockRequested: null,
                 onBlockMovedToSlot: (blockId, targetSlotId) => moved.add((blockId, targetSlotId)),
               ),
             ),
@@ -599,6 +652,7 @@ void main() {
                 onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
+                onShotBlockRequested: null,
                 onBlockMovedToSlot: (_, _) {},
               ),
             ),
@@ -621,6 +675,7 @@ void main() {
                 onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
+                onShotBlockRequested: null,
                 onBlockMovedToSlot: (_, _) {},
               ),
             ),

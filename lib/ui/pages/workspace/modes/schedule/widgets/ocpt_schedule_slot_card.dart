@@ -198,6 +198,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// in **this** slot — or null while withheld.
   final ValueChanged<OcptShootingBlockKind>? onBlockAdded;
 
+  /// Called when the timetable's own `+ Block` menu's `Shot` entry is picked, or null while
+  /// withheld — see [OcptScheduleTimetable.onShotBlockRequested].
+  final VoidCallback? onShotBlockRequested;
+
   /// Called with a block's id and the id of the slot it is moved to, or null while withheld — see
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
   final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
@@ -243,6 +247,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onBlockSequenceChanged,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
+    required this.onShotBlockRequested,
     required this.onBlockMovedToSlot,
   });
 
@@ -350,6 +355,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
           onHoldSequenceChanged: onBlockSequenceChanged,
           onDeletionRequested: onBlockDeletionRequested,
           onBlockAdded: onBlockAdded,
+          onShotBlockRequested: onShotBlockRequested,
           onBlockMovedToSlot: onBlockMovedToSlot,
         ),
       ],

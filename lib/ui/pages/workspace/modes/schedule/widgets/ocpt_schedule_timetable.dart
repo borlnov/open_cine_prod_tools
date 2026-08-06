@@ -60,10 +60,10 @@ class _OcptScheduleDraggedBlock {
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onReordered], [onDurationChanged], [onAnchorChanged], [onShotStatusChanged],
-/// [onHoldSequenceChanged], [onDeletionRequested], [onBlockAdded] and [onBlockMovedToSlot] — the
-/// last of which also turns every row undraggable and this timetable's own drop area inert, rather
-/// than merely disabled. Selecting a row ([onBlockSelected]) only ever reads, so it is never
-/// withheld.
+/// [onHoldSequenceChanged], [onDeletionRequested], [onBlockAdded], [onShotBlockRequested] and
+/// [onBlockMovedToSlot] — the last of which also turns every row undraggable and this timetable's
+/// own drop area inert, rather than merely disabled. Selecting a row ([onBlockSelected]) only ever
+/// reads, so it is never withheld.
 class OcptScheduleTimetable extends StatelessWidget {
   /// The id of the slot this timetable belongs to: what a block dropped from another slot's own
   /// timetable lands on, and what a dragged row's own [_OcptScheduleDraggedBlock.sourceSlotId] is
@@ -122,9 +122,14 @@ class OcptScheduleTimetable extends StatelessWidget {
 
   /// Called with the kind just picked from the `+ Block` menu — the new block lands at the end of
   /// **this** slot's own timetable — or null while withheld (which also hides the menu). Never
-  /// called with [OcptShootingBlockKind.shot] — a shot is placed through the left dock's own
-  /// *placing* gesture.
+  /// called with [OcptShootingBlockKind.shot] — placing a shot goes through [onShotBlockRequested]
+  /// instead, which the menu's own `Shot` entry calls.
   final ValueChanged<OcptShootingBlockKind>? onBlockAdded;
+
+  /// Called when the `+ Block` menu's own `Shot` entry is picked — the mode itself opens the shot
+  /// picker dialog and, on a pick, dispatches the event that actually creates the block — or null
+  /// while withheld, which also hides the entry.
+  final VoidCallback? onShotBlockRequested;
 
   /// Called with a block's id and the id of the slot it is moved to — dispatched either by dropping
   /// a row dragged out of another slot's own timetable onto this one, or by picking an entry of a
@@ -150,6 +155,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.onHoldSequenceChanged,
     required this.onDeletionRequested,
     required this.onBlockAdded,
+    required this.onShotBlockRequested,
     required this.onBlockMovedToSlot,
   });
 
@@ -167,25 +173,24 @@ class OcptScheduleTimetable extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildBlocksArea(context, tr, entryByBlockId, overrunBlockIds),
-        if (onBlockAdded != null) ...[
+        if (onBlockAdded != null || onShotBlockRequested != null) ...[
           const SizedBox(height: 6),
           PopupMenuButton<OcptShootingBlockKind>(
             tooltip: "",
-            onSelected: onBlockAdded,
+            onSelected: (kind) => kind == OcptShootingBlockKind.shot
+                ? onShotBlockRequested?.call()
+                : onBlockAdded?.call(kind),
             itemBuilder: (context) => [
-              for (final kind in OcptShootingBlockKind.values)
-                if (kind != OcptShootingBlockKind.shot)
-                  PopupMenuItem<OcptShootingBlockKind>(
-                    value: kind,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(ocptShootingBlockKindIcon(kind), size: 16),
-                        const SizedBox(width: 8),
-                        Text(ocptShootingBlockKindLabel(tr, kind)),
-                      ],
-                    ),
-                  ),
+              // The `Shot` entry sits first — it is the one a user reaches for most — with a
+              // divider setting it apart from the milestone/hold kinds below it, shown only while
+              // there is something to separate it from.
+              if (onShotBlockRequested != null) ...[
+                _buildBlockKindMenuItem(tr, OcptShootingBlockKind.shot),
+                if (onBlockAdded != null) const PopupMenuDivider(),
+              ],
+              if (onBlockAdded != null)
+                for (final kind in OcptShootingBlockKind.values)
+                  if (kind != OcptShootingBlockKind.shot) _buildBlockKindMenuItem(tr, kind),
             ],
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -207,6 +212,21 @@ class OcptScheduleTimetable extends StatelessWidget {
       ],
     );
   }
+
+  /// One entry of the `+ Block` menu for block kind [kind]: its own icon and label, shared by the
+  /// `Shot` entry and every milestone/hold entry below it.
+  PopupMenuItem<OcptShootingBlockKind> _buildBlockKindMenuItem(Tr tr, OcptShootingBlockKind kind) =>
+      PopupMenuItem<OcptShootingBlockKind>(
+        value: kind,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(ocptShootingBlockKindIcon(kind), size: 16),
+            const SizedBox(width: 8),
+            Text(ocptShootingBlockKindLabel(tr, kind)),
+          ],
+        ),
+      );
 
   /// The blocks list itself (or the empty hint), wrapped in a drop target for a block dragged out of
   /// another slot's own timetable. The drop target exists only while [onBlockMovedToSlot] isn't

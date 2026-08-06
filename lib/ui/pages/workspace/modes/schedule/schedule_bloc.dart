@@ -188,6 +188,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleShotPlacedEvent>(_onShotPlaced);
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
+    on<OcptScheduleShotBlockCreatedEvent>(_onShotBlockCreated);
     on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
     on<OcptScheduleBlockAnchorChangedEvent>(_onBlockAnchorChanged);
     on<OcptScheduleBlockSequenceChangedEvent>(_onBlockSequenceChanged);
@@ -1011,6 +1012,26 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.createBlock(database: project.database, slotId: event.slotId, kind: event.kind);
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Creates a new **shot** block at the end of the timetable named by the event's own
+  /// [OcptScheduleShotBlockCreatedEvent.slotId], placing the shot it names — the slot card's own
+  /// `+ Block` menu's `Shot` entry, once the mode's own picker dialog resolved to a pick.
+  Future<void> _onShotBlockCreated(
+    OcptScheduleShotBlockCreatedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.placeShot(
+      database: project.database,
+      slotId: event.slotId,
+      shotId: event.shotId,
+    );
     await _applyScheduleSnapshot(emitter, project);
   }
 

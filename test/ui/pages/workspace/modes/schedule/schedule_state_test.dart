@@ -195,4 +195,92 @@ void main() {
       expect(castConvocation.patEndMinute, 510);
     });
   });
+
+  group("placedDayNumbersByShotId", () {
+    OcptShootingDay buildDay({required String id, required int dayNumber}) => OcptShootingDay(
+      id: id,
+      screenplayId: "screenplay-1",
+      date: DateTime(2026, 1, dayNumber),
+      dayNumber: dayNumber,
+      status: OcptShootingDayStatus.planned,
+      crewNote: "",
+      weatherNote: "",
+      notes: "",
+    );
+
+    OcptShootingDayBlock buildShotBlock({
+      required String id,
+      required String slotId,
+      required String shotId,
+    }) => OcptShootingDayBlock(
+      id: id,
+      shootingDayId: "irrelevant",
+      slotId: slotId,
+      kind: OcptShootingBlockKind.shot,
+      shotId: shotId,
+      sceneId: null,
+      label: "",
+      durationMinutes: null,
+      anchorMinute: null,
+      notes: "",
+    );
+
+    test("a shot placed twice on the same day reports that day's number once", () {
+      final day = buildDay(id: "day-1", dayNumber: 3);
+      final snapshot = OcptScheduleSnapshot.build(
+        screenplayId: "screenplay-1",
+        days: [day],
+        groupsByDayId: const {},
+        slotsByDayId: const {},
+        blocksByDayId: {
+          "day-1": [
+            buildShotBlock(id: "block-1", slotId: "slot-1", shotId: "shot-1"),
+            buildShotBlock(id: "block-2", slotId: "slot-1", shotId: "shot-1"),
+          ],
+        },
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.placedDayNumbersByShotId, {"shot-1": [3]});
+    });
+
+    test("a shot placed on two different days reports both, ascending", () {
+      final dayThree = buildDay(id: "day-1", dayNumber: 3);
+      final dayFive = buildDay(id: "day-2", dayNumber: 5);
+      final snapshot = OcptScheduleSnapshot.build(
+        screenplayId: "screenplay-1",
+        days: [dayThree, dayFive],
+        groupsByDayId: const {},
+        slotsByDayId: const {},
+        blocksByDayId: {
+          "day-2": [buildShotBlock(id: "block-2", slotId: "slot-2", shotId: "shot-1")],
+          "day-1": [buildShotBlock(id: "block-1", slotId: "slot-1", shotId: "shot-1")],
+        },
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.placedDayNumbersByShotId, {"shot-1": [3, 5]});
+    });
+
+    test("a shot with no live block placing it has no entry at all", () {
+      final day = buildDay(id: "day-1", dayNumber: 3);
+      final snapshot = OcptScheduleSnapshot.build(
+        screenplayId: "screenplay-1",
+        days: [day],
+        groupsByDayId: const {},
+        slotsByDayId: const {},
+        blocksByDayId: const {},
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.placedDayNumbersByShotId, isEmpty);
+    });
+
+    test("reads empty while no schedule has loaded yet", () {
+      expect(OcptScheduleState.init().placedDayNumbersByShotId, isEmpty);
+    });
+  });
 }

@@ -205,6 +205,10 @@ class OcptScheduleDayView extends StatelessWidget {
   /// the new block lands in **that** slot — or null while withheld.
   final void Function(String slotId, OcptShootingBlockKind kind)? onBlockAdded;
 
+  /// Called with a slot's id when that slot card's own `+ Block` menu's `Shot` entry is picked, or
+  /// null while withheld — see [OcptScheduleSlotCard.onShotBlockRequested].
+  final void Function(String slotId)? onShotBlockRequested;
+
   /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot drag
   /// or by a row's own `Move to…` menu, or null while withheld — see
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
@@ -259,6 +263,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockSequenceChanged,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
+    required this.onShotBlockRequested,
     required this.onBlockMovedToSlot,
   });
 
@@ -337,6 +342,9 @@ class OcptScheduleDayView extends StatelessWidget {
               onBlockSequenceChanged: onBlockSequenceChanged,
               onBlockDeletionRequested: onBlockDeletionRequested,
               onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
+              onShotBlockRequested: onShotBlockRequested == null
+                  ? null
+                  : () => onShotBlockRequested!(slot.id),
               onBlockMovedToSlot: onBlockMovedToSlot,
             ),
           ),

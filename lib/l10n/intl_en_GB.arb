@@ -6822,5 +6822,47 @@
         "type": "int"
       }
     }
+  },
+  "scheduleShotPickerDialogTitle": "Place a shot",
+  "@scheduleShotPickerDialogTitle": {
+    "description": "Title of the dialog opened by a slot card's own `+ Block` menu's `Shot` entry",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerSearchHint": "Search a shot…",
+  "@scheduleShotPickerSearchHint": {
+    "description": "Hint of the shot picker dialog's own search field",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerNoResultsHint": "No shot matches the search.",
+  "@scheduleShotPickerNoResultsHint": {
+    "description": "Shown in the shot picker dialog when the search matches no shot at all",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerEmptyHint": "This shot list has no shot yet.",
+  "@scheduleShotPickerEmptyHint": {
+    "description": "Shown in the shot picker dialog when the shot list holds no shot at all",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerAlreadyPlacedTooltip": "Already placed",
+  "@scheduleShotPickerAlreadyPlacedTooltip": {
+    "description": "Tooltip of a shot picker row's own day tags, shown for a shot already placed somewhere in the schedule",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerCancelAction": "Cancel",
+  "@scheduleShotPickerCancelAction": {
+    "description": "Label of the shot picker dialog's own cancel control",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
   }
 }
