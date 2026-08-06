@@ -1448,48 +1448,49 @@ class OcptScheduleService {
     required String positionId,
     required String customLabel,
   }) async {
-    final sourceDayId = await _mostRecentOtherDayId(
+    final sourceDayIds = await _otherDayIdsMostRecentFirst(
       database: database,
       screenplayId: screenplayId,
       excludingDayId: targetDayId,
     );
-    if (sourceDayId == null) {
-      return (groupId: null, leadMinutes: null);
+
+    for (final sourceDayId in sourceDayIds) {
+      final sourceSlotIds = (await _liveSlotRows(
+        database: database,
+        dayId: sourceDayId,
+      )).map((row) => row.id).toList(growable: false);
+      if (sourceSlotIds.isEmpty) {
+        continue;
+      }
+
+      final matches =
+          await (database.select(database.ocptShootingSlotCrewTable)
+                ..where(
+                  (table) =>
+                      table.slotId.isIn(sourceSlotIds) &
+                      table.isDeleted.not() &
+                      table.personId.equals(personId) &
+                      (positionId.isNotEmpty
+                          ? table.positionId.equals(positionId)
+                          : table.customLabel.equals(customLabel)),
+                )
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+              .get();
+      if (matches.isEmpty) {
+        continue;
+      }
+
+      final source = matches.first;
+      final groupId = await _matchGroupByLabel(
+        database: database,
+        sourceGroupId: source.groupId,
+        targetDayId: targetDayId,
+      );
+
+      return (groupId: groupId, leadMinutes: source.leadMinutes);
     }
 
-    final sourceSlotIds = (await _liveSlotRows(
-      database: database,
-      dayId: sourceDayId,
-    )).map((row) => row.id).toList(growable: false);
-    if (sourceSlotIds.isEmpty) {
-      return (groupId: null, leadMinutes: null);
-    }
-
-    final matches =
-        await (database.select(database.ocptShootingSlotCrewTable)
-              ..where(
-                (table) =>
-                    table.slotId.isIn(sourceSlotIds) &
-                    table.isDeleted.not() &
-                    table.personId.equals(personId) &
-                    (positionId.isNotEmpty
-                        ? table.positionId.equals(positionId)
-                        : table.customLabel.equals(customLabel)),
-              )
-              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-            .get();
-    if (matches.isEmpty) {
-      return (groupId: null, leadMinutes: null);
-    }
-
-    final source = matches.first;
-    final groupId = await _matchGroupByLabel(
-      database: database,
-      sourceGroupId: source.groupId,
-      targetDayId: targetDayId,
-    );
-
-    return (groupId: groupId, leadMinutes: source.leadMinutes);
+    return (groupId: null, leadMinutes: null);
   }
 
   /// The seeded lead time and group [addSlotCastRole] gives a fresh row for [roleId] — the cast
@@ -1500,45 +1501,46 @@ class OcptScheduleService {
     required String screenplayId,
     required String roleId,
   }) async {
-    final sourceDayId = await _mostRecentOtherDayId(
+    final sourceDayIds = await _otherDayIdsMostRecentFirst(
       database: database,
       screenplayId: screenplayId,
       excludingDayId: targetDayId,
     );
-    if (sourceDayId == null) {
-      return (groupId: null, leadMinutes: null);
+
+    for (final sourceDayId in sourceDayIds) {
+      final sourceSlotIds = (await _liveSlotRows(
+        database: database,
+        dayId: sourceDayId,
+      )).map((row) => row.id).toList(growable: false);
+      if (sourceSlotIds.isEmpty) {
+        continue;
+      }
+
+      final matches =
+          await (database.select(database.ocptShootingSlotCastTable)
+                ..where(
+                  (table) =>
+                      table.slotId.isIn(sourceSlotIds) &
+                      table.isDeleted.not() &
+                      table.roleId.equals(roleId),
+                )
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+              .get();
+      if (matches.isEmpty) {
+        continue;
+      }
+
+      final source = matches.first;
+      final groupId = await _matchGroupByLabel(
+        database: database,
+        sourceGroupId: source.groupId,
+        targetDayId: targetDayId,
+      );
+
+      return (groupId: groupId, leadMinutes: source.leadMinutes);
     }
 
-    final sourceSlotIds = (await _liveSlotRows(
-      database: database,
-      dayId: sourceDayId,
-    )).map((row) => row.id).toList(growable: false);
-    if (sourceSlotIds.isEmpty) {
-      return (groupId: null, leadMinutes: null);
-    }
-
-    final matches =
-        await (database.select(database.ocptShootingSlotCastTable)
-              ..where(
-                (table) =>
-                    table.slotId.isIn(sourceSlotIds) &
-                    table.isDeleted.not() &
-                    table.roleId.equals(roleId),
-              )
-              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-            .get();
-    if (matches.isEmpty) {
-      return (groupId: null, leadMinutes: null);
-    }
-
-    final source = matches.first;
-    final groupId = await _matchGroupByLabel(
-      database: database,
-      sourceGroupId: source.groupId,
-      targetDayId: targetDayId,
-    );
-
-    return (groupId: groupId, leadMinutes: source.leadMinutes);
+    return (groupId: null, leadMinutes: null);
   }
 
   /// The id of [targetDayId]'s own live group carrying the same label as [sourceGroupId], or null
@@ -1571,9 +1573,14 @@ class OcptScheduleService {
     return null;
   }
 
-  /// The id of [screenplayId]'s live day with the greatest `sortKey` other than [excludingDayId] —
-  /// "most recent" in the plan's own order, not the calendar date — or null when there is none.
-  Future<String?> _mostRecentOtherDayId({
+  /// Every live day of [screenplayId] other than [excludingDayId], the greatest `sortKey` first —
+  /// "most recent" in the plan's own order, not the calendar date.
+  ///
+  /// The whole list rather than only its head: the day a convocation is seeded from is the most
+  /// recent one that **convoked that person or that role**, which is rarely the most recent day of
+  /// the plan — an actor shooting on days 2 and 7 is convoked on neither 5 nor 6, and giving up at
+  /// the first day that doesn't name them would make the seeding fire almost never.
+  Future<List<String>> _otherDayIdsMostRecentFirst({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String excludingDayId,
@@ -1582,7 +1589,7 @@ class OcptScheduleService {
         (await _liveDayRows(database: database, screenplayId: screenplayId))
           ..removeWhere((row) => row.id == excludingDayId);
 
-    return days.isEmpty ? null : days.last.id;
+    return [for (final day in days.reversed) day.id];
   }
 
   /// Reads back the day row [dayId], throwing if it doesn't exist or has been tombstoned.

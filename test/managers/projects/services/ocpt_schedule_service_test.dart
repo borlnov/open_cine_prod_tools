@@ -591,6 +591,58 @@ void main() {
     );
 
     test(
+      "addSlotCrewMember looks past the days that never convoked that person",
+      () async {
+        final firstDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
+        final personId = (await peopleService.createPerson(database: database))!;
+
+        final firstCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: firstSlotId,
+          personId: personId,
+          positionId: "grip",
+        ))!;
+        await scheduleService.updateSlotCrewMember(
+          database: database,
+          crewMemberId: firstCrewId,
+          leadMinutes: const Value(45),
+        );
+
+        // A day this person doesn't work on, sitting between the one that carries their figure and
+        // the one about to convoke them again: it must not stop the search.
+        await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 11),
+        );
+
+        final thirdDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 12),
+        ))!;
+        final thirdSlotId = (await readLiveSlots(thirdDayId)).single.id;
+
+        final thirdCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: thirdSlotId,
+          personId: personId,
+          positionId: "grip",
+        ))!;
+
+        final seeded = (await readAllCrew(thirdSlotId)).firstWhere(
+          (row) => row.id == thirdCrewId,
+        );
+        expect(seeded.leadMinutes, 45);
+      },
+    );
+
+    test(
       "addSlotCrewMember seeds the group, matched by label onto the target day's own copy",
       () async {
         final firstDayId = (await scheduleService.createDay(
