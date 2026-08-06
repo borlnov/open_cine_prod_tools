@@ -19,9 +19,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 /// the same calendar day [minute] already was on (its own `minute ~/ 1440` multiple, computed via
 /// Dart's floored `%`), so re-typing a night wrap time round-trips correctly; there is no "+1 day"
 /// toggle in this milestone to move a value onto a *different* day than it already read from, which
-/// is a deliberate scope cut for M1 — the anchor pin (`OcptScheduleBlockAnchorChangedEvent`) never
-/// goes through this widget at all, since it is always set to the chain's own current position
-/// rather than typed.
+/// is a deliberate scope cut for M1.
+///
+/// A block's own anchor is typed here too: the pin captures the chain's current position, and this
+/// field is what then names the minute the anchor actually exists for — a meal break's legal start,
+/// a flight, a location lost at dusk (ADR 0015). The day-offset rule above is what makes that safe
+/// on a night shoot: an anchor pinned past midnight was captured at a minute beyond 1440, so
+/// retyping its clock reading keeps it in the small hours it was already in rather than dragging it
+/// back to the morning of the same day.
 class OcptScheduleMinuteField extends StatefulWidget {
   /// The minute currently held, or null while unset.
   final int? minute;
@@ -62,6 +67,15 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   /// The field's own focus node, committing the moment it loses focus.
   final FocusNode _focusNode = FocusNode();
 
+  /// The value this field last reported, which is **not** always [OcptScheduleMinuteField.minute]:
+  /// submitting the field takes the focus off it, so a single edit commits twice — once on the
+  /// action, once on the focus loss — and the write the first one starts has not come back through
+  /// the bloc by the time the second runs. Comparing against what was last reported, rather than
+  /// against the value the widget still carries, is what keeps one edit to one write. It also means
+  /// tabbing through a field without touching it writes nothing at all, which matters here because
+  /// a minute reaches the database immediately rather than riding the mode's own debounce.
+  late int? _lastReportedMinute = widget.minute;
+
   /// [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is null.
   String get _formattedMinute =>
       widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
@@ -75,8 +89,11 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   @override
   void didUpdateWidget(covariant OcptScheduleMinuteField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.minute != widget.minute && !_focusNode.hasFocus) {
-      _controller.text = _formattedMinute;
+    if (oldWidget.minute != widget.minute) {
+      _lastReportedMinute = widget.minute;
+      if (!_focusNode.hasFocus) {
+        _controller.text = _formattedMinute;
+      }
     }
   }
 
@@ -108,10 +125,11 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
 
     final text = _controller.text.trim();
     if (text.isEmpty) {
-      if (widget.isClearable) {
-        onChanged(null);
-      } else {
+      if (!widget.isClearable) {
         _controller.text = _formattedMinute;
+      } else if (_lastReportedMinute != null) {
+        _lastReportedMinute = null;
+        onChanged(null);
       }
       return;
     }
@@ -125,8 +143,12 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     final currentMinute = widget.minute;
     final dayOffset = currentMinute == null ? 0 : currentMinute - (currentMinute % 1440);
     final resolved = dayOffset + parsed;
-    onChanged(resolved);
     _controller.text = ocptFormatDayMinute(resolved);
+
+    if (resolved != _lastReportedMinute) {
+      _lastReportedMinute = resolved;
+      onChanged(resolved);
+    }
   }
 
   @override

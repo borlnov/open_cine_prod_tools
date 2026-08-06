@@ -430,7 +430,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (blockId, durationMinutes) => bloc.add(
               OcptScheduleBlockDurationChangedEvent(blockId: blockId, durationMinutes: durationMinutes),
             ),
-      onBlockAnchorToggled: isReadOnly
+      onBlockAnchorChanged: isReadOnly
           ? null
           : (blockId, anchorMinute) =>
                 bloc.add(OcptScheduleBlockAnchorChangedEvent(blockId: blockId, anchorMinute: anchorMinute)),

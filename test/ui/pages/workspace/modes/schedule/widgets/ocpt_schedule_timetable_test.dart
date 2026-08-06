@@ -99,7 +99,7 @@ void main() {
           onBlockSelected: (_) {},
           onReordered: null,
           onDurationChanged: null,
-          onAnchorToggled: null,
+          onAnchorChanged: null,
           onShotStatusChanged: null,
           onDeletionRequested: null,
           onBlockAdded: null,
@@ -132,7 +132,7 @@ void main() {
           onBlockSelected: (_) {},
           onReordered: null,
           onDurationChanged: null,
-          onAnchorToggled: null,
+          onAnchorChanged: null,
           onShotStatusChanged: null,
           onDeletionRequested: null,
           onBlockAdded: null,
@@ -167,7 +167,7 @@ void main() {
           onBlockSelected: (_) {},
           onReordered: null,
           onDurationChanged: (blockId, duration) => durations.add((blockId, duration)),
-          onAnchorToggled: null,
+          onAnchorChanged: null,
           onShotStatusChanged: null,
           onDeletionRequested: null,
           onBlockAdded: null,
@@ -206,7 +206,7 @@ void main() {
           onBlockSelected: (_) {},
           onReordered: (blockId, newPosition) => reordered.add((blockId, newPosition)),
           onDurationChanged: null,
-          onAnchorToggled: null,
+          onAnchorChanged: null,
           onShotStatusChanged: null,
           onDeletionRequested: null,
           onBlockAdded: null,
@@ -247,7 +247,7 @@ void main() {
           onBlockSelected: (_) {},
           onReordered: null,
           onDurationChanged: null,
-          onAnchorToggled: null,
+          onAnchorChanged: null,
           onShotStatusChanged: (shotId, status) {
             pickedShotId = shotId;
             pickedStatus = status;
@@ -290,7 +290,7 @@ void main() {
           onBlockSelected: (_) {},
           onReordered: null,
           onDurationChanged: null,
-          onAnchorToggled: null,
+          onAnchorChanged: null,
           onShotStatusChanged: null,
           onDeletionRequested: null,
           onBlockAdded: null,
@@ -311,5 +311,76 @@ void main() {
     expect(find.byType(PopupMenuButton<OcptShotStatus>), findsNothing);
     final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
     expect(find.text(tr.shotListStatusToShoot), findsOneWidget);
+  });
+
+  testWidgets("a pinned block's anchor can be retyped to the minute it exists for", (tester) async {
+    // The meal break was pinned wherever the chain had reached; the legal start is 13:00.
+    final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, anchorMinute: 745);
+    const timeline = OcptShootingDayTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 745, endMinute: 790, durationMinutes: 45),
+      ],
+      overruns: [],
+      dayEndMinute: 790,
+    );
+    final anchors = <int?>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleTimetable(
+          blocks: [block],
+          timeline: timeline,
+          shotOf: (_) => null,
+          selectedBlockId: null,
+          onBlockSelected: (_) {},
+          onReordered: null,
+          onDurationChanged: null,
+          onAnchorChanged: (_, anchorMinute) => anchors.add(anchorMinute),
+          onShotStatusChanged: null,
+          onDeletionRequested: null,
+          onBlockAdded: null,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), "13:00");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(anchors, [780]);
+  });
+
+  testWidgets("an unpinned block offers no anchor field, only the pin", (tester) async {
+    final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
+    const timeline = OcptShootingDayTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 525, durationMinutes: 45),
+      ],
+      overruns: [],
+      dayEndMinute: 525,
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleTimetable(
+          blocks: [block],
+          timeline: timeline,
+          shotOf: (_) => null,
+          selectedBlockId: null,
+          onBlockSelected: (_) {},
+          onReordered: null,
+          onDurationChanged: null,
+          onAnchorChanged: (_, _) {},
+          onShotStatusChanged: null,
+          onDeletionRequested: null,
+          onBlockAdded: null,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
   });
 }

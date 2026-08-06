@@ -138,9 +138,9 @@ class OcptScheduleDayView extends StatelessWidget {
   /// withheld.
   final void Function(String blockId, int durationMinutes)? onBlockDurationChanged;
 
-  /// Called with a block's id and its own new anchor once the pin is toggled, or null while
-  /// withheld.
-  final void Function(String blockId, int? anchorMinute)? onBlockAnchorToggled;
+  /// Called with a block's id and its own new anchor once the pin is toggled or the pinned minute
+  /// is retyped, or null while withheld.
+  final void Function(String blockId, int? anchorMinute)? onBlockAnchorChanged;
 
   /// Called with a shot block's own shot id and the status just picked, or null while withheld.
   final void Function(String shotId, OcptShotStatus status)? onShotStatusChanged;
@@ -186,7 +186,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockSelected,
     required this.onBlockReordered,
     required this.onBlockDurationChanged,
-    required this.onBlockAnchorToggled,
+    required this.onBlockAnchorChanged,
     required this.onShotStatusChanged,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
@@ -265,7 +265,7 @@ class OcptScheduleDayView extends StatelessWidget {
           onBlockSelected: onBlockSelected,
           onReordered: onBlockReordered,
           onDurationChanged: onBlockDurationChanged,
-          onAnchorToggled: onBlockAnchorToggled,
+          onAnchorChanged: onBlockAnchorChanged,
           onShotStatusChanged: onShotStatusChanged,
           onDeletionRequested: onBlockDeletionRequested,
           onBlockAdded: onBlockAdded,

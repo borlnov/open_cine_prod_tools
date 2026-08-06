@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
@@ -23,7 +24,7 @@ const int _ocptTimetableDurationStep = 5;
 /// block's own status control, and a delete/add-block pair (`design.html` lines 311-335).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
-/// previewed: [onReordered], [onDurationChanged], [onAnchorToggled], [onShotStatusChanged],
+/// previewed: [onReordered], [onDurationChanged], [onAnchorChanged], [onShotStatusChanged],
 /// [onDeletionRequested] and [onBlockAdded]. Selecting a row ([onBlockSelected]) only ever reads,
 /// so it is never withheld.
 class OcptScheduleTimetable extends StatelessWidget {
@@ -52,7 +53,7 @@ class OcptScheduleTimetable extends StatelessWidget {
 
   /// Called with a block's id and its own new anchor once the pin is toggled, or null while
   /// withheld.
-  final void Function(String blockId, int? anchorMinute)? onAnchorToggled;
+  final void Function(String blockId, int? anchorMinute)? onAnchorChanged;
 
   /// Called with a shot block's own shot id and the status just picked, or null while withheld.
   final void Function(String shotId, OcptShotStatus status)? onShotStatusChanged;
@@ -75,7 +76,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.onBlockSelected,
     required this.onReordered,
     required this.onDurationChanged,
-    required this.onAnchorToggled,
+    required this.onAnchorChanged,
     required this.onShotStatusChanged,
     required this.onDeletionRequested,
     required this.onBlockAdded,
@@ -189,9 +190,9 @@ class OcptScheduleTimetable extends StatelessWidget {
     onDurationChanged: onDurationChanged == null
         ? null
         : (durationMinutes) => onDurationChanged!(block.id, durationMinutes),
-    onAnchorToggled: onAnchorToggled == null
+    onAnchorChanged: onAnchorChanged == null
         ? null
-        : (anchorMinute) => onAnchorToggled!(block.id, anchorMinute),
+        : (anchorMinute) => onAnchorChanged!(block.id, anchorMinute),
     onShotStatusChanged: onShotStatusChanged == null || block.shotId == null
         ? null
         : (status) => onShotStatusChanged!(block.shotId!, status),
@@ -227,9 +228,9 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// hides the controls).
   final ValueChanged<int>? onDurationChanged;
 
-  /// Called with the new anchor once the pin is toggled, or null while withheld (which also hides
-  /// the pin).
-  final ValueChanged<int?>? onAnchorToggled;
+  /// Called with the new anchor once the pin is toggled or the pinned minute is retyped, or null
+  /// while withheld (which also hides both).
+  final ValueChanged<int?>? onAnchorChanged;
 
   /// Called with the status just picked, or null while withheld or this isn't a shot block.
   final ValueChanged<OcptShotStatus>? onShotStatusChanged;
@@ -248,7 +249,7 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     required this.reorderIndex,
     required this.onSelected,
     required this.onDurationChanged,
-    required this.onAnchorToggled,
+    required this.onAnchorChanged,
     required this.onShotStatusChanged,
     required this.onDeletionRequested,
   });
@@ -313,7 +314,21 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
                   style: theme.textTheme.bodySmall,
                 ),
               ),
-              if (onAnchorToggled != null)
+              // A pinned block's own minute is typed here rather than only captured from the chain:
+              // the moments an anchor exists for — a meal break's legal start, a flight, a location
+              // lost at dusk (ADR 0015) — are named times, and pinning a block wherever the chain
+              // happened to put it could never express one of them.
+              if (block.anchorMinute != null && onAnchorChanged != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: OcptScheduleMinuteField(
+                    minute: block.anchorMinute,
+                    isClearable: false,
+                    emptyHint: "—",
+                    onChanged: onAnchorChanged,
+                  ),
+                ),
+              if (onAnchorChanged != null)
                 IconButton(
                   icon: Icon(
                     block.anchorMinute != null ? Icons.push_pin : Icons.push_pin_outlined,
@@ -322,7 +337,7 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
                   tooltip: tr.scheduleAnchorPinTooltip,
                   visualDensity: VisualDensity.compact,
                   color: block.anchorMinute != null ? theme.colorScheme.primary : null,
-                  onPressed: () => onAnchorToggled!(block.anchorMinute != null ? null : entry?.startMinute),
+                  onPressed: () => onAnchorChanged!(block.anchorMinute != null ? null : entry?.startMinute),
                 ),
               if (isShot && shot != null && onShotStatusChanged != null)
                 PopupMenuButton<OcptShotStatus>(
