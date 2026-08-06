@@ -8,11 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -32,10 +35,11 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 
 /// Builds a slot with the few fields these tests read, everything else neutral.
 OcptShootingSlot _buildSlot({
+  String id = "slot-1",
   List<OcptShootingSlotCrewMember> crew = const [],
   List<OcptShootingSlotCastMember> cast = const [],
 }) => OcptShootingSlot(
-  id: "slot-1",
+  id: id,
   shootingDayId: "day-1",
   label: "Matin",
   locationId: null,
@@ -98,20 +102,43 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   number: 1,
 );
 
+/// Builds a shooting day block with the few fields these tests read, everything else neutral.
+OcptShootingDayBlock _buildBlock({required String id, required String slotId, String label = ""}) =>
+    OcptShootingDayBlock(
+      id: id,
+      shootingDayId: "day-1",
+      slotId: slotId,
+      kind: OcptShootingBlockKind.preparation,
+      shotId: null,
+      sceneId: null,
+      label: label,
+      durationMinutes: null,
+      anchorMinute: null,
+      notes: "",
+    );
+
+/// A neutral `shotOf` resolving nothing, for tests that never place a shot block.
+OcptShot? _noShot(String shotId) => null;
+
 void main() {
   final person = _buildPerson(id: "person-1", firstName: "Léa");
   final role = _buildRole(id: "role-1", name: "Marie");
 
   Widget buildCard({
     required bool isReadOnly,
+    String slotId = "slot-1",
     List<OcptShootingSlotCrewMember> crew = const [],
     List<OcptShootingSlotCastMember> cast = const [],
     OcptSlotConvocations? convocations,
     ValueChanged<String>? onCrewMemberAdded,
     ValueChanged<String>? onCastRoleAdded,
     VoidCallback? onDeletionRequested,
+    List<OcptShootingDayBlock> blocks = const [],
+    List<(String, String)> otherSlots = const [],
+    ValueChanged<OcptShootingBlockKind>? onBlockAdded,
+    void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
   }) => OcptScheduleSlotCard(
-    slot: _buildSlot(crew: crew, cast: cast),
+    slot: _buildSlot(id: slotId, crew: crew, cast: cast),
     location: null,
     set: null,
     locations: const [],
@@ -130,6 +157,19 @@ void main() {
     onCrewMemberRemoved: isReadOnly ? null : (_) {},
     onCastRoleAdded: isReadOnly ? null : (onCastRoleAdded ?? (_) {}),
     onCastRoleRemoved: isReadOnly ? null : (_) {},
+    blocks: blocks,
+    timeline: null,
+    shotOf: _noShot,
+    selectedBlockId: null,
+    otherSlots: otherSlots,
+    onBlockSelected: (_) {},
+    onBlockReordered: isReadOnly ? null : (_, _) {},
+    onBlockDurationChanged: isReadOnly ? null : (_, _) {},
+    onBlockAnchorChanged: isReadOnly ? null : (_, _) {},
+    onShotStatusChanged: isReadOnly ? null : (_, _) {},
+    onBlockDeletionRequested: isReadOnly ? null : (_) {},
+    onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
+    onBlockMovedToSlot: isReadOnly ? null : (onBlockMovedToSlot ?? (_, _) {}),
   );
 
   testWidgets("the `+ Crew member` footer opens a picker dispatching the person just picked", (
@@ -349,23 +389,75 @@ void main() {
       ),
     ];
 
-    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: true, crew: crew, cast: cast)));
+    final block = _buildBlock(id: "block-1", slotId: "slot-1", label: "Prep");
+
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: true, crew: crew, cast: cast, blocks: [block])),
+    );
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
     // No label field, no `⋮` menu, no `+` footers, no remove controls, and not even the slot's own
-    // start is editable while read-only.
+    // start is editable while read-only — and its own timetable withholds every one of its own
+    // writing affordances too: no `+ Block` control and no `Move to…` control.
     expect(find.byType(TextField), findsNothing);
     expect(find.byIcon(Icons.more_vert), findsNothing);
     expect(find.text(tr.scheduleAddCrewMemberAction), findsNothing);
     expect(find.text(tr.scheduleAddCastAction), findsNothing);
+    expect(find.text(tr.scheduleAddBlockAction), findsNothing);
+    expect(find.byIcon(Icons.drive_file_move_outline), findsNothing);
     expect(find.byIcon(Icons.close), findsNothing);
     final editableFields = tester
         .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
         .where((field) => field.onChanged != null);
     expect(editableFields, isEmpty);
-    // The rows still read, though: nothing here withholds seeing who is convoked.
+    // The rows still read, though: nothing here withholds seeing who is convoked, or which blocks
+    // are placed.
     expect(find.text("Léa"), findsOneWidget);
     expect(find.text("Marie"), findsOneWidget);
+    expect(find.text("Prep"), findsOneWidget);
+  });
+
+  testWidgets("a slot card shows only its own blocks, none of another slot's", (tester) async {
+    final ownBlock = _buildBlock(id: "block-own", slotId: "slot-1", label: "Prep");
+    final otherBlock = _buildBlock(id: "block-other", slotId: "slot-2", label: "Repas");
+
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: false, blocks: [ownBlock, otherBlock])),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Prep"), findsOneWidget);
+    expect(find.text("Repas"), findsNothing);
+  });
+
+  testWidgets("the `+ Block` menu names the slot the card sits on", (tester) async {
+    final addedOnSlotOne = <OcptShootingBlockKind>[];
+    final addedOnSlotTwo = <OcptShootingBlockKind>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              buildCard(isReadOnly: false, onBlockAdded: addedOnSlotOne.add),
+              buildCard(isReadOnly: false, slotId: "slot-2", onBlockAdded: addedOnSlotTwo.add),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard).first));
+    // Two cards, each with their own `+ Block` control — tapping the first one's must only ever
+    // reach the callback that card itself was built with, never the second card's.
+    await tester.tap(find.text(tr.scheduleAddBlockAction).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.scheduleBlockKindMeal).last);
+    await tester.pumpAndSettle();
+
+    expect(addedOnSlotOne, [OcptShootingBlockKind.meal]);
+    expect(addedOnSlotTwo, isEmpty);
   });
 }

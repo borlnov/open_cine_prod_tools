@@ -863,19 +863,19 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     _requestWorkingCopyRefreshIfVersionsOpen();
   }
 
-  /// Creates a new non-shot block (a milestone or a `hold`) at the end of a day's own first live
-  /// slot's timetable — see [_firstLiveSlotIdOfDay].
+  /// Creates a new non-shot block (a milestone or a `hold`) at the end of the timetable named by
+  /// the event's own [OcptScheduleBlockCreatedEvent.slotId] — the slot card whose own `+ Block`
+  /// menu dispatched it.
   Future<void> _onBlockCreated(
     OcptScheduleBlockCreatedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
-    final slotId = _firstLiveSlotIdOfDay(event.dayId);
-    if (project == null || slotId == null || event.kind == OcptShootingBlockKind.shot) {
+    if (project == null || event.kind == OcptShootingBlockKind.shot) {
       return;
     }
 
-    await _scheduleService.createBlock(database: project.database, slotId: slotId, kind: event.kind);
+    await _scheduleService.createBlock(database: project.database, slotId: event.slotId, kind: event.kind);
     await _applyScheduleSnapshot(emitter, project);
   }
 

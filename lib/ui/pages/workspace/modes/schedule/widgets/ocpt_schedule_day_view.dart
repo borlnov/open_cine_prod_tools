@@ -24,8 +24,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
 /// The day view: the mode's real working surface (`docs/plans/schedule-mode.md` §8) — the day's
-/// own summary band, one [OcptScheduleSlotCard] per slot with its own `+ Slot` footer, then
-/// [OcptScheduleTimetable].
+/// own summary band, then one [OcptScheduleSlotCard] per slot with its own `+ Slot` footer. A day
+/// used to draw one shared [OcptScheduleTimetable] of its own beneath every card; it no longer does
+/// (M2') — each card now draws its own, over that slot's own blocks alone, so [blocks] and
+/// [timeline] here only ever feed the summary band's own totals and each card's own slice of them.
 ///
 /// Every writing affordance every one of its children exposes is threaded through as a nullable
 /// callback, withheld while a project version is being previewed — this widget itself withholds
@@ -37,10 +39,14 @@ class OcptScheduleDayView extends StatelessWidget {
   /// [day]'s own live slots, in `sortKey` order.
   final List<OcptShootingSlot> slots;
 
-  /// [day]'s own live blocks — its timetable — in `sortKey` order.
+  /// [day]'s own live blocks, across every slot, in `sortKey` order — read here for the summary
+  /// band's own totals, and handed whole to every [OcptScheduleSlotCard], each of which filters
+  /// them down to its own [OcptShootingSlot.id] before drawing its own [OcptScheduleTimetable].
   final List<OcptShootingDayBlock> blocks;
 
-  /// [day]'s own computed timetable, or null while it has nothing placed yet.
+  /// [day]'s own computed timelines, one chain per slot, or null while it has no live slot to chain
+  /// at all — read here only for the summary band's own [OcptShootingDayTimelines.dayEndMinute];
+  /// each slot card reads its own [OcptShootingDayTimelines.bySlotId] entry instead.
   final OcptShootingDayTimelines? timeline;
 
   /// [day]'s own computed sun times, or null while its first slot has no location with
@@ -122,8 +128,8 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a block's id when its row is clicked.
   final ValueChanged<String> onBlockSelected;
 
-  /// Called with a block's id and its 0-based new position once a drag-to-reorder gesture ends, or
-  /// null while withheld.
+  /// Called with a block's id and its 0-based new position once a drag-to-reorder gesture ends
+  /// within its own slot, or null while withheld.
   final void Function(String blockId, int newPosition)? onBlockReordered;
 
   /// Called with a block's id and its own new duration once a `±` control is tapped, or null while
@@ -140,9 +146,14 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onBlockDeletionRequested;
 
-  /// Called with the kind just picked from the timetable's own `+ Block` menu, or null while
-  /// withheld.
-  final ValueChanged<OcptShootingBlockKind>? onBlockAdded;
+  /// Called with a slot's id and the kind just picked from that slot card's own `+ Block` menu —
+  /// the new block lands in **that** slot — or null while withheld.
+  final void Function(String slotId, OcptShootingBlockKind kind)? onBlockAdded;
+
+  /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot drag
+  /// or by a row's own `Move to…` menu, or null while withheld — see
+  /// [OcptScheduleTimetable.onBlockMovedToSlot].
+  final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
 
   /// Class constructor
   const OcptScheduleDayView({
@@ -180,6 +191,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onShotStatusChanged,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
+    required this.onBlockMovedToSlot,
   });
 
   @override
@@ -225,6 +237,22 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
               onCastRoleRemoved: onSlotCastRoleRemoved,
+              blocks: blocks,
+              timeline: timeline?.bySlotId[slot.id],
+              shotOf: shotOf,
+              selectedBlockId: selectedBlockId,
+              otherSlots: [
+                for (final other in slots)
+                  if (other.id != slot.id) (other.id, slotLabelValueOf(other.id)),
+              ],
+              onBlockSelected: onBlockSelected,
+              onBlockReordered: onBlockReordered,
+              onBlockDurationChanged: onBlockDurationChanged,
+              onBlockAnchorChanged: onBlockAnchorChanged,
+              onShotStatusChanged: onShotStatusChanged,
+              onBlockDeletionRequested: onBlockDeletionRequested,
+              onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
+              onBlockMovedToSlot: onBlockMovedToSlot,
             ),
           ),
         if (onSlotAdded != null)
@@ -236,26 +264,6 @@ class OcptScheduleDayView extends StatelessWidget {
               label: Text(tr.scheduleAddSlotAction),
             ),
           ),
-        Text(
-          tr.scheduleTimetableTitle.toUpperCase(),
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 7),
-        OcptScheduleTimetable(
-          blocks: blocks,
-          timeline: timeline,
-          shotOf: shotOf,
-          selectedBlockId: selectedBlockId,
-          onBlockSelected: onBlockSelected,
-          onReordered: onBlockReordered,
-          onDurationChanged: onBlockDurationChanged,
-          onAnchorChanged: onBlockAnchorChanged,
-          onShotStatusChanged: onShotStatusChanged,
-          onDeletionRequested: onBlockDeletionRequested,
-          onBlockAdded: onBlockAdded,
-        ),
         if (day.crewNote.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(day.crewNote, style: Theme.of(context).textTheme.bodySmall),

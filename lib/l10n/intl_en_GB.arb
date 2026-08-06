@@ -6654,31 +6654,45 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleTimetableEmptyHint": "Nothing placed on this day yet.",
+  "scheduleTimetableEmptyHint": "Nothing placed on this slot yet.",
   "@scheduleTimetableEmptyHint": {
-    "description": "Shown in the timetable while the day holds no block at all",
-    "context": "Displayed in the day view's own timetable",
+    "description": "Shown in the timetable while the slot holds no block at all",
+    "context": "Displayed in a day view slot card's own timetable",
     "type": "text",
     "placeholders": {}
   },
   "scheduleAddBlockAction": "Block",
   "@scheduleAddBlockAction": {
     "description": "Label of the timetable's own footer control opening the block-kind menu",
-    "context": "Displayed in the day view's own timetable",
+    "context": "Displayed in a day view slot card's own timetable",
     "type": "text",
     "placeholders": {}
   },
   "scheduleAnchorPinTooltip": "Pin this block to its current time",
   "@scheduleAnchorPinTooltip": {
     "description": "Tooltip of a timetable row's own anchor pin toggle",
-    "context": "Displayed in the day view's own timetable",
+    "context": "Displayed in a day view slot card's own timetable",
     "type": "text",
     "placeholders": {}
   },
   "scheduleRemoveBlockTooltip": "Remove this block",
   "@scheduleRemoveBlockTooltip": {
     "description": "Tooltip of a timetable row's own remove control",
-    "context": "Displayed in the day view's own timetable",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveBlockTooltip": "Move this block to another slot",
+  "@scheduleMoveBlockTooltip": {
+    "description": "Tooltip of a timetable row's own control moving its block to another slot",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveBlockMenuTitle": "Move to…",
+  "@scheduleMoveBlockMenuTitle": {
+    "description": "Heading of the menu listing the day's other slots a block may be moved to",
+    "context": "Displayed in a day view slot card's own timetable",
     "type": "text",
     "placeholders": {}
   },
@@ -6691,8 +6705,8 @@
   },
   "scheduleTimetableTitle": "Timetable",
   "@scheduleTimetableTitle": {
-    "description": "Heading over the day view's own chained blocks",
-    "context": "Displayed in the day view",
+    "description": "Heading over a day view slot card's own chained blocks",
+    "context": "Displayed in a day view slot card",
     "type": "text",
     "placeholders": {}
   },

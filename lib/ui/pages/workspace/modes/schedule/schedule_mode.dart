@@ -46,9 +46,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// a week/month cell) answers it. The centre is `OcptScheduleHeader`'s own `Agenda`/`Day` switch
 /// over either the agenda — [OcptScheduleStripAgenda], [OcptScheduleWeekGrid] or
 /// [OcptScheduleMonthGrid], per [OcptScheduleState.agendaMode] — or [OcptScheduleDayView], the
-/// mode's own working surface (the day's summary band, one slot card per convocation, then the
-/// chained timetable). The right dock is `Inspector` (the selected block's own read-out, or, with
-/// none selected, the selected day's own) + the shared `Versions` tab.
+/// mode's own working surface (the day's summary band, then one slot card per convocation, each
+/// carrying its own chained timetable). The right dock is `Inspector` (the selected block's own
+/// read-out, or, with none selected, the selected day's own) + the shared `Versions` tab.
 ///
 /// **There is no save control and no mode-specific toolbar action**: every write here is its own
 /// event, exactly as the breakdown mode's own shell is built.
@@ -308,8 +308,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     };
   }
 
-  /// Builds the day view: the selected day's own summary band, its slot cards and its timetable —
-  /// or a plain hint while no day is selected yet.
+  /// Builds the day view: the selected day's own summary band and its slot cards, each with its own
+  /// timetable — or a plain hint while no day is selected yet.
   Widget _buildDayView(BuildContext context, OcptScheduleState state) {
     final day = state.selectedDay;
     if (day == null) {
@@ -413,7 +413,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (blockId) => unawaited(_handleBlockDeletionRequested(context, blockId)),
       onBlockAdded: isReadOnly
           ? null
-          : (kind) => bloc.add(OcptScheduleBlockCreatedEvent(dayId: day.id, kind: kind)),
+          : (slotId, kind) => bloc.add(OcptScheduleBlockCreatedEvent(slotId: slotId, kind: kind)),
+      onBlockMovedToSlot: isReadOnly
+          ? null
+          : (blockId, targetSlotId) =>
+                bloc.add(OcptScheduleBlockMovedToSlotEvent(blockId: blockId, targetSlotId: targetSlotId)),
     );
   }
 

@@ -109,9 +109,9 @@ class OcptScheduleDaySelectedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, dayId];
 }
 
-/// Selects block [blockId] — a placed shot's own strip chip, or, once built, one of the day view's
-/// timetable rows — showing its own read-out in the inspector. Also selects [dayId], the block's
-/// own day, so the left dock and the inspector stay in step.
+/// Selects block [blockId] — a placed shot's own strip chip, or one of a slot card's own timetable
+/// rows — showing its own read-out in the inspector. Also selects [dayId], the block's own day, so
+/// the left dock and the inspector stay in step.
 class OcptScheduleBlockSelectedEvent extends OcptScheduleEvent {
   /// The id of the block to select.
   final String blockId;
@@ -501,8 +501,8 @@ class OcptScheduleShotUnplacedEvent extends OcptScheduleEvent {
 }
 
 /// Writes a new shooting status onto shot [shotId] immediately — the very column the shot list
-/// mode's own inspector edits (`OcptShotListService.updateShot`'s `status`) — dispatched by the day
-/// view's own shot block status control, once built.
+/// mode's own inspector edits (`OcptShotListService.updateShot`'s `status`) — dispatched by that
+/// shot's own block row's status control, in whichever slot card places it.
 class OcptScheduleShotStatusChangedEvent extends OcptScheduleEvent {
   /// The id of the shot whose status changed.
   final String shotId;
@@ -518,29 +518,28 @@ class OcptScheduleShotStatusChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, shotId, status];
 }
 
-/// Creates a new non-shot block (a milestone or a `hold`) inside day [dayId], appended at the end
-/// of that day's **first live slot**'s own timetable, dispatched by the day view's own `+ Block`
-/// control. The day view has no per-slot timetable yet (that is a later milestone), so the gesture
-/// only ever names a day; the bloc resolves the actual slot, and does nothing when [dayId] has no
-/// live slot to hold a block at all.
+/// Creates a new non-shot block (a milestone or a `hold`) inside slot [slotId], appended at the end
+/// of that slot's own timetable, dispatched by that slot card's own `+ Block` control (M2' — each
+/// card carries its own timetable now, so the gesture names the slot it sits on directly, unlike
+/// [OcptScheduleShotPlacedEvent], whose *placing* gesture still only ever names a day).
 class OcptScheduleBlockCreatedEvent extends OcptScheduleEvent {
-  /// The id of the day the new block belongs to.
-  final String dayId;
+  /// The id of the slot the new block belongs to.
+  final String slotId;
 
   /// The kind of block to create. Never [OcptShootingBlockKind.shot] — placing a shot goes through
   /// [OcptScheduleShotPlacedEvent] instead, which is what carries its own `shotId`.
   final OcptShootingBlockKind kind;
 
   /// Class constructor
-  const OcptScheduleBlockCreatedEvent({required this.dayId, required this.kind});
+  const OcptScheduleBlockCreatedEvent({required this.slotId, required this.kind});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, dayId, kind];
+  List<Object?> get props => [...super.props, slotId, kind];
 }
 
-/// Writes a new duration onto block [blockId] immediately, dispatched by the day view's own ±
-/// duration controls, once built.
+/// Writes a new duration onto block [blockId] immediately, dispatched by its own slot card's own ±
+/// duration controls.
 class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {
   /// The id of the block being edited.
   final String blockId;
@@ -557,8 +556,8 @@ class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, blockId, durationMinutes];
 }
 
-/// Writes a new anchor onto block [blockId] immediately, dispatched by the day view's own anchor
-/// pin, once built.
+/// Writes a new anchor onto block [blockId] immediately, dispatched by its own slot card's own
+/// anchor pin.
 class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleEvent {
   /// The id of the block being edited.
   final String blockId;
@@ -575,9 +574,8 @@ class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleEvent {
 }
 
 /// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by
-/// a drag-to-reorder gesture on the day view's own timetable, once built. The block's own slot is
-/// read off its own row (`OcptScheduleService.reorderBlock`), so no slot or day id travels with
-/// this event.
+/// a drag-to-reorder gesture on that slot card's own timetable. The block's own slot is read off
+/// its own row (`OcptScheduleService.reorderBlock`), so no slot or day id travels with this event.
 class OcptScheduleBlockReorderedEvent extends OcptScheduleEvent {
   /// The id of the block to reorder.
   final String blockId;
@@ -594,7 +592,8 @@ class OcptScheduleBlockReorderedEvent extends OcptScheduleEvent {
 }
 
 /// Moves block [blockId] to slot [targetSlotId], appended at the end of that slot's own timetable,
-/// dispatched by a drag-across-slots gesture, once built (M2').
+/// dispatched either by dragging a row out of one slot card's own timetable onto another's, or by
+/// picking an entry of the block's own `Move to…` menu (M2').
 class OcptScheduleBlockMovedToSlotEvent extends OcptScheduleEvent {
   /// The id of the block to move.
   final String blockId;

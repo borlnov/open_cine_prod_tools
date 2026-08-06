@@ -10,14 +10,20 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The value the "no location" entry of the location picker menu carries, distinct from every
 /// location id — a [PopupMenuButton] cannot carry a null value for an entry that must still be
@@ -30,7 +36,9 @@ const String _noLocationOption = "";
 /// `docs/plans/schedule-mode.md` §8 and Benoit's own M1 decision #1 ask for — `Équipe technique`,
 /// grouped by department, and `Comédiens` — each ending on its own `+ Crew member`/`+ Cast` footer
 /// opening a person or role picker right there on the card, with no duplicate list anywhere in the
-/// right dock.
+/// right dock — and, below both, this slot's **own** [OcptScheduleTimetable] (M2'): a day used to
+/// carry one timetable shared by every slot; now each card draws its own, over its own [blocks]
+/// alone, chained by its own [timeline].
 ///
 /// **A crew or cast row's own call/wrap and PAT/arrival are read-outs, never fields**: they are
 /// [convocations]' own computed answer (ADR 0017) for that row, and moving a block is what changes
@@ -40,7 +48,8 @@ const String _noLocationOption = "";
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed (`isReadOnly`): the label field, the location/set pickers, the start field, every
-/// crew/cast row's own position picker and remove control, and both `+` footers. Nothing here
+/// crew/cast row's own position picker and remove control, both `+` footers, and every writing
+/// affordance of the timetable itself (see [OcptScheduleTimetable]'s own doc comment). Nothing here
 /// reads a `pendingFieldEdits` map itself — [labelValue] is already resolved by the caller, exactly
 /// as every other mode's own sheet fields are.
 class OcptScheduleSlotCard extends StatelessWidget {
@@ -106,6 +115,53 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onCastRoleRemoved;
 
+  /// [slot]'s own **day**'s live blocks, across every slot, in `sortKey` order — this card filters
+  /// them down to [slot]'s own before handing them to its own [OcptScheduleTimetable], so a caller
+  /// never has to pre-slice the day's blocks itself.
+  final List<OcptShootingDayBlock> blocks;
+
+  /// [slot]'s own computed timeline, or null while it has nothing placed yet.
+  final OcptShootingSlotTimeline? timeline;
+
+  /// Resolves a shot id to the shot it names.
+  final OcptShot? Function(String shotId) shotOf;
+
+  /// The id of the currently selected block, or null while none is.
+  final String? selectedBlockId;
+
+  /// The day's own other live slots, by id and by raw label — see
+  /// [OcptScheduleTimetable.otherSlots].
+  final List<(String, String)> otherSlots;
+
+  /// Called with a block's id when its row is clicked.
+  final ValueChanged<String> onBlockSelected;
+
+  /// Called with a block's id and its 0-based new position once a drag-to-reorder gesture ends
+  /// within this slot, or null while withheld.
+  final void Function(String blockId, int newPosition)? onBlockReordered;
+
+  /// Called with a block's id and its own new duration once a `±` control is tapped, or null while
+  /// withheld.
+  final void Function(String blockId, int durationMinutes)? onBlockDurationChanged;
+
+  /// Called with a block's id and its own new anchor once the pin is toggled, or null while
+  /// withheld.
+  final void Function(String blockId, int? anchorMinute)? onBlockAnchorChanged;
+
+  /// Called with a shot block's own shot id and the status just picked, or null while withheld.
+  final void Function(String shotId, OcptShotStatus status)? onShotStatusChanged;
+
+  /// Called with a block's id when its own remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onBlockDeletionRequested;
+
+  /// Called with the kind just picked from the timetable's own `+ Block` menu — the new block lands
+  /// in **this** slot — or null while withheld.
+  final ValueChanged<OcptShootingBlockKind>? onBlockAdded;
+
+  /// Called with a block's id and the id of the slot it is moved to, or null while withheld — see
+  /// [OcptScheduleTimetable.onBlockMovedToSlot].
+  final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
+
   /// Class constructor
   const OcptScheduleSlotCard({
     super.key,
@@ -128,6 +184,19 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onCrewMemberRemoved,
     required this.onCastRoleAdded,
     required this.onCastRoleRemoved,
+    required this.blocks,
+    required this.timeline,
+    required this.shotOf,
+    required this.selectedBlockId,
+    required this.otherSlots,
+    required this.onBlockSelected,
+    required this.onBlockReordered,
+    required this.onBlockDurationChanged,
+    required this.onBlockAnchorChanged,
+    required this.onShotStatusChanged,
+    required this.onBlockDeletionRequested,
+    required this.onBlockAdded,
+    required this.onBlockMovedToSlot,
   });
 
   @override
@@ -193,8 +262,48 @@ class OcptScheduleSlotCard extends StatelessWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(13, 0, 13, 11),
+            child: _buildTimetable(context),
+          ),
         ],
       ),
+    );
+  }
+
+  /// This slot's own timetable, below its crew and cast columns — see the class doc comment.
+  Widget _buildTimetable(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr.scheduleTimetableTitle.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 7),
+        OcptScheduleTimetable(
+          slotId: slot.id,
+          blocks: [
+            for (final block in blocks)
+              if (block.slotId == slot.id) block,
+          ],
+          timeline: timeline,
+          shotOf: shotOf,
+          selectedBlockId: selectedBlockId,
+          otherSlots: otherSlots,
+          onBlockSelected: onBlockSelected,
+          onReordered: onBlockReordered,
+          onDurationChanged: onBlockDurationChanged,
+          onAnchorChanged: onBlockAnchorChanged,
+          onShotStatusChanged: onShotStatusChanged,
+          onDeletionRequested: onBlockDeletionRequested,
+          onBlockAdded: onBlockAdded,
+          onBlockMovedToSlot: onBlockMovedToSlot,
+        ),
+      ],
     );
   }
 
