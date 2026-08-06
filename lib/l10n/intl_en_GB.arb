@@ -6651,6 +6651,12 @@
       }
     }
   },
+  "scheduleSlotGroupLabel": "Group",
+  "@scheduleSlotGroupLabel": {
+    "description": "Labels the group picker on a crew or cast card, under its lead time line",
+    "context": "Displayed on a day view slot card",
+    "type": "text"
+  },
   "scheduleSlotCrewEmptyHint": "No crew member convoked yet.",
   "@scheduleSlotCrewEmptyHint": {
     "description": "Shown in a slot card's own crew column while it convokes nobody yet",

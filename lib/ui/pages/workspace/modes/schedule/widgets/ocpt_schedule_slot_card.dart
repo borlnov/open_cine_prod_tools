@@ -1268,10 +1268,14 @@ Widget _buildConvocationTimesRow(
   ],
 );
 
-/// A crew or cast card's own lead time + group line, shared by [_OcptScheduleCrewMemberRow] and
-/// [_OcptScheduleCastRoleRow]: the row's own **cause** behind [_buildConvocationTimesRow]'s computed
-/// read-out (ADR 0017) — an [OcptScheduleLeadField] then [_buildGroupPicker], on their own line
-/// under the times.
+/// A crew or cast card's own lead time and group **lines**, shared by [_OcptScheduleCrewMemberRow]
+/// and [_OcptScheduleCastRoleRow]: the row's own **cause** behind [_buildConvocationTimesRow]'s
+/// computed read-out (ADR 0017) — an [OcptScheduleLeadField] on one line, then [_buildGroupPicker]
+/// on the next.
+///
+/// The group sits on a line of its own rather than beside the lead time: a card is at most half the
+/// slot card's own width, and the two side by side left the group's own name with nothing but a few
+/// ellipsized pixels on a narrow day view.
 Widget _buildLeadAndGroupRow(
   BuildContext context,
   Tr tr,
@@ -1283,27 +1287,39 @@ Widget _buildLeadAndGroupRow(
   required List<OcptShootingDayGroup> groups,
   required Map<String, OcptShootingDayGroup> groupById,
   required ValueChanged<String?>? onGroupChanged,
-}) => Wrap(
-  crossAxisAlignment: WrapCrossAlignment.center,
-  spacing: 4,
-  runSpacing: 2,
+}) => Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
   children: [
-    Text("${tr.scheduleLeadTimeLabel} ", style: theme.textTheme.labelSmall),
-    OcptScheduleLeadField(
-      leadMinutes: leadMinutes,
-      inheritedLeadMinutes: inheritedLeadMinutes,
-      isClearable: true,
-      onChanged: onLeadChanged,
+    Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 2,
+      children: [
+        Text("${tr.scheduleLeadTimeLabel} ", style: theme.textTheme.labelSmall),
+        OcptScheduleLeadField(
+          leadMinutes: leadMinutes,
+          inheritedLeadMinutes: inheritedLeadMinutes,
+          isClearable: true,
+          onChanged: onLeadChanged,
+        ),
+      ],
     ),
-    const SizedBox(width: 6),
-    _buildGroupPicker(
-      context,
-      tr,
-      theme,
-      currentGroupId: currentGroupId,
-      groups: groups,
-      groupById: groupById,
-      onChanged: onGroupChanged,
+    const SizedBox(height: 2),
+    Row(
+      children: [
+        Text("${tr.scheduleSlotGroupLabel} ", style: theme.textTheme.labelSmall),
+        Flexible(
+          child: _buildGroupPicker(
+            context,
+            tr,
+            theme,
+            currentGroupId: currentGroupId,
+            groups: groups,
+            groupById: groupById,
+            onChanged: onGroupChanged,
+          ),
+        ),
+      ],
     ),
   ],
 );
