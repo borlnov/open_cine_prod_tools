@@ -8,11 +8,13 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart' show ocptScheduleDayTagLabel;
 
 /// The placeholder shown in place of a shot field that has no value yet.
 ///
@@ -184,6 +186,28 @@ String ocptFormatShotDuration(int? milliseconds) {
 /// something readable.
 String ocptShotFieldOrDash(String? value) =>
     value == null || value.trim().isEmpty ? ocptShotListEmptyValue : value;
+
+/// The shot list's own read-out of a shot's placement in the schedule: `J3 · Tue 4 Aug` for a
+/// placed shot, [ocptShotListEmptyValue] for one [placement] is null for — the schedule carries no
+/// entry for it at all, which is what "not yet planned" looks like
+/// (`OcptScheduleService.loadShotPlacements`'s own doc comment).
+///
+/// The day tag is [ocptScheduleDayTagLabel], the schedule mode's own — reused rather than
+/// reimplemented, so the two modes can never print a shooting day's rank differently, and never run
+/// through `Tr` for the same reason that one isn't: it is the trade's own shorthand, not a
+/// translated word. The date is formatted for the locale [context] resolves to, without a year: the
+/// column has no room for one and a shoot rarely spans two.
+String ocptShotPlacementLabel(BuildContext context, OcptShotPlacement? placement) {
+  if (placement == null) {
+    return ocptShotListEmptyValue;
+  }
+
+  final dateLabel = DateFormat.MMMEd(
+    Localizations.localeOf(context).toString(),
+  ).format(placement.date);
+
+  return "${ocptScheduleDayTagLabel(placement.dayNumber)} · $dateLabel";
+}
 
 /// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].
 ///

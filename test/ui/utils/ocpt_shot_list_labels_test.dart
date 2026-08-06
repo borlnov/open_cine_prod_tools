@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -109,6 +110,45 @@ void main() {
       expect(ocptShotFieldOrDash(null), ocptShotListEmptyValue);
       expect(ocptShotFieldOrDash("   "), ocptShotListEmptyValue);
       expect(ocptShotFieldOrDash("Wide shot"), "Wide shot");
+    });
+  });
+
+  group("ocptShotPlacementLabel", () {
+    testWidgets("reads a placed shot's day tag and date, dashes an unplaced one", (tester) async {
+      late String placedLabel;
+      late String unplacedLabel;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              placedLabel = ocptShotPlacementLabel(
+                context,
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+              );
+              unplacedLabel = ocptShotPlacementLabel(context, null);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tuesday 4 August 2026, in the app's own en_GB locale.
+      expect(placedLabel, "J3 · Tue 4 Aug");
+      expect(unplacedLabel, ocptShotListEmptyValue);
     });
   });
 

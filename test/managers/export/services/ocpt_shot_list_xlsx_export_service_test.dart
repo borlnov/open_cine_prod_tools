@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xls
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -201,7 +202,6 @@ void main() {
                 lens: "35mm",
                 recordingFormat: "4K · 25 fps",
                 estimatedDurationMs: 90000,
-                shootingDay: "Day 3",
                 plannedTakes: 4,
                 sound: "Direct sound",
                 status: OcptShotStatus.retake,
@@ -212,6 +212,14 @@ void main() {
             ],
           ),
         ],
+        placementsByShotId: {
+          "shot-1": OcptShotPlacement(
+            shotId: "shot-1",
+            dayId: "day-3",
+            dayNumber: 3,
+            date: DateTime(2026, 8, 4),
+          ),
+        },
       );
 
       final rows = _rowsOf(
@@ -235,7 +243,7 @@ void main() {
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.takes), 4);
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.sound), "Direct sound");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.difficulty), 2.75);
-      expect(_cellOf(shotRow, OcptShotListXlsxColumn.shootingDay), "Day 3");
+      expect(_cellOf(shotRow, OcptShotListXlsxColumn.shootingDay), "J3 · 2026-08-04");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.status), "Retake");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.notes), "Keep the door in frame.");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.locationNotes), "Flat visited on the 12th.");

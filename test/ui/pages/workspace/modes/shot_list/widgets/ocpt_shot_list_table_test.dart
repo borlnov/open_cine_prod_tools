@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -88,6 +89,7 @@ void main() {
     required List<OcptShot> shots,
     Set<OcptShotListColumn>? visibleColumns,
     String? selectedShotId,
+    Map<String, OcptShotPlacement>? placementsByShotId,
   }) async {
     final selectedShots = <String>[];
 
@@ -98,6 +100,7 @@ void main() {
           sequenceHeading: "INT. HOUSE - DAY",
           visibleColumns: visibleColumns ?? OcptShotListColumn.defaultVisibleColumns,
           selectedShotId: selectedShotId,
+          placementsByShotId: placementsByShotId ?? const {},
           onShotSelected: selectedShots.add,
         ),
       ),
@@ -170,7 +173,33 @@ void main() {
     expect(find.text("01:35"), findsOneWidget);
     expect(find.text("3"), findsOneWidget);
     expect(find.text("Retake"), findsOneWidget);
-    // The shot has no shooting day yet.
+    // The shot has no placement in the schedule yet.
+    expect(find.text(ocptShotListEmptyValue), findsOneWidget);
+  });
+
+  testWidgets(
+      "the shooting day column reads a shot's placement in the schedule, dashing an unplaced one",
+      (tester) async {
+    await pumpTable(
+      tester,
+      shots: [
+        _buildShot(id: "shot-1", code: "1/1"),
+        _buildShot(id: "shot-2", code: "1/2"),
+      ],
+      visibleColumns: {OcptShotListColumn.shootingDay},
+      placementsByShotId: {
+        "shot-1": OcptShotPlacement(
+          shotId: "shot-1",
+          dayId: "day-3",
+          dayNumber: 3,
+          date: DateTime(2026, 8, 4),
+        ),
+      },
+    );
+
+    // Tuesday 4 August 2026, in the app's own en_GB locale.
+    expect(find.text("J3 · Tue 4 Aug"), findsOneWidget);
+    // shot-2 has no entry in placementsByShotId at all: not yet planned.
     expect(find.text(ocptShotListEmptyValue), findsOneWidget);
   });
 

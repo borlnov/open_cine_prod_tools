@@ -8,6 +8,7 @@ import 'package:excel_community/excel_community.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 
@@ -58,7 +59,12 @@ class OcptShotListXlsxExportService {
     _appendHeaderRow(sheet, labels);
 
     for (final sequence in snapshot.sequences) {
-      _appendSequenceRows(sheet: sheet, sequence: sequence, labels: labels);
+      _appendSequenceRows(
+        sheet: sheet,
+        sequence: sequence,
+        labels: labels,
+        placementsByShotId: snapshot.placementsByShotId,
+      );
     }
 
     final bytes = excel.encode();
@@ -104,11 +110,13 @@ class OcptShotListXlsxExportService {
     }
   }
 
-  /// Appends [sequence]'s separator row, then one row per shot it holds.
+  /// Appends [sequence]'s separator row, then one row per shot it holds. [placementsByShotId] is
+  /// [OcptShotListSnapshot.placementsByShotId], keyed by shot id.
   void _appendSequenceRows({
     required Sheet sheet,
     required OcptShotSequence sequence,
     required OcptShotListXlsxLabels labels,
+    required Map<String, OcptShotPlacement> placementsByShotId,
   }) {
     final separatorRowIndex = sheet.maxRows;
     sheet.appendRow([TextCellValue(labels.titleOfSequence(sequence.id))]);
@@ -119,12 +127,20 @@ class OcptShotListXlsxExportService {
     for (final shot in sequence.shots) {
       sheet.appendRow([
         for (final column in OcptShotListXlsxColumn.values)
-          _cellOf(column: column, shot: shot, sequence: sequence, labels: labels),
+          _cellOf(
+            column: column,
+            shot: shot,
+            sequence: sequence,
+            labels: labels,
+            placement: placementsByShotId[shot.id],
+          ),
       ]);
     }
   }
 
-  /// The cell [column] holds for [shot], or null to leave it empty.
+  /// The cell [column] holds for [shot], or null to leave it empty. [placement] is [shot]'s own
+  /// entry of [OcptShotListSnapshot.placementsByShotId], null while it hasn't been placed on any
+  /// day yet.
   ///
   /// A field the user hasn't filled in is written as an empty cell rather than as the em dash the
   /// table shows in its place: a spreadsheet's own way of saying "nothing here" is a blank cell,
@@ -134,6 +150,7 @@ class OcptShotListXlsxExportService {
     required OcptShot shot,
     required OcptShotSequence sequence,
     required OcptShotListXlsxLabels labels,
+    required OcptShotPlacement? placement,
   }) => switch (column) {
     OcptShotListXlsxColumn.shot => TextCellValue(shot.code),
     OcptShotListXlsxColumn.characters => _textOrNull(shot.characters.join(", ")),
@@ -151,7 +168,7 @@ class OcptShotListXlsxExportService {
     },
     OcptShotListXlsxColumn.sound => _textOrNull(shot.sound),
     OcptShotListXlsxColumn.difficulty => DoubleCellValue(shot.averageDifficulty),
-    OcptShotListXlsxColumn.shootingDay => _textOrNull(shot.shootingDay),
+    OcptShotListXlsxColumn.shootingDay => _placementCellOf(placement),
     OcptShotListXlsxColumn.status => _textOrNull(labels.labelOf(shot.status)),
     OcptShotListXlsxColumn.notes => _textOrNull(shot.notes),
     OcptShotListXlsxColumn.locationNotes => _textOrNull(shot.locationNotes),
@@ -188,4 +205,28 @@ class OcptShotListXlsxExportService {
   /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
+
+  /// The cell holding [placement]'s read-out — `J3 · 2026-08-04`, the day's printed rank then its
+  /// calendar date — or null for a shot the schedule carries no placement for at all, exactly like
+  /// any other field the user hasn't filled in ([_textOrNull]).
+  ///
+  /// Written in this locale-free, unambiguous form rather than through `Tr`: unlike every other
+  /// column, neither half needs localized wording at all — the day tag is the trade's own shorthand,
+  /// never translated even on screen (`ocptScheduleDayTagLabel`'s own doc comment), and a spreadsheet
+  /// cell with no `Tr` to format a date with is exactly the situation `yyyy-MM-dd` already serves
+  /// elsewhere in this codebase (`OcptResourcesXlsxExportService._isoDate`). Both are inlined here
+  /// rather than imported: the service layer this class sits in must not depend on the UI layer
+  /// those two helpers live in.
+  CellValue? _placementCellOf(OcptShotPlacement? placement) {
+    if (placement == null) {
+      return null;
+    }
+
+    return TextCellValue("J${placement.dayNumber} · ${_isoDate(placement.date)}");
+  }
+
+  /// [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
+  String _isoDate(DateTime date) =>
+      "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-"
+      "${date.day.toString().padLeft(2, '0')}";
 }

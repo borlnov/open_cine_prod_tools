@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
@@ -23,12 +24,17 @@ class OcptShotMetadataPanel extends StatelessWidget {
   /// [shot]'s sequence heading. Ignored while [shot] is null.
   final String sequenceHeading;
 
+  /// [shot]'s own placement in the schedule, or null while it hasn't been placed on any day yet.
+  /// Ignored while [shot] is null.
+  final OcptShotPlacement? placement;
+
   /// Class constructor
   const OcptShotMetadataPanel({
     super.key,
     required this.shot,
     required this.sequenceDisplayNumber,
     required this.sequenceHeading,
+    required this.placement,
   });
 
   @override
@@ -61,7 +67,7 @@ class OcptShotMetadataPanel extends StatelessWidget {
         ),
         OcptShotInspectorReadOnlyField(
           label: tr.shotListColumnShootingDay,
-          value: ocptShotFieldOrDash(shot.shootingDay),
+          value: ocptShotPlacementLabel(context, placement),
         ),
         OcptShotInspectorReadOnlyField(
           label: tr.shotListColumnTakes,
