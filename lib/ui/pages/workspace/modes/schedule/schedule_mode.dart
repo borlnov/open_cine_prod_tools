@@ -132,6 +132,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           dayCount: state.dayCount,
           placedShotCount: state.placedShotCount,
           shotsLeftToPlaceCount: state.shotsLeftToPlaceCount,
+          isDaySelected: state.selectedDayId != null,
           selectedDayEndMinute: state.selectedDayId == null
               ? null
               : state.timelineOfDay(state.selectedDayId!)?.dayEndMinute,

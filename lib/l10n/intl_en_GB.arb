@@ -6465,6 +6465,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleStatsNothingPlannedYet": "Nothing planned yet",
+  "@scheduleStatsNothingPlannedYet": {
+    "description": "Shown in the status bar's own trailing slot while the selected day holds no block at all, so its timeline has no end to report",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleResetPanelLayoutAction": "Reset panel layout",
   "@scheduleResetPanelLayoutAction": {
     "description": "Entry of the schedule mode's ⋮ overflow menu, restoring both dock fractions to their defaults",

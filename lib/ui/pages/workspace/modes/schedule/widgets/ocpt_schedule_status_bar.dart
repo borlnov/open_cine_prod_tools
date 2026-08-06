@@ -19,8 +19,14 @@ class OcptScheduleStatusBar extends StatelessWidget {
   /// The number of shots that still have no live block placing them.
   final int shotsLeftToPlaceCount;
 
-  /// The selected day's own computed end minute, or null while no day is selected or its timeline
-  /// has nothing placed yet.
+  /// Whether a day is selected at all, which [selectedDayEndMinute] alone cannot say: a day holding
+  /// no block yet has no end either (`ocptComputeShootingDayTimeline` returns a null one for an
+  /// empty day), and telling the user nothing is selected when they have just created a day and are
+  /// looking at it is simply false.
+  final bool isDaySelected;
+
+  /// The selected day's own computed end minute, or null while no day is selected or the selected
+  /// day holds nothing yet.
   final int? selectedDayEndMinute;
 
   /// Class constructor
@@ -29,6 +35,7 @@ class OcptScheduleStatusBar extends StatelessWidget {
     required this.dayCount,
     required this.placedShotCount,
     required this.shotsLeftToPlaceCount,
+    required this.isDaySelected,
     required this.selectedDayEndMinute,
   });
 
@@ -37,9 +44,11 @@ class OcptScheduleStatusBar extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final selectedDayEndMinute = this.selectedDayEndMinute;
-    final endText = selectedDayEndMinute == null
-        ? tr.scheduleStatsNoDaySelected
-        : tr.scheduleStatsEstimatedEnd(ocptFormatDayMinute(selectedDayEndMinute));
+    final endText = switch (selectedDayEndMinute) {
+      final int endMinute => tr.scheduleStatsEstimatedEnd(ocptFormatDayMinute(endMinute)),
+      null when isDaySelected => tr.scheduleStatsNothingPlannedYet,
+      null => tr.scheduleStatsNoDaySelected,
+    };
 
     return OcptWorkspaceStatusBar(
       counters: [
