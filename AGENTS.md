@@ -102,9 +102,9 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
 | 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`) then v10 (a code backfilled onto every set), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
-| 28 | Schedule mode M1 — planning (issue #49): schema v11 (the six schedule tables, and the legacy `shots.shootingDay` erased by the migration), `ocpt_shooting_day_timeline.dart` (ADR 0015) and `ocpt_sun_times.dart` (ADR 0016), both pure, `OcptScheduleService` with its day duplication and its one-placement-per-shot rule, payload format 6, `OcptScheduleMode` with its agenda in three presentations and its day view, and the shot list's shooting day turned into a read-out of the placement | ✅ |
+| 28 | Schedule mode M1 — planning (issue #49): schema v11 (the six schedule tables, and the legacy `shots.shootingDay` erased by the migration), `ocpt_shooting_day_timeline.dart` (ADR 0015) and `ocpt_sun_times.dart` (ADR 0016), both pure, `OcptScheduleService` with its day duplication and its one-placement-per-shot rule (dropped in 28c), payload format 6, `OcptScheduleMode` with its agenda in three presentations and its day view, and the shot list's shooting day turned into a read-out of the placement | ✅ |
 | 28b | Schedule mode M1' — per-slot timetables and computed convocations: schema v12 (`shooting_day_blocks.slotId` made required and a `sceneId` given to the `hold` that names a sequence, a slot's typed clocks reduced to its `startMinute`, `shooting_day_groups` added, the crew and cast convocations trading their typed times for a group and a lead), `ocpt_shooting_day_timeline.dart` amended per slot (ADR 0015 amended) and `ocpt_shooting_convocations.dart` (ADR 0017), both pure, `OcptScheduleService` seeding a convocation from the day that last carried it, payload format 7, and the mode reading its call times out rather than asking for them | ✅ |
-| 28c | Schedule mode M2' — the day view: a timetable on each slot card (the day's own gone), blocks dragged between slots or moved through their row's `Move to…`, a hold's sequence picker and the roles the breakdown tagged in it, the lead times and group pickers on every crew and cast row, the groups band, and the agendas drawing a day's slots as parallel lanes | ✅ |
+| 28c | Schedule mode M2' — the day view: a timetable on each slot card (the day's own gone), blocks dragged between slots or moved through their row's `Move to…`, a hold's sequence picker and the roles the breakdown tagged in it, the lead times and group pickers on every crew and cast row, the groups band, and the agendas drawing a day's slots as parallel lanes; then the placement rework — the one-placement-per-shot rule dropped, a shot placed from a slot's own `+ Block` menu through `OcptScheduleShotPickerDialog`, the left dock's click turned into a plain selection read out by the inspector, and the strip agenda made informative | ✅ |
 | 28d | Schedule mode M2/M3 (the three PDFs, the positions matrix, the presence grid and the conflict alerts) | 📝 planned |
 
 ## Ways of working
@@ -643,9 +643,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   nullable — no coordinates, or a phase that never happens at that latitude, prints nothing rather
   than a plausible wrong time. The time zone is the **device's own** for that date, which the day
   inspector says rather than hides.
-  `OcptScheduleService` is the eleventh service `OcptProjectsManager` owns. **A shot is placed at
-  most once across the whole schedule** — placing it again moves it — so a shot's day is a single
-  answer, which is what the shot list reads out. Deleting a day cascades onto everything hanging off
+  `OcptScheduleService` is the eleventh service `OcptProjectsManager` owns. **A shot may be placed as
+  many times as the plan needs**: a shot interrupted by the meal break and resumed after it is two
+  blocks on that day, not one, so `placeShot` only ever creates — a placement is moved like any other
+  block and removed like any other block, and there is no operation keyed by shot any more.
+  `loadShotPlacements` therefore answers with a **list** per shot, which the shot list's `Jour de
+  tournage` reads out as the day tag and its date while every placement lands on one day (the
+  meal-break case included) and as the day tags alone, joined, once they don't
+  (`ocptShotPlacementLabel`, mirrored cell for cell by the workbook's own `_placementCellOf`).
+  Deleting a day cascades onto everything hanging off
   it; deleting a **slot** carries its blocks over to the day's first remaining slot, and tombstones
   them with it only when it was the day's last one — nothing can hold a block any more then.
   `duplicateDay` copies the slots, their crew, their cast, their groups and every lead time, and
@@ -675,9 +681,23 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   the in-slot reorder and the row body carries the cross-slot drag, so the two never meet in the
   gesture arena — or through its row's own `Move to…` entry, the pointerless path. A shot
   block carries a **status control writing `shots.status`**, the same column the shot list edits —
-  one truth, two places to change it — so a day reads as a checklist on set. The left dock is the
-  day list over the shots still to place, and placing is
-  picking a shot then clicking a day; the right dock is `Inspector` + the shared `Versions` tab.
+  one truth, two places to change it — so a day reads as a checklist on set.
+  **A shot is placed from the slot it is shot in**: the timetable's own `+ Block` menu opens on
+  `Shot`, which opens `OcptScheduleShotPickerDialog` — the whole shot list, searched
+  (`ocptResourcesSearchMatches`, the fold the resources mode already uses) and grouped by sequence
+  the way the left dock heads it, every row selectable including a shot already placed, which merely
+  carries the day tags it sits on so a second placement reads as a choice rather than an accident.
+  The picker is the mode's to open, never the timetable's: the widget only asks
+  (`onShotBlockRequested`), as every other question in this app is asked.
+  The left dock is the day list over the shots still to place, and a click on one of those
+  **selects** it — the inspector then reads that shot out (its sequence, its characters, its
+  estimated duration, where it is already placed, and the same status control a shot block carries),
+  which is all a click there does: the *placing* gesture it used to start, answered by a click on a
+  day, is gone. The right dock is `Inspector` + the shared `Versions` tab, the inspector reading
+  block, then shot, then day, the block and shot selections being mutually exclusive by
+  construction. The strip agenda is **informative**: it shows what each day carries and opens one,
+  and nothing is placed or unplaced from it — a block lives in a slot, so it is made and unmade
+  where the slot is.
   `shooting_presences` is declared but only written in M3, when the presence grid lands; the mock's
   `Couleur par` control and its alert list belong to that milestone too.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
@@ -839,13 +859,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   popover ever has a range to show), the status and category chips, the scene status control, its
   sets row's picker and chip dismissals, every
   notes field, the suggestion acceptances and the tag removal; and — in the schedule mode — the day
-  creation and its card's `⋮`, the placing gesture, every slot, crew, cast and block control, the
+  creation and its card's `⋮`, the `+ Block` menu and the shot picker it opens, every slot, crew,
+  cast and block control, the
   minute fields (which render as plain text with no callback), the anchor pin and the shot status.
   What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word
   still selects its target, since selecting writes nothing — the schedule's three agenda
-  presentations, its day view, its computed times and its sun bands, plus the app-wide display
+  presentations, its day view, its computed times and its sun bands, and the left dock's own click
+  on a shot, which now only selects one, plus the app-wide display
   preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
   Flutter's own "no callback, no affordance" idiom); a composite panel

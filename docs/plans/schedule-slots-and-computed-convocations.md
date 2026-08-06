@@ -202,6 +202,13 @@ Everything below is built and merged into the branch. The code is the record fro
 list is kept only until M3' ships with it — at which point this whole plan goes, its two ADRs and
 `docs/plans/schedule-mode.md` being what remains.
 
+One thing shipped with it that no item below asked for, on Benoit's reading of the built day view:
+**the one-placement-per-shot rule is gone**. A shot is placed from the slot it is shot in — the
+timetable's own `+ Block` menu opens on `Shot` and a picker dialog over the whole shot list — and it
+may be placed as many times as the plan needs, a shot resumed after the meal break being two blocks
+rather than one. The left dock's click on a shot is now a plain selection the inspector reads out,
+and the strip agenda is informative: nothing is placed or unplaced from it.
+
 6. A `hold` block's own **sequence picker**, writing the `shooting_day_blocks.sceneId` schema v12
    already carries, and the roles that sequence calls for read out of the breakdown — until both
    land, a hold names nobody and every role convoked beside it keeps the slot's own bounds.
