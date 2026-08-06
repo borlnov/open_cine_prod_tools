@@ -6130,6 +6130,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleChangeDayDateAction": "Change the date…",
+  "@scheduleChangeDayDateAction": {
+    "description": "Entry of a day card's own ⋮ menu, opening a date picker seeded on that day's own date",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleDuplicateDayAction": "Duplicate this day…",
   "@scheduleDuplicateDayAction": {
     "description": "Entry of a day card's own ⋮ menu, opening a date picker",

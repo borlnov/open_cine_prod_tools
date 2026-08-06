@@ -226,6 +226,46 @@ void main() {
     });
   });
 
+  group("changing a day's date", () {
+    test("renumbers the days when it moves one before the first", () async {
+      final fixture = await writePlacedShot();
+      final project = projectsManager.currentProject!;
+
+      // A second day, later than the fixture's own — J2 for now.
+      final laterDayId = await projectsManager.scheduleService.createDay(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        date: DateTime(2026, 8, 20),
+      );
+      expect(laterDayId, isNotNull);
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      expect(
+        loaded.days.firstWhere((day) => day.id == fixture.dayId).dayNumber,
+        1,
+      );
+      expect(
+        loaded.days.firstWhere((day) => day.id == laterDayId).dayNumber,
+        2,
+      );
+
+      // Re-dating the second day to before the first flips their order: `dayNumber` is a
+      // read-time rank over `date`, not a stored column, so it follows the new date.
+      bloc.add(
+        OcptScheduleDayDateChangedEvent(dayId: laterDayId!, date: DateTime(2026, 8)),
+      );
+      final redated = await waitForState(
+        bloc,
+        (state) => state.days.firstWhere((day) => day.id == laterDayId).dayNumber == 1,
+      );
+
+      expect(redated.days.firstWhere((day) => day.id == fixture.dayId).dayNumber, 2);
+
+      await bloc.close();
+    });
+  });
+
   group("selecting a day", () {
     test("clears both the selected block and the selected shot", () async {
       final fixture = await writePlacedShot();

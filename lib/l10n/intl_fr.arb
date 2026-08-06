@@ -823,6 +823,7 @@
   "scheduleDayStatusPlanned": "Prévu",
   "scheduleDayStatusShot": "Tourné",
   "scheduleDayStatusCancelled": "Annulé",
+  "scheduleChangeDayDateAction": "Changer la date…",
   "scheduleDuplicateDayAction": "Dupliquer ce jour…",
   "scheduleDeleteDayAction": "Supprimer ce jour…",
   "scheduleDeleteDayConfirmTitle": "Supprimer ce jour ?",

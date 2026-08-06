@@ -95,6 +95,7 @@ void main() {
           firstLocationByDayId: const {},
           onDaySelected: (_) {},
           onDayCreated: (_) {},
+          onDayDateChangeRequested: (_, _) {},
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
@@ -122,6 +123,7 @@ void main() {
           firstLocationByDayId: const {},
           onDaySelected: (_) {},
           onDayCreated: (_) {},
+          onDayDateChangeRequested: (_, _) {},
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: [unplacedGroup],
@@ -152,6 +154,7 @@ void main() {
           firstLocationByDayId: const {},
           onDaySelected: (_) {},
           onDayCreated: (_) {},
+          onDayDateChangeRequested: (_, _) {},
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: deletionRequests.add,
           unplacedGroups: const [],
@@ -176,6 +179,91 @@ void main() {
     expect(find.text("D1"), findsOneWidget);
   });
 
+  testWidgets("the day card's ⋮ menu offers to change the date, first in the menu", (
+    tester,
+  ) async {
+    final dateChangeRequests = <(String, DateTime)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleLeftDock(
+          days: [dayOne],
+          selectedDayId: null,
+          blockCountByDayId: const {},
+          firstLocationByDayId: const {},
+          onDaySelected: (_) {},
+          onDayCreated: (_) {},
+          onDayDateChangeRequested: (dayId, date) => dateChangeRequests.add((dayId, date)),
+          onDayDuplicationRequested: (_, _) {},
+          onDayDeletionRequested: (_) {},
+          unplacedGroups: const [],
+          selectedShotId: null,
+          onShotSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleLeftDock)));
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    // First in the menu, ahead of duplication and deletion: a correction is not a destructive
+    // action, and the two must not sit next to each other by accident.
+    final menuItems = tester.widgetList<PopupMenuItem<VoidCallback>>(
+      find.byType(PopupMenuItem<VoidCallback>),
+    );
+    final firstLabel = (menuItems.first.child! as Text).data;
+    expect(firstLabel, tr.scheduleChangeDayDateAction);
+
+    await tester.tap(find.text(tr.scheduleChangeDayDateAction));
+    await tester.pumpAndSettle();
+
+    // The date picker opens seeded on the day's own date, `dayOne`'s 4 August 2026, rather than
+    // today's.
+    await tester.tap(find.text("OK"));
+    await tester.pumpAndSettle();
+
+    expect(dateChangeRequests, isNotEmpty);
+    expect(dateChangeRequests.single.$1, "day-1");
+    expect(dateChangeRequests.single.$2, DateTime(2026, 8, 4));
+  });
+
+  testWidgets("the day card's ⋮ menu withholds the date-change entry when the callback is null", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleLeftDock(
+          days: [dayOne],
+          selectedDayId: null,
+          blockCountByDayId: const {},
+          firstLocationByDayId: const {},
+          onDaySelected: (_) {},
+          onDayCreated: (_) {},
+          onDayDateChangeRequested: null,
+          onDayDuplicationRequested: (_, _) {},
+          onDayDeletionRequested: (_) {},
+          unplacedGroups: const [],
+          selectedShotId: null,
+          onShotSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleLeftDock)));
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.scheduleChangeDayDateAction), findsNothing);
+    // The menu still opens for its other entries: withholding one entry doesn't hide the ⋮
+    // control itself, since duplication and deletion remain wired.
+    expect(find.text(tr.scheduleDuplicateDayAction), findsOneWidget);
+  });
+
   testWidgets(
     "every writing affordance is withheld when read-only, but selecting a shot never is",
     (tester) async {
@@ -190,6 +278,7 @@ void main() {
             firstLocationByDayId: const {},
             onDaySelected: (_) {},
             onDayCreated: null,
+            onDayDateChangeRequested: null,
             onDayDuplicationRequested: null,
             onDayDeletionRequested: null,
             unplacedGroups: [unplacedGroup],

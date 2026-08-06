@@ -174,6 +174,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onDayCreated: isReadOnly
           ? null
           : (date) => bloc.add(OcptScheduleDayCreatedEvent(date: date)),
+      onDayDateChangeRequested: isReadOnly
+          ? null
+          : (dayId, date) => bloc.add(OcptScheduleDayDateChangedEvent(dayId: dayId, date: date)),
       onDayDuplicationRequested: isReadOnly
           ? null
           : (dayId, date) => bloc.add(

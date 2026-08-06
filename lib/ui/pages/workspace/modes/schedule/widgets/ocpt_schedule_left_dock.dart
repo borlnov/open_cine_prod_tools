@@ -17,10 +17,10 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// the mock's `bandeDays`/`unplacedGroups` (`design.html` lines 192-243).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
-/// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDuplicationRequested]
-/// and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting a day ([onDaySelected]) or
-/// an unplaced shot ([onShotSelected], which only brings that shot's own read-out up in the
-/// inspector) only ever reads, so neither is ever withheld.
+/// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDateChangeRequested],
+/// [onDayDuplicationRequested] and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting a
+/// day ([onDaySelected]) or an unplaced shot ([onShotSelected], which only brings that shot's own
+/// read-out up in the inspector) only ever reads, so neither is ever withheld.
 class OcptScheduleLeftDock extends StatelessWidget {
   /// The live days to list, in `dayNumber` order.
   final List<OcptShootingDay> days;
@@ -40,6 +40,11 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// Called with the date just picked by the `+ New day` control, or null while the mode is
   /// read-only.
   final ValueChanged<DateTime>? onDayCreated;
+
+  /// Called with a day's id and the date just picked, once its own `⋮` menu's `Change the
+  /// date…` entry opened a date picker seeded on that day's own date — a correction, not a
+  /// duplication, which is why it sits first in the menu — or null while the mode is read-only.
+  final void Function(String dayId, DateTime date)? onDayDateChangeRequested;
 
   /// Called with a day's id and the date just picked, once its own `⋮` menu's `Duplicate this
   /// day…` entry opened a date picker, or null while the mode is read-only.
@@ -69,6 +74,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.firstLocationByDayId,
     required this.onDaySelected,
     required this.onDayCreated,
+    required this.onDayDateChangeRequested,
     required this.onDayDuplicationRequested,
     required this.onDayDeletionRequested,
     required this.unplacedGroups,
@@ -124,6 +130,13 @@ class OcptScheduleLeftDock extends StatelessWidget {
                       blockCount: blockCountByDayId[day.id] ?? 0,
                       location: firstLocationByDayId[day.id],
                       onSelected: () => onDaySelected(day.id),
+                      onDateChangeRequested: onDayDateChangeRequested == null
+                          ? null
+                          : () => _pickDateThen(
+                              context,
+                              (date) => onDayDateChangeRequested!(day.id, date),
+                              initialDate: day.date,
+                            ),
                       onDuplicationRequested: onDayDuplicationRequested == null
                           ? null
                           : () => _pickDateThen(
@@ -178,16 +191,26 @@ class OcptScheduleLeftDock extends StatelessWidget {
   int get _totalUnplacedCount =>
       unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
 
-  /// Opens the platform date picker seeded on today, reporting the pick to [onPicked]. Does
-  /// nothing when the picker is dismissed with no pick — mirrors
-  /// `OcptPersonSheetDateField._pickDate`, the app's own convention for [showDatePicker].
-  static Future<void> _pickDateThen(BuildContext context, ValueChanged<DateTime> onPicked) async {
+  /// Opens the platform date picker seeded on [initialDate] (today when omitted), reporting the
+  /// pick to [onPicked]. Does nothing when the picker is dismissed with no pick — mirrors
+  /// `OcptPersonSheetDateField._pickDate`, the app's own convention for [showDatePicker]. The
+  /// `firstDate`/`lastDate` bounds are anchored on today but widen to include [initialDate]
+  /// itself — [showDatePicker] asserts the seed falls inside them, and a day being re-dated may
+  /// already sit outside the usual one-year-back/five-years-ahead window.
+  static Future<void> _pickDateThen(
+    BuildContext context,
+    ValueChanged<DateTime> onPicked, {
+    DateTime? initialDate,
+  }) async {
     final now = DateTime.now();
+    final seed = initialDate ?? now;
+    final firstDate = DateTime(now.year - 1);
+    final lastDate = DateTime(now.year + 5);
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 5),
+      initialDate: seed,
+      firstDate: seed.isBefore(firstDate) ? seed : firstDate,
+      lastDate: seed.isAfter(lastDate) ? seed : lastDate,
     );
 
     if (picked != null) {
@@ -214,6 +237,9 @@ class _OcptScheduleDayCard extends StatelessWidget {
   /// Called when this card is clicked.
   final VoidCallback onSelected;
 
+  /// Called when the `⋮` menu's `Change the date…` entry is picked, or null while withheld.
+  final VoidCallback? onDateChangeRequested;
+
   /// Called when the `⋮` menu's `Duplicate this day…` entry is picked, or null while withheld.
   final VoidCallback? onDuplicationRequested;
 
@@ -227,6 +253,7 @@ class _OcptScheduleDayCard extends StatelessWidget {
     required this.blockCount,
     required this.location,
     required this.onSelected,
+    required this.onDateChangeRequested,
     required this.onDuplicationRequested,
     required this.onDeletionRequested,
   });
@@ -322,13 +349,20 @@ class _OcptScheduleDayCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onDuplicationRequested != null || onDeletionRequested != null)
+              if (onDateChangeRequested != null || onDuplicationRequested != null || onDeletionRequested != null)
                 PopupMenuButton<VoidCallback>(
                   icon: const Icon(Icons.more_vert, size: 16),
                   tooltip: "",
                   padding: EdgeInsets.zero,
                   onSelected: (action) => action(),
                   itemBuilder: (context) => [
+                    // A correction, so it opens first — kept apart from the deletion entry below
+                    // so the two are never adjacent by accident.
+                    if (onDateChangeRequested != null)
+                      PopupMenuItem<VoidCallback>(
+                        value: onDateChangeRequested,
+                        child: Text(tr.scheduleChangeDayDateAction),
+                      ),
                     if (onDuplicationRequested != null)
                       PopupMenuItem<VoidCallback>(
                         value: onDuplicationRequested,
