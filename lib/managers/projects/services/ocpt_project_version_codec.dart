@@ -23,8 +23,11 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
@@ -55,7 +58,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 5;
+  static const currentPayloadFormat = 6;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -118,6 +121,24 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `scene_breakdowns` rows from a JSON object
   static const _sceneBreakdownsKey = "sceneBreakdowns";
+
+  /// This is the key used to stringify or parse the `shooting_days` rows from a JSON object
+  static const _shootingDaysKey = "shootingDays";
+
+  /// This is the key used to stringify or parse the `shooting_slots` rows from a JSON object
+  static const _shootingSlotsKey = "shootingSlots";
+
+  /// This is the key used to stringify or parse the `shooting_slot_crew` rows from a JSON object
+  static const _shootingSlotCrewKey = "shootingSlotCrew";
+
+  /// This is the key used to stringify or parse the `shooting_slot_cast` rows from a JSON object
+  static const _shootingSlotCastKey = "shootingSlotCast";
+
+  /// This is the key used to stringify or parse the `shooting_day_blocks` rows from a JSON object
+  static const _shootingDayBlocksKey = "shootingDayBlocks";
+
+  /// This is the key used to stringify or parse the `shooting_presences` rows from a JSON object
+  static const _shootingPresencesKey = "shootingPresences";
 
   /// This is the key used to stringify or parse the `row_field_versions` rows from a JSON object
   static const _rowFieldVersionsKey = "rowFieldVersions";
@@ -209,7 +230,7 @@ class OcptProjectVersionCodec {
   static const _soundKey = "sound";
 
   /// This is the key used to stringify or parse a `status` column (`shots.status`,
-  /// `elements.status` or `scene_breakdowns.status`) from a JSON object
+  /// `elements.status`, `scene_breakdowns.status` or `shooting_days.status`) from a JSON object
   static const _statusKey = "status";
 
   /// This is the key used to stringify or parse a shot's `difficultySet` column from a JSON object
@@ -228,8 +249,9 @@ class OcptProjectVersionCodec {
   static const _difficultySoundKey = "difficultySound";
 
   /// This is the key used to stringify or parse a free-form `notes` column (`shots.notes`,
-  /// `people.notes`, `locations.notes`, `sets.notes`, `elements.notes`, `scene_elements.notes` or
-  /// `scene_breakdowns.notes`) from a JSON object
+  /// `people.notes`, `locations.notes`, `sets.notes`, `elements.notes`, `scene_elements.notes`,
+  /// `scene_breakdowns.notes`, `shooting_days.notes`, `shooting_slots.notes`,
+  /// `shooting_slot_crew.notes` or `shooting_slot_cast.notes`) from a JSON object
   static const _notesKey = "notes";
 
   /// This is the key used to stringify or parse a shot's `locationNotes` column from a JSON object
@@ -355,20 +377,20 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `personId` column (`person_positions`,
   /// `person_skills`, `person_unavailabilities`, `roles.personId`, `locations.contactPersonId`'s
-  /// sibling name aside, `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`) from a
-  /// JSON object
+  /// sibling name aside, `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`,
+  /// `shooting_slot_crew.personId` or `shooting_presences.personId`) from a JSON object
   static const _personIdKey = "personId";
 
-  /// This is the key used to stringify or parse a person position's `positionId` column from a JSON
-  /// object
+  /// This is the key used to stringify or parse a `positionId` column (`person_positions` or
+  /// `shooting_slot_crew`) from a JSON object
   static const _positionIdKey = "positionId";
 
-  /// This is the key used to stringify or parse a person position's `customLabel` column from a
-  /// JSON object
+  /// This is the key used to stringify or parse a `customLabel` column (`person_positions` or
+  /// `shooting_slot_crew`) from a JSON object
   static const _customLabelKey = "customLabel";
 
-  /// This is the key used to stringify or parse a `label` column (`person_skills.label` or
-  /// `assets.label`) from a JSON object
+  /// This is the key used to stringify or parse a `label` column (`person_skills.label`,
+  /// `assets.label`, `shooting_slots.label` or `shooting_day_blocks.label`) from a JSON object
   static const _labelKey = "label";
 
   /// This is the key used to stringify or parse an unavailability's `startDate` column from a
@@ -405,8 +427,8 @@ class OcptProjectVersionCodec {
   /// `elements`) from a JSON object
   static const _nameKey = "name";
 
-  /// This is the key used to stringify or parse a `kind` column (`roles.kind` or `assets.kind`)
-  /// from a JSON object
+  /// This is the key used to stringify or parse a `kind` column (`roles.kind`, `assets.kind` or
+  /// `shooting_day_blocks.kind`) from a JSON object
   static const _kindKey = "kind";
 
   /// This is the key used to stringify or parse a breakdown tag's `targetKind` column from a JSON
@@ -474,20 +496,22 @@ class OcptProjectVersionCodec {
   /// object
   static const _constraintsNotesKey = "constraintsNotes";
 
-  /// This is the key used to stringify or parse a set's `locationId` column from a JSON object
+  /// This is the key used to stringify or parse a `locationId` column (`sets` or `shooting_slots`)
+  /// from a JSON object
   static const _locationIdKey = "locationId";
 
-  /// This is the key used to stringify or parse a `code` column (`sets` or `elements`) from a JSON
-  /// object
+  /// This is the key used to stringify or parse a `code` column (`sets`, `elements` or, holding the
+  /// enum name rather than a minted identifier there, `shooting_presences.code`) from a JSON object
   static const _codeKey = "code";
 
-  /// This is the key used to stringify or parse a `setId` column (`scene_sets.setId` or
-  /// `breakdown_tags.setId`) from a JSON object
+  /// This is the key used to stringify or parse a `setId` column (`scene_sets.setId`,
+  /// `breakdown_tags.setId` or `shooting_slots.setId`) from a JSON object
   static const _setIdKey = "setId";
 
-  /// This is the key used to stringify or parse a breakdown tag's `roleId` column from a JSON
-  /// object — the sibling of [_elementIdKey] and [_setIdKey], non-null only when the tag's
-  /// `targetKind` names a role.
+  /// This is the key used to stringify or parse a `roleId` column
+  /// (`breakdown_tags.roleId` — the sibling of [_elementIdKey] and [_setIdKey], non-null only when
+  /// the tag's `targetKind` names a role — or `shooting_slot_cast.roleId`, always non-null, the
+  /// role a slot convokes) from a JSON object
   static const _roleIdKey = "roleId";
 
   /// This is the key used to stringify or parse an element's `category` column from a JSON object
@@ -563,6 +587,63 @@ class OcptProjectVersionCodec {
   /// object
   static const _coveredTextDigestKey = "coveredTextDigest";
 
+  /// This is the key used to stringify or parse a `shootingDayId` column (`shooting_slots`,
+  /// `shooting_day_blocks` or `shooting_presences`) from a JSON object
+  static const _shootingDayIdKey = "shootingDayId";
+
+  /// This is the key used to stringify or parse a `slotId` column (`shooting_slot_crew`,
+  /// `shooting_slot_cast` or `shooting_day_blocks`) from a JSON object — the foreign key onto a
+  /// `shooting_slots` row, not to be confused with [_slotKey], the day-part enum
+  /// `person_unavailabilities`/`location_availabilities` carry.
+  static const _slotIdKey = "slotId";
+
+  /// This is the key used to stringify or parse a `shooting_days.date` column from a JSON object
+  static const _dateKey = "date";
+
+  /// This is the key used to stringify or parse a shooting day's `crewNote` column from a JSON
+  /// object
+  static const _crewNoteKey = "crewNote";
+
+  /// This is the key used to stringify or parse a shooting day's `weatherNote` column from a JSON
+  /// object
+  static const _weatherNoteKey = "weatherNote";
+
+  /// This is the key used to stringify or parse a `crewCallMinute` column (`shooting_slots`) from a
+  /// JSON object
+  static const _crewCallMinuteKey = "crewCallMinute";
+
+  /// This is the key used to stringify or parse a `crewWrapMinute` column (`shooting_slots`) from a
+  /// JSON object
+  static const _crewWrapMinuteKey = "crewWrapMinute";
+
+  /// This is the key used to stringify or parse a `castCallMinute` column (`shooting_slots` or
+  /// `shooting_slot_cast`) from a JSON object
+  static const _castCallMinuteKey = "castCallMinute";
+
+  /// This is the key used to stringify or parse a `castWrapMinute` column (`shooting_slots` or
+  /// `shooting_slot_cast`) from a JSON object
+  static const _castWrapMinuteKey = "castWrapMinute";
+
+  /// This is the key used to stringify or parse a `shooting_slot_crew.callMinute` column from a
+  /// JSON object: this row's own override of the slot's [_crewCallMinuteKey].
+  static const _callMinuteKey = "callMinute";
+
+  /// This is the key used to stringify or parse a `shooting_slot_crew.wrapMinute` column from a
+  /// JSON object: this row's own override of the slot's [_crewWrapMinuteKey].
+  static const _wrapMinuteKey = "wrapMinute";
+
+  /// This is the key used to stringify or parse a `shooting_slot_cast.arrivalMinute` column from a
+  /// JSON object
+  static const _arrivalMinuteKey = "arrivalMinute";
+
+  /// This is the key used to stringify or parse a `shooting_day_blocks.durationMinutes` column from
+  /// a JSON object
+  static const _durationMinutesKey = "durationMinutes";
+
+  /// This is the key used to stringify or parse a `shooting_day_blocks.anchorMinute` column from a
+  /// JSON object
+  static const _anchorMinuteKey = "anchorMinute";
+
   /// This is the key used to stringify or parse a version stamp's `tableName` column from a JSON
   /// object
   static const _tableNameKey = "tableName";
@@ -614,6 +695,7 @@ class OcptProjectVersionCodec {
     2: _upgradeFormat2To3,
     3: _upgradeFormat3To4,
     4: _upgradeFormat4To5,
+    5: _upgradeFormat5To6,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -703,6 +785,34 @@ class OcptProjectVersionCodec {
     _sceneBreakdownsKey: const <dynamic>[],
   };
 
+  /// Turns a format-**5** JSON object into a format-**6** one: the six tables of the schedule mode
+  /// (`shootingDays` down to `shootingPresences`) didn't exist yet, so this materialises all six as
+  /// **empty lists**, exactly as [_upgradeFormat1To2] and [_upgradeFormat2To3] do for the tables
+  /// that predate them.
+  ///
+  /// This is the **empty-list** kind of upgrade, not the *null* kind [_upgradeFormat3To4] uses for
+  /// the currency — and deliberately so. The currency upgrades to null because a project captured
+  /// in format 3 or earlier *did* have one (the column has never been nullable): the payload simply
+  /// never recorded which, so overwriting the working copy's own value on restore would be a guess,
+  /// and leaving it untouched is the fail-safe reading. A shooting day carries no equivalent
+  /// "unknown, but it existed" state to fall back on: `shooting_days.date` is **never null** (§6 of
+  /// the plan this ships under is the same reasoning applied to the schema's own migration, which
+  /// erases `shots.shootingDay`'s legacy free text rather than guess a date for it), so there is no
+  /// value to leave alone — a payload that never reached format 6 is a truthful statement that the
+  /// project it was captured from had not been scheduled yet: no days, no slots, no convocations, no
+  /// blocks, no presence overrides. `OcptProjectVersionsService._restoreTable` tombstones, on
+  /// restore, every row the payload doesn't hold, so restoring a version this old correctly drops
+  /// whatever schedule has been planned since, with no special case written for it anywhere.
+  static Map<String, dynamic> _upgradeFormat5To6(Map<String, dynamic> json) => {
+    ...json,
+    _shootingDaysKey: const <dynamic>[],
+    _shootingSlotsKey: const <dynamic>[],
+    _shootingSlotCrewKey: const <dynamic>[],
+    _shootingSlotCastKey: const <dynamic>[],
+    _shootingDayBlocksKey: const <dynamic>[],
+    _shootingPresencesKey: const <dynamic>[],
+  };
+
   /// Class constructor
   const OcptProjectVersionCodec();
 
@@ -734,6 +844,20 @@ class OcptProjectVersionCodec {
     _breakdownTagsKey: [for (final row in payload.breakdownTags) _breakdownTagToJson(row)],
     _sceneBreakdownsKey: [
       for (final row in payload.sceneBreakdowns) _sceneBreakdownToJson(row),
+    ],
+    _shootingDaysKey: [for (final row in payload.shootingDays) _shootingDayToJson(row)],
+    _shootingSlotsKey: [for (final row in payload.shootingSlots) _shootingSlotToJson(row)],
+    _shootingSlotCrewKey: [
+      for (final row in payload.shootingSlotCrew) _shootingSlotCrewToJson(row),
+    ],
+    _shootingSlotCastKey: [
+      for (final row in payload.shootingSlotCast) _shootingSlotCastToJson(row),
+    ],
+    _shootingDayBlocksKey: [
+      for (final row in payload.shootingDayBlocks) _shootingDayBlockToJson(row),
+    ],
+    _shootingPresencesKey: [
+      for (final row in payload.shootingPresences) _shootingPresenceToJson(row),
     ],
     _rowFieldVersionsKey: [for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row)],
     _projectSettingsKey: {
@@ -798,15 +922,21 @@ class OcptProjectVersionCodec {
   ///
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
   ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
-  ///   `sceneSets`, `elements`, `sceneElements`, `assets`, `breakdownTags`, `sceneBreakdowns` —
-  ///   every column of each — plus `pageSetup.format`, `settingsJson` and `currencyCode`. This is
+  ///   `sceneSets`, `elements`, `sceneElements`, `assets`, `breakdownTags`, `sceneBreakdowns`,
+  ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`, `shootingDayBlocks`,
+  ///   `shootingPresences` — every column of each — plus `pageSetup.format`, `settingsJson` and
+  ///   `currencyCode`. This is
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
   ///   leave them out and two states differing only in their people, locations or elements would
   ///   hash identically — the working-copy card would claim no drift after an afternoon of typing
   ///   resources in, and a restore would skip the safety version it promised to keep. The breakdown
   ///   tables are exactly the same case, one step later in the project's life: leave them out and an
   ///   afternoon spent tagging the script, or marking scenes done, would hash identically to a
-  ///   screenplay nobody has ever broken down. `currencyCode` is only ever null on a payload decoded
+  ///   screenplay nobody has ever broken down. The six schedule tables are the same case again, one
+  ///   milestone later: leave them out and planning a whole shoot — a day added, a slot crewed, a
+  ///   shot placed onto a block — would hash identically to a project nobody has ever scheduled, so
+  ///   the working-copy card would claim no drift and a restore over that afternoon's work would skip
+  ///   the safety version it owes. `currencyCode` is only ever null on a payload decoded
   ///   from a format predating it (never on one freshly captured from a live database, which always
   ///   reads a real value), so this never makes an old and a current capture of the very same
   ///   project disagree;
@@ -895,6 +1025,36 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _sceneBreakdownToJson,
       ),
+      _shootingDaysKey: _canonicalRows(
+        payload.shootingDays,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingDayToJson,
+      ),
+      _shootingSlotsKey: _canonicalRows(
+        payload.shootingSlots,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingSlotToJson,
+      ),
+      _shootingSlotCrewKey: _canonicalRows(
+        payload.shootingSlotCrew,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingSlotCrewToJson,
+      ),
+      _shootingSlotCastKey: _canonicalRows(
+        payload.shootingSlotCast,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingSlotCastToJson,
+      ),
+      _shootingDayBlocksKey: _canonicalRows(
+        payload.shootingDayBlocks,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingDayBlockToJson,
+      ),
+      _shootingPresencesKey: _canonicalRows(
+        payload.shootingPresences,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingPresenceToJson,
+      ),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
@@ -972,6 +1132,24 @@ class OcptProjectVersionCodec {
       ],
       sceneBreakdowns: [
         for (final row in _rows(json, _sceneBreakdownsKey)) _sceneBreakdownFromJson(row),
+      ],
+      shootingDays: [
+        for (final row in _rows(json, _shootingDaysKey)) _shootingDayFromJson(row),
+      ],
+      shootingSlots: [
+        for (final row in _rows(json, _shootingSlotsKey)) _shootingSlotFromJson(row),
+      ],
+      shootingSlotCrew: [
+        for (final row in _rows(json, _shootingSlotCrewKey)) _shootingSlotCrewFromJson(row),
+      ],
+      shootingSlotCast: [
+        for (final row in _rows(json, _shootingSlotCastKey)) _shootingSlotCastFromJson(row),
+      ],
+      shootingDayBlocks: [
+        for (final row in _rows(json, _shootingDayBlocksKey)) _shootingDayBlockFromJson(row),
+      ],
+      shootingPresences: [
+        for (final row in _rows(json, _shootingPresencesKey)) _shootingPresenceFromJson(row),
       ],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
@@ -1573,6 +1751,171 @@ class OcptProjectVersionCodec {
         sceneId: _string(json, _sceneIdKey),
         status: _enum(json, _statusKey, OcptBreakdownSceneStatus.values.asNameMap()),
         notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_days` row.
+  static Map<String, dynamic> _shootingDayToJson(OcptShootingDayRow row) => {
+    _idKey: row.id,
+    _screenplayIdKey: row.screenplayId,
+    _dateKey: row.date.toIso8601String(),
+    _sortKeyKey: row.sortKey,
+    _statusKey: row.status.name,
+    _crewNoteKey: row.crewNote,
+    _weatherNoteKey: row.weatherNote,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_days` row.
+  static OcptShootingDayRow _shootingDayFromJson(Map<String, dynamic> json) => OcptShootingDayRow(
+    id: _string(json, _idKey),
+    screenplayId: _string(json, _screenplayIdKey),
+    date: _dateTime(json, _dateKey),
+    sortKey: _string(json, _sortKeyKey),
+    status: _enum(json, _statusKey, OcptShootingDayStatus.values.asNameMap()),
+    crewNote: _string(json, _crewNoteKey),
+    weatherNote: _string(json, _weatherNoteKey),
+    notes: _string(json, _notesKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
+
+  /// Serializes one `shooting_slots` row.
+  static Map<String, dynamic> _shootingSlotToJson(OcptShootingSlotRow row) => {
+    _idKey: row.id,
+    _shootingDayIdKey: row.shootingDayId,
+    _sortKeyKey: row.sortKey,
+    _labelKey: row.label,
+    _locationIdKey: row.locationId,
+    _setIdKey: row.setId,
+    _crewCallMinuteKey: row.crewCallMinute,
+    _crewWrapMinuteKey: row.crewWrapMinute,
+    _castCallMinuteKey: row.castCallMinute,
+    _castWrapMinuteKey: row.castWrapMinute,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_slots` row.
+  static OcptShootingSlotRow _shootingSlotFromJson(Map<String, dynamic> json) =>
+      OcptShootingSlotRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        label: _string(json, _labelKey),
+        locationId: _nullableString(json, _locationIdKey),
+        setId: _nullableString(json, _setIdKey),
+        crewCallMinute: _int(json, _crewCallMinuteKey),
+        crewWrapMinute: _int(json, _crewWrapMinuteKey),
+        castCallMinute: _nullableInt(json, _castCallMinuteKey),
+        castWrapMinute: _nullableInt(json, _castWrapMinuteKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_slot_crew` row.
+  static Map<String, dynamic> _shootingSlotCrewToJson(OcptShootingSlotCrewRow row) => {
+    _idKey: row.id,
+    _slotIdKey: row.slotId,
+    _sortKeyKey: row.sortKey,
+    _personIdKey: row.personId,
+    _positionIdKey: row.positionId,
+    _customLabelKey: row.customLabel,
+    _callMinuteKey: row.callMinute,
+    _wrapMinuteKey: row.wrapMinute,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_slot_crew` row.
+  static OcptShootingSlotCrewRow _shootingSlotCrewFromJson(Map<String, dynamic> json) =>
+      OcptShootingSlotCrewRow(
+        id: _string(json, _idKey),
+        slotId: _string(json, _slotIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        personId: _string(json, _personIdKey),
+        positionId: _string(json, _positionIdKey),
+        customLabel: _string(json, _customLabelKey),
+        callMinute: _nullableInt(json, _callMinuteKey),
+        wrapMinute: _nullableInt(json, _wrapMinuteKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_slot_cast` row.
+  static Map<String, dynamic> _shootingSlotCastToJson(OcptShootingSlotCastRow row) => {
+    _idKey: row.id,
+    _slotIdKey: row.slotId,
+    _roleIdKey: row.roleId,
+    _sortKeyKey: row.sortKey,
+    _arrivalMinuteKey: row.arrivalMinute,
+    _castCallMinuteKey: row.castCallMinute,
+    _castWrapMinuteKey: row.castWrapMinute,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_slot_cast` row.
+  static OcptShootingSlotCastRow _shootingSlotCastFromJson(Map<String, dynamic> json) =>
+      OcptShootingSlotCastRow(
+        id: _string(json, _idKey),
+        slotId: _string(json, _slotIdKey),
+        roleId: _string(json, _roleIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        arrivalMinute: _nullableInt(json, _arrivalMinuteKey),
+        castCallMinute: _nullableInt(json, _castCallMinuteKey),
+        castWrapMinute: _nullableInt(json, _castWrapMinuteKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_day_blocks` row.
+  static Map<String, dynamic> _shootingDayBlockToJson(OcptShootingDayBlockRow row) => {
+    _idKey: row.id,
+    _shootingDayIdKey: row.shootingDayId,
+    _sortKeyKey: row.sortKey,
+    _slotIdKey: row.slotId,
+    _kindKey: row.kind.name,
+    _shotIdKey: row.shotId,
+    _labelKey: row.label,
+    _durationMinutesKey: row.durationMinutes,
+    _anchorMinuteKey: row.anchorMinute,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_day_blocks` row.
+  static OcptShootingDayBlockRow _shootingDayBlockFromJson(Map<String, dynamic> json) =>
+      OcptShootingDayBlockRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        slotId: _nullableString(json, _slotIdKey),
+        kind: _enum(json, _kindKey, OcptShootingBlockKind.values.asNameMap()),
+        shotId: _nullableString(json, _shotIdKey),
+        label: _string(json, _labelKey),
+        durationMinutes: _nullableInt(json, _durationMinutesKey),
+        anchorMinute: _nullableInt(json, _anchorMinuteKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_presences` row.
+  static Map<String, dynamic> _shootingPresenceToJson(OcptShootingPresenceRow row) => {
+    _idKey: row.id,
+    _shootingDayIdKey: row.shootingDayId,
+    _personIdKey: row.personId,
+    _codeKey: row.code.name,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_presences` row.
+  static OcptShootingPresenceRow _shootingPresenceFromJson(Map<String, dynamic> json) =>
+      OcptShootingPresenceRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        personId: _string(json, _personIdKey),
+        code: _enum(json, _codeKey, OcptPresenceCode.values.asNameMap()),
         isDeleted: _bool(json, _isDeletedKey),
       );
 

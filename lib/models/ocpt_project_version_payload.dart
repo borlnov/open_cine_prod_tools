@@ -92,6 +92,28 @@ class OcptProjectVersionPayload extends Equatable {
   /// scene, held by hand rather than deduced.
   final List<OcptSceneBreakdownRow> sceneBreakdowns;
 
+  /// The `shooting_days` rows of the project: one row per day of shooting, dated, ordered and
+  /// tombstoned exactly like every other synchronised table.
+  final List<OcptShootingDayRow> shootingDays;
+
+  /// The `shooting_slots` rows of the project: the convocation windows (*créneaux*) inside each
+  /// day.
+  final List<OcptShootingSlotRow> shootingSlots;
+
+  /// The `shooting_slot_crew` rows of the project: who holds which position during a slot.
+  final List<OcptShootingSlotCrewRow> shootingSlotCrew;
+
+  /// The `shooting_slot_cast` rows of the project: which role is convoked during a slot.
+  final List<OcptShootingSlotCastRow> shootingSlotCast;
+
+  /// The `shooting_day_blocks` rows of the project: a day's timetable, in order — the heart of the
+  /// schedule mode.
+  final List<OcptShootingDayBlockRow> shootingDayBlocks;
+
+  /// The `shooting_presences` rows of the project: the by-hand overrides of the presence grid,
+  /// filled only from milestone M3 onward.
+  final List<OcptShootingPresenceRow> shootingPresences;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -144,6 +166,12 @@ class OcptProjectVersionPayload extends Equatable {
     required this.assets,
     required this.breakdownTags,
     required this.sceneBreakdowns,
+    required this.shootingDays,
+    required this.shootingSlots,
+    required this.shootingSlotCrew,
+    required this.shootingSlotCast,
+    required this.shootingDayBlocks,
+    required this.shootingPresences,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -161,7 +189,12 @@ class OcptProjectVersionPayload extends Equatable {
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
       "assets: ${assets.length}, breakdownTags: ${breakdownTags.length}, "
-      "sceneBreakdowns: ${sceneBreakdowns.length}, rowFieldVersions: ${rowFieldVersions.length}, "
+      "sceneBreakdowns: ${sceneBreakdowns.length}, shootingDays: ${shootingDays.length}, "
+      "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
+      "shootingSlotCast: ${shootingSlotCast.length}, "
+      "shootingDayBlocks: ${shootingDayBlocks.length}, "
+      "shootingPresences: ${shootingPresences.length}, "
+      "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode)";
 
   /// Object properties
@@ -186,6 +219,12 @@ class OcptProjectVersionPayload extends Equatable {
     assets,
     breakdownTags,
     sceneBreakdowns,
+    shootingDays,
+    shootingSlots,
+    shootingSlotCrew,
+    shootingSlotCast,
+    shootingDayBlocks,
+    shootingPresences,
     rowFieldVersions,
     pageSetup,
     settingsJson,

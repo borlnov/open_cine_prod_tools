@@ -137,6 +137,44 @@ void main() {
         ),
       );
 
+  /// Inserts the shooting day [id] of the project's screenplay, tombstoned when [isDeleted].
+  Future<void> insertShootingDay({
+    required String id,
+    DateTime? date,
+    String sortKey = "V",
+    bool isDeleted = false,
+  }) => database
+      .into(database.ocptShootingDaysTable)
+      .insert(
+        OcptShootingDaysTableCompanion.insert(
+          id: id,
+          screenplayId: screenplayId,
+          date: date ?? DateTime.utc(2026, 3, 10),
+          sortKey: Value(sortKey),
+          isDeleted: Value(isDeleted),
+        ),
+      );
+
+  /// Inserts the shooting slot [id] of shooting day [shootingDayId], tombstoned when [isDeleted].
+  Future<void> insertShootingSlot({
+    required String id,
+    required String shootingDayId,
+    String sortKey = "V",
+    int crewCallMinute = 420,
+    bool isDeleted = false,
+  }) => database
+      .into(database.ocptShootingSlotsTable)
+      .insert(
+        OcptShootingSlotsTableCompanion.insert(
+          id: id,
+          shootingDayId: shootingDayId,
+          sortKey: Value(sortKey),
+          crewCallMinute: crewCallMinute,
+          crewWrapMinute: crewCallMinute + 600,
+          isDeleted: Value(isDeleted),
+        ),
+      );
+
   /// Saves [fountainText] as the project's screenplay and returns its resulting live scenes,
   /// ordered as they appear in the text — the real reconciliation path, rather than a hand-inserted
   /// scene, since the breakdown restore tests below need real scene ids a real tag can point at.
@@ -803,6 +841,12 @@ void main() {
                   assets: payload.assets,
                   breakdownTags: payload.breakdownTags,
                   sceneBreakdowns: payload.sceneBreakdowns,
+                  shootingDays: payload.shootingDays,
+                  shootingSlots: payload.shootingSlots,
+                  shootingSlotCrew: payload.shootingSlotCrew,
+                  shootingSlotCast: payload.shootingSlotCast,
+                  shootingDayBlocks: payload.shootingDayBlocks,
+                  shootingPresences: payload.shootingPresences,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -975,6 +1019,131 @@ void main() {
         database.ocptPeopleTable,
       )..where((table) => table.id.equals("person-1"))).getSingle();
       expect(person.isDeleted, isTrue);
+    });
+
+    test(
+      "restoring a format-5 payload tombstones the schedule the working copy has planned since",
+      () async {
+        // A literal fixture of a version captured before milestone M1: none of the six schedule
+        // tables are present at all, matching exactly what a real payload written in that format
+        // looked like on disk.
+        await database
+            .into(database.ocptProjectVersionsTable)
+            .insert(
+              OcptProjectVersionsTableCompanion.insert(
+                id: "version-format5",
+                name: "v0 — Before the schedule",
+                createdAt: DateTime.utc(2026),
+                appVersion: "0.1.0",
+                payloadFormat: 5,
+                payload:
+                    '{"payloadFormat":5,"screenplays":[{"id":"$screenplayId","title":"Draft",'
+                    '"fountainText":"${capturedText.replaceAll('\n', r'\n')}",'
+                    '"updatedAt":"2026-01-05T00:00:00.000Z",'
+                    '"isDeleted":false}],"scenes":[],"shots":[],"shotCharacters":[],'
+                    '"shotCoverages":[],"people":[],"personPositions":[],"personSkills":[],'
+                    '"personUnavailabilities":[],"roles":[],"locations":[],'
+                    '"locationAvailabilities":[],"sets":[],"sceneSets":[],"elements":[],'
+                    '"sceneElements":[],"assets":[],"breakdownTags":[],"sceneBreakdowns":[],'
+                    '"rowFieldVersions":[],'
+                    '"projectSettings":{"pageFormat":"a4","settingsJson":null,'
+                    '"currencyCode":"EUR"},'
+                    '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
+                    '"bottomInches":1.25}}',
+                summaryJson: "{}",
+                createdByDeviceId: deviceId,
+              ),
+            );
+
+        await insertShootingDay(id: "day-1");
+
+        final result = await restore("version-format5");
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        // The format-5 payload says "this project had not been scheduled yet" — a truthful
+        // statement about that moment — so the restore tombstones what the working copy planned
+        // since, exactly as a format-1 payload does for the resources tables above. Note this is
+        // the plan's own §12 wording ("a version captured before M1 restores without touching the
+        // schedule") read loosely: the schedule *is* touched here, tombstoned rather than left —
+        // which is the empty-list upgrade's own, deliberately truthful, behaviour.
+        final day = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-1"))).getSingle();
+        expect(day.isDeleted, isTrue);
+      },
+    );
+
+    test(
+      "restores a schedule captured after M1 exactly, tombstones and sort keys included",
+      () async {
+        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
+        await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+
+        final version = await createVersion(name: "v1 — Day planned");
+
+        // Diverge: the slot's call time is edited, its position renamed by the shooting day it
+        // belongs to, and a second day is added since.
+        await (database.update(
+          database.ocptShootingSlotsTable,
+        )..where((table) => table.id.equals("slot-1"))).write(
+          const OcptShootingSlotsTableCompanion(crewCallMinute: Value(360)),
+        );
+        await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        final restoredSlot = await (database.select(
+          database.ocptShootingSlotsTable,
+        )..where((table) => table.id.equals("slot-1"))).getSingle();
+        expect(restoredSlot.crewCallMinute, 420);
+        expect(restoredSlot.sortKey, "V");
+
+        final restoredDay = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-1"))).getSingle();
+        expect(restoredDay.isDeleted, isFalse);
+        expect(restoredDay.sortKey, "V");
+
+        // The day the version never held is tombstoned, not deleted, exactly like a shot.
+        final droppedDay = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-2"))).getSingle();
+        expect(droppedDay.isDeleted, isTrue);
+      },
+    );
+
+    test("stamps a schedule column it changed, above what it already held", () async {
+      await insertShootingDay(id: "day-1");
+      await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+      final version = await createVersion();
+
+      await (database.update(
+        database.ocptShootingSlotsTable,
+      )..where((table) => table.id.equals("slot-1"))).write(
+        const OcptShootingSlotsTableCompanion(crewCallMinute: Value(360)),
+      );
+
+      // As if the edit had already been stamped by the changeset engine.
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "shooting_slots",
+              rowId: "slot-1",
+              columnName: "crewCallMinute",
+              version: 4,
+              deviceId: "device-0",
+            ),
+          );
+
+      await restore(version.id);
+
+      final stamps = await readStamps();
+      expect(stamps["shooting_slots/slot-1/crewCallMinute"]?.version, 5);
+      expect(stamps["shooting_slots/slot-1/crewCallMinute"]?.deviceId, deviceId);
     });
 
     test("restores the currency the version was captured with", () async {
