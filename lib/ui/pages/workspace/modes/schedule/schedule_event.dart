@@ -1,0 +1,759 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+
+/// The events handled by `OcptScheduleBloc`.
+sealed class OcptScheduleEvent extends BlocEventForMixin {
+  /// Class constructor
+  const OcptScheduleEvent();
+}
+
+/// Requests loading the current project's whole schedule read: the days with their slots, crew,
+/// cast and blocks, the shot list (for the shots still to place and every placed block's own
+/// label) and the resources catalogues (locations, roles, people) the inspector and the slot/cast
+/// pickers read.
+///
+/// Dispatched once by the bloc's own constructor; it isn't meant to be sent by a widget.
+class OcptScheduleLoadRequestedEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleLoadRequestedEvent();
+}
+
+/// Requests leaving the workspace: closes the current project and navigates back to the home page.
+class OcptScheduleBackRequestedEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleBackRequestedEvent();
+}
+
+/// Toggles the left (days) dock's visibility.
+class OcptScheduleLeftPanelToggledEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleLeftPanelToggledEvent();
+}
+
+/// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens or
+/// switches to it).
+class OcptScheduleRightDockTabSelectedEvent extends OcptScheduleEvent {
+  /// The tab to select.
+  final OcptScheduleRightDockTab tab;
+
+  /// Class constructor
+  const OcptScheduleRightDockTabSelectedEvent({required this.tab});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tab];
+}
+
+/// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens on
+/// its last tab.
+class OcptScheduleRightDockToggledEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleRightDockToggledEvent();
+}
+
+/// Closes the right dock via its own × close button.
+class OcptScheduleRightDockClosedEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleRightDockClosedEvent();
+}
+
+/// Applies whichever dock fraction the ended drag gesture reports.
+///
+/// Only one of [left]/[right] is ever non-null per event, mirroring how the shell's own
+/// `onDockFractionsChanged` callback is shaped. Unlike the other three modes' own version of this
+/// event, the fraction is **not persisted**: `OcptPropertiesManager` is out of this milestone's
+/// scope (see `OcptScheduleBloc`'s own doc comment), so the width only survives for the life of the
+/// mode.
+class OcptScheduleDockFractionsChangedEvent extends OcptScheduleEvent {
+  /// The left dock's new fraction, or null when the drag was on the right divider.
+  final double? left;
+
+  /// The right dock's new fraction, or null when the drag was on the left divider.
+  final double? right;
+
+  /// Class constructor
+  const OcptScheduleDockFractionsChangedEvent({required this.left, required this.right});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, left, right];
+}
+
+/// Restores both dock fractions to their defaults.
+class OcptScheduleDockLayoutResetEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleDockLayoutResetEvent();
+}
+
+/// Selects day [dayId] in the left dock's own list, or on a strip/week/month cell, showing its own
+/// read-out in the inspector. Clears the selected block: a day selected on its own has none.
+class OcptScheduleDaySelectedEvent extends OcptScheduleEvent {
+  /// The id of the day to select.
+  final String dayId;
+
+  /// Class constructor
+  const OcptScheduleDaySelectedEvent({required this.dayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId];
+}
+
+/// Selects block [blockId] — a placed shot's own strip chip, or, once built, one of the day view's
+/// timetable rows — showing its own read-out in the inspector. Also selects [dayId], the block's
+/// own day, so the left dock and the inspector stay in step.
+class OcptScheduleBlockSelectedEvent extends OcptScheduleEvent {
+  /// The id of the block to select.
+  final String blockId;
+
+  /// The id of the day the block belongs to.
+  final String dayId;
+
+  /// Class constructor
+  const OcptScheduleBlockSelectedEvent({required this.blockId, required this.dayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, dayId];
+}
+
+/// Selects which of the two centre views (agenda or day) the mode shows, dispatched by the
+/// header's own `Agenda`/`Day` switch.
+class OcptScheduleCentreViewSelectedEvent extends OcptScheduleEvent {
+  /// The view to select.
+  final OcptScheduleCentreView view;
+
+  /// Class constructor
+  const OcptScheduleCentreViewSelectedEvent({required this.view});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, view];
+}
+
+/// Selects which of the three agenda presentations is shown, dispatched by the header's own
+/// segmented control.
+class OcptScheduleAgendaModeSelectedEvent extends OcptScheduleEvent {
+  /// The presentation to select.
+  final OcptScheduleAgendaMode mode;
+
+  /// Class constructor
+  const OcptScheduleAgendaModeSelectedEvent({required this.mode});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, mode];
+}
+
+/// Pages the week/month agenda to [date], dispatched by the week/month presentation's own
+/// previous/next/today controls, once built. The new anchor date only, since it is the week or the
+/// month **containing** [date] that is shown next — resolving that from the current
+/// `OcptScheduleAgendaMode` is the widget's own job, not this event's.
+class OcptScheduleAgendaAnchorDateChangedEvent extends OcptScheduleEvent {
+  /// The date the week/month agenda now anchors on.
+  final DateTime date;
+
+  /// Class constructor
+  const OcptScheduleAgendaAnchorDateChangedEvent({required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, date];
+}
+
+/// Creates a new shooting day dated [date], appended at the end of the schedule.
+class OcptScheduleDayCreatedEvent extends OcptScheduleEvent {
+  /// The new day's date.
+  final DateTime date;
+
+  /// Class constructor
+  const OcptScheduleDayCreatedEvent({required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, date];
+}
+
+/// Writes a new date onto day [dayId] immediately, dispatched by the day inspector's own date
+/// field.
+class OcptScheduleDayDateChangedEvent extends OcptScheduleEvent {
+  /// The id of the day being redated.
+  final String dayId;
+
+  /// The date just picked.
+  final DateTime date;
+
+  /// Class constructor
+  const OcptScheduleDayDateChangedEvent({required this.dayId, required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, date];
+}
+
+/// Writes a new status onto day [dayId] immediately, dispatched by the day inspector's own status
+/// control.
+class OcptScheduleDayStatusChangedEvent extends OcptScheduleEvent {
+  /// The id of the day whose status changed.
+  final String dayId;
+
+  /// The status just picked.
+  final OcptShootingDayStatus status;
+
+  /// Class constructor
+  const OcptScheduleDayStatusChangedEvent({required this.dayId, required this.status});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, status];
+}
+
+/// Moves day [dayId] to [newPosition] (0-based) within the schedule, dispatched by a day-reorder
+/// gesture, once built.
+class OcptScheduleDayReorderedEvent extends OcptScheduleEvent {
+  /// The id of the day to reorder.
+  final String dayId;
+
+  /// The 0-based position the day is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptScheduleDayReorderedEvent({required this.dayId, required this.newPosition});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, newPosition];
+}
+
+/// Duplicates day [sourceDayId] into a new day dated [date], dispatched by the day card's own `⋮`
+/// menu once its date picker resolved. Copies the source day's slots, crew and cast; copies
+/// neither its placed shots nor its crew note (`OcptScheduleService.duplicateDay`'s own rule).
+class OcptScheduleDayDuplicationRequestedEvent extends OcptScheduleEvent {
+  /// The id of the day to duplicate.
+  final String sourceDayId;
+
+  /// The new day's date.
+  final DateTime date;
+
+  /// Class constructor
+  const OcptScheduleDayDuplicationRequestedEvent({required this.sourceDayId, required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sourceDayId, date];
+}
+
+/// Deletes day [dayId] for good — its slots, their crew and cast, and its blocks along with it —
+/// dispatched by the mode once its `OcptConfirmDialog` (opened by the day card's own `⋮` menu) has
+/// already been answered.
+class OcptScheduleDayDeletionConfirmedEvent extends OcptScheduleEvent {
+  /// The id of the day to delete.
+  final String dayId;
+
+  /// Class constructor
+  const OcptScheduleDayDeletionConfirmedEvent({required this.dayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId];
+}
+
+/// Creates a new slot inside day [dayId], appended at the end of its current slots, dispatched by
+/// the day view's own `+ Créneau` control, once built.
+class OcptScheduleSlotCreatedEvent extends OcptScheduleEvent {
+  /// The id of the day the new slot belongs to.
+  final String dayId;
+
+  /// Class constructor
+  const OcptScheduleSlotCreatedEvent({required this.dayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId];
+}
+
+/// Writes a new location/set onto slot [slotId] immediately, dispatched by the slot card's own
+/// location and set pickers, once built. Picking a location clears the set (a set belongs to one
+/// location); [setId] is passed alongside [locationId] rather than derived from it, since only the
+/// widget knows which of the two pickers was just answered.
+class OcptScheduleSlotPlaceChangedEvent extends OcptScheduleEvent {
+  /// The id of the slot being placed.
+  final String slotId;
+
+  /// The location just picked, or null to clear it.
+  final String? locationId;
+
+  /// The set just picked, or null to clear it.
+  final String? setId;
+
+  /// Class constructor
+  const OcptScheduleSlotPlaceChangedEvent({
+    required this.slotId,
+    required this.locationId,
+    required this.setId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, locationId, setId];
+}
+
+/// Writes a new crew call/wrap band onto slot [slotId] immediately, dispatched by the slot card's
+/// own crew time fields, once built.
+class OcptScheduleSlotCrewTimesChangedEvent extends OcptScheduleEvent {
+  /// The id of the slot being edited.
+  final String slotId;
+
+  /// The minute, from the day's own midnight, the crew is now called at.
+  final int crewCallMinute;
+
+  /// The minute, from the day's own midnight, the crew now wraps at.
+  final int crewWrapMinute;
+
+  /// Class constructor
+  const OcptScheduleSlotCrewTimesChangedEvent({
+    required this.slotId,
+    required this.crewCallMinute,
+    required this.crewWrapMinute,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, crewCallMinute, crewWrapMinute];
+}
+
+/// Writes a new default *PAT* band onto slot [slotId] immediately, dispatched by the slot card's
+/// own cast time fields, once built.
+class OcptScheduleSlotCastTimesChangedEvent extends OcptScheduleEvent {
+  /// The id of the slot being edited.
+  final String slotId;
+
+  /// The minute, from the day's own midnight, the default *PAT* band now starts at, or null to
+  /// clear it.
+  final int? castCallMinute;
+
+  /// The minute, from the day's own midnight, the default *PAT* band now ends at, or null to
+  /// clear it.
+  final int? castWrapMinute;
+
+  /// Class constructor
+  const OcptScheduleSlotCastTimesChangedEvent({
+    required this.slotId,
+    required this.castCallMinute,
+    required this.castWrapMinute,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, castCallMinute, castWrapMinute];
+}
+
+/// Moves slot [slotId] to [newPosition] (0-based) within its own day, dispatched by a slot-reorder
+/// gesture, once built.
+class OcptScheduleSlotReorderedEvent extends OcptScheduleEvent {
+  /// The id of the day the slot belongs to.
+  final String dayId;
+
+  /// The id of the slot to reorder.
+  final String slotId;
+
+  /// The 0-based position the slot is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptScheduleSlotReorderedEvent({
+    required this.dayId,
+    required this.slotId,
+    required this.newPosition,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, slotId, newPosition];
+}
+
+/// Deletes slot [slotId] for good, dispatched by the mode once its `OcptConfirmDialog` has already
+/// been answered. A block sitting in the slot only loses its `slotId`
+/// (`OcptScheduleService.deleteSlot`'s own rule) and keeps its place in the day.
+class OcptScheduleSlotDeletionConfirmedEvent extends OcptScheduleEvent {
+  /// The id of the slot to delete.
+  final String slotId;
+
+  /// Class constructor
+  const OcptScheduleSlotDeletionConfirmedEvent({required this.slotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId];
+}
+
+/// Adds [personId] to slot [slotId]'s own crew, with no position picked yet (filled in afterward
+/// through `OcptScheduleSlotCrewMemberPositionChangedEvent`), dispatched by the slot card's own
+/// `+ Crew member` footer.
+class OcptScheduleSlotCrewMemberAddedEvent extends OcptScheduleEvent {
+  /// The id of the slot the crew member is added to.
+  final String slotId;
+
+  /// The id of the person added.
+  final String personId;
+
+  /// Class constructor
+  const OcptScheduleSlotCrewMemberAddedEvent({required this.slotId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, personId];
+}
+
+/// Writes a new position onto crew assignment [crewMemberId] immediately, dispatched by the slot
+/// card's own position picker.
+class OcptScheduleSlotCrewMemberPositionChangedEvent extends OcptScheduleEvent {
+  /// The id of the crew assignment being edited.
+  final String crewMemberId;
+
+  /// The `ocptCrewPositions` id just picked, or the empty string to fall back to a custom label.
+  final String positionId;
+
+  /// Class constructor
+  const OcptScheduleSlotCrewMemberPositionChangedEvent({
+    required this.crewMemberId,
+    required this.positionId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, crewMemberId, positionId];
+}
+
+/// Writes a new personal call/wrap override onto crew assignment [crewMemberId] immediately.
+class OcptScheduleSlotCrewMemberTimesChangedEvent extends OcptScheduleEvent {
+  /// The id of the crew assignment being edited.
+  final String crewMemberId;
+
+  /// The person's own call time override, or null to fall back to the slot's own.
+  final int? callMinute;
+
+  /// The person's own wrap time override, or null to fall back to the slot's own.
+  final int? wrapMinute;
+
+  /// Class constructor
+  const OcptScheduleSlotCrewMemberTimesChangedEvent({
+    required this.crewMemberId,
+    required this.callMinute,
+    required this.wrapMinute,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, crewMemberId, callMinute, wrapMinute];
+}
+
+/// Removes crew assignment [crewMemberId] for good, dispatched by its own row's dismissal.
+class OcptScheduleSlotCrewMemberRemovedEvent extends OcptScheduleEvent {
+  /// The id of the crew assignment to remove.
+  final String crewMemberId;
+
+  /// Class constructor
+  const OcptScheduleSlotCrewMemberRemovedEvent({required this.crewMemberId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, crewMemberId];
+}
+
+/// Convokes role [roleId] during slot [slotId], dispatched by the slot card's own `+ Cast` footer.
+class OcptScheduleSlotCastRoleAddedEvent extends OcptScheduleEvent {
+  /// The id of the slot the role is convoked to.
+  final String slotId;
+
+  /// The id of the role convoked.
+  final String roleId;
+
+  /// Class constructor
+  const OcptScheduleSlotCastRoleAddedEvent({required this.slotId, required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, roleId];
+}
+
+/// Writes new arrival/PAT overrides onto cast convocation [castRoleId] immediately.
+class OcptScheduleSlotCastRoleTimesChangedEvent extends OcptScheduleEvent {
+  /// The id of the cast convocation being edited.
+  final String castRoleId;
+
+  /// When this role's actor is expected to arrive, or null while unset.
+  final int? arrivalMinute;
+
+  /// This role's own start of the *PAT* band, or null to fall back to the slot's own.
+  final int? castCallMinute;
+
+  /// This role's own end of the *PAT* band, or null to fall back to the slot's own.
+  final int? castWrapMinute;
+
+  /// Class constructor
+  const OcptScheduleSlotCastRoleTimesChangedEvent({
+    required this.castRoleId,
+    required this.arrivalMinute,
+    required this.castCallMinute,
+    required this.castWrapMinute,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, castRoleId, arrivalMinute, castCallMinute, castWrapMinute];
+}
+
+/// Removes cast convocation [castRoleId] for good, dispatched by its own row's dismissal.
+class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleEvent {
+  /// The id of the cast convocation to remove.
+  final String castRoleId;
+
+  /// Class constructor
+  const OcptScheduleSlotCastRoleRemovedEvent({required this.castRoleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, castRoleId];
+}
+
+/// Starts a *placing*: picking up shot [shotId] from the left dock's own "shots still to place"
+/// list, ready to be dropped on a day. A second click on the very same shot cancels it —
+/// `OcptScheduleBloc`'s own handler owns that toggle, mirroring the mock's own `placing` state.
+class OcptSchedulePlacingStartedEvent extends OcptScheduleEvent {
+  /// The id of the shot being picked up.
+  final String shotId;
+
+  /// Class constructor
+  const OcptSchedulePlacingStartedEvent({required this.shotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId];
+}
+
+/// Cancels the *placing* in progress, dispatched by the agenda's own banner `Cancel` control.
+class OcptSchedulePlacingCancelledEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptSchedulePlacingCancelledEvent();
+}
+
+/// Places shot [shotId] on day [dayId], ending the *placing* it was started from — dispatched by a
+/// click on a day (the strip card, or, once built, a week/month cell) while a placing is active.
+class OcptScheduleShotPlacedEvent extends OcptScheduleEvent {
+  /// The id of the shot being placed.
+  final String shotId;
+
+  /// The id of the day it is placed on.
+  final String dayId;
+
+  /// Class constructor
+  const OcptScheduleShotPlacedEvent({required this.shotId, required this.dayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, dayId];
+}
+
+/// Unplaces shot [shotId], dispatched by a strip chip's own × control.
+class OcptScheduleShotUnplacedEvent extends OcptScheduleEvent {
+  /// The id of the shot to unplace.
+  final String shotId;
+
+  /// Class constructor
+  const OcptScheduleShotUnplacedEvent({required this.shotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId];
+}
+
+/// Writes a new shooting status onto shot [shotId] immediately — the very column the shot list
+/// mode's own inspector edits (`OcptShotListService.updateShot`'s `status`) — dispatched by the day
+/// view's own shot block status control, once built.
+class OcptScheduleShotStatusChangedEvent extends OcptScheduleEvent {
+  /// The id of the shot whose status changed.
+  final String shotId;
+
+  /// The status just picked.
+  final OcptShotStatus status;
+
+  /// Class constructor
+  const OcptScheduleShotStatusChangedEvent({required this.shotId, required this.status});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, status];
+}
+
+/// Creates a new non-shot block (a milestone or a `hold`) inside day [dayId], appended at the end
+/// of its timetable, dispatched by the day view's own `+ Block` control, once built.
+class OcptScheduleBlockCreatedEvent extends OcptScheduleEvent {
+  /// The id of the day the new block belongs to.
+  final String dayId;
+
+  /// The kind of block to create. Never [OcptShootingBlockKind.shot] — placing a shot goes through
+  /// [OcptScheduleShotPlacedEvent] instead, which is what carries its own `shotId`.
+  final OcptShootingBlockKind kind;
+
+  /// The slot the new block sits in, or null.
+  final String? slotId;
+
+  /// Class constructor
+  const OcptScheduleBlockCreatedEvent({required this.dayId, required this.kind, this.slotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, kind, slotId];
+}
+
+/// Writes a new duration onto block [blockId] immediately, dispatched by the day view's own ±
+/// duration controls, once built.
+class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {
+  /// The id of the block being edited.
+  final String blockId;
+
+  /// The block's own new duration, in minutes, or null to fall back to a shot's own estimate (or
+  /// the mode's own default).
+  final int? durationMinutes;
+
+  /// Class constructor
+  const OcptScheduleBlockDurationChangedEvent({required this.blockId, required this.durationMinutes});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, durationMinutes];
+}
+
+/// Writes a new anchor onto block [blockId] immediately, dispatched by the day view's own anchor
+/// pin, once built.
+class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleEvent {
+  /// The id of the block being edited.
+  final String blockId;
+
+  /// The minute, from the day's own midnight, the block is now pinned to, or null to unpin it.
+  final int? anchorMinute;
+
+  /// Class constructor
+  const OcptScheduleBlockAnchorChangedEvent({required this.blockId, required this.anchorMinute});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, anchorMinute];
+}
+
+/// Writes a new slot onto block [blockId] immediately, dispatched by the day view's own re-slotting
+/// control, once built.
+class OcptScheduleBlockSlotChangedEvent extends OcptScheduleEvent {
+  /// The id of the block being edited.
+  final String blockId;
+
+  /// The slot the block now sits in, or null to detach it from every slot.
+  final String? slotId;
+
+  /// Class constructor
+  const OcptScheduleBlockSlotChangedEvent({required this.blockId, required this.slotId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, slotId];
+}
+
+/// Moves block [blockId] to [newPosition] (0-based) within its own day, dispatched by a
+/// drag-to-reorder gesture on the day view's own timetable, once built.
+class OcptScheduleBlockReorderedEvent extends OcptScheduleEvent {
+  /// The id of the day the block belongs to.
+  final String dayId;
+
+  /// The id of the block to reorder.
+  final String blockId;
+
+  /// The 0-based position the block is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptScheduleBlockReorderedEvent({
+    required this.dayId,
+    required this.blockId,
+    required this.newPosition,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, blockId, newPosition];
+}
+
+/// Moves block [blockId] to day [targetDayId], appended at the end of its timetable, dispatched by
+/// a drag-across-days gesture, once built. Always loses its own slot
+/// (`OcptScheduleService.moveBlockToDay`'s own rule): a slot belongs to one day.
+class OcptScheduleBlockMovedToDayEvent extends OcptScheduleEvent {
+  /// The id of the block to move.
+  final String blockId;
+
+  /// The id of the day it is moved to.
+  final String targetDayId;
+
+  /// Class constructor
+  const OcptScheduleBlockMovedToDayEvent({required this.blockId, required this.targetDayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, targetDayId];
+}
+
+/// Deletes block [blockId] for good, whatever its kind, dispatched by the mode once its
+/// `OcptConfirmDialog` has already been answered.
+class OcptScheduleBlockDeletionConfirmedEvent extends OcptScheduleEvent {
+  /// The id of the block to delete.
+  final String blockId;
+
+  /// Class constructor
+  const OcptScheduleBlockDeletionConfirmedEvent({required this.blockId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId];
+}
+
+/// Records the raw text just typed into [field] of entity [targetId] as a pending edit, dispatched
+/// on every keystroke into a day/slot/block/crew/cast free-text field — rides
+/// `OcptScheduleBloc`'s own 2 s field-edit debounce.
+class OcptScheduleFieldChangedEvent extends OcptScheduleEvent {
+  /// The id of the entity being edited (a day, a slot, a block, a crew assignment or a cast
+  /// convocation, according to [field]).
+  final String targetId;
+
+  /// Which field is being edited.
+  final OcptScheduleField field;
+
+  /// The field's raw text, as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptScheduleFieldChangedEvent({
+    required this.targetId,
+    required this.field,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, targetId, field, rawValue];
+}
+
+/// Fired by the field-edit debounce timer once it elapses with no further typing: writes every
+/// pending field edit. Not meant to be dispatched by a widget; the bloc dispatches it itself.
+class OcptScheduleFieldEditFlushRequestedEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleFieldEditFlushRequestedEvent();
+}

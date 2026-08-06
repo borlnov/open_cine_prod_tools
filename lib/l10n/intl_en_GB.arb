@@ -5918,5 +5918,558 @@
     "context": "Displayed as a SnackBar over the breakdown mode",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleAgendaEmptyHint": "No shooting day has been created yet.",
+  "@scheduleAgendaEmptyHint": {
+    "description": "Shown in the strip agenda when the schedule has no day at all",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaModeStrip": "Strip",
+  "@scheduleAgendaModeStrip": {
+    "description": "Label of the strip agenda presentation",
+    "context": "Displayed in the schedule mode's header segmented control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaModeWeek": "Week",
+  "@scheduleAgendaModeWeek": {
+    "description": "Label of the week agenda presentation",
+    "context": "Displayed in the schedule mode's header segmented control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaModeMonth": "Month",
+  "@scheduleAgendaModeMonth": {
+    "description": "Label of the month agenda presentation",
+    "context": "Displayed in the schedule mode's header segmented control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaWeekComingHint": "The week grid is coming in a future update.",
+  "@scheduleAgendaWeekComingHint": {
+    "description": "Placeholder shown for the week agenda presentation, not built in this milestone",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaMonthComingHint": "The month grid is coming in a future update.",
+  "@scheduleAgendaMonthComingHint": {
+    "description": "Placeholder shown for the month agenda presentation, not built in this milestone",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayViewComingHint": "The day view is coming in a future update.",
+  "@scheduleDayViewComingHint": {
+    "description": "Placeholder shown for the day view, not built in this milestone",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindShot": "Shot",
+  "@scheduleBlockKindShot": {
+    "description": "Label of a shot block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindPreparation": "Preparation",
+  "@scheduleBlockKindPreparation": {
+    "description": "Label of a preparation block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindHairMakeUp": "Hair and make-up",
+  "@scheduleBlockKindHairMakeUp": {
+    "description": "Label of a hair and make-up block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindMeal": "Meal",
+  "@scheduleBlockKindMeal": {
+    "description": "Label of a meal block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindTravel": "Travel",
+  "@scheduleBlockKindTravel": {
+    "description": "Label of a travel block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindWrap": "Wrap",
+  "@scheduleBlockKindWrap": {
+    "description": "Label of a wrap block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindHold": "Hold",
+  "@scheduleBlockKindHold": {
+    "description": "Label of a hold block reserving time for a sequence not yet shot-listed",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaysPanelTitle": "Shooting days",
+  "@scheduleDaysPanelTitle": {
+    "description": "Title of the schedule mode's left dock day list",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaysEmptyHint": "No shooting day has been created yet.",
+  "@scheduleDaysEmptyHint": {
+    "description": "Shown in the left dock's day list when the schedule has no day at all",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleNewDayAction": "New day",
+  "@scheduleNewDayAction": {
+    "description": "Tooltip of the left dock's own control creating a new shooting day",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayNoLocation": "No location yet",
+  "@scheduleDayNoLocation": {
+    "description": "Shown for a shooting day whose first slot has no location chosen yet",
+    "context": "Displayed in the schedule mode's left dock, strip agenda and inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayBlockCount": "{count, plural, one{{count} block} other{{count} blocks}}",
+  "@scheduleDayBlockCount": {
+    "description": "Number of live blocks of a shooting day",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleDayStatusPlanned": "Planned",
+  "@scheduleDayStatusPlanned": {
+    "description": "Label of a shooting day still to happen",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayStatusShot": "Shot",
+  "@scheduleDayStatusShot": {
+    "description": "Label of a shooting day that was shot",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayStatusCancelled": "Cancelled",
+  "@scheduleDayStatusCancelled": {
+    "description": "Label of a shooting day that was cancelled",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDuplicateDayAction": "Duplicate this day…",
+  "@scheduleDuplicateDayAction": {
+    "description": "Entry of a day card's own ⋮ menu, opening a date picker",
+    "context": "Displayed in the schedule mode's left dock and strip agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayAction": "Delete this day…",
+  "@scheduleDeleteDayAction": {
+    "description": "Entry of a day card's own ⋮ menu, asking for confirmation before deleting",
+    "context": "Displayed in the schedule mode's left dock and strip agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayConfirmTitle": "Delete this day?",
+  "@scheduleDeleteDayConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a shooting day",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayConfirmMessage": "Its slots, its convocations and its timetable will be lost. This cannot be undone.",
+  "@scheduleDeleteDayConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a shooting day",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayCancelAction": "Cancel",
+  "@scheduleDeleteDayCancelAction": {
+    "description": "Label of the button dismissing the day deletion confirmation dialog",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayConfirmAction": "Delete",
+  "@scheduleDeleteDayConfirmAction": {
+    "description": "Label of the button confirming a shooting day's deletion",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleUnplacedPanelTitle": "Shots to place",
+  "@scheduleUnplacedPanelTitle": {
+    "description": "Title of the left dock's own list of shots still to place",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleUnplacedAllPlaced": "Everything is placed",
+  "@scheduleUnplacedAllPlaced": {
+    "description": "Shown when every shot of the shot list has been placed somewhere in the schedule",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleUnplacedCount": "{count, plural, one{{count} shot} other{{count} shots}}",
+  "@scheduleUnplacedCount": {
+    "description": "Number of shots still to place",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleUnplacedSequenceLabel": "SEQ {number}",
+  "@scheduleUnplacedSequenceLabel": {
+    "description": "Heading of one sequence's own group of shots still to place",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleUnplacedOrphanGroupLabel": "Orphaned shots",
+  "@scheduleUnplacedOrphanGroupLabel": {
+    "description": "Heading of the group of shots still to place whose scene was deleted",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHeaderAgendaSegmentLabel": "Agenda",
+  "@scheduleHeaderAgendaSegmentLabel": {
+    "description": "Label of the header's own Agenda segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHeaderDaySegmentLabel": "Day",
+  "@scheduleHeaderDaySegmentLabel": {
+    "description": "Label of the header's own Day segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEstimatedEnd": "Estimated end {time}",
+  "@scheduleDayEstimatedEnd": {
+    "description": "A shooting day's own computed end of timetable",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleDayNoShotsPlaced": "No shot placed",
+  "@scheduleDayNoShotsPlaced": {
+    "description": "Shown on a strip agenda day card with no shot placed on it",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayShotsPlacedCount": "{count, plural, one{{count} shot placed} other{{count} shots placed}}",
+  "@scheduleDayShotsPlacedCount": {
+    "description": "Number of shots placed on a shooting day",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleDayNoShotsPlacedHint": "No shot placed on this day.",
+  "@scheduleDayNoShotsPlacedHint": {
+    "description": "Shown in a strip agenda day card's own chip row when it holds no shot yet",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayPlaceHereAction": "Place here",
+  "@scheduleDayPlaceHereAction": {
+    "description": "Prompt of a strip agenda day card while a placing is in progress",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockInspectorTabLabel": "Inspector",
+  "@scheduleRightDockInspectorTabLabel": {
+    "description": "Label of the schedule mode's right dock Inspector tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockVersionsTabLabel": "Versions",
+  "@scheduleRightDockVersionsTabLabel": {
+    "description": "Label of the schedule mode's right dock Versions tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockCloseTooltip": "Close the panel",
+  "@scheduleRightDockCloseTooltip": {
+    "description": "Tooltip of the schedule mode's right dock close button",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorEmptyHint": "Select a day to see its details.",
+  "@scheduleInspectorEmptyHint": {
+    "description": "Shown in the inspector while no day and no block is selected",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorDayTitle": "Day {dayTag}",
+  "@scheduleInspectorDayTitle": {
+    "description": "Title of the day inspector, naming the day's own printed rank",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {
+      "dayTag": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleInspectorStatusLabel": "Status",
+  "@scheduleInspectorStatusLabel": {
+    "description": "Label of the day inspector's own status section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorLocationsLabel": "Locations",
+  "@scheduleInspectorLocationsLabel": {
+    "description": "Label of the day inspector's own locations section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSetsLabel": "Sets",
+  "@scheduleInspectorSetsLabel": {
+    "description": "Label of the day inspector's own sets section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorNoSets": "No set chosen yet",
+  "@scheduleInspectorNoSets": {
+    "description": "Shown in the day inspector's sets section when no slot names one",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSlotsLabel": "Slots",
+  "@scheduleInspectorSlotsLabel": {
+    "description": "Label of the day inspector's own slots section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorNoSlots": "No slot yet",
+  "@scheduleInspectorNoSlots": {
+    "description": "Shown in the day inspector's slots section when the day has no live slot",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorUnnamedSlot": "Unnamed slot",
+  "@scheduleInspectorUnnamedSlot": {
+    "description": "Shown in the day inspector's slots section for a slot with no label",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorPatToEndLabel": "PAT → estimated end",
+  "@scheduleInspectorPatToEndLabel": {
+    "description": "Label of the day inspector's own PAT to estimated end section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSunLabel": "Sun",
+  "@scheduleInspectorSunLabel": {
+    "description": "Label of the day inspector's own sun and twilight section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSunTimesLine": "☀ {sunrise} – {sunset} · civil twilight {civilDawn} – {civilDusk} ({utcOffset})",
+  "@scheduleInspectorSunTimesLine": {
+    "description": "The sun and civil twilight times of a shooting day, with the UTC offset they were computed with",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {
+      "sunrise": {
+        "type": "String"
+      },
+      "sunset": {
+        "type": "String"
+      },
+      "civilDawn": {
+        "type": "String"
+      },
+      "civilDusk": {
+        "type": "String"
+      },
+      "utcOffset": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleInspectorNoSunTimes": "No sun times: pin the location's coordinates first.",
+  "@scheduleInspectorNoSunTimes": {
+    "description": "Shown when the day's first slot has no location, or that location has no coordinates",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorWeatherLabel": "Weather",
+  "@scheduleInspectorWeatherLabel": {
+    "description": "Label of the day inspector's own weather note field",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorCrewNoteLabel": "Note to the crew",
+  "@scheduleInspectorCrewNoteLabel": {
+    "description": "Label of the day inspector's own crew note field",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorShotLabel": "Shot",
+  "@scheduleInspectorShotLabel": {
+    "description": "Label of the block inspector's own shot section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorCharactersLabel": "Characters",
+  "@scheduleInspectorCharactersLabel": {
+    "description": "Label of the block inspector's own characters section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorShotStatusLabel": "Shooting status",
+  "@scheduleInspectorShotStatusLabel": {
+    "description": "Label of the block inspector's own shot status control",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorLabelLabel": "Label",
+  "@scheduleInspectorLabelLabel": {
+    "description": "Label of the block inspector's own label section, for a non-shot block",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSlotLabel": "Slot",
+  "@scheduleInspectorSlotLabel": {
+    "description": "Label of the block inspector's own slot section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorTimeLabel": "Time",
+  "@scheduleInspectorTimeLabel": {
+    "description": "Label of the block inspector's own computed time section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorNotesLabel": "Notes",
+  "@scheduleInspectorNotesLabel": {
+    "description": "Label of the block inspector's own notes field",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleStatsDays": "{count, plural, one{{count} day} other{{count} days}}",
+  "@scheduleStatsDays": {
+    "description": "Number of live shooting days",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleStatsShotsPlaced": "{count, plural, one{{count} shot placed} other{{count} shots placed}}",
+  "@scheduleStatsShotsPlaced": {
+    "description": "Number of shots placed somewhere in the schedule",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleStatsShotsLeftToPlace": "{count, plural, one{{count} left to place} other{{count} left to place}}",
+  "@scheduleStatsShotsLeftToPlace": {
+    "description": "Number of shots that still have no live block placing them",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleStatsEstimatedEnd": "Estimated end {time}",
+  "@scheduleStatsEstimatedEnd": {
+    "description": "The selected day's own computed end of timetable",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleStatsNoDaySelected": "No day selected",
+  "@scheduleStatsNoDaySelected": {
+    "description": "Shown in the status bar's own trailing slot while no day is selected",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleResetPanelLayoutAction": "Reset panel layout",
+  "@scheduleResetPanelLayoutAction": {
+    "description": "Entry of the schedule mode's ⋮ overflow menu, restoring both dock fractions to their defaults",
+    "context": "Displayed in the schedule mode's toolbar",
+    "type": "text",
+    "placeholders": {}
   }
 }
