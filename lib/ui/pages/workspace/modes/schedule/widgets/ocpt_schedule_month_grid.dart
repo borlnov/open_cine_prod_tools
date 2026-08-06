@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
@@ -27,8 +28,11 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   /// The date the month shown is the one containing.
   final DateTime anchorDate;
 
+  /// Which day the grid's own seven columns start on — the user's app-wide preference.
+  final OcptFirstWeekday firstWeekday;
+
   /// Every live day, in `dayNumber` order — the grid draws whichever of these fall in the shown
-  /// month's own Monday-start weeks.
+  /// month's own weeks, as [firstWeekday] cuts them.
   final List<OcptShootingDay> days;
 
   /// Each day's own live slots, keyed by day id — what a cell's own call time is read off.
@@ -54,6 +58,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   const OcptScheduleMonthGrid({
     super.key,
     required this.anchorDate,
+    required this.firstWeekday,
     required this.days,
     required this.slotsByDayId,
     required this.firstLocationByDayId,
@@ -68,7 +73,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     final theme = Theme.of(context);
     final dayByDate = {for (final day in days) _dateOnly(day.date): day};
     final firstOfMonth = DateTime(anchorDate.year, anchorDate.month);
-    final gridStart = ocptScheduleMondayOfWeek(firstOfMonth);
+    final gridStart = ocptScheduleStartOfWeek(firstOfMonth, firstWeekday);
 
     return Container(
       decoration: BoxDecoration(

@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -221,6 +222,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     final lastRightDockTab =
         await _propertiesManager.scheduleLastRightDockTab.load() ??
         OcptScheduleRightDockTab.inspector;
+    final firstWeekday = await _propertiesManager.firstWeekday.load() ?? OcptFirstWeekday.monday;
 
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -230,6 +232,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
+          firstWeekday: firstWeekday,
           clearPreviewedVersionId: true,
           clearSelectedDayId: true,
           clearSelectedBlockId: true,
@@ -275,6 +278,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
+        firstWeekday: firstWeekday,
       ),
     );
   }

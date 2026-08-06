@@ -731,6 +731,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "settingsCalendarSectionTitle": "Calendar",
+  "@settingsCalendarSectionTitle": {
+    "description": "Title of the settings page's calendar section",
+    "context": "Displayed at the top of the calendar section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsFirstWeekdayLabel": "First day of the week",
+  "@settingsFirstWeekdayLabel": {
+    "description": "Label of the first day of the week dropdown",
+    "context": "Displayed in the calendar section of the settings page, beside the dropdown choosing which day the schedule mode's week and month agendas start on",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsFirstWeekdayMondayOption": "Monday",
+  "@settingsFirstWeekdayMondayOption": {
+    "description": "The first day of the week dropdown option starting weeks on Monday",
+    "context": "Displayed in the first day of the week dropdown on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsFirstWeekdaySundayOption": "Sunday",
+  "@settingsFirstWeekdaySundayOption": {
+    "description": "The first day of the week dropdown option starting weeks on Sunday",
+    "context": "Displayed in the first day of the week dropdown on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "settingsLanguageSectionTitle": "Language",
   "@settingsLanguageSectionTitle": {
     "description": "Title of the settings page's language section",

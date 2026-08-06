@@ -225,6 +225,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           agendaAnchorDate: state.agendaAnchorDate,
           onAgendaAnchorDateChanged: (date) =>
               bloc.add(OcptScheduleAgendaAnchorDateChangedEvent(date: date)),
+          firstWeekday: state.firstWeekday,
         ),
         const SizedBox(height: 12),
         Expanded(
@@ -283,6 +284,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       ),
       OcptScheduleAgendaMode.week => OcptScheduleWeekGrid(
         anchorDate: state.agendaAnchorDate,
+        firstWeekday: state.firstWeekday,
         days: state.days,
         firstLocationByDayId: firstLocationByDayId,
         blocksByDayId: blocksByDayId,
@@ -294,6 +296,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       ),
       OcptScheduleAgendaMode.month => OcptScheduleMonthGrid(
         anchorDate: state.agendaAnchorDate,
+        firstWeekday: state.firstWeekday,
         days: state.days,
         slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
         firstLocationByDayId: firstLocationByDayId,

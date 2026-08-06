@@ -13,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -20,7 +21,10 @@ import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_about_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_appearance_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_calendar_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_language_section.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 /// A locales manager whose current/wanted locale are held in plain fields: see the bloc test for
 /// why this fake exists instead of a real [LocalesManager].
@@ -154,9 +158,16 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 
 void main() {
   late _RecordingRouterManager routerManager;
+  late OcptPropertiesManager propertiesManager;
 
-  setUpAll(() {
+  setUpAll(() async {
     OcptGlobalManager.instance;
+
+    // The bloc reads the preferences this app persists itself through a real properties manager
+    // over in-memory shared preferences; only the two ACT managers need faking here.
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    propertiesManager = OcptPropertiesManager();
+    await propertiesManager.initLifeCycle();
   });
 
   /// Registers fresh fake managers, replacing any already registered, with [brightness] standing
@@ -181,11 +192,16 @@ void main() {
     addTearDown(locales.disposeFake);
     addTearDown(themes.disposeFake);
 
+    if (managers.isRegistered<OcptPropertiesManager>()) {
+      await managers.unregister<OcptPropertiesManager>(disposingFunction: (_) async {});
+    }
+
     routerManager = _RecordingRouterManager();
     managers
       ..registerSingleton<LocalesManager>(locales)
       ..registerSingleton<ActThemesManager>(themes)
-      ..registerSingleton<OcptRouterManager>(routerManager);
+      ..registerSingleton<OcptRouterManager>(routerManager)
+      ..registerSingleton<OcptPropertiesManager>(propertiesManager);
   }
 
   setUp(registerFakeManagers);
@@ -206,11 +222,12 @@ void main() {
     return bloc;
   }
 
-  testWidgets("renders the three sections with the injected app version", (tester) async {
+  testWidgets("renders the four sections with the injected app version", (tester) async {
     await pumpSettingsView(tester, appVersion: "9.9.9");
 
     expect(find.byType(OcptSettingsAppearanceSection), findsOneWidget);
     expect(find.byType(OcptSettingsLanguageSection), findsOneWidget);
+    expect(find.byType(OcptSettingsCalendarSection), findsOneWidget);
     expect(find.byType(OcptSettingsAboutSection), findsOneWidget);
 
     final context = tester.element(find.byType(OcptSettingsView));
@@ -267,7 +284,13 @@ void main() {
     await pumpSettingsView(tester);
     final context = tester.element(find.byType(OcptSettingsView));
 
-    await tester.tap(find.text(Tr.of(context).settingsAboutLicensesAction));
+    // The about section is the last card of a scrolling page, and the default 800×600 test window
+    // no longer reaches it: it has to be brought on screen before it can be tapped.
+    final licensesRow = find.text(Tr.of(context).settingsAboutLicensesAction);
+    await tester.ensureVisible(licensesRow);
+    await tester.pumpAndSettle();
+
+    await tester.tap(licensesRow);
     await tester.pumpAndSettle();
 
     expect(routerManager.pushedRoute, OcptRoute.licenses);

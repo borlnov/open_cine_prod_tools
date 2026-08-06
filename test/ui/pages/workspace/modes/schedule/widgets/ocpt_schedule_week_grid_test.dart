@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_week_grid.dart';
@@ -98,6 +99,7 @@ void main() {
       _wrapInApp(
         OcptScheduleWeekGrid(
           anchorDate: monday,
+          firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           firstLocationByDayId: const {},
           blocksByDayId: {"day-1": [block]},
@@ -132,6 +134,7 @@ void main() {
       _wrapInApp(
         OcptScheduleWeekGrid(
           anchorDate: monday,
+          firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           firstLocationByDayId: const {},
           blocksByDayId: {"day-1": [block]},
@@ -175,6 +178,7 @@ void main() {
       _wrapInApp(
         OcptScheduleWeekGrid(
           anchorDate: monday,
+          firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           firstLocationByDayId: const {},
           blocksByDayId: {"day-1": [block]},
@@ -198,6 +202,7 @@ void main() {
       _wrapInApp(
         OcptScheduleWeekGrid(
           anchorDate: monday,
+          firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           firstLocationByDayId: const {},
           blocksByDayId: const {},
@@ -235,6 +240,7 @@ void main() {
       _wrapInApp(
         OcptScheduleWeekGrid(
           anchorDate: monday,
+          firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           firstLocationByDayId: const {},
           blocksByDayId: const {},

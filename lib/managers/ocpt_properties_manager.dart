@@ -13,6 +13,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -68,6 +69,16 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   final workspaceMode = SharedPrefsItemWithParser<OcptWorkspaceMode, String>(
     "WORKSPACE_MODE",
     parser: _parseWorkspaceMode,
+    castTo: (value) => value.name,
+  );
+
+  /// This is the key used to store which day a week starts on, app-wide.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptFirstWeekday.monday].
+  final firstWeekday = SharedPrefsItemWithParser<OcptFirstWeekday, String>(
+    "FIRST_WEEKDAY",
+    parser: _parseFirstWeekday,
     castTo: (value) => value.name,
   );
 
@@ -349,6 +360,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
     appLogger().w("The workspace mode stored in the local storage: $value, isn't a known "
         "workspace mode, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptFirstWeekday].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptFirstWeekday] values.
+  static OcptFirstWeekday? _parseFirstWeekday(String value) {
+    for (final weekday in OcptFirstWeekday.values) {
+      if (weekday.name == value) {
+        return weekday;
+      }
+    }
+
+    appLogger().w("The first weekday stored in the local storage: $value, isn't a known first "
+        "weekday, we can't convert it");
     return null;
   }
 

@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
@@ -41,6 +42,9 @@ class OcptScheduleHeader extends StatelessWidget {
   /// Called with the new anchor date once previous/next/today is clicked.
   final ValueChanged<DateTime> onAgendaAnchorDateChanged;
 
+  /// Which day a week starts on — what the week presentation's own range label is cut by.
+  final OcptFirstWeekday firstWeekday;
+
   /// Class constructor
   const OcptScheduleHeader({
     super.key,
@@ -50,6 +54,7 @@ class OcptScheduleHeader extends StatelessWidget {
     required this.onAgendaModeSelected,
     required this.agendaAnchorDate,
     required this.onAgendaAnchorDateChanged,
+    required this.firstWeekday,
   });
 
   @override
@@ -92,7 +97,10 @@ class OcptScheduleHeader extends StatelessWidget {
     final tr = Tr.of(context);
     final isWeek = agendaMode == OcptScheduleAgendaMode.week;
     final label = isWeek
-        ? ocptScheduleWeekRangeLabel(context, ocptScheduleMondayOfWeek(agendaAnchorDate))
+        ? ocptScheduleWeekRangeLabel(
+            context,
+            ocptScheduleStartOfWeek(agendaAnchorDate, firstWeekday),
+          )
         : ocptScheduleMonthLabel(context, agendaAnchorDate);
     final step = isWeek ? const Duration(days: 7) : null;
 

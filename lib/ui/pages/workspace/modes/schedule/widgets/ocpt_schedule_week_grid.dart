@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
@@ -55,6 +56,9 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   /// The date the week shown is the one containing.
   final DateTime anchorDate;
 
+  /// Which day the week's own seven columns start on — the user's app-wide preference.
+  final OcptFirstWeekday firstWeekday;
+
   /// Every live day, in `dayNumber` order — the grid draws whichever of these fall in the shown
   /// week.
   final List<OcptShootingDay> days;
@@ -86,6 +90,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   const OcptScheduleWeekGrid({
     super.key,
     required this.anchorDate,
+    required this.firstWeekday,
     required this.days,
     required this.firstLocationByDayId,
     required this.blocksByDayId,
@@ -99,8 +104,8 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final monday = ocptScheduleMondayOfWeek(anchorDate);
-    final weekDates = [for (var i = 0; i < 7; i++) monday.add(Duration(days: i))];
+    final weekStart = ocptScheduleStartOfWeek(anchorDate, firstWeekday);
+    final weekDates = [for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i))];
     final dayByDate = {for (final day in days) _dateOnly(day.date): day};
     final weekDays = [for (final date in weekDates) dayByDate[date]];
 

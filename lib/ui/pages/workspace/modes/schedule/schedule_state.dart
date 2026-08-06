@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
@@ -115,6 +116,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
   /// Which of the three agenda presentations is currently shown.
   final OcptScheduleAgendaMode agendaMode;
+
+  /// Which day a week starts on, read once per load from the user's own app-wide preference — what
+  /// the week and month agendas cut their columns on.
+  final OcptFirstWeekday firstWeekday;
 
   /// The date the week/month agenda pages through — the week or the month it shows is the one this
   /// date falls in. Reset to the first live day's date (or today, with none) on every load.
@@ -378,6 +383,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.selectedBlockId,
     required this.centreView,
     required this.agendaMode,
+    required this.firstWeekday,
     required this.agendaAnchorDate,
     required this.isListPanelVisible,
     required this.rightDockTab,
@@ -408,6 +414,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       selectedBlockId = null,
       centreView = OcptScheduleCentreView.day,
       agendaMode = OcptScheduleAgendaMode.strip,
+      firstWeekday = OcptFirstWeekday.monday,
       agendaAnchorDate = DateTime.now(),
       isListPanelVisible = true,
       rightDockTab = null,
@@ -446,6 +453,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     bool clearSelectedBlockId = false,
     OcptScheduleCentreView? centreView,
     OcptScheduleAgendaMode? agendaMode,
+    OcptFirstWeekday? firstWeekday,
     DateTime? agendaAnchorDate,
     bool? isListPanelVisible,
     OcptScheduleRightDockTab? rightDockTab,
@@ -481,6 +489,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     selectedBlockId: clearSelectedBlockId ? null : (selectedBlockId ?? this.selectedBlockId),
     centreView: centreView ?? this.centreView,
     agendaMode: agendaMode ?? this.agendaMode,
+    firstWeekday: firstWeekday ?? this.firstWeekday,
     agendaAnchorDate: agendaAnchorDate ?? this.agendaAnchorDate,
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
@@ -553,6 +562,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     selectedBlockId,
     centreView,
     agendaMode,
+    firstWeekday,
     agendaAnchorDate,
     isListPanelVisible,
     rightDockTab,

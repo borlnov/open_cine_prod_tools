@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -126,24 +127,30 @@ String ocptScheduleSunTimesLine(Tr tr, OcptSunTimes? sunTimes) {
   );
 }
 
-/// The Monday of the week [date] falls in, at midnight, own time component dropped — the week
-/// grid's own column range and the header's own week-navigation label share this one reading of
-/// "which week a date belongs to".
-DateTime ocptScheduleMondayOfWeek(DateTime date) {
+/// The first day of the week [date] falls in, at midnight, own time component dropped — the week
+/// grid's own column range, the month grid's own first cell and the header's own week-navigation
+/// label share this one reading of "which week a date belongs to".
+///
+/// Which day that is, is the user's own app-wide [firstWeekday] preference rather than a constant:
+/// half the world reads a week as starting on Sunday, and a grid drawing it from Monday for them
+/// misplaces every date on screen.
+DateTime ocptScheduleStartOfWeek(DateTime date, OcptFirstWeekday firstWeekday) {
   final dayOnly = DateTime(date.year, date.month, date.day);
-  // DateTime.weekday is 1 (Monday) to 7 (Sunday) already, so this only ever steps backward.
-  return dayOnly.subtract(Duration(days: dayOnly.weekday - 1));
+  // DateTime.weekday runs 1 (Monday) to 7 (Sunday); the modulo keeps the step in [0, 6] whichever
+  // of the two the week is read as starting on, so this only ever steps backward.
+  final daysSinceStart = (dayOnly.weekday - firstWeekday.dateTimeWeekday + 7) % 7;
+  return dayOnly.subtract(Duration(days: daysSinceStart));
 }
 
-/// `3 – 9 August 2026`, the week grid's own header label for the week starting on [monday] — both
-/// bounds' day-of-month, the (single) month and year read off the week's own Sunday, since a week
-/// crossing a month or a year boundary is still named after the one it ends in, mirroring how a
-/// call sheet dates a night shoot after the day it started on.
-String ocptScheduleWeekRangeLabel(BuildContext context, DateTime monday) {
-  final sunday = monday.add(const Duration(days: 6));
+/// `3 – 9 August 2026`, the week grid's own header label for the week starting on [weekStart] —
+/// both bounds' day-of-month, the (single) month and year read off the week's own **last** day,
+/// since a week crossing a month or a year boundary is still named after the one it ends in,
+/// mirroring how a call sheet dates a night shoot after the day it started on.
+String ocptScheduleWeekRangeLabel(BuildContext context, DateTime weekStart) {
+  final weekEnd = weekStart.add(const Duration(days: 6));
   final locale = Localizations.localeOf(context).toString();
-  final monthYear = DateFormat.yMMMM(locale).format(sunday);
-  return "${monday.day} – ${sunday.day} $monthYear";
+  final monthYear = DateFormat.yMMMM(locale).format(weekEnd);
+  return "${weekStart.day} – ${weekEnd.day} $monthYear";
 }
 
 /// `August 2026`, the month grid's own header label for the month [anyDateInMonth] falls in.
