@@ -39,6 +39,7 @@ OcptShootingDayBlock _buildBlock({
   slotId: "slot-1",
   kind: kind,
   shotId: shotId,
+  sceneId: null,
   label: label,
   durationMinutes: null,
   anchorMinute: anchorMinute,

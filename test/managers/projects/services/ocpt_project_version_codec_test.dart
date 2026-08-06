@@ -675,6 +675,7 @@ void main() {
         sortKey: "k",
         slotId: "slot-2",
         kind: OcptShootingBlockKind.hold,
+        sceneId: "scene-1",
         label: "Seq. 6 not shot-listed yet",
         durationMinutes: 30,
         anchorMinute: 600,
@@ -995,10 +996,12 @@ void main() {
       expect(shotBlock.shotId, "shot-1");
       expect(shotBlock.durationMinutes, isNull);
       expect(shotBlock.anchorMinute, isNull);
+      expect(shotBlock.sceneId, isNull);
       final holdBlock = roundTripped.shootingDayBlocks.firstWhere((row) => row.id == "block-2");
       expect(holdBlock.slotId, "slot-2");
       expect(holdBlock.kind, OcptShootingBlockKind.hold);
       expect(holdBlock.shotId, isNull);
+      expect(holdBlock.sceneId, "scene-1");
       expect(holdBlock.label, "Seq. 6 not shot-listed yet");
       expect(holdBlock.durationMinutes, 30);
       expect(holdBlock.anchorMinute, 600);
@@ -2417,6 +2420,10 @@ void main() {
           (row) => row.id == "block-orphan",
         );
         expect(orphanBlock.slotId, "slot-first");
+
+        // (e) no block names a scene: the column is new, and the free text a format-6 hold carries
+        // is not a scene id to read one out of.
+        expect(payload.shootingDayBlocks.every((row) => row.sceneId == null), isTrue);
       },
     );
   });

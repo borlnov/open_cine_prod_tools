@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
@@ -26,12 +27,19 @@ class OcptShootingBlockKindConverter extends TypeConverter<OcptShootingBlockKind
 /// One block of a shooting day's timetable, in [sortKey] order. **This is the heart of the
 /// schedule mode.**
 ///
-/// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot]. [durationMinutes] null on
-/// a shot block means "use that shot's `estimatedDurationMs`"; [label] is what a non-shot block
-/// says it is for, and for [OcptShootingBlockKind.hold] specifically, what sequence is being
-/// reserved time for. [anchorMinute], when set, pins this block to start at exactly that minute
-/// (an offset from the day's own midnight, which may exceed 1440 — see
+/// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot], and [sceneId] is null on
+/// every kind but [OcptShootingBlockKind.hold], where it names the scene whose time is being
+/// reserved. [durationMinutes] null on a shot block means "use that shot's `estimatedDurationMs`";
+/// [label] is what a non-shot block says it is for. [anchorMinute], when set, pins this block to
+/// start at exactly that minute (an offset from the day's own midnight, which may exceed 1440 — see
 /// `ocpt_shooting_slots_table.dart`) rather than wherever the chain before it lands.
+///
+/// **A `hold` names its scene, not only its wording.** [label] has always been free text saying
+/// which sequence is being held, and free text answers nobody: a convocation needs to know *which
+/// roles* a held sequence calls for (ADR 0017), and only a real link can say. [sceneId] is that
+/// link, and it is nullable because a production regularly blocks out time before it has settled
+/// which sequence goes there — a hold with no scene names no role, exactly as it did before this
+/// column existed.
 ///
 /// **A block belongs to exactly one slot** ([slotId], non-null from schema v12 on): a day is a set
 /// of parallel chains, one per slot, and a block's own chain is its slot's own, starting from that
@@ -66,6 +74,11 @@ class OcptShootingDayBlocksTable extends Table {
 
   /// The shot this block places, non-null iff [kind] is [OcptShootingBlockKind.shot].
   TextColumn get shotId => text().nullable().references(OcptShotsTable, #id)();
+
+  /// The scene a [OcptShootingBlockKind.hold] block reserves time for, or null — either because
+  /// this block is of another kind, or because the sequence hasn't been settled yet. See the class
+  /// doc comment.
+  TextColumn get sceneId => text().nullable().references(OcptScenesTable, #id)();
 
   /// The wording of a non-shot block; for [OcptShootingBlockKind.hold], what sequence is being
   /// reserved time for. Free text, empty for a shot block.

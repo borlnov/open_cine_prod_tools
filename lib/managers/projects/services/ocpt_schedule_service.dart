@@ -1192,11 +1192,19 @@ class OcptScheduleService {
   /// **iff** `kind == shot`; passing [OcptShootingBlockKind.shot] here is refused (returns null,
   /// writes nothing) rather than creating a shot block with no shot.
   ///
+  /// **[sceneId] belongs to a [OcptShootingBlockKind.hold] and to nothing else** — the sequence
+  /// whose time is being reserved, which is what says who a hold convokes (ADR 0017). Passed with
+  /// any other [kind] it is **ignored** rather than refused: the block itself is legitimate, only
+  /// the scene link means nothing on it, and a caller that hands one over is choosing a kind, not
+  /// making a claim about a sequence. It stays null on a hold whose sequence hasn't been settled
+  /// yet, which is an ordinary state.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createBlock({
     required OcptProjectDatabase database,
     required String slotId,
     required OcptShootingBlockKind kind,
+    String? sceneId,
     String label = "",
     int? durationMinutes,
     int? anchorMinute,
@@ -1231,6 +1239,7 @@ class OcptScheduleService {
             shootingDayId: slot.shootingDayId,
             slotId: slotId,
             kind: Value(kind),
+            sceneId: Value(kind == OcptShootingBlockKind.hold ? sceneId : null),
             label: Value(label),
             durationMinutes: Value(durationMinutes),
             anchorMinute: Value(anchorMinute),
@@ -1252,11 +1261,18 @@ class OcptScheduleService {
   /// which this method does not touch. Turning a shot block into something else means unplacing the
   /// shot first ([unplaceShot]) and creating the other block afterwards ([createBlock]).
   ///
+  /// **`sceneId` only ever holds on a [OcptShootingBlockKind.hold]**, the same invariant
+  /// [createBlock] enforces: a scene named on a block of any other kind is dropped to null, and a
+  /// hold turned into another kind by this very call loses the sequence it was holding — it is no
+  /// longer holding anything. A hold's scene is set to null the ordinary way, by passing
+  /// `Value(null)`, which is how a production un-decides which sequence a reserved slot is for.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateBlock({
     required OcptProjectDatabase database,
     required String blockId,
     Value<OcptShootingBlockKind> kind = const Value.absent(),
+    Value<String?> sceneId = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<int?> durationMinutes = const Value.absent(),
     Value<int?> anchorMinute = const Value.absent(),
@@ -1271,15 +1287,22 @@ class OcptScheduleService {
     }
 
     await database.transaction(() async {
-      if (kind.present) {
+      var sceneIdToWrite = sceneId;
+
+      if (kind.present || sceneId.present) {
         final row =
             await (database.select(database.ocptShootingDayBlocksTable)..where(
                   (table) => table.id.equals(blockId) & table.isDeleted.not(),
                 ))
                 .getSingleOrNull();
 
-        if (row == null || row.kind == OcptShootingBlockKind.shot) {
+        if (row == null || (kind.present && row.kind == OcptShootingBlockKind.shot)) {
           return;
+        }
+
+        final resultingKind = kind.present ? kind.value : row.kind;
+        if (resultingKind != OcptShootingBlockKind.hold) {
+          sceneIdToWrite = const Value(null);
         }
       }
 
@@ -1288,6 +1311,7 @@ class OcptScheduleService {
       )..where((table) => table.id.equals(blockId) & table.isDeleted.not())).write(
         OcptShootingDayBlocksTableCompanion(
           kind: kind,
+          sceneId: sceneIdToWrite,
           label: label,
           durationMinutes: durationMinutes,
           anchorMinute: anchorMinute,

@@ -1296,6 +1296,8 @@ void main() {
         "('blockOrphanNull', 'day1', 'b', NULL, 'wrap'), "
         // An orphan the other way (`slot_id` names a tombstoned slot): reassigned too.
         "('blockOrphanDangling', 'day1', 'c', 'slotDead', 'wrap'), "
+        // A hold, whose held sequence this file could only ever say in free text.
+        "('blockHold', 'day1', 'd', 'slotB', 'hold'), "
         // day2 has no live slot: both of these are dropped rather than reassigned.
         "('blockDeleteNull', 'day2', 'a', NULL, 'wrap'), "
         "('blockDeleteDangling', 'day2', 'b', 'slotC', 'wrap');",
@@ -1340,10 +1342,19 @@ void main() {
         for (final row in await database.select(database.ocptShootingDayBlocksTable).get())
           row.id: row,
       };
-      expect(blocksById.keys, {'blockKept', 'blockOrphanNull', 'blockOrphanDangling'});
+      expect(blocksById.keys, {
+        'blockKept',
+        'blockOrphanNull',
+        'blockOrphanDangling',
+        'blockHold',
+      });
       expect(blocksById['blockKept']!.slotId, 'slotB');
       expect(blocksById['blockOrphanNull']!.slotId, 'slotA1');
       expect(blocksById['blockOrphanDangling']!.slotId, 'slotA1');
+
+      // (d bis) every block, the hold included, comes out with no scene named: the column is new,
+      // and a hold's free-text label is not a scene id to read one out of.
+      expect(blocksById.values.every((row) => row.sceneId == null), isTrue);
 
       // (e) both of day2's blocks are gone: day2 has no live slot for either to land on.
       expect(blocksById.containsKey('blockDeleteNull'), isFalse);

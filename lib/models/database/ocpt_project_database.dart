@@ -252,7 +252,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// slot at all — before reshaping the four tables
   /// `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1') describes: `shooting_slots`'
   /// `crewCallMinute` renamed `startMinute` and its `crewWrapMinute`/`castCallMinute`/
-  /// `castWrapMinute` dropped, `shooting_day_blocks.slotId` made non-null, and
+  /// `castWrapMinute` dropped, `shooting_day_blocks.slotId` made non-null and gaining the nullable
+  /// `sceneId` a `hold` names its sequence by, and
   /// `shooting_slot_crew`/`shooting_slot_cast` trading their own typed minute columns for a nullable
   /// `groupId`/`leadMinutes` pair. Every step is additive, as ADR 0007 requires: every new column
   /// carries a default (or is nullable), so the rows a project already had stay valid without being
@@ -540,9 +541,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     );
 
     await m.alterTable(
-      // Same as above: only the destination shape is new.
+      // Same as above: only the destination shape is new. `sceneId` comes out null on every row a
+      // file already held, `hold` blocks included: the column is what a hold's sequence is named by
+      // from here on, and the free-text `label` those rows carry is not a scene id to read one out
+      // of — nothing is guessed, exactly as no lead time is guessed out of the dropped clocks.
       // ignore: experimental_member_use
-      TableMigration(ocptShootingDayBlocksTable),
+      TableMigration(
+        ocptShootingDayBlocksTable,
+        newColumns: [ocptShootingDayBlocksTable.sceneId],
+      ),
     );
 
     await m.alterTable(

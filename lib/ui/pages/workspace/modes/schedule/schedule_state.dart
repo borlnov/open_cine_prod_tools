@@ -421,11 +421,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// and a shot's own character are directly comparable with no further folding here); every other
   /// kind returns the empty set.
   ///
-  /// A **hold** block reserves time for a sequence rather than a shot, and `shooting_day_blocks`
-  /// carries no scene link at all for one — only its free-text label — so there is nothing here to
-  /// resolve a role against yet. A role convoked in a slot whose only content is a hold therefore
-  /// keeps the slot's own bounds, which is [ocptComputeSlotConvocations]'s own fallback for a role
-  /// no block names.
+  /// A **hold** block reserves time for a sequence rather than a shot, and names it through
+  /// `shooting_day_blocks.sceneId`. Nothing sets that column yet — the control that picks a hold's
+  /// sequence comes with the day view's own rework, and so does reading the roles that sequence
+  /// calls for out of the breakdown — so a hold still resolves to no role here, and a role convoked
+  /// in a slot whose only content is a hold keeps the slot's own bounds, which is
+  /// [ocptComputeSlotConvocations]'s own fallback for a role no block names.
   Set<String> _roleIdsOfBlock(OcptShootingDayBlock block) {
     if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
       return const {};

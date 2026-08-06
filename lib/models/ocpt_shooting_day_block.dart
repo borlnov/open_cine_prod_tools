@@ -30,6 +30,11 @@ class OcptShootingDayBlock extends Equatable {
   /// The shot this block places, non-null iff [kind] is [OcptShootingBlockKind.shot].
   final String? shotId;
 
+  /// The scene a [OcptShootingBlockKind.hold] block reserves time for, or null — either because
+  /// this block is of another kind, or because the sequence hasn't been settled yet. It is what
+  /// says which roles a held sequence calls for, `label` being free text that answers nobody.
+  final String? sceneId;
+
   /// The wording of a non-shot block; for [OcptShootingBlockKind.hold], what sequence is being
   /// reserved time for. Free text, empty for a shot block.
   final String label;
@@ -52,6 +57,7 @@ class OcptShootingDayBlock extends Equatable {
     required this.slotId,
     required this.kind,
     required this.shotId,
+    required this.sceneId,
     required this.label,
     required this.durationMinutes,
     required this.anchorMinute,
@@ -65,6 +71,7 @@ class OcptShootingDayBlock extends Equatable {
     slotId: row.slotId,
     kind: row.kind,
     shotId: row.shotId,
+    sceneId: row.sceneId,
     label: row.label,
     durationMinutes: row.durationMinutes,
     anchorMinute: row.anchorMinute,
@@ -84,6 +91,7 @@ class OcptShootingDayBlock extends Equatable {
     slotId,
     kind,
     shotId,
+    sceneId,
     label,
     durationMinutes,
     anchorMinute,

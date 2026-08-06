@@ -58,6 +58,24 @@ void main() {
     return id;
   }
 
+  /// Inserts a scene, satisfying `shooting_day_blocks.sceneId`'s foreign key without going through
+  /// `OcptSceneIndexService`'s reconciliation, which this service has no business exercising.
+  Future<String> createScene(String id) async {
+    await database
+        .into(database.ocptScenesTable)
+        .insert(
+          OcptScenesTableCompanion.insert(
+            id: id,
+            screenplayId: screenplayId,
+            position: 0,
+            heading: "INT. CUISINE - JOUR",
+            charStart: 0,
+            charEnd: 1,
+          ),
+        );
+    return id;
+  }
+
   /// Inserts an orphaned shot (no scene), satisfying `shooting_day_blocks.shotId`'s foreign key
   /// without the shot list's own scene machinery, which this service has no business exercising.
   Future<String> createShot(String id) async {
@@ -946,6 +964,81 @@ void main() {
 
       expect(blockId, isNull);
       expect(await readAllBlocks(dayId), isEmpty);
+    });
+
+    test("createBlock keeps a scene on a hold and drops it on any other kind", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final sceneId = await createScene("scene-1");
+
+      final holdId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.hold,
+        sceneId: sceneId,
+      ))!;
+      final mealId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.meal,
+        sceneId: sceneId,
+      ))!;
+
+      expect((await readBlock(holdId)).sceneId, sceneId);
+      expect((await readBlock(mealId)).sceneId, isNull);
+    });
+
+    test("updateBlock drops a hold's scene when it stops being a hold", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final sceneId = await createScene("scene-1");
+
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.hold,
+        sceneId: sceneId,
+      ))!;
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        kind: const Value(OcptShootingBlockKind.preparation),
+      );
+
+      expect((await readBlock(blockId)).sceneId, isNull);
+    });
+
+    test("updateBlock refuses to name a scene on a block that isn't a hold", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final sceneId = await createScene("scene-1");
+
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.meal,
+      ))!;
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        sceneId: Value(sceneId),
+      );
+
+      expect((await readBlock(blockId)).sceneId, isNull);
     });
 
     test("reorderBlock writes exactly one row within a slot's own timetable", () async {

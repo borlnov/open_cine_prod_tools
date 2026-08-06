@@ -824,6 +824,10 @@ class OcptProjectVersionCodec {
   ///   a lead time out of the dropped clocks, for the same reason the schema migration doesn't: a
   ///   figure guessed from a timetable that has since moved would be worse than the zero every row
   ///   starts at.
+  /// - Each `shootingDayBlocks` row gains a **null** [_sceneIdKey]: a `hold` names the sequence it
+  ///   holds through that column from here on, and the free-text `label` a format-6 payload carries
+  ///   is not a scene id — so nothing is resolved out of it, and such a block names no role until
+  ///   somebody says which sequence it is for.
   /// - Each `shootingDayBlocks` row that is an **orphan** — its [_slotIdKey] null, *or* naming a
   ///   slot that isn't live in this same payload — gains the [_slotIdKey] of its day's first live
   ///   slot (lowest `sortKey`, ties broken by `id`), the same reading the schema's own
@@ -869,9 +873,10 @@ class OcptProjectVersionCodec {
 
     final blocks = <Map<String, dynamic>>[];
     for (final block in _rows(json, _shootingDayBlocksKey)) {
+      final withScene = {...block, _sceneIdKey: null};
       final slotId = block[_slotIdKey] as String?;
       if (slotId != null && liveSlotIds.contains(slotId)) {
-        blocks.add(block);
+        blocks.add(withScene);
         continue;
       }
 
@@ -880,7 +885,7 @@ class OcptProjectVersionCodec {
         continue;
       }
 
-      blocks.add({...block, _slotIdKey: firstSlotId});
+      blocks.add({...withScene, _slotIdKey: firstSlotId});
     }
 
     return {
@@ -1991,6 +1996,7 @@ class OcptProjectVersionCodec {
     _slotIdKey: row.slotId,
     _kindKey: row.kind.name,
     _shotIdKey: row.shotId,
+    _sceneIdKey: row.sceneId,
     _labelKey: row.label,
     _durationMinutesKey: row.durationMinutes,
     _anchorMinuteKey: row.anchorMinute,
@@ -2007,6 +2013,7 @@ class OcptProjectVersionCodec {
         slotId: _string(json, _slotIdKey),
         kind: _enum(json, _kindKey, OcptShootingBlockKind.values.asNameMap()),
         shotId: _nullableString(json, _shotIdKey),
+        sceneId: _nullableString(json, _sceneIdKey),
         label: _string(json, _labelKey),
         durationMinutes: _nullableInt(json, _durationMinutesKey),
         anchorMinute: _nullableInt(json, _anchorMinuteKey),

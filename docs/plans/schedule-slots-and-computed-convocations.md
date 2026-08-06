@@ -164,7 +164,9 @@ times out rather than asking for them. The code and those two ADRs are the recor
 the list is kept only until this plan's own remaining milestones ship with it.
 
 1. **Schema v12.**
-   - `shooting_day_blocks.slotId` becomes non-null.
+   - `shooting_day_blocks.slotId` becomes non-null, and a nullable `sceneId` is added beside it:
+     the sequence a `hold` reserves time for, which is what says who that block convokes (§2.2) —
+     its free-text label never could.
    - `shooting_slots`: `crewCallMinute` is renamed `startMinute`; `crewWrapMinute`,
      `castCallMinute` and `castWrapMinute` are dropped.
    - **`shooting_day_groups`** is added — `id`, `shootingDayId`, `sortKey`, `label`,
@@ -196,23 +198,25 @@ the list is kept only until this plan's own remaining milestones ship with it.
 
 ### M2' — the day view
 
-6. Each slot card carries **its own timetable**, below its crew and cast columns. The day's single
+6. A `hold` block's own **sequence picker**, writing the `shooting_day_blocks.sceneId` schema v12
+   already carries, and the roles that sequence calls for read out of the breakdown — until both
+   land, a hold names nobody and every role convoked beside it keeps the slot's own bounds.
+7. Each slot card carries **its own timetable**, below its crew and cast columns. The day's single
    timetable disappears.
-7. A block moves between slots by **dragging it from one card's timetable to another's**, and by a
+8. A block moves between slots by **dragging it from one card's timetable to another's**, and by a
    `Move to…` entry in its own row for the keyboard path. Reordering within a slot is unchanged.
-8. Crew and cast rows show their **computed** times as read-outs, with the lead time as the one
-   editable field beside them — the minute fields those rows carry today are removed, not disabled.
-   A row's group is picked from the day's own groups, and a row with no figure of its own reads its
-   group's, shown as inherited rather than blank.
-9. The day view grows a **groups band**, above the slots: the day's groups, their labels and their
-   lead times, with the count of who is in each. It is the one place a group is created, renamed or
-   deleted, and deleting one leaves its members with no group rather than removing them.
-10. The week and month agendas draw a day's slots as parallel columns within its own column, since
+9. Crew and cast rows show their computed times as read-outs — which they already do — beside the
+   lead time as the one **editable** field, and a group picked from the day's own groups; a row with
+   no figure of its own reads its group's, shown as inherited rather than blank.
+10. The day view grows a **groups band**, above the slots: the day's groups, their labels and their
+    lead times, with the count of who is in each. It is the one place a group is created, renamed or
+    deleted, and deleting one leaves its members with no group rather than removing them.
+11. The week and month agendas draw a day's slots as parallel columns within its own column, since
     two chains can now overlap.
 
 ### M3' — the rest
 
-11. `docs/plans/schedule-mode.md`'s M2 (the three PDFs) and M3 (the matrix, the presence grid and
+12. `docs/plans/schedule-mode.md`'s M2 (the three PDFs) and M3 (the matrix, the presence grid and
     the alerts), unchanged in scope but now reading computed convocations rather than typed ones.
 
 ## 5. Definition of done

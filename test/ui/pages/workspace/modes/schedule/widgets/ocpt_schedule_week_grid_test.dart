@@ -50,6 +50,7 @@ OcptShootingDayBlock _buildBlock({required String id}) => OcptShootingDayBlock(
   slotId: "slot-1",
   kind: OcptShootingBlockKind.preparation,
   shotId: null,
+  sceneId: null,
   label: "Prep",
   durationMinutes: null,
   anchorMinute: null,
