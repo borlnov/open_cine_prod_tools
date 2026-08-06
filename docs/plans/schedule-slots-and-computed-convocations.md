@@ -196,7 +196,11 @@ the list is kept only until this plan's own remaining milestones ship with it.
    new column at its default — the codec, `contentDigest` and `_applyPayload` all three, as
    `CLAUDE.md` warns.
 
-### M2' — the day view
+### M2' — the day view — **shipped**
+
+Everything below is built and merged into the branch. The code is the record from here on, and this
+list is kept only until M3' ships with it — at which point this whole plan goes, its two ADRs and
+`docs/plans/schedule-mode.md` being what remains.
 
 6. A `hold` block's own **sequence picker**, writing the `shooting_day_blocks.sceneId` schema v12
    already carries, and the roles that sequence calls for read out of the breakdown — until both
