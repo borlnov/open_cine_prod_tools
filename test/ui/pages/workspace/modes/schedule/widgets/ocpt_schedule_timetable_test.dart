@@ -36,7 +36,7 @@ OcptShootingDayBlock _buildBlock({
 }) => OcptShootingDayBlock(
   id: id,
   shootingDayId: "day-1",
-  slotId: null,
+  slotId: "slot-1",
   kind: kind,
   shotId: shotId,
   label: label,

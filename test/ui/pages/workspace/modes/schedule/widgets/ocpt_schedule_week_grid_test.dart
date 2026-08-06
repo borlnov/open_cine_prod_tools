@@ -47,7 +47,7 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
 OcptShootingDayBlock _buildBlock({required String id}) => OcptShootingDayBlock(
   id: id,
   shootingDayId: "day-1",
-  slotId: null,
+  slotId: "slot-1",
   kind: OcptShootingBlockKind.preparation,
   shotId: null,
   label: "Prep",
