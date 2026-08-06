@@ -28,8 +28,16 @@ const int _ocptWeekGridDefaultStartHour = 6;
 /// later — the mock's own `H1`, one hour of margin past midnight.
 const int _ocptWeekGridDefaultEndHour = 24;
 
-/// The width of the grid's own time gutter.
-const double _ocptWeekGridGutterWidth = 46;
+/// The width of the grid's own time gutter, the [_ocptWeekGridGutterGap] below included.
+const double _ocptWeekGridGutterWidth = 50;
+
+/// How far the gutter's hour labels stop short of the grid's own first column rule, so a `08:00`
+/// reads as a label beside the grid rather than as something stuck to Monday's edge.
+const double _ocptWeekGridGutterGap = 8;
+
+/// How opaque an hour rule is drawn against `outlineVariant` — enough to read the grid as hour
+/// bands, discreet enough that the blocks drawn over it stay the thing being looked at.
+const double _ocptWeekGridHourLineAlpha = 0.45;
 
 /// The week presentation of the agenda: an hour grid, one column per day of the week
 /// [anchorDate] falls in, a time gutter down the side, each shooting day's blocks drawn as
@@ -104,12 +112,15 @@ class OcptScheduleWeekGrid extends StatelessWidget {
           top: (minute - startMinute) * _ocptWeekGridPixelsPerMinute,
           left: 0,
           right: 0,
-          child: Text(
-            ocptFormatDayMinute(minute),
-            textAlign: TextAlign.right,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 9,
-              color: theme.colorScheme.onSurfaceVariant,
+          child: Padding(
+            padding: const EdgeInsets.only(right: _ocptWeekGridGutterGap),
+            child: Text(
+              ocptFormatDayMinute(minute),
+              textAlign: TextAlign.right,
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: 9,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),
@@ -340,10 +351,34 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
       child: SizedBox(
         height: gridHeight,
         child: Stack(
-          children: [..._buildSunBands(context), ..._buildBlocks(context)],
+          children: [..._buildHourLines(context), ..._buildSunBands(context), ..._buildBlocks(context)],
         ),
       ),
     );
+  }
+
+  /// One hair line per hour of the grid's own range, drawn first so the sun bands and the blocks
+  /// both sit over it.
+  ///
+  /// Every column draws its own rather than one overlay spanning the week: the columns are
+  /// [Expanded] siblings with no shared coordinate space, and a line drawn per column can never
+  /// land a pixel off the gutter label it belongs to. The grid's own first minute carries none —
+  /// the header row's bottom border already rules that edge.
+  List<Widget> _buildHourLines(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridHourLineAlpha);
+
+    return [
+      for (var minute = startMinute + 60; minute < endMinute; minute += 60)
+        Positioned(
+          top: (minute - startMinute) * _ocptWeekGridPixelsPerMinute,
+          left: 0,
+          right: 0,
+          height: 1,
+          child: ColoredBox(color: color),
+        ),
+    ];
   }
 
   /// The sun-shading bands for this column: pre-sunrise and post-civil-dusk are tinted as night,

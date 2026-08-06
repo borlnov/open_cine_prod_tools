@@ -55,6 +55,27 @@ OcptShootingDayBlock _buildBlock({required String id}) => OcptShootingDayBlock(
   notes: "",
 );
 
+/// Finds the grid's own sun-shading bands, and only those.
+///
+/// The grid paints three kinds of [ColoredBox] inside its own subtree — the hour rules, the night
+/// bands and the dusk band — so a bare type search would no longer say anything about the sun. The
+/// two band tints are the theme's `primary` and `tertiary`; the hour rules are `outlineVariant`,
+/// which is what separates them here.
+Finder _sunBandFinder(WidgetTester tester) {
+  final theme = Theme.of(tester.element(find.byType(OcptScheduleWeekGrid)));
+  final bandColors = {
+    theme.colorScheme.primary.withValues(alpha: 0.05),
+    theme.colorScheme.tertiary.withValues(alpha: 0.08),
+  };
+
+  return find.descendant(
+    of: find.byType(OcptScheduleWeekGrid),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is ColoredBox && bandColors.contains(widget.color),
+    ),
+  );
+}
+
 void main() {
   // The Monday of the week `OcptScheduleWeekGrid` draws when anchored on this Wednesday.
   final monday = DateTime(2026, 8, 3);
@@ -125,12 +146,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // `ColoredBox` is only ever used by the sun-shading bands within this widget's own subtree
-    // (the ambient `Scaffold` carries one of its own, which is why the search is scoped).
-    expect(
-      find.descendant(of: find.byType(OcptScheduleWeekGrid), matching: find.byType(ColoredBox)),
-      findsNothing,
-    );
+    expect(_sunBandFinder(tester), findsNothing);
   });
 
   testWidgets("a shading band is drawn once sun times are available", (tester) async {
@@ -172,10 +188,43 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.descendant(of: find.byType(OcptScheduleWeekGrid), matching: find.byType(ColoredBox)),
-      findsWidgets,
+    expect(_sunBandFinder(tester), findsWidgets);
+  });
+
+  testWidgets("an hour rule is drawn per hour of the grid, in every column", (tester) async {
+    final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleWeekGrid(
+          anchorDate: monday,
+          days: [day],
+          firstLocationByDayId: const {},
+          blocksByDayId: const {},
+          shotOf: (_) => null,
+          timelineOf: (_) => null,
+          sunTimesOf: (_) => null,
+          selectedDayId: null,
+          onDayOpenRequested: (_) {},
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
+
+    // Nothing placed anywhere, so the grid keeps its default 06:00-24:00 range: 18 hours, whose
+    // first carries no rule (the header's own bottom border already draws that edge), across the
+    // week's seven columns.
+    final theme = Theme.of(tester.element(find.byType(OcptScheduleWeekGrid)));
+    final hourRules = find.descendant(
+      of: find.byType(OcptScheduleWeekGrid),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is ColoredBox &&
+            widget.color == theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+      ),
+    );
+
+    expect(hourRules, findsNWidgets(17 * 7));
   });
 
   testWidgets("clicking a day's column header opens that day", (tester) async {
