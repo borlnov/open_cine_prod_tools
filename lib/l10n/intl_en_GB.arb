@@ -5947,6 +5947,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleDayTagPrefix": "D",
+  "@scheduleDayTagPrefix": {
+    "description": "The single letter printed before a shooting day's rank (D3), read on the call sheet",
+    "context": "Displayed throughout the schedule mode and the shot list's own shooting day read-out",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleAgendaEmptyHint": "No shooting day has been created yet.",
   "@scheduleAgendaEmptyHint": {
     "description": "Shown in the strip agenda when the schedule has no day at all",

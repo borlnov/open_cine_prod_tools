@@ -168,7 +168,7 @@ class OcptShotListXlsxExportService {
     },
     OcptShotListXlsxColumn.sound => _textOrNull(shot.sound),
     OcptShotListXlsxColumn.difficulty => DoubleCellValue(shot.averageDifficulty),
-    OcptShotListXlsxColumn.shootingDay => _placementCellOf(placements),
+    OcptShotListXlsxColumn.shootingDay => _placementCellOf(placements, labels: labels),
     OcptShotListXlsxColumn.status => _textOrNull(labels.labelOf(shot.status)),
     OcptShotListXlsxColumn.notes => _textOrNull(shot.notes),
     OcptShotListXlsxColumn.locationNotes => _textOrNull(shot.locationNotes),
@@ -207,20 +207,19 @@ class OcptShotListXlsxExportService {
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 
   /// The cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller with
-  /// no `BuildContext`: `J3 · 2026-08-04` (the day's printed rank then its calendar date) when every
-  /// placement lands on the same day, the day tags alone joined with `, ` (`J3, J5`) when they don't,
+  /// no `BuildContext`: `D3 · 2026-08-04` (the day's printed rank then its calendar date) when every
+  /// placement lands on the same day, the day tags alone joined with `, ` (`D3, D5`) when they don't,
   /// or null for a shot the schedule carries no placement for at all — exactly like any other field
   /// the user hasn't filled in ([_textOrNull]). Days are deduplicated by `OcptShotPlacement.dayId`
   /// and kept in ascending `dayNumber` order, exactly as `ocptShotPlacementLabel` does.
   ///
-  /// Written in this locale-free, unambiguous form rather than through `Tr`: unlike every other
-  /// column, neither half needs localized wording at all — the day tag is the trade's own shorthand,
-  /// never translated even on screen (`ocptScheduleDayTagLabel`'s own doc comment), and a spreadsheet
-  /// cell with no `Tr` to format a date with is exactly the situation `yyyy-MM-dd` already serves
-  /// elsewhere in this codebase (`OcptResourcesXlsxExportService._isoDate`). Both are inlined here
-  /// rather than imported: the service layer this class sits in must not depend on the UI layer
-  /// those two helpers live in.
-  CellValue? _placementCellOf(List<OcptShotPlacement> placements) {
+  /// The day tag's own letter is [labels]' own `dayTagPrefix`, resolved by the caller from `Tr`
+  /// since this service has none of its own — the paperwork a crew reads follows the app's
+  /// language, letter included. The date half stays locale-free: a spreadsheet cell with no `Tr` to
+  /// format a date with is exactly the situation `yyyy-MM-dd` already serves elsewhere in this
+  /// codebase (`OcptResourcesXlsxExportService._isoDate`), inlined here rather than imported since
+  /// the service layer this class sits in must not depend on the UI layer that helper lives in.
+  CellValue? _placementCellOf(List<OcptShotPlacement> placements, {required OcptShotListXlsxLabels labels}) {
     if (placements.isEmpty) {
       return null;
     }
@@ -234,11 +233,13 @@ class OcptShotListXlsxExportService {
 
     if (orderedDays.length == 1) {
       final placement = orderedDays.single;
-      return TextCellValue("J${placement.dayNumber} · ${_isoDate(placement.date)}");
+      return TextCellValue(
+        "${labels.dayTagPrefix}${placement.dayNumber} · ${_isoDate(placement.date)}",
+      );
     }
 
     return TextCellValue(
-      orderedDays.map((placement) => "J${placement.dayNumber}").join(", "),
+      orderedDays.map((placement) => "${labels.dayTagPrefix}${placement.dayNumber}").join(", "),
     );
   }
 

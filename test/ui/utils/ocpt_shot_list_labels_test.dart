@@ -172,7 +172,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tuesday 4 August 2026, in the app's own en_GB locale.
-      expect(label, "J3 · Tue 4 Aug");
+      expect(label, "D3 · Tue 4 Aug");
     });
 
     testWidgets("two blocks on the same day still read as that single day", (tester) async {
@@ -211,7 +211,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(label, "J3 · Tue 4 Aug");
+      expect(label, "D3 · Tue 4 Aug");
     });
 
     testWidgets("placements on several distinct days read as their tags alone, joined",
@@ -251,7 +251,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(label, "J3, J5");
+      expect(label, "D3, D5");
     });
   });
 

@@ -266,7 +266,10 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
               const SizedBox(width: 10),
               Tooltip(
                 message: tr.scheduleShotPickerAlreadyPlacedTooltip,
-                child: Text(dayNumbers.map(ocptScheduleDayTagLabel).join(", "), style: mutedStyle),
+                child: Text(
+                  dayNumbers.map((n) => ocptScheduleDayTagLabel(tr, n)).join(", "),
+                  style: mutedStyle,
+                ),
               ),
             ],
           ],

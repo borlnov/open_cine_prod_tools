@@ -156,9 +156,9 @@ void main() {
 
       // The already-placed shot carries its day tags, joined, with a tooltip saying so; the
       // untouched shot carries neither.
-      expect(find.text("J3, J5"), findsOneWidget);
+      expect(find.text("D3, D5"), findsOneWidget);
       final tooltip = tester.widget<Tooltip>(
-        find.ancestor(of: find.text("J3, J5"), matching: find.byType(Tooltip)),
+        find.ancestor(of: find.text("D3, D5"), matching: find.byType(Tooltip)),
       );
       expect(tooltip.message, tr.scheduleShotPickerAlreadyPlacedTooltip);
     },

@@ -95,7 +95,7 @@ void main() {
     expect(find.text("INT. LÉA'S FLAT - NIGHT"), findsOneWidget);
     expect(find.text("LÉA, MARC"), findsOneWidget);
     // Tuesday 4 August 2026, in the app's own en_GB locale.
-    expect(find.text("J3 · Tue 4 Aug"), findsOneWidget);
+    expect(find.text("D3 · Tue 4 Aug"), findsOneWidget);
     expect(find.text("4"), findsOneWidget);
   });
 

@@ -798,6 +798,7 @@
   "breakdownExportSheetsEmptyDocumentNote": "Aucune séquence n'a encore été dépouillée.",
   "breakdownExportSheetsSuccessMessage": "Exporté vers {path}",
   "breakdownExportSheetsError": "Les fiches de dépouillement n'ont pas pu être exportées.",
+  "scheduleDayTagPrefix": "J",
   "scheduleAgendaEmptyHint": "Aucun jour de tournage n'a encore été créé.",
   "scheduleAgendaModeStrip": "Bande",
   "scheduleAgendaModeWeek": "Semaine",

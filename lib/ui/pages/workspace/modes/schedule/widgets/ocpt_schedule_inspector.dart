@@ -179,7 +179,10 @@ class OcptScheduleInspector extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(tr.scheduleInspectorDayTitle(ocptScheduleDayTagLabel(day.dayNumber)), style: theme.textTheme.titleSmall),
+        Text(
+          tr.scheduleInspectorDayTitle(ocptScheduleDayTagLabel(tr, day.dayNumber)),
+          style: theme.textTheme.titleSmall,
+        ),
         const SizedBox(height: 2),
         Text(dateLabel, style: theme.textTheme.bodySmall),
         const SizedBox(height: 12),
@@ -373,7 +376,7 @@ class OcptScheduleInspector extends StatelessWidget {
           child: Text(
             shotPlacedDayNumbers.isEmpty
                 ? tr.scheduleInspectorShotNotPlanned
-                : shotPlacedDayNumbers.map(ocptScheduleDayTagLabel).join(", "),
+                : shotPlacedDayNumbers.map((n) => ocptScheduleDayTagLabel(tr, n)).join(", "),
             style: theme.textTheme.bodySmall,
           ),
         ),

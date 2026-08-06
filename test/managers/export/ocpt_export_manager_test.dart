@@ -292,6 +292,7 @@ void main() {
       columnHeaders: {},
       statusLabels: {},
       sequenceTitles: {},
+      dayTagPrefix: "D",
     );
 
     test('a cancelled dialog returns null and writes nothing', () async {

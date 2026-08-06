@@ -195,7 +195,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text("J1"));
+    await tester.tap(find.text("D1"));
     await tester.pump();
 
     expect(selectedDayIds, ["day-1"]);

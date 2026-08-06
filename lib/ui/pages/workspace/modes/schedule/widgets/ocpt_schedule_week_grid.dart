@@ -278,6 +278,7 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final day = this.day;
     final locale = Localizations.localeOf(context).toString();
 
@@ -314,7 +315,7 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
               Text("${date.day}", style: theme.textTheme.titleSmall),
               if (day != null)
                 Text(
-                  ocptScheduleDayTagLabel(day.dayNumber),
+                  ocptScheduleDayTagLabel(tr, day.dayNumber),
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,

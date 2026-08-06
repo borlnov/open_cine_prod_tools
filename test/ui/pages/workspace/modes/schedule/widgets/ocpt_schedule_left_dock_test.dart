@@ -106,8 +106,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // The printed rank is a read-time value (`dayNumber`), never a stored column.
-    expect(find.text("J1"), findsOneWidget);
-    expect(find.text("J3"), findsOneWidget);
+    expect(find.text("D1"), findsOneWidget);
+    expect(find.text("D3"), findsOneWidget);
   });
 
   testWidgets("clicking an unplaced shot reports its own selection", (tester) async {
@@ -173,7 +173,7 @@ void main() {
     // the click, which the mode answers with `OcptConfirmDialog`.
     expect(deletionRequests, ["day-1"]);
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.text("J1"), findsOneWidget);
+    expect(find.text("D1"), findsOneWidget);
   });
 
   testWidgets(

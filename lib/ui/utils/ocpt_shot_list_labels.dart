@@ -89,6 +89,7 @@ OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> se
         for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
       },
       sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+      dayTagPrefix: tr.scheduleDayTagPrefix,
     );
 
 /// Builds every localized string the exported scenario coverage document carries, for the
@@ -202,16 +203,16 @@ String ocptShotFieldOrDash(String? value) =>
 ///
 /// Days are deduplicated by [OcptShotPlacement.dayId] and kept in ascending
 /// [OcptShotPlacement.dayNumber] order. The day tag is [ocptScheduleDayTagLabel], the schedule
-/// mode's own — reused rather than reimplemented, so the two modes can never print a shooting day's
-/// rank differently, and never run through `Tr` for the same reason that one isn't: it is the
-/// trade's own shorthand, not a translated word. The date, in the single-day case, is formatted for
-/// the locale [context] resolves to, without a year: the column has no room for one and a shoot
-/// rarely spans two.
+/// mode's own — reused rather than reimplemented, so the two modes can never print a shooting
+/// day's rank differently, letter included. The date, in the single-day case, is formatted for the
+/// locale [context] resolves to, without a year: the column has no room for one and a shoot rarely
+/// spans two.
 String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> placements) {
   if (placements.isEmpty) {
     return ocptShotListEmptyValue;
   }
 
+  final tr = Tr.of(context);
   final distinctDays = <String, OcptShotPlacement>{};
   for (final placement in placements) {
     distinctDays[placement.dayId] = placement;
@@ -225,10 +226,10 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
       Localizations.localeOf(context).toString(),
     ).format(placement.date);
 
-    return "${ocptScheduleDayTagLabel(placement.dayNumber)} · $dateLabel";
+    return "${ocptScheduleDayTagLabel(tr, placement.dayNumber)} · $dateLabel";
   }
 
-  return orderedDays.map((placement) => ocptScheduleDayTagLabel(placement.dayNumber)).join(", ");
+  return orderedDays.map((placement) => ocptScheduleDayTagLabel(tr, placement.dayNumber)).join(", ");
 }
 
 /// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].

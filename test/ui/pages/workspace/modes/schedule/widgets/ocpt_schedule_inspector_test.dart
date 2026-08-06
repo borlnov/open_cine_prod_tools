@@ -171,7 +171,7 @@ void main() {
     await _pumpDayInspector(tester, day: day, onDayStatusChanged: (_) {});
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
-    expect(find.text(tr.scheduleInspectorDayTitle("J3")), findsOneWidget);
+    expect(find.text(tr.scheduleInspectorDayTitle("D3")), findsOneWidget);
     expect(find.text(tr.scheduleDayStatusShot), findsOneWidget);
     // No slot at all: PAT → end reads as an em dash rather than crashing.
     expect(find.text("—"), findsWidgets);
@@ -306,7 +306,7 @@ void main() {
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
-      expect(find.text("J2, J5"), findsOneWidget);
+      expect(find.text("D2, D5"), findsOneWidget);
       expect(find.text(tr.scheduleInspectorShotNotPlanned), findsNothing);
     });
 

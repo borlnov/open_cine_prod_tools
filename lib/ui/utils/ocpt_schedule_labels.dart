@@ -59,15 +59,13 @@ String ocptScheduleAgendaModeLabel(Tr tr, OcptScheduleAgendaMode mode) => switch
   OcptScheduleAgendaMode.month => tr.scheduleAgendaModeMonth,
 };
 
-/// A day's printed rank, `J3` — the shorthand `docs/plans/schedule-mode.md` itself prints, in
-/// English prose as well as French, and the one the reference production documents this mode is
-/// modelled on use throughout.
+/// A day's printed rank, `D3`/`J3` — the shorthand `docs/plans/schedule-mode.md` itself prints,
+/// and the one the reference production documents this mode is modelled on use throughout.
 ///
-/// Deliberately **not** run through `Tr`: it reads as one token beside a date (`J3 · Tue 4 Aug`),
-/// it is what a crew already reads on a call sheet, and a rank that changed letter with the UI
-/// language would stop matching the paperwork the shoot is actually run from. If that ever turns
-/// out to be the wrong call for the English UI, this one function is the whole change.
-String ocptScheduleDayTagLabel(int dayNumber) => "J$dayNumber";
+/// The letter is [Tr.scheduleDayTagPrefix], **localized**: the paperwork a crew reads is printed
+/// in the language the app is set to, so the letter that opens a day's own tag follows it, the
+/// same as every other word on the page.
+String ocptScheduleDayTagLabel(Tr tr, int dayNumber) => "${tr.scheduleDayTagPrefix}$dayNumber";
 
 /// The colour a day (or, once built, a week/month cell) is tinted with, following its first slot's
 /// own location — the M1 rule ("M1 tints a day by its location, with no choice offered", the

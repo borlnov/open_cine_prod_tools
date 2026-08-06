@@ -200,7 +200,7 @@ void main() {
     );
 
     // Tuesday 4 August 2026, in the app's own en_GB locale.
-    expect(find.text("J3 · Tue 4 Aug"), findsOneWidget);
+    expect(find.text("D3 · Tue 4 Aug"), findsOneWidget);
     // shot-2 has no entry in placementsByShotId at all: not yet planned.
     expect(find.text(ocptShotListEmptyValue), findsOneWidget);
   });
