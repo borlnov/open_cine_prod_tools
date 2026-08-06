@@ -156,7 +156,12 @@ is built: an individual lead is seeded from that person's or role's most recent 
 
 ## 4. Milestones
 
-### M1' — the data model and the rules (no UI)
+### M1' — the data model and the rules (no UI) — **shipped**
+
+Everything below is built and merged into the branch: schema v12, the two pure utils and their
+ADRs (0015 amended, 0017), the service, payload format 7, and the mode reading its convocation
+times out rather than asking for them. The code and those two ADRs are the record from here on —
+the list is kept only until this plan's own remaining milestones ship with it.
 
 1. **Schema v12.**
    - `shooting_day_blocks.slotId` becomes non-null.
