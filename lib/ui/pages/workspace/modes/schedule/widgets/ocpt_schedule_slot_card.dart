@@ -224,62 +224,91 @@ class OcptScheduleSlotCard extends StatelessWidget {
                 ),
         ),
         const SizedBox(height: 6),
+        // Every entry of this row is flexible and every name ellipsizes: the card narrows with the
+        // centre whenever the inspector opens, and a location and a set named at full length would
+        // otherwise push straight through the times column beside them.
         Row(
           children: [
-            if (onPlaceChanged == null)
-              Text(location?.name ?? tr.scheduleDayNoLocation, style: theme.textTheme.bodySmall)
-            else
-              PopupMenuButton<String>(
-                tooltip: "",
-                onSelected: (value) => onPlaceChanged(
-                  value == _noLocationOption ? null : value,
-                  null,
-                ),
-                itemBuilder: (context) => [
-                  PopupMenuItem<String>(value: _noLocationOption, child: Text(tr.scheduleDayNoLocation)),
-                  const PopupMenuDivider(),
-                  for (final candidate in locations)
-                    PopupMenuItem<String>(value: candidate.id, child: Text(candidate.name)),
-                ],
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(location?.name ?? tr.scheduleDayNoLocation, style: theme.textTheme.bodySmall),
-                    const Icon(Icons.arrow_drop_down, size: 16),
-                  ],
-                ),
-              ),
+            Flexible(
+              child: onPlaceChanged == null
+                  ? _buildPlaceName(context, location?.name ?? tr.scheduleDayNoLocation)
+                  : PopupMenuButton<String>(
+                      tooltip: "",
+                      onSelected: (value) => onPlaceChanged(
+                        value == _noLocationOption ? null : value,
+                        null,
+                      ),
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          value: _noLocationOption,
+                          child: Text(tr.scheduleDayNoLocation),
+                        ),
+                        const PopupMenuDivider(),
+                        for (final candidate in locations)
+                          PopupMenuItem<String>(value: candidate.id, child: Text(candidate.name)),
+                      ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: _buildPlaceName(
+                              context,
+                              location?.name ?? tr.scheduleDayNoLocation,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, size: 16),
+                        ],
+                      ),
+                    ),
+            ),
             if (location != null) ...[
               const SizedBox(width: 6),
               Text("·", style: theme.textTheme.bodySmall),
               const SizedBox(width: 6),
-              if (onPlaceChanged == null)
-                Text(set?.name ?? tr.scheduleInspectorNoSets, style: theme.textTheme.bodySmall)
-              else
-                PopupMenuButton<String>(
-                  tooltip: "",
-                  onSelected: (value) =>
-                      onPlaceChanged(location!.id, value == _noLocationOption ? null : value),
-                  itemBuilder: (context) => [
-                    PopupMenuItem<String>(value: _noLocationOption, child: Text(tr.scheduleInspectorNoSets)),
-                    const PopupMenuDivider(),
-                    for (final candidate in location!.sets)
-                      PopupMenuItem<String>(value: candidate.id, child: Text(candidate.name)),
-                  ],
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(set?.name ?? tr.scheduleInspectorNoSets, style: theme.textTheme.bodySmall),
-                      const Icon(Icons.arrow_drop_down, size: 16),
-                    ],
-                  ),
-                ),
+              Flexible(
+                child: onPlaceChanged == null
+                    ? _buildPlaceName(context, set?.name ?? tr.scheduleInspectorNoSets)
+                    : PopupMenuButton<String>(
+                        tooltip: "",
+                        onSelected: (value) =>
+                            onPlaceChanged(location!.id, value == _noLocationOption ? null : value),
+                        itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: _noLocationOption,
+                            child: Text(tr.scheduleInspectorNoSets),
+                          ),
+                          const PopupMenuDivider(),
+                          for (final candidate in location!.sets)
+                            PopupMenuItem<String>(value: candidate.id, child: Text(candidate.name)),
+                        ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: _buildPlaceName(
+                                context,
+                                set?.name ?? tr.scheduleInspectorNoSets,
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, size: 16),
+                          ],
+                        ),
+                      ),
+              ),
             ],
           ],
         ),
       ],
     );
   }
+
+  /// One name of the header's own location · set line, ellipsized on a single line.
+  Widget _buildPlaceName(BuildContext context, String name) => Text(
+    name,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: Theme.of(context).textTheme.bodySmall,
+  );
 
   /// The header's own crew call/wrap band and default PAT band, right-aligned.
   Widget _buildTimesColumn(BuildContext context) {
