@@ -18,9 +18,9 @@ read the same guide. Edit `AGENTS.md`; never replace the symlink with a copy.
 Open Cine Prod Tools is an **open-source suite of film-production tools** (Apache-2.0,
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
 découpage technique (shot lists), the scenario coverage per shot, the resources catalogue (the
-people, the cast, the locations and the physical elements) and the script breakdown
-(*dépouillement*) ship alongside it, and the long-term roadmap adds, in priority order: shooting
-schedule, call sheets, budget, script supervisor reports, storyboard, and a casting tracker.
+people, the cast, the locations and the physical elements), the script breakdown (*dépouillement*)
+and the shooting schedule ship alongside it, and the long-term roadmap adds, in priority order:
+call sheets, budget, script supervisor reports, storyboard, and a casting tracker.
 
 - Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
   released by the CI (see the Architecture section) but has never been run on a Mac — there is
@@ -102,6 +102,8 @@ schedule, call sheets, budget, script supervisor reports, storyboard, and a cast
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
 | 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`) then v10 (a code backfilled onto every set), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
+| 28 | Schedule mode M1 — planning (issue #49): schema v11 (the six schedule tables, and the legacy `shots.shootingDay` erased by the migration), `ocpt_shooting_day_timeline.dart` (ADR 0015) and `ocpt_sun_times.dart` (ADR 0016), both pure, `OcptScheduleService` with its day duplication and its one-placement-per-shot rule, payload format 6, `OcptScheduleMode` with its agenda in three presentations and its day view, and the shot list's shooting day turned into a read-out of the placement | ✅ |
+| 28b | Schedule mode M2 (the general and named call sheets and the shooting plan PDFs) and M3 (the positions matrix, the presence grid and the conflict alerts) | 📝 planned |
 
 ## Ways of working
 
@@ -193,8 +195,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `recordId` that is null, or that names a row tombstoned since, only opens the tab. A set is
   revealed as **its location** (`OcptSet.locationId`, resolved by the asking mode), a set having no
   sheet of its own. `OcptWorkspaceMode { screenplay, breakdown,
-  shotList, resources, schedule, budget }` — the four implemented modes first, in the order the work
-  happens in (write, break down, shoot-list), the two empty ones last — is
+  shotList, resources, schedule, budget }` — the five implemented modes first, in the order the work
+  happens in (write, break down, shoot-list, resource, schedule), the one empty one last — is
   persisted through `OcptPropertiesManager.workspaceMode` by **name** rather than by index (modelled
   on `editorMode`), so opening a project restores the last mode used and reordering the enum is
   safe. `OcptWorkspaceShell` is a
@@ -215,8 +217,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   (`lib/ui/pages/workspace/modes/shot_list/`, owning `OcptShotListBloc`), the resources mode is
   `OcptResourcesMode` (`lib/ui/pages/workspace/modes/resources/`, owning `OcptResourcesBloc`), the
   breakdown mode is `OcptBreakdownMode` (`lib/ui/pages/workspace/modes/breakdown/`, owning
-  `OcptBreakdownBloc`), and the two remaining
-  ones are stateless `OcptBudgetMode`/`OcptScheduleMode` widgets rendering a shared empty state —
+  `OcptBreakdownBloc`), the schedule mode is `OcptScheduleMode`
+  (`lib/ui/pages/workspace/modes/schedule/`, owning `OcptScheduleBloc`), and the one remaining
+  one is a stateless `OcptBudgetMode` widget rendering the shared empty state —
   no bloc, no data, "coming in a future version". `OcptWorkspaceDock`/`OcptWorkspaceDockDivider`/
   `OcptWorkspaceDockLayoutController` (`lib/ui/pages/workspace/widgets/`) are the dock geometry
   primitives every mode's shell reuses; `OcptWorkspaceModeSwitcher` is the bottom band that
@@ -293,9 +296,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v10 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v11 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
-  `row_field_versions`,
+  the six schedule tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -315,7 +318,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  nineteen captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  twenty-five captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
   plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
   independent of the schema
@@ -335,7 +338,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   at once: `breakdown_tags` and `scene_breakdowns` materialise as empty lists, while `elements`
   gains `status` filled with `toFind` — not a "leave it alone" null, because a version captured
   before that column existed has no live value anywhere to leave alone, so the column's own default
-  is the honest reading. Counters shown on a card
+  is the honest reading. Format 6 (the schedule's six tables) is back to plain empty lists, and it
+  is the entry whose consequence is worth stating out loud: restoring a version captured before the
+  schedule mode **tombstones every shooting day planned since**, which is what "this project had not
+  been scheduled" means — it is an edit like any other restore, not a no-op that leaves the plan
+  alone. Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
@@ -565,6 +572,56 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   set as the location that holds it. The popover's own `Open in Resources` deliberately carries
   none: it is only ever shown when the search names no role and no set, so there is no sheet to land
   on — the user is going there to create one.
+- Schedule mode (`lib/ui/pages/workspace/modes/schedule/`): **when** the film is shot. It sits after
+  the shot list, since what is placed on a day is a shot.
+  A **shooting day** (`shooting_days`) is **always dated** — the week and month views, the sun times
+  and every availability crossing depend on it — and its number, the `J3` a call sheet prints, is a
+  **read-time rank** over the live days' `sortKey`, never a column, exactly as `OcptShot.position`
+  is. `ocptScheduleDayTagLabel` renders it and is deliberately not run through `Tr`: it is what a
+  crew already reads on the paperwork, in either UI language.
+  A day holds one or more **slots** (`shooting_slots`), the *créneaux* — a convocation window with
+  its own location, set and crew band; a real call sheet regularly has two, with different crews and
+  different call times, which is why they are rows rather than columns. Who is convoked is
+  `shooting_slot_crew` (a person and a position, two rows for one person holding two functions) and
+  `shooting_slot_cast` (**the role, not the person** — the actor is read through `roles.personId`, so
+  recasting never rewrites the schedule). An actor has **three** times, not two: an arrival, then
+  the PAT band, the gap between them being the make-up chair.
+  Every minute in this mode is an **offset from the day's own midnight and may exceed 1440**: a night
+  slot running 19:00 → 03:00 stores 1140 → 1620, nothing is ever taken modulo anything, and
+  `ocptFormatDayMinute` (`lib/utils/ocpt_day_minute.dart`) is the single formatter that reads one as
+  a clock face. Getting this wrong only shows up on the one night shoot of a production.
+  A day's timetable is `shooting_day_blocks`, and **how it becomes clock times is stated once and
+  implemented once**, in `ocptComputeShootingDayTimeline` (`lib/utils/ocpt_shooting_day_timeline.dart`,
+  ADR 0015): a chain of durations from the first slot's crew call, a block with an `anchorMinute`
+  starting exactly there, a slot calling its crew later pulling the chain forward, and an anchor the
+  chain has already run past reported as an `OcptTimelineOverrun` rather than silently pushed. No
+  computed time is ever stored — that is what makes a day cheap to rework between takes — so
+  everything downstream reads that one function and nothing re-derives it. A `hold` block reserves
+  time for a sequence not yet shot-listed, which is how a production schedules ahead of its own
+  découpage.
+  Sunrise, sunset and the three twilights are **computed offline** from the day's first slot's
+  location (`ocptSunTimesOf`, `lib/utils/ocpt_sun_times.dart`, ADR 0016), each figure independently
+  nullable — no coordinates, or a phase that never happens at that latitude, prints nothing rather
+  than a plausible wrong time. The time zone is the **device's own** for that date, which the day
+  inspector says rather than hides.
+  `OcptScheduleService` is the eleventh service `OcptProjectsManager` owns. **A shot is placed at
+  most once across the whole schedule** — placing it again moves it — so a shot's day is a single
+  answer, which is what the shot list reads out. Deleting a day cascades onto everything hanging off
+  it; deleting a **slot** does not, a block losing its convocation window rather than its place in
+  the day. `duplicateDay` copies the slots, their crew, their cast and their times and deliberately
+  **neither the placed shots nor the crew note**: a stable crew is entered once for a whole shoot,
+  and a day lost to rain is re-planned at another date in one gesture.
+  The centre is either the **agenda** — strip, week (an hour grid shaded by the sun times, stretched
+  to whatever the timeline returns so a night shoot draws where it belongs) or month — or the **day
+  view**, the working surface: the slot cards, each entering its own crew and cast on itself, then
+  the timetable, whose blocks are dragged into place, nudged by `±`, pinned by an anchor whose minute
+  is typed in the same `OcptScheduleMinuteField` every other time uses, and shown in the error colour
+  when their anchor over-ran. A shot block carries a **status control writing `shots.status`**, the
+  same column the shot list edits — one truth, two places to change it — so a day reads as a
+  checklist on set. The left dock is the day list over the shots still to place, and placing is
+  picking a shot then clicking a day; the right dock is `Inspector` + the shared `Versions` tab.
+  `shooting_presences` is declared but only written in M3, when the presence grid lands; the mock's
+  `Couleur par` control and its alert list belong to that milestone too.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
@@ -669,8 +726,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is the one panel of the dock
   that is about the **project** rather than the mode showing it, so it is hosted by every mode's
   dock (`OcptEditorRightDockTab.versions`, `OcptShotListRightDockTab.versions`,
-  `OcptResourcesRightDockTab.versions` — the resources dock's only tab — and
-  `OcptBreakdownRightDockTab.versions`) and built from
+  `OcptResourcesRightDockTab.versions` — the resources dock's only tab —,
+  `OcptBreakdownRightDockTab.versions` and `OcptScheduleRightDockTab.versions`) and built from
   `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
   `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
   `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
@@ -723,10 +780,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   (nulling that one callback withholds the whole tagging path, since no anchor can open and no
   popover ever has a range to show), the status and category chips, the scene status control, its
   sets row's picker and chip dismissals, every
-  notes field, the suggestion acceptances and the tag removal. What only reads stays: the exports,
+  notes field, the suggestion acceptances and the tag removal; and — in the schedule mode — the day
+  creation and its card's `⋮`, the placing gesture, every slot, crew, cast and block control, the
+  minute fields (which render as plain text with no callback), the anchor pin and the shot status.
+  What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word
-  still selects its target, since selecting writes nothing — plus the app-wide display preferences.
+  still selects its target, since selecting writes nothing — the schedule's three agenda
+  presentations, its day view, its computed times and its sun bands, plus the app-wide display
+  preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
   Flutter's own "no callback, no affordance" idiom); a composite panel
   (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`, each of the resources mode's
