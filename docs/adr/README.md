@@ -61,6 +61,7 @@ number is a stable identifier other documents and commits can reference.
 | [0012](0012-source-provenance-in-the-paginator.md) | Source provenance in the paginator | Accepted |
 | [0013](0013-binary-assets-referenced-by-path.md) | Binary assets referenced by path | Accepted |
 | [0014](0014-breakdown-tags-as-the-script-to-catalogue-anchor.md) | Breakdown tags as the script-to-catalogue anchor | Accepted |
+| [0015](0015-shooting-days-as-chained-blocks-with-pinned-anchors.md) | Shooting days as chained blocks with pinned anchors | Accepted |
 
 ## Candidates
 
