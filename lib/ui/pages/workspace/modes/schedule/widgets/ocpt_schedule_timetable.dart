@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
@@ -17,6 +18,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// How many minutes each `±` tap changes a block's own duration by.
 const int _ocptTimetableDurationStep = 5;
+
+/// The value the "no sequence yet" entry of a hold row's own sequence picker menu carries, distinct
+/// from every scene id — a [PopupMenuButton] cannot carry a null value for an entry that must still
+/// be selectable, the same convention `OcptScheduleSlotCard`'s own `_noLocationOption`/
+/// `_noGroupOption` already use.
+const String _noSequenceOption = "";
 
 /// The payload a row's own cross-slot drag carries: which block, and the id of the slot it
 /// currently belongs to. The second half is what lets a slot card's own [DragTarget] refuse a block
@@ -44,11 +51,19 @@ class _OcptScheduleDraggedBlock {
 /// (M2') — every slot now draws its own copy of this widget, over its own [blocks] alone, chained
 /// by its own [timeline].
 ///
+/// A **hold** row carries one further control the others don't: a picker naming the sequence it
+/// reserves time for ([onHoldSequenceChanged]), writing `shooting_day_blocks.sceneId` — which is
+/// what says which roles a held sequence calls for, its free-text label never having been able to.
+/// It offers every one of [sequences] plus a "no sequence yet" entry, [sequences] itself never
+/// carrying the shot list's own orphan group: an orphan names no `scenes` row, so `sceneId` could
+/// never point at it.
+///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onReordered], [onDurationChanged], [onAnchorChanged], [onShotStatusChanged],
-/// [onDeletionRequested], [onBlockAdded] and [onBlockMovedToSlot] — the last of which also turns
-/// every row undraggable and this timetable's own drop area inert, rather than merely disabled.
-/// Selecting a row ([onBlockSelected]) only ever reads, so it is never withheld.
+/// [onHoldSequenceChanged], [onDeletionRequested], [onBlockAdded] and [onBlockMovedToSlot] — the
+/// last of which also turns every row undraggable and this timetable's own drop area inert, rather
+/// than merely disabled. Selecting a row ([onBlockSelected]) only ever reads, so it is never
+/// withheld.
 class OcptScheduleTimetable extends StatelessWidget {
   /// The id of the slot this timetable belongs to: what a block dropped from another slot's own
   /// timetable lands on, and what a dragged row's own [_OcptScheduleDraggedBlock.sourceSlotId] is
@@ -66,6 +81,11 @@ class OcptScheduleTimetable extends StatelessWidget {
 
   /// The id of the currently selected block, or null while none is.
   final String? selectedBlockId;
+
+  /// Every real scene of the screenplay's shot list — what a **hold** row's own sequence picker
+  /// offers, alongside the "no sequence yet" entry this widget adds itself. Never carries the
+  /// orphan group; see the class doc comment.
+  final List<OcptSceneShotSequence> sequences;
 
   /// The day's own other live slots, by id and by their raw label (substituted for
   /// [Tr.scheduleInspectorUnnamedSlot] by this widget itself when empty, exactly as a slot card's
@@ -92,6 +112,11 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// Called with a shot block's own shot id and the status just picked, or null while withheld.
   final void Function(String shotId, OcptShotStatus status)? onShotStatusChanged;
 
+  /// Called with a **hold** block's id and the scene just picked from its own sequence picker (null
+  /// for "no sequence yet"), or null while withheld — which also turns the picker into plain
+  /// read-only text.
+  final void Function(String blockId, String? sceneId)? onHoldSequenceChanged;
+
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onDeletionRequested;
 
@@ -115,12 +140,14 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.timeline,
     required this.shotOf,
     required this.selectedBlockId,
+    required this.sequences,
     required this.otherSlots,
     required this.onBlockSelected,
     required this.onReordered,
     required this.onDurationChanged,
     required this.onAnchorChanged,
     required this.onShotStatusChanged,
+    required this.onHoldSequenceChanged,
     required this.onDeletionRequested,
     required this.onBlockAdded,
     required this.onBlockMovedToSlot,
@@ -270,6 +297,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     shot: block.kind == OcptShootingBlockKind.shot && block.shotId != null ? shotOf(block.shotId!) : null,
     isSelected: block.id == selectedBlockId,
     reorderIndex: reorderIndex,
+    sequences: sequences,
     otherSlots: otherSlots,
     onSelected: () => onBlockSelected(block.id),
     onDurationChanged: onDurationChanged == null
@@ -281,6 +309,9 @@ class OcptScheduleTimetable extends StatelessWidget {
     onShotStatusChanged: onShotStatusChanged == null || block.shotId == null
         ? null
         : (status) => onShotStatusChanged!(block.shotId!, status),
+    onSequenceChanged: onHoldSequenceChanged == null
+        ? null
+        : (sceneId) => onHoldSequenceChanged!(block.id, sceneId),
     onDeletionRequested: onDeletionRequested == null ? null : () => onDeletionRequested!(block.id),
     onMovedToSlot: onBlockMovedToSlot == null
         ? null
@@ -309,6 +340,10 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// withheld) — [ReorderableListView] requires every child to carry one.
   final int? reorderIndex;
 
+  /// Every real scene of the screenplay's shot list — see [OcptScheduleTimetable.sequences]. Only
+  /// read when [block]'s own kind is [OcptShootingBlockKind.hold].
+  final List<OcptSceneShotSequence> sequences;
+
   /// The day's own other live slots, by id and by raw label — see [OcptScheduleTimetable.otherSlots].
   final List<(String, String)> otherSlots;
 
@@ -326,6 +361,10 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// Called with the status just picked, or null while withheld or this isn't a shot block.
   final ValueChanged<OcptShotStatus>? onShotStatusChanged;
 
+  /// Called with the scene just picked from this row's own sequence picker (null for "no sequence
+  /// yet"), or null while withheld or [block]'s own kind isn't [OcptShootingBlockKind.hold].
+  final ValueChanged<String?>? onSequenceChanged;
+
   /// Called when this row's own remove control is clicked, or null while withheld.
   final VoidCallback? onDeletionRequested;
 
@@ -342,11 +381,13 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     required this.shot,
     required this.isSelected,
     required this.reorderIndex,
+    required this.sequences,
     required this.otherSlots,
     required this.onSelected,
     required this.onDurationChanged,
     required this.onAnchorChanged,
     required this.onShotStatusChanged,
+    required this.onSequenceChanged,
     required this.onDeletionRequested,
     required this.onMovedToSlot,
   });
@@ -381,6 +422,11 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
         ),
         Icon(ocptShootingBlockKindIcon(block.kind), size: 14, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
+        if (block.kind == OcptShootingBlockKind.hold)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: _buildSequencePicker(context, tr, theme),
+          ),
         Expanded(
           child: Text(
             title,
@@ -524,6 +570,67 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
       child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
     ),
   );
+
+  /// This **hold** row's own sequence picker: [block]'s own `sceneId` read out as
+  /// [Tr.scheduleUnplacedSequenceLabel] (the same "SEQ 4A" tag the left dock's own unplaced-shots
+  /// list already prints) or [Tr.scheduleHoldSequencePickerNoSequenceOption] while it names none,
+  /// opening onto every one of [sequences] plus that same "no sequence" entry when [onSequenceChanged]
+  /// is given, or plain read-only text while it is withheld.
+  ///
+  /// A `sceneId` naming a scene [sequences] no longer carries — deleted from the screenplay since it
+  /// was picked — reads the same as "no sequence yet" rather than crashing on a lookup that found
+  /// nothing: the picker still lets the user pick a live one in its place.
+  Widget _buildSequencePicker(BuildContext context, Tr tr, ThemeData theme) {
+    final onSequenceChanged = this.onSequenceChanged;
+    final sceneId = block.sceneId;
+    OcptSceneShotSequence? currentSequence;
+    for (final sequence in sequences) {
+      if (sequence.sceneId == sceneId) {
+        currentSequence = sequence;
+        break;
+      }
+    }
+    final currentLabel = currentSequence == null
+        ? tr.scheduleHoldSequencePickerNoSequenceOption
+        : tr.scheduleUnplacedSequenceLabel(currentSequence.displaySceneNumber);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+
+    if (onSequenceChanged == null) {
+      return Text(currentLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: labelStyle);
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: "",
+      padding: EdgeInsets.zero,
+      onSelected: (value) => onSequenceChanged(value == _noSequenceOption ? null : value),
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: _noSequenceOption,
+          child: Text(tr.scheduleHoldSequencePickerNoSequenceOption),
+        ),
+        const PopupMenuDivider(),
+        for (final sequence in sequences)
+          PopupMenuItem<String>(
+            value: sequence.sceneId,
+            child: Text(
+              "${tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber)} · ${sequence.heading}",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(currentLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: labelStyle),
+          Icon(Icons.arrow_drop_down, size: 14, color: theme.colorScheme.onSurfaceVariant),
+        ],
+      ),
+    );
+  }
 
   /// This row's own `Move to…` menu — every one of [otherSlots], by label (an empty one read out as
   /// [Tr.scheduleInspectorUnnamedSlot]) — the keyboard/no-pointer path onto [onMovedToSlot], beside

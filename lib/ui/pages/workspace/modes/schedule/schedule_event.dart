@@ -697,6 +697,24 @@ class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, blockId, anchorMinute];
 }
 
+/// Writes a new sequence onto **hold** block [blockId] immediately, dispatched by its own timetable
+/// row's sequence picker — the control that finally fills `shooting_day_blocks.sceneId`, which says
+/// which roles a held sequence calls for (its free-text label never could).
+class OcptScheduleBlockSequenceChangedEvent extends OcptScheduleEvent {
+  /// The id of the hold block being edited.
+  final String blockId;
+
+  /// The id of the scene just picked, or null to clear it back to "no sequence yet".
+  final String? sceneId;
+
+  /// Class constructor
+  const OcptScheduleBlockSequenceChangedEvent({required this.blockId, required this.sceneId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, blockId, sceneId];
+}
+
 /// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by
 /// a drag-to-reorder gesture on that slot card's own timetable. The block's own slot is read off
 /// its own row (`OcptScheduleService.reorderBlock`), so no slot or day id travels with this event.

@@ -6696,6 +6696,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleHoldSequencePickerNoSequenceOption": "No sequence yet",
+  "@scheduleHoldSequencePickerNoSequenceOption": {
+    "description": "Entry of a hold row's own sequence picker clearing it back to no sequence, and the read-out shown for a hold that names none",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleAddSlotAction": "Slot",
   "@scheduleAddSlotAction": {
     "description": "Label of the day view's own control adding a new slot",

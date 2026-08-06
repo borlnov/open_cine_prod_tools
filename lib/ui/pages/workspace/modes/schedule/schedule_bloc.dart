@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -21,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
@@ -35,10 +37,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the schedule
 /// itself ([_scheduleService]), the shot list ([_shotListService] — every placed or unplaced
-/// shot's own code, size, duration and characters), and the three resources catalogues the slot
-/// cards read from ([_locationsService], [_roleIndexService], [_peopleService]). It mixes in
-/// [MixinOcptProjectVersionsBloc], answering its two hooks through [_flushPendingFieldEdits] and
-/// [_onLoadRequested].
+/// shot's own code, size, duration and characters), the three resources catalogues the slot
+/// cards read from ([_locationsService], [_roleIndexService], [_peopleService]), and the
+/// breakdown pass's own role tags ([_breakdownService] — every scene's own
+/// [OcptScheduleState.roleIdsBySceneId], what a **hold** block's own roles are resolved through).
+/// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
+/// [_flushPendingFieldEdits] and [_onLoadRequested].
 ///
 /// The two dock fractions and the last right dock tab are persisted through
 /// [_propertiesManager]'s `scheduleLeftDockFraction`/`scheduleRightDockFraction`/
@@ -82,6 +86,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// The service used to read the address book.
   final OcptPeopleService _peopleService;
 
+  /// The service used to read the breakdown pass's own role tags — what a **hold** block's own
+  /// roles are resolved through, once its `sceneId` names a sequence.
+  final OcptBreakdownService _breakdownService;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -107,6 +115,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptLocationsService? locationsService,
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
+    OcptBreakdownService? breakdownService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -126,6 +135,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _peopleService =
            peopleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
+       _breakdownService =
+           breakdownService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).breakdownService,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptScheduleState.init()) {
     add(const OcptScheduleLoadRequestedEvent());
@@ -179,6 +191,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
     on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
     on<OcptScheduleBlockAnchorChangedEvent>(_onBlockAnchorChanged);
+    on<OcptScheduleBlockSequenceChangedEvent>(_onBlockSequenceChanged);
     on<OcptScheduleBlockReorderedEvent>(_onBlockReordered);
     on<OcptScheduleBlockMovedToSlotEvent>(_onBlockMovedToSlot);
     on<OcptScheduleBlockDeletionConfirmedEvent>(_onBlockDeletionConfirmed);
@@ -264,6 +277,17 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       screenplayId: project.primaryScreenplayId,
     );
     final people = await _peopleService.loadPeople(database: project.database);
+    final breakdownTags = await _breakdownService.loadTags(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    final roleIdsBySceneId = <String, Set<String>>{};
+    for (final tag in breakdownTags) {
+      final roleId = tag.roleId;
+      if (tag.targetKind == OcptBreakdownTargetKind.role && roleId != null) {
+        (roleIdsBySceneId[tag.sceneId] ??= <String>{}).add(roleId);
+      }
+    }
 
     final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
@@ -278,6 +302,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         locations: locations,
         roles: roles,
         people: people,
+        roleIdsBySceneId: roleIdsBySceneId,
         agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
         selectedDayId: defaultDay?.id,
         clearSelectedDayId: defaultDay == null,
@@ -1036,6 +1061,26 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       blockId: event.blockId,
       anchorMinute: Value(event.anchorMinute),
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Writes a new sequence onto a hold block — `OcptScheduleService.updateBlock` itself refuses the
+  /// column on any other kind, so this handler passes it through unconditionally rather than
+  /// checking the block's own kind a second time.
+  Future<void> _onBlockSequenceChanged(
+    OcptScheduleBlockSequenceChangedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.updateBlock(
+      database: project.database,
+      blockId: event.blockId,
+      sceneId: Value(event.sceneId),
     );
     await _applyScheduleSnapshot(emitter, project);
   }

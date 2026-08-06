@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
@@ -33,6 +34,7 @@ OcptShootingDayBlock _buildBlock({
   String slotId = "slot-1",
   OcptShootingBlockKind kind = OcptShootingBlockKind.preparation,
   String? shotId,
+  String? sceneId,
   int? anchorMinute,
   String label = "",
 }) => OcptShootingDayBlock(
@@ -41,11 +43,26 @@ OcptShootingDayBlock _buildBlock({
   slotId: slotId,
   kind: kind,
   shotId: shotId,
-  sceneId: null,
+  sceneId: sceneId,
   label: label,
   durationMinutes: null,
   anchorMinute: anchorMinute,
   notes: "",
+);
+
+/// Builds a scene sequence with the few fields these tests read, everything else neutral.
+OcptSceneShotSequence _buildSequence({
+  required String sceneId,
+  required String displaySceneNumber,
+  String heading = "INT. KITCHEN - DAY",
+}) => OcptSceneShotSequence(
+  sceneId: sceneId,
+  heading: heading,
+  sceneNumber: null,
+  displaySceneNumber: displaySceneNumber,
+  charStart: 0,
+  charEnd: 0,
+  shots: const [],
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
@@ -90,12 +107,14 @@ void main() {
     required OcptShootingSlotTimeline? timeline,
     OcptShot? Function(String shotId) shotOf = _noShot,
     String? selectedBlockId,
+    List<OcptSceneShotSequence> sequences = const [],
     List<(String, String)> otherSlots = const [],
     ValueChanged<String> onBlockSelected = _ignoreString,
     void Function(String blockId, int newPosition)? onReordered,
     void Function(String blockId, int durationMinutes)? onDurationChanged,
     void Function(String blockId, int? anchorMinute)? onAnchorChanged,
     void Function(String shotId, OcptShotStatus status)? onShotStatusChanged,
+    void Function(String blockId, String? sceneId)? onHoldSequenceChanged,
     ValueChanged<String>? onDeletionRequested,
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
     void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
@@ -105,12 +124,14 @@ void main() {
     timeline: timeline,
     shotOf: shotOf,
     selectedBlockId: selectedBlockId,
+    sequences: sequences,
     otherSlots: otherSlots,
     onBlockSelected: onBlockSelected,
     onReordered: onReordered,
     onDurationChanged: onDurationChanged,
     onAnchorChanged: onAnchorChanged,
     onShotStatusChanged: onShotStatusChanged,
+    onHoldSequenceChanged: onHoldSequenceChanged,
     onDeletionRequested: onDeletionRequested,
     onBlockAdded: onBlockAdded,
     onBlockMovedToSlot: onBlockMovedToSlot,
@@ -485,12 +506,14 @@ void main() {
                 timeline: timelineOne,
                 shotOf: _noShot,
                 selectedBlockId: null,
+                sequences: const [],
                 otherSlots: const [("slot-2", "Soir")],
                 onBlockSelected: _ignoreString,
                 onReordered: (_, _) {},
                 onDurationChanged: null,
                 onAnchorChanged: null,
                 onShotStatusChanged: null,
+                onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
                 onBlockMovedToSlot: (blockId, targetSlotId) => moved.add((blockId, targetSlotId)),
@@ -505,12 +528,14 @@ void main() {
                 timeline: null,
                 shotOf: _noShot,
                 selectedBlockId: null,
+                sequences: const [],
                 otherSlots: const [("slot-1", "Matin")],
                 onBlockSelected: _ignoreString,
                 onReordered: (_, _) {},
                 onDurationChanged: null,
                 onAnchorChanged: null,
                 onShotStatusChanged: null,
+                onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
                 onBlockMovedToSlot: (blockId, targetSlotId) => moved.add((blockId, targetSlotId)),
@@ -564,12 +589,14 @@ void main() {
                 timeline: timelineOne,
                 shotOf: _noShot,
                 selectedBlockId: null,
+                sequences: const [],
                 otherSlots: const [("slot-2", "Soir")],
                 onBlockSelected: _ignoreString,
                 onReordered: (_, _) {},
                 onDurationChanged: null,
                 onAnchorChanged: null,
                 onShotStatusChanged: null,
+                onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
                 onBlockMovedToSlot: (_, _) {},
@@ -584,12 +611,14 @@ void main() {
                 timeline: null,
                 shotOf: _noShot,
                 selectedBlockId: null,
+                sequences: const [],
                 otherSlots: const [("slot-1", "Matin")],
                 onBlockSelected: _ignoreString,
                 onReordered: (_, _) {},
                 onDurationChanged: null,
                 onAnchorChanged: null,
                 onShotStatusChanged: null,
+                onHoldSequenceChanged: null,
                 onDeletionRequested: null,
                 onBlockAdded: null,
                 onBlockMovedToSlot: (_, _) {},
@@ -671,6 +700,100 @@ void main() {
     await tester.pump();
 
     expect(durations, [("block-1", 35)]);
+  });
+
+  testWidgets("a hold row shows its own sequence picker, no other kind does", (tester) async {
+    final hold = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.hold, sceneId: "scene-1");
+    final meal = _buildBlock(id: "block-2", kind: OcptShootingBlockKind.meal);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(blockId: "block-2", startMinute: 510, endMinute: 540, durationMinutes: 30),
+      ],
+      overruns: [],
+      endMinute: 540,
+    );
+    final sequence = _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A");
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [hold, meal],
+          timeline: timeline,
+          sequences: [sequence],
+          onHoldSequenceChanged: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    // The hold row reads its own picked sequence's tag; the meal row shows nothing of the kind.
+    expect(find.text(tr.scheduleUnplacedSequenceLabel("4A")), findsOneWidget);
+    expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+  });
+
+  testWidgets("picking a sequence and clearing it back to none both dispatch", (tester) async {
+    final hold = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.hold);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+      ],
+      overruns: [],
+      endMinute: 510,
+    );
+    final sequence = _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A");
+    final picked = <(String, String?)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [hold],
+          timeline: timeline,
+          sequences: [sequence],
+          onHoldSequenceChanged: (blockId, sceneId) => picked.add((blockId, sceneId)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    expect(find.text(tr.scheduleHoldSequencePickerNoSequenceOption), findsOneWidget);
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("${tr.scheduleUnplacedSequenceLabel("4A")} · INT. KITCHEN - DAY"));
+    await tester.pumpAndSettle();
+
+    expect(picked, [("block-1", "scene-1")]);
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.scheduleHoldSequencePickerNoSequenceOption).last);
+    await tester.pumpAndSettle();
+
+    expect(picked, [("block-1", "scene-1"), ("block-1", null)]);
+  });
+
+  testWidgets("the sequence picker is withheld when the mode is read-only", (tester) async {
+    final hold = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.hold, sceneId: "scene-1");
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+      ],
+      overruns: [],
+      endMinute: 510,
+    );
+    final sequence = _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A");
+
+    await tester.pumpWidget(
+      _wrapInApp(buildTimetable(blocks: [hold], timeline: timeline, sequences: [sequence])),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+    expect(find.text(tr.scheduleUnplacedSequenceLabel("4A")), findsOneWidget);
   });
 }
 

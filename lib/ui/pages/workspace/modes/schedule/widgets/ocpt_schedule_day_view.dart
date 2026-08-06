@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_groups_band.dart';
@@ -92,6 +93,11 @@ class OcptScheduleDayView extends StatelessWidget {
 
   /// The id of the currently selected block, or null while none is.
   final String? selectedBlockId;
+
+  /// Every real scene of the screenplay's shot list — what a **hold** row's own timetable sequence
+  /// picker offers, handed straight to every [OcptScheduleSlotCard]. See
+  /// `OcptScheduleTimetable.sequences`.
+  final List<OcptSceneShotSequence> sequences;
 
   /// Resolves a slot's id to its own label, as currently held (a pending edit, or its stored
   /// value).
@@ -188,6 +194,10 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a shot block's own shot id and the status just picked, or null while withheld.
   final void Function(String shotId, OcptShotStatus status)? onShotStatusChanged;
 
+  /// Called with a **hold** block's id and the scene just picked from its own timetable row's
+  /// sequence picker, or null while withheld — see `OcptScheduleTimetable.onHoldSequenceChanged`.
+  final void Function(String blockId, String? sceneId)? onBlockSequenceChanged;
+
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onBlockDeletionRequested;
 
@@ -219,6 +229,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.roles,
     required this.shotOf,
     required this.selectedBlockId,
+    required this.sequences,
     required this.slotLabelValueOf,
     required this.groupLabelValueOf,
     required this.slotConvocationsOf,
@@ -245,6 +256,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockDurationChanged,
     required this.onBlockAnchorChanged,
     required this.onShotStatusChanged,
+    required this.onBlockSequenceChanged,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onBlockMovedToSlot,
@@ -312,6 +324,7 @@ class OcptScheduleDayView extends StatelessWidget {
               timeline: timeline?.bySlotId[slot.id],
               shotOf: shotOf,
               selectedBlockId: selectedBlockId,
+              sequences: sequences,
               otherSlots: [
                 for (final other in slots)
                   if (other.id != slot.id) (other.id, slotLabelValueOf(other.id)),
@@ -321,6 +334,7 @@ class OcptScheduleDayView extends StatelessWidget {
               onBlockDurationChanged: onBlockDurationChanged,
               onBlockAnchorChanged: onBlockAnchorChanged,
               onShotStatusChanged: onShotStatusChanged,
+              onBlockSequenceChanged: onBlockSequenceChanged,
               onBlockDeletionRequested: onBlockDeletionRequested,
               onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
               onBlockMovedToSlot: onBlockMovedToSlot,

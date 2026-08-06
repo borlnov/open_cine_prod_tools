@@ -343,6 +343,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       roles: state.roles,
       shotOf: state.shotById,
       selectedBlockId: state.selectedBlockId,
+      sequences: state.sceneSequences,
       slotLabelValueOf: (slotId) {
         final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
         return state.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
@@ -454,6 +455,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onShotStatusChanged: isReadOnly
           ? null
           : (shotId, status) => bloc.add(OcptScheduleShotStatusChangedEvent(shotId: shotId, status: status)),
+      onBlockSequenceChanged: isReadOnly
+          ? null
+          : (blockId, sceneId) =>
+                bloc.add(OcptScheduleBlockSequenceChangedEvent(blockId: blockId, sceneId: sceneId)),
       onBlockDeletionRequested: isReadOnly
           ? null
           : (blockId) => unawaited(_handleBlockDeletionRequested(context, blockId)),

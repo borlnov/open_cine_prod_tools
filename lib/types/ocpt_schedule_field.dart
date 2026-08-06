@@ -26,7 +26,8 @@ enum OcptScheduleField {
   /// `shooting_slots.notes`.
   slotNotes,
 
-  /// `shooting_day_blocks.label` — the wording of a non-shot block, or what a `hold` reserves.
+  /// `shooting_day_blocks.label` — the wording of a non-shot block, a caption rather than what a
+  /// `hold` reserves: that is `shooting_day_blocks.sceneId`'s own job.
   blockLabel,
 
   /// `shooting_day_blocks.notes`.

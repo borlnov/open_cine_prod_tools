@@ -106,6 +106,15 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// once built.
   final List<OcptPerson> people;
 
+  /// The role ids the breakdown pass tagged in each scene, keyed by scene id — every live
+  /// `breakdown_tags` row whose `targetKind` is `OcptBreakdownTargetKind.role`, grouped by
+  /// `sceneId`, as last loaded. What [_roleIdsOfBlock] resolves a **hold** block's own roles
+  /// through: the scene `shooting_day_blocks.sceneId` names is looked up here, so a hold reads
+  /// exactly the roles the breakdown pass already tagged for that sequence rather than asking for
+  /// them a second time. A scene with no role tag at all has no entry, read the same way an absent
+  /// key reads everywhere else in this state — as the empty set.
+  final Map<String, Set<String>> roleIdsBySceneId;
+
   /// The id of the currently selected day, or null while none is — which, past a load, only
   /// happens in a project holding no day at all: the mode opens on the day view, so a load picks a
   /// day to show rather than landing the user on an empty surface.
@@ -277,6 +286,14 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         ? const []
         : (snapshot?.groupsByDayId[selectedDayId] ?? const []);
   }
+
+  /// Every real scene of [shotListSnapshot], as an [OcptSceneShotSequence] — what a hold block's own
+  /// sequence picker offers. [OcptOrphanShotSequence] is deliberately excluded: it names no `scenes`
+  /// row, so `shooting_day_blocks.sceneId` could never point at it.
+  List<OcptSceneShotSequence> get sceneSequences => [
+    for (final sequence in shotListSnapshot?.sequences ?? const <OcptShotSequence>[])
+      if (sequence is OcptSceneShotSequence) sequence,
+  ];
 
   /// The live shots still to place, grouped by the sequence they belong to, sequences in their own
   /// screenplay order and each group's shots in their own sequence order. A sequence with nothing
@@ -458,16 +475,18 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// [OcptConvocationBlock.roleIds] — a **shot** block's own shot's `shot_characters`, matched
   /// against [roles] by exact name (the same normalisation `OcptRoleIndexService.reconcile` and
   /// `OcptShotListService.attachCharacter` already apply to a character name, so a role's own name
-  /// and a shot's own character are directly comparable with no further folding here); every other
-  /// kind returns the empty set.
-  ///
-  /// A **hold** block reserves time for a sequence rather than a shot, and names it through
-  /// `shooting_day_blocks.sceneId`. Nothing sets that column yet — the control that picks a hold's
-  /// sequence comes with the day view's own rework, and so does reading the roles that sequence
-  /// calls for out of the breakdown — so a hold still resolves to no role here, and a role convoked
-  /// in a slot whose only content is a hold keeps the slot's own bounds, which is
+  /// and a shot's own character are directly comparable with no further folding here); a **hold**
+  /// block's own [roleIdsBySceneId] entry for the sequence it reserves time for
+  /// (`OcptShootingDayBlock.sceneId`); every other kind, or a hold naming no scene (or a scene the
+  /// breakdown pass never tagged a role in), returns the empty set — which is what leaves a role
+  /// convoked in a slot whose only content is such a block keeping the slot's own bounds,
   /// [ocptComputeSlotConvocations]'s own fallback for a role no block names.
   Set<String> _roleIdsOfBlock(OcptShootingDayBlock block) {
+    if (block.kind == OcptShootingBlockKind.hold) {
+      final sceneId = block.sceneId;
+      return sceneId == null ? const {} : (roleIdsBySceneId[sceneId] ?? const {});
+    }
+
     if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
       return const {};
     }
@@ -534,6 +553,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.locations,
     required this.roles,
     required this.people,
+    required this.roleIdsBySceneId,
     required this.selectedDayId,
     required this.selectedBlockId,
     required this.centreView,
@@ -565,6 +585,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       locations = const [],
       roles = const [],
       people = const [],
+      roleIdsBySceneId = const {},
       selectedDayId = null,
       selectedBlockId = null,
       centreView = OcptScheduleCentreView.day,
@@ -602,6 +623,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     List<OcptLocation>? locations,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
+    Map<String, Set<String>>? roleIdsBySceneId,
     String? selectedDayId,
     bool clearSelectedDayId = false,
     String? selectedBlockId,
@@ -640,6 +662,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations: locations ?? this.locations,
     roles: roles ?? this.roles,
     people: people ?? this.people,
+    roleIdsBySceneId: roleIdsBySceneId ?? this.roleIdsBySceneId,
     selectedDayId: clearSelectedDayId ? null : (selectedDayId ?? this.selectedDayId),
     selectedBlockId: clearSelectedBlockId ? null : (selectedBlockId ?? this.selectedBlockId),
     centreView: centreView ?? this.centreView,
@@ -713,6 +736,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations,
     roles,
     people,
+    roleIdsBySceneId,
     selectedDayId,
     selectedBlockId,
     centreView,

@@ -35,8 +35,9 @@ class OcptShootingDayBlock extends Equatable {
   /// says which roles a held sequence calls for, `label` being free text that answers nobody.
   final String? sceneId;
 
-  /// The wording of a non-shot block; for [OcptShootingBlockKind.hold], what sequence is being
-  /// reserved time for. Free text, empty for a shot block.
+  /// The wording of a non-shot block — a caption typed onto it, never what names which sequence a
+  /// [OcptShootingBlockKind.hold] reserves: that is [sceneId]'s own job, since free text answers
+  /// nobody. Free text, empty for a shot block.
   final String label;
 
   /// This block's own duration in minutes, or null. For a shot block, null means "use that shot's

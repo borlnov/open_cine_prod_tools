@@ -897,6 +897,7 @@
   "scheduleRemoveBlockTooltip": "Retirer ce bloc",
   "scheduleMoveBlockTooltip": "Déplacer ce bloc vers un autre créneau",
   "scheduleMoveBlockMenuTitle": "Déplacer vers…",
+  "scheduleHoldSequencePickerNoSequenceOption": "Aucune séquence pour l'instant",
   "scheduleAddSlotAction": "Créneau",
   "scheduleTimetableTitle": "Déroulé",
   "scheduleDaySummaryTotalLabel": "Total",

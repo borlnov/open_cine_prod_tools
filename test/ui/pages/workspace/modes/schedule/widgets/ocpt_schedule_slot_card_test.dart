@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -140,6 +141,7 @@ void main() {
     void Function(String castRoleId, int? leadMinutes)? onCastRoleLeadChanged,
     void Function(String castRoleId, String? groupId)? onCastRoleGroupChanged,
     List<OcptShootingDayBlock> blocks = const [],
+    List<OcptSceneShotSequence> sequences = const [],
     List<(String, String)> otherSlots = const [],
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
     void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
@@ -172,12 +174,14 @@ void main() {
     timeline: null,
     shotOf: _noShot,
     selectedBlockId: null,
+    sequences: sequences,
     otherSlots: otherSlots,
     onBlockSelected: (_) {},
     onBlockReordered: isReadOnly ? null : (_, _) {},
     onBlockDurationChanged: isReadOnly ? null : (_, _) {},
     onBlockAnchorChanged: isReadOnly ? null : (_, _) {},
     onShotStatusChanged: isReadOnly ? null : (_, _) {},
+    onBlockSequenceChanged: isReadOnly ? null : (_, _) {},
     onBlockDeletionRequested: isReadOnly ? null : (_) {},
     onBlockAdded: isReadOnly ? null : (onBlockAdded ?? (_) {}),
     onBlockMovedToSlot: isReadOnly ? null : (onBlockMovedToSlot ?? (_, _) {}),

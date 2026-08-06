@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -57,9 +58,10 @@ const String _noGroupOption = "";
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed (`isReadOnly`): the label field, the location/set pickers, the start field, every
 /// crew/cast row's own position picker, lead field, group picker and remove control, both `+`
-/// footers, and every writing affordance of the timetable itself (see [OcptScheduleTimetable]'s own
-/// doc comment). Nothing here reads a `pendingFieldEdits` map itself — [labelValue] is already
-/// resolved by the caller, exactly as every other mode's own sheet fields are.
+/// footers, and every writing affordance of the timetable itself, its own hold row's sequence
+/// picker included (see [OcptScheduleTimetable]'s own doc comment). Nothing here reads a
+/// `pendingFieldEdits` map itself — [labelValue] is already resolved by the caller, exactly as
+/// every other mode's own sheet fields are.
 class OcptScheduleSlotCard extends StatelessWidget {
   /// The slot this card shows.
   final OcptShootingSlot slot;
@@ -159,6 +161,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// The id of the currently selected block, or null while none is.
   final String? selectedBlockId;
 
+  /// Every real scene of the screenplay's shot list — what a **hold** row's own timetable sequence
+  /// picker offers. See [OcptScheduleTimetable.sequences].
+  final List<OcptSceneShotSequence> sequences;
+
   /// The day's own other live slots, by id and by raw label — see
   /// [OcptScheduleTimetable.otherSlots].
   final List<(String, String)> otherSlots;
@@ -180,6 +186,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
 
   /// Called with a shot block's own shot id and the status just picked, or null while withheld.
   final void Function(String shotId, OcptShotStatus status)? onShotStatusChanged;
+
+  /// Called with a **hold** block's id and the scene just picked from its own timetable row's
+  /// sequence picker, or null while withheld — see [OcptScheduleTimetable.onHoldSequenceChanged].
+  final void Function(String blockId, String? sceneId)? onBlockSequenceChanged;
 
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
   final ValueChanged<String>? onBlockDeletionRequested;
@@ -223,12 +233,14 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.timeline,
     required this.shotOf,
     required this.selectedBlockId,
+    required this.sequences,
     required this.otherSlots,
     required this.onBlockSelected,
     required this.onBlockReordered,
     required this.onBlockDurationChanged,
     required this.onBlockAnchorChanged,
     required this.onShotStatusChanged,
+    required this.onBlockSequenceChanged,
     required this.onBlockDeletionRequested,
     required this.onBlockAdded,
     required this.onBlockMovedToSlot,
@@ -328,12 +340,14 @@ class OcptScheduleSlotCard extends StatelessWidget {
           timeline: timeline,
           shotOf: shotOf,
           selectedBlockId: selectedBlockId,
+          sequences: sequences,
           otherSlots: otherSlots,
           onBlockSelected: onBlockSelected,
           onReordered: onBlockReordered,
           onDurationChanged: onBlockDurationChanged,
           onAnchorChanged: onBlockAnchorChanged,
           onShotStatusChanged: onShotStatusChanged,
+          onHoldSequenceChanged: onBlockSequenceChanged,
           onDeletionRequested: onBlockDeletionRequested,
           onBlockAdded: onBlockAdded,
           onBlockMovedToSlot: onBlockMovedToSlot,
