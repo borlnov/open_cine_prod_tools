@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
@@ -78,6 +79,10 @@ class OcptScheduleDayView extends StatelessWidget {
   /// value).
   final String Function(String slotId) slotLabelValueOf;
 
+  /// Resolves a slot's id to its own computed convocations (ADR 0017), or null while none could be
+  /// computed yet — what each slot card's own crew/cast read-outs are drawn from.
+  final OcptSlotConvocations? Function(String slotId) slotConvocationsOf;
+
   /// Called when the `+ Slot` control is clicked, or null while withheld.
   final VoidCallback? onSlotAdded;
 
@@ -87,11 +92,8 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a slot's id and the location/set just picked, or null while withheld.
   final void Function(String slotId, String? locationId, String? setId)? onSlotPlaceChanged;
 
-  /// Called with a slot's id and its crew call/wrap band just committed, or null while withheld.
-  final void Function(String slotId, int callMinute, int wrapMinute)? onSlotCrewTimesChanged;
-
-  /// Called with a slot's id and its default PAT band just committed, or null while withheld.
-  final void Function(String slotId, int? castCallMinute, int? castWrapMinute)? onSlotCastTimesChanged;
+  /// Called with a slot's id and its own new start minute once committed, or null while withheld.
+  final void Function(String slotId, int startMinute)? onSlotStartChanged;
 
   /// Called with a slot's id when its own `Delete this slot…` action is picked, or null while
   /// withheld.
@@ -105,11 +107,6 @@ class OcptScheduleDayView extends StatelessWidget {
   /// withheld.
   final void Function(String crewMemberId, String positionId)? onSlotCrewMemberPositionChanged;
 
-  /// Called with a crew assignment's id and its own call/wrap override just committed, or null
-  /// while withheld.
-  final void Function(String crewMemberId, int? callMinute, int? wrapMinute)?
-  onSlotCrewMemberTimesChanged;
-
   /// Called with a crew assignment's id when its row's remove control is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSlotCrewMemberRemoved;
@@ -117,11 +114,6 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a slot's id and the id of the role picked by its own `+ Cast` footer, or null
   /// while withheld.
   final void Function(String slotId, String roleId)? onSlotCastRoleAdded;
-
-  /// Called with a cast convocation's id and its own arrival/PAT overrides just committed, or null
-  /// while withheld.
-  final void Function(String castRoleId, int? arrivalMinute, int? castCallMinute, int? castWrapMinute)?
-  onSlotCastRoleTimesChanged;
 
   /// Called with a cast convocation's id when its row's remove control is clicked, or null while
   /// withheld.
@@ -170,18 +162,16 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.shotOf,
     required this.selectedBlockId,
     required this.slotLabelValueOf,
+    required this.slotConvocationsOf,
     required this.onSlotAdded,
     required this.onSlotLabelChanged,
     required this.onSlotPlaceChanged,
-    required this.onSlotCrewTimesChanged,
-    required this.onSlotCastTimesChanged,
+    required this.onSlotStartChanged,
     required this.onSlotDeletionRequested,
     required this.onSlotCrewMemberAdded,
     required this.onSlotCrewMemberPositionChanged,
-    required this.onSlotCrewMemberTimesChanged,
     required this.onSlotCrewMemberRemoved,
     required this.onSlotCastRoleAdded,
-    required this.onSlotCastRoleTimesChanged,
     required this.onSlotCastRoleRemoved,
     required this.onBlockSelected,
     required this.onBlockReordered,
@@ -212,6 +202,7 @@ class OcptScheduleDayView extends StatelessWidget {
               roleById: roleById,
               people: people,
               roles: roles.where((role) => !slot.cast.any((cast) => cast.roleId == role.id)).toList(),
+              convocations: slotConvocationsOf(slot.id),
               labelValue: slotLabelValueOf(slot.id),
               onLabelChanged: onSlotLabelChanged == null
                   ? null
@@ -219,12 +210,9 @@ class OcptScheduleDayView extends StatelessWidget {
               onPlaceChanged: onSlotPlaceChanged == null
                   ? null
                   : (locationId, setId) => onSlotPlaceChanged!(slot.id, locationId, setId),
-              onCrewTimesChanged: onSlotCrewTimesChanged == null
+              onStartChanged: onSlotStartChanged == null
                   ? null
-                  : (call, wrap) => onSlotCrewTimesChanged!(slot.id, call, wrap),
-              onCastTimesChanged: onSlotCastTimesChanged == null
-                  ? null
-                  : (call, wrap) => onSlotCastTimesChanged!(slot.id, call, wrap),
+                  : (startMinute) => onSlotStartChanged!(slot.id, startMinute),
               onDeletionRequested: onSlotDeletionRequested == null
                   ? null
                   : () => onSlotDeletionRequested!(slot.id),
@@ -232,12 +220,10 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : (personId) => onSlotCrewMemberAdded!(slot.id, personId),
               onCrewMemberPositionChanged: onSlotCrewMemberPositionChanged,
-              onCrewMemberTimesChanged: onSlotCrewMemberTimesChanged,
               onCrewMemberRemoved: onSlotCrewMemberRemoved,
               onCastRoleAdded: onSlotCastRoleAdded == null
                   ? null
                   : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
-              onCastRoleTimesChanged: onSlotCastRoleTimesChanged,
               onCastRoleRemoved: onSlotCastRoleRemoved,
             ),
           ),
@@ -284,7 +270,7 @@ class OcptScheduleDayView extends StatelessWidget {
   Widget _buildSummaryBand(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final firstCallMinute = slots.isEmpty ? null : slots.first.crewCallMinute;
+    final firstCallMinute = slots.isEmpty ? null : slots.first.startMinute;
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).length;
     final dayEndMinute = timeline?.dayEndMinute;
     final totalLabel = dayEndMinute == null || firstCallMinute == null

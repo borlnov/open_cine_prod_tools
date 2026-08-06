@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
@@ -83,6 +84,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
+
+  /// The start minute a slot created by [_onSlotCreated] is given: 08:00, mirroring
+  /// `OcptScheduleService`'s own private `_defaultStartMinute` (not exported, so this is its own
+  /// copy of the same figure).
+  static const int _defaultSlotStartMinute = 480;
 
   /// The running field-edit debounce timer, if any.
   Timer? _fieldEditTimer;
@@ -150,16 +156,13 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
     on<OcptScheduleSlotCreatedEvent>(_onSlotCreated);
     on<OcptScheduleSlotPlaceChangedEvent>(_onSlotPlaceChanged);
-    on<OcptScheduleSlotCrewTimesChangedEvent>(_onSlotCrewTimesChanged);
-    on<OcptScheduleSlotCastTimesChangedEvent>(_onSlotCastTimesChanged);
+    on<OcptScheduleSlotStartChangedEvent>(_onSlotStartChanged);
     on<OcptScheduleSlotReorderedEvent>(_onSlotReordered);
     on<OcptScheduleSlotDeletionConfirmedEvent>(_onSlotDeletionConfirmed);
     on<OcptScheduleSlotCrewMemberAddedEvent>(_onSlotCrewMemberAdded);
     on<OcptScheduleSlotCrewMemberPositionChangedEvent>(_onSlotCrewMemberPositionChanged);
-    on<OcptScheduleSlotCrewMemberTimesChangedEvent>(_onSlotCrewMemberTimesChanged);
     on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
     on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
-    on<OcptScheduleSlotCastRoleTimesChangedEvent>(_onSlotCastRoleTimesChanged);
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
     on<OcptSchedulePlacingStartedEvent>(_onPlacingStarted);
     on<OcptSchedulePlacingCancelledEvent>(_onPlacingCancelled);
@@ -169,9 +172,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
     on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
     on<OcptScheduleBlockAnchorChangedEvent>(_onBlockAnchorChanged);
-    on<OcptScheduleBlockSlotChangedEvent>(_onBlockSlotChanged);
     on<OcptScheduleBlockReorderedEvent>(_onBlockReordered);
-    on<OcptScheduleBlockMovedToDayEvent>(_onBlockMovedToDay);
+    on<OcptScheduleBlockMovedToSlotEvent>(_onBlockMovedToSlot);
     on<OcptScheduleBlockDeletionConfirmedEvent>(_onBlockDeletionConfirmed);
     on<OcptScheduleFieldChangedEvent>(_onFieldChanged);
     on<OcptScheduleFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
@@ -616,8 +618,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _scheduleService.createSlot(
       database: project.database,
       shootingDayId: event.dayId,
-      crewCallMinute: 480,
-      crewWrapMinute: 1080,
+      startMinute: _defaultSlotStartMinute,
     );
     await _applyScheduleSnapshot(emitter, project);
   }
@@ -641,9 +642,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Writes a new crew call/wrap band onto a slot.
-  Future<void> _onSlotCrewTimesChanged(
-    OcptScheduleSlotCrewTimesChangedEvent event,
+  /// Writes a new start minute onto a slot.
+  Future<void> _onSlotStartChanged(
+    OcptScheduleSlotStartChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -654,27 +655,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _scheduleService.updateSlot(
       database: project.database,
       slotId: event.slotId,
-      crewCallMinute: Value(event.crewCallMinute),
-      crewWrapMinute: Value(event.crewWrapMinute),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes a new default *PAT* band onto a slot.
-  Future<void> _onSlotCastTimesChanged(
-    OcptScheduleSlotCastTimesChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlot(
-      database: project.database,
-      slotId: event.slotId,
-      castCallMinute: Value(event.castCallMinute),
-      castWrapMinute: Value(event.castWrapMinute),
+      startMinute: Value(event.startMinute),
     );
     await _applyScheduleSnapshot(emitter, project);
   }
@@ -747,25 +728,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Writes a new personal call/wrap override onto a crew assignment.
-  Future<void> _onSlotCrewMemberTimesChanged(
-    OcptScheduleSlotCrewMemberTimesChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCrewMember(
-      database: project.database,
-      crewMemberId: event.crewMemberId,
-      callMinute: Value(event.callMinute),
-      wrapMinute: Value(event.wrapMinute),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
   /// Removes a crew assignment for good.
   Future<void> _onSlotCrewMemberRemoved(
     OcptScheduleSlotCrewMemberRemovedEvent event,
@@ -797,26 +759,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       slotId: event.slotId,
       roleId: event.roleId,
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes new arrival/PAT overrides onto a cast convocation.
-  Future<void> _onSlotCastRoleTimesChanged(
-    OcptScheduleSlotCastRoleTimesChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCastRole(
-      database: project.database,
-      castRoleId: event.castRoleId,
-      arrivalMinute: Value(event.arrivalMinute),
-      castCallMinute: Value(event.castCallMinute),
-      castWrapMinute: Value(event.castWrapMinute),
     );
     await _applyScheduleSnapshot(emitter, project);
   }
@@ -855,19 +797,30 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWith(clearPlacingShotId: true));
   }
 
-  /// Places the shot being *placed* onto a day, ending the placing.
+  /// Places the shot being *placed* onto a day's own first live slot, ending the placing. A day
+  /// with no live slot at all (every one of them since deleted) can hold no block, so this is a
+  /// no-op then rather than guessing a slot — see [OcptScheduleShotPlacedEvent]'s own doc comment.
   Future<void> _onShotPlaced(
     OcptScheduleShotPlacedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
-    if (project == null) {
+    final slotId = _firstLiveSlotIdOfDay(event.dayId);
+    if (project == null || slotId == null) {
       return;
     }
 
-    await _scheduleService.placeShot(database: project.database, dayId: event.dayId, shotId: event.shotId);
+    await _scheduleService.placeShot(database: project.database, slotId: slotId, shotId: event.shotId);
     emitter(state.copyWith(clearPlacingShotId: true));
     await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// The id of day [dayId]'s own first live slot (lowest `sortKey`), or null while it has none —
+  /// shared by every handler whose own gesture only names a day, per
+  /// `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1').
+  String? _firstLiveSlotIdOfDay(String dayId) {
+    final slots = state.snapshot?.slotsByDayId[dayId];
+    return slots == null || slots.isEmpty ? null : slots.first.id;
   }
 
   /// Unplaces a shot.
@@ -910,22 +863,19 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     _requestWorkingCopyRefreshIfVersionsOpen();
   }
 
-  /// Creates a new non-shot block (a milestone or a `hold`) at the end of a day's timetable.
+  /// Creates a new non-shot block (a milestone or a `hold`) at the end of a day's own first live
+  /// slot's timetable — see [_firstLiveSlotIdOfDay].
   Future<void> _onBlockCreated(
     OcptScheduleBlockCreatedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
-    if (project == null || event.kind == OcptShootingBlockKind.shot) {
+    final slotId = _firstLiveSlotIdOfDay(event.dayId);
+    if (project == null || slotId == null || event.kind == OcptShootingBlockKind.shot) {
       return;
     }
 
-    await _scheduleService.createBlock(
-      database: project.database,
-      dayId: event.dayId,
-      kind: event.kind,
-      slotId: event.slotId,
-    );
+    await _scheduleService.createBlock(database: project.database, slotId: slotId, kind: event.kind);
     await _applyScheduleSnapshot(emitter, project);
   }
 
@@ -965,25 +915,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Writes a new slot onto a block.
-  Future<void> _onBlockSlotChanged(
-    OcptScheduleBlockSlotChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateBlock(
-      database: project.database,
-      blockId: event.blockId,
-      slotId: Value(event.slotId),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Moves a block to a new position within its own day.
+  /// Moves a block to a new position within its own slot's timetable.
   Future<void> _onBlockReordered(
     OcptScheduleBlockReorderedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -995,16 +927,15 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     await _scheduleService.reorderBlock(
       database: project.database,
-      dayId: event.dayId,
       blockId: event.blockId,
       newPosition: event.newPosition,
     );
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Moves a block to another day, appended at the end of its timetable.
-  Future<void> _onBlockMovedToDay(
-    OcptScheduleBlockMovedToDayEvent event,
+  /// Moves a block to another slot, appended at the end of its own timetable.
+  Future<void> _onBlockMovedToSlot(
+    OcptScheduleBlockMovedToSlotEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -1012,11 +943,15 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    final targetBlocks = state.snapshot?.blocksByDayId[event.targetDayId] ?? const [];
-    await _scheduleService.moveBlockToDay(
+    final targetBlocks = [
+      for (final blocks in state.snapshot?.blocksByDayId.values ?? const <List<OcptShootingDayBlock>>[])
+        for (final block in blocks)
+          if (block.slotId == event.targetSlotId) block,
+    ];
+    await _scheduleService.moveBlockToSlot(
       database: project.database,
       blockId: event.blockId,
-      targetDayId: event.targetDayId,
+      targetSlotId: event.targetSlotId,
       newPosition: targetBlocks.length,
     );
     await _applyScheduleSnapshot(emitter, project);

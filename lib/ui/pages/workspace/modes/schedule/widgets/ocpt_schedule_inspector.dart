@@ -153,9 +153,7 @@ class OcptScheduleInspector extends StatelessWidget {
       for (final slot in slots)
         if (slot.setId != null) setById[slot.setId]?.name,
     }.whereType<String>().toList();
-    final firstCastCallMinute = slots
-        .map((slot) => slot.castCallMinute)
-        .firstWhere((minute) => minute != null, orElse: () => null);
+    final firstCallMinute = slots.isEmpty ? null : slots.first.startMinute;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -219,7 +217,7 @@ class OcptScheduleInspector extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
                           "${slot.label.isEmpty ? tr.scheduleInspectorUnnamedSlot : slot.label} · "
-                          "${ocptScheduleDayMinuteRangeLabel(slot.crewCallMinute, slot.crewWrapMinute)}",
+                          "${ocptScheduleDayMinuteRangeLabel(slot.startMinute, timeline?.bySlotId[slot.id]?.endMinute)}",
                           style: theme.textTheme.bodySmall,
                         ),
                       ),
@@ -229,7 +227,7 @@ class OcptScheduleInspector extends StatelessWidget {
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorPatToEndLabel,
           child: Text(
-            ocptScheduleDayMinuteRangeLabel(firstCastCallMinute, timeline?.dayEndMinute),
+            ocptScheduleDayMinuteRangeLabel(firstCallMinute, timeline?.dayEndMinute),
             style: theme.textTheme.bodySmall,
           ),
         ),

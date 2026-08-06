@@ -345,6 +345,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
         return state.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
       },
+      slotConvocationsOf: state.convocationsOfSlot,
       onSlotAdded: isReadOnly ? null : () => bloc.add(OcptScheduleSlotCreatedEvent(dayId: day.id)),
       onSlotLabelChanged: isReadOnly
           ? null
@@ -360,24 +361,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (slotId, locationId, setId) => bloc.add(
               OcptScheduleSlotPlaceChangedEvent(slotId: slotId, locationId: locationId, setId: setId),
             ),
-      onSlotCrewTimesChanged: isReadOnly
+      onSlotStartChanged: isReadOnly
           ? null
-          : (slotId, call, wrap) => bloc.add(
-              OcptScheduleSlotCrewTimesChangedEvent(
-                slotId: slotId,
-                crewCallMinute: call,
-                crewWrapMinute: wrap,
-              ),
-            ),
-      onSlotCastTimesChanged: isReadOnly
-          ? null
-          : (slotId, call, wrap) => bloc.add(
-              OcptScheduleSlotCastTimesChangedEvent(
-                slotId: slotId,
-                castCallMinute: call,
-                castWrapMinute: wrap,
-              ),
-            ),
+          : (slotId, startMinute) =>
+                bloc.add(OcptScheduleSlotStartChangedEvent(slotId: slotId, startMinute: startMinute)),
       onSlotDeletionRequested: isReadOnly
           ? null
           : (slotId) => unawaited(_handleSlotDeletionRequested(context, slotId)),
@@ -393,15 +380,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
                 positionId: positionId,
               ),
             ),
-      onSlotCrewMemberTimesChanged: isReadOnly
-          ? null
-          : (crewMemberId, callMinute, wrapMinute) => bloc.add(
-              OcptScheduleSlotCrewMemberTimesChangedEvent(
-                crewMemberId: crewMemberId,
-                callMinute: callMinute,
-                wrapMinute: wrapMinute,
-              ),
-            ),
       onSlotCrewMemberRemoved: isReadOnly
           ? null
           : (crewMemberId) =>
@@ -409,16 +387,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotCastRoleAdded: isReadOnly
           ? null
           : (slotId, roleId) => bloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
-      onSlotCastRoleTimesChanged: isReadOnly
-          ? null
-          : (castRoleId, arrivalMinute, castCallMinute, castWrapMinute) => bloc.add(
-              OcptScheduleSlotCastRoleTimesChangedEvent(
-                castRoleId: castRoleId,
-                arrivalMinute: arrivalMinute,
-                castCallMinute: castCallMinute,
-                castWrapMinute: castWrapMinute,
-              ),
-            ),
       onSlotCastRoleRemoved: isReadOnly
           ? null
           : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
@@ -426,9 +394,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
           bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
       onBlockReordered: isReadOnly
           ? null
-          : (blockId, newPosition) => bloc.add(
-              OcptScheduleBlockReorderedEvent(dayId: day.id, blockId: blockId, newPosition: newPosition),
-            ),
+          : (blockId, newPosition) =>
+                bloc.add(OcptScheduleBlockReorderedEvent(blockId: blockId, newPosition: newPosition)),
       onBlockDurationChanged: isReadOnly
           ? null
           : (blockId, durationMinutes) => bloc.add(

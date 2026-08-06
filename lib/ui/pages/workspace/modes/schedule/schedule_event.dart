@@ -308,54 +308,23 @@ class OcptScheduleSlotPlaceChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, slotId, locationId, setId];
 }
 
-/// Writes a new crew call/wrap band onto slot [slotId] immediately, dispatched by the slot card's
-/// own crew time fields, once built.
-class OcptScheduleSlotCrewTimesChangedEvent extends OcptScheduleEvent {
+/// Writes a new start minute onto slot [slotId] immediately, dispatched by the slot card's own
+/// (single, still-typed) start field — the renamed crew call, and the one clock a slot still has
+/// (§2.4 of `docs/plans/schedule-slots-and-computed-convocations.md`): everything else a call sheet
+/// prints for the slot is computed off it.
+class OcptScheduleSlotStartChangedEvent extends OcptScheduleEvent {
   /// The id of the slot being edited.
   final String slotId;
 
-  /// The minute, from the day's own midnight, the crew is now called at.
-  final int crewCallMinute;
-
-  /// The minute, from the day's own midnight, the crew now wraps at.
-  final int crewWrapMinute;
+  /// The minute, from the day's own midnight, the slot's own chain of blocks now starts at.
+  final int startMinute;
 
   /// Class constructor
-  const OcptScheduleSlotCrewTimesChangedEvent({
-    required this.slotId,
-    required this.crewCallMinute,
-    required this.crewWrapMinute,
-  });
+  const OcptScheduleSlotStartChangedEvent({required this.slotId, required this.startMinute});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, slotId, crewCallMinute, crewWrapMinute];
-}
-
-/// Writes a new default *PAT* band onto slot [slotId] immediately, dispatched by the slot card's
-/// own cast time fields, once built.
-class OcptScheduleSlotCastTimesChangedEvent extends OcptScheduleEvent {
-  /// The id of the slot being edited.
-  final String slotId;
-
-  /// The minute, from the day's own midnight, the default *PAT* band now starts at, or null to
-  /// clear it.
-  final int? castCallMinute;
-
-  /// The minute, from the day's own midnight, the default *PAT* band now ends at, or null to
-  /// clear it.
-  final int? castWrapMinute;
-
-  /// Class constructor
-  const OcptScheduleSlotCastTimesChangedEvent({
-    required this.slotId,
-    required this.castCallMinute,
-    required this.castWrapMinute,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, slotId, castCallMinute, castWrapMinute];
+  List<Object?> get props => [...super.props, slotId, startMinute];
 }
 
 /// Moves slot [slotId] to [newPosition] (0-based) within its own day, dispatched by a slot-reorder
@@ -435,29 +404,6 @@ class OcptScheduleSlotCrewMemberPositionChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, crewMemberId, positionId];
 }
 
-/// Writes a new personal call/wrap override onto crew assignment [crewMemberId] immediately.
-class OcptScheduleSlotCrewMemberTimesChangedEvent extends OcptScheduleEvent {
-  /// The id of the crew assignment being edited.
-  final String crewMemberId;
-
-  /// The person's own call time override, or null to fall back to the slot's own.
-  final int? callMinute;
-
-  /// The person's own wrap time override, or null to fall back to the slot's own.
-  final int? wrapMinute;
-
-  /// Class constructor
-  const OcptScheduleSlotCrewMemberTimesChangedEvent({
-    required this.crewMemberId,
-    required this.callMinute,
-    required this.wrapMinute,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, crewMemberId, callMinute, wrapMinute];
-}
-
 /// Removes crew assignment [crewMemberId] for good, dispatched by its own row's dismissal.
 class OcptScheduleSlotCrewMemberRemovedEvent extends OcptScheduleEvent {
   /// The id of the crew assignment to remove.
@@ -485,33 +431,6 @@ class OcptScheduleSlotCastRoleAddedEvent extends OcptScheduleEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, slotId, roleId];
-}
-
-/// Writes new arrival/PAT overrides onto cast convocation [castRoleId] immediately.
-class OcptScheduleSlotCastRoleTimesChangedEvent extends OcptScheduleEvent {
-  /// The id of the cast convocation being edited.
-  final String castRoleId;
-
-  /// When this role's actor is expected to arrive, or null while unset.
-  final int? arrivalMinute;
-
-  /// This role's own start of the *PAT* band, or null to fall back to the slot's own.
-  final int? castCallMinute;
-
-  /// This role's own end of the *PAT* band, or null to fall back to the slot's own.
-  final int? castWrapMinute;
-
-  /// Class constructor
-  const OcptScheduleSlotCastRoleTimesChangedEvent({
-    required this.castRoleId,
-    required this.arrivalMinute,
-    required this.castCallMinute,
-    required this.castWrapMinute,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, castRoleId, arrivalMinute, castCallMinute, castWrapMinute];
 }
 
 /// Removes cast convocation [castRoleId] for good, dispatched by its own row's dismissal.
@@ -550,6 +469,9 @@ class OcptSchedulePlacingCancelledEvent extends OcptScheduleEvent {
 
 /// Places shot [shotId] on day [dayId], ending the *placing* it was started from — dispatched by a
 /// click on a day (the strip card, or, once built, a week/month cell) while a placing is active.
+/// The click only ever names a day, so the bloc places the shot in that day's own **first live
+/// slot** — a day with no live slot can hold no shot, so the gesture does nothing then rather than
+/// guessing one.
 class OcptScheduleShotPlacedEvent extends OcptScheduleEvent {
   /// The id of the shot being placed.
   final String shotId;
@@ -597,7 +519,10 @@ class OcptScheduleShotStatusChangedEvent extends OcptScheduleEvent {
 }
 
 /// Creates a new non-shot block (a milestone or a `hold`) inside day [dayId], appended at the end
-/// of its timetable, dispatched by the day view's own `+ Block` control, once built.
+/// of that day's **first live slot**'s own timetable, dispatched by the day view's own `+ Block`
+/// control. The day view has no per-slot timetable yet (that is a later milestone), so the gesture
+/// only ever names a day; the bloc resolves the actual slot, and does nothing when [dayId] has no
+/// live slot to hold a block at all.
 class OcptScheduleBlockCreatedEvent extends OcptScheduleEvent {
   /// The id of the day the new block belongs to.
   final String dayId;
@@ -606,15 +531,12 @@ class OcptScheduleBlockCreatedEvent extends OcptScheduleEvent {
   /// [OcptScheduleShotPlacedEvent] instead, which is what carries its own `shotId`.
   final OcptShootingBlockKind kind;
 
-  /// The slot the new block sits in, or null.
-  final String? slotId;
-
   /// Class constructor
-  const OcptScheduleBlockCreatedEvent({required this.dayId, required this.kind, this.slotId});
+  const OcptScheduleBlockCreatedEvent({required this.dayId, required this.kind});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, dayId, kind, slotId];
+  List<Object?> get props => [...super.props, dayId, kind];
 }
 
 /// Writes a new duration onto block [blockId] immediately, dispatched by the day view's own ±
@@ -652,29 +574,11 @@ class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, blockId, anchorMinute];
 }
 
-/// Writes a new slot onto block [blockId] immediately, dispatched by the day view's own re-slotting
-/// control, once built.
-class OcptScheduleBlockSlotChangedEvent extends OcptScheduleEvent {
-  /// The id of the block being edited.
-  final String blockId;
-
-  /// The slot the block now sits in, or null to detach it from every slot.
-  final String? slotId;
-
-  /// Class constructor
-  const OcptScheduleBlockSlotChangedEvent({required this.blockId, required this.slotId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, blockId, slotId];
-}
-
-/// Moves block [blockId] to [newPosition] (0-based) within its own day, dispatched by a
-/// drag-to-reorder gesture on the day view's own timetable, once built.
+/// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by
+/// a drag-to-reorder gesture on the day view's own timetable, once built. The block's own slot is
+/// read off its own row (`OcptScheduleService.reorderBlock`), so no slot or day id travels with
+/// this event.
 class OcptScheduleBlockReorderedEvent extends OcptScheduleEvent {
-  /// The id of the day the block belongs to.
-  final String dayId;
-
   /// The id of the block to reorder.
   final String blockId;
 
@@ -682,33 +586,28 @@ class OcptScheduleBlockReorderedEvent extends OcptScheduleEvent {
   final int newPosition;
 
   /// Class constructor
-  const OcptScheduleBlockReorderedEvent({
-    required this.dayId,
-    required this.blockId,
-    required this.newPosition,
-  });
+  const OcptScheduleBlockReorderedEvent({required this.blockId, required this.newPosition});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, dayId, blockId, newPosition];
+  List<Object?> get props => [...super.props, blockId, newPosition];
 }
 
-/// Moves block [blockId] to day [targetDayId], appended at the end of its timetable, dispatched by
-/// a drag-across-days gesture, once built. Always loses its own slot
-/// (`OcptScheduleService.moveBlockToDay`'s own rule): a slot belongs to one day.
-class OcptScheduleBlockMovedToDayEvent extends OcptScheduleEvent {
+/// Moves block [blockId] to slot [targetSlotId], appended at the end of that slot's own timetable,
+/// dispatched by a drag-across-slots gesture, once built (M2').
+class OcptScheduleBlockMovedToSlotEvent extends OcptScheduleEvent {
   /// The id of the block to move.
   final String blockId;
 
-  /// The id of the day it is moved to.
-  final String targetDayId;
+  /// The id of the slot it is moved to.
+  final String targetSlotId;
 
   /// Class constructor
-  const OcptScheduleBlockMovedToDayEvent({required this.blockId, required this.targetDayId});
+  const OcptScheduleBlockMovedToSlotEvent({required this.blockId, required this.targetSlotId});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, blockId, targetDayId];
+  List<Object?> get props => [...super.props, blockId, targetSlotId];
 }
 
 /// Deletes block [blockId] for good, whatever its kind, dispatched by the mode once its

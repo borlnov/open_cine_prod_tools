@@ -170,7 +170,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     final tr = Tr.of(context);
     final day = this.day;
     final tint = day == null ? null : ocptScheduleDayLocationTint(context, location);
-    final firstCallMinute = slots.isEmpty ? null : slots.first.crewCallMinute;
+    final firstCallMinute = slots.isEmpty ? null : slots.first.startMinute;
     final sunTimes = this.sunTimes;
 
     return InkWell(

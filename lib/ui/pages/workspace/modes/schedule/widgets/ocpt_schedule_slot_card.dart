@@ -17,23 +17,32 @@ import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
 /// The value the "no location" entry of the location picker menu carries, distinct from every
 /// location id — a [PopupMenuButton] cannot carry a null value for an entry that must still be
 /// selectable.
 const String _noLocationOption = "";
 
-/// One slot's own card in the day view: its label, its location and set, its crew call/wrap band
-/// and its default PAT band, then the two columns `docs/plans/schedule-mode.md` §8 and Benoit's own
-/// M1 decision #1 ask for — `Équipe technique`, grouped by department, and `Comédiens` — each
-/// ending on its own `+ Crew member`/`+ Cast` footer opening a person or role picker right there on
-/// the card, with no duplicate list anywhere in the right dock.
+/// One slot's own card in the day view: its label, its location and set, its own **start**
+/// minute — the one clock left on a slot (§2.4 of
+/// `docs/plans/schedule-slots-and-computed-convocations.md`) — then the two columns
+/// `docs/plans/schedule-mode.md` §8 and Benoit's own M1 decision #1 ask for — `Équipe technique`,
+/// grouped by department, and `Comédiens` — each ending on its own `+ Crew member`/`+ Cast` footer
+/// opening a person or role picker right there on the card, with no duplicate list anywhere in the
+/// right dock.
+///
+/// **A crew or cast row's own call/wrap and PAT/arrival are read-outs, never fields**: they are
+/// [convocations]' own computed answer (ADR 0017) for that row, and moving a block is what changes
+/// them — there is nothing left here to type into for either band. The one editable clock on the
+/// whole card is the slot's own start ([onStartChanged]); a row's own lead time isn't shown yet
+/// (M2').
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
-/// previewed (`isReadOnly`): the label field, the location/set pickers, the two time bands, every
-/// crew/cast row's own controls and both `+` footers. Nothing here reads a `pendingFieldEdits` map
-/// itself — [labelValue] is already resolved by the caller, exactly as every other mode's own
-/// sheet fields are.
+/// previewed (`isReadOnly`): the label field, the location/set pickers, the start field, every
+/// crew/cast row's own position picker and remove control, and both `+` footers. Nothing here
+/// reads a `pendingFieldEdits` map itself — [labelValue] is already resolved by the caller, exactly
+/// as every other mode's own sheet fields are.
 class OcptScheduleSlotCard extends StatelessWidget {
   /// The slot this card shows.
   final OcptShootingSlot slot;
@@ -60,6 +69,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// roles [slot] already convokes.
   final List<OcptRole> roles;
 
+  /// [slot]'s own computed convocations (ADR 0017), or null while none could be computed yet —
+  /// what every crew and cast row's own read-out is drawn from.
+  final OcptSlotConvocations? convocations;
+
   /// [slot]'s own label, as currently held (a pending edit, or its stored value).
   final String labelValue;
 
@@ -69,11 +82,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// Called with the location and set just picked, or null while withheld.
   final void Function(String? locationId, String? setId)? onPlaceChanged;
 
-  /// Called with the crew call/wrap band just committed, or null while withheld.
-  final void Function(int callMinute, int wrapMinute)? onCrewTimesChanged;
-
-  /// Called with the default PAT band just committed, or null while withheld.
-  final void Function(int? castCallMinute, int? castWrapMinute)? onCastTimesChanged;
+  /// Called with the slot's own new start minute once committed, or null while withheld.
+  final ValueChanged<int>? onStartChanged;
 
   /// Called when the `Delete this slot…` action is picked, or null while withheld.
   final VoidCallback? onDeletionRequested;
@@ -85,21 +95,12 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// withheld.
   final void Function(String crewMemberId, String positionId)? onCrewMemberPositionChanged;
 
-  /// Called with a crew assignment's id and its own call/wrap override just committed, or null
-  /// while withheld.
-  final void Function(String crewMemberId, int? callMinute, int? wrapMinute)? onCrewMemberTimesChanged;
-
   /// Called with a crew assignment's id when its row's remove control is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onCrewMemberRemoved;
 
   /// Called with the id of the role picked by the `+ Cast` footer, or null while withheld.
   final ValueChanged<String>? onCastRoleAdded;
-
-  /// Called with a cast convocation's id and its own arrival/PAT overrides just committed, or null
-  /// while withheld.
-  final void Function(String castRoleId, int? arrivalMinute, int? castCallMinute, int? castWrapMinute)?
-  onCastRoleTimesChanged;
 
   /// Called with a cast convocation's id when its row's remove control is clicked, or null while
   /// withheld.
@@ -116,18 +117,16 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.roleById,
     required this.people,
     required this.roles,
+    required this.convocations,
     required this.labelValue,
     required this.onLabelChanged,
     required this.onPlaceChanged,
-    required this.onCrewTimesChanged,
-    required this.onCastTimesChanged,
+    required this.onStartChanged,
     required this.onDeletionRequested,
     required this.onCrewMemberAdded,
     required this.onCrewMemberPositionChanged,
-    required this.onCrewMemberTimesChanged,
     required this.onCrewMemberRemoved,
     required this.onCastRoleAdded,
-    required this.onCastRoleTimesChanged,
     required this.onCastRoleRemoved,
   });
 
@@ -310,62 +309,22 @@ class OcptScheduleSlotCard extends StatelessWidget {
     style: Theme.of(context).textTheme.bodySmall,
   );
 
-  /// The header's own crew call/wrap band and default PAT band, right-aligned.
+  /// The header's own start field — the one clock a slot still carries, right-aligned.
   Widget _buildTimesColumn(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final onCrewTimesChanged = this.onCrewTimesChanged;
-    final onCastTimesChanged = this.onCastTimesChanged;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("${tr.scheduleSlotCrewBandLabel} ", style: theme.textTheme.labelSmall),
-            OcptScheduleMinuteField(
-              minute: slot.crewCallMinute,
-              isClearable: false,
-              emptyHint: "—",
-              onChanged: onCrewTimesChanged == null
-                  ? null
-                  : (value) => onCrewTimesChanged(value ?? slot.crewCallMinute, slot.crewWrapMinute),
-            ),
-            Text(" – ", style: theme.textTheme.labelSmall),
-            OcptScheduleMinuteField(
-              minute: slot.crewWrapMinute,
-              isClearable: false,
-              emptyHint: "—",
-              onChanged: onCrewTimesChanged == null
-                  ? null
-                  : (value) => onCrewTimesChanged(slot.crewCallMinute, value ?? slot.crewWrapMinute),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("${tr.scheduleSlotPatBandLabel} ", style: theme.textTheme.labelSmall),
-            OcptScheduleMinuteField(
-              minute: slot.castCallMinute,
-              isClearable: true,
-              emptyHint: "—",
-              onChanged: onCastTimesChanged == null
-                  ? null
-                  : (value) => onCastTimesChanged(value, slot.castWrapMinute),
-            ),
-            Text(" – ", style: theme.textTheme.labelSmall),
-            OcptScheduleMinuteField(
-              minute: slot.castWrapMinute,
-              isClearable: true,
-              emptyHint: "—",
-              onChanged: onCastTimesChanged == null
-                  ? null
-                  : (value) => onCastTimesChanged(slot.castCallMinute, value),
-            ),
-          ],
+        Text("${tr.scheduleSlotCrewBandLabel} ", style: theme.textTheme.labelSmall),
+        OcptScheduleMinuteField(
+          minute: slot.startMinute,
+          isClearable: false,
+          emptyHint: "—",
+          onChanged: onStartChanged == null
+              ? null
+              : (value) => onStartChanged!(value ?? slot.startMinute),
         ),
       ],
     );
@@ -381,6 +340,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
       final department = ocptCrewPositionDepartmentOf(member.positionId);
       byDepartment.putIfAbsent(department, () => []).add(member);
     }
+    final convocationById = {
+      for (final convocation in convocations?.crew ?? const <OcptCrewConvocation>[])
+        convocation.id: convocation,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,12 +386,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
                       key: ValueKey(member.id),
                       member: member,
                       person: personById[member.personId],
+                      convocation: convocationById[member.id],
                       onPositionChanged: onCrewMemberPositionChanged == null
                           ? null
                           : (positionId) => onCrewMemberPositionChanged!(member.id, positionId),
-                      onTimesChanged: onCrewMemberTimesChanged == null
-                          ? null
-                          : (call, wrap) => onCrewMemberTimesChanged!(member.id, call, wrap),
                       onRemoved: onCrewMemberRemoved == null
                           ? null
                           : () => onCrewMemberRemoved!(member.id),
@@ -466,6 +427,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
   Widget _buildCastColumn(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final convocationById = {
+      for (final convocation in convocations?.cast ?? const <OcptCastConvocation>[])
+        convocation.id: convocation,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,9 +460,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
               person: roleById[member.roleId]?.personId == null
                   ? null
                   : personById[roleById[member.roleId]!.personId],
-              onTimesChanged: onCastRoleTimesChanged == null
-                  ? null
-                  : (arrival, call, wrap) => onCastRoleTimesChanged!(member.id, arrival, call, wrap),
+              convocation: convocationById[member.id],
               onRemoved: onCastRoleRemoved == null ? null : () => onCastRoleRemoved!(member.id),
             ),
         if (onCastRoleAdded != null)
@@ -523,7 +486,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
 }
 
 /// One crew row of [OcptScheduleSlotCard]'s own `Équipe technique` column: the position picker,
-/// the person's own name, its own call/wrap override and a remove control.
+/// the person's own name, its own computed call/wrap read-out and a remove control.
 class _OcptScheduleCrewMemberRow extends StatelessWidget {
   /// The crew assignment this row shows.
   final OcptShootingSlotCrewMember member;
@@ -531,11 +494,12 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
   /// The person [member] names, or null while not yet loaded.
   final OcptPerson? person;
 
+  /// This row's own computed convocation, or null while it hasn't been computed yet — what its
+  /// call/wrap read-out is drawn from.
+  final OcptCrewConvocation? convocation;
+
   /// Called with the catalogue position just picked, or null while withheld.
   final ValueChanged<String>? onPositionChanged;
-
-  /// Called with this row's own call/wrap override just committed, or null while withheld.
-  final void Function(int? callMinute, int? wrapMinute)? onTimesChanged;
 
   /// Called when this row's remove control is clicked, or null while withheld.
   final VoidCallback? onRemoved;
@@ -545,8 +509,8 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
     super.key,
     required this.member,
     required this.person,
+    required this.convocation,
     required this.onPositionChanged,
-    required this.onTimesChanged,
     required this.onRemoved,
   });
 
@@ -554,7 +518,6 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final onTimesChanged = this.onTimesChanged;
     final positionLabel = member.positionId.isEmpty
         ? (member.customLabel.isEmpty ? tr.resourcesPositionScopePlaceholder : member.customLabel)
         : ocptCrewPositionLabel(tr, member.positionId);
@@ -603,17 +566,17 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
             ),
           ),
           OcptScheduleMinuteField(
-            minute: member.callMinute,
-            isClearable: true,
+            minute: convocation?.callMinute,
+            isClearable: false,
             emptyHint: "—",
-            onChanged: onTimesChanged == null ? null : (value) => onTimesChanged(value, member.wrapMinute),
+            onChanged: null,
           ),
           const SizedBox(width: 4),
           OcptScheduleMinuteField(
-            minute: member.wrapMinute,
-            isClearable: true,
+            minute: convocation?.wrapMinute,
+            isClearable: false,
             emptyHint: "—",
-            onChanged: onTimesChanged == null ? null : (value) => onTimesChanged(member.callMinute, value),
+            onChanged: null,
           ),
           if (onRemoved != null)
             IconButton(
@@ -629,7 +592,7 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
 }
 
 /// One cast row of [OcptScheduleSlotCard]'s own `Comédiens` column: the role's own name and cast
-/// actor, its arrival time, its own PAT override and a remove control.
+/// actor, its computed arrival time and PAT band read-out, and a remove control.
 class _OcptScheduleCastRoleRow extends StatelessWidget {
   /// The cast convocation this row shows.
   final OcptShootingSlotCastMember member;
@@ -640,8 +603,9 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
   /// The person cast in [role], or null while uncast (or not yet loaded).
   final OcptPerson? person;
 
-  /// Called with this row's own arrival/PAT overrides just committed, or null while withheld.
-  final void Function(int? arrivalMinute, int? castCallMinute, int? castWrapMinute)? onTimesChanged;
+  /// This row's own computed convocation, or null while it hasn't been computed yet — what its
+  /// arrival/PAT read-out is drawn from.
+  final OcptCastConvocation? convocation;
 
   /// Called when this row's remove control is clicked, or null while withheld.
   final VoidCallback? onRemoved;
@@ -652,7 +616,7 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
     required this.member,
     required this.role,
     required this.person,
-    required this.onTimesChanged,
+    required this.convocation,
     required this.onRemoved,
   });
 
@@ -660,7 +624,6 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final onTimesChanged = this.onTimesChanged;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -709,31 +672,25 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
             children: [
               Text("${tr.scheduleSlotArrivalLabel} ", style: theme.textTheme.labelSmall),
               OcptScheduleMinuteField(
-                minute: member.arrivalMinute,
-                isClearable: true,
+                minute: convocation?.arrivalMinute,
+                isClearable: false,
                 emptyHint: "—",
-                onChanged: onTimesChanged == null
-                    ? null
-                    : (value) => onTimesChanged(value, member.castCallMinute, member.castWrapMinute),
+                onChanged: null,
               ),
               const SizedBox(width: 4),
               Text("${tr.scheduleSlotPatBandLabel} ", style: theme.textTheme.labelSmall),
               OcptScheduleMinuteField(
-                minute: member.castCallMinute,
-                isClearable: true,
+                minute: convocation?.patStartMinute,
+                isClearable: false,
                 emptyHint: "—",
-                onChanged: onTimesChanged == null
-                    ? null
-                    : (value) => onTimesChanged(member.arrivalMinute, value, member.castWrapMinute),
+                onChanged: null,
               ),
               Text(" – ", style: theme.textTheme.labelSmall),
               OcptScheduleMinuteField(
-                minute: member.castWrapMinute,
-                isClearable: true,
+                minute: convocation?.patEndMinute,
+                isClearable: false,
                 emptyHint: "—",
-                onChanged: onTimesChanged == null
-                    ? null
-                    : (value) => onTimesChanged(member.arrivalMinute, member.castCallMinute, value),
+                onChanged: null,
               ),
             ],
           ),
