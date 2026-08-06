@@ -27,8 +27,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// left dock, so it wins over a day it says nothing about.
 ///
 /// Every writing affordance ([onDayStatusChanged], [onCrewNoteChanged], [onWeatherNoteChanged],
-/// [onShotStatusChanged]) is a nullable callback, withheld while a project version is being
-/// previewed. Reading — every other line — stays.
+/// [onShotStatusChanged], [onBlockDurationChanged], [onBlockNotesChanged]) is a nullable callback,
+/// withheld while a project version is being previewed. Reading — every other line — stays.
 class OcptScheduleInspector extends StatelessWidget {
   /// The selected day, or null while none is selected.
   final OcptShootingDay? day;
@@ -91,6 +91,10 @@ class OcptScheduleInspector extends StatelessWidget {
   /// Called with the status just picked for [blockShot], or null while withheld.
   final ValueChanged<OcptShotStatus>? onShotStatusChanged;
 
+  /// Called with the new duration in minutes once the selected block's own `Duration` field
+  /// commits, or null while withheld.
+  final ValueChanged<int>? onBlockDurationChanged;
+
   /// The selected block's own notes, as currently held (a pending edit, or its stored value).
   final String blockNotesValue;
 
@@ -124,6 +128,7 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.blockSlotLabel,
     required this.blockEntry,
     required this.onShotStatusChanged,
+    required this.onBlockDurationChanged,
     required this.blockNotesValue,
     required this.onBlockNotesChanged,
     required this.isReadOnly,
@@ -327,6 +332,16 @@ class OcptScheduleInspector extends StatelessWidget {
           ),
         ),
         _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorDurationLabel,
+          child: entry == null
+              ? Text("—", style: theme.textTheme.bodySmall)
+              : _OcptScheduleBlockDurationField(
+                  blockId: block.id,
+                  durationMinutes: entry.durationMinutes,
+                  onChanged: onBlockDurationChanged,
+                ),
+        ),
+        _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorNotesLabel,
           child: _OcptScheduleNoteField(
             ownerId: block.id,
@@ -526,6 +541,146 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
       minLines: 2,
       style: Theme.of(context).textTheme.bodySmall,
       decoration: const InputDecoration(isDense: true),
+    );
+  }
+}
+
+/// A field editing the selected block's own resolved duration, typed freely — `12` is a legal
+/// figure here, which is the whole point of this field against the timetable row's own `±`
+/// stepper (`_OcptScheduleDurationStepper`, `ocpt_schedule_timetable.dart`), which only ever moves
+/// in steps of five.
+///
+/// Follows [_OcptScheduleNoteField]'s own controller-sync idiom ([blockId] resets the controller,
+/// never mid-typing) and `OcptScheduleLeadField`'s own commit-on-submit-or-focus-loss idiom, guarded
+/// by [_OcptScheduleBlockDurationFieldState._lastReportedDurationMinutes] against the double commit
+/// a submission's own focus loss would otherwise cause.
+///
+/// [durationMinutes] is the block's own **resolved** duration — the same figure the timetable's own
+/// row prints (a shot block with no `durationMinutes` column of its own falls back to its shot's
+/// own estimate) — so the field shows what a fresh edit is about to overwrite. A negative or
+/// unparseable figure, or an empty submission, reverts the field to [durationMinutes]: there is no
+/// "clear it back to the shot's own estimate" operation to dispatch, [durationMinutes] already
+/// being that estimate whenever nothing overrides it.
+///
+/// Reads as plain text — [durationMinutes] formatted through [ocptFormatMinuteDuration] — with no
+/// field chrome at all while [onChanged] is null (a project version being previewed read-only).
+class _OcptScheduleBlockDurationField extends StatefulWidget {
+  /// The id of the block this field belongs to.
+  final String blockId;
+
+  /// The block's own currently resolved duration, in minutes.
+  final int durationMinutes;
+
+  /// Called with the minutes just parsed once the field commits, or null while withheld.
+  final ValueChanged<int>? onChanged;
+
+  /// Class constructor
+  const _OcptScheduleBlockDurationField({
+    required this.blockId,
+    required this.durationMinutes,
+    required this.onChanged,
+  });
+
+  @override
+  State<_OcptScheduleBlockDurationField> createState() => _OcptScheduleBlockDurationFieldState();
+}
+
+/// The state of [_OcptScheduleBlockDurationField]: owns the controller and the focus-loss commit
+/// the class doc comment explains.
+class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurationField> {
+  /// The field's own text controller, seeded from [_OcptScheduleBlockDurationField.durationMinutes].
+  late final TextEditingController _controller = TextEditingController(text: "${widget.durationMinutes}");
+
+  /// The field's own focus node, committing the moment it loses focus.
+  final FocusNode _focusNode = FocusNode();
+
+  /// The [_OcptScheduleBlockDurationField.blockId] the controller was last synced against.
+  late String _trackedBlockId = widget.blockId;
+
+  /// The value this field last reported — see `OcptScheduleMinuteField`'s own doc comment on why
+  /// this, rather than [_OcptScheduleBlockDurationField.durationMinutes] itself, is what a fresh
+  /// commit is compared against: a submission takes the focus off the field, which would otherwise
+  /// commit the very same edit twice.
+  late int _lastReportedDurationMinutes = widget.durationMinutes;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _OcptScheduleBlockDurationField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final blockChanged = widget.blockId != _trackedBlockId;
+    if (blockChanged || oldWidget.durationMinutes != widget.durationMinutes) {
+      _trackedBlockId = widget.blockId;
+      _lastReportedDurationMinutes = widget.durationMinutes;
+      if (!_focusNode.hasFocus) {
+        _controller.text = "${widget.durationMinutes}";
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Commits the field's current text once it loses focus, mirroring `OcptScheduleMinuteField`'s
+  /// own flush-on-focus-lost idiom.
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus) {
+      _commit();
+    }
+  }
+
+  /// Parses the field's current text and reports it, or reverts the field to
+  /// [_OcptScheduleBlockDurationField.durationMinutes]'s own formatted reading when the text is
+  /// empty, unparseable or negative.
+  void _commit() {
+    final onChanged = widget.onChanged;
+    if (onChanged == null) {
+      return;
+    }
+
+    final parsed = int.tryParse(_controller.text.trim());
+    if (parsed == null || parsed < 0) {
+      _controller.text = "${widget.durationMinutes}";
+      return;
+    }
+
+    _controller.text = "$parsed";
+    if (parsed != _lastReportedDurationMinutes) {
+      _lastReportedDurationMinutes = parsed;
+      onChanged(parsed);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onChanged = widget.onChanged;
+
+    if (onChanged == null) {
+      return Text(ocptFormatMinuteDuration(widget.durationMinutes), style: theme.textTheme.bodySmall);
+    }
+
+    return SizedBox(
+      width: 76,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: TextInputType.number,
+        style: theme.textTheme.bodySmall,
+        decoration: const InputDecoration(isDense: true, suffixText: "min"),
+      ),
     );
   }
 }

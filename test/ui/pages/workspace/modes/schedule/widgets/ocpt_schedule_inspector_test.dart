@@ -14,6 +14,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
@@ -112,7 +114,9 @@ Future<void> _pumpInspector(
   String? shotSequenceLabel,
   List<int> shotPlacedDayNumbers = const [],
   OcptShootingDayBlock? block,
+  OcptShootingTimelineEntry? blockEntry,
   ValueChanged<OcptShotStatus>? onShotStatusChanged,
+  ValueChanged<int>? onBlockDurationChanged,
 }) async {
   await tester.pumpWidget(
     _wrapInApp(
@@ -134,8 +138,9 @@ Future<void> _pumpInspector(
         block: block,
         blockShot: null,
         blockSlotLabel: null,
-        blockEntry: null,
+        blockEntry: blockEntry,
         onShotStatusChanged: onShotStatusChanged,
+        onBlockDurationChanged: onBlockDurationChanged,
         blockNotesValue: "",
         onBlockNotesChanged: null,
         isReadOnly: onDayStatusChanged == null,
@@ -336,6 +341,50 @@ void main() {
       await _pumpInspector(tester, shot: _buildShot(), shotSequenceLabel: "SEQ 1");
 
       expect(find.byType(PopupMenuButton<OcptShotStatus>), findsNothing);
+    });
+  });
+
+  group("the block read-out's own duration field", () {
+    const entry = OcptShootingTimelineEntry(
+      blockId: "block-1",
+      startMinute: 480,
+      endMinute: 510,
+      durationMinutes: 30,
+    );
+
+    testWidgets("shows the block's own resolved duration", (tester) async {
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(),
+        blockEntry: entry,
+        onBlockDurationChanged: (_) {},
+      );
+
+      expect(find.text("30"), findsOneWidget);
+    });
+
+    testWidgets("submitting a new figure reports it, 12 included", (tester) async {
+      int? reported;
+
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(),
+        blockEntry: entry,
+        onBlockDurationChanged: (durationMinutes) => reported = durationMinutes,
+      );
+
+      await tester.enterText(find.byType(TextField).first, "12");
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(reported, 12);
+    });
+
+    testWidgets("reads as plain text with no field when the mode is read-only", (tester) async {
+      await _pumpInspector(tester, block: _buildHoldBlock(), blockEntry: entry);
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text(ocptFormatMinuteDuration(30)), findsOneWidget);
     });
   });
 
