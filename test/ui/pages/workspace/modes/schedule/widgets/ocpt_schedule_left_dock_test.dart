@@ -98,8 +98,8 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
-          placingShotId: null,
-          onShotPlacingToggled: (_) {},
+          selectedShotId: null,
+          onShotSelected: (_) {},
         ),
       ),
     );
@@ -110,10 +110,8 @@ void main() {
     expect(find.text("J3"), findsOneWidget);
   });
 
-  testWidgets("clicking an unplaced shot starts a placing, clicking it again cancels it", (
-    tester,
-  ) async {
-    final toggled = <String>[];
+  testWidgets("clicking an unplaced shot reports its own selection", (tester) async {
+    final selected = <String>[];
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -127,8 +125,8 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: (_) {},
           unplacedGroups: [unplacedGroup],
-          placingShotId: null,
-          onShotPlacingToggled: toggled.add,
+          selectedShotId: null,
+          onShotSelected: selected.add,
         ),
       ),
     );
@@ -137,7 +135,7 @@ void main() {
     await tester.tap(find.text("4/1"));
     await tester.pump();
 
-    expect(toggled, ["shot-1"]);
+    expect(selected, ["shot-1"]);
   });
 
   testWidgets("the day card's ⋮ menu asks through a callback rather than acting on its own", (
@@ -157,8 +155,8 @@ void main() {
           onDayDuplicationRequested: (_, _) {},
           onDayDeletionRequested: deletionRequests.add,
           unplacedGroups: const [],
-          placingShotId: null,
-          onShotPlacingToggled: (_) {},
+          selectedShotId: null,
+          onShotSelected: (_) {},
         ),
       ),
     );
@@ -178,35 +176,44 @@ void main() {
     expect(find.text("J1"), findsOneWidget);
   });
 
-  testWidgets("every writing affordance is withheld when the mode is read-only", (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptScheduleLeftDock(
-          days: [dayOne],
-          selectedDayId: null,
-          blockCountByDayId: const {},
-          firstLocationByDayId: const {},
-          onDaySelected: (_) {},
-          onDayCreated: null,
-          onDayDuplicationRequested: null,
-          onDayDeletionRequested: null,
-          unplacedGroups: [unplacedGroup],
-          placingShotId: null,
-          onShotPlacingToggled: null,
+  testWidgets(
+    "every writing affordance is withheld when read-only, but selecting a shot never is",
+    (tester) async {
+      final selected = <String>[];
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptScheduleLeftDock(
+            days: [dayOne],
+            selectedDayId: null,
+            blockCountByDayId: const {},
+            firstLocationByDayId: const {},
+            onDaySelected: (_) {},
+            onDayCreated: null,
+            onDayDuplicationRequested: null,
+            onDayDeletionRequested: null,
+            unplacedGroups: [unplacedGroup],
+            selectedShotId: null,
+            onShotSelected: selected.add,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    // No "+ New day" control and no "⋮" menu: nothing here can start a write.
-    expect(find.byIcon(Icons.add), findsNothing);
-    expect(find.byIcon(Icons.more_vert), findsNothing);
+      // No "+ New day" control and no "⋮" menu: nothing here can start a write.
+      expect(find.byIcon(Icons.add), findsNothing);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
 
-    // The unplaced shot row is still shown (reading), but tapping it does nothing: `InkWell.onTap`
-    // is null, so no `GestureDetector`/`InkWell` in the tree can even report a tap here.
-    final inkWell = tester.widget<InkWell>(
-      find.ancestor(of: find.text("4/1"), matching: find.byType(InkWell)).first,
-    );
-    expect(inkWell.onTap, isNull);
-  });
+      // Selecting a shot only ever reads, so it is never withheld: the row's own `InkWell.onTap`
+      // still reports the click even while every writing affordance above is null.
+      final inkWell = tester.widget<InkWell>(
+        find.ancestor(of: find.text("4/1"), matching: find.byType(InkWell)).first,
+      );
+      expect(inkWell.onTap, isNotNull);
+
+      await tester.tap(find.text("4/1"));
+      await tester.pump();
+      expect(selected, ["shot-1"]);
+    },
+  );
 }

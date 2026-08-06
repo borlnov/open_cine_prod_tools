@@ -16,14 +16,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The strip agenda: one card per shooting day, in order, each carrying its own placed shots as
-/// chips — where the *placing* gesture happens (mock's `bandeDays`,
-/// `design.html` lines 129-168).
+/// chips (mock's `bandeDays`, `design.html` lines 129-168).
 ///
-/// It is purely informative beyond that gesture: a chip only ever selects the block it names, and
-/// the day's own writing affordance is [onPlaceHereRequested] (a card's own "Place here" prompt,
-/// shown while a *placing* is in progress), a nullable callback withheld while a project version is
-/// being previewed. Selecting a day or a shot chip only ever reads, so [onDaySelected] and
-/// [onBlockSelected] are never withheld.
+/// It is purely informative: a placement is made and unmade in the day view's own timetables,
+/// where the block itself lives, not here. A chip only ever selects the block it names, and
+/// selecting a day only ever reads, so neither [onDaySelected] nor [onBlockSelected] is ever
+/// withheld.
 class OcptScheduleStripAgenda extends StatelessWidget {
   /// The live days to show, in `dayNumber` order.
   final List<OcptShootingDay> days;
@@ -43,15 +41,8 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
-  /// The id of the shot currently being *placed*, or null while none is.
-  final String? placingShotId;
-
   /// Called with a day's id when its own header is clicked.
   final ValueChanged<String> onDaySelected;
-
-  /// Called with a day's id when its "Place here" prompt is clicked while a *placing* is in
-  /// progress, or null while the mode is read-only.
-  final ValueChanged<String>? onPlaceHereRequested;
 
   /// Called with a block's id and its own day's id when a chip's own code/label is clicked.
   final void Function(String blockId, String dayId) onBlockSelected;
@@ -65,9 +56,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.blocksByDayId,
     required this.shotOf,
     required this.timelineOf,
-    required this.placingShotId,
     required this.onDaySelected,
-    required this.onPlaceHereRequested,
     required this.onBlockSelected,
   });
 
@@ -96,11 +85,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
           blocks: blocksByDayId[day.id] ?? const [],
           shotOf: shotOf,
           timeline: timelineOf(day.id),
-          isPlacingActive: placingShotId != null,
           onSelected: () => onDaySelected(day.id),
-          onPlaceHereRequested: onPlaceHereRequested == null
-              ? null
-              : () => onPlaceHereRequested!(day.id),
           onBlockSelected: (blockId) => onBlockSelected(blockId, day.id),
         );
       },
@@ -128,15 +113,8 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   /// This day's own computed timetable, or null while it has nothing placed.
   final OcptShootingDayTimelines? timeline;
 
-  /// Whether a *placing* is currently in progress (for any shot) — when true and the mode isn't
-  /// read-only, the card offers its own "Place here" prompt.
-  final bool isPlacingActive;
-
   /// Called when the card's own header is clicked.
   final VoidCallback onSelected;
-
-  /// Called when the "Place here" prompt is clicked, or null while withheld.
-  final VoidCallback? onPlaceHereRequested;
 
   /// Called with a block's id when one of the card's own chips is clicked.
   final ValueChanged<String> onBlockSelected;
@@ -149,9 +127,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.blocks,
     required this.shotOf,
     required this.timeline,
-    required this.isPlacingActive,
     required this.onSelected,
-    required this.onPlaceHereRequested,
     required this.onBlockSelected,
   });
 
@@ -270,28 +246,11 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
                     startMinute: entryByBlockId[block.id]?.startMinute,
                     onSelected: () => onBlockSelected(block.id),
                   ),
-                if (shotBlocks.isEmpty && !isPlacingActive)
+                if (shotBlocks.isEmpty)
                   Text(
                     tr.scheduleDayNoShotsPlacedHint,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                if (isPlacingActive && onPlaceHereRequested != null)
-                  InkWell(
-                    onTap: onPlaceHereRequested,
-                    mouseCursor: ocptClickableCursor,
-                    borderRadius: BorderRadius.circular(ocptRadiusSmall),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: theme.colorScheme.primary),
-                        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-                      ),
-                      child: Text(
-                        tr.scheduleDayPlaceHereAction,
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
-                      ),
                     ),
                   ),
               ],

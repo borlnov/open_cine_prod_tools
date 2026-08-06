@@ -6251,13 +6251,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleDayPlaceHereAction": "Place here",
-  "@scheduleDayPlaceHereAction": {
-    "description": "Prompt of a strip agenda day card while a placing is in progress",
-    "context": "Displayed on a strip agenda day card",
-    "type": "text",
-    "placeholders": {}
-  },
   "scheduleRightDockInspectorTabLabel": "Inspector",
   "@scheduleRightDockInspectorTabLabel": {
     "description": "Label of the schedule mode's right dock Inspector tab",
@@ -6406,21 +6399,49 @@
   },
   "scheduleInspectorShotLabel": "Shot",
   "@scheduleInspectorShotLabel": {
-    "description": "Label of the block inspector's own shot section",
+    "description": "Label of a shot's own code/size section, in the block inspector or the shot inspector",
     "context": "Displayed in the schedule mode's right dock",
     "type": "text",
     "placeholders": {}
   },
   "scheduleInspectorCharactersLabel": "Characters",
   "@scheduleInspectorCharactersLabel": {
-    "description": "Label of the block inspector's own characters section",
+    "description": "Label of a shot's own characters section, in the block inspector or the shot inspector",
     "context": "Displayed in the schedule mode's right dock",
     "type": "text",
     "placeholders": {}
   },
   "scheduleInspectorShotStatusLabel": "Shooting status",
   "@scheduleInspectorShotStatusLabel": {
-    "description": "Label of the block inspector's own shot status control",
+    "description": "Label of a shot's own status control, in the block inspector or the shot inspector",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSequenceLabel": "Sequence",
+  "@scheduleInspectorSequenceLabel": {
+    "description": "Label of the shot inspector's own sequence section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorEstimatedDurationLabel": "Estimated duration",
+  "@scheduleInspectorEstimatedDurationLabel": {
+    "description": "Label of the shot inspector's own estimated duration section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorPlacementLabel": "Placement",
+  "@scheduleInspectorPlacementLabel": {
+    "description": "Label of the shot inspector's own placement section: which days the shot is placed on",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorShotNotPlanned": "Not yet planned",
+  "@scheduleInspectorShotNotPlanned": {
+    "description": "Value of the shot inspector's own placement section when the shot isn't placed anywhere yet",
     "context": "Displayed in the schedule mode's right dock",
     "type": "text",
     "placeholders": {}

@@ -18,9 +18,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDuplicationRequested]
-/// and [onDayDeletionRequested] (a day card's own `⋮` menu) and [onShotPlacingToggled] (a click on
-/// an unplaced shot, starting or cancelling a *placing*). Selecting a day
-/// ([onDaySelected]) only ever reads, so it is never withheld.
+/// and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting a day ([onDaySelected]) or
+/// an unplaced shot ([onShotSelected], which only brings that shot's own read-out up in the
+/// inspector) only ever reads, so neither is ever withheld.
 class OcptScheduleLeftDock extends StatelessWidget {
   /// The live days to list, in `dayNumber` order.
   final List<OcptShootingDay> days;
@@ -53,12 +53,12 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// The live shots still to place, grouped by sequence.
   final List<OcptScheduleUnplacedGroup> unplacedGroups;
 
-  /// The id of the shot currently being *placed*, or null while none is.
-  final String? placingShotId;
+  /// The id of the shot currently selected, or null while none is.
+  final String? selectedShotId;
 
-  /// Called with a shot's id when one of its rows is clicked, starting or cancelling a *placing*,
-  /// or null while the mode is read-only.
-  final ValueChanged<String>? onShotPlacingToggled;
+  /// Called with a shot's id when one of its rows is clicked, bringing that shot's own read-out up
+  /// in the inspector. Never withheld — see the class doc comment.
+  final ValueChanged<String> onShotSelected;
 
   /// Class constructor
   const OcptScheduleLeftDock({
@@ -72,8 +72,8 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.onDayDuplicationRequested,
     required this.onDayDeletionRequested,
     required this.unplacedGroups,
-    required this.placingShotId,
-    required this.onShotPlacingToggled,
+    required this.selectedShotId,
+    required this.onShotSelected,
   });
 
   @override
@@ -162,8 +162,8 @@ class OcptScheduleLeftDock extends StatelessWidget {
                 for (final group in unplacedGroups)
                   _OcptScheduleUnplacedGroupSection(
                     group: group,
-                    placingShotId: placingShotId,
-                    onShotPlacingToggled: onShotPlacingToggled,
+                    selectedShotId: selectedShotId,
+                    onShotSelected: onShotSelected,
                   ),
                 const SizedBox(height: 12),
               ],
@@ -350,22 +350,22 @@ class _OcptScheduleDayCard extends StatelessWidget {
 }
 
 /// One sequence's own section of the unplaced-shots list: its heading over its shots, each a
-/// clickable row starting or cancelling a *placing*.
+/// clickable row bringing that shot's own read-out up in the inspector.
 class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
   /// The group this section shows.
   final OcptScheduleUnplacedGroup group;
 
-  /// The id of the shot currently being *placed*, or null while none is.
-  final String? placingShotId;
+  /// The id of the shot currently selected, or null while none is.
+  final String? selectedShotId;
 
-  /// Called with a shot's id when one of its rows is clicked, or null while withheld.
-  final ValueChanged<String>? onShotPlacingToggled;
+  /// Called with a shot's id when one of its rows is clicked.
+  final ValueChanged<String> onShotSelected;
 
   /// Class constructor
   const _OcptScheduleUnplacedGroupSection({
     required this.group,
-    required this.placingShotId,
-    required this.onShotPlacingToggled,
+    required this.selectedShotId,
+    required this.onShotSelected,
   });
 
   @override
@@ -411,8 +411,8 @@ class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
               code: shot.code,
               shotSize: shot.shotSize,
               durationLabel: ocptFormatShotDuration(shot.estimatedDurationMs),
-              isPlacing: shot.id == placingShotId,
-              onTap: onShotPlacingToggled == null ? null : () => onShotPlacingToggled!(shot.id),
+              isSelected: shot.id == selectedShotId,
+              onTap: () => onShotSelected(shot.id),
             ),
           const SizedBox(height: 4),
         ],
@@ -432,18 +432,18 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
   /// The shot's own formatted estimated duration.
   final String durationLabel;
 
-  /// Whether this shot is the one currently being *placed*.
-  final bool isPlacing;
+  /// Whether this shot is the one currently selected.
+  final bool isSelected;
 
-  /// Called when this row is clicked, or null while withheld.
-  final VoidCallback? onTap;
+  /// Called when this row is clicked.
+  final VoidCallback onTap;
 
   /// Class constructor
   const _OcptScheduleUnplacedShotRow({
     required this.code,
     required this.shotSize,
     required this.durationLabel,
-    required this.isPlacing,
+    required this.isSelected,
     required this.onTap,
   });
 
@@ -459,11 +459,11 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(ocptRadiusSmall),
         child: Container(
           decoration: BoxDecoration(
-            color: isPlacing
+            color: isSelected
                 ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
                 : theme.colorScheme.surfaceContainerHigh,
             border: Border.all(
-              color: isPlacing ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             ),
             borderRadius: BorderRadius.circular(ocptRadiusSmall),
           ),

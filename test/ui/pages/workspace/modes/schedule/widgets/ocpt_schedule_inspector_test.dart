@@ -7,8 +7,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
@@ -40,14 +45,74 @@ OcptShootingDay _buildDay({
   notes: "",
 );
 
-/// Pumps [OcptScheduleInspector] with [day] selected and no block, [sunTimes] as given.
-Future<void> _pumpDayInspector(
+/// Builds a shot with the few fields these tests read, everything else neutral.
+OcptShot _buildShot({
+  String id = "shot-1",
+  String code = "4/1",
+  List<String> characters = const [],
+  int? estimatedDurationMs,
+  OcptShotStatus status = OcptShotStatus.toShoot,
+}) => OcptShot(
+  id: id,
+  screenplayId: "screenplay-1",
+  sceneId: "scene-1",
+  orphanedHeading: null,
+  position: 0,
+  shotSize: "GP",
+  abbreviation: "GP",
+  framing: "",
+  cameraMove: "",
+  lens: "",
+  recordingFormat: "",
+  estimatedDurationMs: estimatedDurationMs,
+  shootingDay: null,
+  plannedTakes: null,
+  sound: "",
+  status: status,
+  difficultySet: 0,
+  difficultyCamera: 0,
+  difficultyActing: 0,
+  difficultySound: 0,
+  notes: "",
+  locationNotes: "",
+  needsCheck: false,
+  checkReason: null,
+  characters: characters,
+  coverageRanges: const [],
+  code: code,
+  averageDifficulty: 0,
+);
+
+/// Builds a `hold` block, distinguishable from the shot read-out by carrying a label and no shot.
+OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Prep"}) =>
+    OcptShootingDayBlock(
+      id: id,
+      shootingDayId: "day-1",
+      slotId: "slot-1",
+      kind: OcptShootingBlockKind.hold,
+      shotId: null,
+      sceneId: null,
+      label: label,
+      durationMinutes: null,
+      anchorMinute: null,
+      notes: "",
+    );
+
+/// Pumps [OcptScheduleInspector] with [day]/[shot]/[block] selected as given — mirrors the widget's
+/// own block-then-shot-then-day precedence, so a test only fills in whichever of the three it
+/// exercises.
+Future<void> _pumpInspector(
   WidgetTester tester, {
-  required OcptShootingDay day,
+  OcptShootingDay? day,
   OcptSunTimes? sunTimes,
   ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
   ValueChanged<String>? onCrewNoteChanged,
   ValueChanged<String>? onWeatherNoteChanged,
+  OcptShot? shot,
+  String? shotSequenceLabel,
+  List<int> shotPlacedDayNumbers = const [],
+  OcptShootingDayBlock? block,
+  ValueChanged<OcptShotStatus>? onShotStatusChanged,
 }) async {
   await tester.pumpWidget(
     _wrapInApp(
@@ -58,16 +123,19 @@ Future<void> _pumpDayInspector(
         setById: const {},
         timeline: null,
         sunTimes: sunTimes,
-        crewNoteValue: day.crewNote,
-        weatherNoteValue: day.weatherNote,
+        crewNoteValue: day?.crewNote ?? "",
+        weatherNoteValue: day?.weatherNote ?? "",
         onDayStatusChanged: onDayStatusChanged,
         onCrewNoteChanged: onCrewNoteChanged,
         onWeatherNoteChanged: onWeatherNoteChanged,
-        block: null,
+        shot: shot,
+        shotSequenceLabel: shotSequenceLabel,
+        shotPlacedDayNumbers: shotPlacedDayNumbers,
+        block: block,
         blockShot: null,
         blockSlotLabel: null,
         blockEntry: null,
-        onShotStatusChanged: null,
+        onShotStatusChanged: onShotStatusChanged,
         blockNotesValue: "",
         onBlockNotesChanged: null,
         isReadOnly: onDayStatusChanged == null,
@@ -76,6 +144,24 @@ Future<void> _pumpDayInspector(
   );
   await tester.pumpAndSettle();
 }
+
+/// Pumps [OcptScheduleInspector] with [day] selected and nothing else — the day-inspector tests'
+/// own convenience wrapper over [_pumpInspector].
+Future<void> _pumpDayInspector(
+  WidgetTester tester, {
+  required OcptShootingDay day,
+  OcptSunTimes? sunTimes,
+  ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
+  ValueChanged<String>? onCrewNoteChanged,
+  ValueChanged<String>? onWeatherNoteChanged,
+}) => _pumpInspector(
+  tester,
+  day: day,
+  sunTimes: sunTimes,
+  onDayStatusChanged: onDayStatusChanged,
+  onCrewNoteChanged: onCrewNoteChanged,
+  onWeatherNoteChanged: onWeatherNoteChanged,
+);
 
 void main() {
   testWidgets("shows the selected day's own date, status and PAT-to-end read-outs", (
@@ -172,5 +258,126 @@ void main() {
     // The crew note reads as plain selectable text, not an editable field.
     expect(find.byType(TextField), findsNothing);
     expect(find.text("Bring umbrellas"), findsOneWidget);
+  });
+
+  group("the shot read-out", () {
+    testWidgets("shows the code/size, sequence, duration and status, with no placement yet", (
+      tester,
+    ) async {
+      final shot = _buildShot(estimatedDurationMs: 90000);
+
+      await _pumpInspector(
+        tester,
+        shot: shot,
+        shotSequenceLabel: "SEQ 4A INT. KITCHEN - DAY",
+        onShotStatusChanged: (_) {},
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      expect(find.text("${shot.code} · ${shot.shotSize}"), findsOneWidget);
+      expect(find.text("SEQ 4A INT. KITCHEN - DAY"), findsOneWidget);
+      // 90000 ms formats as `01:30` (mm:ss), the very format the shot list itself accepts back.
+      expect(find.text("01:30"), findsOneWidget);
+      expect(find.text(tr.scheduleInspectorShotNotPlanned), findsOneWidget);
+      expect(find.text(ocptShotStatusLabel(tr, shot.status)), findsOneWidget);
+      // No characters section at all: an empty list, not an empty line.
+      expect(find.text(tr.scheduleInspectorCharactersLabel.toUpperCase()), findsNothing);
+    });
+
+    testWidgets("shows the characters line when the shot has any", (tester) async {
+      final shot = _buildShot(characters: const ["LÉA", "MARC"]);
+
+      await _pumpInspector(tester, shot: shot, shotSequenceLabel: "SEQ 1", onShotStatusChanged: (_) {});
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      expect(find.text(tr.scheduleInspectorCharactersLabel.toUpperCase()), findsOneWidget);
+      expect(find.text("LÉA, MARC"), findsOneWidget);
+    });
+
+    testWidgets("reads out the day tags the shot is currently placed on", (tester) async {
+      final shot = _buildShot();
+
+      await _pumpInspector(
+        tester,
+        shot: shot,
+        shotSequenceLabel: "SEQ 1",
+        shotPlacedDayNumbers: const [2, 5],
+        onShotStatusChanged: (_) {},
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      expect(find.text("J2, J5"), findsOneWidget);
+      expect(find.text(tr.scheduleInspectorShotNotPlanned), findsNothing);
+    });
+
+    testWidgets("the status control writes through the same callback the block read-out uses", (
+      tester,
+    ) async {
+      OcptShotStatus? pickedStatus;
+      final shot = _buildShot();
+
+      await _pumpInspector(
+        tester,
+        shot: shot,
+        shotSequenceLabel: "SEQ 1",
+        onShotStatusChanged: (status) => pickedStatus = status,
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      await tester.tap(find.text(ocptShotStatusLabel(tr, OcptShotStatus.toShoot)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(ocptShotStatusLabel(tr, OcptShotStatus.shot)).last);
+      await tester.pumpAndSettle();
+
+      expect(pickedStatus, OcptShotStatus.shot);
+    });
+
+    testWidgets("is read-only when the status callback is withheld", (tester) async {
+      await _pumpInspector(tester, shot: _buildShot(), shotSequenceLabel: "SEQ 1");
+
+      expect(find.byType(PopupMenuButton<OcptShotStatus>), findsNothing);
+    });
+  });
+
+  group("the inspector's three-way precedence", () {
+    testWidgets("a selected block wins over a selected shot", (tester) async {
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(label: "Camera reset"),
+        shot: _buildShot(),
+        shotSequenceLabel: "SEQ 1",
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      // The block read-out's own label section, absent from the shot read-out.
+      expect(find.text(tr.scheduleInspectorLabelLabel.toUpperCase()), findsOneWidget);
+      expect(find.text("Camera reset"), findsOneWidget);
+      // The shot read-out's own sequence section never shows: the block won.
+      expect(find.text(tr.scheduleInspectorSequenceLabel.toUpperCase()), findsNothing);
+    });
+
+    testWidgets("a selected shot wins over the selected day", (tester) async {
+      await _pumpInspector(
+        tester,
+        day: _buildDay(status: OcptShootingDayStatus.shot),
+        shot: _buildShot(),
+        shotSequenceLabel: "SEQ 1",
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      // The shot read-out's own sequence section shows.
+      expect(find.text(tr.scheduleInspectorSequenceLabel.toUpperCase()), findsOneWidget);
+      // The day read-out's own status section never shows: the shot won.
+      expect(find.text(tr.scheduleInspectorStatusLabel.toUpperCase()), findsNothing);
+    });
+
+    testWidgets("with neither a block nor a shot selected, the day's own read-out shows", (
+      tester,
+    ) async {
+      await _pumpInspector(tester, day: _buildDay(status: OcptShootingDayStatus.shot));
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      expect(find.text(tr.scheduleInspectorStatusLabel.toUpperCase()), findsOneWidget);
+    });
   });
 }

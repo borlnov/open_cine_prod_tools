@@ -183,9 +183,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
     on<OcptScheduleSlotCastRoleLeadChangedEvent>(_onSlotCastRoleLeadChanged);
     on<OcptScheduleSlotCastRoleGroupChangedEvent>(_onSlotCastRoleGroupChanged);
-    on<OcptSchedulePlacingStartedEvent>(_onPlacingStarted);
-    on<OcptSchedulePlacingCancelledEvent>(_onPlacingCancelled);
-    on<OcptScheduleShotPlacedEvent>(_onShotPlaced);
+    on<OcptScheduleShotSelectedEvent>(_onShotSelected);
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
     on<OcptScheduleShotBlockCreatedEvent>(_onShotBlockCreated);
@@ -205,14 +203,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   OcptProjectsManager get projectsManager => _projectsManager;
 
   /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
-  /// about to swap the database can't send it into the previewed version instead, then clears
-  /// every other pending write state a preview must not carry over: the *placing* in progress has
-  /// no script sheet or day left to close it over once the working copy's own data is swapped out.
+  /// about to swap the database can't send it into the previewed version instead, then clears the
+  /// selected shot: a shot selected out of the working copy's own shot list means nothing once a
+  /// preview swaps that data out.
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptScheduleState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearPlacingShotId: true));
+    emitter(state.copyWith(clearSelectedShotId: true));
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -226,9 +224,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
   /// which version is being previewed alongside the read it just performed (see that hook's own
-  /// doc comment). The block selection, the placing in progress and any pending field edit are
-  /// always cleared on a (re)load: a preview or a restore changes the whole database underneath, so
-  /// a stale one is dropped rather than trusted to still mean the same thing. The selected **day**
+  /// doc comment). The selected block, the selected shot and any pending field edit are always
+  /// cleared on a (re)load: a preview or a restore changes the whole database underneath, so a
+  /// stale one is dropped rather than trusted to still mean the same thing. The selected **day**
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
   Future<void> _onLoadRequested(
@@ -258,7 +256,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           clearPreviewedVersionId: true,
           clearSelectedDayId: true,
           clearSelectedBlockId: true,
-          clearPlacingShotId: true,
+          clearSelectedShotId: true,
           pendingFieldEdits: const {},
         ),
       );
@@ -307,7 +305,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         selectedDayId: defaultDay?.id,
         clearSelectedDayId: defaultDay == null,
         clearSelectedBlockId: true,
-        clearPlacingShotId: true,
+        clearSelectedShotId: true,
         pendingFieldEdits: const {},
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
@@ -468,8 +466,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _propertiesManager.scheduleLastRightDockTab.store(tab);
   }
 
-  /// Selects day [OcptScheduleDaySelectedEvent.dayId], clearing any selected block: a day selected
-  /// on its own has none. A day id that no longer exists in the current snapshot is ignored.
+  /// Selects day [OcptScheduleDaySelectedEvent.dayId], clearing both the selected block and the
+  /// selected shot: a day selected on its own has neither, and the day's own read-out is what the
+  /// inspector must fall back to (see the event's own doc comment). A day id that no longer exists
+  /// in the current snapshot is ignored.
   Future<void> _onDaySelected(
     OcptScheduleDaySelectedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -478,11 +478,18 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    emitter(state.copyWith(selectedDayId: event.dayId, clearSelectedBlockId: true));
+    emitter(
+      state.copyWith(
+        selectedDayId: event.dayId,
+        clearSelectedBlockId: true,
+        clearSelectedShotId: true,
+      ),
+    );
   }
 
   /// Selects block [OcptScheduleBlockSelectedEvent.blockId] and its own day, opening the right dock
-  /// on the `Inspector` tab.
+  /// on the `Inspector` tab, and clears the selected shot: the two selections are mutually
+  /// exclusive.
   Future<void> _onBlockSelected(
     OcptScheduleBlockSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -495,6 +502,28 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       state.copyWith(
         selectedDayId: event.dayId,
         selectedBlockId: event.blockId,
+        clearSelectedShotId: true,
+        rightDockTab: OcptScheduleRightDockTab.inspector,
+        lastRightDockTab: OcptScheduleRightDockTab.inspector,
+      ),
+    );
+  }
+
+  /// Selects shot [OcptScheduleShotSelectedEvent.shotId], opening the right dock on the `Inspector`
+  /// tab, and clears the selected block: the two selections are mutually exclusive. A shot id
+  /// naming no live shot of the current shot list is ignored.
+  Future<void> _onShotSelected(
+    OcptScheduleShotSelectedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    if (state.shotById(event.shotId) == null) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selectedShotId: event.shotId,
+        clearSelectedBlockId: true,
         rightDockTab: OcptScheduleRightDockTab.inspector,
         lastRightDockTab: OcptScheduleRightDockTab.inspector,
       ),
@@ -925,52 +954,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       groupId: Value(event.groupId),
     );
     await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Starts (or, on a second click of the very same shot, cancels) a *placing*.
-  Future<void> _onPlacingStarted(
-    OcptSchedulePlacingStartedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    emitter(
-      state.placingShotId == event.shotId
-          ? state.copyWith(clearPlacingShotId: true)
-          : state.copyWith(placingShotId: event.shotId),
-    );
-  }
-
-  /// Cancels the *placing* in progress.
-  Future<void> _onPlacingCancelled(
-    OcptSchedulePlacingCancelledEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    emitter(state.copyWith(clearPlacingShotId: true));
-  }
-
-  /// Places the shot being *placed* onto a day's own first live slot, ending the placing. A day
-  /// with no live slot at all (every one of them since deleted) can hold no block, so this is a
-  /// no-op then rather than guessing a slot — see [OcptScheduleShotPlacedEvent]'s own doc comment.
-  Future<void> _onShotPlaced(
-    OcptScheduleShotPlacedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final slotId = _firstLiveSlotIdOfDay(event.dayId);
-    if (project == null || slotId == null) {
-      return;
-    }
-
-    await _scheduleService.placeShot(database: project.database, slotId: slotId, shotId: event.shotId);
-    emitter(state.copyWith(clearPlacingShotId: true));
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// The id of day [dayId]'s own first live slot (lowest `sortKey`), or null while it has none —
-  /// shared by every handler whose own gesture only names a day, per
-  /// `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1').
-  String? _firstLiveSlotIdOfDay(String dayId) {
-    final slots = state.snapshot?.slotsByDayId[dayId];
-    return slots == null || slots.isEmpty ? null : slots.first.id;
   }
 
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector

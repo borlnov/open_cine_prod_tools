@@ -96,7 +96,10 @@ class OcptScheduleDockLayoutResetEvent extends OcptScheduleEvent {
 }
 
 /// Selects day [dayId] in the left dock's own list, or on a strip/week/month cell, showing its own
-/// read-out in the inspector. Clears the selected block: a day selected on its own has none.
+/// read-out in the inspector. Clears both the selected block and the selected shot: a day selected
+/// on its own has neither, and the day's own read-out is what the inspector must fall back to when
+/// the user goes looking at a day — leaving a shot selected would silently keep it on screen
+/// instead.
 class OcptScheduleDaySelectedEvent extends OcptScheduleEvent {
   /// The id of the day to select.
   final String dayId;
@@ -111,7 +114,8 @@ class OcptScheduleDaySelectedEvent extends OcptScheduleEvent {
 
 /// Selects block [blockId] — a placed shot's own strip chip, or one of a slot card's own timetable
 /// rows — showing its own read-out in the inspector. Also selects [dayId], the block's own day, so
-/// the left dock and the inspector stay in step.
+/// the left dock and the inspector stay in step, and clears the selected shot
+/// (`OcptScheduleShotSelectedEvent`'s own doc comment): the two selections are mutually exclusive.
 class OcptScheduleBlockSelectedEvent extends OcptScheduleEvent {
   /// The id of the block to select.
   final String blockId;
@@ -570,45 +574,21 @@ class OcptScheduleSlotCastRoleGroupChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, castRoleId, groupId];
 }
 
-/// Starts a *placing*: picking up shot [shotId] from the left dock's own "shots still to place"
-/// list, ready to be dropped on a day. A second click on the very same shot cancels it —
-/// `OcptScheduleBloc`'s own handler owns that toggle, mirroring the mock's own `placing` state.
-class OcptSchedulePlacingStartedEvent extends OcptScheduleEvent {
-  /// The id of the shot being picked up.
+/// Selects shot [shotId] — a row of the left dock's own "shots still to place" list — showing its
+/// own read-out in the inspector, and opens the right dock on the `Inspector` tab. Clears the
+/// selected block: the two selections are mutually exclusive, so bringing a shot's own read-out up
+/// would otherwise silently leave a stale block one showing underneath it. A [shotId] naming no live
+/// shot is ignored, mirroring how `OcptScheduleBlockSelectedEvent` ignores an unknown day.
+class OcptScheduleShotSelectedEvent extends OcptScheduleEvent {
+  /// The id of the shot to select.
   final String shotId;
 
   /// Class constructor
-  const OcptSchedulePlacingStartedEvent({required this.shotId});
+  const OcptScheduleShotSelectedEvent({required this.shotId});
 
   /// Object properties
   @override
   List<Object?> get props => [...super.props, shotId];
-}
-
-/// Cancels the *placing* in progress, dispatched by the agenda's own banner `Cancel` control.
-class OcptSchedulePlacingCancelledEvent extends OcptScheduleEvent {
-  /// Class constructor
-  const OcptSchedulePlacingCancelledEvent();
-}
-
-/// Places shot [shotId] on day [dayId], ending the *placing* it was started from — dispatched by a
-/// click on a day (the strip card, or, once built, a week/month cell) while a placing is active.
-/// The click only ever names a day, so the bloc places the shot in that day's own **first live
-/// slot** — a day with no live slot can hold no shot, so the gesture does nothing then rather than
-/// guessing one.
-class OcptScheduleShotPlacedEvent extends OcptScheduleEvent {
-  /// The id of the shot being placed.
-  final String shotId;
-
-  /// The id of the day it is placed on.
-  final String dayId;
-
-  /// Class constructor
-  const OcptScheduleShotPlacedEvent({required this.shotId, required this.dayId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, shotId, dayId];
 }
 
 /// Writes a new shooting status onto shot [shotId] immediately — the very column the shot list
@@ -630,15 +610,14 @@ class OcptScheduleShotStatusChangedEvent extends OcptScheduleEvent {
 }
 
 /// Creates a new non-shot block (a milestone or a `hold`) inside slot [slotId], appended at the end
-/// of that slot's own timetable, dispatched by that slot card's own `+ Block` control (M2' — each
-/// card carries its own timetable now, so the gesture names the slot it sits on directly, unlike
-/// [OcptScheduleShotPlacedEvent], whose *placing* gesture still only ever names a day).
+/// of that slot's own timetable, dispatched by that slot card's own `+ Block` control — the gesture
+/// names the slot it sits on directly.
 class OcptScheduleBlockCreatedEvent extends OcptScheduleEvent {
   /// The id of the slot the new block belongs to.
   final String slotId;
 
   /// The kind of block to create. Never [OcptShootingBlockKind.shot] — placing a shot goes through
-  /// [OcptScheduleShotPlacedEvent] instead, which is what carries its own `shotId`.
+  /// [OcptScheduleShotBlockCreatedEvent] instead, which is what carries its own `shotId`.
   final OcptShootingBlockKind kind;
 
   /// Class constructor

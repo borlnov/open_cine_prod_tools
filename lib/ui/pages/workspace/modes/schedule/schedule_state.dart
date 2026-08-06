@@ -70,9 +70,9 @@ class OcptScheduleUnplacedGroup extends Equatable {
 ///
 /// [pendingFieldEdits] is the schedule mode's own single pending-edit map, over every free-text
 /// field of every entity the mode edits text on — see `OcptScheduleField`'s own doc comment for
-/// why one flat map rather than one per entity. [placingShotId], like
-/// `OcptBreakdownState.pendingTagAnchor`, writes nothing to the project database on its own: the
-/// database is only touched once a day answers it (`OcptScheduleShotPlacedEvent`).
+/// why one flat map rather than one per entity. [selectedShotId] writes nothing to the project
+/// database on its own: it is a selection, exactly like [selectedBlockId] beside it, only ever
+/// naming which shot's own read-out the inspector currently shows.
 class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     with MixinOcptProjectVersionsState<OcptScheduleState> {
   /// The duration, in minutes, a block resolves to when it has neither its own `durationMinutes`
@@ -148,9 +148,11 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// selected, mirroring `OcptBreakdownState.lastRightDockTab`.
   final OcptScheduleRightDockTab lastRightDockTab;
 
-  /// The id of the shot currently being *placed* — picked up from the left dock's own "shots still
-  /// to place" list, waiting for a day to answer it — or null while no placing is in progress.
-  final String? placingShotId;
+  /// The id of the shot currently selected in the left dock's own "shots still to place" list, or
+  /// null while none is — what the inspector shows a shot's own read-out for, mutually exclusive
+  /// with [selectedBlockId] (see `OcptScheduleBlockSelectedEvent`/`OcptScheduleShotSelectedEvent`'s
+  /// own doc comments).
+  final String? selectedShotId;
 
   /// Every free-text field still sitting in the field-edit debounce, keyed by which entity and
   /// which of its own fields. [fieldValueOf] is what a field reads instead of its own stored value
@@ -239,6 +241,13 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     }
 
     return null;
+  }
+
+  /// The selected shot, or null while none is selected (or it disappeared from a freshly loaded
+  /// [shotListSnapshot]) — mirrors [selectedBlock]'s own convention.
+  OcptShot? get selectedShot {
+    final selectedShotId = this.selectedShotId;
+    return selectedShotId == null ? null : shotById(selectedShotId);
   }
 
   /// The whole location catalogue, keyed by id.
@@ -595,7 +604,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
-    required this.placingShotId,
+    required this.selectedShotId,
     required this.pendingFieldEdits,
     required this.leftDockFraction,
     required this.rightDockFraction,
@@ -627,7 +636,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       isListPanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptScheduleRightDockTab.inspector,
-      placingShotId = null,
+      selectedShotId = null,
       pendingFieldEdits = const {},
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
@@ -643,7 +652,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   ///
   /// [snapshot] and [shotListSnapshot] are only replaced when a new one is given, exactly as
   /// `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab] and
-  /// [placingShotId] all legitimately go back to null while the mode is alive, so each has its own
+  /// [selectedShotId] all legitimately go back to null while the mode is alive, so each has its own
   /// clear flag. [pendingFieldEdits] is always replaced wholesale — the caller (the bloc's own
   /// field-edit handler) always computes the full next map.
   @override
@@ -668,8 +677,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     OcptScheduleRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
     OcptScheduleRightDockTab? lastRightDockTab,
-    String? placingShotId,
-    bool clearPlacingShotId = false,
+    String? selectedShotId,
+    bool clearSelectedShotId = false,
     Map<OcptSchedulePendingFieldKey, String>? pendingFieldEdits,
     double? leftDockFraction,
     double? rightDockFraction,
@@ -704,7 +713,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-    placingShotId: clearPlacingShotId ? null : (placingShotId ?? this.placingShotId),
+    selectedShotId: clearSelectedShotId ? null : (selectedShotId ?? this.selectedShotId),
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
@@ -778,7 +787,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     isListPanelVisible,
     rightDockTab,
     lastRightDockTab,
-    placingShotId,
+    selectedShotId,
     pendingFieldEdits,
     leftDockFraction,
     rightDockFraction,

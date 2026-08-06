@@ -20,9 +20,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
-/// The right dock's own `Inspector` tab content: the selected block's read-out, or — while none
-/// is selected — the selected day's own, per `docs/plans/schedule-mode.md` §8's spec, or a plain
-/// hint while nothing at all is selected.
+/// The right dock's own `Inspector` tab content, in order of precedence: the selected **block**'s
+/// read-out, else the selected **shot**'s own, else the selected **day**'s own, else a plain hint.
+/// A block is the more specific thing, and the block and shot selections can never both be set
+/// (`OcptScheduleBloc` keeps them mutually exclusive); a shot is what the user just clicked in the
+/// left dock, so it wins over a day it says nothing about.
 ///
 /// Every writing affordance ([onDayStatusChanged], [onCrewNoteChanged], [onWeatherNoteChanged],
 /// [onShotStatusChanged]) is a nullable callback, withheld while a project version is being
@@ -62,8 +64,19 @@ class OcptScheduleInspector extends StatelessWidget {
   /// Called with the weather note's raw text on every keystroke, or null while withheld.
   final ValueChanged<String>? onWeatherNoteChanged;
 
-  /// The selected block, or null while none is selected — the inspector then shows [day]'s own
-  /// read-out instead.
+  /// The selected shot, or null while none is selected — the inspector shows this ahead of [day]'s
+  /// own read-out, but behind [block]'s (see the class doc comment's own precedence).
+  final OcptShot? shot;
+
+  /// [shot]'s own sequence, as the left dock heads it — null while [shot] is null.
+  final String? shotSequenceLabel;
+
+  /// The day numbers [shot] is currently placed on, in ascending order — empty while it isn't
+  /// placed anywhere yet. Ignored while [shot] is null.
+  final List<int> shotPlacedDayNumbers;
+
+  /// The selected block, or null while none is selected — the inspector then shows [shot]'s own
+  /// read-out instead, or, with neither selected, [day]'s.
   final OcptShootingDayBlock? block;
 
   /// The shot [block] names, when [block]'s own kind is [OcptShootingBlockKind.shot].
@@ -103,6 +116,9 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.onDayStatusChanged,
     required this.onCrewNoteChanged,
     required this.onWeatherNoteChanged,
+    required this.shot,
+    required this.shotSequenceLabel,
+    required this.shotPlacedDayNumbers,
     required this.block,
     required this.blockShot,
     required this.blockSlotLabel,
@@ -118,6 +134,11 @@ class OcptScheduleInspector extends StatelessWidget {
     final block = this.block;
     if (block != null) {
       return _buildBlockInspector(context, block);
+    }
+
+    final shot = this.shot;
+    if (shot != null) {
+      return _buildShotInspector(context, shot);
     }
 
     final day = this.day;
@@ -280,32 +301,7 @@ class OcptScheduleInspector extends StatelessWidget {
             ),
           _OcptScheduleInspectorSection(
             label: tr.scheduleInspectorShotStatusLabel,
-            child: onShotStatusChanged == null
-                ? Text(ocptShotStatusLabel(tr, blockShot.status), style: theme.textTheme.bodySmall)
-                : PopupMenuButton<OcptShotStatus>(
-                    tooltip: "",
-                    onSelected: onShotStatusChanged,
-                    itemBuilder: (context) => [
-                      for (final status in OcptShotStatus.values)
-                        PopupMenuItem<OcptShotStatus>(
-                          value: status,
-                          child: Text(ocptShotStatusLabel(tr, status)),
-                        ),
-                    ],
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          ocptShotStatusLabel(tr, blockShot.status),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: ocptShotStatusColor(context, blockShot.status),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_drop_down, size: 16),
-                      ],
-                    ),
-                  ),
+            child: _buildShotStatusControl(context, blockShot.status),
           ),
         ] else if (block.label.isNotEmpty)
           _OcptScheduleInspectorSection(
@@ -339,6 +335,92 @@ class OcptScheduleInspector extends StatelessWidget {
     );
   }
 
+  /// The shot inspector: the top title is the very label a shot block itself wears
+  /// ([ocptShootingBlockKindLabel] of [OcptShootingBlockKind.shot]), then its own code/size, its
+  /// sequence, its characters (when it has any), its estimated duration, where it is placed, and
+  /// its status control — the same one [_buildBlockInspector] uses.
+  Widget _buildShotInspector(BuildContext context, OcptShot shot) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          ocptShootingBlockKindLabel(tr, OcptShootingBlockKind.shot),
+          style: theme.textTheme.titleSmall,
+        ),
+        const SizedBox(height: 12),
+        _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorShotLabel,
+          child: Text("${shot.code} · ${shot.shotSize}", style: theme.textTheme.bodySmall),
+        ),
+        _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorSequenceLabel,
+          child: Text(shotSequenceLabel ?? "", style: theme.textTheme.bodySmall),
+        ),
+        if (shot.characters.isNotEmpty)
+          _OcptScheduleInspectorSection(
+            label: tr.scheduleInspectorCharactersLabel,
+            child: Text(shot.characters.join(", "), style: theme.textTheme.bodySmall),
+          ),
+        _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorEstimatedDurationLabel,
+          child: Text(ocptFormatShotDuration(shot.estimatedDurationMs), style: theme.textTheme.bodySmall),
+        ),
+        _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorPlacementLabel,
+          child: Text(
+            shotPlacedDayNumbers.isEmpty
+                ? tr.scheduleInspectorShotNotPlanned
+                : shotPlacedDayNumbers.map(ocptScheduleDayTagLabel).join(", "),
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+        _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorShotStatusLabel,
+          child: _buildShotStatusControl(context, shot.status),
+        ),
+      ],
+    );
+  }
+
+  /// The shot status control: plain text while [onShotStatusChanged] is withheld, a picker
+  /// otherwise — shared by [_buildBlockInspector] (for the block's own shot) and
+  /// [_buildShotInspector] (for the selected shot itself), the very same column either way
+  /// (`shots.status`).
+  Widget _buildShotStatusControl(BuildContext context, OcptShotStatus status) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final onShotStatusChanged = this.onShotStatusChanged;
+
+    if (onShotStatusChanged == null) {
+      return Text(ocptShotStatusLabel(tr, status), style: theme.textTheme.bodySmall);
+    }
+
+    return PopupMenuButton<OcptShotStatus>(
+      tooltip: "",
+      onSelected: onShotStatusChanged,
+      itemBuilder: (context) => [
+        for (final candidate in OcptShotStatus.values)
+          PopupMenuItem<OcptShotStatus>(
+            value: candidate,
+            child: Text(ocptShotStatusLabel(tr, candidate)),
+          ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            ocptShotStatusLabel(tr, status),
+            style: theme.textTheme.bodySmall?.copyWith(color: ocptShotStatusColor(context, status)),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.arrow_drop_down, size: 16),
+        ],
+      ),
+    );
+  }
 }
 
 /// One labelled section of the inspector: an upper-case label over its content, mirroring the

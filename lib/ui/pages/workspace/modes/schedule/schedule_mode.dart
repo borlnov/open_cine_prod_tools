@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
@@ -43,13 +45,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// milestone M1).
 ///
 /// The left dock lists the shooting days over the shots still to place, grouped by sequence — a
-/// click on an unplaced shot starts a *placing*, a click on a day (here, on the strip agenda, or on
-/// a week/month cell) answers it. The centre is `OcptScheduleHeader`'s own `Agenda`/`Day` switch
-/// over either the agenda — [OcptScheduleStripAgenda], [OcptScheduleWeekGrid] or
-/// [OcptScheduleMonthGrid], per [OcptScheduleState.agendaMode] — or [OcptScheduleDayView], the
-/// mode's own working surface (the day's summary band, then one slot card per convocation, each
-/// carrying its own chained timetable). The right dock is `Inspector` (the selected block's own
-/// read-out, or, with none selected, the selected day's own) + the shared `Versions` tab.
+/// click on an unplaced shot brings its own read-out up in the inspector, purely informative; a
+/// shot is placed from a slot card's own `+ Block` menu instead, in the day view. The centre is
+/// `OcptScheduleHeader`'s own `Agenda`/`Day` switch over either the agenda —
+/// [OcptScheduleStripAgenda], [OcptScheduleWeekGrid] or [OcptScheduleMonthGrid], per
+/// [OcptScheduleState.agendaMode] — or [OcptScheduleDayView], the mode's own working surface (the
+/// day's summary band, then one slot card per convocation, each carrying its own chained
+/// timetable). The right dock is `Inspector` (the selected block's own read-out, else the selected
+/// shot's own, else the selected day's own) + the shared `Versions` tab.
 ///
 /// **There is no save control and no mode-specific toolbar action**: every write here is its own
 /// event, exactly as the breakdown mode's own shell is built.
@@ -180,10 +183,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (dayId) => unawaited(_handleDayDeletionRequested(context, dayId)),
       unplacedGroups: state.unplacedGroups,
-      placingShotId: state.placingShotId,
-      onShotPlacingToggled: isReadOnly
-          ? null
-          : (shotId) => bloc.add(OcptSchedulePlacingStartedEvent(shotId: shotId)),
+      selectedShotId: state.selectedShotId,
+      onShotSelected: (shotId) => bloc.add(OcptScheduleShotSelectedEvent(shotId: shotId)),
     );
   }
 
@@ -255,7 +256,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Builds the agenda: whichever of the three presentations [OcptScheduleState.agendaMode] names.
   Widget _buildAgenda(BuildContext context, OcptScheduleState state) {
     final bloc = context.read<OcptScheduleBloc>();
-    final isReadOnly = state.isPreviewingVersion;
     final firstLocationByDayId = {
       for (final day in state.days) day.id: state.firstLocationOfDay(day.id),
     };
@@ -271,13 +271,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
-        placingShotId: state.placingShotId,
         onDaySelected: (dayId) => bloc.add(OcptScheduleDaySelectedEvent(dayId: dayId)),
-        onPlaceHereRequested: isReadOnly || state.placingShotId == null
-            ? null
-            : (dayId) => bloc.add(
-                OcptScheduleShotPlacedEvent(shotId: state.placingShotId!, dayId: dayId),
-              ),
         onBlockSelected: (blockId, dayId) =>
             bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: dayId)),
       ),
@@ -587,8 +581,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Builds the `Inspector` tab's own content: the selected block's read-out, or the selected
-  /// day's.
+  /// Builds the `Inspector` tab's own content: the selected block's read-out, else the selected
+  /// shot's own, else the selected day's — see `OcptScheduleInspector`'s own doc comment for why
+  /// that order.
   Widget _buildInspector(BuildContext context, OcptScheduleState state) {
     final bloc = context.read<OcptScheduleBloc>();
     final isReadOnly = state.isPreviewingVersion;
@@ -614,6 +609,17 @@ class _ScheduleViewState extends State<_ScheduleView> {
         }
       }
     }
+
+    final shot = state.selectedShot;
+    final shotSequenceLabel = shot == null ? null : _sequenceLabelOfShot(context, state, shot);
+    final shotPlacedDayNumbers = shot == null
+        ? const <int>[]
+        : state.placedDayNumbersByShotId[shot.id] ?? const [];
+
+    // The two selections are mutually exclusive (`OcptScheduleBloc` keeps them so), so exactly one
+    // of `blockShot`/`shot` is ever non-null: this is what feeds the status control either
+    // read-out shows.
+    final effectiveShot = blockShot ?? shot;
 
     final day = state.selectedDay;
 
@@ -651,14 +657,17 @@ class _ScheduleViewState extends State<_ScheduleView> {
                 rawValue: rawValue,
               ),
             ),
+      shot: shot,
+      shotSequenceLabel: shotSequenceLabel,
+      shotPlacedDayNumbers: shotPlacedDayNumbers,
       block: block,
       blockShot: blockShot,
       blockSlotLabel: blockSlotLabel,
       blockEntry: blockEntry,
-      onShotStatusChanged: isReadOnly || blockShot == null
+      onShotStatusChanged: isReadOnly || effectiveShot == null
           ? null
           : (status) =>
-                bloc.add(OcptScheduleShotStatusChangedEvent(shotId: blockShot.id, status: status)),
+                bloc.add(OcptScheduleShotStatusChangedEvent(shotId: effectiveShot.id, status: status)),
       blockNotesValue: block == null
           ? ""
           : state.fieldValueOf(block.id, OcptScheduleField.blockNotes, block.notes),
@@ -673,6 +682,30 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       isReadOnly: isReadOnly,
     );
+  }
+
+  /// [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of
+  /// the unplaced-shots list (`Tr.scheduleUnplacedSequenceLabel`/`Tr.scheduleUnplacedOrphanGroupLabel`
+  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshot], rather than by
+  /// the inspector itself, so a widget never has to search the snapshot on its own. Null while
+  /// [shot]'s own sequence isn't found there (the shot list hasn't loaded yet).
+  String? _sequenceLabelOfShot(BuildContext context, OcptScheduleState state, OcptShot shot) {
+    final tr = Tr.of(context);
+
+    for (final sequence in state.shotListSnapshot?.sequences ?? const <OcptShotSequence>[]) {
+      if (!sequence.shots.any((candidate) => candidate.id == shot.id)) {
+        continue;
+      }
+
+      if (sequence is OcptSceneShotSequence) {
+        final tag = tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber);
+        return sequence.heading.isEmpty ? tag : "$tag  ${sequence.heading}";
+      }
+
+      return tr.scheduleUnplacedOrphanGroupLabel;
+    }
+
+    return null;
   }
 
   /// Builds the band naming the version being previewed, or null while the working copy is on
