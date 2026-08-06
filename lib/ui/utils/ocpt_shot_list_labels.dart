@@ -214,8 +214,9 @@ String ocptShotPlacementLabel(BuildContext context, OcptShotPlacement? placement
 /// A blank [input], or exactly [ocptShotListEmptyValue] (what [ocptFormatShotDuration] itself
 /// renders for a null duration, so the two stay round-trippable), means "no estimate" and parses
 /// to null. `mm:ss` parses to milliseconds, leading zeroes optional on either half (`1:30` and
-/// `01:30` are the same duration). A bare non-negative integer is read as a number of seconds, so
-/// a duration under a minute can be typed as `45` alone. Anything else throws a
+/// `01:30` are the same duration). A bare non-negative integer is read as a number of **minutes**,
+/// so `12` is `12:00` — the field's own unit is the one it prints first, and a shot is estimated in
+/// minutes far more often than in seconds. Anything else throws a
 /// [FormatException]: the shot inspector's own choice, on catching it, is to leave the shot's
 /// stored duration untouched rather than write anything, and to mark the field in error.
 int? ocptParseShotDuration(String input) {
@@ -226,11 +227,11 @@ int? ocptParseShotDuration(String input) {
 
   final colonIndex = trimmed.indexOf(":");
   if (colonIndex == -1) {
-    final seconds = int.tryParse(trimmed);
-    if (seconds == null || seconds < 0) {
+    final minutes = int.tryParse(trimmed);
+    if (minutes == null || minutes < 0) {
       throw FormatException("Not a valid shot duration", input);
     }
-    return seconds * Duration.millisecondsPerSecond;
+    return minutes * Duration.secondsPerMinute * Duration.millisecondsPerSecond;
   }
 
   final minutes = int.tryParse(trimmed.substring(0, colonIndex));

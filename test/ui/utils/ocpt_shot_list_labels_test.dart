@@ -41,8 +41,11 @@ void main() {
       expect(ocptParseShotDuration("00:05"), 5000);
     });
 
-    test("a bare non-negative integer is read as a number of seconds", () {
-      expect(ocptParseShotDuration("90"), 90000);
+    test("a bare non-negative integer is read as a number of minutes", () {
+      // The unit the field prints first is the unit it reads: `12` is `12:00`, not twelve seconds.
+      expect(ocptParseShotDuration("12"), 720000);
+      expect(ocptFormatShotDuration(ocptParseShotDuration("12")), "12:00");
+      expect(ocptParseShotDuration("90"), 5400000);
       expect(ocptParseShotDuration("0"), 0);
     });
 
