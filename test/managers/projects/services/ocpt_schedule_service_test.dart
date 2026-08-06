@@ -35,7 +35,11 @@ void main() {
   Future<void> insertScreenplay() => database
       .into(database.ocptScreenplaysTable)
       .insert(
-        OcptScreenplaysTableCompanion.insert(id: screenplayId, title: "Draft", updatedAt: DateTime.now()),
+        OcptScreenplaysTableCompanion.insert(
+          id: screenplayId,
+          title: "Draft",
+          updatedAt: DateTime.now(),
+        ),
       );
 
   /// Inserts a role, satisfying `shooting_slot_cast.roleId`'s foreign key without going through
@@ -67,6 +71,17 @@ void main() {
   Future<OcptShootingDayRow> readDay(String id) => (database.select(
     database.ocptShootingDaysTable,
   )..where((row) => row.id.equals(id))).getSingle();
+
+  /// Every group row of day [dayId], tombstoned or not, in `sortKey` order.
+  Future<List<OcptShootingDayGroupRow>> readAllGroups(String dayId) =>
+      (database.select(database.ocptShootingDayGroupsTable)
+            ..where((row) => row.shootingDayId.equals(dayId))
+            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
+          .get();
+
+  /// Every live group row of day [dayId], in `sortKey` order.
+  Future<List<OcptShootingDayGroupRow>> readLiveGroups(String dayId) async =>
+      (await readAllGroups(dayId)).where((row) => !row.isDeleted).toList();
 
   /// Every slot row of day [dayId], tombstoned or not, in `sortKey` order.
   Future<List<OcptShootingSlotRow>> readAllSlots(String dayId) =>
@@ -108,19 +123,53 @@ void main() {
   group("days", () {
     setUp(insertScreenplay);
 
-    test("createDay mints exactly one slot with the default crew band", () async {
-      final dayId = (await scheduleService.createDay(
+    test(
+      "createDay mints exactly one slot with the default start minute, and no groups when "
+      "there is no previous day",
+      () async {
+        final dayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+
+        final slots = await readLiveSlots(dayId);
+        expect(slots, hasLength(1));
+        expect(slots.single.label, "");
+        expect(slots.single.startMinute, 480);
+
+        expect(await readLiveGroups(dayId), isEmpty);
+      },
+    );
+
+    test("createDay copies the previous day's groups, labels and figures alike", () async {
+      final firstDayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
+      final sourceGroupId = (await scheduleService.createGroup(
+        database: database,
+        shootingDayId: firstDayId,
+        label: "Machinerie",
+        leadMinutes: 20,
+      ))!;
 
-      final slots = await readLiveSlots(dayId);
-      expect(slots, hasLength(1));
-      expect(slots.single.label, "");
-      expect(slots.single.crewCallMinute, 480);
-      expect(slots.single.crewWrapMinute, 1080);
-      expect(slots.single.castCallMinute, isNull);
+      final secondDayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 11),
+      ))!;
+
+      final copiedGroups = await readLiveGroups(secondDayId);
+      expect(copiedGroups, hasLength(1));
+      expect(copiedGroups.single.id, isNot(sourceGroupId));
+      expect(copiedGroups.single.label, "Machinerie");
+      expect(copiedGroups.single.leadMinutes, 20);
+
+      // The source group is untouched, and the two are independent from here on.
+      final sourceGroups = await readLiveGroups(firstDayId);
+      expect(sourceGroups.single.id, sourceGroupId);
     });
 
     test("loadSchedule ranks days by sortKey and updates after a reorder", () async {
@@ -162,6 +211,11 @@ void main() {
       ))!;
       final slots = await readLiveSlots(dayId);
       final slotId = slots.single.id;
+      final groupId = (await scheduleService.createGroup(
+        database: database,
+        shootingDayId: dayId,
+        label: "Équipe image",
+      ))!;
 
       final personId = (await peopleService.createPerson(database: database))!;
       final roleId = await createRole("role-1");
@@ -169,11 +223,15 @@ void main() {
 
       await scheduleService.addSlotCrewMember(database: database, slotId: slotId, personId: personId);
       await scheduleService.addSlotCastRole(database: database, slotId: slotId, roleId: roleId);
-      await scheduleService.placeShot(database: database, dayId: dayId, shotId: shotId);
+      await scheduleService.placeShot(database: database, slotId: slotId, shotId: shotId);
 
       await scheduleService.deleteDay(database: database, dayId: dayId);
 
       expect((await readDay(dayId)).isDeleted, isTrue);
+      final allGroups = await readAllGroups(dayId);
+      expect(allGroups, hasLength(1));
+      expect(allGroups.single.id, groupId);
+      expect(allGroups.single.isDeleted, isTrue);
       final allSlots = await readAllSlots(dayId);
       expect(allSlots, hasLength(1));
       expect(allSlots.single.isDeleted, isTrue);
@@ -189,8 +247,8 @@ void main() {
     });
 
     test(
-      "duplicateDay copies the slots, crew and cast with fresh ids, and neither the shots nor "
-      "the crew note",
+      "duplicateDay copies the slots, crew, cast and groups with fresh ids, remapping groupId "
+      "by label, and neither the shots nor the crew note",
       () async {
         final sourceDayId = (await scheduleService.createDay(
           database: database,
@@ -198,13 +256,18 @@ void main() {
           date: DateTime(2026, 8, 10),
         ))!;
         final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
+        final sourceGroupId = (await scheduleService.createGroup(
+          database: database,
+          shootingDayId: sourceDayId,
+          label: "Équipe image",
+          leadMinutes: 30,
+        ))!;
 
         await scheduleService.updateSlot(
           database: database,
           slotId: sourceSlotId,
           label: const Value("Matin"),
-          crewCallMinute: const Value(420),
-          crewWrapMinute: const Value(1000),
+          startMinute: const Value(420),
         );
         await scheduleService.updateDay(
           database: database,
@@ -221,15 +284,25 @@ void main() {
           slotId: sourceSlotId,
           personId: personId,
           positionId: "director",
-          callMinute: 400,
         ))!;
+        await scheduleService.updateSlotCrewMember(
+          database: database,
+          crewMemberId: sourceCrewId,
+          groupId: Value(sourceGroupId),
+        );
+
         final sourceCastId = (await scheduleService.addSlotCastRole(
           database: database,
           slotId: sourceSlotId,
           roleId: roleId,
-          arrivalMinute: 415,
         ))!;
-        await scheduleService.placeShot(database: database, dayId: sourceDayId, shotId: shotId);
+        await scheduleService.updateSlotCastRole(
+          database: database,
+          castRoleId: sourceCastId,
+          leadMinutes: const Value(25),
+        );
+
+        await scheduleService.placeShot(database: database, slotId: sourceSlotId, shotId: shotId);
 
         final newDayId = (await scheduleService.duplicateDay(
           database: database,
@@ -242,26 +315,35 @@ void main() {
         expect(newDay.crewNote, "");
         expect(newDay.status, OcptShootingDayStatus.planned);
 
+        final newGroups = await readLiveGroups(newDayId);
+        expect(newGroups, hasLength(1));
+        expect(newGroups.single.id, isNot(sourceGroupId));
+        expect(newGroups.single.label, "Équipe image");
+        expect(newGroups.single.leadMinutes, 30);
+
         final newSlots = await readLiveSlots(newDayId);
         expect(newSlots, hasLength(1));
         final newSlot = newSlots.single;
         expect(newSlot.id, isNot(sourceSlotId));
         expect(newSlot.label, "Matin");
-        expect(newSlot.crewCallMinute, 420);
-        expect(newSlot.crewWrapMinute, 1000);
+        expect(newSlot.startMinute, 420);
 
         final newCrew = await readAllCrew(newSlot.id);
         expect(newCrew, hasLength(1));
         expect(newCrew.single.id, isNot(sourceCrewId));
         expect(newCrew.single.personId, personId);
         expect(newCrew.single.positionId, "director");
-        expect(newCrew.single.callMinute, 400);
+        // The crew row's own group is remapped onto the new day's own copy of it.
+        expect(newCrew.single.groupId, newGroups.single.id);
+        expect(newCrew.single.groupId, isNot(sourceGroupId));
+        expect(newCrew.single.leadMinutes, isNull);
 
         final newCast = await readAllCast(newSlot.id);
         expect(newCast, hasLength(1));
         expect(newCast.single.id, isNot(sourceCastId));
         expect(newCast.single.roleId, roleId);
-        expect(newCast.single.arrivalMinute, 415);
+        expect(newCast.single.groupId, isNull);
+        expect(newCast.single.leadMinutes, 25);
 
         // Neither the placed shot nor its block travelled to the new day.
         expect(await readAllBlocks(newDayId), isEmpty);
@@ -285,15 +367,157 @@ void main() {
 
       final newSlots = await readLiveSlots(newDayId);
       expect(newSlots, hasLength(1));
-      expect(newSlots.single.crewCallMinute, 480);
-      expect(newSlots.single.crewWrapMinute, 1080);
+      expect(newSlots.single.startMinute, 480);
     });
+  });
+
+  group("groups", () {
+    late String dayId;
+
+    setUp(() async {
+      await insertScreenplay();
+      dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+    });
+
+    test("createGroup appends to the day's groups, defaulting label and lead time", () async {
+      final groupId = (await scheduleService.createGroup(
+        database: database,
+        shootingDayId: dayId,
+      ))!;
+
+      final groups = await readLiveGroups(dayId);
+      expect(groups.single.id, groupId);
+      expect(groups.single.label, "");
+      expect(groups.single.leadMinutes, 0);
+    });
+
+    test("updateGroup writes only the fields passed", () async {
+      final groupId = (await scheduleService.createGroup(
+        database: database,
+        shootingDayId: dayId,
+        label: "Figuration",
+        leadMinutes: 15,
+      ))!;
+
+      await scheduleService.updateGroup(
+        database: database,
+        groupId: groupId,
+        leadMinutes: const Value(45),
+      );
+
+      final group = (await readLiveGroups(dayId)).single;
+      expect(group.label, "Figuration");
+      expect(group.leadMinutes, 45);
+    });
+
+    test(
+      "deleteGroup tombstones the group and nulls the groupId of every crew and cast row "
+      "pointing at it",
+      () async {
+        final groupId = (await scheduleService.createGroup(
+          database: database,
+          shootingDayId: dayId,
+          label: "Équipe technique",
+        ))!;
+        final slotId = (await readLiveSlots(dayId)).single.id;
+
+        final personId = (await peopleService.createPerson(database: database))!;
+        final crewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: slotId,
+          personId: personId,
+        ))!;
+        await scheduleService.updateSlotCrewMember(
+          database: database,
+          crewMemberId: crewId,
+          groupId: Value(groupId),
+        );
+
+        final roleId = await createRole("role-1");
+        final castId = (await scheduleService.addSlotCastRole(
+          database: database,
+          slotId: slotId,
+          roleId: roleId,
+        ))!;
+        await scheduleService.updateSlotCastRole(
+          database: database,
+          castRoleId: castId,
+          groupId: Value(groupId),
+        );
+
+        await scheduleService.deleteGroup(database: database, groupId: groupId);
+
+        final groups = await readAllGroups(dayId);
+        expect(groups.single.isDeleted, isTrue);
+
+        final crewRow = (await readAllCrew(slotId)).single;
+        expect(crewRow.isDeleted, isFalse);
+        expect(crewRow.groupId, isNull);
+
+        final castRow = (await readAllCast(slotId)).single;
+        expect(castRow.isDeleted, isFalse);
+        expect(castRow.groupId, isNull);
+      },
+    );
   });
 
   group("slots", () {
     setUp(insertScreenplay);
 
-    test("deleteSlot tombstones its crew and cast but leaves its blocks in place, unslotted", () async {
+    test(
+      "deleteSlot moves its live blocks, in order, to the end of the day's first other live "
+      "slot",
+      () async {
+        final dayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final slotA = (await readLiveSlots(dayId)).single.id;
+        final slotB = (await scheduleService.createSlot(
+          database: database,
+          shootingDayId: dayId,
+          startMinute: 1080,
+          label: "Soir",
+        ))!;
+
+        final x1 = (await scheduleService.createBlock(
+          database: database,
+          slotId: slotB,
+          kind: OcptShootingBlockKind.preparation,
+        ))!;
+        final x2 = (await scheduleService.createBlock(
+          database: database,
+          slotId: slotB,
+          kind: OcptShootingBlockKind.hairMakeUp,
+        ))!;
+        final y1 = (await scheduleService.createBlock(
+          database: database,
+          slotId: slotA,
+          kind: OcptShootingBlockKind.meal,
+        ))!;
+        final y2 = (await scheduleService.createBlock(
+          database: database,
+          slotId: slotA,
+          kind: OcptShootingBlockKind.wrap,
+        ))!;
+
+        await scheduleService.deleteSlot(database: database, slotId: slotA);
+
+        expect((await readAllSlots(dayId)).firstWhere((row) => row.id == slotA).isDeleted, isTrue);
+
+        final blocks = await readAllBlocks(dayId);
+        expect(blocks.every((row) => !row.isDeleted), isTrue);
+        expect(blocks.every((row) => row.slotId == slotB), isTrue);
+        expect(blocks.map((row) => row.id), [x1, x2, y1, y2]);
+      },
+    );
+
+    test("deleteSlot tombstones its own blocks too when it is the day's last live slot", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
@@ -301,38 +525,228 @@ void main() {
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
 
-      final personId = (await peopleService.createPerson(database: database))!;
-      final crewId = (await scheduleService.addSlotCrewMember(
+      final y1 = (await scheduleService.createBlock(
         database: database,
         slotId: slotId,
-        personId: personId,
+        kind: OcptShootingBlockKind.meal,
       ))!;
-      final roleId = await createRole("role-1");
-      final castId = (await scheduleService.addSlotCastRole(
+      final y2 = (await scheduleService.createBlock(
         database: database,
         slotId: slotId,
-        roleId: roleId,
-      ))!;
-      final shotId = await createShot("shot-1");
-      final blockId = (await scheduleService.placeShot(
-        database: database,
-        dayId: dayId,
-        shotId: shotId,
-        slotId: slotId,
+        kind: OcptShootingBlockKind.wrap,
       ))!;
 
       await scheduleService.deleteSlot(database: database, slotId: slotId);
 
-      final crewRow = (await readAllCrew(slotId)).firstWhere((row) => row.id == crewId);
-      expect(crewRow.isDeleted, isTrue);
-      final castRow = (await readAllCast(slotId)).firstWhere((row) => row.id == castId);
-      expect(castRow.isDeleted, isTrue);
-
-      final block = await readBlock(blockId);
-      expect(block.isDeleted, isFalse);
-      expect(block.shootingDayId, dayId);
-      expect(block.slotId, isNull);
+      expect((await readAllSlots(dayId)).single.isDeleted, isTrue);
+      final blocks = await readAllBlocks(dayId);
+      expect(blocks.map((row) => row.id).toSet(), {y1, y2});
+      expect(blocks.every((row) => row.isDeleted), isTrue);
     });
+
+    test(
+      "addSlotCrewMember seeds the lead time from that person's and position's most recent "
+      "convocation",
+      () async {
+        final firstDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
+        final personId = (await peopleService.createPerson(database: database))!;
+
+        final firstCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: firstSlotId,
+          personId: personId,
+          positionId: "grip",
+        ))!;
+        await scheduleService.updateSlotCrewMember(
+          database: database,
+          crewMemberId: firstCrewId,
+          leadMinutes: const Value(90),
+        );
+
+        final secondDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 11),
+        ))!;
+        final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
+
+        final secondCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: secondSlotId,
+          personId: personId,
+          positionId: "grip",
+        ))!;
+
+        final seeded = (await readAllCrew(secondSlotId)).firstWhere(
+          (row) => row.id == secondCrewId,
+        );
+        expect(seeded.leadMinutes, 90);
+        expect(seeded.groupId, isNull);
+      },
+    );
+
+    test(
+      "addSlotCrewMember seeds the group, matched by label onto the target day's own copy",
+      () async {
+        final firstDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
+        final firstGroupId = (await scheduleService.createGroup(
+          database: database,
+          shootingDayId: firstDayId,
+          label: "Machinerie",
+          leadMinutes: 20,
+        ))!;
+        final personId = (await peopleService.createPerson(database: database))!;
+
+        final firstCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: firstSlotId,
+          personId: personId,
+          positionId: "grip",
+        ))!;
+        await scheduleService.updateSlotCrewMember(
+          database: database,
+          crewMemberId: firstCrewId,
+          groupId: Value(firstGroupId),
+        );
+
+        // Created after the group, so it inherits its own copy of "Machinerie".
+        final secondDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 11),
+        ))!;
+        final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
+        final secondGroupId = (await readLiveGroups(secondDayId)).single.id;
+        expect(secondGroupId, isNot(firstGroupId));
+
+        final secondCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: secondSlotId,
+          personId: personId,
+          positionId: "grip",
+        ))!;
+
+        final seeded = (await readAllCrew(secondSlotId)).firstWhere(
+          (row) => row.id == secondCrewId,
+        );
+        expect(seeded.groupId, secondGroupId);
+        expect(seeded.groupId, isNot(firstGroupId));
+        // The source row's own figure (null, inheriting the group's) travels verbatim.
+        expect(seeded.leadMinutes, isNull);
+      },
+    );
+
+    test(
+      "addSlotCrewMember seeds no group when the target day has none of that label",
+      () async {
+        final firstDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        // Created before the group exists, so it never inherited a copy of it.
+        final secondDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 11),
+        ))!;
+
+        final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
+        final groupId = (await scheduleService.createGroup(
+          database: database,
+          shootingDayId: firstDayId,
+          label: "Maquillage",
+          leadMinutes: 45,
+        ))!;
+        final personId = (await peopleService.createPerson(database: database))!;
+
+        final firstCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: firstSlotId,
+          personId: personId,
+          positionId: "hmc",
+        ))!;
+        await scheduleService.updateSlotCrewMember(
+          database: database,
+          crewMemberId: firstCrewId,
+          groupId: Value(groupId),
+        );
+
+        final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
+        final secondCrewId = (await scheduleService.addSlotCrewMember(
+          database: database,
+          slotId: secondSlotId,
+          personId: personId,
+          positionId: "hmc",
+        ))!;
+
+        expect(await readLiveGroups(secondDayId), isEmpty);
+        final seeded = (await readAllCrew(secondSlotId)).firstWhere(
+          (row) => row.id == secondCrewId,
+        );
+        expect(seeded.groupId, isNull);
+      },
+    );
+
+    test(
+      "addSlotCastRole seeds the lead time and group from that role's most recent convocation",
+      () async {
+        final firstDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
+        final groupId = (await scheduleService.createGroup(
+          database: database,
+          shootingDayId: firstDayId,
+          label: "Figuration",
+          leadMinutes: 60,
+        ))!;
+        final roleId = await createRole("role-1");
+
+        final firstCastId = (await scheduleService.addSlotCastRole(
+          database: database,
+          slotId: firstSlotId,
+          roleId: roleId,
+        ))!;
+        await scheduleService.updateSlotCastRole(
+          database: database,
+          castRoleId: firstCastId,
+          groupId: Value(groupId),
+        );
+
+        final secondDayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 11),
+        ))!;
+        final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
+        final secondGroupId = (await readLiveGroups(secondDayId)).single.id;
+
+        final secondCastId = (await scheduleService.addSlotCastRole(
+          database: database,
+          slotId: secondSlotId,
+          roleId: roleId,
+        ))!;
+
+        final seeded = (await readAllCast(secondSlotId)).firstWhere(
+          (row) => row.id == secondCastId,
+        );
+        expect(seeded.groupId, secondGroupId);
+        expect(seeded.leadMinutes, isNull);
+      },
+    );
 
     test("addSlotCastRole refuses convoking the same role twice in one slot", () async {
       final dayId = (await scheduleService.createDay(
@@ -368,21 +782,23 @@ void main() {
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
+      final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
       final secondDayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
       ))!;
+      final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
       final shotId = await createShot("shot-1");
 
       final firstBlockId = (await scheduleService.placeShot(
         database: database,
-        dayId: firstDayId,
+        slotId: firstSlotId,
         shotId: shotId,
       ))!;
       final secondBlockId = (await scheduleService.placeShot(
         database: database,
-        dayId: secondDayId,
+        slotId: secondSlotId,
         shotId: shotId,
       ))!;
 
@@ -393,6 +809,7 @@ void main() {
 
       final secondDayBlocks = await readAllBlocks(secondDayId);
       expect(secondDayBlocks.where((row) => !row.isDeleted), hasLength(1));
+      expect(secondDayBlocks.single.slotId, secondSlotId);
       expect(secondDayBlocks.single.shotId, shotId);
       expect(secondDayBlocks.single.kind, OcptShootingBlockKind.shot);
     });
@@ -403,9 +820,10 @@ void main() {
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
       final shotId = await createShot("shot-1");
 
-      await scheduleService.placeShot(database: database, dayId: dayId, shotId: shotId);
+      await scheduleService.placeShot(database: database, slotId: slotId, shotId: shotId);
       var placements = await scheduleService.loadShotPlacements(
         database: database,
         screenplayId: screenplayId,
@@ -425,7 +843,7 @@ void main() {
       expect(blocks.single.isDeleted, isTrue);
     });
 
-    test("moveBlockToDay moves a block across days and clears its slot", () async {
+    test("moveBlockToSlot moves a block to another slot, and to that slot's day with it", () async {
       final sourceDayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
@@ -437,25 +855,25 @@ void main() {
         date: DateTime(2026, 8, 11),
       ))!;
       final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
+      final targetSlotId = (await readLiveSlots(targetDayId)).single.id;
 
       final blockId = (await scheduleService.createBlock(
         database: database,
-        dayId: sourceDayId,
-        kind: OcptShootingBlockKind.meal,
         slotId: sourceSlotId,
+        kind: OcptShootingBlockKind.meal,
         label: "Repas",
       ))!;
 
-      await scheduleService.moveBlockToDay(
+      await scheduleService.moveBlockToSlot(
         database: database,
         blockId: blockId,
-        targetDayId: targetDayId,
+        targetSlotId: targetSlotId,
         newPosition: 0,
       );
 
       final moved = await readBlock(blockId);
       expect(moved.shootingDayId, targetDayId);
-      expect(moved.slotId, isNull);
+      expect(moved.slotId, targetSlotId);
       expect(moved.kind, OcptShootingBlockKind.meal);
       expect(moved.label, "Repas");
     });
@@ -466,10 +884,11 @@ void main() {
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
 
       final blockId = await scheduleService.createBlock(
         database: database,
-        dayId: dayId,
+        slotId: slotId,
         kind: OcptShootingBlockKind.shot,
       );
 
@@ -477,30 +896,26 @@ void main() {
       expect(await readAllBlocks(dayId), isEmpty);
     });
 
-    test("reorderBlock writes exactly one row within a day's timetable", () async {
+    test("reorderBlock writes exactly one row within a slot's own timetable", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
 
       final firstId = (await scheduleService.createBlock(
         database: database,
-        dayId: dayId,
+        slotId: slotId,
         kind: OcptShootingBlockKind.preparation,
       ))!;
       final secondId = (await scheduleService.createBlock(
         database: database,
-        dayId: dayId,
+        slotId: slotId,
         kind: OcptShootingBlockKind.meal,
       ))!;
 
-      await scheduleService.reorderBlock(
-        database: database,
-        dayId: dayId,
-        blockId: secondId,
-        newPosition: 0,
-      );
+      await scheduleService.reorderBlock(database: database, blockId: secondId, newPosition: 0);
 
       final blocks = await readAllBlocks(dayId);
       expect(blocks.map((row) => row.id), [secondId, firstId]);
@@ -533,11 +948,17 @@ void main() {
       );
 
       expect(
+        await scheduleService.createGroup(database: preview, shootingDayId: "missing-day"),
+        isNull,
+      );
+      await scheduleService.updateGroup(database: preview, groupId: "missing-group");
+      await scheduleService.deleteGroup(database: preview, groupId: "missing-group");
+
+      expect(
         await scheduleService.createSlot(
           database: preview,
           shootingDayId: "missing-day",
-          crewCallMinute: 480,
-          crewWrapMinute: 1080,
+          startMinute: 480,
         ),
         isNull,
       );
@@ -570,7 +991,7 @@ void main() {
       expect(
         await scheduleService.placeShot(
           database: preview,
-          dayId: "missing-day",
+          slotId: "missing-slot",
           shotId: "missing-shot",
         ),
         isNull,
@@ -580,7 +1001,7 @@ void main() {
       expect(
         await scheduleService.createBlock(
           database: preview,
-          dayId: "missing-day",
+          slotId: "missing-slot",
           kind: OcptShootingBlockKind.meal,
         ),
         isNull,
@@ -588,14 +1009,13 @@ void main() {
       await scheduleService.updateBlock(database: preview, blockId: "missing-block");
       await scheduleService.reorderBlock(
         database: preview,
-        dayId: "missing-day",
         blockId: "missing-block",
         newPosition: 0,
       );
-      await scheduleService.moveBlockToDay(
+      await scheduleService.moveBlockToSlot(
         database: preview,
         blockId: "missing-block",
-        targetDayId: "missing-day",
+        targetSlotId: "missing-slot",
         newPosition: 0,
       );
 
