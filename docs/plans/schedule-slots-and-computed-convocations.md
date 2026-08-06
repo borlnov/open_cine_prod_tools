@@ -209,6 +209,18 @@ may be placed as many times as the plan needs, a shot resumed after the meal bre
 rather than one. The left dock's click on a shot is now a plain selection the inspector reads out,
 and the strip agenda is informative: nothing is placed or unplaced from it.
 
+A second reading pass over the built day view shipped with it too, and none of it is asked for
+below either. A **crew member has a PAT band** like an actor does, the two convocation shapes now
+naming the same three figures (ADR 0017's own Amendment). A **`pause` block** joins the milestone
+kinds. The shooting days are **ranked by date** rather than by hand, `J1`/`J2` being a chronological
+label a `Change the date…` action renumbers, and the letter itself is **localized** (`D3`/`J3`). A
+crew row is a **card** built like a cast one, both wrapping inside a half-width column the crew side
+can **fold**. The groups band says `People groups` and carries an `ⓘ` explaining what a group is
+for. The `±` duration controls **snap to five minutes**, the exact figure being typed in the
+inspector instead. And a day's band is read **arrival → end** — the earliest minute anybody has to
+be there — rather than opening on the first slot's start, which the strip card had never managed to
+print at all.
+
 6. A `hold` block's own **sequence picker**, writing the `shooting_day_blocks.sceneId` schema v12
    already carries, and the roles that sequence calls for read out of the breakdown — until both
    land, a hold names nobody and every role convoked beside it keeps the slot's own bounds.
