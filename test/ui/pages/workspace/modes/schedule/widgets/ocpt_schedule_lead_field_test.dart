@@ -45,7 +45,9 @@ void main() {
 
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.controller?.text, "");
-    expect(field.decoration?.hintText, "20");
+    // The hint carries the unit too: unlike the suffix, Material only draws it while the field is
+    // empty and unfocused, which is exactly when the hint alone speaks for the field.
+    expect(field.decoration?.hintText, "20 min");
   });
 
   testWidgets("typing a figure and submitting reports it", (tester) async {

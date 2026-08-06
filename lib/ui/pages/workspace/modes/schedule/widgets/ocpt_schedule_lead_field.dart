@@ -177,7 +177,7 @@ class _OcptScheduleLeadFieldState extends State<OcptScheduleLeadField> {
         decoration: InputDecoration(
           isDense: true,
           suffixText: "min",
-          hintText: inherited == null ? null : "$inherited",
+          hintText: inherited == null ? null : "$inherited min",
           hintStyle: theme.textTheme.bodySmall?.copyWith(
             fontStyle: FontStyle.italic,
             color: theme.colorScheme.onSurfaceVariant,

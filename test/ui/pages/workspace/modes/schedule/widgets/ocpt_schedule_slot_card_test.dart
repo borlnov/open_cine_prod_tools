@@ -415,10 +415,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // Nothing was typed for this row (`leadMinutes: null`); the group's own resolved figure (60)
-    // is shown as the field's own hint rather than a value the row claims for itself.
+    // is shown, with its unit, as the field's own hint rather than a value the row claims for
+    // itself.
     final leadField = tester.widget<TextField>(
       find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == "60",
+        (widget) => widget is TextField && widget.decoration?.hintText == "60 min",
       ),
     );
     expect(leadField.controller?.text, "");
