@@ -15,8 +15,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_t
 /// nothing here forces every slot of a day to share a location.
 ///
 /// **[startMinute] is this slot's one typed clock**, the moment its first block begins — every
-/// other time a call sheet prints for this slot (a crew member's call and wrap, an actor's PAT band
-/// and arrival) is computed from it and from the slot's own chain of `shooting_day_blocks`, never
+/// other time a call sheet prints for this slot (a crew member's or an actor's own PAT band and
+/// arrival) is computed from it and from the slot's own chain of `shooting_day_blocks`, never
 /// stored: see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) and
 /// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). It **may exceed 1440**: a night slot
 /// running 19:00 → 03:00 stores `1140`, an offset from the day's own midnight, nothing ever taken

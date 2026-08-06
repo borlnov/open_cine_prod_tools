@@ -77,30 +77,38 @@ class OcptCastConvocationInput {
   final int? groupLeadMinutes;
 }
 
-/// A crew member's computed convocation for one slot: when they are called, when they wrap, and
-/// the lead time [ocptComputeSlotConvocations] actually resolved for them (own or group's, or
-/// zero), so a caller can show *why* the call time is what it is without re-resolving it.
+/// A crew member's computed convocation for one slot: their PAT (*prêt à tourner*) band — the
+/// slot's own, a technician having no shot-by-shot band the way a role does — and their arrival,
+/// ahead of it by their lead time, plus the lead time [ocptComputeSlotConvocations] actually
+/// resolved for them (own or group's, or zero), so a caller can show *why* the arrival time is
+/// what it is without re-resolving it.
 class OcptCrewConvocation {
   /// Builds a computed crew convocation.
   const OcptCrewConvocation({
     required this.id,
-    required this.callMinute,
-    required this.wrapMinute,
+    required this.arrivalMinute,
+    required this.patStartMinute,
+    required this.patEndMinute,
     required this.leadMinutes,
   });
 
   /// The [OcptCrewConvocationInput.id] this convocation answers.
   final String id;
 
-  /// The minute this person is called for, from the day's own midnight.
-  final int callMinute;
+  /// The minute this person is expected on set, ready — [patStartMinute] minus [leadMinutes].
+  final int arrivalMinute;
 
-  /// The minute this person wraps at, or null when the slot has no block at all yet — see
-  /// [ocptComputeSlotConvocations]'s own doc comment on the empty-slot case.
-  final int? wrapMinute;
+  /// The start of this person's *prêt à tourner* band — the slot's own band start, from the day's
+  /// own midnight; exactly what [arrivalMinute] is computed from before [leadMinutes] is
+  /// subtracted.
+  final int patStartMinute;
 
-  /// The lead time actually used to compute [callMinute]: [OcptCrewConvocationInput.leadMinutes] if
-  /// set, else [OcptCrewConvocationInput.groupLeadMinutes], else zero.
+  /// The end of this person's PAT band — the slot's own band end — or null when the slot has no
+  /// block at all yet, see [ocptComputeSlotConvocations]'s own doc comment on the empty-slot case.
+  final int? patEndMinute;
+
+  /// The lead time actually used to compute [arrivalMinute]: [OcptCrewConvocationInput.leadMinutes]
+  /// if set, else [OcptCrewConvocationInput.groupLeadMinutes], else zero.
   final int leadMinutes;
 }
 
@@ -127,7 +135,7 @@ class OcptCastConvocation {
   /// doc comment.
   final int patStartMinute;
 
-  /// The end of this role's PAT band, or null exactly when [OcptCrewConvocation.wrapMinute] is —
+  /// The end of this role's PAT band, or null exactly when [OcptCrewConvocation.patEndMinute] is —
   /// the slot has no block at all yet.
   final int? patEndMinute;
 
@@ -167,10 +175,12 @@ class OcptSlotConvocations {
 /// and the last of the list", since a pinned anchor can put a block earlier than the one before it
 /// in the chain's own order.
 ///
-/// **A crew convocation**'s `callMinute` is the slot's own band start minus the resolved lead, and
-/// its `wrapMinute` is the band end, full stop — there is no after-offset anywhere in this model.
-/// Finishing later is stated as a `wrap` block in the chain, which moves the band end, and with it
-/// every crew member's wrap at once, rather than one row's.
+/// **A crew convocation**'s `patStartMinute`/`patEndMinute` are the slot's own band, full stop —
+/// there is no per-block band for a technician, unlike a role's: the slot is what they are convoked
+/// for, not any one block inside it. `arrivalMinute` is `patStartMinute` minus the resolved lead —
+/// there is no after-offset anywhere in this model, either: finishing later is stated as a `wrap`
+/// block in the chain, which moves the band end, and with it every crew member's `patEndMinute` at
+/// once, rather than one row's.
 ///
 /// **A cast convocation**'s `patStartMinute`/`patEndMinute` are the same minimum/maximum, but taken
 /// only over the blocks that actually name that role (a shot block through its `shot_characters`, a
@@ -186,10 +196,10 @@ class OcptSlotConvocations {
 /// for the same reason a negative block duration does in `ocpt_shooting_day_timeline.dart`: nothing
 /// in this mode means "be convoked after you are needed", and a lead is typed, not derived.
 ///
-/// **A slot with no block at all** has no band to read: every [OcptCrewConvocation.wrapMinute] and
+/// **A slot with no block at all** has no band to read: every [OcptCrewConvocation.patEndMinute] and
 /// [OcptCastConvocation.patEndMinute] comes back null (the same convention as [
-/// OcptShootingSlotTimeline.endMinute]'s own empty-slot case), while `callMinute`, `patStartMinute`
-/// and `arrivalMinute` are computed off [slotStartMinute] instead — a convocation still has a call
+/// OcptShootingSlotTimeline.endMinute]'s own empty-slot case), while `patStartMinute` and
+/// `arrivalMinute` are computed off [slotStartMinute] instead — a convocation still has an arrival
 /// time when nothing is planned yet.
 OcptSlotConvocations ocptComputeSlotConvocations({
   required int slotStartMinute,
@@ -202,11 +212,13 @@ OcptSlotConvocations ocptComputeSlotConvocations({
   final crewConvocations = <OcptCrewConvocation>[];
   for (final input in crew) {
     final leadMinutes = _resolveLead(input.leadMinutes, input.groupLeadMinutes);
+    final patStartMinute = slotBand.start ?? slotStartMinute;
     crewConvocations.add(
       OcptCrewConvocation(
         id: input.id,
-        callMinute: (slotBand.start ?? slotStartMinute) - leadMinutes,
-        wrapMinute: slotBand.end,
+        arrivalMinute: patStartMinute - leadMinutes,
+        patStartMinute: patStartMinute,
+        patEndMinute: slotBand.end,
         leadMinutes: leadMinutes,
       ),
     );

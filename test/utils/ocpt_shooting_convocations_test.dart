@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
 void main() {
-  group("crew — call and wrap read off the slot's own band", () {
-    test("callMinute is the band start minus the lead, wrapMinute is the band end", () {
+  group("crew — arrival and PAT band read off the slot's own band", () {
+    test("arrivalMinute is the band start minus the lead, patStart/patEnd are the band itself", () {
       final result = ocptComputeSlotConvocations(
         slotStartMinute: 480,
         blocks: const [
@@ -19,8 +19,9 @@ void main() {
       );
 
       final crew = result.crew.single;
-      expect(crew.callMinute, 450); // 480 - 30
-      expect(crew.wrapMinute, 600);
+      expect(crew.arrivalMinute, 450); // 480 - 30
+      expect(crew.patStartMinute, 480);
+      expect(crew.patEndMinute, 600);
       expect(crew.leadMinutes, 30);
     });
 
@@ -35,8 +36,9 @@ void main() {
         cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-1", leadMinutes: 60)],
       );
 
-      expect(result.crew.single.callMinute, 1095); // 18:15, still expressed past no wrap point
-      expect(result.crew.single.wrapMinute, 1620); // 03:00 the following morning
+      expect(result.crew.single.arrivalMinute, 1095); // 18:15, still expressed past no wrap point
+      expect(result.crew.single.patStartMinute, 1140);
+      expect(result.crew.single.patEndMinute, 1620); // 03:00 the following morning
       expect(result.cast.single.patStartMinute, 1140);
       expect(result.cast.single.patEndMinute, 1620);
       expect(result.cast.single.arrivalMinute, 1080); // 18:00
@@ -91,7 +93,7 @@ void main() {
       );
 
       expect(result.crew.single.leadMinutes, 15);
-      expect(result.crew.single.callMinute, 465); // 480 - 15, not 480 - 90
+      expect(result.crew.single.arrivalMinute, 465); // 480 - 15, not 480 - 90
     });
 
     test("a row with no lead of its own falls back to its group's", () {
@@ -115,7 +117,7 @@ void main() {
       );
 
       expect(result.crew.single.leadMinutes, 0);
-      expect(result.crew.single.callMinute, 480); // arriving ready, right on the band start
+      expect(result.crew.single.arrivalMinute, 480); // arriving ready, right on the band start
     });
 
     test("a negative resolved lead is refused rather than convoking someone late", () {
@@ -144,7 +146,7 @@ void main() {
   });
 
   group("a slot with no block at all", () {
-    test("wrapMinute and patEndMinute are null, the rest reads off the slot's own start", () {
+    test("patEndMinute is null on both, the rest reads off the slot's own start", () {
       final result = ocptComputeSlotConvocations(
         slotStartMinute: 480,
         blocks: const [],
@@ -153,8 +155,9 @@ void main() {
       );
 
       final crew = result.crew.single;
-      expect(crew.callMinute, 465); // 480 - 15
-      expect(crew.wrapMinute, isNull);
+      expect(crew.arrivalMinute, 465); // 480 - 15
+      expect(crew.patStartMinute, 480); // slotStartMinute, with no block to read a band from
+      expect(crew.patEndMinute, isNull);
 
       final cast = result.cast.single;
       expect(cast.patStartMinute, 480);

@@ -422,7 +422,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   };
 
   /// [slotId]'s own computed convocations (ADR 0017, `lib/utils/ocpt_shooting_convocations.dart`):
-  /// every crew member's call/wrap and every convoked role's PAT band/arrival — or null while
+  /// every crew member's and every convoked role's own PAT band/arrival — or null while
   /// [slotId] names no live slot of [snapshot] (its day not loaded yet, or the slot itself since
   /// deleted).
   ///

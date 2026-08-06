@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// A person holding two positions in one slot is two [OcptShootingSlotCrewMember]s — see
 /// `OcptShootingSlotCrewTable`'s own doc comment.
 ///
-/// **This row's call and wrap times are computed, never typed** — see
+/// **This row's arrival and PAT band are computed, never typed** — see
 /// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). [leadMinutes] is a lead time typed
 /// beside this person, and [groupId] the `OcptShootingDayGroup` this row belongs to when it belongs
 /// to one; this row's own [leadMinutes] wins over its group's when both are set.

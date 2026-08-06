@@ -253,7 +253,9 @@ void main() {
     expect(find.byIcon(Icons.close), findsNWidgets(2));
   });
 
-  testWidgets("a crew row reads its computed call and wrap, never types into them", (tester) async {
+  testWidgets("a crew row reads its computed arrival and PAT band, never types into them", (
+    tester,
+  ) async {
     final crew = [
       const OcptShootingSlotCrewMember(
         id: "crew-1",
@@ -268,7 +270,13 @@ void main() {
     ];
     const convocations = OcptSlotConvocations(
       crew: [
-        OcptCrewConvocation(id: "crew-1", callMinute: 450, wrapMinute: 1080, leadMinutes: 30),
+        OcptCrewConvocation(
+          id: "crew-1",
+          arrivalMinute: 450,
+          patStartMinute: 495,
+          patEndMinute: 1080,
+          leadMinutes: 30,
+        ),
       ],
       cast: [],
     );
@@ -278,13 +286,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The computed call (450 = 07:30) and wrap (1080 = 18:00) read out, as plain read-only minute
-    // fields — nothing here is a `TextField` a crew row could be typed into.
+    // The computed arrival (450 = 07:30) and PAT band (495 = 08:15, 1080 = 18:00) read out, as
+    // plain read-only minute fields — nothing here is a `TextField` a crew row could be typed into.
     expect(find.text("07:30"), findsOneWidget);
+    expect(find.text("08:15"), findsOneWidget);
     expect(find.text("18:00"), findsOneWidget);
     final crewMinuteFields = tester
         .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
-        .where((field) => field.minute == 450 || field.minute == 1080);
+        .where((field) => field.minute == 450 || field.minute == 495 || field.minute == 1080);
+    expect(crewMinuteFields, hasLength(3));
     expect(crewMinuteFields, everyElement(predicate<OcptScheduleMinuteField>((f) => f.onChanged == null)));
   });
 
@@ -566,7 +576,15 @@ void main() {
       ),
     ];
     const convocations = OcptSlotConvocations(
-      crew: [OcptCrewConvocation(id: "crew-1", callMinute: 480, wrapMinute: 1080, leadMinutes: 0)],
+      crew: [
+        OcptCrewConvocation(
+          id: "crew-1",
+          arrivalMinute: 480,
+          patStartMinute: 480,
+          patEndMinute: 1080,
+          leadMinutes: 0,
+        ),
+      ],
       cast: [
         OcptCastConvocation(
           id: "cast-1",

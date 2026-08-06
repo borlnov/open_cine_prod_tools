@@ -37,8 +37,8 @@ import 'package:uuid/uuid.dart';
 /// to exactly one slot ([createBlock]/[placeShot] both take a required slot id and read the day off
 /// it, so a block can never name a day its slot doesn't belong to) and chains from that slot's own
 /// `startMinute` — see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended). **Every
-/// convocation time is computed, never stored**: a crew member's call and wrap, an actor's PAT band
-/// and arrival, are all read off a slot's chain and a lead time through
+/// convocation time is computed, never stored**: a crew member's or an actor's own PAT band and
+/// arrival are all read off a slot's chain and a lead time through
 /// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017) — this service only ever reads and writes
 /// the columns those two functions take as input (a slot's `startMinute`, a block's duration and
 /// anchor, and a crew/cast row's own `leadMinutes`/`groupId`), and never a clock time itself.

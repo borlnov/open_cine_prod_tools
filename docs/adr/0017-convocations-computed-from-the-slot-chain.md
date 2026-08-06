@@ -103,3 +103,16 @@ groupLeadMinutes ?? 0`, and knows nothing of `shooting_day_groups`, `shooting_sl
   shape: rejected because a convocation's wrap is never independent of the slot's actual plan — it
   is always "when the last block of the slot ends", and a duration typed alongside it could disagree
   with the timetable the moment either one changed.
+
+## Amendment
+
+A crew convocation is now expressed the same way a cast convocation already was: an `arrivalMinute`,
+a `patStartMinute` and a `patEndMinute`, in place of `callMinute` and `wrapMinute`. The *prêt à
+tourner* moment is as real for a technician as for an actor — a gaffer is not merely "called", they
+are ready to shoot at a given minute, same as the cast — so the two convocation shapes now name the
+same three figures rather than two of them under different names. `patStartMinute`/`patEndMinute`
+are still the slot's own band, unchanged, and `arrivalMinute` is still that band's start minus the
+resolved lead; nothing about what is computed changed, only what the result is called and how much
+of it is returned. `OcptCastConvocation.patEndMinute`'s own doc comment, which used to point at
+`OcptCrewConvocation.wrapMinute` for the empty-slot convention, now points at
+`OcptCrewConvocation.patEndMinute` instead.

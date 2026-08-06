@@ -13,10 +13,10 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 /// reference call sheets show) is **two rows**: the call sheet joins them back into one printed
 /// line.
 ///
-/// **This row's call and wrap times are computed, never typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017): the call is the slot's own band start
-/// minus this person's resolved lead time, and the wrap is the band end, full stop, there being no
-/// after-offset anywhere in this model (finishing later is stated as a `wrap` block). [leadMinutes]
+/// **This row's arrival and PAT band are computed, never typed** — see
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017): the PAT band is the slot's own band, the
+/// arrival is its start minus this person's resolved lead time, there being no after-offset
+/// anywhere in this model (finishing later is stated as a `wrap` block). [leadMinutes]
 /// is a lead time "minutes before the moment this person is needed" — hair, make-up, costume or
 /// simply travel time; when null, this row inherits [groupId]'s own `shooting_day_groups.leadMinutes`
 /// instead. **This row's own figure wins over its group's** when both are set.

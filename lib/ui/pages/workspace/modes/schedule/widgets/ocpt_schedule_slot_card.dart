@@ -47,7 +47,7 @@ const String _noGroupOption = "";
 /// carry one timetable shared by every slot; now each card draws its own, over its own [blocks]
 /// alone, chained by its own [timeline].
 ///
-/// **A crew or cast row's own call/wrap and PAT/arrival are read-outs, never fields**: they are
+/// **A crew or cast row's own arrival and PAT band are read-outs, never fields**: they are
 /// [convocations]' own computed answer (ADR 0017) for that row, and moving a block is what changes
 /// them — there is nothing to type into for either band. The one editable clock on the whole card
 /// is the slot's own start ([onStartChanged]); what a row *does* edit is its own **cause**: a lead
@@ -668,9 +668,9 @@ class OcptScheduleSlotCard extends StatelessWidget {
 }
 
 /// One crew row of [OcptScheduleSlotCard]'s own `Équipe technique` column: the position picker,
-/// the person's own name, its own computed call/wrap read-out, then its own **cause** — a lead time
-/// and a group picker (§2.3/§2.4 of `docs/plans/schedule-slots-and-computed-convocations.md`) — and
-/// a remove control.
+/// the person's own name, its own computed arrival/PAT band read-out, then its own **cause** — a
+/// lead time and a group picker (§2.3/§2.4 of
+/// `docs/plans/schedule-slots-and-computed-convocations.md`) — and a remove control.
 class _OcptScheduleCrewMemberRow extends StatelessWidget {
   /// The crew assignment this row shows.
   final OcptShootingSlotCrewMember member;
@@ -679,7 +679,7 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
   final OcptPerson? person;
 
   /// This row's own computed convocation, or null while it hasn't been computed yet — what its
-  /// call/wrap read-out, and its lead field's own inherited figure, are drawn from.
+  /// arrival/PAT band read-out, and its lead field's own inherited figure, are drawn from.
   final OcptCrewConvocation? convocation;
 
   /// The day's own live groups — what this row's own group picker offers.
@@ -769,18 +769,36 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
-              OcptScheduleMinuteField(
-                minute: convocation?.callMinute,
-                isClearable: false,
-                emptyHint: "—",
-                onChanged: null,
-              ),
-              const SizedBox(width: 4),
-              OcptScheduleMinuteField(
-                minute: convocation?.wrapMinute,
-                isClearable: false,
-                emptyHint: "—",
-                onChanged: null,
+              Flexible(
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 4,
+                  runSpacing: 2,
+                  children: [
+                    Text("${tr.scheduleSlotArrivalLabel} ", style: theme.textTheme.labelSmall),
+                    OcptScheduleMinuteField(
+                      minute: convocation?.arrivalMinute,
+                      isClearable: false,
+                      emptyHint: "—",
+                      onChanged: null,
+                    ),
+                    Text("${tr.scheduleSlotPatBandLabel} ", style: theme.textTheme.labelSmall),
+                    OcptScheduleMinuteField(
+                      minute: convocation?.patStartMinute,
+                      isClearable: false,
+                      emptyHint: "—",
+                      onChanged: null,
+                    ),
+                    Text(" – ", style: theme.textTheme.labelSmall),
+                    OcptScheduleMinuteField(
+                      minute: convocation?.patEndMinute,
+                      isClearable: false,
+                      emptyHint: "—",
+                      onChanged: null,
+                    ),
+                  ],
+                ),
               ),
               if (onRemoved != null)
                 IconButton(
