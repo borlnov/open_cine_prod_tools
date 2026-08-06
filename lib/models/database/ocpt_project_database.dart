@@ -29,6 +29,12 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snapshots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_presences_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_cast_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_crew_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_characters_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_coverages_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
@@ -37,8 +43,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
 // OcptPermitStatusConverter, OcptElementCategoryConverter, OcptElementSourceKindConverter,
 // OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
-// OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter), but the generated
-// ocpt_project_database.g.dart
+// OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
+// OcptShootingDayStatusConverter, OcptShootingBlockKindConverter, OcptPresenceCodeConverter), but
+// the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
@@ -52,7 +59,10 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -79,8 +89,12 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptAssetsTable]) and the local, never-synchronised record of erased people
 /// ([OcptLocalErasuresTable]). From schema version 9 it also holds the breakdown pass's own tables:
 /// the tags anchoring a passage of a scene to a catalogue row ([OcptBreakdownTagsTable]) and each
-/// scene's breakdown status ([OcptSceneBreakdownsTable]). `OcptProjectsManager` owns the single
-/// instance open at a time.
+/// scene's breakdown status ([OcptSceneBreakdownsTable]). From schema version 11 it holds the
+/// schedule mode's own tables: the shooting days ([OcptShootingDaysTable]), the convocation windows
+/// inside them ([OcptShootingSlotsTable]) and who is convoked during one, crew
+/// ([OcptShootingSlotCrewTable]) and cast ([OcptShootingSlotCastTable]), each day's timetable
+/// ([OcptShootingDayBlocksTable]) and the by-hand overrides of the presence grid
+/// ([OcptShootingPresencesTable]). `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -107,6 +121,12 @@ part 'ocpt_project_database.g.dart';
     OcptLocalErasuresTable,
     OcptBreakdownTagsTable,
     OcptSceneBreakdownsTable,
+    OcptShootingDaysTable,
+    OcptShootingSlotsTable,
+    OcptShootingSlotCrewTable,
+    OcptShootingSlotCastTable,
+    OcptShootingDayBlocksTable,
+    OcptShootingPresencesTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -175,7 +195,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   /// The database options used by this database.
   ///
@@ -209,9 +229,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// suggest anything better. From 8 to 9 it creates [OcptBreakdownTagsTable] and
   /// [OcptSceneBreakdownsTable], the breakdown pass's own tables, and adds `elements.status`. From
   /// 9 to 10 it adds **no column at all**: it fills the `sets.code` a set now carries from the
-  /// moment it is created (see [_backfillSetCodes]). Every step is additive, as ADR 0007 requires:
-  /// every new column carries a default (or is nullable), so the rows a project already had stay
-  /// valid without being rewritten.
+  /// moment it is created (see [_backfillSetCodes]). From 10 to 11 it creates the six tables of the
+  /// schedule mode — the shooting days ([OcptShootingDaysTable]), their convocation windows
+  /// ([OcptShootingSlotsTable]) and who is convoked, crew ([OcptShootingSlotCrewTable]) and cast
+  /// ([OcptShootingSlotCastTable]), each day's timetable ([OcptShootingDayBlocksTable]) and the
+  /// presence grid's overrides ([OcptShootingPresencesTable]) — and, on a file that already had
+  /// `shots` (see [_eraseLegacyShootingDays]), blanks every `shots.shootingDay` value: the schedule's
+  /// placement is the only truth from here on, a shooting day is always dated, and a free-text `J3`
+  /// carries no date to migrate from, so a blank column is the only honest reading. It needs no
+  /// `row_field_versions` stamp — every replica performs the same erasure, deterministically, as
+  /// part of the migration itself. Every step is additive, as ADR 0007 requires: every new column
+  /// carries a default (or is nullable), so the rows a project already had stay valid without being
+  /// rewritten.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -304,6 +333,22 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       if (from < 10 && from >= 6) {
         await _backfillSetCodes();
       }
+
+      if (from < 11) {
+        // Each `createTable` follows every table it references: `screenplays`, `locations`,
+        // `sets`, `people`, `roles` and `shots` all exist by this point, whichever version the file
+        // came from.
+        await m.createTable(ocptShootingDaysTable);
+        await m.createTable(ocptShootingSlotsTable);
+        await m.createTable(ocptShootingSlotCrewTable);
+        await m.createTable(ocptShootingSlotCastTable);
+        await m.createTable(ocptShootingDayBlocksTable);
+        await m.createTable(ocptShootingPresencesTable);
+
+        if (from >= 2) {
+          await _eraseLegacyShootingDays();
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -341,6 +386,22 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         rows[i].data['id'],
       ]);
     }
+  }
+
+  /// Blanks every `shots.shooting_day` value on the way to schema version 11: from here on, the
+  /// schedule mode's own tables are the only truth about which day a shot is planned for, a
+  /// shooting day is always dated, and this legacy free-text column never carried one — so a blank
+  /// column and an empty schedule say the same true thing, where a migration that guessed a date
+  /// from `J3` would fabricate a dated shoot out of nothing.
+  ///
+  /// Guarded by `from >= 2` at its call site: a file coming from before version 2 has just had
+  /// `shots` created empty by the version 2 step above, so there is nothing to erase.
+  ///
+  /// Written in raw SQL rather than through the generated API, for the reason [_backfillSortKeys]
+  /// gives. No `row_field_versions` stamp is written for it: every replica runs this same migration
+  /// step, so the erasure is already deterministic across replicas without one.
+  Future<void> _eraseLegacyShootingDays() async {
+    await customStatement('UPDATE shots SET shooting_day = NULL');
   }
 
   /// Writes a `sortKey` onto every `shots` and `shot_characters` row that predates schema version
