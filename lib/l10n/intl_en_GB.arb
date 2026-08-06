@@ -6809,10 +6809,17 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleGroupsBandTitle": "Groups",
+  "scheduleGroupsBandTitle": "People groups",
   "@scheduleGroupsBandTitle": {
     "description": "Heading of the day view's own groups band",
     "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleGroupsBandHelpTooltip": "A group is one shared lead time for the people who walk in together — not a department, which says what trade someone practises rather than when they arrive. It belongs to this day alone: the same crew called at 06:00 on a January exterior is called at 09:00 in a studio.",
+  "@scheduleGroupsBandHelpTooltip": {
+    "description": "Tooltip of the groups band's own info icon, explaining what a group is for",
+    "context": "Displayed in the day view's own groups band",
     "type": "text",
     "placeholders": {}
   },

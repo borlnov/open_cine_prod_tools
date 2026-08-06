@@ -186,4 +186,18 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byIcon(Icons.close), findsNothing);
   });
+
+  testWidgets("the title's own info icon carries the explanatory tooltip, even when read-only", (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrapInApp(buildBand(isReadOnly: true)));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleGroupsBand)));
+    // Not a writing affordance, so it is not withheld by `isReadOnly` the way the rest of the band
+    // is above.
+    final tooltipFinder = find.widgetWithIcon(Tooltip, Icons.info_outline);
+    expect(tooltipFinder, findsOneWidget);
+    expect(tester.widget<Tooltip>(tooltipFinder).message, tr.scheduleGroupsBandHelpTooltip);
+  });
 }

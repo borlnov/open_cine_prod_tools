@@ -34,6 +34,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// previewed: the label field, the lead field, `+ Group` and the delete control. A day with no group
 /// at all still shows the band — its own empty hint, and, unless read-only, its `+ Group` control —
 /// rather than disappearing.
+///
+/// The title's own ⓘ icon, explaining what a group is for, reads nothing that changes and writes
+/// nothing itself, so it stays on screen — including while a version is being previewed — exactly
+/// like every other read-out of this mode.
 class OcptScheduleGroupsBand extends StatelessWidget {
   /// The day's own live groups, in `sortKey` order.
   final List<OcptShootingDayGroup> groups;
@@ -85,9 +89,19 @@ class OcptScheduleGroupsBand extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr.scheduleGroupsBandTitle.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                tr.scheduleGroupsBandTitle.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(width: 6),
+              Tooltip(
+                message: tr.scheduleGroupsBandHelpTooltip,
+                child: Icon(Icons.info_outline, size: 14, color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           if (groups.isEmpty)
