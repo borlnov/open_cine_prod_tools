@@ -385,8 +385,10 @@ touched. In addition:
   and filled; duplicating a day reproduces its crew and none of its shots; placing a shot, changing
   a duration and pinning an anchor all move the rest of the day; marking a shot as shot from the
   day view shows in the shot list; a project carrying legacy `shootingDay` text migrates to a blank
-  column; a version captured before M1 restores without touching the schedule; a version captured
-  after it restores the schedule exactly; the migration parity test is green.
+  column; a version captured before M1 restores as the empty schedule it was captured with —
+  tombstoning whatever has been planned since, exactly as an older payload already does for the
+  resources and the breakdown, rather than leaving the schedule alone; a version captured after it
+  restores the schedule exactly; the migration parity test is green.
 - **M2**: the three PDFs are generated from the reference project and read against the documents
   in `debug/plan/`; a day with two slots and two crews prints both; a night slot crossing midnight
   prints the right hours; an actor's arrival and PAT print as two distinct times; the named sheets
