@@ -4,17 +4,22 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_groups_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_table.dart';
 
 /// Who holds which position during a slot.
 ///
 /// A person holding two positions in one slot (director *and* production manager, which the
 /// reference call sheets show) is **two rows**: the call sheet joins them back into one printed
-/// line. [callMinute]/[wrapMinute] are nullable **overrides** of the slot's own
-/// `crewCallMinute`/`crewWrapMinute` — the reference sheets' "HORAIRES ÉQUIPE IMAGE 16:45 /
-/// ÉQUIPE TECHNIQUE 18:30" is exactly this, one row called earlier than the rest of the slot,
-/// rather than a second pair of slot-level columns the schema would have to decide in advance
-/// which departments need.
+/// line.
+///
+/// **This row's call and wrap times are computed, never typed** — see
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017): the call is the slot's own band start
+/// minus this person's resolved lead time, and the wrap is the band end, full stop, there being no
+/// after-offset anywhere in this model (finishing later is stated as a `wrap` block). [leadMinutes]
+/// is a lead time "minutes before the moment this person is needed" — hair, make-up, costume or
+/// simply travel time; when null, this row inherits [groupId]'s own `shooting_day_groups.leadMinutes`
+/// instead. **This row's own figure wins over its group's** when both are set.
 @DataClassName('OcptShootingSlotCrewRow')
 class OcptShootingSlotCrewTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingSlotCrewTable}
@@ -42,13 +47,13 @@ class OcptShootingSlotCrewTable extends Table {
   /// fits. Empty when [positionId] is set.
   TextColumn get customLabel => text().withDefault(const Constant(''))();
 
-  /// This person's own call time for this slot, overriding `shooting_slots.crewCallMinute`, or
-  /// null to use the slot's own. May exceed 1440 — see `ocpt_shooting_slots_table.dart`.
-  IntColumn get callMinute => integer().nullable()();
+  /// The `shooting_day_groups` row this assignment belongs to, or null while it belongs to none.
+  /// See the class doc comment.
+  TextColumn get groupId => text().nullable().references(OcptShootingDayGroupsTable, #id)();
 
-  /// This person's own wrap time for this slot, overriding `shooting_slots.crewWrapMinute`, or
-  /// null to use the slot's own. May exceed 1440 — see `ocpt_shooting_slots_table.dart`.
-  IntColumn get wrapMinute => integer().nullable()();
+  /// This assignment's own lead time, overriding [groupId]'s own figure, or null to use the
+  /// group's — see the class doc comment.
+  IntColumn get leadMinutes => integer().nullable()();
 
   /// Free-form notes about this assignment.
   TextColumn get notes => text().withDefault(const Constant(''))();

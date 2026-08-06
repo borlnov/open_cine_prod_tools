@@ -14,16 +14,18 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_t
 /// [locationId] and [setId] are both nullable and independent of any other slot of the same day:
 /// nothing here forces every slot of a day to share a location.
 ///
-/// **[crewCallMinute]/[crewWrapMinute]/[castCallMinute]/[castWrapMinute] may exceed 1440.** A
-/// night slot running 19:00 → 03:00 stores `1140` → `1620`: the value is an offset from the day's
-/// own midnight, nothing is ever taken modulo anything, and every formatter and comparison reads
-/// it that way — see `lib/utils/ocpt_day_minute.dart`, the single place that renders one. This is
-/// written down because getting it wrong only shows up on the one night shoot of a production.
+/// **[startMinute] is this slot's one typed clock**, the moment its first block begins — every
+/// other time a call sheet prints for this slot (a crew member's call and wrap, an actor's PAT band
+/// and arrival) is computed from it and from the slot's own chain of `shooting_day_blocks`, never
+/// stored: see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) and
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). It **may exceed 1440**: a night slot
+/// running 19:00 → 03:00 stores `1140`, an offset from the day's own midnight, nothing ever taken
+/// modulo anything — see `lib/utils/ocpt_day_minute.dart`, the single place that renders one. This
+/// is written down because getting it wrong only shows up on the one night shoot of a production.
 ///
 /// The reference call sheets' "HORAIRES ÉQUIPE IMAGE 16:45 / HORAIRES ÉQUIPE TECHNIQUE 18:30" is
-/// **not** a second pair of columns here: it is two people called earlier than the slot's own
-/// [crewCallMinute], which `shooting_slot_crew`'s per-person overrides express without this schema
-/// ever having to decide in advance which departments a production splits.
+/// **not** a second pair of columns here: it is a lead time carried by a `shooting_day_groups` row
+/// or by the individual `shooting_slot_crew` row itself — see that table's own doc comment.
 @DataClassName('OcptShootingSlotRow')
 class OcptShootingSlotsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingSlotsTable}
@@ -50,21 +52,9 @@ class OcptShootingSlotsTable extends Table {
   /// `sets.locationId` must be [locationId].
   TextColumn get setId => text().nullable().references(OcptSetsTable, #id)();
 
-  /// The minute, from the day's own midnight, at which the crew is called for this slot. May
+  /// The minute, from the day's own midnight, this slot's own chain of blocks starts at. May
   /// exceed 1440 — see the class doc comment.
-  IntColumn get crewCallMinute => integer()();
-
-  /// The minute, from the day's own midnight, at which the crew wraps for this slot. May exceed
-  /// 1440 — see the class doc comment.
-  IntColumn get crewWrapMinute => integer()();
-
-  /// The default start of this slot's cast *PAT* (ready-to-shoot) band, or null while none is set.
-  /// Any `shooting_slot_cast` row may override it for its own role.
-  IntColumn get castCallMinute => integer().nullable()();
-
-  /// The default end of this slot's cast *PAT* band, or null while none is set. Any
-  /// `shooting_slot_cast` row may override it for its own role.
-  IntColumn get castWrapMinute => integer().nullable()();
+  IntColumn get startMinute => integer()();
 
   /// Free-form notes about this slot.
   TextColumn get notes => text().withDefault(const Constant(''))();

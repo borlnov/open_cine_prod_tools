@@ -9,10 +9,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// One block of a shooting day's timetable, in `sortKey` order. **This is the heart of the schedule
 /// mode.**
 ///
-/// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot]. How this and every other
-/// block of a day chain into actual clock times is stated once and implemented once, in
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) — nothing here re-derives it, this model
-/// only carries the columns that function reads.
+/// [shotId] is non-null **iff** [kind] is [OcptShootingBlockKind.shot]. [slotId] is never null: a
+/// block belongs to exactly one slot, and its own chain of blocks is that slot's own. How a slot's
+/// blocks chain into actual clock times is stated once and implemented once, in
+/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended) — nothing here re-derives it,
+/// this model only carries the columns that function reads.
 class OcptShootingDayBlock extends Equatable {
   /// The stable, unique id of this block (a UUID).
   final String id;
@@ -20,8 +21,8 @@ class OcptShootingDayBlock extends Equatable {
   /// The day this block belongs to.
   final String shootingDayId;
 
-  /// Which convocation window this block sits in, or null while it isn't tied to one.
-  final String? slotId;
+  /// Which convocation window this block sits in. Never null — see the class doc comment.
+  final String slotId;
 
   /// What this block is for.
   final OcptShootingBlockKind kind;

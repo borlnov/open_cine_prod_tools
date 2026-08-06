@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snap
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_groups_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_presences_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_cast_table.dart';
@@ -94,7 +95,9 @@ part 'ocpt_project_database.g.dart';
 /// inside them ([OcptShootingSlotsTable]) and who is convoked during one, crew
 /// ([OcptShootingSlotCrewTable]) and cast ([OcptShootingSlotCastTable]), each day's timetable
 /// ([OcptShootingDayBlocksTable]) and the by-hand overrides of the presence grid
-/// ([OcptShootingPresencesTable]). `OcptProjectsManager` owns the single instance open at a time.
+/// ([OcptShootingPresencesTable]). From schema version 12 it also holds the named lead times a day
+/// carries ([OcptShootingDayGroupsTable]), that a `shooting_slot_crew`/`shooting_slot_cast` row may
+/// point at. `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -122,6 +125,7 @@ part 'ocpt_project_database.g.dart';
     OcptBreakdownTagsTable,
     OcptSceneBreakdownsTable,
     OcptShootingDaysTable,
+    OcptShootingDayGroupsTable,
     OcptShootingSlotsTable,
     OcptShootingSlotCrewTable,
     OcptShootingSlotCastTable,
@@ -140,7 +144,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   final bool isPreview;
 
   /// Opens (creating it if needed) the project database stored at [file].
-  OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
+  OcptProjectDatabase(File file)
+    : isPreview = false,
+      super(NativeDatabase(file));
 
   /// Opens a project database backed by an in-memory SQLite instance: the connection a version
   /// preview is hydrated into ([isPreview] true), and the one the tests run against.
@@ -188,14 +194,16 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       return false;
     }
 
-    appLogger().w("The write '$operation' was handed the read-only database of a project version "
-        "being previewed: it's ignored, the version on screen isn't editable");
+    appLogger().w(
+      "The write '$operation' was handed the read-only database of a project version "
+      "being previewed: it's ignored, the version on screen isn't editable",
+    );
     return true;
   }
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   /// The database options used by this database.
   ///
@@ -205,7 +213,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// second (e.g. a burst of saves), which would make them tie when ordered by `createdAt` and
   /// break `OcptScreenplayService`'s "most recent" pruning.
   @override
-  DriftDatabaseOptions get options => const DriftDatabaseOptions(storeDateTimeAsText: true);
+  DriftDatabaseOptions get options =>
+      const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   /// How an existing `.ocpt` file is brought up to the current [schemaVersion]. See
   /// `docs/adr/0007-schema-migration-policy.md` for what a schema version means for a user's
@@ -238,9 +247,21 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// placement is the only truth from here on, a shooting day is always dated, and a free-text `J3`
   /// carries no date to migrate from, so a blank column is the only honest reading. It needs no
   /// `row_field_versions` stamp — every replica performs the same erasure, deterministically, as
-  /// part of the migration itself. Every step is additive, as ADR 0007 requires: every new column
+  /// part of the migration itself. From 11 to 12 it creates [OcptShootingDayGroupsTable] and, on a
+  /// file that already had the other five schedule tables in their v11 shape (see
+  /// [_assignOrphanBlocksToFirstSlot] and [_alterScheduleTablesToV12]), fixes up
+  /// `shooting_day_blocks.slot_id` — assigning an orphan one (null, or naming a slot that isn't
+  /// live) to its day's first live slot, or dropping the block outright when its day has no live
+  /// slot at all — before reshaping the four tables
+  /// `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1') describes: `shooting_slots`'
+  /// `crewCallMinute` renamed `startMinute` and its `crewWrapMinute`/`castCallMinute`/
+  /// `castWrapMinute` dropped, `shooting_day_blocks.slotId` made non-null, and
+  /// `shooting_slot_crew`/`shooting_slot_cast` trading their own typed minute columns for a nullable
+  /// `groupId`/`leadMinutes` pair. Every step is additive, as ADR 0007 requires: every new column
   /// carries a default (or is nullable), so the rows a project already had stay valid without being
-  /// rewritten.
+  /// rewritten — the one exception being version 12's column drops and the `NOT NULL` it adds to
+  /// `shooting_day_blocks.slotId`, which is why that step alone reshapes existing tables through
+  /// [Migrator.alterTable] rather than a plain `addColumn`.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -266,15 +287,27 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 3) {
         await m.addColumn(ocptScreenplaysTable, ocptScreenplaysTable.isDeleted);
-        await m.addColumn(ocptScreenplaySnapshotsTable, ocptScreenplaySnapshotsTable.isDeleted);
+        await m.addColumn(
+          ocptScreenplaySnapshotsTable,
+          ocptScreenplaySnapshotsTable.isDeleted,
+        );
         await m.addColumn(ocptScenesTable, ocptScenesTable.isDeleted);
 
         if (from >= 2) {
           await m.addColumn(ocptShotsTable, ocptShotsTable.sortKey);
           await m.addColumn(ocptShotsTable, ocptShotsTable.isDeleted);
-          await m.addColumn(ocptShotCharactersTable, ocptShotCharactersTable.sortKey);
-          await m.addColumn(ocptShotCharactersTable, ocptShotCharactersTable.isDeleted);
-          await m.addColumn(ocptShotCoveragesTable, ocptShotCoveragesTable.isDeleted);
+          await m.addColumn(
+            ocptShotCharactersTable,
+            ocptShotCharactersTable.sortKey,
+          );
+          await m.addColumn(
+            ocptShotCharactersTable,
+            ocptShotCharactersTable.isDeleted,
+          );
+          await m.addColumn(
+            ocptShotCoveragesTable,
+            ocptShotCoveragesTable.isDeleted,
+          );
         }
 
         await m.createTable(ocptRowFieldVersionsTable);
@@ -287,7 +320,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 5) {
         await m.createTable(ocptProjectVersionsTable);
-        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currentVersionId);
+        await m.addColumn(
+          ocptProjectInfoTable,
+          ocptProjectInfoTable.currentVersionId,
+        );
       }
 
       if (from < 6) {
@@ -315,7 +351,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       }
 
       if (from < 8) {
-        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.currencyCode);
+        await m.addColumn(
+          ocptProjectInfoTable,
+          ocptProjectInfoTable.currencyCode,
+        );
       }
 
       if (from < 9) {
@@ -347,6 +386,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
         if (from >= 2) {
           await _eraseLegacyShootingDays();
+        }
+      }
+
+      if (from < 12) {
+        await m.createTable(ocptShootingDayGroupsTable);
+
+        if (from >= 11) {
+          await _assignOrphanBlocksToFirstSlot();
+          await _alterScheduleTablesToV12(m);
         }
       }
     },
@@ -404,6 +452,152 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     await customStatement('UPDATE shots SET shooting_day = NULL');
   }
 
+  /// Fixes up `shooting_day_blocks.slot_id` on the way to schema version 12, for a file whose
+  /// schedule tables already exist in their v11 shape (guarded by `from >= 11` at its call site,
+  /// since a file from below 11 has just had those tables created fresh, from the current — already
+  /// v12 — declaration, above): a block that is an **orphan** — its `slot_id` null, *or* naming a
+  /// slot that isn't live any more (the app itself never leaves one dangling like that, since the
+  /// old `deleteSlot` nulled a block's `slotId` rather than tombstoning the slot out from under it,
+  /// but a restored payload could) — gets its day's own first **live** slot: the lowest `sort_key`,
+  /// ties broken by `id` so two machines migrating the same file land on the same slot. A block
+  /// whose day carries no live slot at all is **hard-deleted** rather than tombstoned, since the
+  /// column is `NOT NULL` from here on and even a tombstoned row would need a slot it hasn't got.
+  /// This whole path is unreachable through the UI (`OcptScheduleService.createDay` always mints a
+  /// slot with every day), but a restored payload could carry a day with none. It needs no
+  /// `row_field_versions` stamp, for the same reason [_eraseLegacyShootingDays] needs none: every
+  /// replica performs the same deterministic fix-up.
+  ///
+  /// Must run **before** [_alterScheduleTablesToV12], whose `NOT NULL` constraint on
+  /// `shooting_day_blocks.slot_id` this is what satisfies.
+  ///
+  /// Written in raw SQL rather than through the generated API, for the reason [_backfillSortKeys]
+  /// gives.
+  Future<void> _assignOrphanBlocksToFirstSlot() async {
+    final liveSlots = await customSelect(
+      'SELECT id, shooting_day_id FROM shooting_slots WHERE is_deleted = 0 '
+      'ORDER BY shooting_day_id, sort_key, id',
+    ).get();
+
+    final liveSlotIds = <String>{};
+    final firstSlotIdByDay = <String, String>{};
+    for (final row in liveSlots) {
+      final slotId = row.data['id'] as String;
+      liveSlotIds.add(slotId);
+      firstSlotIdByDay.putIfAbsent(
+        row.data['shooting_day_id'] as String,
+        () => slotId,
+      );
+    }
+
+    final blocks = await customSelect(
+      'SELECT id, shooting_day_id, slot_id FROM shooting_day_blocks',
+    ).get();
+
+    final blockIdsToDelete = <String>[];
+    for (final block in blocks) {
+      final slotId = block.data['slot_id'] as String?;
+      if (slotId != null && liveSlotIds.contains(slotId)) {
+        continue;
+      }
+
+      final blockId = block.data['id'] as String;
+      final firstSlotId = firstSlotIdByDay[block.data['shooting_day_id']];
+
+      if (firstSlotId == null) {
+        blockIdsToDelete.add(blockId);
+        continue;
+      }
+
+      await customStatement(
+        'UPDATE shooting_day_blocks SET slot_id = ? WHERE id = ?',
+        [firstSlotId, blockId],
+      );
+    }
+
+    for (final blockId in blockIdsToDelete) {
+      await customStatement('DELETE FROM shooting_day_blocks WHERE id = ?', [
+        blockId,
+      ]);
+    }
+  }
+
+  /// Reshapes the four tables `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1')
+  /// changes in place, on the way to schema version 12 — guarded by `from >= 11` at its call site
+  /// for the same reason [_assignOrphanBlocksToFirstSlot] is: a file from below 11 has just had
+  /// these tables created fresh in their current (already v12) shape, so there is nothing left here
+  /// to reshape.
+  ///
+  /// Drift's migrator has no plain "rename column" or "drop column" step — its picture of a table
+  /// mid-migration is the *current* Dart declaration, which by this point already reads
+  /// `startMinute` rather than `crewCallMinute` and no longer declares
+  /// `crewWrapMinute`/`castCallMinute`/`castWrapMinute`/`callMinute`/`wrapMinute`/`arrivalMinute` at
+  /// all — so each table goes through [Migrator.alterTable], sqlite's own twelve-step recipe for
+  /// reshaping a table in place (create the new shape under a temporary name, copy the old rows
+  /// across, drop the old table, rename the temporary one).
+  ///
+  /// `shooting_slots.crew_call_minute` is carried across as `start_minute` through a
+  /// `TableMigration.columnTransformer` naming the column by its raw SQL name (the rename left it
+  /// with no Dart getter to reference); `crew_wrap_minute`/`cast_call_minute`/`cast_wrap_minute` are
+  /// simply absent from the target shape and therefore dropped with no further action.
+  /// `shooting_day_blocks.slot_id` is carried across unchanged — [_assignOrphanBlocksToFirstSlot] has
+  /// already made sure every row holds one, which is what lets the freshly `NOT NULL` column accept
+  /// it. `shooting_slot_crew`/`shooting_slot_cast` each drop their own typed minute columns and gain
+  /// a nullable `group_id`/`lead_minutes` pair: **nothing tries to reconstruct a lead time out of
+  /// the dropped clocks** — a figure guessed from a timetable that has since moved would be worse
+  /// than the zero every row starts at — so neither is given a transformer, and both simply come
+  /// back null.
+  ///
+  /// `TableMigration` is drift's own documented recipe for exactly this kind of reshape, still
+  /// marked `@experimental`; the four `// ignore: experimental_member_use` below accept that,
+  /// there being no non-experimental way to rename or drop a column under ADR 0007's own
+  /// additive-only policy having already been superseded for this one step.
+  Future<void> _alterScheduleTablesToV12(Migrator m) async {
+    await m.alterTable(
+      // TableMigration is drift's documented, if still @experimental, recipe for a rename/drop:
+      // see the method's own doc comment.
+      // ignore: experimental_member_use
+      TableMigration(
+        ocptShootingSlotsTable,
+        newColumns: [ocptShootingSlotsTable.startMinute],
+        columnTransformer: {
+          ocptShootingSlotsTable.startMinute: const CustomExpression<int>(
+            'crew_call_minute',
+          ),
+        },
+      ),
+    );
+
+    await m.alterTable(
+      // Same as above: only the destination shape is new.
+      // ignore: experimental_member_use
+      TableMigration(ocptShootingDayBlocksTable),
+    );
+
+    await m.alterTable(
+      // Same as above: only the destination shape is new.
+      // ignore: experimental_member_use
+      TableMigration(
+        ocptShootingSlotCrewTable,
+        newColumns: [
+          ocptShootingSlotCrewTable.groupId,
+          ocptShootingSlotCrewTable.leadMinutes,
+        ],
+      ),
+    );
+
+    await m.alterTable(
+      // Same as above: only the destination shape is new.
+      // ignore: experimental_member_use
+      TableMigration(
+        ocptShootingSlotCastTable,
+        newColumns: [
+          ocptShootingSlotCastTable.groupId,
+          ocptShootingSlotCastTable.leadMinutes,
+        ],
+      ),
+    );
+  }
+
   /// Writes a `sortKey` onto every `shots` and `shot_characters` row that predates schema version
   /// 3, preserving the order those rows already had under `position`.
   ///
@@ -419,17 +613,21 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// the schema, that describe what the file actually holds.
   Future<void> _backfillSortKeys() async {
     await _backfillGroups(
-      selectSql: 'SELECT id, screenplay_id, scene_id FROM shots ORDER BY position, id',
-      groupKeyOf: (row) => "${row.data['screenplay_id']}/${row.data['scene_id']}",
+      selectSql:
+          'SELECT id, screenplay_id, scene_id FROM shots ORDER BY position, id',
+      groupKeyOf: (row) =>
+          "${row.data['screenplay_id']}/${row.data['scene_id']}",
       updateSql: 'UPDATE shots SET sort_key = ? WHERE id = ?',
       updateArgsOf: (row) => [row.data['id']],
     );
 
     await _backfillGroups(
-      selectSql: 'SELECT shot_id, character_name FROM shot_characters '
+      selectSql:
+          'SELECT shot_id, character_name FROM shot_characters '
           'ORDER BY position, character_name',
       groupKeyOf: (row) => "${row.data['shot_id']}",
-      updateSql: 'UPDATE shot_characters SET sort_key = ? WHERE shot_id = ? AND character_name = ?',
+      updateSql:
+          'UPDATE shot_characters SET sort_key = ? WHERE shot_id = ? AND character_name = ?',
       updateArgsOf: (row) => [row.data['shot_id'], row.data['character_name']],
     );
   }

@@ -10,6 +10,11 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// **The role is convoked, not the person** — see `OcptShootingSlotCastTable`'s own doc comment:
 /// the actor is read through `roles.personId` at the point this is displayed, so recasting a role
 /// never rewrites the schedule.
+///
+/// **This row's PAT band and arrival are computed, never typed** — see
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). [leadMinutes] is a lead time typed
+/// beside this role, and [groupId] the `OcptShootingDayGroup` this row belongs to when it belongs
+/// to one; this row's own [leadMinutes] wins over its group's when both are set.
 class OcptShootingSlotCastMember extends Equatable {
   /// The stable, unique id of this convocation (a UUID).
   final String id;
@@ -20,17 +25,12 @@ class OcptShootingSlotCastMember extends Equatable {
   /// The role convoked during the slot.
   final String roleId;
 
-  /// When this role's actor is expected to arrive (for hair, make-up, costume, rehearsal), or null
-  /// while unset. May exceed 1440 — see `OcptShootingSlotsTable`'s own doc comment.
-  final int? arrivalMinute;
+  /// The `OcptShootingDayGroup` this convocation belongs to, or null while it belongs to none.
+  final String? groupId;
 
-  /// This role's own start of the *PAT* band, overriding the slot's own `castCallMinute`, or null
-  /// to use the slot's own. May exceed 1440 — see `OcptShootingSlotsTable`'s own doc comment.
-  final int? castCallMinute;
-
-  /// This role's own end of the *PAT* band, overriding the slot's own `castWrapMinute`, or null to
-  /// use the slot's own. May exceed 1440 — see `OcptShootingSlotsTable`'s own doc comment.
-  final int? castWrapMinute;
+  /// This convocation's own lead time, overriding [groupId]'s own figure, or null to use the
+  /// group's.
+  final int? leadMinutes;
 
   /// Free-form notes about this convocation.
   final String notes;
@@ -40,9 +40,8 @@ class OcptShootingSlotCastMember extends Equatable {
     required this.id,
     required this.slotId,
     required this.roleId,
-    required this.arrivalMinute,
-    required this.castCallMinute,
-    required this.castWrapMinute,
+    required this.groupId,
+    required this.leadMinutes,
     required this.notes,
   });
 
@@ -52,9 +51,8 @@ class OcptShootingSlotCastMember extends Equatable {
         id: row.id,
         slotId: row.slotId,
         roleId: row.roleId,
-        arrivalMinute: row.arrivalMinute,
-        castCallMinute: row.castCallMinute,
-        castWrapMinute: row.castWrapMinute,
+        groupId: row.groupId,
+        leadMinutes: row.leadMinutes,
         notes: row.notes,
       );
 
@@ -64,13 +62,5 @@ class OcptShootingSlotCastMember extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [
-    id,
-    slotId,
-    roleId,
-    arrivalMinute,
-    castCallMinute,
-    castWrapMinute,
-    notes,
-  ];
+  List<Object?> get props => [id, slotId, roleId, groupId, leadMinutes, notes];
 }

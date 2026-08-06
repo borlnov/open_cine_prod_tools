@@ -33,8 +33,11 @@ class OcptShootingBlockKindConverter extends TypeConverter<OcptShootingBlockKind
 /// (an offset from the day's own midnight, which may exceed 1440 — see
 /// `ocpt_shooting_slots_table.dart`) rather than wherever the chain before it lands.
 ///
-/// **How a day's blocks chain into actual clock times is stated once and implemented once**, in
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) — nothing else may re-derive it.
+/// **A block belongs to exactly one slot** ([slotId], non-null from schema v12 on): a day is a set
+/// of parallel chains, one per slot, and a block's own chain is its slot's own, starting from that
+/// slot's own `startMinute` — there is no day-wide chain any more. **How a slot's blocks chain into
+/// actual clock times is stated once and implemented once**, in
+/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended) — nothing else may re-derive it.
 @DataClassName('OcptShootingDayBlockRow')
 class OcptShootingDayBlocksTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingDayBlocksTable}
@@ -50,8 +53,9 @@ class OcptShootingDayBlocksTable extends Table {
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// Which convocation window this block sits in, or null while it isn't tied to one.
-  TextColumn get slotId => text().nullable().references(OcptShootingSlotsTable, #id)();
+  /// Which convocation window this block sits in. Non-null from schema v12 on — see the class doc
+  /// comment.
+  TextColumn get slotId => text().references(OcptShootingSlotsTable, #id)();
 
   /// What this block is for.
   // The stored literal below must match `OcptShootingBlockKind.shot.name` exactly, for the same

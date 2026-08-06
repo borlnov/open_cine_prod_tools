@@ -11,9 +11,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 /// — joined with its live [crew] and [cast], both in `sortKey` order, exactly as
 /// `OcptLocation.sets` nests a location's live sets.
 ///
-/// **[crewCallMinute]/[crewWrapMinute]/[castCallMinute]/[castWrapMinute] may exceed 1440.** See
-/// `OcptShootingSlotsTable`'s own doc comment; nothing here re-derives clock times, which is
-/// `lib/utils/ocpt_shooting_day_timeline.dart`'s job alone (ADR 0015).
+/// **[startMinute] may exceed 1440.** See `OcptShootingSlotsTable`'s own doc comment: it is this
+/// slot's one typed clock, and every other convocation time is computed off it, never stored here —
+/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) and
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017).
 class OcptShootingSlot extends Equatable {
   /// The stable, unique id of this slot (a UUID).
   final String id;
@@ -30,17 +31,8 @@ class OcptShootingSlot extends Equatable {
   /// The set (décor) this slot is shot at, or null while none is chosen.
   final String? setId;
 
-  /// The minute, from the day's own midnight, at which the crew is called for this slot.
-  final int crewCallMinute;
-
-  /// The minute, from the day's own midnight, at which the crew wraps for this slot.
-  final int crewWrapMinute;
-
-  /// The default start of this slot's cast *PAT* band, or null while none is set.
-  final int? castCallMinute;
-
-  /// The default end of this slot's cast *PAT* band, or null while none is set.
-  final int? castWrapMinute;
+  /// The minute, from the day's own midnight, this slot's own chain of blocks starts at.
+  final int startMinute;
 
   /// Free-form notes about this slot.
   final String notes;
@@ -58,10 +50,7 @@ class OcptShootingSlot extends Equatable {
     required this.label,
     required this.locationId,
     required this.setId,
-    required this.crewCallMinute,
-    required this.crewWrapMinute,
-    required this.castCallMinute,
-    required this.castWrapMinute,
+    required this.startMinute,
     required this.notes,
     required this.crew,
     required this.cast,
@@ -78,10 +67,7 @@ class OcptShootingSlot extends Equatable {
     label: row.label,
     locationId: row.locationId,
     setId: row.setId,
-    crewCallMinute: row.crewCallMinute,
-    crewWrapMinute: row.crewWrapMinute,
-    castCallMinute: row.castCallMinute,
-    castWrapMinute: row.castWrapMinute,
+    startMinute: row.startMinute,
     notes: row.notes,
     crew: crew,
     cast: cast,
@@ -99,10 +85,7 @@ class OcptShootingSlot extends Equatable {
     label,
     locationId,
     setId,
-    crewCallMinute,
-    crewWrapMinute,
-    castCallMinute,
-    castWrapMinute,
+    startMinute,
     notes,
     crew,
     cast,

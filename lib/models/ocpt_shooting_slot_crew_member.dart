@@ -9,6 +9,11 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 ///
 /// A person holding two positions in one slot is two [OcptShootingSlotCrewMember]s — see
 /// `OcptShootingSlotCrewTable`'s own doc comment.
+///
+/// **This row's call and wrap times are computed, never typed** — see
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). [leadMinutes] is a lead time typed
+/// beside this person, and [groupId] the `OcptShootingDayGroup` this row belongs to when it belongs
+/// to one; this row's own [leadMinutes] wins over its group's when both are set.
 class OcptShootingSlotCrewMember extends Equatable {
   /// The stable, unique id of this assignment (a UUID).
   final String id;
@@ -27,13 +32,12 @@ class OcptShootingSlotCrewMember extends Equatable {
   /// fits. Empty when [positionId] is set.
   final String customLabel;
 
-  /// This person's own call time for this slot, overriding the slot's own `crewCallMinute`, or null
-  /// to use the slot's own. May exceed 1440 — see `OcptShootingSlotsTable`'s own doc comment.
-  final int? callMinute;
+  /// The `OcptShootingDayGroup` this assignment belongs to, or null while it belongs to none.
+  final String? groupId;
 
-  /// This person's own wrap time for this slot, overriding the slot's own `crewWrapMinute`, or null
-  /// to use the slot's own. May exceed 1440 — see `OcptShootingSlotsTable`'s own doc comment.
-  final int? wrapMinute;
+  /// This assignment's own lead time, overriding [groupId]'s own figure, or null to use the
+  /// group's.
+  final int? leadMinutes;
 
   /// Free-form notes about this assignment.
   final String notes;
@@ -45,8 +49,8 @@ class OcptShootingSlotCrewMember extends Equatable {
     required this.personId,
     required this.positionId,
     required this.customLabel,
-    required this.callMinute,
-    required this.wrapMinute,
+    required this.groupId,
+    required this.leadMinutes,
     required this.notes,
   });
 
@@ -58,8 +62,8 @@ class OcptShootingSlotCrewMember extends Equatable {
         personId: row.personId,
         positionId: row.positionId,
         customLabel: row.customLabel,
-        callMinute: row.callMinute,
-        wrapMinute: row.wrapMinute,
+        groupId: row.groupId,
+        leadMinutes: row.leadMinutes,
         notes: row.notes,
       );
 
@@ -75,8 +79,8 @@ class OcptShootingSlotCrewMember extends Equatable {
     personId,
     positionId,
     customLabel,
-    callMinute,
-    wrapMinute,
+    groupId,
+    leadMinutes,
     notes,
   ];
 }
