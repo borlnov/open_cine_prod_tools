@@ -9,8 +9,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 /// One day of the shooting schedule.
 ///
 /// [dayNumber] is the printed `J3` — a **read-time rank**, 1-based, over the screenplay's live
-/// days ordered by `sortKey`, exactly as `OcptShot.position` is never `shots.position`. It is
-/// never stored: `OcptScheduleService.loadSchedule` counts it off while ordering the days it loads.
+/// days ordered chronologically (by `date`, `sortKey` breaking a tie between two days sharing one
+/// date), exactly as `OcptShot.position` is never `shots.position`. It is a **label, not an id**:
+/// moving a day's date renumbers every day around it, which is what `J1`/`J2` mean on a call
+/// sheet. It is never stored: `OcptScheduleService.loadSchedule` counts it off while ordering the
+/// days it loads.
 class OcptShootingDay extends Equatable {
   /// The stable, unique id of this day (a UUID).
   final String id;
@@ -21,8 +24,8 @@ class OcptShootingDay extends Equatable {
   /// The calendar date of this day. Never null — see `OcptShootingDaysTable`'s own doc comment.
   final DateTime date;
 
-  /// This day's 1-based rank among its screenplay's live days, ordered by `sortKey`. See the class
-  /// doc comment.
+  /// This day's 1-based rank among its screenplay's live days, ordered chronologically. See the
+  /// class doc comment.
   final int dayNumber;
 
   /// Where this day stands.

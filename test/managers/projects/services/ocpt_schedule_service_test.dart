@@ -190,34 +190,41 @@ void main() {
       expect(sourceGroups.single.id, sourceGroupId);
     });
 
-    test("loadSchedule ranks days by sortKey and updates after a reorder", () async {
-      final firstId = (await scheduleService.createDay(
+    test("loadSchedule ranks days chronologically, and renumbers when a date moves", () async {
+      // Created out of chronological order: the 12th first, then the 10th, then the 11th.
+      final laterId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 12),
+      ))!;
+      final earliestId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
-      final secondId = (await scheduleService.createDay(
+      final middleId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
-      ))!;
-      final thirdId = (await scheduleService.createDay(
-        database: database,
-        screenplayId: screenplayId,
-        date: DateTime(2026, 8, 12),
       ))!;
 
       var snapshot = await scheduleService.loadSchedule(
         database: database,
         screenplayId: screenplayId,
       );
-      expect(snapshot.days.map((day) => day.id), [firstId, secondId, thirdId]);
+      expect(snapshot.days.map((day) => day.id), [earliestId, middleId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
 
-      await scheduleService.reorderDay(database: database, dayId: thirdId, newPosition: 0);
+      // Moving the middle day's date before the earliest one renumbers all three — J1/J2/J3 are a
+      // label read off the dates, not the days' own creation order.
+      await scheduleService.updateDay(
+        database: database,
+        dayId: middleId,
+        date: Value(DateTime(2026, 8, 9)),
+      );
 
       snapshot = await scheduleService.loadSchedule(database: database, screenplayId: screenplayId);
-      expect(snapshot.days.map((day) => day.id), [thirdId, firstId, secondId]);
+      expect(snapshot.days.map((day) => day.id), [middleId, earliestId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
     });
 
@@ -1124,7 +1131,6 @@ void main() {
         isNull,
       );
       await scheduleService.updateDay(database: preview, dayId: "missing-day");
-      await scheduleService.reorderDay(database: preview, dayId: "missing-day", newPosition: 0);
       await scheduleService.deleteDay(database: preview, dayId: "missing-day");
       expect(
         await scheduleService.duplicateDay(

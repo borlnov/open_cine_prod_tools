@@ -163,7 +163,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleDayCreatedEvent>(_onDayCreated);
     on<OcptScheduleDayDateChangedEvent>(_onDayDateChanged);
     on<OcptScheduleDayStatusChangedEvent>(_onDayStatusChanged);
-    on<OcptScheduleDayReorderedEvent>(_onDayReordered);
     on<OcptScheduleDayDuplicationRequestedEvent>(_onDayDuplicationRequested);
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
     on<OcptScheduleGroupCreatedEvent>(_onGroupCreated);
@@ -608,24 +607,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       dayId: event.dayId,
       status: Value(event.status),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Moves a day to a new position in the schedule.
-  Future<void> _onDayReordered(
-    OcptScheduleDayReorderedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.reorderDay(
-      database: project.database,
-      dayId: event.dayId,
-      newPosition: event.newPosition,
     );
     await _applyScheduleSnapshot(emitter, project);
   }

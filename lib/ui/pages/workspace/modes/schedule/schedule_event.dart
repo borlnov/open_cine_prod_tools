@@ -222,23 +222,6 @@ class OcptScheduleDayStatusChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, dayId, status];
 }
 
-/// Moves day [dayId] to [newPosition] (0-based) within the schedule, dispatched by a day-reorder
-/// gesture, once built.
-class OcptScheduleDayReorderedEvent extends OcptScheduleEvent {
-  /// The id of the day to reorder.
-  final String dayId;
-
-  /// The 0-based position the day is moved to.
-  final int newPosition;
-
-  /// Class constructor
-  const OcptScheduleDayReorderedEvent({required this.dayId, required this.newPosition});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, dayId, newPosition];
-}
-
 /// Duplicates day [sourceDayId] into a new day dated [date], dispatched by the day card's own `⋮`
 /// menu once its date picker resolved. Copies the source day's slots, crew and cast; copies
 /// neither its placed shots nor its crew note (`OcptScheduleService.duplicateDay`'s own rule).

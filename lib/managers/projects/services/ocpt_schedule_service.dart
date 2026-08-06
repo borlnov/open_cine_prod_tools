@@ -212,8 +212,9 @@ class OcptScheduleService {
 
   /// For every shot of [screenplayId] placed in the schedule, every block that places it — which
   /// day it sits on and that day's rank and date — keyed by shot id, each list ordered by
-  /// `dayNumber` ascending (and, within a day, in the order the query itself returns, no secondary
-  /// sort invented on top of it).
+  /// `dayNumber` ascending, which is chronological order (days are ranked by date, then by
+  /// `sortKey` between two sharing one), and, within a day, in the order the query itself returns,
+  /// no secondary sort invented on top of it.
   ///
   /// A shot with no live block has **no entry** in the returned map, rather than an empty list: the
   /// shot list's `Jour de tournage` read-out reads absence as "not yet planned" rather than looking
@@ -328,8 +329,10 @@ class OcptScheduleService {
   }
 
   /// Updates the fields of day [dayId] in [database] that are passed as something other than
-  /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
-  /// [reorderDay] and [deleteDay].
+  /// [Value.absent]. Never touches `sortKey` or `isDeleted`: `sortKey` is only allocated once, at
+  /// insertion (breaking a tie between two days sharing one [date] — the order of the days
+  /// themselves is [date]'s own, not a stored fact anybody can move), and `isDeleted` only through
+  /// [deleteDay].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateDay({
@@ -356,42 +359,6 @@ class OcptScheduleService {
         notes: notes,
       ),
     );
-  }
-
-  /// Moves day [dayId] to [newPosition] (0-based) within its screenplay's days, by giving it a
-  /// `sortKey` sitting between the two days it lands between. Writes **exactly one row**.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderDay({
-    required OcptProjectDatabase database,
-    required String dayId,
-    required int newPosition,
-  }) async {
-    if (database.refusesUserWrite("reorderDay")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final day = await _getDayRow(database: database, dayId: dayId);
-      final others =
-          (await _liveDayRows(database: database, screenplayId: day.screenplayId))
-            ..removeWhere((row) => row.id == dayId);
-
-      final clampedPosition = newPosition < 0
-          ? 0
-          : (newPosition > others.length ? others.length : newPosition);
-
-      final sortKey = ocptFractionalKeyBetween(
-        before: clampedPosition > 0 ? others[clampedPosition - 1].sortKey : null,
-        after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
-      );
-
-      await (database.update(
-        database.ocptShootingDaysTable,
-      )..where((table) => table.id.equals(dayId))).write(
-        OcptShootingDaysTableCompanion(sortKey: Value(sortKey)),
-      );
-    });
   }
 
   /// Tombstones day [dayId] in [database], and along with it: its groups, its slots, their crew and
@@ -1624,13 +1591,18 @@ class OcptScheduleService {
         ..where((table) => table.id.equals(blockId) & table.isDeleted.not()))
       .getSingle();
 
-  /// Every live day row of screenplay [screenplayId], ordered by `sortKey`.
+  /// Every live day row of screenplay [screenplayId], ordered by `date` ascending then `sortKey`
+  /// ascending — chronologically, `sortKey` breaking the tie between two days sharing one date (a
+  /// second unit), the order [OcptShootingDay.dayNumber] is a read-time rank over.
   Future<List<OcptShootingDayRow>> _liveDayRows({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) => (database.select(database.ocptShootingDaysTable)
         ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+        ..orderBy([
+          (table) => OrderingTerm.asc(table.date),
+          (table) => OrderingTerm.asc(table.sortKey),
+        ]))
       .get();
 
   /// Every live group row of day [dayId], ordered by `sortKey`.
