@@ -309,35 +309,30 @@ class OcptScheduleSlotCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // Neither half is ever handed more than half the row's own width; a card's own
-                // fixed width shrinks to fit when that half is narrower than it, so a narrow day
-                // view never overflows the card the way two hard-coded column widths once could.
-                final cardWidth = math.min(_personCardWidth, (constraints.maxWidth - 22) / 2);
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _OcptScheduleCrewSection(
-                        crew: slot.crew,
-                        personById: personById,
-                        people: people,
-                        groups: groups,
-                        convocations: convocations?.crew ?? const <OcptCrewConvocation>[],
-                        cardWidth: cardWidth,
-                        onCrewMemberAdded: onCrewMemberAdded,
-                        onCrewMemberPositionChanged: onCrewMemberPositionChanged,
-                        onCrewMemberRemoved: onCrewMemberRemoved,
-                        onCrewMemberLeadChanged: onCrewMemberLeadChanged,
-                        onCrewMemberGroupChanged: onCrewMemberGroupChanged,
-                      ),
-                    ),
-                    const SizedBox(width: 22),
-                    Expanded(child: _buildCastColumn(context, cardWidth)),
-                  ],
-                );
-              },
+            child: _OcptScheduleSlotPeople(
+              crewBuilder: ({required isExpanded, required onFoldToggled, required cardWidth}) =>
+                  _OcptScheduleCrewSection(
+                crew: slot.crew,
+                personById: personById,
+                people: people,
+                groups: groups,
+                convocations: convocations?.crew ?? const <OcptCrewConvocation>[],
+                cardWidth: cardWidth,
+                isExpanded: isExpanded,
+                onFoldToggled: onFoldToggled,
+                onCrewMemberAdded: onCrewMemberAdded,
+                onCrewMemberPositionChanged: onCrewMemberPositionChanged,
+                onCrewMemberRemoved: onCrewMemberRemoved,
+                onCrewMemberLeadChanged: onCrewMemberLeadChanged,
+                onCrewMemberGroupChanged: onCrewMemberGroupChanged,
+              ),
+              castBuilder: ({required isExpanded, required onFoldToggled, required cardWidth}) =>
+                  _buildCastColumn(
+                    context,
+                    cardWidth: cardWidth,
+                    isExpanded: isExpanded,
+                    onFoldToggled: onFoldToggled,
+                  ),
             ),
           ),
           Padding(
@@ -521,9 +516,15 @@ class OcptScheduleSlotCard extends StatelessWidget {
   }
 
   /// The `Comédiens` half: [slot]'s own convoked roles wrapped at [cardWidth] each, then the
-  /// `+ Cast` footer. Never folds, unlike [_OcptScheduleCrewSection] — Benoit only asked for the
-  /// crew half to.
-  Widget _buildCastColumn(BuildContext context, double cardWidth) {
+  /// `+ Cast` footer — both hidden while [isExpanded] is false, its title then standing for the
+  /// whole half. That fold is [_OcptScheduleSlotPeople]'s own, shared with the crew half:
+  /// [onFoldToggled] folds and unfolds **both**.
+  Widget _buildCastColumn(
+    BuildContext context, {
+    required double cardWidth,
+    required bool isExpanded,
+    required VoidCallback onFoldToggled,
+  }) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final convocationById = {
@@ -535,86 +536,207 @@ class OcptScheduleSlotCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          tr.scheduleSlotCastColumnTitle.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        _buildPeopleSectionTitle(
+          context,
+          title: tr.scheduleSlotCastColumnTitle,
+          count: slot.cast.length,
+          isExpanded: isExpanded,
+          onFoldToggled: onFoldToggled,
         ),
-        const SizedBox(height: 7),
-        if (slot.cast.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              tr.scheduleSlotCastEmptyHint,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
+        if (isExpanded) ...[
+          const SizedBox(height: 7),
+          if (slot.cast.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                tr.scheduleSlotCastEmptyHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final member in slot.cast)
+                    SizedBox(
+                      width: cardWidth,
+                      child: _OcptScheduleCastRoleRow(
+                        key: ValueKey(member.id),
+                        member: member,
+                        role: roleById[member.roleId],
+                        person: roleById[member.roleId]?.personId == null
+                            ? null
+                            : personById[roleById[member.roleId]!.personId],
+                        convocation: convocationById[member.id],
+                        groups: groups,
+                        groupById: groupById,
+                        onRemoved: onCastRoleRemoved == null
+                            ? null
+                            : () => onCastRoleRemoved!(member.id),
+                        onLeadChanged: onCastRoleLeadChanged == null
+                            ? null
+                            : (leadMinutes) => onCastRoleLeadChanged!(member.id, leadMinutes),
+                        onGroupChanged: onCastRoleGroupChanged == null
+                            ? null
+                            : (groupId) => onCastRoleGroupChanged!(member.id, groupId),
+                      ),
+                    ),
+                ],
               ),
             ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final member in slot.cast)
-                  SizedBox(
-                    width: cardWidth,
-                    child: _OcptScheduleCastRoleRow(
-                      key: ValueKey(member.id),
-                      member: member,
-                      role: roleById[member.roleId],
-                      person: roleById[member.roleId]?.personId == null
-                          ? null
-                          : personById[roleById[member.roleId]!.personId],
-                      convocation: convocationById[member.id],
-                      groups: groups,
-                      groupById: groupById,
-                      onRemoved: onCastRoleRemoved == null
-                          ? null
-                          : () => onCastRoleRemoved!(member.id),
-                      onLeadChanged: onCastRoleLeadChanged == null
-                          ? null
-                          : (leadMinutes) => onCastRoleLeadChanged!(member.id, leadMinutes),
-                      onGroupChanged: onCastRoleGroupChanged == null
-                          ? null
-                          : (groupId) => onCastRoleGroupChanged!(member.id, groupId),
-                    ),
-                  ),
+          if (onCastRoleAdded != null)
+            PopupMenuButton<String>(
+              tooltip: "",
+              onSelected: onCastRoleAdded,
+              itemBuilder: (context) => [
+                for (final role in roles)
+                  PopupMenuItem<String>(value: role.id, child: Text(role.name)),
               ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, size: 14),
+                  const SizedBox(width: 4),
+                  Text(tr.scheduleAddCastAction, style: theme.textTheme.labelSmall),
+                ],
+              ),
             ),
-          ),
-        if (onCastRoleAdded != null)
-          PopupMenuButton<String>(
-            tooltip: "",
-            onSelected: onCastRoleAdded,
-            itemBuilder: (context) => [
-              for (final role in roles)
-                PopupMenuItem<String>(value: role.id, child: Text(role.name)),
-            ],
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.add, size: 14),
-                const SizedBox(width: 4),
-                Text(tr.scheduleAddCastAction, style: theme.textTheme.labelSmall),
-              ],
-            ),
-          ),
+        ],
       ],
     );
   }
 }
 
+/// A people half's own title row, shared by [OcptScheduleSlotCard]'s cast half and
+/// [_OcptScheduleCrewSection]: the fold chevron, the half's own name, and how many people it holds
+/// — the count shown in both states, so a folded half never reads as an empty one and an unfolded
+/// one still answers "how many" without counting cards.
+///
+/// Clicking it toggles **both** halves at once ([_OcptScheduleSlotPeople] owning the one fold they
+/// share), which is why this is one widget rather than each half growing its own title.
+Widget _buildPeopleSectionTitle(
+  BuildContext context, {
+  required String title,
+  required int count,
+  required bool isExpanded,
+  required VoidCallback onFoldToggled,
+}) {
+  final theme = Theme.of(context);
+  final titleStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
+  return InkWell(
+    mouseCursor: ocptClickableCursor,
+    onTap: onFoldToggled,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isExpanded ? Icons.expand_less : Icons.expand_more,
+          size: 16,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 2),
+        Flexible(
+          child: Text(
+            title.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: titleStyle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          Tr.of(context).scheduleSlotPeopleCount(count),
+          style: titleStyle?.copyWith(fontStyle: FontStyle.italic),
+        ),
+      ],
+    ),
+  );
+}
+
+/// How [_OcptScheduleSlotPeople] asks the card for one of its two halves: the fold state the two
+/// share, the control that toggles it, and the width one person card claims.
+typedef _OcptScheduleSlotPeopleHalfBuilder =
+    Widget Function({
+      required bool isExpanded,
+      required VoidCallback onFoldToggled,
+      required double cardWidth,
+    });
+
+/// The two people halves of a slot card, side by side and **sharing one fold**: a click on either
+/// title folds and unfolds them both, which is what Benoit asked for over an accordion where each
+/// half answers only for itself.
+///
+/// It owns nothing but that fold — the halves themselves are built by the card, which is where
+/// every row, callback and catalogue they need is already in scope, so this widget takes them as
+/// builders rather than re-declaring a dozen fields it would only forward. The fold is per-view
+/// [State], expanded by default: nothing is lost by it resetting the next time the card is built.
+class _OcptScheduleSlotPeople extends StatefulWidget {
+  /// Builds the crew half, given the shared fold state, the control toggling it, and the width one
+  /// person card claims.
+  final _OcptScheduleSlotPeopleHalfBuilder crewBuilder;
+
+  /// Builds the cast half, from the same three.
+  final _OcptScheduleSlotPeopleHalfBuilder castBuilder;
+
+  /// Class constructor
+  const _OcptScheduleSlotPeople({required this.crewBuilder, required this.castBuilder});
+
+  @override
+  State<_OcptScheduleSlotPeople> createState() => _OcptScheduleSlotPeopleState();
+}
+
+/// The state of [_OcptScheduleSlotPeople]: owns the fold the two halves share.
+class _OcptScheduleSlotPeopleState extends State<_OcptScheduleSlotPeople> {
+  /// Whether both halves show their own cards and footer.
+  bool _isExpanded = true;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      // Neither half is ever handed more than half the row's own width; a card's own fixed width
+      // shrinks to fit when that half is narrower than it, so a narrow day view never overflows the
+      // card the way two hard-coded column widths once could.
+      final cardWidth = math.min(_personCardWidth, (constraints.maxWidth - 22) / 2);
+      void onFoldToggled() => setState(() => _isExpanded = !_isExpanded);
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: widget.crewBuilder(
+              isExpanded: _isExpanded,
+              onFoldToggled: onFoldToggled,
+              cardWidth: cardWidth,
+            ),
+          ),
+          const SizedBox(width: 22),
+          Expanded(
+            child: widget.castBuilder(
+              isExpanded: _isExpanded,
+              onFoldToggled: onFoldToggled,
+              cardWidth: cardWidth,
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 /// The `Équipe technique` half of [OcptScheduleSlotCard]'s own body: [crew] grouped by department,
-/// each department's own cards wrapped at [cardWidth], then the `+ Crew member` footer — folded
-/// away by a click on the title, along with the cards themselves, so a folded section still says
-/// how many people it holds (`Tr.scheduleSlotCrewCount`) rather than reading as an empty one.
-/// **Only this half folds**, Benoit having asked for the crew one alone; the fold is a per-view
-/// reading preference held in [State], never in the bloc or the properties manager — nothing is
-/// lost by it resetting the next time the card is built.
-class _OcptScheduleCrewSection extends StatefulWidget {
+/// each department's own cards wrapped at [cardWidth], then the `+ Crew member` footer — all of it
+/// hidden while [isExpanded] is false, its title then standing for the whole half.
+///
+/// The fold itself belongs to [_OcptScheduleSlotPeople], which the cast half shares: [onFoldToggled]
+/// folds and unfolds **both**.
+class _OcptScheduleCrewSection extends StatelessWidget {
   /// The slot's own crew assignments, in `sortKey` order.
   final List<OcptShootingSlotCrewMember> crew;
 
@@ -633,6 +755,12 @@ class _OcptScheduleCrewSection extends StatefulWidget {
 
   /// The width every crew card of this half claims — see [_personCardWidth]'s own doc comment.
   final double cardWidth;
+
+  /// Whether this half shows its own cards and footer, or its title alone.
+  final bool isExpanded;
+
+  /// Toggles the fold both halves share.
+  final VoidCallback onFoldToggled;
 
   /// Called with the id of the person picked by the `+ Crew member` footer, or null while withheld.
   final ValueChanged<String>? onCrewMemberAdded;
@@ -661,6 +789,8 @@ class _OcptScheduleCrewSection extends StatefulWidget {
     required this.groups,
     required this.convocations,
     required this.cardWidth,
+    required this.isExpanded,
+    required this.onFoldToggled,
     required this.onCrewMemberAdded,
     required this.onCrewMemberPositionChanged,
     required this.onCrewMemberRemoved,
@@ -669,60 +799,30 @@ class _OcptScheduleCrewSection extends StatefulWidget {
   });
 
   @override
-  State<_OcptScheduleCrewSection> createState() => _OcptScheduleCrewSectionState();
-}
-
-/// The state of [_OcptScheduleCrewSection]: owns the fold, expanded by default.
-class _OcptScheduleCrewSectionState extends State<_OcptScheduleCrewSection> {
-  /// Whether the section's own cards and footer are shown.
-  bool _isExpanded = true;
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final byDepartment = <OcptCrewDepartment?, List<OcptShootingSlotCrewMember>>{};
-    for (final member in widget.crew) {
+    for (final member in crew) {
       final department = ocptCrewPositionDepartmentOf(member.positionId);
       byDepartment.putIfAbsent(department, () => []).add(member);
     }
-    final convocationById = {
-      for (final convocation in widget.convocations) convocation.id: convocation,
-    };
-    final groupById = {for (final group in widget.groups) group.id: group};
-    final titleStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
+    final convocationById = {for (final convocation in convocations) convocation.id: convocation};
+    final groupById = {for (final group in groups) group.id: group};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          mouseCursor: ocptClickableCursor,
-          onTap: () => setState(() => _isExpanded = !_isExpanded),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _isExpanded ? Icons.expand_less : Icons.expand_more,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 2),
-              Text(tr.scheduleSlotCrewColumnTitle.toUpperCase(), style: titleStyle),
-              if (!_isExpanded) ...[
-                const SizedBox(width: 6),
-                Text(
-                  tr.scheduleSlotCrewCount(widget.crew.length),
-                  style: titleStyle?.copyWith(fontStyle: FontStyle.italic),
-                ),
-              ],
-            ],
-          ),
+        _buildPeopleSectionTitle(
+          context,
+          title: tr.scheduleSlotCrewColumnTitle,
+          count: crew.length,
+          isExpanded: isExpanded,
+          onFoldToggled: onFoldToggled,
         ),
-        if (_isExpanded) ...[
+        if (isExpanded) ...[
           const SizedBox(height: 7),
-          if (widget.crew.isEmpty)
+          if (crew.isEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Text(
@@ -756,29 +856,29 @@ class _OcptScheduleCrewSectionState extends State<_OcptScheduleCrewSection> {
                       children: [
                         for (final member in byDepartment[department]!)
                           SizedBox(
-                            width: widget.cardWidth,
+                            width: cardWidth,
                             child: _OcptScheduleCrewMemberRow(
                               key: ValueKey(member.id),
                               member: member,
-                              person: widget.personById[member.personId],
+                              person: personById[member.personId],
                               convocation: convocationById[member.id],
-                              groups: widget.groups,
+                              groups: groups,
                               groupById: groupById,
-                              onPositionChanged: widget.onCrewMemberPositionChanged == null
+                              onPositionChanged: onCrewMemberPositionChanged == null
                                   ? null
                                   : (positionId) =>
-                                      widget.onCrewMemberPositionChanged!(member.id, positionId),
-                              onRemoved: widget.onCrewMemberRemoved == null
+                                      onCrewMemberPositionChanged!(member.id, positionId),
+                              onRemoved: onCrewMemberRemoved == null
                                   ? null
-                                  : () => widget.onCrewMemberRemoved!(member.id),
-                              onLeadChanged: widget.onCrewMemberLeadChanged == null
+                                  : () => onCrewMemberRemoved!(member.id),
+                              onLeadChanged: onCrewMemberLeadChanged == null
                                   ? null
                                   : (leadMinutes) =>
-                                      widget.onCrewMemberLeadChanged!(member.id, leadMinutes),
-                              onGroupChanged: widget.onCrewMemberGroupChanged == null
+                                      onCrewMemberLeadChanged!(member.id, leadMinutes),
+                              onGroupChanged: onCrewMemberGroupChanged == null
                                   ? null
                                   : (groupId) =>
-                                      widget.onCrewMemberGroupChanged!(member.id, groupId),
+                                      onCrewMemberGroupChanged!(member.id, groupId),
                             ),
                           ),
                       ],
@@ -786,12 +886,12 @@ class _OcptScheduleCrewSectionState extends State<_OcptScheduleCrewSection> {
                   ],
                 ),
               ),
-          if (widget.onCrewMemberAdded != null)
+          if (onCrewMemberAdded != null)
             PopupMenuButton<String>(
               tooltip: "",
-              onSelected: widget.onCrewMemberAdded,
+              onSelected: onCrewMemberAdded,
               itemBuilder: (context) => [
-                for (final person in widget.people)
+                for (final person in people)
                   PopupMenuItem<String>(
                     value: person.id,
                     child: Text(

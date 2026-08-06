@@ -6640,9 +6640,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleSlotCrewCount": "{count, plural, one{{count} person} other{{count} people}}",
-  "@scheduleSlotCrewCount": {
-    "description": "How many people the crew column holds, shown beside its title while it is folded",
+  "scheduleSlotPeopleCount": "{count, plural, one{{count} person} other{{count} people}}",
+  "@scheduleSlotPeopleCount": {
+    "description": "How many people a slot card's crew or cast half holds, shown beside its own title",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {

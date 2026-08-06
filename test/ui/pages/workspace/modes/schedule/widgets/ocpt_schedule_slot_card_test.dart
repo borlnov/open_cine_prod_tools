@@ -415,11 +415,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Nothing was typed for this row (`leadMinutes: null`); the group's own resolved figure (60)
-    // is shown, with its unit, as the field's own hint rather than a value the row claims for
-    // itself.
+    // is shown as the field's own hint rather than as a value the row claims for itself.
     final leadField = tester.widget<TextField>(
       find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == "60 min",
+        (widget) => widget is TextField && widget.decoration?.hintText == "60",
       ),
     );
     expect(leadField.controller?.text, "");
@@ -706,7 +705,7 @@ void main() {
   });
 
   testWidgets(
-    "the crew section shows by default, folds on a tap and unfolds on a second one",
+    "both people halves show by default and fold together on either title",
     (tester) async {
       final crew = [
         const OcptShootingSlotCrewMember(
@@ -720,32 +719,50 @@ void main() {
           notes: "",
         ),
       ];
+      final cast = [
+        const OcptShootingSlotCastMember(
+          id: "cast-1",
+          slotId: "slot-1",
+          roleId: "role-1",
+          groupId: null,
+          leadMinutes: null,
+          notes: "",
+        ),
+      ];
 
-      await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, crew: crew)));
+      await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, crew: crew, cast: cast)));
       await tester.pumpAndSettle();
       final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+      final crewTitle = find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase());
+      final castTitle = find.text(tr.scheduleSlotCastColumnTitle.toUpperCase());
 
-      // Expanded by default: the crew card and its own footer are both on screen.
+      // Expanded by default: both halves show their cards and their own footer, and each title
+      // already says how many people it holds.
       expect(find.text("Léa"), findsOneWidget);
+      expect(find.text("Marie"), findsOneWidget);
       expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
-      expect(find.text(tr.scheduleSlotCrewCount(1)), findsNothing);
+      expect(find.text(tr.scheduleAddCastAction), findsOneWidget);
+      expect(find.text(tr.scheduleSlotPeopleCount(1)), findsNWidgets(2));
 
-      // A tap on the title folds the section away: the card and the footer are both gone, and the
-      // title itself now says how many people it still holds.
-      await tester.tap(find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase()));
+      // A tap on the **cast** title folds the crew half away with it: the two halves share one
+      // fold, so either title answers for both.
+      await tester.tap(castTitle);
       await tester.pumpAndSettle();
 
       expect(find.text("Léa"), findsNothing);
+      expect(find.text("Marie"), findsNothing);
       expect(find.text(tr.scheduleAddCrewMemberAction), findsNothing);
-      expect(find.text(tr.scheduleSlotCrewCount(1)), findsOneWidget);
+      expect(find.text(tr.scheduleAddCastAction), findsNothing);
+      expect(find.text(tr.scheduleSlotPeopleCount(1)), findsNWidgets(2));
 
-      // A second tap brings both back, and the count read-out goes with them.
-      await tester.tap(find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase()));
+      // And a tap on the **crew** title brings both back.
+      await tester.tap(crewTitle);
       await tester.pumpAndSettle();
 
       expect(find.text("Léa"), findsOneWidget);
+      expect(find.text("Marie"), findsOneWidget);
       expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
-      expect(find.text(tr.scheduleSlotCrewCount(1)), findsNothing);
+      expect(find.text(tr.scheduleAddCastAction), findsOneWidget);
     },
   );
 }

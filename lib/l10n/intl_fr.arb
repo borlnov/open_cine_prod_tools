@@ -889,7 +889,7 @@
   "scheduleSlotStartLabel": "Début",
   "scheduleSlotPatBandLabel": "PAT",
   "scheduleSlotCrewColumnTitle": "Équipe technique",
-  "scheduleSlotCrewCount": "{count, plural, one{{count} personne} other{{count} personnes}}",
+  "scheduleSlotPeopleCount": "{count, plural, one{{count} personne} other{{count} personnes}}",
   "scheduleSlotCrewEmptyHint": "Aucun technicien convoqué pour l'instant.",
   "scheduleSlotUnassignedDepartmentLabel": "Non affecté",
   "scheduleAddCrewMemberAction": "Technicien",

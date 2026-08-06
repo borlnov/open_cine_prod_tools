@@ -687,11 +687,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   carries none (shown as inherited rather than blank, `OcptScheduleLeadField` being the minutes
   sibling of `OcptScheduleMinuteField`'s clock face). A convoked person is **one card**, crew and
   cast alike — the position picker or the role name, then who that is, then the computed arrival and
-  PAT band, then the lead time and the group — the two kinds sharing one shell rather than each
+  PAT band, then the lead time, then the group on a line of its own (a card is half a card wide, and
+  a group's name beside a figure had nothing but ellipsized pixels left) — the two kinds sharing one
+  shell rather than each
   drawing its own; the two lists sit side by side, **at most half the card's width each**, and their
   cards **wrap** into as many columns as that half affords rather than stacking in a single file.
-  The crew side **folds** on its own title, expanded by default and saying how many people it holds
-  while folded: a settled crew is entered once and then read past for the rest of the shoot. That
+  The two halves **fold together**, on either title, expanded by default, each title saying how many
+  people it holds: a settled crew and cast are entered once and then read past for the rest of the
+  shoot, and the point of the fold is to get to the timetable — so one gesture answers for both
+  rather than each half needing its own. That
   fold is local widget state — a reading preference costs nothing to lose. On the card itself sits
   **that slot's own
   timetable**: a day carries no timetable of its own, every block belonging to exactly one slot. Its
