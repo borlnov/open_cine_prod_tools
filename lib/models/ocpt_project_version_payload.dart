@@ -96,6 +96,10 @@ class OcptProjectVersionPayload extends Equatable {
   /// tombstoned exactly like every other synchronised table.
   final List<OcptShootingDayRow> shootingDays;
 
+  /// The `shooting_day_groups` rows of the project: the named lead times each day carries, that a
+  /// crew or cast convocation may point at.
+  final List<OcptShootingDayGroupRow> shootingDayGroups;
+
   /// The `shooting_slots` rows of the project: the convocation windows (*créneaux*) inside each
   /// day.
   final List<OcptShootingSlotRow> shootingSlots;
@@ -167,6 +171,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.breakdownTags,
     required this.sceneBreakdowns,
     required this.shootingDays,
+    required this.shootingDayGroups,
     required this.shootingSlots,
     required this.shootingSlotCrew,
     required this.shootingSlotCast,
@@ -190,6 +195,7 @@ class OcptProjectVersionPayload extends Equatable {
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
       "assets: ${assets.length}, breakdownTags: ${breakdownTags.length}, "
       "sceneBreakdowns: ${sceneBreakdowns.length}, shootingDays: ${shootingDays.length}, "
+      "shootingDayGroups: ${shootingDayGroups.length}, "
       "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
       "shootingSlotCast: ${shootingSlotCast.length}, "
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
@@ -220,6 +226,7 @@ class OcptProjectVersionPayload extends Equatable {
     breakdownTags,
     sceneBreakdowns,
     shootingDays,
+    shootingDayGroups,
     shootingSlots,
     shootingSlotCrew,
     shootingSlotCast,

@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -41,6 +42,7 @@ void main() {
 
   const codec = OcptProjectVersionCodec();
   const peopleService = OcptPeopleService();
+  const scheduleService = OcptScheduleService();
   const roleIndexService = OcptRoleIndexService();
   const elementsService = OcptElementsService();
   const locationsService = OcptLocationsService();
@@ -160,7 +162,7 @@ void main() {
     required String id,
     required String shootingDayId,
     String sortKey = "V",
-    int crewCallMinute = 420,
+    int startMinute = 420,
     bool isDeleted = false,
   }) => database
       .into(database.ocptShootingSlotsTable)
@@ -169,8 +171,7 @@ void main() {
           id: id,
           shootingDayId: shootingDayId,
           sortKey: Value(sortKey),
-          crewCallMinute: crewCallMinute,
-          crewWrapMinute: crewCallMinute + 600,
+          startMinute: startMinute,
           isDeleted: Value(isDeleted),
         ),
       );
@@ -842,6 +843,7 @@ void main() {
                   breakdownTags: payload.breakdownTags,
                   sceneBreakdowns: payload.sceneBreakdowns,
                   shootingDays: payload.shootingDays,
+                  shootingDayGroups: payload.shootingDayGroups,
                   shootingSlots: payload.shootingSlots,
                   shootingSlotCrew: payload.shootingSlotCrew,
                   shootingSlotCast: payload.shootingSlotCast,
@@ -1079,17 +1081,42 @@ void main() {
       () async {
         await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
         await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+        await database
+            .into(database.ocptShootingDayGroupsTable)
+            .insert(
+              OcptShootingDayGroupsTableCompanion.insert(
+                id: "group-1",
+                shootingDayId: "day-1",
+                label: const Value("Équipe image"),
+                leadMinutes: const Value(20),
+              ),
+            );
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
+        await database
+            .into(database.ocptShootingSlotCrewTable)
+            .insert(
+              OcptShootingSlotCrewTableCompanion.insert(
+                id: "crew-1",
+                slotId: "slot-1",
+                personId: "person-1",
+                groupId: const Value("group-1"),
+              ),
+            );
 
         final version = await createVersion(name: "v1 — Day planned");
 
-        // Diverge: the slot's call time is edited, its position renamed by the shooting day it
-        // belongs to, and a second day is added since.
+        // Diverge: the slot's start minute is edited, its position renamed by the shooting day it
+        // belongs to, a second day is added, and the group is tombstoned (which nulls the crew
+        // row's own groupId).
         await (database.update(
           database.ocptShootingSlotsTable,
         )..where((table) => table.id.equals("slot-1"))).write(
-          const OcptShootingSlotsTableCompanion(crewCallMinute: Value(360)),
+          const OcptShootingSlotsTableCompanion(startMinute: Value(360)),
         );
         await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
+        await scheduleService.deleteGroup(database: database, groupId: "group-1");
 
         final result = await restore(version.id);
 
@@ -1098,7 +1125,7 @@ void main() {
         final restoredSlot = await (database.select(
           database.ocptShootingSlotsTable,
         )..where((table) => table.id.equals("slot-1"))).getSingle();
-        expect(restoredSlot.crewCallMinute, 420);
+        expect(restoredSlot.startMinute, 420);
         expect(restoredSlot.sortKey, "V");
 
         final restoredDay = await (database.select(
@@ -1112,6 +1139,20 @@ void main() {
           database.ocptShootingDaysTable,
         )..where((table) => table.id.equals("day-2"))).getSingle();
         expect(droppedDay.isDeleted, isTrue);
+
+        // The group is restored live again, and the crew row that pointed at it (its `groupId`
+        // written after the group in the same transaction) points at it once more.
+        final restoredGroup = await (database.select(
+          database.ocptShootingDayGroupsTable,
+        )..where((table) => table.id.equals("group-1"))).getSingle();
+        expect(restoredGroup.isDeleted, isFalse);
+        expect(restoredGroup.label, "Équipe image");
+        expect(restoredGroup.leadMinutes, 20);
+
+        final restoredCrew = await (database.select(
+          database.ocptShootingSlotCrewTable,
+        )..where((table) => table.id.equals("crew-1"))).getSingle();
+        expect(restoredCrew.groupId, "group-1");
       },
     );
 
@@ -1123,7 +1164,7 @@ void main() {
       await (database.update(
         database.ocptShootingSlotsTable,
       )..where((table) => table.id.equals("slot-1"))).write(
-        const OcptShootingSlotsTableCompanion(crewCallMinute: Value(360)),
+        const OcptShootingSlotsTableCompanion(startMinute: Value(360)),
       );
 
       // As if the edit had already been stamped by the changeset engine.
@@ -1133,7 +1174,7 @@ void main() {
             OcptRowFieldVersionsTableCompanion.insert(
               targetTableName: "shooting_slots",
               rowId: "slot-1",
-              columnName: "crewCallMinute",
+              columnName: "startMinute",
               version: 4,
               deviceId: "device-0",
             ),
@@ -1142,8 +1183,8 @@ void main() {
       await restore(version.id);
 
       final stamps = await readStamps();
-      expect(stamps["shooting_slots/slot-1/crewCallMinute"]?.version, 5);
-      expect(stamps["shooting_slots/slot-1/crewCallMinute"]?.deviceId, deviceId);
+      expect(stamps["shooting_slots/slot-1/startMinute"]?.version, 5);
+      expect(stamps["shooting_slots/slot-1/startMinute"]?.deviceId, deviceId);
     });
 
     test("restores the currency the version was captured with", () async {
