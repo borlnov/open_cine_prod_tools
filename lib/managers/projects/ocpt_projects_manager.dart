@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -58,10 +59,11 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
 /// index, its shot list, its named versions, its resources catalogue (the address book, the cast,
-/// locations and elements) or the breakdown pass tagging that catalogue against the screenplay is
-/// delegated to [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
-/// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
-/// [elementsService] and [breakdownService], the ten services this manager owns and wires together
+/// locations and elements), the breakdown pass tagging that catalogue against the screenplay, or
+/// the shooting schedule is delegated to [screenplayService], [sceneIndexService],
+/// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
+/// [roleIndexService], [locationsService], [elementsService], [breakdownService] and
+/// [scheduleService], the eleven services this manager owns and wires together
 /// (RFL18): this manager itself is only responsible for the lifecycle of the project file
 /// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
 /// handing those services the facts only it holds — the open project's database, the app version,
@@ -120,6 +122,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// track a scene's own breakdown status.
   final OcptBreakdownService breakdownService;
 
+  /// The service used for CRUD over the shooting schedule: its days, their convocation windows and
+  /// convocations, and each day's timetable.
+  final OcptScheduleService scheduleService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -172,7 +178,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       breakdownService = const OcptBreakdownService(
         elementsService: OcptElementsService(),
         locationsService: OcptLocationsService(),
-      );
+      ),
+      scheduleService = const OcptScheduleService();
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
