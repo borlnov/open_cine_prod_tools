@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
@@ -36,13 +37,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// [MixinOcptProjectVersionsBloc], answering its two hooks through [_flushPendingFieldEdits] and
 /// [_onLoadRequested].
 ///
-/// **The two dock fractions and the last right dock tab are held in state only, not persisted**:
-/// unlike the other three modes, `OcptPropertiesManager` is out of this milestone's scope (a
-/// sibling agent is concurrently finishing the project version codec in `lib/managers/`, and this
-/// mode's own instructions withhold that directory from it too) — a follow-up change should add
-/// `schedule…DockFraction`/`scheduleLastRightDockTab` entries there, mirroring
-/// `breakdownLeftDockFraction`/`breakdownLastRightDockTab`, and wire them in here exactly as
-/// `OcptBreakdownBloc` does.
+/// The two dock fractions and the last right dock tab are persisted through
+/// [_propertiesManager]'s `scheduleLeftDockFraction`/`scheduleRightDockFraction`/
+/// `scheduleLastRightDockTab`, mirroring `OcptBreakdownBloc` exactly.
 ///
 /// Every write but the free-text fields (which ride [_fieldEditDebounce], flushed by
 /// [_flushPendingFieldEdits] on a version preview and by the mode's own `deactivate()`) lands the
@@ -59,6 +56,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
+
+  /// The manager used to load and persist the mode's dock fractions and last right dock tab.
+  final OcptPropertiesManager _propertiesManager;
 
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
@@ -92,6 +92,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// fast and deterministic.
   OcptScheduleBloc({
     OcptProjectsManager? projectsManager,
+    OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
     OcptScheduleService? scheduleService,
     OcptShotListService? shotListService,
@@ -100,6 +101,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptPeopleService? peopleService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _scheduleService =
            scheduleService ??
@@ -207,11 +209,24 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleLoadRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
+    final leftDockFraction =
+        await _propertiesManager.scheduleLeftDockFraction.load() ??
+        OcptWorkspaceDock.leftDefaultFraction;
+    final rightDockFraction =
+        await _propertiesManager.scheduleRightDockFraction.load() ??
+        OcptWorkspaceDock.rightDefaultFraction;
+    final lastRightDockTab =
+        await _propertiesManager.scheduleLastRightDockTab.load() ??
+        OcptScheduleRightDockTab.inspector;
+
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(
         state.copyWith(
           isLoading: false,
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
+          lastRightDockTab: lastRightDockTab,
           clearPreviewedVersionId: true,
           clearSelectedDayId: true,
           clearSelectedBlockId: true,
@@ -251,6 +266,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         clearSelectedBlockId: true,
         clearPlacingShotId: true,
         pendingFieldEdits: const {},
+        leftDockFraction: leftDockFraction,
+        rightDockFraction: rightDockFraction,
+        lastRightDockTab: lastRightDockTab,
       ),
     );
   }
@@ -288,6 +306,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _flushPendingFieldEdits(emitter);
 
     final isAlreadyActive = state.rightDockTab == event.tab;
+    await _persistLastRightDockTab(event.tab);
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
@@ -327,26 +346,49 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWith(clearRightDockTab: true));
   }
 
-  /// Applies whichever dock fraction the ended drag gesture reports. Not persisted — see the class
-  /// doc comment.
+  /// Applies and persists whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(
     OcptScheduleDockFractionsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(leftDockFraction: event.left, rightDockFraction: event.right));
+    final left = event.left;
+    final right = event.right;
+
+    if (left != null) {
+      await _propertiesManager.scheduleLeftDockFraction.store(left);
+    }
+    if (right != null) {
+      await _propertiesManager.scheduleRightDockFraction.store(right);
+    }
+
+    emitter(state.copyWith(leftDockFraction: left, rightDockFraction: right));
   }
 
-  /// Restores both dock fractions to their defaults.
+  /// Restores both dock fractions to their defaults, persisting them.
   Future<void> _onDockLayoutReset(
     OcptScheduleDockLayoutResetEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
+    await _propertiesManager.scheduleLeftDockFraction.store(OcptWorkspaceDock.leftDefaultFraction);
+    await _propertiesManager.scheduleRightDockFraction.store(
+      OcptWorkspaceDock.rightDefaultFraction,
+    );
+
     emitter(
       state.copyWith(
         leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
         rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
+  }
+
+  /// Persists [tab] as the mode's last right dock tab, unless it already is.
+  Future<void> _persistLastRightDockTab(OcptScheduleRightDockTab tab) async {
+    if (state.lastRightDockTab == tab) {
+      return;
+    }
+
+    await _propertiesManager.scheduleLastRightDockTab.store(tab);
   }
 
   /// Selects day [OcptScheduleDaySelectedEvent.dayId], clearing any selected block: a day selected

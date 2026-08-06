@@ -13,6 +13,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -34,8 +35,9 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// app-wide page margins preference, the editor's dock width fractions, its scene-number
 /// visibility preference, the last used workspace mode, the shot list mode's own dock
 /// fractions, visible table columns and last right dock tab, the resources mode's own dock
-/// fractions, the breakdown mode's own dock fractions and last right dock tab, and the id
-/// identifying this replica of the app ([loadOrCreateDeviceId]).
+/// fractions, the breakdown mode's own dock fractions and last right dock tab, the schedule
+/// mode's own dock fractions and last right dock tab, and the id identifying this replica of the
+/// app ([loadOrCreateDeviceId]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
   /// This is the key used to store the recently opened projects in the local storage.
@@ -159,6 +161,37 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   final breakdownLastRightDockTab = SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String>(
     "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
     parser: _parseBreakdownRightDockTab,
+    castTo: (value) => value.name,
+  );
+
+  /// This is the key used to store the schedule mode's left (days) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction],
+  /// [resourcesLeftDockFraction] and [breakdownLeftDockFraction] for the same reason the four are
+  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
+  /// equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final scheduleLeftDockFraction = SharedPreferencesItem<double>("SCHEDULE_LEFT_DOCK_FRACTION");
+
+  /// This is the key used to store the schedule mode's right (inspector/versions) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction],
+  /// [resourcesRightDockFraction] and [breakdownRightDockFraction] for the same reason. Loading it
+  /// returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final scheduleRightDockFraction = SharedPreferencesItem<double>(
+    "SCHEDULE_RIGHT_DOCK_FRACTION",
+  );
+
+  /// This is the key used to store the tab the schedule mode's right dock last showed, so
+  /// reopening the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptScheduleRightDockTab.inspector].
+  final scheduleLastRightDockTab = SharedPrefsItemWithParser<OcptScheduleRightDockTab, String>(
+    "SCHEDULE_LAST_RIGHT_DOCK_TAB",
+    parser: _parseScheduleRightDockTab,
     castTo: (value) => value.name,
   );
 
@@ -370,6 +403,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     }
 
     appLogger().w("The breakdown right dock tab stored in the local storage: $value, isn't a "
+        "known tab, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptScheduleRightDockTab].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptScheduleRightDockTab] values.
+  static OcptScheduleRightDockTab? _parseScheduleRightDockTab(String value) {
+    for (final tab in OcptScheduleRightDockTab.values) {
+      if (tab.name == value) {
+        return tab;
+      }
+    }
+
+    appLogger().w("The schedule right dock tab stored in the local storage: $value, isn't a "
         "known tab, we can't convert it");
     return null;
   }

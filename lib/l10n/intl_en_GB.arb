@@ -6471,5 +6471,215 @@
     "context": "Displayed in the schedule mode's toolbar",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleAgendaPreviousAction": "Previous",
+  "@scheduleAgendaPreviousAction": {
+    "description": "Tooltip of the week/month agenda's own previous-page control",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaNextAction": "Next",
+  "@scheduleAgendaNextAction": {
+    "description": "Tooltip of the week/month agenda's own next-page control",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaTodayAction": "Today",
+  "@scheduleAgendaTodayAction": {
+    "description": "Label of the week/month agenda's own control paging back to today",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteSlotAction": "Delete this slot…",
+  "@scheduleDeleteSlotAction": {
+    "description": "Entry of a slot card's own ⋮ menu, asking for confirmation before deleting",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteSlotConfirmTitle": "Delete this slot?",
+  "@scheduleDeleteSlotConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a slot",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteSlotConfirmMessage": "Its crew and cast convocations will be lost. This cannot be undone.",
+  "@scheduleDeleteSlotConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a slot",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteBlockConfirmTitle": "Delete this block?",
+  "@scheduleDeleteBlockConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a timetable block",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteBlockConfirmMessage": "This cannot be undone.",
+  "@scheduleDeleteBlockConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a timetable block",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCrewBandLabel": "Crew",
+  "@scheduleSlotCrewBandLabel": {
+    "description": "Label of a slot card's own crew call/wrap band",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotPatBandLabel": "PAT",
+  "@scheduleSlotPatBandLabel": {
+    "description": "Label of a slot card's own default PAT band, and of a cast row's own PAT override",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCrewColumnTitle": "Technical crew",
+  "@scheduleSlotCrewColumnTitle": {
+    "description": "Title of a slot card's own crew column, grouped by department",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCrewEmptyHint": "No crew member convoked yet.",
+  "@scheduleSlotCrewEmptyHint": {
+    "description": "Shown in a slot card's own crew column while it convokes nobody yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotUnassignedDepartmentLabel": "Unassigned",
+  "@scheduleSlotUnassignedDepartmentLabel": {
+    "description": "Heading of a slot card's own crew group for a member with no catalogue position picked yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddCrewMemberAction": "Crew member",
+  "@scheduleAddCrewMemberAction": {
+    "description": "Label of a slot card's own footer control opening the crew member picker",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCastColumnTitle": "Cast",
+  "@scheduleSlotCastColumnTitle": {
+    "description": "Title of a slot card's own cast column",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCastEmptyHint": "No role convoked yet.",
+  "@scheduleSlotCastEmptyHint": {
+    "description": "Shown in a slot card's own cast column while it convokes no role yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddCastAction": "Cast",
+  "@scheduleAddCastAction": {
+    "description": "Label of a slot card's own footer control opening the role picker",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveCrewMemberTooltip": "Remove this crew member",
+  "@scheduleRemoveCrewMemberTooltip": {
+    "description": "Tooltip of a crew row's own remove control",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveCastTooltip": "Remove this convocation",
+  "@scheduleRemoveCastTooltip": {
+    "description": "Tooltip of a cast row's own remove control",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCastUncastHint": "Uncast",
+  "@scheduleSlotCastUncastHint": {
+    "description": "Shown in a cast row in place of the actor's name when the role has none",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotArrivalLabel": "Arrival",
+  "@scheduleSlotArrivalLabel": {
+    "description": "Label of a cast row's own arrival time field",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleTimetableEmptyHint": "Nothing placed on this day yet.",
+  "@scheduleTimetableEmptyHint": {
+    "description": "Shown in the timetable while the day holds no block at all",
+    "context": "Displayed in the day view's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddBlockAction": "Block",
+  "@scheduleAddBlockAction": {
+    "description": "Label of the timetable's own footer control opening the block-kind menu",
+    "context": "Displayed in the day view's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAnchorPinTooltip": "Pin this block to its current time",
+  "@scheduleAnchorPinTooltip": {
+    "description": "Tooltip of a timetable row's own anchor pin toggle",
+    "context": "Displayed in the day view's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveBlockTooltip": "Remove this block",
+  "@scheduleRemoveBlockTooltip": {
+    "description": "Tooltip of a timetable row's own remove control",
+    "context": "Displayed in the day view's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddSlotAction": "Slot",
+  "@scheduleAddSlotAction": {
+    "description": "Label of the day view's own control adding a new slot",
+    "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleTimetableTitle": "Timetable",
+  "@scheduleTimetableTitle": {
+    "description": "Heading over the day view's own chained blocks",
+    "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaySummaryTotalLabel": "Total",
+  "@scheduleDaySummaryTotalLabel": {
+    "description": "Label of the day view's own summary band total field",
+    "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaySummaryTotal": "{count, plural, one{{count} shot} other{{count} shots}} · {duration} of presence",
+  "@scheduleDaySummaryTotal": {
+    "description": "The day's own shot count and duration of presence, from the first crew call to the estimated end",
+    "context": "Displayed in the day view's own summary band",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
   }
 }

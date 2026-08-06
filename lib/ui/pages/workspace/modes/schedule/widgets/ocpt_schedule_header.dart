@@ -10,14 +10,16 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 
 /// The schedule mode's own header band: the `Agenda`/`Day` switch and, while the agenda is shown,
-/// its own `Strip`/`Week`/`Month` segmented control beside it — mirroring the mock's header row
+/// its own `Strip`/`Week`/`Month` segmented control beside it, plus — for the week and month
+/// presentations — the previous/next/today paging row, mirroring the mock's header row
 /// (`design.html` lines 423-433) and `OcptBreakdownHeader`'s own segmented-switch styling.
 ///
 /// **The mock's "Couleur par lieu / Int-Ext · Jour-Nuit" segmented control and the alert list under
 /// it are deliberately not built here** — they arrive with M3 (`docs/plans/schedule-mode.md` §10),
 /// per Benoit's own M1 decision.
 ///
-/// Purely presentational: every affordance here only reads, so it needs no `isReadOnly` flag.
+/// Purely presentational: every affordance here only reads or pages the agenda (never a database
+/// write), so it needs no `isReadOnly` flag.
 class OcptScheduleHeader extends StatelessWidget {
   /// Which of the two centre views is currently active.
   final OcptScheduleCentreView centreView;
@@ -32,6 +34,13 @@ class OcptScheduleHeader extends StatelessWidget {
   /// Called with the presentation just picked.
   final ValueChanged<OcptScheduleAgendaMode> onAgendaModeSelected;
 
+  /// The date the week/month agenda currently pages through — what the paging row's own label and
+  /// its previous/next controls are computed from.
+  final DateTime agendaAnchorDate;
+
+  /// Called with the new anchor date once previous/next/today is clicked.
+  final ValueChanged<DateTime> onAgendaAnchorDateChanged;
+
   /// Class constructor
   const OcptScheduleHeader({
     super.key,
@@ -39,34 +48,98 @@ class OcptScheduleHeader extends StatelessWidget {
     required this.onCentreViewSelected,
     required this.agendaMode,
     required this.onAgendaModeSelected,
+    required this.agendaAnchorDate,
+    required this.onAgendaAnchorDateChanged,
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-    child: Row(
-      children: [
-        _OcptScheduleSegmentedSwitch<OcptScheduleCentreView>(
-          value: centreView,
-          values: OcptScheduleCentreView.values,
-          labelOf: (view) => switch (view) {
-            OcptScheduleCentreView.agenda => Tr.of(context).scheduleHeaderAgendaSegmentLabel,
-            OcptScheduleCentreView.day => Tr.of(context).scheduleHeaderDaySegmentLabel,
-          },
-          onChanged: onCentreViewSelected,
-        ),
-        if (centreView == OcptScheduleCentreView.agenda) ...[
-          const SizedBox(width: 12),
-          _OcptScheduleSegmentedSwitch<OcptScheduleAgendaMode>(
-            value: agendaMode,
-            values: OcptScheduleAgendaMode.values,
-            labelOf: (mode) => ocptScheduleAgendaModeLabel(Tr.of(context), mode),
-            onChanged: onAgendaModeSelected,
+  Widget build(BuildContext context) {
+    final showNav =
+        centreView == OcptScheduleCentreView.agenda && agendaMode != OcptScheduleAgendaMode.strip;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          _OcptScheduleSegmentedSwitch<OcptScheduleCentreView>(
+            value: centreView,
+            values: OcptScheduleCentreView.values,
+            labelOf: (view) => switch (view) {
+              OcptScheduleCentreView.agenda => Tr.of(context).scheduleHeaderAgendaSegmentLabel,
+              OcptScheduleCentreView.day => Tr.of(context).scheduleHeaderDaySegmentLabel,
+            },
+            onChanged: onCentreViewSelected,
           ),
+          if (centreView == OcptScheduleCentreView.agenda)
+            _OcptScheduleSegmentedSwitch<OcptScheduleAgendaMode>(
+              value: agendaMode,
+              values: OcptScheduleAgendaMode.values,
+              labelOf: (mode) => ocptScheduleAgendaModeLabel(Tr.of(context), mode),
+              onChanged: onAgendaModeSelected,
+            ),
+          if (showNav) _buildNav(context),
         ],
+      ),
+    );
+  }
+
+  /// The previous/next/today paging row, shown only for the week and month presentations.
+  Widget _buildNav(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final isWeek = agendaMode == OcptScheduleAgendaMode.week;
+    final label = isWeek
+        ? ocptScheduleWeekRangeLabel(context, ocptScheduleMondayOfWeek(agendaAnchorDate))
+        : ocptScheduleMonthLabel(context, agendaAnchorDate);
+    final step = isWeek ? const Duration(days: 7) : null;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left, size: 18),
+          tooltip: tr.scheduleAgendaPreviousAction,
+          visualDensity: VisualDensity.compact,
+          onPressed: () => onAgendaAnchorDateChanged(
+            step != null
+                ? agendaAnchorDate.subtract(step)
+                : DateTime(agendaAnchorDate.year, agendaAnchorDate.month - 1, agendaAnchorDate.day),
+          ),
+        ),
+        SizedBox(
+          width: 170,
+          child: Text(label, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right, size: 18),
+          tooltip: tr.scheduleAgendaNextAction,
+          visualDensity: VisualDensity.compact,
+          onPressed: () => onAgendaAnchorDateChanged(
+            step != null
+                ? agendaAnchorDate.add(step)
+                : DateTime(agendaAnchorDate.year, agendaAnchorDate.month + 1, agendaAnchorDate.day),
+          ),
+        ),
+        const SizedBox(width: 4),
+        InkWell(
+          onTap: () => onAgendaAnchorDateChanged(DateTime.now()),
+          mouseCursor: ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            ),
+            child: Text(tr.scheduleAgendaTodayAction, style: theme.textTheme.labelSmall),
+          ),
+        ),
       ],
-    ),
-  );
+    );
+  }
 }
 
 /// A small bordered rounded segmented control over an arbitrary enum [T], the active segment

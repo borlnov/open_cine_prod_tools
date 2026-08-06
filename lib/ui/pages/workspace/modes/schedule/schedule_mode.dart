@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
@@ -18,17 +19,19 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_month_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_week_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
@@ -39,18 +42,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// milestone M1).
 ///
 /// The left dock lists the shooting days over the shots still to place, grouped by sequence — a
-/// click on an unplaced shot starts a *placing*, a click on a day (here, or on the strip agenda)
-/// answers it. The centre is `OcptScheduleHeader`'s own `Agenda`/`Day` switch over either the
-/// agenda — this milestone building only its `strip` presentation
-/// ([OcptScheduleStripAgenda]; `week`/`month` show a placeholder, see `_buildAgenda`'s own doc
-/// comment) — or the day view, a placeholder here too, since building its slot/block timetable is
-/// the second agent's own task. The right dock is `Inspector` (the selected block's own read-out,
-/// or, with none selected, the selected day's own) + the shared `Versions` tab.
+/// click on an unplaced shot starts a *placing*, a click on a day (here, on the strip agenda, or on
+/// a week/month cell) answers it. The centre is `OcptScheduleHeader`'s own `Agenda`/`Day` switch
+/// over either the agenda — [OcptScheduleStripAgenda], [OcptScheduleWeekGrid] or
+/// [OcptScheduleMonthGrid], per [OcptScheduleState.agendaMode] — or [OcptScheduleDayView], the
+/// mode's own working surface (the day's summary band, one slot card per convocation, then the
+/// chained timetable). The right dock is `Inspector` (the selected block's own read-out, or, with
+/// none selected, the selected day's own) + the shared `Versions` tab.
 ///
 /// **There is no save control and no mode-specific toolbar action**: every write here is its own
-/// event, exactly as the breakdown mode's own shell is built — see `OcptScheduleBloc`'s own doc
-/// comment for the one thing that does deviate from that mode's shape (the two dock fractions and
-/// the last right dock tab are not persisted in this milestone).
+/// event, exactly as the breakdown mode's own shell is built.
 class OcptScheduleMode extends StatelessWidget {
   /// Creates the schedule mode.
   const OcptScheduleMode({super.key});
@@ -220,13 +221,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
           onCentreViewSelected: (view) => bloc.add(OcptScheduleCentreViewSelectedEvent(view: view)),
           agendaMode: state.agendaMode,
           onAgendaModeSelected: (mode) => bloc.add(OcptScheduleAgendaModeSelectedEvent(mode: mode)),
+          agendaAnchorDate: state.agendaAnchorDate,
+          onAgendaAnchorDateChanged: (date) =>
+              bloc.add(OcptScheduleAgendaAnchorDateChangedEvent(date: date)),
         ),
         const SizedBox(height: 12),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: state.centreView == OcptScheduleCentreView.day
-                ? _buildDayViewPlaceholder(context)
+                ? _buildDayView(context, state)
                 : _buildAgenda(context, state),
           ),
         ),
@@ -235,21 +239,32 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Builds the agenda: the strip presentation this milestone actually builds, or a placeholder
-  /// for the week/month grids — those are the second agent's own task, per this mode's own
-  /// scope note (see the class doc comment).
+  /// Selects day [dayId] and switches the centre to the day view — the shared "open this day"
+  /// gesture the strip's own header click, a week column header click and a month cell click all
+  /// answer the same way.
+  void _openDay(BuildContext context, String dayId) {
+    final bloc = context.read<OcptScheduleBloc>();
+    bloc
+      ..add(OcptScheduleDaySelectedEvent(dayId: dayId))
+      ..add(const OcptScheduleCentreViewSelectedEvent(view: OcptScheduleCentreView.day));
+  }
+
+  /// Builds the agenda: whichever of the three presentations [OcptScheduleState.agendaMode] names.
   Widget _buildAgenda(BuildContext context, OcptScheduleState state) {
     final bloc = context.read<OcptScheduleBloc>();
     final isReadOnly = state.isPreviewingVersion;
+    final firstLocationByDayId = {
+      for (final day in state.days) day.id: state.firstLocationOfDay(day.id),
+    };
+    final blocksByDayId =
+        state.snapshot?.blocksByDayId ?? const <String, List<OcptShootingDayBlock>>{};
 
     return switch (state.agendaMode) {
       OcptScheduleAgendaMode.strip => OcptScheduleStripAgenda(
         days: state.days,
         selectedDayId: state.selectedDayId,
-        firstLocationByDayId: {
-          for (final day in state.days) day.id: state.firstLocationOfDay(day.id),
-        },
-        blocksByDayId: state.snapshot?.blocksByDayId ?? const <String, List<OcptShootingDayBlock>>{},
+        firstLocationByDayId: firstLocationByDayId,
+        blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelineOfDay,
         placingShotId: state.placingShotId,
@@ -265,24 +280,217 @@ class _ScheduleViewState extends State<_ScheduleView> {
         onBlockSelected: (blockId, dayId) =>
             bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: dayId)),
       ),
-      // The week/month grid and the day view are built next.
-      OcptScheduleAgendaMode.week => OcptWorkspaceEmptyMode(
-        icon: Icons.calendar_view_week_outlined,
-        message: Tr.of(context).scheduleAgendaWeekComingHint,
+      OcptScheduleAgendaMode.week => OcptScheduleWeekGrid(
+        anchorDate: state.agendaAnchorDate,
+        days: state.days,
+        firstLocationByDayId: firstLocationByDayId,
+        blocksByDayId: blocksByDayId,
+        shotOf: state.shotById,
+        timelineOf: state.timelineOfDay,
+        sunTimesOf: state.sunTimesOfDay,
+        selectedDayId: state.selectedDayId,
+        onDayOpenRequested: (dayId) => _openDay(context, dayId),
       ),
-      OcptScheduleAgendaMode.month => OcptWorkspaceEmptyMode(
-        icon: Icons.calendar_view_month_outlined,
-        message: Tr.of(context).scheduleAgendaMonthComingHint,
+      OcptScheduleAgendaMode.month => OcptScheduleMonthGrid(
+        anchorDate: state.agendaAnchorDate,
+        days: state.days,
+        slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
+        firstLocationByDayId: firstLocationByDayId,
+        timelineOf: state.timelineOfDay,
+        sunTimesOf: state.sunTimesOfDay,
+        selectedDayId: state.selectedDayId,
+        onDayOpenRequested: (dayId) => _openDay(context, dayId),
       ),
     };
   }
 
-  /// Builds the day view's own placeholder.
-  // The week/month grid and the day view are built next.
-  Widget _buildDayViewPlaceholder(BuildContext context) => OcptWorkspaceEmptyMode(
-    icon: Icons.view_day_outlined,
-    message: Tr.of(context).scheduleDayViewComingHint,
-  );
+  /// Builds the day view: the selected day's own summary band, its slot cards and its timetable —
+  /// or a plain hint while no day is selected yet.
+  Widget _buildDayView(BuildContext context, OcptScheduleState state) {
+    final day = state.selectedDay;
+    if (day == null) {
+      return Center(
+        child: Text(
+          Tr.of(context).scheduleInspectorEmptyHint,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+
+    final bloc = context.read<OcptScheduleBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptScheduleDayView(
+      day: day,
+      slots: state.selectedDaySlots,
+      blocks: state.selectedDayBlocks,
+      timeline: state.timelineOfDay(day.id),
+      sunTimes: state.sunTimesOfDay(day.id),
+      locationById: state.locationById,
+      setById: state.setById,
+      locations: state.locations,
+      personById: state.personById,
+      roleById: state.roleById,
+      people: state.people,
+      roles: state.roles,
+      shotOf: state.shotById,
+      selectedBlockId: state.selectedBlockId,
+      slotLabelValueOf: (slotId) {
+        final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
+        return state.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
+      },
+      onSlotAdded: isReadOnly ? null : () => bloc.add(OcptScheduleSlotCreatedEvent(dayId: day.id)),
+      onSlotLabelChanged: isReadOnly
+          ? null
+          : (slotId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: slotId,
+                field: OcptScheduleField.slotLabel,
+                rawValue: rawValue,
+              ),
+            ),
+      onSlotPlaceChanged: isReadOnly
+          ? null
+          : (slotId, locationId, setId) => bloc.add(
+              OcptScheduleSlotPlaceChangedEvent(slotId: slotId, locationId: locationId, setId: setId),
+            ),
+      onSlotCrewTimesChanged: isReadOnly
+          ? null
+          : (slotId, call, wrap) => bloc.add(
+              OcptScheduleSlotCrewTimesChangedEvent(
+                slotId: slotId,
+                crewCallMinute: call,
+                crewWrapMinute: wrap,
+              ),
+            ),
+      onSlotCastTimesChanged: isReadOnly
+          ? null
+          : (slotId, call, wrap) => bloc.add(
+              OcptScheduleSlotCastTimesChangedEvent(
+                slotId: slotId,
+                castCallMinute: call,
+                castWrapMinute: wrap,
+              ),
+            ),
+      onSlotDeletionRequested: isReadOnly
+          ? null
+          : (slotId) => unawaited(_handleSlotDeletionRequested(context, slotId)),
+      onSlotCrewMemberAdded: isReadOnly
+          ? null
+          : (slotId, personId) =>
+                bloc.add(OcptScheduleSlotCrewMemberAddedEvent(slotId: slotId, personId: personId)),
+      onSlotCrewMemberPositionChanged: isReadOnly
+          ? null
+          : (crewMemberId, positionId) => bloc.add(
+              OcptScheduleSlotCrewMemberPositionChangedEvent(
+                crewMemberId: crewMemberId,
+                positionId: positionId,
+              ),
+            ),
+      onSlotCrewMemberTimesChanged: isReadOnly
+          ? null
+          : (crewMemberId, callMinute, wrapMinute) => bloc.add(
+              OcptScheduleSlotCrewMemberTimesChangedEvent(
+                crewMemberId: crewMemberId,
+                callMinute: callMinute,
+                wrapMinute: wrapMinute,
+              ),
+            ),
+      onSlotCrewMemberRemoved: isReadOnly
+          ? null
+          : (crewMemberId) =>
+                bloc.add(OcptScheduleSlotCrewMemberRemovedEvent(crewMemberId: crewMemberId)),
+      onSlotCastRoleAdded: isReadOnly
+          ? null
+          : (slotId, roleId) => bloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
+      onSlotCastRoleTimesChanged: isReadOnly
+          ? null
+          : (castRoleId, arrivalMinute, castCallMinute, castWrapMinute) => bloc.add(
+              OcptScheduleSlotCastRoleTimesChangedEvent(
+                castRoleId: castRoleId,
+                arrivalMinute: arrivalMinute,
+                castCallMinute: castCallMinute,
+                castWrapMinute: castWrapMinute,
+              ),
+            ),
+      onSlotCastRoleRemoved: isReadOnly
+          ? null
+          : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
+      onBlockSelected: (blockId) =>
+          bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
+      onBlockReordered: isReadOnly
+          ? null
+          : (blockId, newPosition) => bloc.add(
+              OcptScheduleBlockReorderedEvent(dayId: day.id, blockId: blockId, newPosition: newPosition),
+            ),
+      onBlockDurationChanged: isReadOnly
+          ? null
+          : (blockId, durationMinutes) => bloc.add(
+              OcptScheduleBlockDurationChangedEvent(blockId: blockId, durationMinutes: durationMinutes),
+            ),
+      onBlockAnchorToggled: isReadOnly
+          ? null
+          : (blockId, anchorMinute) =>
+                bloc.add(OcptScheduleBlockAnchorChangedEvent(blockId: blockId, anchorMinute: anchorMinute)),
+      onShotStatusChanged: isReadOnly
+          ? null
+          : (shotId, status) => bloc.add(OcptScheduleShotStatusChangedEvent(shotId: shotId, status: status)),
+      onBlockDeletionRequested: isReadOnly
+          ? null
+          : (blockId) => unawaited(_handleBlockDeletionRequested(context, blockId)),
+      onBlockAdded: isReadOnly
+          ? null
+          : (kind) => bloc.add(OcptScheduleBlockCreatedEvent(dayId: day.id, kind: kind)),
+    );
+  }
+
+  /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the
+  /// deletion if the user answered `Delete`.
+  Future<void> _handleSlotDeletionRequested(BuildContext context, String slotId) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.scheduleDeleteSlotConfirmTitle,
+      message: tr.scheduleDeleteSlotConfirmMessage,
+      cancelLabel: tr.scheduleDeleteDayCancelAction,
+      confirmLabel: tr.scheduleDeleteDayConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptScheduleSlotDeletionConfirmedEvent(slotId: slotId));
+  }
+
+  /// Asks `OcptConfirmDialog` whether block [blockId] really is to be deleted, then dispatches the
+  /// deletion if the user answered `Delete`.
+  Future<void> _handleBlockDeletionRequested(BuildContext context, String blockId) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.scheduleDeleteBlockConfirmTitle,
+      message: tr.scheduleDeleteBlockConfirmMessage,
+      cancelLabel: tr.scheduleDeleteDayCancelAction,
+      confirmLabel: tr.scheduleDeleteDayConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptScheduleBlockDeletionConfirmedEvent(blockId: blockId));
+  }
 
   /// Builds the right dock, or null while it's closed.
   Widget? _buildRightDock(BuildContext context, OcptScheduleState state) {

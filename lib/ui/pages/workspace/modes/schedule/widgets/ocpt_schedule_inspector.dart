@@ -235,7 +235,7 @@ class OcptScheduleInspector extends StatelessWidget {
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorSunLabel,
-          child: Text(_sunTimesLine(tr), style: theme.textTheme.bodySmall),
+          child: Text(ocptScheduleSunTimesLine(tr, sunTimes), style: theme.textTheme.bodySmall),
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorWeatherLabel,
@@ -341,26 +341,6 @@ class OcptScheduleInspector extends StatelessWidget {
     );
   }
 
-  /// The sun/twilight summary line, or the "no coordinates" hint while [sunTimes] is null.
-  String _sunTimesLine(Tr tr) {
-    final sunTimes = this.sunTimes;
-    if (sunTimes == null) {
-      return tr.scheduleInspectorNoSunTimes;
-    }
-
-    final sunrise = sunTimes.sunriseMinute;
-    final sunset = sunTimes.sunsetMinute;
-    final civilDawn = sunTimes.civilDawnMinute;
-    final civilDusk = sunTimes.civilDuskMinute;
-
-    return tr.scheduleInspectorSunTimesLine(
-      sunrise == null ? "—" : ocptFormatDayMinute(sunrise),
-      sunset == null ? "—" : ocptFormatDayMinute(sunset),
-      civilDawn == null ? "—" : ocptFormatDayMinute(civilDawn),
-      civilDusk == null ? "—" : ocptFormatDayMinute(civilDusk),
-      ocptScheduleUtcOffsetLabel(sunTimes.utcOffsetUsed),
-    );
-  }
 }
 
 /// One labelled section of the inspector: an upper-case label over its content, mirroring the

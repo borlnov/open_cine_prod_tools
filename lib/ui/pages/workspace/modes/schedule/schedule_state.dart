@@ -137,12 +137,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// while an edit is pending here.
   final Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits;
 
-  /// The left (days) dock's width, as a fraction of the mode's content row width. Not persisted in
-  /// this milestone — see `OcptScheduleBloc`'s own doc comment.
+  /// The left (days) dock's width, as a fraction of the mode's content row width. Persisted
+  /// through `OcptPropertiesManager.scheduleLeftDockFraction`.
   final double leftDockFraction;
 
   /// The right (inspector/versions) dock's width, as a fraction of the mode's content row width.
-  /// Not persisted in this milestone — see `OcptScheduleBloc`'s own doc comment.
+  /// Persisted through `OcptPropertiesManager.scheduleRightDockFraction`.
   final double rightDockFraction;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
