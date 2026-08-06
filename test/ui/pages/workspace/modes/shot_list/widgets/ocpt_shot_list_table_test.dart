@@ -89,7 +89,7 @@ void main() {
     required List<OcptShot> shots,
     Set<OcptShotListColumn>? visibleColumns,
     String? selectedShotId,
-    Map<String, OcptShotPlacement>? placementsByShotId,
+    Map<String, List<OcptShotPlacement>>? placementsByShotId,
   }) async {
     final selectedShots = <String>[];
 
@@ -188,12 +188,14 @@ void main() {
       ],
       visibleColumns: {OcptShotListColumn.shootingDay},
       placementsByShotId: {
-        "shot-1": OcptShotPlacement(
-          shotId: "shot-1",
-          dayId: "day-3",
-          dayNumber: 3,
-          date: DateTime(2026, 8, 4),
-        ),
+        "shot-1": [
+          OcptShotPlacement(
+            shotId: "shot-1",
+            dayId: "day-3",
+            dayNumber: 3,
+            date: DateTime(2026, 8, 4),
+          ),
+        ],
       },
     );
 

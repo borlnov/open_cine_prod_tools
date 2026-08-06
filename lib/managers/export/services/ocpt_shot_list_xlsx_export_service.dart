@@ -111,12 +111,12 @@ class OcptShotListXlsxExportService {
   }
 
   /// Appends [sequence]'s separator row, then one row per shot it holds. [placementsByShotId] is
-  /// [OcptShotListSnapshot.placementsByShotId], keyed by shot id.
+  /// [OcptShotListSnapshot.placementsByShotId], keyed by shot id onto every block that places it.
   void _appendSequenceRows({
     required Sheet sheet,
     required OcptShotSequence sequence,
     required OcptShotListXlsxLabels labels,
-    required Map<String, OcptShotPlacement> placementsByShotId,
+    required Map<String, List<OcptShotPlacement>> placementsByShotId,
   }) {
     final separatorRowIndex = sheet.maxRows;
     sheet.appendRow([TextCellValue(labels.titleOfSequence(sequence.id))]);
@@ -132,14 +132,14 @@ class OcptShotListXlsxExportService {
             shot: shot,
             sequence: sequence,
             labels: labels,
-            placement: placementsByShotId[shot.id],
+            placements: placementsByShotId[shot.id] ?? const [],
           ),
       ]);
     }
   }
 
-  /// The cell [column] holds for [shot], or null to leave it empty. [placement] is [shot]'s own
-  /// entry of [OcptShotListSnapshot.placementsByShotId], null while it hasn't been placed on any
+  /// The cell [column] holds for [shot], or null to leave it empty. [placements] is [shot]'s own
+  /// entry of [OcptShotListSnapshot.placementsByShotId], empty while it hasn't been placed on any
   /// day yet.
   ///
   /// A field the user hasn't filled in is written as an empty cell rather than as the em dash the
@@ -150,7 +150,7 @@ class OcptShotListXlsxExportService {
     required OcptShot shot,
     required OcptShotSequence sequence,
     required OcptShotListXlsxLabels labels,
-    required OcptShotPlacement? placement,
+    required List<OcptShotPlacement> placements,
   }) => switch (column) {
     OcptShotListXlsxColumn.shot => TextCellValue(shot.code),
     OcptShotListXlsxColumn.characters => _textOrNull(shot.characters.join(", ")),
@@ -168,7 +168,7 @@ class OcptShotListXlsxExportService {
     },
     OcptShotListXlsxColumn.sound => _textOrNull(shot.sound),
     OcptShotListXlsxColumn.difficulty => DoubleCellValue(shot.averageDifficulty),
-    OcptShotListXlsxColumn.shootingDay => _placementCellOf(placement),
+    OcptShotListXlsxColumn.shootingDay => _placementCellOf(placements),
     OcptShotListXlsxColumn.status => _textOrNull(labels.labelOf(shot.status)),
     OcptShotListXlsxColumn.notes => _textOrNull(shot.notes),
     OcptShotListXlsxColumn.locationNotes => _textOrNull(shot.locationNotes),
@@ -206,9 +206,12 @@ class OcptShotListXlsxExportService {
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 
-  /// The cell holding [placement]'s read-out — `J3 · 2026-08-04`, the day's printed rank then its
-  /// calendar date — or null for a shot the schedule carries no placement for at all, exactly like
-  /// any other field the user hasn't filled in ([_textOrNull]).
+  /// The cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller with
+  /// no `BuildContext`: `J3 · 2026-08-04` (the day's printed rank then its calendar date) when every
+  /// placement lands on the same day, the day tags alone joined with `, ` (`J3, J5`) when they don't,
+  /// or null for a shot the schedule carries no placement for at all — exactly like any other field
+  /// the user hasn't filled in ([_textOrNull]). Days are deduplicated by `OcptShotPlacement.dayId`
+  /// and kept in ascending `dayNumber` order, exactly as `ocptShotPlacementLabel` does.
   ///
   /// Written in this locale-free, unambiguous form rather than through `Tr`: unlike every other
   /// column, neither half needs localized wording at all — the day tag is the trade's own shorthand,
@@ -217,12 +220,26 @@ class OcptShotListXlsxExportService {
   /// elsewhere in this codebase (`OcptResourcesXlsxExportService._isoDate`). Both are inlined here
   /// rather than imported: the service layer this class sits in must not depend on the UI layer
   /// those two helpers live in.
-  CellValue? _placementCellOf(OcptShotPlacement? placement) {
-    if (placement == null) {
+  CellValue? _placementCellOf(List<OcptShotPlacement> placements) {
+    if (placements.isEmpty) {
       return null;
     }
 
-    return TextCellValue("J${placement.dayNumber} · ${_isoDate(placement.date)}");
+    final distinctDays = <String, OcptShotPlacement>{};
+    for (final placement in placements) {
+      distinctDays[placement.dayId] = placement;
+    }
+    final orderedDays = distinctDays.values.toList()
+      ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+
+    if (orderedDays.length == 1) {
+      final placement = orderedDays.single;
+      return TextCellValue("J${placement.dayNumber} · ${_isoDate(placement.date)}");
+    }
+
+    return TextCellValue(
+      orderedDays.map((placement) => "J${placement.dayNumber}").join(", "),
+    );
   }
 
   /// [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.

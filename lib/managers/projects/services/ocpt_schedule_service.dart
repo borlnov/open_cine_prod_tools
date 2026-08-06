@@ -43,11 +43,13 @@ import 'package:uuid/uuid.dart';
 /// the columns those two functions take as input (a slot's `startMinute`, a block's duration and
 /// anchor, and a crew/cast row's own `leadMinutes`/`groupId`), and never a clock time itself.
 ///
-/// **A shot is placed at most once across the whole schedule.** [placeShot] looks for the shot's
-/// existing live block (kind [OcptShootingBlockKind.shot]) across every day before creating one, so
-/// calling it on an already-placed shot *moves* that block — to a new position or a new slot —
-/// rather than creating a second one. This is what makes the shot list's `Jour de tournage`
-/// read-out ([loadShotPlacements]) well defined.
+/// **A shot may be placed as many times as the plan needs.** [placeShot] only ever creates: a shot
+/// interrupted by the meal break and resumed after it is two blocks on the same day, not one, and a
+/// shot picked up again on a later date is two blocks on two different days. A placement is *moved*
+/// with [moveBlockToSlot] or the reorder, exactly like any other block, and *removed* with
+/// [deleteBlock], exactly like any other block — there is no operation keyed by shot any more. This
+/// costs the shot list's `Jour de tournage` read-out its single answer, which is why
+/// [loadShotPlacements] returns a **list** per shot rather than one placement.
 ///
 /// **Deleting a day cascades; deleting a slot moves what was scheduled inside it, or drops it with
 /// the slot when there is nowhere left to move it to.** [deleteDay] tombstones everything hanging
@@ -208,13 +210,16 @@ class OcptScheduleService {
     );
   }
 
-  /// For every shot of [screenplayId] placed in the schedule, which day it sits on and that day's
-  /// rank and date, keyed by shot id.
+  /// For every shot of [screenplayId] placed in the schedule, every block that places it — which
+  /// day it sits on and that day's rank and date — keyed by shot id, each list ordered by
+  /// `dayNumber` ascending (and, within a day, in the order the query itself returns, no secondary
+  /// sort invented on top of it).
   ///
-  /// A shot with no live block has **no entry** in the returned map: the shot list's `Jour de
-  /// tournage` read-out reads absence as "not yet planned" rather than looking for a placement with
-  /// null fields.
-  Future<Map<String, OcptShotPlacement>> loadShotPlacements({
+  /// A shot with no live block has **no entry** in the returned map, rather than an empty list: the
+  /// shot list's `Jour de tournage` read-out reads absence as "not yet planned" rather than looking
+  /// for a placement with null fields. A shot placed twice — on the same day either side of the meal
+  /// break, or on two different days — carries two entries in its own list.
+  Future<Map<String, List<OcptShotPlacement>>> loadShotPlacements({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
@@ -240,16 +245,36 @@ class OcptScheduleService {
             ))
             .get();
 
-    return {
-      for (final row in blockRows)
-        if (row.shotId != null)
-          row.shotId!: OcptShotPlacement(
-            shotId: row.shotId!,
-            dayId: row.shootingDayId,
-            dayNumber: dayNumberById[row.shootingDayId]!,
-            date: dateById[row.shootingDayId]!,
-          ),
-    };
+    // Grouped by walking the days in their own ascending order and, for each, the blocks the query
+    // returned for it in the order it returned them — a day-by-day partition rather than a sort, so
+    // stability within a day is never in question.
+    final blocksByDayId = <String, List<OcptShootingDayBlockRow>>{};
+    for (final row in blockRows) {
+      blocksByDayId.putIfAbsent(row.shootingDayId, () => []).add(row);
+    }
+
+    final placementsByShotId = <String, List<OcptShotPlacement>>{};
+    for (final day in dayRows) {
+      for (final row in blocksByDayId[day.id] ?? const <OcptShootingDayBlockRow>[]) {
+        final shotId = row.shotId;
+        if (shotId == null) {
+          continue;
+        }
+
+        placementsByShotId
+            .putIfAbsent(shotId, () => [])
+            .add(
+              OcptShotPlacement(
+                shotId: shotId,
+                dayId: row.shootingDayId,
+                dayNumber: dayNumberById[row.shootingDayId]!,
+                date: dateById[row.shootingDayId]!,
+              ),
+            );
+      }
+    }
+
+    return placementsByShotId;
   }
 
   /// Creates a new shooting day of screenplay [screenplayId] dated [date], appended at the end, and
@@ -1068,13 +1093,14 @@ class OcptScheduleService {
   }
 
   /// Places shot [shotId] inside slot [slotId], at [atPosition] within that slot's own timetable
-  /// (or appended at the end when null), and returns the id of the block placing it. The day it
-  /// lands on is read off [slotId]'s own row, so a block can never name a day its slot doesn't
-  /// belong to.
+  /// (or appended at the end when null), and returns the id of the freshly created block placing
+  /// it. The day it lands on is read off [slotId]'s own row, so a block can never name a day its
+  /// slot doesn't belong to.
   ///
-  /// **A shot is placed at most once across the whole schedule** — see the class doc comment: if
-  /// [shotId] already has a live block, this moves *that* block (to [slotId] and [atPosition])
-  /// instead of creating a second one, whether or not it already sat in [slotId].
+  /// **Always creates a new block** — see the class doc comment: calling this on a shot already
+  /// placed elsewhere adds a second placement rather than moving the first, exactly what a shot
+  /// interrupted by the meal break needs. Moving an *existing* placement is [moveBlockToSlot] or the
+  /// reorder, and removing one is [deleteBlock] — neither is this method's job.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeShot({
@@ -1091,11 +1117,7 @@ class OcptScheduleService {
       final slot = await _getSlotRow(database: database, slotId: slotId);
       final dayId = slot.shootingDayId;
 
-      final existingBlock = await _liveShotBlockRow(database: database, shotId: shotId);
-
-      final slotBlocks =
-          (await _liveBlockRowsOfSlot(database: database, slotId: slotId))
-            ..removeWhere((row) => row.id == existingBlock?.id);
+      final slotBlocks = await _liveBlockRowsOfSlot(database: database, slotId: slotId);
 
       final clampedPosition = atPosition == null
           ? slotBlocks.length
@@ -1105,19 +1127,6 @@ class OcptScheduleService {
         before: clampedPosition > 0 ? slotBlocks[clampedPosition - 1].sortKey : null,
         after: clampedPosition < slotBlocks.length ? slotBlocks[clampedPosition].sortKey : null,
       );
-
-      if (existingBlock != null) {
-        await (database.update(
-          database.ocptShootingDayBlocksTable,
-        )..where((table) => table.id.equals(existingBlock.id))).write(
-          OcptShootingDayBlocksTableCompanion(
-            shootingDayId: Value(dayId),
-            slotId: Value(slotId),
-            sortKey: Value(sortKey),
-          ),
-        );
-        return existingBlock.id;
-      }
 
       final id = const Uuid().v4();
       await database
@@ -1136,34 +1145,9 @@ class OcptScheduleService {
     });
   }
 
-  /// Tombstones the block placing shot [shotId], if any. A no-op when the shot is not currently
-  /// placed.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> unplaceShot({
-    required OcptProjectDatabase database,
-    required String shotId,
-  }) async {
-    if (database.refusesUserWrite("unplaceShot")) {
-      return;
-    }
-
-    final block = await _liveShotBlockRow(database: database, shotId: shotId);
-    if (block == null) {
-      return;
-    }
-
-    await (database.update(
-      database.ocptShootingDayBlocksTable,
-    )..where((table) => table.id.equals(block.id))).write(
-      const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
-    );
-  }
-
   /// Tombstones block [blockId], whatever its [OcptShootingBlockKind] — a shot block, a milestone
-  /// or a `hold`. [unplaceShot] is the same operation keyed by shot instead of by block.
+  /// or a `hold`. Removing a shot's placement, now that a shot may carry several, means naming the
+  /// block it sits in and calling this — there is no operation keyed by shot any more.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -1253,13 +1237,13 @@ class OcptScheduleService {
 
   /// Updates the fields of block [blockId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `shotId`, `sortKey` or `isDeleted`: those only change through
-  /// [placeShot]/[unplaceShot], block reordering/moving and [deleteBlock].
+  /// [placeShot], block reordering/moving and [deleteBlock].
   ///
   /// **[kind] may never become [OcptShootingBlockKind.shot] here, and a block that already is one
   /// keeps it** — both refused as a no-op: setting it would either need a `shotId` this method
   /// doesn't take, or, for an existing shot block, would orphan the `shotId` it already carries,
-  /// which this method does not touch. Turning a shot block into something else means unplacing the
-  /// shot first ([unplaceShot]) and creating the other block afterwards ([createBlock]).
+  /// which this method does not touch. Turning a shot block into something else means deleting it
+  /// first ([deleteBlock]) and creating the other block afterwards ([createBlock]).
   ///
   /// **`sceneId` only ever holds on a [OcptShootingBlockKind.hold]**, the same invariant
   /// [createBlock] enforces: a scene named on a block of any other kind is dropped to null, and a
@@ -1693,16 +1677,4 @@ class OcptScheduleService {
         ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
-
-  /// The live block placing shot [shotId] (`kind == shot`), if any.
-  Future<OcptShootingDayBlockRow?> _liveShotBlockRow({
-    required OcptProjectDatabase database,
-    required String shotId,
-  }) => (database.select(database.ocptShootingDayBlocksTable)..where(
-        (table) =>
-            table.shotId.equals(shotId) &
-            table.kind.equalsValue(OcptShootingBlockKind.shot) &
-            table.isDeleted.not(),
-      ))
-      .getSingleOrNull();
 }

@@ -16,13 +16,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The strip agenda: one card per shooting day, in order, each carrying its own placed shots as
-/// removable chips — where the *placing* gesture happens (mock's `bandeDays`,
+/// chips — where the *placing* gesture happens (mock's `bandeDays`,
 /// `design.html` lines 129-168).
 ///
-/// Every writing affordance is a nullable callback, withheld while a project version is being
-/// previewed: [onPlaceHereRequested] (a card's own "Place here" prompt, shown while a *placing* is
-/// in progress) and [onShotUnplaceRequested] (a chip's own × control). Selecting a day or a shot
-/// chip only ever reads, so [onDaySelected] and [onBlockSelected] are never withheld.
+/// It is purely informative beyond that gesture: a chip only ever selects the block it names, and
+/// the day's own writing affordance is [onPlaceHereRequested] (a card's own "Place here" prompt,
+/// shown while a *placing* is in progress), a nullable callback withheld while a project version is
+/// being previewed. Selecting a day or a shot chip only ever reads, so [onDaySelected] and
+/// [onBlockSelected] are never withheld.
 class OcptScheduleStripAgenda extends StatelessWidget {
   /// The live days to show, in `dayNumber` order.
   final List<OcptShootingDay> days;
@@ -52,10 +53,6 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// progress, or null while the mode is read-only.
   final ValueChanged<String>? onPlaceHereRequested;
 
-  /// Called with a shot's id when one of its chips' × control is clicked, or null while the mode
-  /// is read-only.
-  final ValueChanged<String>? onShotUnplaceRequested;
-
   /// Called with a block's id and its own day's id when a chip's own code/label is clicked.
   final void Function(String blockId, String dayId) onBlockSelected;
 
@@ -71,7 +68,6 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.placingShotId,
     required this.onDaySelected,
     required this.onPlaceHereRequested,
-    required this.onShotUnplaceRequested,
     required this.onBlockSelected,
   });
 
@@ -105,7 +101,6 @@ class OcptScheduleStripAgenda extends StatelessWidget {
           onPlaceHereRequested: onPlaceHereRequested == null
               ? null
               : () => onPlaceHereRequested!(day.id),
-          onShotUnplaceRequested: onShotUnplaceRequested,
           onBlockSelected: (blockId) => onBlockSelected(blockId, day.id),
         );
       },
@@ -143,10 +138,6 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   /// Called when the "Place here" prompt is clicked, or null while withheld.
   final VoidCallback? onPlaceHereRequested;
 
-  /// Called with a shot's id when one of the card's own chips' × control is clicked, or null while
-  /// withheld.
-  final ValueChanged<String>? onShotUnplaceRequested;
-
   /// Called with a block's id when one of the card's own chips is clicked.
   final ValueChanged<String> onBlockSelected;
 
@@ -161,7 +152,6 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.isPlacingActive,
     required this.onSelected,
     required this.onPlaceHereRequested,
-    required this.onShotUnplaceRequested,
     required this.onBlockSelected,
   });
 
@@ -279,9 +269,6 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
                     shot: shotOf(block.shotId ?? ""),
                     startMinute: entryByBlockId[block.id]?.startMinute,
                     onSelected: () => onBlockSelected(block.id),
-                    onUnplaceRequested: onShotUnplaceRequested == null || block.shotId == null
-                        ? null
-                        : () => onShotUnplaceRequested!(block.shotId!),
                   ),
                 if (shotBlocks.isEmpty && !isPlacingActive)
                   Text(
@@ -327,15 +314,11 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
   /// Called when the chip's own code/label is clicked.
   final VoidCallback onSelected;
 
-  /// Called when the chip's own × control is clicked, or null while withheld.
-  final VoidCallback? onUnplaceRequested;
-
   /// Class constructor
   const _OcptScheduleStripShotChip({
     required this.shot,
     required this.startMinute,
     required this.onSelected,
-    required this.onUnplaceRequested,
   });
 
   @override
@@ -372,14 +355,6 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
-            if (onUnplaceRequested != null) ...[
-              const SizedBox(width: 6),
-              InkWell(
-                onTap: onUnplaceRequested,
-                mouseCursor: ocptClickableCursor,
-                child: Icon(Icons.close, size: 12, color: theme.colorScheme.onSurfaceVariant),
               ),
             ],
           ],

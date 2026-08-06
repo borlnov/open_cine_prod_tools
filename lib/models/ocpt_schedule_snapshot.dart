@@ -48,7 +48,10 @@ class OcptScheduleSnapshot extends Equatable {
 
   /// The id of every shot that is placed somewhere in the schedule: every live block whose `kind`
   /// is [OcptShootingBlockKind.shot], across every day. `OcptScheduleService.placeShot` is the only
-  /// writer that can grow this set, and it never lets a shot appear in it twice.
+  /// writer that can grow this set — a shot placed more than once (interrupted by the meal break and
+  /// resumed after it, say) still appears here exactly once, this being a set of shots rather than
+  /// of placements; `OcptShotListSnapshot.placementsByShotId` is where a shot's *own* count of
+  /// placements is read.
   final Set<String> placedShotIds;
 
   /// Class constructor

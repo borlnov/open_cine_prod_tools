@@ -187,26 +187,48 @@ String ocptFormatShotDuration(int? milliseconds) {
 String ocptShotFieldOrDash(String? value) =>
     value == null || value.trim().isEmpty ? ocptShotListEmptyValue : value;
 
-/// The shot list's own read-out of a shot's placement in the schedule: `J3 · Tue 4 Aug` for a
-/// placed shot, [ocptShotListEmptyValue] for one [placement] is null for — the schedule carries no
-/// entry for it at all, which is what "not yet planned" looks like
-/// (`OcptScheduleService.loadShotPlacements`'s own doc comment).
+/// The shot list's own read-out of a shot's placement(s) in the schedule, [placements] being every
+/// live block that places it (`OcptShotListSnapshot.placementsByShotId`, empty for a shot the
+/// schedule carries no entry for at all):
 ///
-/// The day tag is [ocptScheduleDayTagLabel], the schedule mode's own — reused rather than
-/// reimplemented, so the two modes can never print a shooting day's rank differently, and never run
-/// through `Tr` for the same reason that one isn't: it is the trade's own shorthand, not a
-/// translated word. The date is formatted for the locale [context] resolves to, without a year: the
-/// column has no room for one and a shoot rarely spans two.
-String ocptShotPlacementLabel(BuildContext context, OcptShotPlacement? placement) {
-  if (placement == null) {
+/// - no placement at all: [ocptShotListEmptyValue] — "not yet planned"
+///   (`OcptScheduleService.loadShotPlacements`'s own doc comment);
+/// - every placement landing on the **same** day (a shot interrupted by the meal break and resumed
+///   after it is two blocks on that one day): `J3 · Tue 4 Aug`, exactly as a single placement reads
+///   — the day tag then its date;
+/// - placements spread across **several** days: the day tags alone, joined with `, ` (`J3, J5`) —
+///   there is no room left for dates once there is more than one, and the tags are what a crew
+///   actually says.
+///
+/// Days are deduplicated by [OcptShotPlacement.dayId] and kept in ascending
+/// [OcptShotPlacement.dayNumber] order. The day tag is [ocptScheduleDayTagLabel], the schedule
+/// mode's own — reused rather than reimplemented, so the two modes can never print a shooting day's
+/// rank differently, and never run through `Tr` for the same reason that one isn't: it is the
+/// trade's own shorthand, not a translated word. The date, in the single-day case, is formatted for
+/// the locale [context] resolves to, without a year: the column has no room for one and a shoot
+/// rarely spans two.
+String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> placements) {
+  if (placements.isEmpty) {
     return ocptShotListEmptyValue;
   }
 
-  final dateLabel = DateFormat.MMMEd(
-    Localizations.localeOf(context).toString(),
-  ).format(placement.date);
+  final distinctDays = <String, OcptShotPlacement>{};
+  for (final placement in placements) {
+    distinctDays[placement.dayId] = placement;
+  }
+  final orderedDays = distinctDays.values.toList()
+    ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
 
-  return "${ocptScheduleDayTagLabel(placement.dayNumber)} · $dateLabel";
+  if (orderedDays.length == 1) {
+    final placement = orderedDays.single;
+    final dateLabel = DateFormat.MMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(placement.date);
+
+    return "${ocptScheduleDayTagLabel(placement.dayNumber)} · $dateLabel";
+  }
+
+  return orderedDays.map((placement) => ocptScheduleDayTagLabel(placement.dayNumber)).join(", ");
 }
 
 /// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].

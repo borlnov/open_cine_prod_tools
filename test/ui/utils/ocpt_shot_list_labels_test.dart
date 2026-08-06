@@ -117,9 +117,8 @@ void main() {
   });
 
   group("ocptShotPlacementLabel", () {
-    testWidgets("reads a placed shot's day tag and date, dashes an unplaced one", (tester) async {
-      late String placedLabel;
-      late String unplacedLabel;
+    testWidgets("dashes a shot with no placement at all", (tester) async {
+      late String label;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -132,16 +131,39 @@ void main() {
           supportedLocales: Tr.delegate.supportedLocales,
           home: Builder(
             builder: (context) {
-              placedLabel = ocptShotPlacementLabel(
-                context,
+              label = ocptShotPlacementLabel(context, const []);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(label, ocptShotListEmptyValue);
+    });
+
+    testWidgets("reads a single placement's day tag and date", (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              label = ocptShotPlacementLabel(context, [
                 OcptShotPlacement(
                   shotId: "shot-1",
                   dayId: "day-3",
                   dayNumber: 3,
                   date: DateTime(2026, 8, 4),
                 ),
-              );
-              unplacedLabel = ocptShotPlacementLabel(context, null);
+              ]);
               return const SizedBox.shrink();
             },
           ),
@@ -150,8 +172,86 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tuesday 4 August 2026, in the app's own en_GB locale.
-      expect(placedLabel, "J3 · Tue 4 Aug");
-      expect(unplacedLabel, ocptShotListEmptyValue);
+      expect(label, "J3 · Tue 4 Aug");
+    });
+
+    testWidgets("two blocks on the same day still read as that single day", (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              // A shot interrupted by the meal break and resumed after it: two blocks, one day.
+              label = ocptShotPlacementLabel(context, [
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+              ]);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(label, "J3 · Tue 4 Aug");
+    });
+
+    testWidgets("placements on several distinct days read as their tags alone, joined",
+        (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              // Handed in descending day order, to prove the label sorts them ascending itself.
+              label = ocptShotPlacementLabel(context, [
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-5",
+                  dayNumber: 5,
+                  date: DateTime(2026, 8, 6),
+                ),
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+              ]);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(label, "J3, J5");
     });
   });
 

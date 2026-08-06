@@ -64,7 +64,7 @@ void main() {
           shot: null,
           sequenceDisplayNumber: "1",
           sequenceHeading: "",
-          placement: null,
+          placements: [],
         ),
       ),
     );
@@ -79,12 +79,14 @@ void main() {
           shot: _buildShot(characters: const ["LÉA", "MARC"], plannedTakes: 4),
           sequenceDisplayNumber: "1",
           sequenceHeading: "INT. LÉA'S FLAT - NIGHT",
-          placement: OcptShotPlacement(
-            shotId: "shot-1",
-            dayId: "day-3",
-            dayNumber: 3,
-            date: DateTime(2026, 8, 4),
-          ),
+          placements: [
+            OcptShotPlacement(
+              shotId: "shot-1",
+              dayId: "day-3",
+              dayNumber: 3,
+              date: DateTime(2026, 8, 4),
+            ),
+          ],
         ),
       ),
     );
@@ -105,7 +107,7 @@ void main() {
           shot: _buildShot(),
           sequenceDisplayNumber: "1",
           sequenceHeading: "INT. LÉA'S FLAT - NIGHT",
-          placement: null,
+          placements: const [],
         ),
       ),
     );

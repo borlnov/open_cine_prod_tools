@@ -213,12 +213,14 @@ void main() {
           ),
         ],
         placementsByShotId: {
-          "shot-1": OcptShotPlacement(
-            shotId: "shot-1",
-            dayId: "day-3",
-            dayNumber: 3,
-            date: DateTime(2026, 8, 4),
-          ),
+          "shot-1": [
+            OcptShotPlacement(
+              shotId: "shot-1",
+              dayId: "day-3",
+              dayNumber: 3,
+              date: DateTime(2026, 8, 4),
+            ),
+          ],
         },
       );
 

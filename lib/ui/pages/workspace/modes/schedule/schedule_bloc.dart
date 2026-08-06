@@ -186,7 +186,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptSchedulePlacingStartedEvent>(_onPlacingStarted);
     on<OcptSchedulePlacingCancelledEvent>(_onPlacingCancelled);
     on<OcptScheduleShotPlacedEvent>(_onShotPlaced);
-    on<OcptScheduleShotUnplacedEvent>(_onShotUnplaced);
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
     on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
@@ -971,20 +970,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   String? _firstLiveSlotIdOfDay(String dayId) {
     final slots = state.snapshot?.slotsByDayId[dayId];
     return slots == null || slots.isEmpty ? null : slots.first.id;
-  }
-
-  /// Unplaces a shot.
-  Future<void> _onShotUnplaced(
-    OcptScheduleShotUnplacedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.unplaceShot(database: project.database, shotId: event.shotId);
-    await _applyScheduleSnapshot(emitter, project);
   }
 
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector

@@ -611,19 +611,6 @@ class OcptScheduleShotPlacedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, shotId, dayId];
 }
 
-/// Unplaces shot [shotId], dispatched by a strip chip's own × control.
-class OcptScheduleShotUnplacedEvent extends OcptScheduleEvent {
-  /// The id of the shot to unplace.
-  final String shotId;
-
-  /// Class constructor
-  const OcptScheduleShotUnplacedEvent({required this.shotId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, shotId];
-}
-
 /// Writes a new shooting status onto shot [shotId] immediately — the very column the shot list
 /// mode's own inspector edits (`OcptShotListService.updateShot`'s `status`) — dispatched by that
 /// shot's own block row's status control, in whichever slot card places it.

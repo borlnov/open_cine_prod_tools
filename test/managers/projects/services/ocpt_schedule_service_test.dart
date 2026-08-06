@@ -846,7 +846,8 @@ void main() {
   group("the timetable", () {
     setUp(insertScreenplay);
 
-    test("placeShot on an already-placed shot moves its block instead of duplicating it", () async {
+    test("placeShot on an already-placed shot creates a second block rather than moving the first",
+        () async {
       final firstDayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
@@ -872,19 +873,23 @@ void main() {
         shotId: shotId,
       ))!;
 
-      expect(secondBlockId, firstBlockId);
+      expect(secondBlockId, isNot(firstBlockId));
 
       final firstDayBlocks = (await readAllBlocks(firstDayId)).where((row) => !row.isDeleted);
-      expect(firstDayBlocks, isEmpty);
+      expect(firstDayBlocks, hasLength(1));
+      expect(firstDayBlocks.single.id, firstBlockId);
+      expect(firstDayBlocks.single.slotId, firstSlotId);
 
       final secondDayBlocks = await readAllBlocks(secondDayId);
       expect(secondDayBlocks.where((row) => !row.isDeleted), hasLength(1));
+      expect(secondDayBlocks.single.id, secondBlockId);
       expect(secondDayBlocks.single.slotId, secondSlotId);
       expect(secondDayBlocks.single.shotId, shotId);
       expect(secondDayBlocks.single.kind, OcptShootingBlockKind.shot);
     });
 
-    test("unplaceShot tombstones the shot's block and drops it from loadShotPlacements", () async {
+    test("placing the same shot twice in one slot yields two live blocks and two placements",
+        () async {
       final dayId = (await scheduleService.createDay(
         database: database,
         screenplayId: screenplayId,
@@ -893,24 +898,62 @@ void main() {
       final slotId = (await readLiveSlots(dayId)).single.id;
       final shotId = await createShot("shot-1");
 
-      await scheduleService.placeShot(database: database, slotId: slotId, shotId: shotId);
-      var placements = await scheduleService.loadShotPlacements(
+      // A shot interrupted by the meal break and resumed after it: two blocks, same slot, same day.
+      final firstBlockId = (await scheduleService.placeShot(
+        database: database,
+        slotId: slotId,
+        shotId: shotId,
+      ))!;
+      final secondBlockId = (await scheduleService.placeShot(
+        database: database,
+        slotId: slotId,
+        shotId: shotId,
+      ))!;
+
+      expect(secondBlockId, isNot(firstBlockId));
+
+      final liveBlocks = (await readAllBlocks(dayId)).where((row) => !row.isDeleted);
+      expect(liveBlocks, hasLength(2));
+
+      final placements = await scheduleService.loadShotPlacements(
         database: database,
         screenplayId: screenplayId,
       );
-      expect(placements[shotId]!.dayId, dayId);
-      expect(placements[shotId]!.dayNumber, 1);
+      expect(placements[shotId], hasLength(2));
+      expect(placements[shotId]!.every((placement) => placement.dayId == dayId), isTrue);
+    });
 
-      await scheduleService.unplaceShot(database: database, shotId: shotId);
+    test("placing the same shot on two different days yields two placements, day-number ordered",
+        () async {
+      final firstDayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
+      final secondDayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 11),
+      ))!;
+      final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
+      final shotId = await createShot("shot-1");
 
-      placements = await scheduleService.loadShotPlacements(
+      // Placed on the later day first, to prove the result is ordered by dayNumber rather than by
+      // the order placeShot was called in.
+      await scheduleService.placeShot(database: database, slotId: secondSlotId, shotId: shotId);
+      await scheduleService.placeShot(database: database, slotId: firstSlotId, shotId: shotId);
+
+      final placements = await scheduleService.loadShotPlacements(
         database: database,
         screenplayId: screenplayId,
       );
-      expect(placements.containsKey(shotId), isFalse);
 
-      final blocks = await readAllBlocks(dayId);
-      expect(blocks.single.isDeleted, isTrue);
+      expect(placements[shotId], hasLength(2));
+      expect(placements[shotId]![0].dayId, firstDayId);
+      expect(placements[shotId]![0].dayNumber, 1);
+      expect(placements[shotId]![1].dayId, secondDayId);
+      expect(placements[shotId]![1].dayNumber, 2);
     });
 
     test("moveBlockToSlot moves a block to another slot, and to that slot's day with it", () async {
@@ -1141,7 +1184,6 @@ void main() {
         ),
         isNull,
       );
-      await scheduleService.unplaceShot(database: preview, shotId: "missing-shot");
       await scheduleService.deleteBlock(database: preview, blockId: "missing-block");
       expect(
         await scheduleService.createBlock(

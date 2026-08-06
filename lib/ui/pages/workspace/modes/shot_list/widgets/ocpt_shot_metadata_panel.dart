@@ -24,9 +24,9 @@ class OcptShotMetadataPanel extends StatelessWidget {
   /// [shot]'s sequence heading. Ignored while [shot] is null.
   final String sequenceHeading;
 
-  /// [shot]'s own placement in the schedule, or null while it hasn't been placed on any day yet.
+  /// [shot]'s own placement(s) in the schedule, empty while it hasn't been placed on any day yet.
   /// Ignored while [shot] is null.
-  final OcptShotPlacement? placement;
+  final List<OcptShotPlacement> placements;
 
   /// Class constructor
   const OcptShotMetadataPanel({
@@ -34,7 +34,7 @@ class OcptShotMetadataPanel extends StatelessWidget {
     required this.shot,
     required this.sequenceDisplayNumber,
     required this.sequenceHeading,
-    required this.placement,
+    required this.placements,
   });
 
   @override
@@ -67,7 +67,7 @@ class OcptShotMetadataPanel extends StatelessWidget {
         ),
         OcptShotInspectorReadOnlyField(
           label: tr.shotListColumnShootingDay,
-          value: ocptShotPlacementLabel(context, placement),
+          value: ocptShotPlacementLabel(context, placements),
         ),
         OcptShotInspectorReadOnlyField(
           label: tr.shotListColumnTakes,

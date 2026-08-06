@@ -277,9 +277,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
             : (dayId) => bloc.add(
                 OcptScheduleShotPlacedEvent(shotId: state.placingShotId!, dayId: dayId),
               ),
-        onShotUnplaceRequested: isReadOnly
-            ? null
-            : (shotId) => bloc.add(OcptScheduleShotUnplacedEvent(shotId: shotId)),
         onBlockSelected: (blockId, dayId) =>
             bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: dayId)),
       ),

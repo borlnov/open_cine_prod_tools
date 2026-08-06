@@ -21,7 +21,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 /// the schedule, so every call site of [OcptShotListSnapshot.build] gets an empty map by default,
 /// and `OcptShotListBloc` is what attaches the schedule's own read through [copyWithPlacements]
 /// once it has loaded both — the same way `J3 · Tue 4 Aug` reaches the table and the metadata
-/// panel reaches the export.
+/// panel reaches the export. Each entry is a **list**, not a single placement: a shot may be placed
+/// more than once (interrupted by the meal break and resumed after it, or picked up again on a
+/// later date), and a shot with no entry at all has not been placed anywhere yet.
 class OcptShotListSnapshot extends Equatable {
   /// The screenplay this shot list belongs to.
   final String screenplayId;
@@ -33,10 +35,10 @@ class OcptShotListSnapshot extends Equatable {
   /// Every shot of [sequences], keyed by its id.
   final Map<String, OcptShot> shotsById;
 
-  /// Where each shot of [shotsById] sits in the schedule, keyed by shot id — see
-  /// `OcptScheduleService.loadShotPlacements`. A shot with no entry here has not been placed on any
-  /// day yet; empty for a project with no schedule at all.
-  final Map<String, OcptShotPlacement> placementsByShotId;
+  /// Where each shot of [shotsById] sits in the schedule, keyed by shot id onto every block that
+  /// places it — see `OcptScheduleService.loadShotPlacements`. A shot with no entry here has not
+  /// been placed on any day yet; empty for a project with no schedule at all.
+  final Map<String, List<OcptShotPlacement>> placementsByShotId;
 
   /// Class constructor
   const OcptShotListSnapshot({
@@ -53,7 +55,7 @@ class OcptShotListSnapshot extends Equatable {
   factory OcptShotListSnapshot.build({
     required String screenplayId,
     required List<OcptShotSequence> sequences,
-    Map<String, OcptShotPlacement> placementsByShotId = const {},
+    Map<String, List<OcptShotPlacement>> placementsByShotId = const {},
   }) {
     final shotsById = <String, OcptShot>{
       for (final sequence in sequences)
@@ -71,13 +73,14 @@ class OcptShotListSnapshot extends Equatable {
   /// Returns a copy of this snapshot carrying [placementsByShotId] in place of its own, [sequences]
   /// and [shotsById] left untouched — how `OcptShotListBloc` joins the schedule's own read onto the
   /// snapshot `OcptShotListService` already built.
-  OcptShotListSnapshot copyWithPlacements(Map<String, OcptShotPlacement> placementsByShotId) =>
-      OcptShotListSnapshot(
-        screenplayId: screenplayId,
-        sequences: sequences,
-        shotsById: shotsById,
-        placementsByShotId: placementsByShotId,
-      );
+  OcptShotListSnapshot copyWithPlacements(
+    Map<String, List<OcptShotPlacement>> placementsByShotId,
+  ) => OcptShotListSnapshot(
+    screenplayId: screenplayId,
+    sequences: sequences,
+    shotsById: shotsById,
+    placementsByShotId: placementsByShotId,
+  );
 
   /// The total number of shots across every sequence, orphan group included.
   int get totalShotCount => shotsById.length;

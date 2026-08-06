@@ -448,9 +448,9 @@ class _ShotListViewState extends State<_ShotListView> {
         shot: selectedShot,
         sequenceDisplayNumber: sequenceDisplayNumber,
         sequenceHeading: sequenceHeading,
-        placement: selectedShot == null
-            ? null
-            : state.snapshot?.placementsByShotId[selectedShot.id],
+        placements: selectedShot == null
+            ? const []
+            : state.snapshot?.placementsByShotId[selectedShot.id] ?? const [],
       ),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptShotListBloc>().add(

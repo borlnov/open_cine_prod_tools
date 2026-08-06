@@ -133,13 +133,13 @@ enum OcptShotListTableColumn {
   }
 
   /// The text this column shows for [shot], whose sequence has the heading [sequenceHeading] and
-  /// whose placement in the schedule is [placement] (null while it hasn't been placed on any day
-  /// yet).
+  /// whose placement(s) in the schedule are [placements] (empty while it hasn't been placed on any
+  /// day yet).
   String valueFor(
     BuildContext context,
     OcptShot shot,
     String sequenceHeading,
-    OcptShotPlacement? placement,
+    List<OcptShotPlacement> placements,
   ) => switch (this) {
     OcptShotListTableColumn.shot => shot.code,
     OcptShotListTableColumn.characters => shot.characters.isEmpty
@@ -155,7 +155,7 @@ enum OcptShotListTableColumn {
     OcptShotListTableColumn.takes => shot.plannedTakes?.toString() ?? ocptShotListEmptyValue,
     OcptShotListTableColumn.sound => ocptShotFieldOrDash(shot.sound),
     OcptShotListTableColumn.difficulty => ocptFormatShotDifficulty(context, shot.averageDifficulty),
-    OcptShotListTableColumn.shootingDay => ocptShotPlacementLabel(context, placement),
+    OcptShotListTableColumn.shootingDay => ocptShotPlacementLabel(context, placements),
     OcptShotListTableColumn.status => ocptShotStatusLabel(Tr.of(context), shot.status),
   };
 }
@@ -187,9 +187,9 @@ class OcptShotListTable extends StatelessWidget {
   /// The id of the selected shot, or null if none is.
   final String? selectedShotId;
 
-  /// Where each of [shots] sits in the schedule, keyed by shot id — see
-  /// `OcptShotListSnapshot.placementsByShotId`. A shot with no entry here reads as unplaced.
-  final Map<String, OcptShotPlacement> placementsByShotId;
+  /// Where each of [shots] sits in the schedule, keyed by shot id onto every block that places it —
+  /// see `OcptShotListSnapshot.placementsByShotId`. A shot with no entry here reads as unplaced.
+  final Map<String, List<OcptShotPlacement>> placementsByShotId;
 
   /// Called with a shot's id when its row is clicked.
   final ValueChanged<String> onShotSelected;
@@ -247,7 +247,7 @@ class OcptShotListTable extends StatelessWidget {
                       columns: columns,
                       widths: widths,
                       isSelected: shots[index].id == selectedShotId,
-                      placement: placementsByShotId[shots[index].id],
+                      placements: placementsByShotId[shots[index].id] ?? const [],
                       onTap: () => onShotSelected(shots[index].id),
                     ),
                   ),
@@ -352,8 +352,8 @@ class OcptShotListRow extends StatelessWidget {
   /// Whether this shot is the selected one.
   final bool isSelected;
 
-  /// [shot]'s own placement in the schedule, or null while it hasn't been placed on any day yet.
-  final OcptShotPlacement? placement;
+  /// [shot]'s own placement(s) in the schedule, empty while it hasn't been placed on any day yet.
+  final List<OcptShotPlacement> placements;
 
   /// Called when the row is clicked.
   final VoidCallback onTap;
@@ -366,7 +366,7 @@ class OcptShotListRow extends StatelessWidget {
     required this.columns,
     required this.widths,
     required this.isSelected,
-    required this.placement,
+    required this.placements,
     required this.onTap,
   });
 
@@ -415,7 +415,7 @@ class OcptShotListRow extends StatelessWidget {
                   child: SizedBox(
                     width: widths[index],
                     child: Text(
-                      columns[index].valueFor(context, shot, sequenceHeading, placement),
+                      columns[index].valueFor(context, shot, sequenceHeading, placements),
                       maxLines: columns[index].wraps ? null : 1,
                       overflow: columns[index].wraps
                           ? TextOverflow.clip
