@@ -547,25 +547,28 @@ class OcptScheduleSlotCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   for (final member in byDepartment[department]!)
-                    _OcptScheduleCrewMemberRow(
-                      key: ValueKey(member.id),
-                      member: member,
-                      person: personById[member.personId],
-                      convocation: convocationById[member.id],
-                      groups: groups,
-                      groupById: groupById,
-                      onPositionChanged: onCrewMemberPositionChanged == null
-                          ? null
-                          : (positionId) => onCrewMemberPositionChanged!(member.id, positionId),
-                      onRemoved: onCrewMemberRemoved == null
-                          ? null
-                          : () => onCrewMemberRemoved!(member.id),
-                      onLeadChanged: onCrewMemberLeadChanged == null
-                          ? null
-                          : (leadMinutes) => onCrewMemberLeadChanged!(member.id, leadMinutes),
-                      onGroupChanged: onCrewMemberGroupChanged == null
-                          ? null
-                          : (groupId) => onCrewMemberGroupChanged!(member.id, groupId),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: _OcptScheduleCrewMemberRow(
+                        key: ValueKey(member.id),
+                        member: member,
+                        person: personById[member.personId],
+                        convocation: convocationById[member.id],
+                        groups: groups,
+                        groupById: groupById,
+                        onPositionChanged: onCrewMemberPositionChanged == null
+                            ? null
+                            : (positionId) => onCrewMemberPositionChanged!(member.id, positionId),
+                        onRemoved: onCrewMemberRemoved == null
+                            ? null
+                            : () => onCrewMemberRemoved!(member.id),
+                        onLeadChanged: onCrewMemberLeadChanged == null
+                            ? null
+                            : (leadMinutes) => onCrewMemberLeadChanged!(member.id, leadMinutes),
+                        onGroupChanged: onCrewMemberGroupChanged == null
+                            ? null
+                            : (groupId) => onCrewMemberGroupChanged!(member.id, groupId),
+                      ),
                     ),
                 ],
               ),
@@ -627,23 +630,26 @@ class OcptScheduleSlotCard extends StatelessWidget {
           )
         else
           for (final member in slot.cast)
-            _OcptScheduleCastRoleRow(
-              key: ValueKey(member.id),
-              member: member,
-              role: roleById[member.roleId],
-              person: roleById[member.roleId]?.personId == null
-                  ? null
-                  : personById[roleById[member.roleId]!.personId],
-              convocation: convocationById[member.id],
-              groups: groups,
-              groupById: groupById,
-              onRemoved: onCastRoleRemoved == null ? null : () => onCastRoleRemoved!(member.id),
-              onLeadChanged: onCastRoleLeadChanged == null
-                  ? null
-                  : (leadMinutes) => onCastRoleLeadChanged!(member.id, leadMinutes),
-              onGroupChanged: onCastRoleGroupChanged == null
-                  ? null
-                  : (groupId) => onCastRoleGroupChanged!(member.id, groupId),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: _OcptScheduleCastRoleRow(
+                key: ValueKey(member.id),
+                member: member,
+                role: roleById[member.roleId],
+                person: roleById[member.roleId]?.personId == null
+                    ? null
+                    : personById[roleById[member.roleId]!.personId],
+                convocation: convocationById[member.id],
+                groups: groups,
+                groupById: groupById,
+                onRemoved: onCastRoleRemoved == null ? null : () => onCastRoleRemoved!(member.id),
+                onLeadChanged: onCastRoleLeadChanged == null
+                    ? null
+                    : (leadMinutes) => onCastRoleLeadChanged!(member.id, leadMinutes),
+                onGroupChanged: onCastRoleGroupChanged == null
+                    ? null
+                    : (groupId) => onCastRoleGroupChanged!(member.id, groupId),
+              ),
             ),
         if (onCastRoleAdded != null)
           PopupMenuButton<String>(
@@ -667,10 +673,11 @@ class OcptScheduleSlotCard extends StatelessWidget {
   }
 }
 
-/// One crew row of [OcptScheduleSlotCard]'s own `Équipe technique` column: the position picker,
-/// the person's own name, its own computed arrival/PAT band read-out, then its own **cause** — a
-/// lead time and a group picker (§2.3/§2.4 of
-/// `docs/plans/schedule-slots-and-computed-convocations.md`) — and a remove control.
+/// One crew card of [OcptScheduleSlotCard]'s own `Équipe technique` column, built exactly like
+/// [_OcptScheduleCastRoleRow]'s own card (see [_buildSlotPersonCard]): the position picker and the
+/// remove control on the first line, the person's own name underneath, then its own computed
+/// arrival/PAT band read-out (see [_buildConvocationTimesRow]) and, on their own line, its own
+/// **cause** — a lead time and a group picker (see [_buildLeadAndGroupRow]).
 class _OcptScheduleCrewMemberRow extends StatelessWidget {
   /// The crew assignment this row shows.
   final OcptShootingSlotCrewMember member;
@@ -722,9 +729,12 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
     final positionLabel = member.positionId.isEmpty
         ? (member.customLabel.isEmpty ? tr.resourcesPositionScopePlaceholder : member.customLabel)
         : ocptCrewPositionLabel(tr, member.positionId);
+    final personName = person?.displayName.isEmpty ?? true
+        ? tr.resourcesUnnamedPerson
+        : person!.displayName;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+    return _buildSlotPersonCard(
+      context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -759,47 +769,6 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
                         ),
                       ),
               ),
-              Expanded(
-                child: Text(
-                  person?.displayName.isEmpty ?? true
-                      ? tr.resourcesUnnamedPerson
-                      : person!.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              Flexible(
-                child: Wrap(
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 4,
-                  runSpacing: 2,
-                  children: [
-                    Text("${tr.scheduleSlotArrivalLabel} ", style: theme.textTheme.labelSmall),
-                    OcptScheduleMinuteField(
-                      minute: convocation?.arrivalMinute,
-                      isClearable: false,
-                      emptyHint: "—",
-                      onChanged: null,
-                    ),
-                    Text("${tr.scheduleSlotPatBandLabel} ", style: theme.textTheme.labelSmall),
-                    OcptScheduleMinuteField(
-                      minute: convocation?.patStartMinute,
-                      isClearable: false,
-                      emptyHint: "—",
-                      onChanged: null,
-                    ),
-                    Text(" – ", style: theme.textTheme.labelSmall),
-                    OcptScheduleMinuteField(
-                      minute: convocation?.patEndMinute,
-                      isClearable: false,
-                      emptyHint: "—",
-                      onChanged: null,
-                    ),
-                  ],
-                ),
-              ),
               if (onRemoved != null)
                 IconButton(
                   icon: const Icon(Icons.close, size: 14),
@@ -809,30 +778,33 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
                 ),
             ],
           ),
+          Text(
+            personName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 3),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 4,
-            runSpacing: 2,
-            children: [
-              Text("${tr.scheduleLeadTimeLabel} ", style: theme.textTheme.labelSmall),
-              OcptScheduleLeadField(
-                leadMinutes: member.leadMinutes,
-                inheritedLeadMinutes: convocation?.leadMinutes,
-                isClearable: true,
-                onChanged: onLeadChanged,
-              ),
-              const SizedBox(width: 6),
-              _buildGroupPicker(
-                context,
-                tr,
-                theme,
-                currentGroupId: member.groupId,
-                groups: groups,
-                groupById: groupById,
-                onChanged: onGroupChanged,
-              ),
-            ],
+          _buildConvocationTimesRow(
+            context,
+            tr,
+            theme,
+            arrivalMinute: convocation?.arrivalMinute,
+            patStartMinute: convocation?.patStartMinute,
+            patEndMinute: convocation?.patEndMinute,
+          ),
+          const SizedBox(height: 3),
+          _buildLeadAndGroupRow(
+            context,
+            tr,
+            theme,
+            leadMinutes: member.leadMinutes,
+            inheritedLeadMinutes: convocation?.leadMinutes,
+            onLeadChanged: onLeadChanged,
+            currentGroupId: member.groupId,
+            groups: groups,
+            groupById: groupById,
+            onGroupChanged: onGroupChanged,
           ),
         ],
       ),
@@ -840,9 +812,11 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
   }
 }
 
-/// One cast row of [OcptScheduleSlotCard]'s own `Comédiens` column: the role's own name and cast
-/// actor, its computed arrival time and PAT band read-out, then its own **cause** — a lead time and
-/// a group picker — and a remove control.
+/// One cast card of [OcptScheduleSlotCard]'s own `Comédiens` column, its layout shared with
+/// [_OcptScheduleCrewMemberRow]'s own card (see [_buildSlotPersonCard]): the role's own name and
+/// remove control on the first line, the cast actor's own name underneath, then its computed
+/// arrival/PAT band read-out (see [_buildConvocationTimesRow]) and, on their own line, its own
+/// **cause** — a lead time and a group picker (see [_buildLeadAndGroupRow]).
 class _OcptScheduleCastRoleRow extends StatelessWidget {
   /// The cast convocation this row shows.
   final OcptShootingSlotCastMember member;
@@ -892,13 +866,8 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      ),
+    return _buildSlotPersonCard(
+      context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -922,9 +891,7 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
             ],
           ),
           Text(
-            person == null
-                ? tr.scheduleSlotCastUncastHint
-                : person!.displayName,
+            person == null ? tr.scheduleSlotCastUncastHint : person!.displayName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
@@ -932,52 +899,26 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 3),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 4,
-            runSpacing: 2,
-            children: [
-              Text("${tr.scheduleSlotArrivalLabel} ", style: theme.textTheme.labelSmall),
-              OcptScheduleMinuteField(
-                minute: convocation?.arrivalMinute,
-                isClearable: false,
-                emptyHint: "—",
-                onChanged: null,
-              ),
-              const SizedBox(width: 4),
-              Text("${tr.scheduleSlotPatBandLabel} ", style: theme.textTheme.labelSmall),
-              OcptScheduleMinuteField(
-                minute: convocation?.patStartMinute,
-                isClearable: false,
-                emptyHint: "—",
-                onChanged: null,
-              ),
-              Text(" – ", style: theme.textTheme.labelSmall),
-              OcptScheduleMinuteField(
-                minute: convocation?.patEndMinute,
-                isClearable: false,
-                emptyHint: "—",
-                onChanged: null,
-              ),
-              const SizedBox(width: 8),
-              Text("${tr.scheduleLeadTimeLabel} ", style: theme.textTheme.labelSmall),
-              OcptScheduleLeadField(
-                leadMinutes: member.leadMinutes,
-                inheritedLeadMinutes: convocation?.leadMinutes,
-                isClearable: true,
-                onChanged: onLeadChanged,
-              ),
-              const SizedBox(width: 6),
-              _buildGroupPicker(
-                context,
-                tr,
-                theme,
-                currentGroupId: member.groupId,
-                groups: groups,
-                groupById: groupById,
-                onChanged: onGroupChanged,
-              ),
-            ],
+          _buildConvocationTimesRow(
+            context,
+            tr,
+            theme,
+            arrivalMinute: convocation?.arrivalMinute,
+            patStartMinute: convocation?.patStartMinute,
+            patEndMinute: convocation?.patEndMinute,
+          ),
+          const SizedBox(height: 3),
+          _buildLeadAndGroupRow(
+            context,
+            tr,
+            theme,
+            leadMinutes: member.leadMinutes,
+            inheritedLeadMinutes: convocation?.leadMinutes,
+            onLeadChanged: onLeadChanged,
+            currentGroupId: member.groupId,
+            groups: groups,
+            groupById: groupById,
+            onGroupChanged: onGroupChanged,
           ),
         ],
       ),
@@ -1039,6 +980,92 @@ class _OcptScheduleSlotLabelFieldState extends State<_OcptScheduleSlotLabelField
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
 }
+
+/// The bordered card shell shared by [_OcptScheduleCrewMemberRow] and [_OcptScheduleCastRoleRow]:
+/// the one place their common border, radius and padding are declared, so the two kinds of card
+/// cannot drift from one another.
+Widget _buildSlotPersonCard(BuildContext context, {required Widget child}) {
+  final theme = Theme.of(context);
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+    decoration: BoxDecoration(
+      border: Border.all(color: theme.colorScheme.outlineVariant),
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+    ),
+    child: child,
+  );
+}
+
+/// A crew or cast card's own computed arrival + PAT band read-out, shared by
+/// [_OcptScheduleCrewMemberRow] and [_OcptScheduleCastRoleRow]: three permanently read-only
+/// [OcptScheduleMinuteField]s (`onChanged: null`, ADR 0017 — there is nothing here to type into),
+/// wrapped over as many lines as the card's own width allows.
+Widget _buildConvocationTimesRow(
+  BuildContext context,
+  Tr tr,
+  ThemeData theme, {
+  required int? arrivalMinute,
+  required int? patStartMinute,
+  required int? patEndMinute,
+}) => Wrap(
+  crossAxisAlignment: WrapCrossAlignment.center,
+  spacing: 4,
+  runSpacing: 2,
+  children: [
+    Text("${tr.scheduleSlotArrivalLabel} ", style: theme.textTheme.labelSmall),
+    OcptScheduleMinuteField(minute: arrivalMinute, isClearable: false, emptyHint: "—", onChanged: null),
+    Text("${tr.scheduleSlotPatBandLabel} ", style: theme.textTheme.labelSmall),
+    OcptScheduleMinuteField(
+      minute: patStartMinute,
+      isClearable: false,
+      emptyHint: "—",
+      onChanged: null,
+    ),
+    Text(" – ", style: theme.textTheme.labelSmall),
+    OcptScheduleMinuteField(minute: patEndMinute, isClearable: false, emptyHint: "—", onChanged: null),
+  ],
+);
+
+/// A crew or cast card's own lead time + group line, shared by [_OcptScheduleCrewMemberRow] and
+/// [_OcptScheduleCastRoleRow]: the row's own **cause** behind [_buildConvocationTimesRow]'s computed
+/// read-out (ADR 0017) — an [OcptScheduleLeadField] then [_buildGroupPicker], on their own line
+/// under the times.
+Widget _buildLeadAndGroupRow(
+  BuildContext context,
+  Tr tr,
+  ThemeData theme, {
+  required int? leadMinutes,
+  required int? inheritedLeadMinutes,
+  required ValueChanged<int?>? onLeadChanged,
+  required String? currentGroupId,
+  required List<OcptShootingDayGroup> groups,
+  required Map<String, OcptShootingDayGroup> groupById,
+  required ValueChanged<String?>? onGroupChanged,
+}) => Wrap(
+  crossAxisAlignment: WrapCrossAlignment.center,
+  spacing: 4,
+  runSpacing: 2,
+  children: [
+    Text("${tr.scheduleLeadTimeLabel} ", style: theme.textTheme.labelSmall),
+    OcptScheduleLeadField(
+      leadMinutes: leadMinutes,
+      inheritedLeadMinutes: inheritedLeadMinutes,
+      isClearable: true,
+      onChanged: onLeadChanged,
+    ),
+    const SizedBox(width: 6),
+    _buildGroupPicker(
+      context,
+      tr,
+      theme,
+      currentGroupId: currentGroupId,
+      groups: groups,
+      groupById: groupById,
+      onChanged: onGroupChanged,
+    ),
+  ],
+);
 
 /// A crew or cast row's own group picker, shared by [_OcptScheduleCrewMemberRow] and
 /// [_OcptScheduleCastRoleRow]: [currentGroupId]'s own label (or [_noGroupOption]'s "no group" one),
