@@ -16,8 +16,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
-/// How many minutes each `±` tap changes a block's own duration by.
-const int _ocptTimetableDurationStep = 5;
+/// The grid [_ocptStepDurationUp]/[_ocptStepDurationDown] snap a duration onto — five minutes,
+/// matching the shot list's own estimate granularity.
+const int _ocptDurationStepGridMinutes = 5;
 
 /// The value the "no sequence yet" entry of a hold row's own sequence picker menu carries, distinct
 /// from every scene id — a [PopupMenuButton] cannot carry a null value for an entry that must still
@@ -689,9 +690,7 @@ class _OcptScheduleDurationStepper extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.remove, size: 13),
           visualDensity: VisualDensity.compact,
-          onPressed: () => onChanged(
-            (durationMinutes - _ocptTimetableDurationStep).clamp(0, 1440 * 2),
-          ),
+          onPressed: () => onChanged(_ocptStepDurationDown(durationMinutes)),
         ),
         SizedBox(
           width: 48,
@@ -704,9 +703,25 @@ class _OcptScheduleDurationStepper extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.add, size: 13),
           visualDensity: VisualDensity.compact,
-          onPressed: () => onChanged(durationMinutes + _ocptTimetableDurationStep),
+          onPressed: () => onChanged(_ocptStepDurationUp(durationMinutes)),
         ),
       ],
     );
   }
+}
+
+/// The smallest multiple of [_ocptDurationStepGridMinutes] strictly greater than [durationMinutes]
+/// — what the stepper's `+` control reports. An off-grid duration snaps onto the grid rather than
+/// merely growing past it (12 → 15, not 17); a duration already on the grid still moves by exactly
+/// [_ocptDurationStepGridMinutes] (15 → 20).
+int _ocptStepDurationUp(int durationMinutes) =>
+    ((durationMinutes ~/ _ocptDurationStepGridMinutes) + 1) * _ocptDurationStepGridMinutes;
+
+/// The largest multiple of [_ocptDurationStepGridMinutes] strictly smaller than [durationMinutes],
+/// floored at zero — what the stepper's `−` control reports, mirroring [_ocptStepDurationUp]'s own
+/// snap-to-grid rule (12 → 10, 15 → 10, and a duration under the grid's own first step → 0 rather
+/// than a negative one).
+int _ocptStepDurationDown(int durationMinutes) {
+  final steppedDown = ((durationMinutes - 1) ~/ _ocptDurationStepGridMinutes) * _ocptDurationStepGridMinutes;
+  return steppedDown < 0 ? 0 : steppedDown;
 }

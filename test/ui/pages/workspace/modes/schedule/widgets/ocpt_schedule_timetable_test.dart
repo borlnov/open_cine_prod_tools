@@ -203,6 +203,93 @@ void main() {
     expect(durations, [("block-1", 35), ("block-1", 25)]);
   });
 
+  testWidgets("an on-grid duration still steps by exactly five", (tester) async {
+    final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 495, durationMinutes: 15),
+      ],
+      overruns: [],
+      endMinute: 495,
+    );
+    final durations = <(String, int)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [block],
+          timeline: timeline,
+          onDurationChanged: (blockId, duration) => durations.add((blockId, duration)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(Icons.remove));
+    await tester.pump();
+
+    expect(durations, [("block-1", 20), ("block-1", 10)]);
+  });
+
+  testWidgets("an off-grid duration snaps to the nearest five on either control", (tester) async {
+    final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 492, durationMinutes: 12),
+      ],
+      overruns: [],
+      endMinute: 492,
+    );
+    final durations = <(String, int)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [block],
+          timeline: timeline,
+          onDurationChanged: (blockId, duration) => durations.add((blockId, duration)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(Icons.remove));
+    await tester.pump();
+
+    // The 12 is lost either way — the whole point of a stepper that snaps to the grid.
+    expect(durations, [("block-1", 15), ("block-1", 10)]);
+  });
+
+  testWidgets("stepping down below the grid's first step floors at zero", (tester) async {
+    final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 483, durationMinutes: 3),
+      ],
+      overruns: [],
+      endMinute: 483,
+    );
+    final durations = <(String, int)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [block],
+          timeline: timeline,
+          onDurationChanged: (blockId, duration) => durations.add((blockId, duration)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.remove));
+    await tester.pump();
+
+    expect(durations, [("block-1", 0)]);
+  });
+
   testWidgets("a drag-to-reorder gesture dispatches the reorder event", (tester) async {
     final blockA = _buildBlock(id: "block-a", label: "Prep");
     final blockB = _buildBlock(id: "block-b", kind: OcptShootingBlockKind.meal, label: "Lunch");
