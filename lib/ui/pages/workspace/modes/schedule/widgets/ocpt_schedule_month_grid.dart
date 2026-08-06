@@ -18,6 +18,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// weekday it starts or ends on, so the grid's own shape never changes from one month to the next.
 const int _ocptMonthGridWeekCount = 6;
 
+/// The corner radius of a cell's own multi-slot badge — small enough to read as a pill beside a
+/// day tag that shares the same corner treatment.
+const double _ocptMonthGridMultiSlotBadgeRadius = 3;
+
+/// How opaque the multi-slot badge's own background wash is drawn against `primary` — a discreet
+/// tint, not a solid fill: a cell already carries a location tint and a day tag, and the badge is
+/// one more small fact rather than the thing the eye is drawn to first.
+const double _ocptMonthGridMultiSlotBadgeAlpha = 0.18;
+
 /// The month presentation of the agenda: the shoot at a glance, one cell per day of the month
 /// [anchorDate] falls in, each shooting day's cell carrying its day tag, its location, its call →
 /// estimated end and its sun line (`design.html` lines 199-227, `planningVals()`'s own
@@ -35,7 +44,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   /// month's own weeks, as [firstWeekday] cuts them.
   final List<OcptShootingDay> days;
 
-  /// Each day's own live slots, keyed by day id — what a cell's own call time is read off.
+  /// Each day's own live slots, keyed by day id — what a cell's own call time
+  /// ([_ocptEarliestSlotStartMinute]) and its multi-slot badge are both read off.
   final Map<String, List<OcptShootingSlot>> slotsByDayId;
 
   /// Each day's own first slot's location, keyed by day id.
@@ -120,6 +130,19 @@ class OcptScheduleMonthGrid extends StatelessWidget {
 /// [date] with its time component dropped, so it can key a `Map` alongside `OcptShootingDay.date`.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
+/// The earliest of [slots]' own [OcptShootingSlot.startMinute], or null when [slots] is empty.
+///
+/// A day's own slots chain independently (ADR 0015, amended), each from its own `startMinute`, so
+/// the **first** slot in `sortKey` order is not necessarily the one that calls its crew earliest —
+/// a production may well list its evening unit before its morning one. A cell's own "call" reads as
+/// this instead: the earliest moment anyone on the day is due, whichever slot that turns out to be.
+int? _ocptEarliestSlotStartMinute(List<OcptShootingSlot> slots) {
+  if (slots.isEmpty) {
+    return null;
+  }
+  return slots.map((slot) => slot.startMinute).reduce((a, b) => a < b ? a : b);
+}
+
 /// One cell of the month grid.
 class _OcptScheduleMonthCell extends StatelessWidget {
   /// The calendar date this cell stands for.
@@ -170,7 +193,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     final tr = Tr.of(context);
     final day = this.day;
     final tint = day == null ? null : ocptScheduleDayLocationTint(context, location);
-    final firstCallMinute = slots.isEmpty ? null : slots.first.startMinute;
+    final earliestCallMinute = _ocptEarliestSlotStartMinute(slots);
     final sunTimes = this.sunTimes;
 
     return InkWell(
@@ -222,14 +245,46 @@ class _OcptScheduleMonthCell extends StatelessWidget {
             ),
             if (day != null) ...[
               const SizedBox(height: 3),
-              Text(
-                location?.name ?? tr.scheduleDayNoLocation,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      location?.name ?? tr.scheduleDayNoLocation,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+                    ),
+                  ),
+                  // A day running more than one slot at once — two units shooting in parallel — has
+                  // no single "the call" any more, which is exactly what this badge exists to flag:
+                  // a producer scanning the month sees it before wondering why the range below looks
+                  // odd for that day.
+                  if (slots.length > 1)
+                    Tooltip(
+                      message: tr.scheduleMonthCellSlotCountTooltip(slots.length),
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: _ocptMonthGridMultiSlotBadgeAlpha,
+                          ),
+                          borderRadius: BorderRadius.circular(_ocptMonthGridMultiSlotBadgeRadius),
+                        ),
+                        child: Text(
+                          "${slots.length}×",
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               Text(
-                ocptScheduleDayMinuteRangeLabel(firstCallMinute, timeline?.dayEndMinute),
+                ocptScheduleDayMinuteRangeLabel(earliestCallMinute, timeline?.dayEndMinute),
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontSize: 9,
                   color: theme.colorScheme.onSurfaceVariant,

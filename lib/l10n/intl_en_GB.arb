@@ -6084,6 +6084,17 @@
       }
     }
   },
+  "scheduleMonthCellSlotCountTooltip": "{count, plural, one{{count} slot} other{{count} slots}}",
+  "@scheduleMonthCellSlotCountTooltip": {
+    "description": "Tooltip of the month grid cell's own badge for a day running more than one slot",
+    "context": "Displayed in the schedule mode's month agenda",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "scheduleDayStatusPlanned": "Planned",
   "@scheduleDayStatusPlanned": {
     "description": "Label of a shooting day still to happen",

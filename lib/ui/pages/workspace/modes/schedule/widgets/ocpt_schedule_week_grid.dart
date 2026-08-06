@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -40,6 +41,16 @@ const double _ocptWeekGridGutterGap = 8;
 /// bands, discreet enough that the blocks drawn over it stay the thing being looked at.
 const double _ocptWeekGridHourLineAlpha = 0.45;
 
+/// How opaque a lane divider is drawn against `outlineVariant` — a touch more than an hour rule
+/// ([_ocptWeekGridHourLineAlpha]), since a divider is the one cue that two bands sitting side by
+/// side belong to two different slots rather than to one that happens to be split.
+const double _ocptWeekGridLaneDividerAlpha = 0.6;
+
+/// The horizontal gap a block band keeps from its own lane's edges — the neighbouring lane's
+/// divider on one or both sides, or the column's own edge for the single-lane case, which is the
+/// common day and the one this figure must keep looking exactly as it did before lanes existed.
+const double _ocptWeekGridBlockHorizontalMargin = 2;
+
 /// The week presentation of the agenda: an hour grid, one column per day of the week
 /// [anchorDate] falls in, a time gutter down the side, each shooting day's blocks drawn as
 /// positioned bands against sunrise/sunset shading (`design.html` lines 170-197,
@@ -50,6 +61,14 @@ const double _ocptWeekGridHourLineAlpha = 0.45;
 /// bound stretches to meet them (`ocptComputeShootingDayTimelines`'s own convention — see
 /// `lib/utils/ocpt_day_minute.dart`). A day with no sun-time figures at all (no coordinates pinned
 /// on its first slot's location) draws no shading band for that column rather than a wrong one.
+///
+/// **A day's own slots draw as parallel lanes within its own column**, in the day's own
+/// [OcptShootingSlot] `sortKey` order, rather than as one band spanning the full width: two slots
+/// of a day may overlap in wall-clock time (ADR 0015, amended), and drawing them on top of one
+/// another would hide that a second unit exists at all. A day with a single slot — the common case
+/// — draws exactly as it did before lanes existed, one lane spanning the whole column. Which lane
+/// belongs to which slot is read from a block band's own tooltip, naming that slot's label; a lane
+/// divider marks where one slot's column ends and the next begins.
 ///
 /// Purely presentational: selecting a day only ever reads, so it needs no `isReadOnly` flag.
 class OcptScheduleWeekGrid extends StatelessWidget {
@@ -65,6 +84,10 @@ class OcptScheduleWeekGrid extends StatelessWidget {
 
   /// Each day's own first slot's location, keyed by day id.
   final Map<String, OcptLocation?> firstLocationByDayId;
+
+  /// Each day's own live slots, keyed by day id, in `sortKey` order — the lanes a day's own column
+  /// is divided into.
+  final Map<String, List<OcptShootingSlot>> slotsByDayId;
 
   /// Each day's own live blocks, keyed by day id.
   final Map<String, List<OcptShootingDayBlock>> blocksByDayId;
@@ -93,6 +116,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     required this.firstWeekday,
     required this.days,
     required this.firstLocationByDayId,
+    required this.slotsByDayId,
     required this.blocksByDayId,
     required this.shotOf,
     required this.timelineOf,
@@ -176,6 +200,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                     Expanded(
                       child: _OcptScheduleWeekColumnBody(
                         location: dayByDate[date] == null ? null : firstLocationByDayId[dayByDate[date]!.id],
+                        slots: dayByDate[date] == null ? const [] : slotsByDayId[dayByDate[date]!.id] ?? const [],
                         blocks: dayByDate[date] == null ? const [] : blocksByDayId[dayByDate[date]!.id] ?? const [],
                         shotOf: shotOf,
                         timeline: dayByDate[date] == null ? null : timelineOf(dayByDate[date]!.id),
@@ -305,10 +330,15 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
 }
 
 /// One day's own column body: its sun shading and its placed blocks, positioned against the
-/// grid's own `[startMinute, endMinute)` range.
+/// grid's own `[startMinute, endMinute)` range, with its blocks split into one lane per live slot.
 class _OcptScheduleWeekColumnBody extends StatelessWidget {
   /// This column's own first slot's location, or null.
   final OcptLocation? location;
+
+  /// This column's own live slots, in `sortKey` order — the lanes the column's own width is split
+  /// into. Empty for a date with no shooting day at all, in which case there is nothing to lay out
+  /// regardless ([blocks] is then empty too).
+  final List<OcptShootingSlot> slots;
 
   /// This column's own live blocks.
   final List<OcptShootingDayBlock> blocks;
@@ -336,6 +366,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleWeekColumnBody({
     required this.location,
+    required this.slots,
     required this.blocks,
     required this.shotOf,
     required this.timeline,
@@ -355,11 +386,54 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
       ),
       child: SizedBox(
         height: gridHeight,
-        child: Stack(
-          children: [..._buildHourLines(context), ..._buildSunBands(context), ..._buildBlocks(context)],
+        // A `LayoutBuilder` rather than reading `MediaQuery` or a fixed fraction: the lanes need
+        // this column's own pixel width, which only its own parent (the `Expanded` in the header
+        // row above) knows, and that width can differ from one week's grid to the next screen size.
+        child: LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            children: [
+              ..._buildHourLines(context),
+              ..._buildSunBands(context),
+              ..._buildLaneDividers(context, constraints.maxWidth),
+              ..._buildBlocks(context, constraints.maxWidth),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// The vertical hairline(s) marking where one slot's lane ends and the next begins — nothing at
+  /// all for a single-slot day, since there is then only one lane and nothing to divide.
+  List<Widget> _buildLaneDividers(BuildContext context, double columnWidth) {
+    if (slots.length <= 1) {
+      return const [];
+    }
+
+    final color = Theme.of(
+      context,
+    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridLaneDividerAlpha);
+    final laneWidth = columnWidth / slots.length;
+
+    return [
+      for (var lane = 1; lane < slots.length; lane++)
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: laneWidth * lane,
+          width: 1,
+          child: ColoredBox(color: color),
+        ),
+    ];
+  }
+
+  /// The lane index [slots] places [slotId] at, or `0` when [slotId] names none of them — a block
+  /// whose slot has since been deleted from under it (the timeline reads a snapshot that is always
+  /// at least as fresh, so this is defensive rather than expected) still has to land somewhere
+  /// rather than vanish from the grid.
+  int _laneIndexOf(String slotId) {
+    final index = slots.indexWhere((slot) => slot.id == slotId);
+    return index < 0 ? 0 : index;
   }
 
   /// One hair line per hour of the grid's own range, drawn first so the sun bands and the blocks
@@ -431,8 +505,17 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     return Positioned(top: topPx, left: 0, right: 0, height: height, child: ColoredBox(color: color));
   }
 
-  /// This column's own placed blocks, positioned by their computed start/duration.
-  List<Widget> _buildBlocks(BuildContext context) {
+  /// This column's own placed blocks, positioned by their computed start/duration, and by their
+  /// own slot's lane — [columnWidth] split evenly across [slots], one lane per slot, in the order
+  /// [slots] itself already carries ([OcptShootingSlot] `sortKey` order). A single-slot day (the
+  /// common case) has exactly one lane spanning the whole width, so this draws identically to
+  /// before lanes existed.
+  ///
+  /// Each band carries a [Tooltip] naming the slot's own label — a lane a few dozen pixels wide has
+  /// no room to print it, but hovering (or long-pressing, on a touch surface) still answers "whose
+  /// lane is this". A single-lane day skips the tooltip: with one lane there is nothing to tell
+  /// apart.
+  List<Widget> _buildBlocks(BuildContext context, double columnWidth) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final entryByBlockId = {
@@ -442,6 +525,8 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
       for (final overrun in timeline?.overruns ?? const <OcptTimelineOverrun>[]) overrun.blockId,
     };
     final tint = ocptScheduleDayLocationTint(context, location);
+    final laneCount = slots.isEmpty ? 1 : slots.length;
+    final laneWidth = columnWidth / laneCount;
 
     final widgets = <Widget>[];
     for (final block in blocks) {
@@ -457,27 +542,37 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
           : (block.label.isEmpty ? ocptShootingBlockKindLabel(tr, block.kind) : block.label);
       final color = isShot ? tint : theme.colorScheme.onSurfaceVariant;
       final isOverrun = overrunBlockIds.contains(block.id);
+      final lane = _laneIndexOf(block.slotId);
+
+      final band = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.18),
+          border: Border(left: BorderSide(color: isOverrun ? theme.colorScheme.error : color, width: 2)),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+        ),
+      );
 
       widgets.add(
         Positioned(
           top: (entry.startMinute - startMinute) * _ocptWeekGridPixelsPerMinute,
           height: (entry.durationMinutes * _ocptWeekGridPixelsPerMinute).clamp(12, double.infinity).toDouble(),
-          left: 2,
-          right: 2,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.18),
-              border: Border(left: BorderSide(color: isOverrun ? theme.colorScheme.error : color, width: 2)),
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-            ),
-          ),
+          left: lane * laneWidth + _ocptWeekGridBlockHorizontalMargin,
+          width: laneWidth - 2 * _ocptWeekGridBlockHorizontalMargin,
+          child: slots.length <= 1
+              ? band
+              : Tooltip(
+                  message: lane < slots.length && slots[lane].label.isNotEmpty
+                      ? slots[lane].label
+                      : tr.scheduleInspectorUnnamedSlot,
+                  child: band,
+                ),
         ),
       );
     }

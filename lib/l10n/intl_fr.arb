@@ -817,6 +817,7 @@
   "scheduleNewDayAction": "Nouveau jour",
   "scheduleDayNoLocation": "Aucun lieu pour l'instant",
   "scheduleDayBlockCount": "{count, plural, one{{count} bloc} other{{count} blocs}}",
+  "scheduleMonthCellSlotCountTooltip": "{count, plural, one{{count} créneau} other{{count} créneaux}}",
   "scheduleDayStatusPlanned": "Prévu",
   "scheduleDayStatusShot": "Tourné",
   "scheduleDayStatusCancelled": "Annulé",

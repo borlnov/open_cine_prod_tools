@@ -260,6 +260,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     };
     final blocksByDayId =
         state.snapshot?.blocksByDayId ?? const <String, List<OcptShootingDayBlock>>{};
+    final slotsByDayId = state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{};
 
     return switch (state.agendaMode) {
       OcptScheduleAgendaMode.strip => OcptScheduleStripAgenda(
@@ -287,6 +288,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         firstWeekday: state.firstWeekday,
         days: state.days,
         firstLocationByDayId: firstLocationByDayId,
+        slotsByDayId: slotsByDayId,
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
@@ -298,7 +300,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         anchorDate: state.agendaAnchorDate,
         firstWeekday: state.firstWeekday,
         days: state.days,
-        slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
+        slotsByDayId: slotsByDayId,
         firstLocationByDayId: firstLocationByDayId,
         timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
