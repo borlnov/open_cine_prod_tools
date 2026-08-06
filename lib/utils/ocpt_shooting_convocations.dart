@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// ignore_for_file: unused_import, only imported so this file's doc comments can cross-reference
-// `ocpt_shooting_day_timeline.dart`'s own types (`comment_references`).
+// Imported for this file's doc comments alone: `comment_references` needs the types they name
+// (`OcptShootingTimelineEntry`, `ocptComputeSlotTimeline`) to resolve.
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// One block already placed on a slot's timeline (an [OcptShootingTimelineEntry] from
@@ -54,7 +54,12 @@ class OcptCrewConvocationInput {
 /// sibling of [OcptCrewConvocationInput], carrying the role it convokes rather than a position.
 class OcptCastConvocationInput {
   /// Builds a cast row to feed to [ocptComputeSlotConvocations].
-  const OcptCastConvocationInput({required this.id, required this.roleId, this.leadMinutes, this.groupLeadMinutes});
+  const OcptCastConvocationInput({
+    required this.id,
+    required this.roleId,
+    this.leadMinutes,
+    this.groupLeadMinutes,
+  });
 
   /// The row's own id (`shooting_slot_cast.id`), echoed back on its [OcptCastConvocation].
   final String id;
@@ -194,15 +199,18 @@ OcptSlotConvocations ocptComputeSlotConvocations({
 }) {
   final slotBand = _bandOf(blocks);
 
-  final crewConvocations = [
-    for (final input in crew)
+  final crewConvocations = <OcptCrewConvocation>[];
+  for (final input in crew) {
+    final leadMinutes = _resolveLead(input.leadMinutes, input.groupLeadMinutes);
+    crewConvocations.add(
       OcptCrewConvocation(
         id: input.id,
-        callMinute: (slotBand.start ?? slotStartMinute) - _resolveLead(input.leadMinutes, input.groupLeadMinutes),
+        callMinute: (slotBand.start ?? slotStartMinute) - leadMinutes,
         wrapMinute: slotBand.end,
-        leadMinutes: _resolveLead(input.leadMinutes, input.groupLeadMinutes),
+        leadMinutes: leadMinutes,
       ),
-  ];
+    );
+  }
 
   final castConvocations = [
     for (final input in cast)

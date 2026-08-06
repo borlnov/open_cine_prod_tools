@@ -213,7 +213,12 @@ class OcptShootingTimelineSlot {
 /// chains**, not one — see [ocptComputeShootingDayTimelines]'s own doc comment.
 class OcptShootingDayTimelines {
   /// Builds a computed set of timelines.
-  const OcptShootingDayTimelines({required this.bySlotId, required this.entries, required this.overruns, required this.dayEndMinute});
+  const OcptShootingDayTimelines({
+    required this.bySlotId,
+    required this.entries,
+    required this.overruns,
+    required this.dayEndMinute,
+  });
 
   /// Each slot's own [OcptShootingSlotTimeline], keyed by [OcptShootingTimelineSlot.id].
   final Map<String, OcptShootingSlotTimeline> bySlotId;
@@ -267,5 +272,10 @@ OcptShootingDayTimelines ocptComputeShootingDayTimelines({
     }
   }
 
-  return OcptShootingDayTimelines(bySlotId: bySlotId, entries: entries, overruns: overruns, dayEndMinute: dayEndMinute);
+  return OcptShootingDayTimelines(
+    bySlotId: bySlotId,
+    entries: entries,
+    overruns: overruns,
+    dayEndMinute: dayEndMinute,
+  );
 }
