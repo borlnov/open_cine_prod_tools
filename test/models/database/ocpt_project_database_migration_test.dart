@@ -165,6 +165,24 @@ CREATE TABLE "shooting_day_blocks" ("id" TEXT NOT NULL, "shooting_day_id" TEXT N
 CREATE TABLE "shooting_presences" ("id" TEXT NOT NULL, "shooting_day_id" TEXT NOT NULL REFERENCES shooting_days (id), "person_id" TEXT NOT NULL REFERENCES people (id), "code" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 ''';
 
+// The shape schema version 12 left the six schedule tables in, replacing [_v11ScheduleDdl] in full
+// (it, not a fragment layered on top of it, since `shooting_slots`/`shooting_day_blocks` are
+// reshaped in place rather than gaining a plain new column): `shooting_slots.start_minute` renamed
+// from `crew_call_minute`, its three siblings dropped; `shooting_day_blocks.slot_id` made non-null
+// and gaining `scene_id`; `shooting_slot_crew`/`shooting_slot_cast` trading their own typed minute
+// columns for a nullable `group_id`/`lead_minutes` pair; and `shooting_day_groups`, the table that
+// pair pointed at — every one of which schema version 13 undoes (see `_alterScheduleTablesToV13`).
+// Captured through a real `OcptProjectDatabase`, like every fixture above.
+const _v12ScheduleDdl = '''
+CREATE TABLE "shooting_day_blocks" ("id" TEXT NOT NULL, "shooting_day_id" TEXT NOT NULL REFERENCES shooting_days (id), "sort_key" TEXT NOT NULL DEFAULT '', "slot_id" TEXT NOT NULL REFERENCES shooting_slots (id), "kind" TEXT NOT NULL DEFAULT 'shot', "shot_id" TEXT NULL REFERENCES shots (id), "scene_id" TEXT NULL REFERENCES scenes (id), "label" TEXT NOT NULL DEFAULT '', "duration_minutes" INTEGER NULL, "anchor_minute" INTEGER NULL, "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shooting_day_groups" ("id" TEXT NOT NULL, "shooting_day_id" TEXT NOT NULL REFERENCES shooting_days (id), "sort_key" TEXT NOT NULL DEFAULT '', "label" TEXT NOT NULL DEFAULT '', "lead_minutes" INTEGER NOT NULL DEFAULT 0, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shooting_days" ("id" TEXT NOT NULL, "screenplay_id" TEXT NOT NULL REFERENCES screenplays (id), "date" TEXT NOT NULL, "sort_key" TEXT NOT NULL DEFAULT '', "status" TEXT NOT NULL DEFAULT 'planned', "crew_note" TEXT NOT NULL DEFAULT '', "weather_note" TEXT NOT NULL DEFAULT '', "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shooting_presences" ("id" TEXT NOT NULL, "shooting_day_id" TEXT NOT NULL REFERENCES shooting_days (id), "person_id" TEXT NOT NULL REFERENCES people (id), "code" TEXT NOT NULL, "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shooting_slot_cast" ("id" TEXT NOT NULL, "slot_id" TEXT NOT NULL REFERENCES shooting_slots (id), "role_id" TEXT NOT NULL REFERENCES roles (id), "sort_key" TEXT NOT NULL DEFAULT '', "group_id" TEXT NULL REFERENCES shooting_day_groups (id), "lead_minutes" INTEGER NULL, "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shooting_slot_crew" ("id" TEXT NOT NULL, "slot_id" TEXT NOT NULL REFERENCES shooting_slots (id), "sort_key" TEXT NOT NULL DEFAULT '', "person_id" TEXT NOT NULL REFERENCES people (id), "position_id" TEXT NOT NULL DEFAULT '', "custom_label" TEXT NOT NULL DEFAULT '', "group_id" TEXT NULL REFERENCES shooting_day_groups (id), "lead_minutes" INTEGER NULL, "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+CREATE TABLE "shooting_slots" ("id" TEXT NOT NULL, "shooting_day_id" TEXT NOT NULL REFERENCES shooting_days (id), "sort_key" TEXT NOT NULL DEFAULT '', "label" TEXT NOT NULL DEFAULT '', "location_id" TEXT NULL REFERENCES locations (id), "set_id" TEXT NULL REFERENCES sets (id), "start_minute" INTEGER NOT NULL, "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -311,10 +329,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 12.
+    // anything but version 13.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 12);
+    expect(await readSchemaVersion(freshDatabase), 13);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -346,7 +364,6 @@ void main() {
       'breakdown_tags',
       'scene_breakdowns',
       'shooting_days',
-      'shooting_day_groups',
       'shooting_slots',
       'shooting_slot_crew',
       'shooting_slot_cast',
@@ -387,6 +404,12 @@ void main() {
             '$_v11ScheduleDdl',
         11,
       ),
+      (
+        'upgraded_from_v12.ocpt',
+        '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl$_v8CurrencyDdl$_v9BreakdownDdl'
+            '$_v12ScheduleDdl',
+        12,
+      ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -404,7 +427,7 @@ void main() {
             "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 12);
+      expect(await readSchemaVersion(database), 13);
 
       await database.close();
     }
@@ -492,7 +515,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 9.
-    expect(await readSchemaVersion(database), 12);
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -601,7 +624,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 12);
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -655,9 +678,9 @@ void main() {
     final projectInfoBefore = await database.select(database.ocptProjectInfoTable).getSingle();
     expect(projectInfoBefore.currentVersionId, isNull);
 
-    // (d) the version 5 shape is in place and usable, and the file now says version 12.
+    // (d) the version 5 shape is in place and usable, and the file now says version 13.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 12);
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -689,9 +712,9 @@ void main() {
     expect(shot.shotSize, "Plan moyen");
     expect(shot.abbreviation, "PM");
 
-    // (b) the version 5 shape is in place and usable, and the file now says version 12.
+    // (b) the version 5 shape is in place and usable, and the file now says version 13.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 12);
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -833,8 +856,8 @@ void main() {
     )..where((table) => table.personId.equals("person1"))).go();
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
-    // (d) the file now says version 12.
-    expect(await readSchemaVersion(database), 12);
+    // (d) the file now says version 13.
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -884,8 +907,8 @@ void main() {
     expect(availability.kind, OcptLocationAvailabilityKind.available);
     expect(availability.isDeleted, isFalse);
 
-    // (c) the file now says version 12.
-    expect(await readSchemaVersion(database), 12);
+    // (c) the file now says version 13.
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -918,8 +941,8 @@ void main() {
         .write(const OcptProjectInfoTableCompanion(currencyCode: Value("USD")));
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
-    // (c) the file now says version 12.
-    expect(await readSchemaVersion(database), 12);
+    // (c) the file now says version 13.
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -1009,8 +1032,8 @@ void main() {
       throwsA(isA<sqlite3.SqliteException>()),
     );
 
-    // (e) the file now says version 12.
-    expect(await readSchemaVersion(database), 12);
+    // (e) the file now says version 13.
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -1063,8 +1086,8 @@ void main() {
       ('set5', ''),
     ]);
 
-    // (c) the file now says version 12.
-    expect(await readSchemaVersion(database), 12);
+    // (c) the file now says version 13.
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });
@@ -1103,10 +1126,9 @@ void main() {
       // migration could have kept.
       expect(shot.shootingDay, isNull);
 
-      // (c) the seven schedule tables exist, empty: this project has never been scheduled, and the
+      // (c) the six schedule tables exist, empty: this project has never been scheduled, and the
       // migration invents nothing — a blank column and an empty schedule say the same true thing.
       expect(await database.select(database.ocptShootingDaysTable).get(), isEmpty);
-      expect(await database.select(database.ocptShootingDayGroupsTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingSlotsTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingSlotCrewTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingSlotCastTable).get(), isEmpty);
@@ -1149,22 +1171,8 @@ void main() {
       expect(day.status, OcptShootingDayStatus.planned);
       expect(day.isDeleted, isFalse);
 
-      // Also usable: a group, and a night slot crossing midnight (19:00 -> 03:00 is stored as
-      // startMinute 1140, not taken modulo anything).
-      await database
-          .into(database.ocptShootingDayGroupsTable)
-          .insert(
-            OcptShootingDayGroupsTableCompanion.insert(
-              id: "group1",
-              shootingDayId: "day1",
-              label: const Value("Équipe technique"),
-              leadMinutes: const Value(30),
-            ),
-          );
-      final group = await database.select(database.ocptShootingDayGroupsTable).getSingle();
-      expect(group.label, "Équipe technique");
-      expect(group.leadMinutes, 30);
-
+      // Also usable: a night slot crossing midnight (19:00 -> 03:00 is stored as startMinute 1140,
+      // not taken modulo anything).
       await database
           .into(database.ocptShootingSlotsTable)
           .insert(
@@ -1184,28 +1192,18 @@ void main() {
               id: "crew1",
               slotId: "slot1",
               personId: "person1",
-              groupId: const Value("group1"),
             ),
           );
       final crew = await database.select(database.ocptShootingSlotCrewTable).getSingle();
       expect(crew.personId, "person1");
-      expect(crew.groupId, "group1");
-      expect(crew.leadMinutes, isNull);
 
       await database
           .into(database.ocptShootingSlotCastTable)
           .insert(
-            OcptShootingSlotCastTableCompanion.insert(
-              id: "cast1",
-              slotId: "slot1",
-              roleId: "role1",
-              leadMinutes: const Value(45),
-            ),
+            OcptShootingSlotCastTableCompanion.insert(id: "cast1", slotId: "slot1", roleId: "role1"),
           );
       final cast = await database.select(database.ocptShootingSlotCastTable).getSingle();
       expect(cast.roleId, "role1");
-      expect(cast.groupId, isNull);
-      expect(cast.leadMinutes, 45);
 
       await database
           .into(database.ocptShootingDayBlocksTable)
@@ -1235,8 +1233,8 @@ void main() {
       final presence = await database.select(database.ocptShootingPresencesTable).getSingle();
       expect(presence.code, OcptPresenceCode.working);
 
-      // (e) the file now says version 12.
-      expect(await readSchemaVersion(database), 12);
+      // (e) the file now says version 13.
+      expect(await readSchemaVersion(database), 13);
 
       await database.close();
     },
@@ -1321,11 +1319,7 @@ void main() {
       // (a) every row the file already held survived.
       await expectCommonRowsSurvived(database);
 
-      // (b) `shooting_day_groups` is created, empty: this file predates groups, and the migration
-      // invents none.
-      expect(await database.select(database.ocptShootingDayGroupsTable).get(), isEmpty);
-
-      // (c) `shooting_slots.start_minute` carries the old `crew_call_minute` across, and the three
+      // (b) `shooting_slots.start_minute` carries the old `crew_call_minute` across, and the three
       // dropped columns are simply gone (there is no getter left to read them through).
       final slotsById = {
         for (final row in await database.select(database.ocptShootingSlotsTable).get())
@@ -1335,7 +1329,7 @@ void main() {
       expect(slotsById['slotA2']!.startMinute, 490);
       expect(slotsById['slotB']!.startMinute, 600);
 
-      // (d) every orphan block landed on its day's first *live* slot — the tombstoned `slotDead`,
+      // (c) every orphan block landed on its day's first *live* slot — the tombstoned `slotDead`,
       // despite sorting first, is never picked, and the tie between `slotA1` and `slotA2` (both
       // `sort_key` `a`) is broken by `id`, `slotA1` winning.
       final blocksById = {
@@ -1352,28 +1346,99 @@ void main() {
       expect(blocksById['blockOrphanNull']!.slotId, 'slotA1');
       expect(blocksById['blockOrphanDangling']!.slotId, 'slotA1');
 
-      // (d bis) every block, the hold included, comes out with no scene named: the column is new,
+      // (c bis) every block, the hold included, comes out with no scene named: the column is new,
       // and a hold's free-text label is not a scene id to read one out of.
       expect(blocksById.values.every((row) => row.sceneId == null), isTrue);
 
-      // (e) both of day2's blocks are gone: day2 has no live slot for either to land on.
+      // (d) both of day2's blocks are gone: day2 has no live slot for either to land on.
       expect(blocksById.containsKey('blockDeleteNull'), isFalse);
       expect(blocksById.containsKey('blockDeleteDangling'), isFalse);
 
-      // (f) the crew and cast rows survived, their old clock overrides simply dropped rather than
-      // reconstructed into a lead time or a group.
+      // (e) the crew and cast rows survived, their old clock overrides simply dropped rather than
+      // reconstructed into a lead time or a group — neither column exists on this build's rows at
+      // all any more.
       final crew = await database.select(database.ocptShootingSlotCrewTable).getSingle();
       expect(crew.personId, "person1");
-      expect(crew.groupId, isNull);
-      expect(crew.leadMinutes, isNull);
 
       final cast = await database.select(database.ocptShootingSlotCastTable).getSingle();
       expect(cast.roleId, "role1");
-      expect(cast.groupId, isNull);
-      expect(cast.leadMinutes, isNull);
 
-      // (g) the file now says version 12.
-      expect(await readSchemaVersion(database), 12);
+      // (f) the file now says version 13.
+      expect(await readSchemaVersion(database), 13);
+
+      await database.close();
+    },
+  );
+
+  test(
+    'a v12 database migrates on, dropping the groups table and their lead times',
+    () async {
+      final filePath = p.join(tempDir.path, 'legacy_v12.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(_v5Ddl);
+      legacyDb.execute(_v6ResourcesDdl);
+      legacyDb.execute(_v7LocationAvailabilitiesDdl);
+      legacyDb.execute(_v8CurrencyDdl);
+      legacyDb.execute(_v9BreakdownDdl);
+      legacyDb.execute(_v12ScheduleDdl);
+      legacyDb.execute('PRAGMA user_version = 12;');
+      seedCommonRows(legacyDb);
+
+      legacyDb.execute(
+        "INSERT INTO people (id, first_name, last_name) VALUES ('person1', 'Clara', 'Dupont');",
+      );
+      legacyDb.execute(
+        "INSERT INTO roles (id, screenplay_id, name, kind) VALUES ('role1', 's1', 'CLARA', "
+        "'speaking');",
+      );
+      legacyDb.execute(
+        "INSERT INTO shooting_days (id, screenplay_id, date) VALUES "
+        "('day1', 's1', '2026-03-02T00:00:00.000');",
+      );
+      legacyDb.execute(
+        "INSERT INTO shooting_day_groups (id, shooting_day_id, label, lead_minutes) VALUES "
+        "('group1', 'day1', 'Équipe image', 20);",
+      );
+      legacyDb.execute(
+        "INSERT INTO shooting_slots (id, shooting_day_id, start_minute) VALUES ('slot1', 'day1', "
+        "480);",
+      );
+      // A crew row inheriting its group's figure (its own `lead_minutes` null) and a cast row with
+      // its own figure and no group — both patterns [_alterScheduleTablesToV13] must drop cleanly.
+      legacyDb.execute(
+        "INSERT INTO shooting_slot_crew (id, slot_id, person_id, group_id, lead_minutes) VALUES "
+        "('crew1', 'slot1', 'person1', 'group1', NULL);",
+      );
+      legacyDb.execute(
+        "INSERT INTO shooting_slot_cast (id, slot_id, role_id, group_id, lead_minutes) VALUES "
+        "('cast1', 'slot1', 'role1', NULL, 45);",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived.
+      await expectCommonRowsSurvived(database);
+
+      // (b) `shooting_day_groups` is gone outright — `DROP TABLE IF EXISTS`, unconditionally, so a
+      // file that genuinely carried the table loses it just as cleanly as one that never did.
+      final shape = await readSchemaShape(database);
+      expect(shape.containsKey('shooting_day_groups'), isFalse);
+
+      // (c) the crew and cast rows survived, their group and lead time simply dropped — nothing is
+      // reconstructed, exactly as no lead time is guessed out of the v11-to-v12 step's own dropped
+      // clocks.
+      final crew = await database.select(database.ocptShootingSlotCrewTable).getSingle();
+      expect(crew.id, "crew1");
+      expect(crew.personId, "person1");
+
+      final cast = await database.select(database.ocptShootingSlotCastTable).getSingle();
+      expect(cast.id, "cast1");
+      expect(cast.roleId, "role1");
+
+      // (d) the file now says version 13.
+      expect(await readSchemaVersion(database), 13);
 
       await database.close();
     },
@@ -1403,7 +1468,6 @@ void main() {
         );
 
     expect(await database.select(database.ocptShootingDaysTable).get(), isEmpty);
-    expect(await database.select(database.ocptShootingDayGroupsTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingSlotsTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingSlotCrewTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingSlotCastTable).get(), isEmpty);
@@ -1416,7 +1480,7 @@ void main() {
     final screenplay = await database.select(database.ocptScreenplaysTable).getSingle();
     expect(screenplay.title, "Draft");
 
-    expect(await readSchemaVersion(database), 12);
+    expect(await readSchemaVersion(database), 13);
 
     await database.close();
   });

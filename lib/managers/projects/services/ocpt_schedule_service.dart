@@ -7,7 +7,6 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
@@ -17,15 +16,14 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// CRUD over a screenplay's shooting schedule: its days, the named lead times each day carries
-/// (`shooting_day_groups`), the convocation windows inside each day (`shooting_slots`), who is
-/// convoked in each (`shooting_slot_crew`/`shooting_slot_cast`), and each **slot's own** timetable
-/// (`shooting_day_blocks`) — placing a shot, reserving a `hold`, and the milestones (preparation,
-/// hair/make-up, a meal, a travel move, the wrap) interleaved between them.
+/// CRUD over a screenplay's shooting schedule: its days, the convocation windows inside each day
+/// (`shooting_slots`), who is convoked in each (`shooting_slot_crew`/`shooting_slot_cast`), and each
+/// **slot's own** timetable (`shooting_day_blocks`) — placing a shot, reserving a `hold`, and the
+/// milestones (preparation, hair/make-up, a meal, a travel move, the wrap) interleaved between them.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
-/// **Order is `sortKey`, never `position`** — these seven tables have no `position` column at all,
+/// **Order is `sortKey`, never `position`** — these six tables have no `position` column at all,
 /// schema v11 having been declared after `sortKey` already existed, so there is no legacy column
 /// to leave alone.
 ///
@@ -36,12 +34,16 @@ import 'package:uuid/uuid.dart';
 /// **A day is a set of parallel chains, one per slot, rather than one timetable.** A block belongs
 /// to exactly one slot ([createBlock]/[placeShot] both take a required slot id and read the day off
 /// it, so a block can never name a day its slot doesn't belong to) and chains from that slot's own
-/// `startMinute` — see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended). **Every
-/// convocation time is computed, never stored**: a crew member's or an actor's own PAT band and
-/// arrival are all read off a slot's chain and a lead time through
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017) — this service only ever reads and writes
-/// the columns those two functions take as input (a slot's `startMinute`, a block's duration and
-/// anchor, and a crew/cast row's own `leadMinutes`/`groupId`), and never a clock time itself.
+/// `startMinute` — see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended).
+///
+/// **A convocation is the slot you are linked to, and nothing about it is typed** — see
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). [addSlotCrewMember]/[addSlotCastRole] do
+/// nothing more than create the link: a person's or a role's arrival, readiness band and departure
+/// are read off every live slot they are linked to across the whole day, joined together, never
+/// stored on the row itself and never typed beside it. A production that wants somebody there
+/// earlier — a make-up call, a rigging call — creates the slot that says so, with its own label and
+/// its own blocks, and links them to it; this service exposes no way to offset a convocation from
+/// its slot instead.
 ///
 /// **A shot may be placed as many times as the plan needs.** [placeShot] only ever creates: a shot
 /// interrupted by the meal break and resumed after it is two blocks on the same day, not one, and a
@@ -53,7 +55,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Deleting a day cascades; deleting a slot moves what was scheduled inside it, or drops it with
 /// the slot when there is nowhere left to move it to.** [deleteDay] tombstones everything hanging
-/// off it — its groups, its slots, their crew and cast, and its blocks — in one transaction, the way
+/// off it — its slots, their crew and cast, and its blocks — in one transaction, the way
 /// `OcptLocationsService.deleteLocation` tombstones a location's sets. [deleteSlot] is narrower: it
 /// tombstones the slot's own crew and cast, then moves the slot's own live blocks, in their own
 /// order, to the end of the day's first *other* live slot (lowest `sortKey`) — removing a
@@ -64,35 +66,13 @@ import 'package:uuid/uuid.dart';
 /// never be slotless (`shooting_day_blocks.slotId` is `NOT NULL` from schema v12), so a day with no
 /// slot at all can hold no timetable either.
 ///
-/// **A group is a named lead time a day carries**, that any convocation of that day — crew and cast
-/// alike — may point at (`OcptShootingDayGroupsTable`'s own doc comment, ADR 0017). [createDay]
-/// copies the *previous* day's groups — the last live day of the screenplay in `sortKey` order, the
-/// one it is appended after — labels and figures alike, with fresh ids and fresh `sortKey`s; nothing
-/// else is inherited, copying the crew and the cast themselves being [duplicateDay]'s job. [deleteGroup]
-/// tombstones the group **and** nulls the `groupId` of every crew and cast row of that day pointing
-/// at it, in one transaction: deleting a group leaves its members with no group rather than removing
-/// them from the day.
-///
-/// **[addSlotCrewMember]/[addSlotCastRole] seed a new convocation's own lead time and group from
-/// that person's or role's most recent convocation** — the screenplay's live day with the greatest
-/// `sortKey` other than the target's own, i.e. the plan's own order, not the calendar date. A crew
-/// row matches on the same person **and** the same position (`positionId` when set, else
-/// `customLabel`); a cast row matches on the same role. The source row's own `leadMinutes` is
-/// copied **verbatim, null included** — a row that inherited its group's figure keeps inheriting
-/// rather than having that figure frozen onto it — and its group is matched **by label** on the
-/// target day's own groups (group ids being per day), staying null when the target day has no group
-/// with that label. Without this, "ANNA needs 90 minutes of prosthetics" would have to be retyped on
-/// every one of her days.
-///
 /// **Duplicating a day copies the shape of the crew, not the day's own work.** [duplicateDay] copies
-/// the source day's groups (fresh ids, fresh `sortKey`s), its slots, their crew, their cast and
-/// every one of their times, **remapping** each copied crew/cast row's `groupId` onto the new day's
-/// group carrying the same label (group ids being per day) — but copies **neither the placed shots
-/// nor the crew note**, and (a decision this service makes, the plan leaving it unsaid) starts the
-/// new day's own `status`, `weatherNote` and `notes` at their column defaults too: a stable crew is
-/// entered once for a whole shoot and reused day after day, while what got shot, what the weather
-/// did and why a day was lost are all facts of the specific day being duplicated *away* from, not of
-/// the one being planned.
+/// the source day's slots, their crew and their cast — but copies **neither the placed shots nor the
+/// crew note**, and (a decision this service makes, the plan leaving it unsaid) starts the new day's
+/// own `status`, `weatherNote` and `notes` at their column defaults too: a stable crew is entered
+/// once for a whole shoot and reused day after day, while what got shot, what the weather did and
+/// why a day was lost are all facts of the specific day being duplicated *away* from, not of the one
+/// being planned.
 ///
 /// **`shooting_presences` is out of scope here.** It is declared in schema v11 alongside these
 /// tables (one migration for the whole mode, even though the presence grid it backs is milestone
@@ -106,8 +86,8 @@ class OcptScheduleService {
   const OcptScheduleService();
 
   /// Loads the whole shooting schedule of [screenplayId] in [database]: every live day, in
-  /// `sortKey` order, joined with its live groups, its live slots (each carrying its own live crew
-  /// and cast) and its live blocks.
+  /// `sortKey` order, joined with its live slots (each carrying its own live crew and cast) and its
+  /// live blocks.
   ///
   /// Runs a bounded number of queries regardless of the schedule's size — one per table, each
   /// restricted to the days (or slots) already loaded — rather than one per day, exactly as
@@ -118,13 +98,6 @@ class OcptScheduleService {
   }) async {
     final dayRows = await _liveDayRows(database: database, screenplayId: screenplayId);
     final dayIds = dayRows.map((row) => row.id).toList(growable: false);
-
-    final groupRows = dayIds.isEmpty
-        ? const <OcptShootingDayGroupRow>[]
-        : await (database.select(database.ocptShootingDayGroupsTable)
-                ..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())
-                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-              .get();
 
     final slotRows = dayIds.isEmpty
         ? const <OcptShootingSlotRow>[]
@@ -154,13 +127,6 @@ class OcptScheduleService {
                 ..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())
                 ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
-
-    final groupsByDayId = <String, List<OcptShootingDayGroup>>{};
-    for (final row in groupRows) {
-      groupsByDayId
-          .putIfAbsent(row.shootingDayId, () => [])
-          .add(OcptShootingDayGroup.fromRow(row));
-    }
 
     final crewBySlotId = <String, List<OcptShootingSlotCrewMember>>{};
     for (final row in crewRows) {
@@ -204,7 +170,6 @@ class OcptScheduleService {
     return OcptScheduleSnapshot.build(
       screenplayId: screenplayId,
       days: days,
-      groupsByDayId: groupsByDayId,
       slotsByDayId: slotsByDayId,
       blocksByDayId: blocksByDayId,
     );
@@ -286,11 +251,6 @@ class OcptScheduleService {
   /// and no chain start for its timetable. That first slot gets an empty [OcptShootingSlot.label]
   /// and the default start [_defaultStartMinute] (08:00).
   ///
-  /// **Copies the previous day's groups** — the screenplay's last live day in `sortKey` order, the
-  /// one this new day is appended after — labels and figures alike, with fresh ids and fresh
-  /// `sortKey`s; nothing else is inherited (see the class doc comment). A day created with no
-  /// previous day to copy from simply starts with none.
-  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createDay({
     required OcptProjectDatabase database,
@@ -317,10 +277,6 @@ class OcptScheduleService {
               ),
             ),
           );
-
-      if (existing.isNotEmpty) {
-        await _copyGroups(database: database, sourceDayId: existing.last.id, targetDayId: dayId);
-      }
 
       await _insertDefaultSlot(database: database, dayId: dayId);
 
@@ -361,8 +317,8 @@ class OcptScheduleService {
     );
   }
 
-  /// Tombstones day [dayId] in [database], and along with it: its groups, its slots, their crew and
-  /// cast rows, and its blocks — everything hanging off it, in one transaction, exactly as
+  /// Tombstones day [dayId] in [database], and along with it: its slots, their crew and cast rows,
+  /// and its blocks — everything hanging off it, in one transaction, exactly as
   /// `OcptLocationsService.deleteLocation` tombstones a location's sets and their links.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -398,12 +354,6 @@ class OcptScheduleService {
       }
 
       await (database.update(
-        database.ocptShootingDayGroupsTable,
-      )..where((table) => table.shootingDayId.equals(dayId))).write(
-        const OcptShootingDayGroupsTableCompanion(isDeleted: Value(true)),
-      );
-
-      await (database.update(
         database.ocptShootingDayBlocksTable,
       )..where((table) => table.shootingDayId.equals(dayId))).write(
         const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
@@ -418,10 +368,8 @@ class OcptScheduleService {
   }
 
   /// Creates a new day dated [date], appended at the end of [sourceDayId]'s screenplay, carrying
-  /// copies of [sourceDayId]'s live groups, its live slots, their live crew, their live cast and
-  /// every one of their times — fresh ids, fresh `sortKey`s, everything else copied verbatim, each
-  /// copied crew/cast row's `groupId` **remapped** onto the new day's own copy of the group it
-  /// pointed at (matched by label, group ids being per day). Returns the new day's id.
+  /// copies of [sourceDayId]'s live slots, their live crew and their live cast — fresh ids, fresh
+  /// `sortKey`s, everything else copied verbatim. Returns the new day's id.
   ///
   /// **Copies neither the placed shots nor the crew note** — see the class doc comment for why, and
   /// for the two further fields (`weatherNote`, `notes`) this service also leaves at their defaults
@@ -462,12 +410,6 @@ class OcptScheduleService {
               ),
             ),
           );
-
-      final newGroupIdByLabel = await _copyGroups(
-        database: database,
-        sourceDayId: sourceDayId,
-        targetDayId: newDayId,
-      );
 
       final sourceSlots = await _liveSlotRows(database: database, dayId: sourceDayId);
 
@@ -511,10 +453,6 @@ class OcptScheduleService {
                   personId: crewMember.personId,
                   positionId: Value(crewMember.positionId),
                   customLabel: Value(crewMember.customLabel),
-                  groupId: Value(
-                    crewMember.groupId == null ? null : newGroupIdByLabel[crewMember.groupId],
-                  ),
-                  leadMinutes: Value(crewMember.leadMinutes),
                   notes: Value(crewMember.notes),
                 ),
               );
@@ -532,10 +470,6 @@ class OcptScheduleService {
                   slotId: newSlotIds[i],
                   roleId: castMember.roleId,
                   sortKey: Value(castSortKeys[j]),
-                  groupId: Value(
-                    castMember.groupId == null ? null : newGroupIdByLabel[castMember.groupId],
-                  ),
-                  leadMinutes: Value(castMember.leadMinutes),
                   notes: Value(castMember.notes),
                 ),
               );
@@ -543,93 +477,6 @@ class OcptScheduleService {
       }
 
       return newDayId;
-    });
-  }
-
-  /// Creates a new group on day [shootingDayId], appended at the end of its current groups, and
-  /// returns its freshly generated id.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createGroup({
-    required OcptProjectDatabase database,
-    required String shootingDayId,
-    String label = "",
-    int leadMinutes = 0,
-  }) async {
-    if (database.refusesUserWrite("createGroup")) {
-      return null;
-    }
-
-    final existing = await _liveGroupRows(database: database, dayId: shootingDayId);
-    final id = const Uuid().v4();
-
-    await database
-        .into(database.ocptShootingDayGroupsTable)
-        .insert(
-          OcptShootingDayGroupsTableCompanion.insert(
-            id: id,
-            shootingDayId: shootingDayId,
-            label: Value(label),
-            leadMinutes: Value(leadMinutes),
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
-
-    return id;
-  }
-
-  /// Updates the fields of group [groupId] in [database] that are passed as something other than
-  /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
-  /// [deleteGroup] — there is no `reorderGroup`, nothing ordering a group by hand yet.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateGroup({
-    required OcptProjectDatabase database,
-    required String groupId,
-    Value<String> label = const Value.absent(),
-    Value<int> leadMinutes = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updateGroup")) {
-      return;
-    }
-
-    await (database.update(
-      database.ocptShootingDayGroupsTable,
-    )..where((table) => table.id.equals(groupId) & table.isDeleted.not())).write(
-      OcptShootingDayGroupsTableCompanion(label: label, leadMinutes: leadMinutes),
-    );
-  }
-
-  /// Tombstones group [groupId], and **nulls the `groupId` of every crew and cast row pointing at
-  /// it**, in one transaction: deleting a group leaves its members with no group rather than
-  /// removing them from the day.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteGroup({required OcptProjectDatabase database, required String groupId}) async {
-    if (database.refusesUserWrite("deleteGroup")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      await (database.update(
-        database.ocptShootingSlotCrewTable,
-      )..where((table) => table.groupId.equals(groupId))).write(
-        const OcptShootingSlotCrewTableCompanion(groupId: Value(null)),
-      );
-      await (database.update(
-        database.ocptShootingSlotCastTable,
-      )..where((table) => table.groupId.equals(groupId))).write(
-        const OcptShootingSlotCastTableCompanion(groupId: Value(null)),
-      );
-      await (database.update(
-        database.ocptShootingDayGroupsTable,
-      )..where((table) => table.id.equals(groupId))).write(
-        const OcptShootingDayGroupsTableCompanion(isDeleted: Value(true)),
-      );
     });
   }
 
@@ -818,10 +665,9 @@ class OcptScheduleService {
 
   /// Adds [personId] as holding [positionId] (or, when the catalogue has nothing that fits,
   /// [customLabel]) during slot [slotId], appended at the end of its current crew, and returns the
-  /// freshly generated id of the assignment.
-  ///
-  /// **Seeds the new row's own lead time and group from that person's and position's most recent
-  /// convocation** — see the class doc comment.
+  /// freshly generated id of the assignment — no more than the link itself: this person's arrival,
+  /// readiness band and departure are read off every slot they are linked to (ADR 0018), never
+  /// seeded or typed here.
   ///
   /// A person holding two positions in one slot is two rows — see `OcptShootingSlotCrewTable`'s own
   /// doc comment — so, unlike [addSlotCastRole], this never refuses a duplicate `{slotId, personId}`
@@ -840,42 +686,26 @@ class OcptScheduleService {
       return null;
     }
 
-    return database.transaction(() async {
-      final slot = await _getSlotRow(database: database, slotId: slotId);
-      final day = await _getDayRow(database: database, dayId: slot.shootingDayId);
+    final existing = await _liveCrewRowsOfSlot(database: database, slotId: slotId);
+    final id = const Uuid().v4();
 
-      final seed = await _seedCrewConvocation(
-        database: database,
-        targetDayId: slot.shootingDayId,
-        screenplayId: day.screenplayId,
-        personId: personId,
-        positionId: positionId,
-        customLabel: customLabel,
-      );
-
-      final existing = await _liveCrewRowsOfSlot(database: database, slotId: slotId);
-      final id = const Uuid().v4();
-
-      await database
-          .into(database.ocptShootingSlotCrewTable)
-          .insert(
-            OcptShootingSlotCrewTableCompanion.insert(
-              id: id,
-              slotId: slotId,
-              personId: personId,
-              positionId: Value(positionId),
-              customLabel: Value(customLabel),
-              groupId: Value(seed.groupId),
-              leadMinutes: Value(seed.leadMinutes),
-              notes: Value(notes),
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
+    await database
+        .into(database.ocptShootingSlotCrewTable)
+        .insert(
+          OcptShootingSlotCrewTableCompanion.insert(
+            id: id,
+            slotId: slotId,
+            personId: personId,
+            positionId: Value(positionId),
+            customLabel: Value(customLabel),
+            notes: Value(notes),
+            sortKey: Value(
+              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
             ),
-          );
+          ),
+        );
 
-      return id;
-    });
+    return id;
   }
 
   /// Updates the fields of crew assignment [crewMemberId] in [database] that are passed as
@@ -889,8 +719,6 @@ class OcptScheduleService {
     Value<String> personId = const Value.absent(),
     Value<String> positionId = const Value.absent(),
     Value<String> customLabel = const Value.absent(),
-    Value<String?> groupId = const Value.absent(),
-    Value<int?> leadMinutes = const Value.absent(),
     Value<String> notes = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateSlotCrewMember")) {
@@ -904,8 +732,6 @@ class OcptScheduleService {
         personId: personId,
         positionId: positionId,
         customLabel: customLabel,
-        groupId: groupId,
-        leadMinutes: leadMinutes,
         notes: notes,
       ),
     );
@@ -932,17 +758,16 @@ class OcptScheduleService {
   }
 
   /// Convokes role [roleId] during slot [slotId], appended at the end of its current cast, and
-  /// returns the id of the convocation.
-  ///
-  /// **Seeds the new row's own lead time and group from that role's most recent convocation** —
-  /// see the class doc comment.
+  /// returns the id of the convocation — no more than the link itself: this role's arrival,
+  /// readiness band and departure are read off every slot it is linked to (ADR 0018), never seeded
+  /// or typed here.
   ///
   /// **The same role convoked twice in one slot is refused** — unlike crew, where two positions
   /// held by the same person are legitimate (see [addSlotCrewMember]): a role already convoked live
   /// in this slot has this call return that row's own id rather than create a second one. A role
-  /// convoked here before and since removed has its tombstone lifted and its fields overwritten
-  /// with the freshly seeded ones, exactly as `OcptLocationsService.assignSceneToSet` revives a
-  /// dropped link rather than duplicating it.
+  /// convoked here before and since removed has its tombstone lifted rather than a second row being
+  /// created, exactly as `OcptLocationsService.assignSceneToSet` revives a dropped link rather than
+  /// duplicating it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addSlotCastRole({
@@ -970,25 +795,11 @@ class OcptScheduleService {
         tombstoned ??= row;
       }
 
-      final slot = await _getSlotRow(database: database, slotId: slotId);
-      final day = await _getDayRow(database: database, dayId: slot.shootingDayId);
-      final seed = await _seedCastConvocation(
-        database: database,
-        targetDayId: slot.shootingDayId,
-        screenplayId: day.screenplayId,
-        roleId: roleId,
-      );
-
       if (tombstoned != null) {
         await (database.update(
           database.ocptShootingSlotCastTable,
         )..where((table) => table.id.equals(tombstoned!.id))).write(
-          OcptShootingSlotCastTableCompanion(
-            groupId: Value(seed.groupId),
-            leadMinutes: Value(seed.leadMinutes),
-            notes: Value(notes),
-            isDeleted: const Value(false),
-          ),
+          OcptShootingSlotCastTableCompanion(notes: Value(notes), isDeleted: const Value(false)),
         );
         return tombstoned.id;
       }
@@ -1003,8 +814,6 @@ class OcptScheduleService {
               id: id,
               slotId: slotId,
               roleId: roleId,
-              groupId: Value(seed.groupId),
-              leadMinutes: Value(seed.leadMinutes),
               notes: Value(notes),
               sortKey: Value(
                 ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
@@ -1024,8 +833,6 @@ class OcptScheduleService {
   Future<void> updateSlotCastRole({
     required OcptProjectDatabase database,
     required String castRoleId,
-    Value<String?> groupId = const Value.absent(),
-    Value<int?> leadMinutes = const Value.absent(),
     Value<String> notes = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateSlotCastRole")) {
@@ -1035,7 +842,7 @@ class OcptScheduleService {
     await (database.update(
       database.ocptShootingSlotCastTable,
     )..where((table) => table.id.equals(castRoleId) & table.isDeleted.not())).write(
-      OcptShootingSlotCastTableCompanion(groupId: groupId, leadMinutes: leadMinutes, notes: notes),
+      OcptShootingSlotCastTableCompanion(notes: notes),
     );
   }
 
@@ -1375,198 +1182,6 @@ class OcptScheduleService {
         ),
       );
 
-  /// Copies [sourceDayId]'s live groups onto [targetDayId], fresh ids and fresh `sortKey`s, labels
-  /// and lead times copied verbatim — shared by [createDay] (copying the previous day's groups) and
-  /// [duplicateDay] (copying the source day's own). Returns the old group id → new group id map
-  /// [duplicateDay] needs to remap a copied crew/cast row's `groupId`.
-  Future<Map<String, String>> _copyGroups({
-    required OcptProjectDatabase database,
-    required String sourceDayId,
-    required String targetDayId,
-  }) async {
-    final sourceGroups = await _liveGroupRows(database: database, dayId: sourceDayId);
-    if (sourceGroups.isEmpty) {
-      return const {};
-    }
-
-    final newGroupIds = [for (var i = 0; i < sourceGroups.length; i++) const Uuid().v4()];
-    final sortKeys = ocptFractionalKeySequence(sourceGroups.length);
-    final newGroupIdBySourceId = <String, String>{};
-
-    for (var i = 0; i < sourceGroups.length; i++) {
-      final sourceGroup = sourceGroups[i];
-      newGroupIdBySourceId[sourceGroup.id] = newGroupIds[i];
-
-      await database
-          .into(database.ocptShootingDayGroupsTable)
-          .insert(
-            OcptShootingDayGroupsTableCompanion.insert(
-              id: newGroupIds[i],
-              shootingDayId: targetDayId,
-              sortKey: Value(sortKeys[i]),
-              label: Value(sourceGroup.label),
-              leadMinutes: Value(sourceGroup.leadMinutes),
-            ),
-          );
-    }
-
-    return newGroupIdBySourceId;
-  }
-
-  /// The seeded lead time and group [addSlotCrewMember] gives a fresh row for [personId] holding
-  /// [positionId] (or [customLabel]) — see the class doc comment.
-  Future<({String? groupId, int? leadMinutes})> _seedCrewConvocation({
-    required OcptProjectDatabase database,
-    required String targetDayId,
-    required String screenplayId,
-    required String personId,
-    required String positionId,
-    required String customLabel,
-  }) async {
-    final sourceDayIds = await _otherDayIdsMostRecentFirst(
-      database: database,
-      screenplayId: screenplayId,
-      excludingDayId: targetDayId,
-    );
-
-    for (final sourceDayId in sourceDayIds) {
-      final sourceSlotIds = (await _liveSlotRows(
-        database: database,
-        dayId: sourceDayId,
-      )).map((row) => row.id).toList(growable: false);
-      if (sourceSlotIds.isEmpty) {
-        continue;
-      }
-
-      final matches =
-          await (database.select(database.ocptShootingSlotCrewTable)
-                ..where(
-                  (table) =>
-                      table.slotId.isIn(sourceSlotIds) &
-                      table.isDeleted.not() &
-                      table.personId.equals(personId) &
-                      (positionId.isNotEmpty
-                          ? table.positionId.equals(positionId)
-                          : table.customLabel.equals(customLabel)),
-                )
-                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-              .get();
-      if (matches.isEmpty) {
-        continue;
-      }
-
-      final source = matches.first;
-      final groupId = await _matchGroupByLabel(
-        database: database,
-        sourceGroupId: source.groupId,
-        targetDayId: targetDayId,
-      );
-
-      return (groupId: groupId, leadMinutes: source.leadMinutes);
-    }
-
-    return (groupId: null, leadMinutes: null);
-  }
-
-  /// The seeded lead time and group [addSlotCastRole] gives a fresh row for [roleId] — the cast
-  /// sibling of [_seedCrewConvocation].
-  Future<({String? groupId, int? leadMinutes})> _seedCastConvocation({
-    required OcptProjectDatabase database,
-    required String targetDayId,
-    required String screenplayId,
-    required String roleId,
-  }) async {
-    final sourceDayIds = await _otherDayIdsMostRecentFirst(
-      database: database,
-      screenplayId: screenplayId,
-      excludingDayId: targetDayId,
-    );
-
-    for (final sourceDayId in sourceDayIds) {
-      final sourceSlotIds = (await _liveSlotRows(
-        database: database,
-        dayId: sourceDayId,
-      )).map((row) => row.id).toList(growable: false);
-      if (sourceSlotIds.isEmpty) {
-        continue;
-      }
-
-      final matches =
-          await (database.select(database.ocptShootingSlotCastTable)
-                ..where(
-                  (table) =>
-                      table.slotId.isIn(sourceSlotIds) &
-                      table.isDeleted.not() &
-                      table.roleId.equals(roleId),
-                )
-                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-              .get();
-      if (matches.isEmpty) {
-        continue;
-      }
-
-      final source = matches.first;
-      final groupId = await _matchGroupByLabel(
-        database: database,
-        sourceGroupId: source.groupId,
-        targetDayId: targetDayId,
-      );
-
-      return (groupId: groupId, leadMinutes: source.leadMinutes);
-    }
-
-    return (groupId: null, leadMinutes: null);
-  }
-
-  /// The id of [targetDayId]'s own live group carrying the same label as [sourceGroupId], or null
-  /// when [sourceGroupId] is itself null, no longer live, or the target day has no group with that
-  /// label — see the class doc comment on [addSlotCrewMember]/[addSlotCastRole].
-  Future<String?> _matchGroupByLabel({
-    required OcptProjectDatabase database,
-    required String? sourceGroupId,
-    required String targetDayId,
-  }) async {
-    if (sourceGroupId == null) {
-      return null;
-    }
-
-    final sourceGroup =
-        await (database.select(database.ocptShootingDayGroupsTable)
-              ..where((table) => table.id.equals(sourceGroupId) & table.isDeleted.not()))
-            .getSingleOrNull();
-    if (sourceGroup == null) {
-      return null;
-    }
-
-    final targetGroups = await _liveGroupRows(database: database, dayId: targetDayId);
-    for (final group in targetGroups) {
-      if (group.label == sourceGroup.label) {
-        return group.id;
-      }
-    }
-
-    return null;
-  }
-
-  /// Every live day of [screenplayId] other than [excludingDayId], the greatest `sortKey` first —
-  /// "most recent" in the plan's own order, not the calendar date.
-  ///
-  /// The whole list rather than only its head: the day a convocation is seeded from is the most
-  /// recent one that **convoked that person or that role**, which is rarely the most recent day of
-  /// the plan — an actor shooting on days 2 and 7 is convoked on neither 5 nor 6, and giving up at
-  /// the first day that doesn't name them would make the seeding fire almost never.
-  Future<List<String>> _otherDayIdsMostRecentFirst({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required String excludingDayId,
-  }) async {
-    final days =
-        (await _liveDayRows(database: database, screenplayId: screenplayId))
-          ..removeWhere((row) => row.id == excludingDayId);
-
-    return [for (final day in days.reversed) day.id];
-  }
-
   /// Reads back the day row [dayId], throwing if it doesn't exist or has been tombstoned.
   Future<OcptShootingDayRow> _getDayRow({
     required OcptProjectDatabase database,
@@ -1603,15 +1218,6 @@ class OcptScheduleService {
           (table) => OrderingTerm.asc(table.date),
           (table) => OrderingTerm.asc(table.sortKey),
         ]))
-      .get();
-
-  /// Every live group row of day [dayId], ordered by `sortKey`.
-  Future<List<OcptShootingDayGroupRow>> _liveGroupRows({
-    required OcptProjectDatabase database,
-    required String dayId,
-  }) => (database.select(database.ocptShootingDayGroupsTable)
-        ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
 
   /// Every live slot row of day [dayId], ordered by `sortKey`.

@@ -11,9 +11,10 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// `OcptShootingSlotCrewTable`'s own doc comment.
 ///
 /// **This row's arrival and PAT band are computed, never typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). [leadMinutes] is a lead time typed
-/// beside this person, and [groupId] the `OcptShootingDayGroup` this row belongs to when it belongs
-/// to one; this row's own [leadMinutes] wins over its group's when both are set.
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of possibly
+/// several slots this person is linked to on the same day, and every figure about them is read off
+/// every live slot they are on, joined together. Nothing here says how long before a moment they
+/// are needed — a production wanting them there earlier links them to a slot that says so.
 class OcptShootingSlotCrewMember extends Equatable {
   /// The stable, unique id of this assignment (a UUID).
   final String id;
@@ -32,13 +33,6 @@ class OcptShootingSlotCrewMember extends Equatable {
   /// fits. Empty when [positionId] is set.
   final String customLabel;
 
-  /// The `OcptShootingDayGroup` this assignment belongs to, or null while it belongs to none.
-  final String? groupId;
-
-  /// This assignment's own lead time, overriding [groupId]'s own figure, or null to use the
-  /// group's.
-  final int? leadMinutes;
-
   /// Free-form notes about this assignment.
   final String notes;
 
@@ -49,8 +43,6 @@ class OcptShootingSlotCrewMember extends Equatable {
     required this.personId,
     required this.positionId,
     required this.customLabel,
-    required this.groupId,
-    required this.leadMinutes,
     required this.notes,
   });
 
@@ -62,8 +54,6 @@ class OcptShootingSlotCrewMember extends Equatable {
         personId: row.personId,
         positionId: row.positionId,
         customLabel: row.customLabel,
-        groupId: row.groupId,
-        leadMinutes: row.leadMinutes,
         notes: row.notes,
       );
 
@@ -73,14 +63,5 @@ class OcptShootingSlotCrewMember extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [
-    id,
-    slotId,
-    personId,
-    positionId,
-    customLabel,
-    groupId,
-    leadMinutes,
-    notes,
-  ];
+  List<Object?> get props => [id, slotId, personId, positionId, customLabel, notes];
 }

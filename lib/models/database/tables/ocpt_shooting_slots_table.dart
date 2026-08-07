@@ -15,17 +15,18 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_t
 /// nothing here forces every slot of a day to share a location.
 ///
 /// **[startMinute] is this slot's one typed clock**, the moment its first block begins — every
-/// other time a call sheet prints for this slot (a crew member's or an actor's own PAT band and
-/// arrival) is computed from it and from the slot's own chain of `shooting_day_blocks`, never
-/// stored: see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) and
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). It **may exceed 1440**: a night slot
+/// other time a call sheet prints for this slot (a crew member's or an actor's own arrival,
+/// readiness band and departure) is computed from it and from the slot's own chain of
+/// `shooting_day_blocks`, never stored: see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015)
+/// and `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). It **may exceed 1440**: a night slot
 /// running 19:00 → 03:00 stores `1140`, an offset from the day's own midnight, nothing ever taken
 /// modulo anything — see `lib/utils/ocpt_day_minute.dart`, the single place that renders one. This
 /// is written down because getting it wrong only shows up on the one night shoot of a production.
 ///
 /// The reference call sheets' "HORAIRES ÉQUIPE IMAGE 16:45 / HORAIRES ÉQUIPE TECHNIQUE 18:30" is
-/// **not** a second pair of columns here: it is a lead time carried by a `shooting_day_groups` row
-/// or by the individual `shooting_slot_crew` row itself — see that table's own doc comment.
+/// **not** a second pair of columns here: it is a fact about a slot's own convocations, read off
+/// every slot a person or a role is linked to — see `OcptShootingSlotCrewTable`'s own doc comment
+/// and ADR 0018. A production that wants one crew called earlier creates the slot that says so.
 @DataClassName('OcptShootingSlotRow')
 class OcptShootingSlotsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingSlotsTable}

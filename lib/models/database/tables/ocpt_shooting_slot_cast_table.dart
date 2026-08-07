@@ -4,19 +4,19 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_groups_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_table.dart';
 
 /// Which role is convoked during a slot.
 ///
 /// **An actor has three times, not two, and all three are computed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017). The PAT (*prêt à tourner*) band comes
-/// from the blocks of the slot naming this role (a shot block through its `shot_characters`, a
-/// hold block through the scene it reserves time for), and the arrival is that band's start minus
-/// this row's resolved lead time — the make-up chair, which is why the lead lives per role and per
-/// day rather than once per film. [leadMinutes] is that figure; when null, this row inherits
-/// [groupId]'s own `shooting_day_groups.leadMinutes` instead, and **this row's own figure wins over
-/// its group's** when both are set.
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): a role is convoked by being linked to a
+/// slot, and every figure about it (arrival, PAT band, departure) is read off every live slot of
+/// the day this row's own [slotId] is one of, joined with every other slot the same role is linked
+/// to — the PAT (*prêt à tourner*) band, in particular, comes from the blocks of those slots naming
+/// this role (a shot block through its `shot_characters`, a hold block through the sequence it
+/// reserves). Nothing here says "how long before" any more — a production that wants an actor in
+/// the make-up chair earlier creates the slot that says so and links the role to it, rather than
+/// typing a lead time beside an ordinary convocation.
 ///
 /// **The role is convoked, not the person**: the actor is read through `roles.personId`, so
 /// recasting a role never rewrites the schedule, and an uncast role convoked anyway is a
@@ -41,14 +41,6 @@ class OcptShootingSlotCastTable extends Table {
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
-
-  /// The `shooting_day_groups` row this convocation belongs to, or null while it belongs to none.
-  /// See the class doc comment.
-  TextColumn get groupId => text().nullable().references(OcptShootingDayGroupsTable, #id)();
-
-  /// This convocation's own lead time, overriding [groupId]'s own figure, or null to use the
-  /// group's — see the class doc comment.
-  IntColumn get leadMinutes => integer().nullable()();
 
   /// Free-form notes about this convocation.
   TextColumn get notes => text().withDefault(const Constant(''))();

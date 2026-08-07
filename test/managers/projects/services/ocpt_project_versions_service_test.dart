@@ -843,7 +843,6 @@ void main() {
                   breakdownTags: payload.breakdownTags,
                   sceneBreakdowns: payload.sceneBreakdowns,
                   shootingDays: payload.shootingDays,
-                  shootingDayGroups: payload.shootingDayGroups,
                   shootingSlots: payload.shootingSlots,
                   shootingSlotCrew: payload.shootingSlotCrew,
                   shootingSlotCast: payload.shootingSlotCast,
@@ -1082,16 +1081,6 @@ void main() {
         await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
         await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
         await database
-            .into(database.ocptShootingDayGroupsTable)
-            .insert(
-              OcptShootingDayGroupsTableCompanion.insert(
-                id: "group-1",
-                shootingDayId: "day-1",
-                label: const Value("Équipe image"),
-                leadMinutes: const Value(20),
-              ),
-            );
-        await database
             .into(database.ocptPeopleTable)
             .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
         await database
@@ -1101,22 +1090,20 @@ void main() {
                 id: "crew-1",
                 slotId: "slot-1",
                 personId: "person-1",
-                groupId: const Value("group-1"),
               ),
             );
 
         final version = await createVersion(name: "v1 — Day planned");
 
         // Diverge: the slot's start minute is edited, its position renamed by the shooting day it
-        // belongs to, a second day is added, and the group is tombstoned (which nulls the crew
-        // row's own groupId).
+        // belongs to, a second day is added, and the crew row is tombstoned.
         await (database.update(
           database.ocptShootingSlotsTable,
         )..where((table) => table.id.equals("slot-1"))).write(
           const OcptShootingSlotsTableCompanion(startMinute: Value(360)),
         );
         await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
-        await scheduleService.deleteGroup(database: database, groupId: "group-1");
+        await scheduleService.removeSlotCrewMember(database: database, crewMemberId: "crew-1");
 
         final result = await restore(version.id);
 
@@ -1140,19 +1127,12 @@ void main() {
         )..where((table) => table.id.equals("day-2"))).getSingle();
         expect(droppedDay.isDeleted, isTrue);
 
-        // The group is restored live again, and the crew row that pointed at it (its `groupId`
-        // written after the group in the same transaction) points at it once more.
-        final restoredGroup = await (database.select(
-          database.ocptShootingDayGroupsTable,
-        )..where((table) => table.id.equals("group-1"))).getSingle();
-        expect(restoredGroup.isDeleted, isFalse);
-        expect(restoredGroup.label, "Équipe image");
-        expect(restoredGroup.leadMinutes, 20);
-
+        // The crew row is restored live again.
         final restoredCrew = await (database.select(
           database.ocptShootingSlotCrewTable,
         )..where((table) => table.id.equals("crew-1"))).getSingle();
-        expect(restoredCrew.groupId, "group-1");
+        expect(restoredCrew.isDeleted, isFalse);
+        expect(restoredCrew.personId, "person-1");
       },
     );
 

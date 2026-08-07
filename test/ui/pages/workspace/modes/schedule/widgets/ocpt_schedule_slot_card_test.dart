@@ -223,8 +223,6 @@ void main() {
         personId: "person-1",
         positionId: "director",
         customLabel: "",
-        groupId: null,
-        leadMinutes: null,
         notes: "",
       ),
     ];
@@ -233,8 +231,6 @@ void main() {
         id: "cast-1",
         slotId: "slot-1",
         roleId: "role-1",
-        groupId: null,
-        leadMinutes: null,
         notes: "",
       ),
     ];
@@ -268,8 +264,6 @@ void main() {
         personId: "person-1",
         positionId: "director",
         customLabel: "",
-        groupId: null,
-        leadMinutes: null,
         notes: "",
       ),
     ];
@@ -278,8 +272,6 @@ void main() {
         id: "cast-1",
         slotId: "slot-1",
         roleId: "role-1",
-        groupId: null,
-        leadMinutes: null,
         notes: "",
       ),
     ];
@@ -381,8 +373,6 @@ void main() {
           personId: "person-1",
           positionId: "director",
           customLabel: "",
-          groupId: null,
-          leadMinutes: null,
           notes: "",
         ),
       ];
@@ -391,8 +381,6 @@ void main() {
           id: "cast-1",
           slotId: "slot-1",
           roleId: "role-1",
-          groupId: null,
-          leadMinutes: null,
           notes: "",
         ),
       ];

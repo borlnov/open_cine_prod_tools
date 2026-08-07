@@ -82,8 +82,6 @@ void main() {
               id: "cast-1",
               slotId: "slot-1",
               roleId: "role-1",
-              groupId: null,
-              leadMinutes: null,
               notes: "",
             ),
           ],
@@ -114,7 +112,6 @@ void main() {
         final snapshot = OcptScheduleSnapshot.build(
           screenplayId: "screenplay-1",
           days: [day],
-          groupsByDayId: const {},
           slotsByDayId: {
             "day-1": [slot],
           },
@@ -151,8 +148,6 @@ void main() {
             id: "cast-1",
             slotId: "slot-1",
             roleId: "role-1",
-            groupId: null,
-            leadMinutes: null,
             notes: "",
           ),
         ],
@@ -171,7 +166,6 @@ void main() {
       final snapshot = OcptScheduleSnapshot.build(
         screenplayId: "screenplay-1",
         days: [day],
-        groupsByDayId: const {},
         slotsByDayId: {
           "day-1": [slot],
         },
@@ -232,7 +226,6 @@ void main() {
       final snapshot = OcptScheduleSnapshot.build(
         screenplayId: "screenplay-1",
         days: [day],
-        groupsByDayId: const {},
         slotsByDayId: {
           "day-1": [laterSlot, earlySlot],
         },
@@ -283,7 +276,6 @@ void main() {
       final snapshot = OcptScheduleSnapshot.build(
         screenplayId: "screenplay-1",
         days: [day],
-        groupsByDayId: const {},
         slotsByDayId: const {},
         blocksByDayId: {
           "day-1": [
@@ -304,7 +296,6 @@ void main() {
       final snapshot = OcptScheduleSnapshot.build(
         screenplayId: "screenplay-1",
         days: [dayThree, dayFive],
-        groupsByDayId: const {},
         slotsByDayId: const {},
         blocksByDayId: {
           "day-2": [buildShotBlock(id: "block-2", slotId: "slot-2", shotId: "shot-1")],
@@ -322,7 +313,6 @@ void main() {
       final snapshot = OcptScheduleSnapshot.build(
         screenplayId: "screenplay-1",
         days: [day],
-        groupsByDayId: const {},
         slotsByDayId: const {},
         blocksByDayId: const {},
       );

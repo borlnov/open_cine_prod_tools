@@ -43,7 +43,6 @@ void main() {
     breakdownTags: const [],
     sceneBreakdowns: const [],
     shootingDays: const [],
-    shootingDayGroups: const [],
     shootingSlots: const [],
     shootingSlotCrew: const [],
     shootingSlotCast: const [],

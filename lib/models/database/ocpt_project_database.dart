@@ -30,7 +30,6 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snap
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_groups_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_presences_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_cast_table.dart';
@@ -95,9 +94,13 @@ part 'ocpt_project_database.g.dart';
 /// inside them ([OcptShootingSlotsTable]) and who is convoked during one, crew
 /// ([OcptShootingSlotCrewTable]) and cast ([OcptShootingSlotCastTable]), each day's timetable
 /// ([OcptShootingDayBlocksTable]) and the by-hand overrides of the presence grid
-/// ([OcptShootingPresencesTable]). From schema version 12 it also holds the named lead times a day
-/// carries ([OcptShootingDayGroupsTable]), that a `shooting_slot_crew`/`shooting_slot_cast` row may
-/// point at. `OcptProjectsManager` owns the single instance open at a time.
+/// ([OcptShootingPresencesTable]). Schema version 12 briefly added the named lead times a day
+/// carried (`shooting_day_groups`), that a `shooting_slot_crew`/`shooting_slot_cast` row could
+/// point at; schema version 13 drops that table again, and the `groupId`/`leadMinutes` columns of
+/// those two convocation tables with it — a convocation is read off the slots a person or a role is
+/// linked to from here on, never offset by a typed figure (see
+/// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). `OcptProjectsManager` owns the
+/// single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -125,7 +128,6 @@ part 'ocpt_project_database.g.dart';
     OcptBreakdownTagsTable,
     OcptSceneBreakdownsTable,
     OcptShootingDaysTable,
-    OcptShootingDayGroupsTable,
     OcptShootingSlotsTable,
     OcptShootingSlotCrewTable,
     OcptShootingSlotCastTable,
@@ -201,7 +203,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   /// The database options used by this database.
   ///
@@ -244,22 +246,28 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// placement is the only truth from here on, a shooting day is always dated, and a free-text `J3`
   /// carries no date to migrate from, so a blank column is the only honest reading. It needs no
   /// `row_field_versions` stamp — every replica performs the same erasure, deterministically, as
-  /// part of the migration itself. From 11 to 12 it creates [OcptShootingDayGroupsTable] and, on a
+  /// part of the migration itself. From 11 to 12 it fixes up `shooting_day_blocks.slot_id` on a
   /// file that already had the other five schedule tables in their v11 shape (see
-  /// [_assignOrphanBlocksToFirstSlot] and [_alterScheduleTablesToV12]), fixes up
-  /// `shooting_day_blocks.slot_id` — assigning an orphan one (null, or naming a slot that isn't
-  /// live) to its day's first live slot, or dropping the block outright when its day has no live
-  /// slot at all — before reshaping the four tables schema version 12 changes:
-  /// `shooting_slots`'
-  /// `crewCallMinute` renamed `startMinute` and its `crewWrapMinute`/`castCallMinute`/
-  /// `castWrapMinute` dropped, `shooting_day_blocks.slotId` made non-null and gaining the nullable
-  /// `sceneId` a `hold` names its sequence by, and
-  /// `shooting_slot_crew`/`shooting_slot_cast` trading their own typed minute columns for a nullable
-  /// `groupId`/`leadMinutes` pair. Every step is additive, as ADR 0007 requires: every new column
-  /// carries a default (or is nullable), so the rows a project already had stay valid without being
-  /// rewritten — the one exception being version 12's column drops and the `NOT NULL` it adds to
-  /// `shooting_day_blocks.slotId`, which is why that step alone reshapes existing tables through
-  /// [Migrator.alterTable] rather than a plain `addColumn`.
+  /// [_assignOrphanBlocksToFirstSlot] and [_alterScheduleTablesToV12]) — assigning an orphan one
+  /// (null, or naming a slot that isn't live) to its day's first live slot, or dropping the block
+  /// outright when its day has no live slot at all — before reshaping the tables schema version 12
+  /// changed: `shooting_slots`' `crewCallMinute` renamed `startMinute` and its
+  /// `crewWrapMinute`/`castCallMinute`/`castWrapMinute` dropped, `shooting_day_blocks.slotId` made
+  /// non-null and gaining the nullable `sceneId` a `hold` names its sequence by, and
+  /// `shooting_slot_crew`/`shooting_slot_cast` dropping their own typed minute columns — landing
+  /// directly on the shape schema version 13 settles on, since neither table gains the
+  /// `groupId`/`leadMinutes` pair version 12 briefly added and version 13 removes again. From 12 to
+  /// 13 it drops `shooting_day_groups` outright ([Migrator.deleteTable], harmless whether or not
+  /// the file ever held the table) and, on a file that genuinely carried version 12's shape (see
+  /// [_alterScheduleTablesToV13]), drops the `groupId`/`leadMinutes` columns
+  /// `shooting_slot_crew`/`shooting_slot_cast` briefly gained: a convocation is read off the slots a
+  /// person or a role is linked to from here on, never offset by a typed figure (see
+  /// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). Every step is additive, as
+  /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
+  /// already had stay valid without being rewritten — the exceptions being version 12's column
+  /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, and version 13's own column
+  /// and table drops, none of which a plain `addColumn` can express, which is why both versions
+  /// reshape existing tables through [Migrator.alterTable]/[Migrator.deleteTable] instead.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -369,12 +377,16 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         }
       }
 
-      if (from < 12) {
-        await m.createTable(ocptShootingDayGroupsTable);
+      if (from < 12 && from >= 11) {
+        await _assignOrphanBlocksToFirstSlot();
+        await _alterScheduleTablesToV12(m);
+      }
 
-        if (from >= 11) {
-          await _assignOrphanBlocksToFirstSlot();
-          await _alterScheduleTablesToV12(m);
+      if (from < 13) {
+        await m.deleteTable('shooting_day_groups');
+
+        if (from >= 12) {
+          await _alterScheduleTablesToV13(m);
         }
       }
     },
@@ -499,7 +511,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// Reshapes the four schedule tables whose shape changes in place, on the way to schema version
   /// 12 — guarded by `from >= 11` at its call site
   /// for the same reason [_assignOrphanBlocksToFirstSlot] is: a file from below 11 has just had
-  /// these tables created fresh in their current (already v12) shape, so there is nothing left here
+  /// these tables created fresh in their current (already v13) shape, so there is nothing left here
   /// to reshape.
   ///
   /// Drift's migrator has no plain "rename column" or "drop column" step — its picture of a table
@@ -516,11 +528,13 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// simply absent from the target shape and therefore dropped with no further action.
   /// `shooting_day_blocks.slot_id` is carried across unchanged — [_assignOrphanBlocksToFirstSlot] has
   /// already made sure every row holds one, which is what lets the freshly `NOT NULL` column accept
-  /// it. `shooting_slot_crew`/`shooting_slot_cast` each drop their own typed minute columns and gain
-  /// a nullable `group_id`/`lead_minutes` pair: **nothing tries to reconstruct a lead time out of
-  /// the dropped clocks** — a figure guessed from a timetable that has since moved would be worse
-  /// than the zero every row starts at — so neither is given a transformer, and both simply come
-  /// back null.
+  /// it. `shooting_slot_crew`/`shooting_slot_cast` each simply drop their own typed minute columns:
+  /// this once left them gaining a nullable `group_id`/`lead_minutes` pair (schema version 12), but
+  /// that pair is itself gone from the *current* Dart declaration schema version 13 dropped it from
+  /// (`docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`), so a file reshaped straight
+  /// from its v11 shape by this method lands directly on the current, group-less columns — nothing
+  /// is reconstructed out of the dropped clocks, exactly as nothing was reconstructed when this
+  /// method briefly added that pair.
   ///
   /// `TableMigration` is drift's own documented recipe for exactly this kind of reshape, still
   /// marked `@experimental`; the four `// ignore: experimental_member_use` below accept that,
@@ -553,21 +567,48 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     );
 
     await m.alterTable(
-      // Same as above: only the destination shape is new.
+      // Same as above: only the destination shape is new — no `newColumns` here, since the current
+      // declaration adds none over what a v11 row already had, once its typed minute columns are
+      // gone.
       // ignore: experimental_member_use
-      TableMigration(
-        ocptShootingSlotCrewTable,
-        newColumns: [ocptShootingSlotCrewTable.groupId, ocptShootingSlotCrewTable.leadMinutes],
-      ),
+      TableMigration(ocptShootingSlotCrewTable),
     );
 
     await m.alterTable(
-      // Same as above: only the destination shape is new.
+      // Same as above.
       // ignore: experimental_member_use
-      TableMigration(
-        ocptShootingSlotCastTable,
-        newColumns: [ocptShootingSlotCastTable.groupId, ocptShootingSlotCastTable.leadMinutes],
-      ),
+      TableMigration(ocptShootingSlotCastTable),
+    );
+  }
+
+  /// Drops `group_id` and `lead_minutes` off `shooting_slot_crew`/`shooting_slot_cast`, on the way
+  /// to schema version 13 — guarded by `from >= 12` at its call site: a file from below 12 either
+  /// never had those columns at all, or has just been reshaped straight past them by
+  /// [_alterScheduleTablesToV12] above, whose own crew/cast steps already target the same
+  /// column-less shape this method targets for a file that genuinely reached version 12.
+  ///
+  /// Each table goes through the same [Migrator.alterTable]/`TableMigration` recipe
+  /// [_alterScheduleTablesToV12] uses, and for the same reason — drift's migrator has no plain "drop
+  /// column" step. Neither call passes `newColumns`: nothing is being added, only dropped, so the
+  /// stock rewrite (create the current shape under a temporary name, copy the columns that still
+  /// exist, drop the old table, rename the temporary one) is all either table needs. A convocation's
+  /// arrival, readiness band and departure are read off the slots a person or a role is linked to
+  /// from here on rather than offset by a typed lead time
+  /// (`docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`), and, as with every dropped
+  /// column this app has migrated away from, **nothing is reconstructed**: a lead time a file
+  /// carried is not turned into a slot nobody asked for.
+  Future<void> _alterScheduleTablesToV13(Migrator m) async {
+    await m.alterTable(
+      // TableMigration is drift's documented, if still @experimental, recipe for a column drop: see
+      // the method's own doc comment.
+      // ignore: experimental_member_use
+      TableMigration(ocptShootingSlotCrewTable),
+    );
+
+    await m.alterTable(
+      // Same as above.
+      // ignore: experimental_member_use
+      TableMigration(ocptShootingSlotCastTable),
     );
   }
 

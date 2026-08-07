@@ -58,7 +58,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 7;
+  static const currentPayloadFormat = 8;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -125,7 +125,8 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse the `shooting_days` rows from a JSON object
   static const _shootingDaysKey = "shootingDays";
 
-  /// This is the key used to stringify or parse the `shooting_day_groups` rows from a JSON object
+  /// The key a payload of format 7 stored the `shooting_day_groups` rows under — read only by
+  /// [_upgradeFormat7To8], which drops it: the table itself is gone from format 8 on.
   static const _shootingDayGroupsKey = "shootingDayGroups";
 
   /// This is the key used to stringify or parse the `shooting_slots` rows from a JSON object
@@ -629,13 +630,15 @@ class OcptProjectVersionCodec {
   /// JSON object
   static const _anchorMinuteKey = "anchorMinute";
 
-  /// This is the key used to stringify or parse a `groupId` column (`shooting_slot_crew` or
-  /// `shooting_slot_cast`) from a JSON object: the `shooting_day_groups` row a convocation belongs
-  /// to, from payload format 7 on.
+  /// The key a `shooting_slot_crew`/`shooting_slot_cast` row of payload format 7 stored its
+  /// `groupId` column under: the `shooting_day_groups` row a convocation briefly could belong to.
+  /// Read by [_upgradeFormat6To7], which writes it as null, and by [_upgradeFormat7To8], which
+  /// drops it again — the column itself is gone from format 8 on.
   static const _groupIdKey = "groupId";
 
-  /// This is the key used to stringify or parse a `leadMinutes` column (`shooting_day_groups`,
-  /// `shooting_slot_crew` or `shooting_slot_cast`) from a JSON object, from payload format 7 on.
+  /// The key a payload-format-7 row (`shooting_slot_crew` or `shooting_slot_cast`) stored its
+  /// `leadMinutes` column under. Read by [_upgradeFormat6To7], which writes it as null, and by
+  /// [_upgradeFormat7To8], which drops it again — the column itself is gone from format 8 on.
   static const _leadMinutesKey = "leadMinutes";
 
   /// This is the key used to stringify or parse a version stamp's `tableName` column from a JSON
@@ -691,6 +694,7 @@ class OcptProjectVersionCodec {
     4: _upgradeFormat4To5,
     5: _upgradeFormat5To6,
     6: _upgradeFormat6To7,
+    7: _upgradeFormat7To8,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -897,6 +901,40 @@ class OcptProjectVersionCodec {
     };
   }
 
+  /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
+  /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
+  /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
+  /// a role is linked to from here on, never offset by a typed lead time.
+  ///
+  /// This is the first upgrade step that **removes rather than materialises**, and it is a third
+  /// kind of change alongside the two the earlier steps already show: [_upgradeFormat5To6]
+  /// materialises an **empty list** for a table that genuinely held nothing at the moment it was
+  /// captured, and [_upgradeFormat3To4] writes a **null** for a value that did exist but was never
+  /// recorded, to be left untouched on restore. Here there is no working-copy value to leave
+  /// untouched and no truthful "there were none" to state about the moment of capture — a version
+  /// captured in format 7 genuinely *did* carry groups and lead times, typed by a user who is owed
+  /// an honest account of what became of them. **Nothing is reconstructed**: a lead time is not
+  /// turned into a slot nobody asked for, exactly as the v11-to-v12 schema migration reconstructed
+  /// nothing out of the typed clocks it dropped. A version restored from a format-7 payload
+  /// therefore comes back with every crew and cast row it held, simply carrying no lead time and no
+  /// group any more, because the project being restored into no longer has a concept for either to
+  /// mean anything.
+  static Map<String, dynamic> _upgradeFormat7To8(Map<String, dynamic> json) {
+    final crew = [
+      for (final row in _rows(json, _shootingSlotCrewKey))
+        ({...row}..remove(_groupIdKey)..remove(_leadMinutesKey)),
+    ];
+
+    final cast = [
+      for (final row in _rows(json, _shootingSlotCastKey))
+        ({...row}..remove(_groupIdKey)..remove(_leadMinutesKey)),
+    ];
+
+    final upgraded = {...json}..remove(_shootingDayGroupsKey);
+
+    return {...upgraded, _shootingSlotCrewKey: crew, _shootingSlotCastKey: cast};
+  }
+
   /// Class constructor
   const OcptProjectVersionCodec();
 
@@ -928,9 +966,6 @@ class OcptProjectVersionCodec {
     _breakdownTagsKey: [for (final row in payload.breakdownTags) _breakdownTagToJson(row)],
     _sceneBreakdownsKey: [for (final row in payload.sceneBreakdowns) _sceneBreakdownToJson(row)],
     _shootingDaysKey: [for (final row in payload.shootingDays) _shootingDayToJson(row)],
-    _shootingDayGroupsKey: [
-      for (final row in payload.shootingDayGroups) _shootingDayGroupToJson(row),
-    ],
     _shootingSlotsKey: [for (final row in payload.shootingSlots) _shootingSlotToJson(row)],
     _shootingSlotCrewKey: [
       for (final row in payload.shootingSlotCrew) _shootingSlotCrewToJson(row),
@@ -1010,7 +1045,7 @@ class OcptProjectVersionCodec {
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
   ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
   ///   `sceneSets`, `elements`, `sceneElements`, `assets`, `breakdownTags`, `sceneBreakdowns`,
-  ///   `shootingDays`, `shootingDayGroups`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
+  ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
   ///   `shootingDayBlocks`, `shootingPresences` — every column of each — plus `pageSetup.format`,
   ///   `settingsJson` and `currencyCode`. This is
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
@@ -1019,7 +1054,7 @@ class OcptProjectVersionCodec {
   ///   resources in, and a restore would skip the safety version it promised to keep. The breakdown
   ///   tables are exactly the same case, one step later in the project's life: leave them out and an
   ///   afternoon spent tagging the script, or marking scenes done, would hash identically to a
-  ///   screenplay nobody has ever broken down. The seven schedule tables are the same case again, one
+  ///   screenplay nobody has ever broken down. The six schedule tables are the same case again, one
   ///   milestone later: leave them out and planning a whole shoot — a day added, a slot crewed, a
   ///   shot placed onto a block — would hash identically to a project nobody has ever scheduled, so
   ///   the working-copy card would claim no drift and a restore over that afternoon's work would skip
@@ -1129,11 +1164,6 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _shootingDayToJson,
       ),
-      _shootingDayGroupsKey: _canonicalRows(
-        payload.shootingDayGroups,
-        primaryKeyOf: (row) => row.id,
-        toJson: _shootingDayGroupToJson,
-      ),
       _shootingSlotsKey: _canonicalRows(
         payload.shootingSlots,
         primaryKeyOf: (row) => row.id,
@@ -1238,9 +1268,6 @@ class OcptProjectVersionCodec {
         for (final row in _rows(json, _sceneBreakdownsKey)) _sceneBreakdownFromJson(row),
       ],
       shootingDays: [for (final row in _rows(json, _shootingDaysKey)) _shootingDayFromJson(row)],
-      shootingDayGroups: [
-        for (final row in _rows(json, _shootingDayGroupsKey)) _shootingDayGroupFromJson(row),
-      ],
       shootingSlots: [for (final row in _rows(json, _shootingSlotsKey)) _shootingSlotFromJson(row)],
       shootingSlotCrew: [
         for (final row in _rows(json, _shootingSlotCrewKey)) _shootingSlotCrewFromJson(row),
@@ -1885,27 +1912,6 @@ class OcptProjectVersionCodec {
     isDeleted: _bool(json, _isDeletedKey),
   );
 
-  /// Serializes one `shooting_day_groups` row.
-  static Map<String, dynamic> _shootingDayGroupToJson(OcptShootingDayGroupRow row) => {
-    _idKey: row.id,
-    _shootingDayIdKey: row.shootingDayId,
-    _sortKeyKey: row.sortKey,
-    _labelKey: row.label,
-    _leadMinutesKey: row.leadMinutes,
-    _isDeletedKey: row.isDeleted,
-  };
-
-  /// Parses one `shooting_day_groups` row.
-  static OcptShootingDayGroupRow _shootingDayGroupFromJson(Map<String, dynamic> json) =>
-      OcptShootingDayGroupRow(
-        id: _string(json, _idKey),
-        shootingDayId: _string(json, _shootingDayIdKey),
-        sortKey: _string(json, _sortKeyKey),
-        label: _string(json, _labelKey),
-        leadMinutes: _int(json, _leadMinutesKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
-
   /// Serializes one `shooting_slots` row.
   static Map<String, dynamic> _shootingSlotToJson(OcptShootingSlotRow row) => {
     _idKey: row.id,
@@ -1941,8 +1947,6 @@ class OcptProjectVersionCodec {
     _personIdKey: row.personId,
     _positionIdKey: row.positionId,
     _customLabelKey: row.customLabel,
-    _groupIdKey: row.groupId,
-    _leadMinutesKey: row.leadMinutes,
     _notesKey: row.notes,
     _isDeletedKey: row.isDeleted,
   };
@@ -1956,8 +1960,6 @@ class OcptProjectVersionCodec {
         personId: _string(json, _personIdKey),
         positionId: _string(json, _positionIdKey),
         customLabel: _string(json, _customLabelKey),
-        groupId: _nullableString(json, _groupIdKey),
-        leadMinutes: _nullableInt(json, _leadMinutesKey),
         notes: _string(json, _notesKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
@@ -1968,8 +1970,6 @@ class OcptProjectVersionCodec {
     _slotIdKey: row.slotId,
     _roleIdKey: row.roleId,
     _sortKeyKey: row.sortKey,
-    _groupIdKey: row.groupId,
-    _leadMinutesKey: row.leadMinutes,
     _notesKey: row.notes,
     _isDeletedKey: row.isDeleted,
   };
@@ -1981,8 +1981,6 @@ class OcptProjectVersionCodec {
         slotId: _string(json, _slotIdKey),
         roleId: _string(json, _roleIdKey),
         sortKey: _string(json, _sortKeyKey),
-        groupId: _nullableString(json, _groupIdKey),
-        leadMinutes: _nullableInt(json, _leadMinutesKey),
         notes: _string(json, _notesKey),
         isDeleted: _bool(json, _isDeletedKey),
       );

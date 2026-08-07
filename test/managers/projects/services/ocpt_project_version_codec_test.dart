@@ -571,24 +571,6 @@ void main() {
         isDeleted: true,
       ),
     ],
-    shootingDayGroups: const [
-      OcptShootingDayGroupRow(
-        id: "group-1",
-        shootingDayId: "day-1",
-        sortKey: "V",
-        label: "Équipe image",
-        leadMinutes: 20,
-        isDeleted: false,
-      ),
-      OcptShootingDayGroupRow(
-        id: "group-2",
-        shootingDayId: "day-1",
-        sortKey: "k",
-        label: "",
-        leadMinutes: 0,
-        isDeleted: true,
-      ),
-    ],
     shootingSlots: const [
       OcptShootingSlotRow(
         id: "slot-1",
@@ -621,7 +603,6 @@ void main() {
         personId: "person-1",
         positionId: "director",
         customLabel: "",
-        leadMinutes: 40,
         notes: "Called ahead of the rest of the crew",
         isDeleted: false,
       ),
@@ -632,7 +613,6 @@ void main() {
         personId: "person-1",
         positionId: "",
         customLabel: "Régie",
-        groupId: "group-1",
         notes: "",
         isDeleted: true,
       ),
@@ -643,7 +623,6 @@ void main() {
         slotId: "slot-1",
         roleId: "role-1",
         sortKey: "V",
-        leadMinutes: 45,
         notes: "Hair and make-up before PAT",
         isDeleted: false,
       ),
@@ -652,7 +631,6 @@ void main() {
         slotId: "slot-1",
         roleId: "role-2",
         sortKey: "k",
-        groupId: "group-1",
         notes: "",
         isDeleted: true,
       ),
@@ -923,7 +901,7 @@ void main() {
       expect(doneScene.isDeleted, isTrue);
     });
 
-    test('every column of the seven schedule tables round trips, enums and nulls included', () {
+    test('every column of the six schedule tables round trips, enums and nulls included', () {
       final roundTripped = roundTrip(buildRichPayload());
 
       final day = roundTripped.shootingDays.firstWhere((row) => row.id == "day-1");
@@ -938,18 +916,6 @@ void main() {
       final cancelledDay = roundTripped.shootingDays.firstWhere((row) => row.id == "day-2");
       expect(cancelledDay.status, OcptShootingDayStatus.cancelled);
       expect(cancelledDay.isDeleted, isTrue);
-
-      final group = roundTripped.shootingDayGroups.firstWhere((row) => row.id == "group-1");
-      expect(group.shootingDayId, "day-1");
-      expect(group.label, "Équipe image");
-      expect(group.leadMinutes, 20);
-      expect(group.isDeleted, isFalse);
-      final deletedGroup = roundTripped.shootingDayGroups.firstWhere(
-        (row) => row.id == "group-2",
-      );
-      expect(deletedGroup.label, "");
-      expect(deletedGroup.leadMinutes, 0);
-      expect(deletedGroup.isDeleted, isTrue);
 
       final slot = roundTripped.shootingSlots.firstWhere((row) => row.id == "slot-1");
       expect(slot.shootingDayId, "day-1");
@@ -970,23 +936,15 @@ void main() {
       expect(crew.personId, "person-1");
       expect(crew.positionId, "director");
       expect(crew.customLabel, "");
-      expect(crew.groupId, isNull);
-      expect(crew.leadMinutes, 40);
       final customCrew = roundTripped.shootingSlotCrew.firstWhere((row) => row.id == "crew-2");
       expect(customCrew.positionId, "");
       expect(customCrew.customLabel, "Régie");
-      expect(customCrew.groupId, "group-1");
-      expect(customCrew.leadMinutes, isNull);
       expect(customCrew.isDeleted, isTrue);
 
       final cast = roundTripped.shootingSlotCast.firstWhere((row) => row.id == "cast-1");
       expect(cast.slotId, "slot-1");
       expect(cast.roleId, "role-1");
-      expect(cast.groupId, isNull);
-      expect(cast.leadMinutes, 45);
       final unsetCast = roundTripped.shootingSlotCast.firstWhere((row) => row.id == "cast-2");
-      expect(unsetCast.groupId, "group-1");
-      expect(unsetCast.leadMinutes, isNull);
       expect(unsetCast.isDeleted, isTrue);
 
       final shotBlock = roundTripped.shootingDayBlocks.firstWhere((row) => row.id == "block-1");
@@ -1081,7 +1039,6 @@ void main() {
         breakdownTags: [],
         sceneBreakdowns: [],
         shootingDays: [],
-        shootingDayGroups: [],
         shootingSlots: [],
         shootingSlotCrew: [],
         shootingSlotCast: [],
@@ -1131,7 +1088,6 @@ void main() {
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
         shootingDays: payload.shootingDays.reversed.toList(),
-        shootingDayGroups: payload.shootingDayGroups.reversed.toList(),
         shootingSlots: payload.shootingSlots.reversed.toList(),
         shootingSlotCrew: payload.shootingSlotCrew.reversed.toList(),
         shootingSlotCast: payload.shootingSlotCast.reversed.toList(),
@@ -1169,7 +1125,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1215,7 +1170,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1264,7 +1218,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1302,7 +1255,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1340,7 +1292,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1380,7 +1331,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1431,7 +1381,6 @@ void main() {
         ],
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1478,7 +1427,6 @@ void main() {
         ],
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1519,7 +1467,6 @@ void main() {
         ],
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1560,7 +1507,6 @@ void main() {
           ...payload.sceneBreakdowns.skip(1),
         ],
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1601,7 +1547,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1654,7 +1599,6 @@ void main() {
             isDeleted: false,
           ),
         ],
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1694,7 +1638,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: [
           payload.shootingSlots.first.copyWith(startMinute: 360),
           ...payload.shootingSlots.skip(1),
@@ -1735,7 +1678,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1776,7 +1718,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1823,7 +1764,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -1864,7 +1804,6 @@ void main() {
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
-        shootingDayGroups: payload.shootingDayGroups,
         shootingSlots: payload.shootingSlots,
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
@@ -2388,27 +2327,20 @@ void main() {
         expect(result.status, OcptProjectVersionPayloadStatus.ok);
         final payload = result.value!;
 
-        // (a) shootingDayGroups materialises as an empty list: this payload predates groups
-        // entirely, so "no groups" is a truthful statement about that moment.
-        expect(payload.shootingDayGroups, isEmpty);
-
-        // (b) every slot gains startMinute from its old crewCallMinute; the three dropped columns
+        // (a) every slot gains startMinute from its old crewCallMinute; the three dropped columns
         // simply aren't read any more (there is no field left on the row to read them through).
         final firstSlot = payload.shootingSlots.firstWhere((row) => row.id == "slot-first");
         expect(firstSlot.startMinute, 480);
         final secondSlot = payload.shootingSlots.firstWhere((row) => row.id == "slot-second");
         expect(secondSlot.startMinute, 600);
 
-        // (c) the crew and cast rows survived, their old clock overrides simply dropped rather
-        // than reconstructed into a lead time or a group.
-        final crew = payload.shootingSlotCrew.single;
-        expect(crew.groupId, isNull);
-        expect(crew.leadMinutes, isNull);
-        final cast = payload.shootingSlotCast.single;
-        expect(cast.groupId, isNull);
-        expect(cast.leadMinutes, isNull);
+        // (b) the crew and cast rows survived their old clock overrides being dropped, and — this
+        // payload also being carried straight through the format-7-to-8 step, since decoding always
+        // upgrades to the current format — carry no group or lead time column at all any more.
+        expect(payload.shootingSlotCrew.single.personId, "person-1");
+        expect(payload.shootingSlotCast.single.roleId, "role-1");
 
-        // (d) the block already pointing at a live slot keeps it; the orphan on day-1 lands on
+        // (c) the block already pointing at a live slot keeps it; the orphan on day-1 lands on
         // that day's first slot in this same payload — "slot-first" (sortKey "a", ahead of
         // "slot-second"'s "b") — despite being declared second in the JSON; the orphan whose day
         // (day-2) carries no slot at all is dropped from the list entirely.
@@ -2421,9 +2353,128 @@ void main() {
         );
         expect(orphanBlock.slotId, "slot-first");
 
-        // (e) no block names a scene: the column is new, and the free text a format-6 hold carries
+        // (d) no block names a scene: the column is new, and the free text a format-6 hold carries
         // is not a scene id to read one out of.
         expect(payload.shootingDayBlocks.every((row) => row.sceneId == null), isTrue);
+      },
+    );
+
+    test(
+      'a stored format-7 payload decodes with the groups and lead times gone',
+      () {
+        // The shape milestone M1' shipped: shooting_day_groups exists and carries a row, and
+        // shooting_slot_crew/shooting_slot_cast each carry a groupId and a leadMinutes value —
+        // all of it dropped by ADR 0018's own half of the codec, [_upgradeFormat7To8].
+        const format7Payload = '''
+{
+  "payloadFormat": 7,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [],
+  "locationAvailabilities": [],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [],
+  "sceneElements": [],
+  "assets": [],
+  "breakdownTags": [],
+  "sceneBreakdowns": [],
+  "shootingDays": [
+    {
+      "id": "day-1",
+      "screenplayId": "screenplay-1",
+      "date": "2026-03-10T00:00:00.000Z",
+      "sortKey": "V",
+      "status": "planned",
+      "crewNote": "",
+      "weatherNote": "",
+      "notes": "",
+      "isDeleted": false
+    }
+  ],
+  "shootingDayGroups": [
+    {
+      "id": "group-1",
+      "shootingDayId": "day-1",
+      "sortKey": "V",
+      "label": "Équipe image",
+      "leadMinutes": 20,
+      "isDeleted": false
+    }
+  ],
+  "shootingSlots": [
+    {
+      "id": "slot-1",
+      "shootingDayId": "day-1",
+      "sortKey": "V",
+      "label": "",
+      "locationId": null,
+      "setId": null,
+      "startMinute": 480,
+      "notes": "",
+      "isDeleted": false
+    }
+  ],
+  "shootingSlotCrew": [
+    {
+      "id": "crew-1",
+      "slotId": "slot-1",
+      "sortKey": "V",
+      "personId": "person-1",
+      "positionId": "director",
+      "customLabel": "",
+      "groupId": "group-1",
+      "leadMinutes": null,
+      "notes": "",
+      "isDeleted": false
+    }
+  ],
+  "shootingSlotCast": [
+    {
+      "id": "cast-1",
+      "slotId": "slot-1",
+      "roleId": "role-1",
+      "sortKey": "V",
+      "groupId": null,
+      "leadMinutes": 45,
+      "notes": "",
+      "isDeleted": false
+    }
+  ],
+  "shootingDayBlocks": [],
+  "shootingPresences": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null, "currencyCode": "EUR" },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+        final result = codec.decode(format7Payload);
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        final payload = result.value!;
+
+        // The group and the lead times it and the two convocations carried are all gone — not
+        // reconstructed into anything, exactly as a format-6 payload's typed clocks are not
+        // reconstructed into a lead time.
+        final crew = payload.shootingSlotCrew.single;
+        expect(crew.personId, "person-1");
+        expect(crew.positionId, "director");
+        final cast = payload.shootingSlotCast.single;
+        expect(cast.roleId, "role-1");
       },
     );
   });
