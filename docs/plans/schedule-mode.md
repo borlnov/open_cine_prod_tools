@@ -32,10 +32,10 @@ more.
 | **Convocations read off the slots alone** | ADR 0018 superseding ADR 0017, `ocptComputeDayConvocations`, schema v13 and payload format 8 dropping `shooting_day_groups` and both lead-time columns, the groups band and the card clocks gone, and the `Convocations` dock tab. |
 | **A slot anchored by either edge** | ADR 0015 amended a second time, schema v14 and payload format 9 replacing `shooting_slots.startMinute` with the anchor trio, the resolution in `ocptComputeShootingDayTimelines` with its two new records and `ocptSlotAnchorWouldCycle`, `setSlotAnchor` with `duplicateDay`'s remap and `deleteSlot`'s freeze, the slot card's anchor menu, and every reader of a slot's hour moved onto the resolved one. |
 | **The resources sheets** | Not schedule work, but the branch's: the colour palette out of its `MenuItemButton`s, `OcptAssetsService` and the three orphaned asset columns behind one photo-slot menu, and schema v15 / payload format 10's `role_elements` with its card on the role sheet and its read-out on the element one. |
+| **A convoked person's position, pre-filled** | `ocptCrewPositionPrefillOf` (`lib/utils/`, pure), `OcptScheduleService.addSlotCrewMember` landing a fresh crew row on the person's first declared position not already taken on that slot, the slot card's picker promoting the declared ones and refusing the taken ones, and the person sheet's `Portée` column deleted with its ARB key. |
 
-What is left is three milestones, in the order below: **M2 pre-fills a convoked person's position
-from the address book**, **M3 prints the paperwork**, **M4 shows what the plan is about to
-break**.
+What is left is two milestones, in the order below: **M3 prints the paperwork**, **M4 shows what the
+plan is about to break**.
 
 M1 came first on purpose, and has shipped: it changed what "the hour of a slot" *is*, and every
 reader of that figure — the three agendas, the convocations, the day inspector — followed. Printing
@@ -85,51 +85,11 @@ as such rather than quietly dropped.
 | Named call sheets | One folder, **one PDF per person**. |
 | Extras | Ordinary `extra` roles; a nameless crowd is said in the crew note. |
 | Actual times | **Not recorded** — this mode says what is planned. |
-| Cast rows | **Unchanged this round.** The cast picker keeps its casting order and its current behaviour; M2 is about crew positions only. |
-| The person sheet's `Portée` column | **Dropped.** When a position is held is the schedule's answer, and writing it on the sheet too would be a second copy of one truth. |
 | ~~An actor has three times: arrival and a PAT band~~ | Replaced by ADR 0018: arrival, PAT band and departure, all computed, for crew and cast alike. |
 | ~~A convocation is a band minus a typed lead time~~ | Replaced by ADR 0018: a convocation is the slot you are linked to. |
 | ~~A slot owns one typed clock and no other, its `startMinute`~~ | Replaced by ADR 0015's second amendment: a slot owns **one anchored edge**, which may be its end, and whose hour may be read off another slot. |
 
-## 4. M2 — a convoked person's position, pre-filled
-
-**Goal: `person_positions` finally feeds the schedule instead of looking like a duplicate of it.**
-
-The two tables answer different questions — the address book says *that* someone is a chief
-operator on this film, the slot says *when* and *at which post* on a given day, and one person may
-hold two posts in one slot. What made them look redundant is that nothing ever joined them: the
-slot's position picker offers the whole `ocptCrewPositions` catalogue without once looking at what
-the person declared.
-
-- A pure helper under `lib/utils/`, tested: given a person's declared positions (in their display
-  order) and the crew rows that person already has **on that slot**, it answers the position to
-  pre-fill and the promoted order for the picker.
-- **Adding a crew member pre-fills their first declared position not already taken by them on that
-  slot.** Adding the same person again therefore lands on their second, then their third. Nothing
-  declared, or everything already taken, pre-fills nothing — exactly today's behaviour.
-- A declared position that is a **free label** pre-fills the row's `customLabel`, not only
-  catalogue entries: a position's identity, for all of this, is the pair
-  (`positionId`, `customLabel`), which is how both tables already model one.
-- **The picker never offers a position that person already holds on that slot** — the duplicate is
-  refused where it is chosen, rather than the add being blocked. Adding someone twice with nothing
-  declared stays possible: two rows the user then fills.
-- **Declared positions sit at the top of the picker**, above the catalogue's departments, behind a
-  divider. A declared one that is already taken is simply absent rather than greyed — unlike the
-  slot menu above, it is visible on the card right beside the picker.
-- The pre-fill belongs to `OcptScheduleService.addSlotCrewMember`, not to a bloc: every caller
-  should get it, and it needs both the person's positions and the slot's existing rows, which the
-  service already has.
-
-Then the column this was blocked on: **the person sheet's `Portée` column is deleted** —
-`ocpt_person_sheet_positions_card.dart`, its width constant, and the
-`resourcesPositionScopePlaceholder` key in both ARB files. `OcptPersonPositionsTable`'s own doc
-comment, which promises the schedule mode will fill it, is rewritten to say what is now true: a
-row says *that* a person holds a function, and *when* is the schedule's to answer, on its own
-surfaces.
-
-No schema change, no payload change.
-
-## 5. M3 — the three PDF exports
+## 4. M3 — the three PDF exports
 
 **Goal: the paperwork a shoot actually runs on.**
 
@@ -162,7 +122,7 @@ Each is reached from the mode's `⋮` menu through an options dialog opened by `
 (which days, which people, title page, page format pre-filled from the project), and each writes
 through `OcptSaveLocationService` — no export ever picks a path silently.
 
-## 6. M4 — grids and alerts
+## 5. M4 — grids and alerts
 
 **Goal: seeing what the plan is about to break before it breaks.**
 
@@ -190,7 +150,7 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
 - The alerts panel in the mode, and the alert count in the status bar. The mode header's own
   `Couleur par` control belongs to this milestone too.
 
-## 7. What this mode does not do
+## 6. What this mode does not do
 
 - No spreadsheet export (decided; may follow later).
 - No weather feed, no map tiles, no geocoding: the app stays offline-only.
@@ -204,15 +164,11 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
 - **No slot link across two days**, and none between two same-side edges. Both are stated in ADR
   0015's second amendment.
 
-## 8. Definition of done, per milestone
+## 7. Definition of done, per milestone
 
 The eight verification gates of `CLAUDE.md` pass at every commit, plus the ninth for any `.md`
 touched. In addition:
 
-- **M2**: a person with two declared positions convoked twice on one slot lands on both, in order;
-  a third convocation pre-fills nothing. A person with a free-label position pre-fills that label.
-  The picker never offers a position that person already holds on that slot. The `Portée` column is
-  gone from the sheet and its ARB key from both files.
 - **M3**: the three PDFs are generated from the reference project and read against the documents
   in `debug/plan/`; a day with two slots and two crews prints both; a night slot crossing midnight
   prints the right hours; an `end`-anchored slot prints the hours the day view shows; a person's

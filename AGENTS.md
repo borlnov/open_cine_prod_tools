@@ -108,7 +108,8 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28c | Schedule mode M2' — the day view: a timetable on each slot card (the day's own gone), blocks dragged between slots or moved through their row's `Move to…`, a hold's sequence picker and the roles the breakdown tagged in it, the lead times and group pickers on every crew and cast row, the groups band, and the agendas drawing a day's slots as parallel lanes; then the placement rework — the one-placement-per-shot rule dropped, a shot placed from a slot's own `+ Block` menu through `OcptScheduleShotPickerDialog`, the left dock's click turned into a plain selection read out by the inspector, and the strip agenda made informative; then the review pass — a PAT band for the crew (ADR 0017 amended), a `pause` block, the days ranked and renumbered by date with a `Change the date…` action, the day tag localized (`D3`/`J3`), the crew rows rebuilt as cards wrapping in a foldable half-width column, `Groupes de personnes` and its `ⓘ`, the `±` snapped to five minutes against a typed duration in the inspector, a day's band read arrival → end, and a slot card given its own note and its `▲`/`▼` reorder | ✅ |
 | 28d | Schedule mode — convocations read off the slots alone (ADR 0018 superseding ADR 0017): the lead times and the `shooting_day_groups` that carried them dropped (schema v13, payload format 8, the first payload upgrade that *removes*), `ocptComputeDayConvocations` reading a person's arrival, PAT band and departure off every slot they are linked to across the whole day, the groups band and the lead fields gone with the clocks on the crew and cast cards, `dayArrivalMinute` reduced to the day's earliest slot start, and the `Convocations` dock tab where those times now live | ✅ |
 | 28e | Schedule mode — a slot anchored by either edge (ADR 0015 amended a second time): schema v14 and payload format 9 replacing `shooting_slots.startMinute` with `anchorEdge`/`anchorMinute`/`anchorSlotId`, the dependency-ordered resolution in `ocptComputeShootingDayTimelines` with its missed-fixed-end and cycle records, `ocptSlotAnchorWouldCycle`, `OcptScheduleService.setSlotAnchor` with `duplicateDay`'s link remap and `deleteSlot`'s dependent freeze, the slot card's flat anchor menu, and every reader of a slot's hour moved onto the resolved one | ✅ |
-| 28f | Schedule mode — a convoked person's position pre-filled from the address book, then the three PDFs, then the positions matrix, the presence grid and the conflict alerts | 📝 planned |
+| 28f | Schedule mode — a convoked person's position pre-filled from the address book: `ocptCrewPositionPrefillOf` (`lib/utils/`, pure) joining a person's declared `person_positions` with what they already hold on that slot, `OcptScheduleService.addSlotCrewMember` pre-filling a fresh crew row with it, the slot card's position picker promoting the declared ones and refusing the taken ones, and the person sheet's `Portée` column deleted | ✅ |
+| 28g | Schedule mode — the three PDFs, then the positions matrix, the presence grid and the conflict alerts | 📝 planned |
 
 ## Ways of working
 
@@ -470,7 +471,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   cast (`roles.personId`) and the crew positions (`person_positions`) are links onto it, never
   copies of a name — so the same person can be a role, a position and a location's owner at once. A
   `person_positions` row says only *that* someone holds a function; **when** they hold it is a
-  per-slot fact the schedule mode will own, which is why no scope column exists here.
+  per-slot fact the schedule mode owns, which is why no scope column exists here and why the sheet
+  shows none — the two tables are joined the one way that says something (`ocptCrewPositionPrefillOf`,
+  below), never by a second copy of one truth.
   **An element is anything that must be present on a day and is not a person** — one `elements`
   table with a category and a free sub-category rather than one table per department, because the
   tracking columns (owner, who brings it, secured, ready, returned, where) are the same whatever
@@ -755,7 +758,21 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   name, then who that is, and **no clock at all**: a card there says who is convoked and in what
   function, nothing more, because a convocation is a fact about a person on a **day**, joined across
   every slot they sit on, and cannot honestly be read from one slot's card in isolation. The times
-  live in the `Convocations` dock tab instead. The two kinds share one shell rather than each
+  live in the `Convocations` dock tab instead.
+  **A crew row's position is pre-filled from the address book, and the picker is the same join read
+  the other way** (`ocptCrewPositionPrefillOf`, `lib/utils/ocpt_crew_position_prefill.dart`, pure and
+  tested): a position's identity is the pair (`positionId`, `customLabel`) both tables already model
+  one with, and the function answers, out of a person's declared `person_positions` and what they
+  already hold **on that slot**, which position to pre-fill and which to promote. `addSlotCrewMember`
+  lands a fresh row on their first declared position not already taken there — so convoking the same
+  person twice lands on their second, then their third, and a free-label declaration pre-fills the
+  row's `customLabel` — and only ever fills a blank, a caller passing a position keeping it. The
+  row's own picker shows those declared positions above the catalogue's departments, behind a
+  divider, and **never offers a position that person already holds on that slot**, this row's own
+  included: the duplicate is refused where it is chosen rather than the add being blocked, and the
+  taken one is absent rather than greyed, being visible on the card right beside the picker. It is a
+  **pre-fill, not a rule**: nothing keeps the two tables in step once the user has corrected it.
+  The two kinds share one shell rather than each
   drawing its own; the two lists sit side by side, **at most half the card's width each**, and their
   cards **wrap** into as many columns as that half affords rather than stacking in a single file.
   The two halves **fold together**, on either title, expanded by default, each title saying how many
