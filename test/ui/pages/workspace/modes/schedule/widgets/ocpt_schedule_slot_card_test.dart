@@ -9,7 +9,6 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
@@ -20,7 +19,6 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the day view's own scroll area.
@@ -131,8 +129,6 @@ void main() {
     String slotId = "slot-1",
     List<OcptShootingSlotCrewMember> crew = const [],
     List<OcptShootingSlotCastMember> cast = const [],
-    List<OcptShootingDayGroup> groups = const [],
-    OcptSlotConvocations? convocations,
     ValueChanged<String>? onCrewMemberAdded,
     ValueChanged<String>? onCastRoleAdded,
     VoidCallback? onDeletionRequested,
@@ -140,10 +136,6 @@ void main() {
     ValueChanged<String>? onNotesChanged,
     VoidCallback? onMovedUp,
     VoidCallback? onMovedDown,
-    void Function(String crewMemberId, int? leadMinutes)? onCrewMemberLeadChanged,
-    void Function(String crewMemberId, String? groupId)? onCrewMemberGroupChanged,
-    void Function(String castRoleId, int? leadMinutes)? onCastRoleLeadChanged,
-    void Function(String castRoleId, String? groupId)? onCastRoleGroupChanged,
     List<OcptShootingDayBlock> blocks = const [],
     List<OcptSceneShotSequence> sequences = const [],
     List<(String, String)> otherSlots = const [],
@@ -159,8 +151,6 @@ void main() {
     roleById: {role.id: role},
     people: [person],
     roles: [role],
-    groups: groups,
-    convocations: convocations,
     labelValue: "Matin",
     onLabelChanged: isReadOnly ? null : (_) {},
     notesValue: notesValue,
@@ -173,12 +163,8 @@ void main() {
     onCrewMemberAdded: isReadOnly ? null : (onCrewMemberAdded ?? (_) {}),
     onCrewMemberPositionChanged: isReadOnly ? null : (_, _) {},
     onCrewMemberRemoved: isReadOnly ? null : (_) {},
-    onCrewMemberLeadChanged: isReadOnly ? null : (onCrewMemberLeadChanged ?? (_, _) {}),
-    onCrewMemberGroupChanged: isReadOnly ? null : (onCrewMemberGroupChanged ?? (_, _) {}),
     onCastRoleAdded: isReadOnly ? null : (onCastRoleAdded ?? (_) {}),
     onCastRoleRemoved: isReadOnly ? null : (_) {},
-    onCastRoleLeadChanged: isReadOnly ? null : (onCastRoleLeadChanged ?? (_, _) {}),
-    onCastRoleGroupChanged: isReadOnly ? null : (onCastRoleGroupChanged ?? (_, _) {}),
     blocks: blocks,
     timeline: null,
     shotOf: _noShot,
@@ -261,352 +247,10 @@ void main() {
     expect(find.byIcon(Icons.close), findsNWidgets(2));
   });
 
-  testWidgets("a crew row reads its computed arrival and PAT band, never types into them", (
-    tester,
-  ) async {
-    final crew = [
-      const OcptShootingSlotCrewMember(
-        id: "crew-1",
-        slotId: "slot-1",
-        personId: "person-1",
-        positionId: "director",
-        customLabel: "",
-        groupId: null,
-        leadMinutes: 30,
-        notes: "",
-      ),
-    ];
-    const convocations = OcptSlotConvocations(
-      crew: [
-        OcptCrewConvocation(
-          id: "crew-1",
-          arrivalMinute: 450,
-          patStartMinute: 495,
-          patEndMinute: 1080,
-          leadMinutes: 30,
-        ),
-      ],
-      cast: [],
-    );
-
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: false, crew: crew, convocations: convocations)),
-    );
-    await tester.pumpAndSettle();
-
-    // The computed arrival (450 = 07:30) and PAT band (495 = 08:15, 1080 = 18:00) read out, as
-    // plain read-only minute fields — nothing here is a `TextField` a crew row could be typed into.
-    expect(find.text("07:30"), findsOneWidget);
-    expect(find.text("08:15"), findsOneWidget);
-    expect(find.text("18:00"), findsOneWidget);
-    final crewMinuteFields = tester
-        .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
-        .where((field) => field.minute == 450 || field.minute == 495 || field.minute == 1080);
-    expect(crewMinuteFields, hasLength(3));
-    expect(crewMinuteFields, everyElement(predicate<OcptScheduleMinuteField>((f) => f.onChanged == null)));
-  });
-
-  testWidgets("a cast row reads its computed arrival and PAT band, never types into them", (
-    tester,
-  ) async {
-    final cast = [
-      const OcptShootingSlotCastMember(
-        id: "cast-1",
-        slotId: "slot-1",
-        roleId: "role-1",
-        groupId: null,
-        leadMinutes: 45,
-        notes: "",
-      ),
-    ];
-    const convocations = OcptSlotConvocations(
-      crew: [],
-      cast: [
-        OcptCastConvocation(
-          id: "cast-1",
-          arrivalMinute: 435,
-          // Deliberately not the slot's own 480 (08:00) start minute (also shown on the card, as
-          // the one editable field), so a match on the PAT start's own text can't be confused with
-          // it.
-          patStartMinute: 510,
-          patEndMinute: 900,
-          leadMinutes: 45,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: false, cast: cast, convocations: convocations)),
-    );
-    await tester.pumpAndSettle();
-
-    // Arrival (435 = 07:15), PAT start (510 = 08:30) and PAT end (900 = 15:00) all read out.
-    expect(find.text("07:15"), findsOneWidget);
-    expect(find.text("08:30"), findsOneWidget);
-    expect(find.text("15:00"), findsOneWidget);
-    final castMinuteFields = tester
-        .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
-        .where((field) => field.minute == 435 || field.minute == 510 || field.minute == 900);
-    expect(castMinuteFields, everyElement(predicate<OcptScheduleMinuteField>((f) => f.onChanged == null)));
-  });
-
-  testWidgets("a crew row's own lead time reports what is typed into it", (tester) async {
-    final crew = [
-      const OcptShootingSlotCrewMember(
-        id: "crew-1",
-        slotId: "slot-1",
-        personId: "person-1",
-        positionId: "director",
-        customLabel: "",
-        groupId: null,
-        leadMinutes: 30,
-        notes: "",
-      ),
-    ];
-    final reported = <(String, int?)>[];
-
-    await tester.pumpWidget(
-      _wrapInApp(
-        buildCard(
-          isReadOnly: false,
-          crew: crew,
-          onCrewMemberLeadChanged: (crewMemberId, leadMinutes) =>
-              reported.add((crewMemberId, leadMinutes)),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // The row's own lead (30) seeds the field's own editable text — found by that text, since the
-    // card's own slot label field is a `TextField` too — and typing a new one reports it against
-    // this row's id.
-    final leadFieldFinder = find.byWidgetPredicate(
-      (widget) => widget is TextField && widget.controller?.text == "30",
-    );
-    expect(leadFieldFinder, findsOneWidget);
-    await tester.enterText(leadFieldFinder, "45");
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
-
-    expect(reported, [("crew-1", 45)]);
-  });
-
-  testWidgets("a cast row with no lead of its own shows its group's, marked inherited", (
-    tester,
-  ) async {
-    final cast = [
-      const OcptShootingSlotCastMember(
-        id: "cast-1",
-        slotId: "slot-1",
-        roleId: "role-1",
-        groupId: "group-1",
-        leadMinutes: null,
-        notes: "",
-      ),
-    ];
-    const convocations = OcptSlotConvocations(
-      crew: [],
-      cast: [
-        OcptCastConvocation(
-          id: "cast-1",
-          arrivalMinute: 435,
-          patStartMinute: 510,
-          patEndMinute: 900,
-          leadMinutes: 60,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: false, cast: cast, convocations: convocations)),
-    );
-    await tester.pumpAndSettle();
-
-    // Nothing was typed for this row (`leadMinutes: null`); the group's own resolved figure (60)
-    // is shown as the field's own hint rather than as a value the row claims for itself.
-    final leadField = tester.widget<TextField>(
-      find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == "60",
-      ),
-    );
-    expect(leadField.controller?.text, "");
-  });
-
-  testWidgets("a crew row's own group picker offers the day's groups and reports the one picked", (
-    tester,
-  ) async {
-    final crew = [
-      const OcptShootingSlotCrewMember(
-        id: "crew-1",
-        slotId: "slot-1",
-        personId: "person-1",
-        positionId: "director",
-        customLabel: "",
-        groupId: null,
-        leadMinutes: null,
-        notes: "",
-      ),
-    ];
-    const groups = [
-      OcptShootingDayGroup(id: "group-1", shootingDayId: "day-1", label: "Figuration", leadMinutes: 90),
-    ];
-    final reported = <(String, String?)>[];
-
-    await tester.pumpWidget(
-      _wrapInApp(
-        buildCard(
-          isReadOnly: false,
-          crew: crew,
-          groups: groups,
-          onCrewMemberGroupChanged: (crewMemberId, groupId) => reported.add((crewMemberId, groupId)),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-    // No group picked yet: the button's own current label is "No group", unique on screen before
-    // the menu opens (the group's own distinct label appears only once the menu is up).
-    await tester.tap(find.text(tr.scheduleGroupNoGroupOption));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("Figuration"));
-    await tester.pumpAndSettle();
-
-    expect(reported, [("crew-1", "group-1")]);
-  });
-
-  testWidgets("picking `No group` on a row already in one clears it back to none", (tester) async {
-    final crew = [
-      const OcptShootingSlotCrewMember(
-        id: "crew-1",
-        slotId: "slot-1",
-        personId: "person-1",
-        positionId: "director",
-        customLabel: "",
-        groupId: "group-1",
-        leadMinutes: null,
-        notes: "",
-      ),
-    ];
-    const groups = [
-      OcptShootingDayGroup(id: "group-1", shootingDayId: "day-1", label: "Figuration", leadMinutes: 90),
-    ];
-    final reported = <(String, String?)>[];
-
-    await tester.pumpWidget(
-      _wrapInApp(
-        buildCard(
-          isReadOnly: false,
-          crew: crew,
-          groups: groups,
-          onCrewMemberGroupChanged: (crewMemberId, groupId) => reported.add((crewMemberId, groupId)),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-    // The row already belongs to "Figuration", so that is its button's own current label — unique
-    // before the menu opens.
-    await tester.tap(find.text("Figuration"));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.scheduleGroupNoGroupOption).last);
-    await tester.pumpAndSettle();
-
-    expect(reported, [("crew-1", null)]);
-  });
-
-  testWidgets("every crew and cast row's own lead field and group picker are withheld read-only", (
-    tester,
-  ) async {
-    final crew = [
-      const OcptShootingSlotCrewMember(
-        id: "crew-1",
-        slotId: "slot-1",
-        personId: "person-1",
-        positionId: "director",
-        customLabel: "",
-        groupId: "group-1",
-        leadMinutes: 15,
-        notes: "",
-      ),
-    ];
-    final cast = [
-      const OcptShootingSlotCastMember(
-        id: "cast-1",
-        slotId: "slot-1",
-        roleId: "role-1",
-        groupId: null,
-        leadMinutes: 20,
-        notes: "",
-      ),
-    ];
-    const groups = [
-      OcptShootingDayGroup(id: "group-1", shootingDayId: "day-1", label: "Figuration", leadMinutes: 90),
-    ];
-
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: true, crew: crew, cast: cast, groups: groups)),
-    );
-    await tester.pumpAndSettle();
-
-    // Both figures still read out (plain text, own values), but nothing here is a `TextField`, and
-    // the group picker reads as plain text rather than a `PopupMenuButton`.
-    expect(find.text("15 min"), findsOneWidget);
-    expect(find.text("20 min"), findsOneWidget);
-    expect(find.text("Figuration"), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
-  });
-
   testWidgets("the card offers exactly one editable minute field: the slot's own start", (
     tester,
   ) async {
-    final crew = [
-      const OcptShootingSlotCrewMember(
-        id: "crew-1",
-        slotId: "slot-1",
-        personId: "person-1",
-        positionId: "director",
-        customLabel: "",
-        groupId: null,
-        leadMinutes: null,
-        notes: "",
-      ),
-    ];
-    final cast = [
-      const OcptShootingSlotCastMember(
-        id: "cast-1",
-        slotId: "slot-1",
-        roleId: "role-1",
-        groupId: null,
-        leadMinutes: null,
-        notes: "",
-      ),
-    ];
-    const convocations = OcptSlotConvocations(
-      crew: [
-        OcptCrewConvocation(
-          id: "crew-1",
-          arrivalMinute: 480,
-          patStartMinute: 480,
-          patEndMinute: 1080,
-          leadMinutes: 0,
-        ),
-      ],
-      cast: [
-        OcptCastConvocation(
-          id: "cast-1",
-          arrivalMinute: 480,
-          patStartMinute: 480,
-          patEndMinute: 1080,
-          leadMinutes: 0,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: false, crew: crew, cast: cast, convocations: convocations)),
-    );
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
     await tester.pumpAndSettle();
 
     final editableFields = tester

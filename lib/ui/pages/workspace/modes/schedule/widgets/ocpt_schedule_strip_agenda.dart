@@ -43,8 +43,9 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? Function(String dayId) timelineOf;
 
-  /// Resolves a day id to its own earliest arrival (`OcptScheduleState.dayArrivalMinute`), or null
-  /// while it has no live slot at all — what each card's own arrival-to-end range starts from.
+  /// Resolves a day id to its own earliest arrival — the minimum slot start over its live slots
+  /// (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all — what each
+  /// card's own arrival-to-end range starts from.
   final int? Function(String dayId) arrivalMinuteOf;
 
   /// Called with a day's id when its own header is clicked, selecting it and opening the day view.

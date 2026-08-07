@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -64,10 +63,10 @@ void main() {
     });
   });
 
-  group("convocationsOfSlot", () {
+  group("convocationsOfDay", () {
     test(
-      "a hold naming a scene the breakdown tagged a role in makes that role's own band follow "
-      "the hold's own block rather than the whole slot",
+      "a hold's own block counts as shooting time, giving the role it names a band tracking it "
+      "rather than the whole slot",
       () {
         const slot = OcptShootingSlot(
           id: "slot-1",
@@ -124,26 +123,20 @@ void main() {
           },
         );
 
-        final state = OcptScheduleState.init().copyWith(
-          snapshot: snapshot,
-          roleIdsBySceneId: const {
-            "scene-1": {"role-1"},
-          },
-        );
+        final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-        final convocations = state.convocationsOfSlot("slot-1")!;
-        final castConvocation = convocations.cast.single;
+        final convocation = state.convocationsOfDay("day-1").single;
 
-        // The slot's own band (both blocks) runs 08:00 → 10:00; the hold's own block, which is what
-        // names the role, only runs 08:00 → 09:00. The band tracking the hold rather than the whole
-        // slot is exactly what proves a hold's roles are read out of the breakdown now, rather than
-        // resolving to nothing and falling back to the slot's own bounds.
-        expect(castConvocation.patStartMinute, 480);
-        expect(castConvocation.patEndMinute, 540);
+        // The slot's own band (both blocks) runs 08:00 → 10:00; the hold's own block, which is a
+        // shooting block under ADR 0018, only runs 08:00 → 09:00 — the meal that follows it never
+        // opens or closes a band.
+        expect(convocation.roleId, "role-1");
+        expect(convocation.patStartMinute, 480);
+        expect(convocation.patEndMinute, 540);
       },
     );
 
-    test("a hold naming no scene leaves every role convoked keeping the slot's own bounds", () {
+    test("a slot carrying only preparation gives its role no PAT band at all", () {
       const slot = OcptShootingSlot(
         id: "slot-1",
         shootingDayId: "day-1",
@@ -164,7 +157,7 @@ void main() {
           ),
         ],
       );
-      final hold = _buildBlock(id: "block-hold", slotId: "slot-1", kind: OcptShootingBlockKind.hold);
+      final preparation = _buildBlock(id: "block-1", slotId: "slot-1");
       final day = OcptShootingDay(
         id: "day-1",
         screenplayId: "screenplay-1",
@@ -183,75 +176,40 @@ void main() {
           "day-1": [slot],
         },
         blocksByDayId: {
-          "day-1": [hold],
+          "day-1": [preparation],
         },
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      final convocations = state.convocationsOfSlot("slot-1")!;
-      final castConvocation = convocations.cast.single;
+      final convocation = state.convocationsOfDay("day-1").single;
 
-      expect(castConvocation.patStartMinute, 480);
-      expect(castConvocation.patEndMinute, 510);
+      expect(convocation.patStartMinute, isNull);
+      expect(convocation.patEndMinute, isNull);
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 510);
+    });
+
+    test("reads empty while the day has no live slot at all", () {
+      expect(OcptScheduleState.init().convocationsOfDay("day-1"), isEmpty);
     });
   });
 
   group("dayArrivalMinute", () {
-    test("a crew member's own 30-minute lead pulls the arrival ahead of the slot's own start", () {
-      const slot = OcptShootingSlot(
+    test("the earliest of the day's own slot starts", () {
+      const earlySlot = OcptShootingSlot(
         id: "slot-1",
         shootingDayId: "day-1",
         label: "",
         locationId: null,
         setId: null,
-        startMinute: 480,
+        startMinute: 420,
         notes: "",
-        crew: [
-          OcptShootingSlotCrewMember(
-            id: "crew-1",
-            slotId: "slot-1",
-            personId: "person-1",
-            positionId: "",
-            customLabel: "Gaffer",
-            groupId: null,
-            leadMinutes: 30,
-            notes: "",
-          ),
-        ],
+        crew: [],
         cast: [],
       );
-      final day = OcptShootingDay(
-        id: "day-1",
-        screenplayId: "screenplay-1",
-        date: DateTime(2026),
-        dayNumber: 1,
-        status: OcptShootingDayStatus.planned,
-        crewNote: "",
-        weatherNote: "",
-        notes: "",
-      );
-      final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
-        days: [day],
-        groupsByDayId: const {},
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        blocksByDayId: const {},
-      );
-
-      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
-
-      // The slot starts at 08:00 (480); the gaffer's own 30-minute lead pulls their arrival to
-      // 07:30 (450) — the day's own earliest arrival follows the convocation, not the slot's own
-      // start.
-      expect(state.dayArrivalMinute("day-1"), 450);
-    });
-
-    test("a day convoking nobody yet falls back to its earliest slot's own start", () {
-      const slot = OcptShootingSlot(
-        id: "slot-1",
+      const laterSlot = OcptShootingSlot(
+        id: "slot-2",
         shootingDayId: "day-1",
         label: "",
         locationId: null,
@@ -276,14 +234,14 @@ void main() {
         days: [day],
         groupsByDayId: const {},
         slotsByDayId: {
-          "day-1": [slot],
+          "day-1": [laterSlot, earlySlot],
         },
         blocksByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      expect(state.dayArrivalMinute("day-1"), 480);
+      expect(state.dayArrivalMinute("day-1"), 420);
     });
 
     test("a day with no live slot at all answers null", () {

@@ -12,7 +12,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -22,7 +21,6 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
@@ -37,10 +35,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the schedule
 /// itself ([_scheduleService]), the shot list ([_shotListService] — every placed or unplaced
-/// shot's own code, size, duration and characters), the three resources catalogues the slot
-/// cards read from ([_locationsService], [_roleIndexService], [_peopleService]), and the
-/// breakdown pass's own role tags ([_breakdownService] — every scene's own
-/// [OcptScheduleState.roleIdsBySceneId], what a **hold** block's own roles are resolved through).
+/// shot's own code, size, duration and characters), and the three resources catalogues the slot
+/// cards read from ([_locationsService], [_roleIndexService], [_peopleService]).
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
 /// [_flushPendingFieldEdits] and [_onLoadRequested].
 ///
@@ -86,10 +82,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// The service used to read the address book.
   final OcptPeopleService _peopleService;
 
-  /// The service used to read the breakdown pass's own role tags — what a **hold** block's own
-  /// roles are resolved through, once its `sceneId` names a sequence.
-  final OcptBreakdownService _breakdownService;
-
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -115,7 +107,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptLocationsService? locationsService,
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
-    OcptBreakdownService? breakdownService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -135,9 +126,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _peopleService =
            peopleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
-       _breakdownService =
-           breakdownService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).breakdownService,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptScheduleState.init()) {
     add(const OcptScheduleLoadRequestedEvent());
@@ -165,9 +153,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleDayStatusChangedEvent>(_onDayStatusChanged);
     on<OcptScheduleDayDuplicationRequestedEvent>(_onDayDuplicationRequested);
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
-    on<OcptScheduleGroupCreatedEvent>(_onGroupCreated);
-    on<OcptScheduleGroupLeadChangedEvent>(_onGroupLeadChanged);
-    on<OcptScheduleGroupDeletionConfirmedEvent>(_onGroupDeletionConfirmed);
     on<OcptScheduleSlotCreatedEvent>(_onSlotCreated);
     on<OcptScheduleSlotPlaceChangedEvent>(_onSlotPlaceChanged);
     on<OcptScheduleSlotStartChangedEvent>(_onSlotStartChanged);
@@ -176,12 +161,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCrewMemberAddedEvent>(_onSlotCrewMemberAdded);
     on<OcptScheduleSlotCrewMemberPositionChangedEvent>(_onSlotCrewMemberPositionChanged);
     on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
-    on<OcptScheduleSlotCrewMemberLeadChangedEvent>(_onSlotCrewMemberLeadChanged);
-    on<OcptScheduleSlotCrewMemberGroupChangedEvent>(_onSlotCrewMemberGroupChanged);
     on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
-    on<OcptScheduleSlotCastRoleLeadChangedEvent>(_onSlotCastRoleLeadChanged);
-    on<OcptScheduleSlotCastRoleGroupChangedEvent>(_onSlotCastRoleGroupChanged);
     on<OcptScheduleShotSelectedEvent>(_onShotSelected);
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
@@ -274,17 +255,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       screenplayId: project.primaryScreenplayId,
     );
     final people = await _peopleService.loadPeople(database: project.database);
-    final breakdownTags = await _breakdownService.loadTags(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    final roleIdsBySceneId = <String, Set<String>>{};
-    for (final tag in breakdownTags) {
-      final roleId = tag.roleId;
-      if (tag.targetKind == OcptBreakdownTargetKind.role && roleId != null) {
-        (roleIdsBySceneId[tag.sceneId] ??= <String>{}).add(roleId);
-      }
-    }
 
     final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
@@ -299,7 +269,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         locations: locations,
         roles: roles,
         people: people,
-        roleIdsBySceneId: roleIdsBySceneId,
         agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
         selectedDayId: defaultDay?.id,
         clearSelectedDayId: defaultDay == null,
@@ -647,52 +616,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Creates a new group on a day.
-  Future<void> _onGroupCreated(
-    OcptScheduleGroupCreatedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.createGroup(database: project.database, shootingDayId: event.dayId);
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes a new lead time onto a group.
-  Future<void> _onGroupLeadChanged(
-    OcptScheduleGroupLeadChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateGroup(
-      database: project.database,
-      groupId: event.groupId,
-      leadMinutes: Value(event.leadMinutes),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Deletes a group for good, confirmed by the mode's own `OcptConfirmDialog`.
-  Future<void> _onGroupDeletionConfirmed(
-    OcptScheduleGroupDeletionConfirmedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.deleteGroup(database: project.database, groupId: event.groupId);
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
   /// Creates a new slot inside a day.
   Future<void> _onSlotCreated(
     OcptScheduleSlotCreatedEvent event,
@@ -833,42 +756,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Writes a new lead time onto a crew assignment, or clears it back to reading its group's.
-  Future<void> _onSlotCrewMemberLeadChanged(
-    OcptScheduleSlotCrewMemberLeadChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCrewMember(
-      database: project.database,
-      crewMemberId: event.crewMemberId,
-      leadMinutes: Value(event.leadMinutes),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes a new group onto a crew assignment, or clears it back to no group.
-  Future<void> _onSlotCrewMemberGroupChanged(
-    OcptScheduleSlotCrewMemberGroupChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCrewMember(
-      database: project.database,
-      crewMemberId: event.crewMemberId,
-      groupId: Value(event.groupId),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
   /// Convokes a role during a slot.
   Future<void> _onSlotCastRoleAdded(
     OcptScheduleSlotCastRoleAddedEvent event,
@@ -898,42 +785,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.removeSlotCastRole(database: project.database, castRoleId: event.castRoleId);
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes a new lead time onto a cast convocation, or clears it back to reading its group's.
-  Future<void> _onSlotCastRoleLeadChanged(
-    OcptScheduleSlotCastRoleLeadChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCastRole(
-      database: project.database,
-      castRoleId: event.castRoleId,
-      leadMinutes: Value(event.leadMinutes),
-    );
-    await _applyScheduleSnapshot(emitter, project);
-  }
-
-  /// Writes a new group onto a cast convocation, or clears it back to no group.
-  Future<void> _onSlotCastRoleGroupChanged(
-    OcptScheduleSlotCastRoleGroupChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCastRole(
-      database: project.database,
-      castRoleId: event.castRoleId,
-      groupId: Value(event.groupId),
-    );
     await _applyScheduleSnapshot(emitter, project);
   }
 
@@ -1264,12 +1115,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
             database: project.database,
             castRoleId: targetId,
             notes: Value(value),
-          );
-        case OcptScheduleField.groupLabel:
-          await _scheduleService.updateGroup(
-            database: project.database,
-            groupId: targetId,
-            label: Value(value),
           );
       }
     }

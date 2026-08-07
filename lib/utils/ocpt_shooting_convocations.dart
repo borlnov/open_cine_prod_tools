@@ -2,280 +2,213 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Imported for this file's doc comments alone: `comment_references` needs the types they name
-// (`OcptShootingTimelineEntry`, `ocptComputeSlotTimeline`) to resolve.
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-
-/// One block already placed on a slot's timeline (an [OcptShootingTimelineEntry] from
-/// `ocpt_shooting_day_timeline.dart`, run through [ocptComputeSlotTimeline] first), carrying the
-/// one further fact [ocptComputeSlotConvocations] needs about it: which roles it puts on the floor.
+/// One slot of a day, already resolved by the caller (`OcptScheduleState`, never this file, which
+/// knows nothing of drift, of `shots`/`shot_characters`/`roles`, or of `ocpt_shooting_day_timeline
+/// .dart`'s own types) into exactly what [ocptComputeDayConvocations] needs: who is linked to it,
+/// and where its own chain of blocks starts, ends and shoots.
 ///
-/// Resolving [roleIds] is entirely the **caller**'s job — this file knows nothing of `shots`,
-/// `shot_characters`, `shooting_day_blocks` or any other drift row. A shot block's roles are its
-/// shot's own `shot_characters`; a hold block's are the scene it reserves time for; every other
-/// block kind (`preparation`, `hairMakeUp`, `meal`, `move`, `wrap`) puts no role anywhere and is
-/// passed with an empty [roleIds].
-class OcptConvocationBlock {
-  /// Builds a block to feed to [ocptComputeSlotConvocations].
-  const OcptConvocationBlock({required this.startMinute, required this.endMinute, required this.roleIds});
+/// A person is convoked by being **linked to a slot** (ADR 0018) — there is no lead time, no group
+/// and no per-block role resolution left in this file: whoever [personIds]/[uncastRoleIds] names is
+/// convoked by this slot, for the whole of it, and every clock a convocation carries is read off
+/// [startMinute]/[endMinute]/[shootingStartMinute]/[shootingEndMinute] alone.
+class OcptConvocationSlot {
+  /// Builds a slot to feed to [ocptComputeDayConvocations].
+  const OcptConvocationSlot({
+    required this.id,
+    required this.startMinute,
+    required this.endMinute,
+    required this.shootingStartMinute,
+    required this.shootingEndMinute,
+    required this.personIds,
+    required this.uncastRoleIds,
+  });
 
-  /// The minute, from the day's own midnight, this block starts at — [
-  /// OcptShootingTimelineEntry.startMinute], already chained.
+  /// The slot's own id (`shooting_slots.id`), echoed back on every [OcptDayConvocation.slotIds] that
+  /// includes it.
+  final String id;
+
+  /// The slot's own `startMinute` — where its chain of blocks starts, whether or not it carries any
+  /// yet.
   final int startMinute;
 
-  /// The minute this block ends at — [OcptShootingTimelineEntry.endMinute].
-  final int endMinute;
+  /// The slot's own last block end (`OcptShootingSlotTimeline.endMinute`), or null while it carries
+  /// no block at all — a slot with nothing placed on it yet still convokes whoever is linked to it,
+  /// just with nothing to say "the end" of (see [ocptComputeDayConvocations]'s own doc comment).
+  final int? endMinute;
 
-  /// Every role this block puts on the floor, or empty for a block kind that names none.
-  final Set<String> roleIds;
+  /// The earliest start over this slot's own `shot` and `hold` blocks — the two kinds that count as
+  /// shooting time (ADR 0018) — or null when it has neither. Null exactly when [shootingEndMinute]
+  /// is: both are built from the same walk over the same blocks.
+  final int? shootingStartMinute;
+
+  /// The latest end over the same blocks, or null under the same condition as [shootingStartMinute].
+  final int? shootingEndMinute;
+
+  /// Every person linked to this slot as a human: its crew rows' own people, plus the actors of its
+  /// cast roles that are cast — resolving a role's actor is the caller's job, this file knowing
+  /// nothing of `roles.personId`.
+  final Set<String> personIds;
+
+  /// The cast roles of this slot nobody is cast in yet — each its own convocation, named by the
+  /// role rather than by nobody.
+  final Set<String> uncastRoleIds;
 }
 
-/// One `shooting_slot_crew` row's own figure and the figure of the group it belongs to — resolving
-/// *which* group a row points
-/// at, from its nullable `groupId`, is the caller's job, groups being scoped to a day rather than
-/// known here.
-class OcptCrewConvocationInput {
-  /// Builds a crew row to feed to [ocptComputeSlotConvocations].
-  const OcptCrewConvocationInput({required this.id, this.leadMinutes, this.groupLeadMinutes});
-
-  /// The row's own id (`shooting_slot_crew.id`), echoed back on its [OcptCrewConvocation].
-  final String id;
-
-  /// This row's own lead time, when it carries one of its own. Wins over [groupLeadMinutes] when
-  /// both are set.
-  final int? leadMinutes;
-
-  /// The lead time of the group this row belongs to, when it belongs to one and that group carries
-  /// a figure. Used only when [leadMinutes] is null.
-  final int? groupLeadMinutes;
-}
-
-/// One `shooting_slot_cast` row's own figure and the figure of the group it belongs to — the cast
-/// sibling of [OcptCrewConvocationInput], carrying the role it convokes rather than a position.
-class OcptCastConvocationInput {
-  /// Builds a cast row to feed to [ocptComputeSlotConvocations].
-  const OcptCastConvocationInput({
-    required this.id,
+/// One person's or one uncast role's whole call for a day, joined across every slot they are linked
+/// to (ADR 0018) — the app's one answer to "when does this human arrive, when are they ready to
+/// shoot, and when are they done".
+///
+/// Exactly one of [personId]/[roleId] is non-null, the same discriminator `breakdown_tags` uses
+/// (ADR 0014): a cast role with nobody cast in it is still a convocation the production has to
+/// honour, named by the role rather than by nobody.
+class OcptDayConvocation {
+  /// Builds a computed day convocation.
+  const OcptDayConvocation({
+    required this.personId,
     required this.roleId,
-    this.leadMinutes,
-    this.groupLeadMinutes,
-  });
-
-  /// The row's own id (`shooting_slot_cast.id`), echoed back on its [OcptCastConvocation].
-  final String id;
-
-  /// The role this row convokes (`roles.id`) — never the person: the actor is read through
-  /// `roles.personId`, so recasting never rewrites the schedule.
-  final String roleId;
-
-  /// This row's own lead time, when it carries one of its own. Wins over [groupLeadMinutes] when
-  /// both are set.
-  final int? leadMinutes;
-
-  /// The lead time of the group this row belongs to, when it belongs to one and that group carries
-  /// a figure. Used only when [leadMinutes] is null.
-  final int? groupLeadMinutes;
-}
-
-/// A crew member's computed convocation for one slot: their PAT (*prêt à tourner*) band — the
-/// slot's own, a technician having no shot-by-shot band the way a role does — and their arrival,
-/// ahead of it by their lead time, plus the lead time [ocptComputeSlotConvocations] actually
-/// resolved for them (own or group's, or zero), so a caller can show *why* the arrival time is
-/// what it is without re-resolving it.
-class OcptCrewConvocation {
-  /// Builds a computed crew convocation.
-  const OcptCrewConvocation({
-    required this.id,
     required this.arrivalMinute,
     required this.patStartMinute,
     required this.patEndMinute,
-    required this.leadMinutes,
+    required this.departureMinute,
+    required this.slotIds,
   });
 
-  /// The [OcptCrewConvocationInput.id] this convocation answers.
-  final String id;
+  /// The person this convocation is for, or null when [roleId] names it instead.
+  final String? personId;
 
-  /// The minute this person is expected on set, ready — [patStartMinute] minus [leadMinutes].
+  /// The uncast role this convocation is for, or null when [personId] names it instead.
+  final String? roleId;
+
+  /// The earliest minute this person or role is expected — the minimum
+  /// [OcptConvocationSlot.startMinute] over every slot they are linked to.
   final int arrivalMinute;
 
-  /// The start of this person's *prêt à tourner* band — the slot's own band start, from the day's
-  /// own midnight; exactly what [arrivalMinute] is computed from before [leadMinutes] is
-  /// subtracted.
-  final int patStartMinute;
+  /// The start of this person's or role's *prêt à tourner* band — the minimum non-null
+  /// [OcptConvocationSlot.shootingStartMinute] over every slot they are linked to, or null when none
+  /// of those slots carries a shooting block at all: someone convoked only on preparation slots is
+  /// there, not waiting to shoot, which is a different fact from having no band computed yet.
+  /// Null exactly when [patEndMinute] is.
+  final int? patStartMinute;
 
-  /// The end of this person's PAT band — the slot's own band end — or null when the slot has no
-  /// block at all yet, see [ocptComputeSlotConvocations]'s own doc comment on the empty-slot case.
+  /// The end of the band — the maximum non-null [OcptConvocationSlot.shootingEndMinute] over the
+  /// same slots — under the same condition as [patStartMinute]. The band is **not** clipped to one
+  /// slot: someone on a morning slot and an evening slot reads one band spanning both, gaps
+  /// included.
   final int? patEndMinute;
 
-  /// The lead time actually used to compute [arrivalMinute]: [OcptCrewConvocationInput.leadMinutes]
-  /// if set, else [OcptCrewConvocationInput.groupLeadMinutes], else zero.
-  final int leadMinutes;
+  /// The latest minute this person or role is done — the maximum, over every slot they are linked
+  /// to, of that slot's own [OcptConvocationSlot.endMinute] when it has one, or its own
+  /// [OcptConvocationSlot.startMinute] otherwise: a slot carrying no block at all yet still ends the
+  /// instant it begins, for someone linked to nothing more than that.
+  final int departureMinute;
+
+  /// The ids of every slot this person or role is linked to, in the order [ocptComputeDayConvocations]
+  /// was given [OcptConvocationSlot]s.
+  final List<String> slotIds;
 }
 
-/// A cast member's computed convocation for one slot: their PAT (*prêt à tourner*) band and their
-/// arrival, ahead of it by their lead time — the make-up chair.
-class OcptCastConvocation {
-  /// Builds a computed cast convocation.
-  const OcptCastConvocation({
-    required this.id,
-    required this.arrivalMinute,
-    required this.patStartMinute,
-    required this.patEndMinute,
-    required this.leadMinutes,
-  });
-
-  /// The [OcptCastConvocationInput.id] this convocation answers.
-  final String id;
-
-  /// The minute this role is expected on set, ready — [patStartMinute] minus [leadMinutes].
-  final int arrivalMinute;
-
-  /// The start of this role's *prêt à tourner* band: when the first block of the slot naming it
-  /// begins, or the slot's own bounds when no block does — see [ocptComputeSlotConvocations]'s own
-  /// doc comment.
-  final int patStartMinute;
-
-  /// The end of this role's PAT band, or null exactly when [OcptCrewConvocation.patEndMinute] is —
-  /// the slot has no block at all yet.
-  final int? patEndMinute;
-
-  /// The lead time actually used to compute [arrivalMinute]: [OcptCastConvocationInput.leadMinutes]
-  /// if set, else [OcptCastConvocationInput.groupLeadMinutes], else zero — a lead of zero means
-  /// arriving ready, with no make-up chair needed.
-  final int leadMinutes;
-}
-
-/// One slot's whole set of computed convocations.
-class OcptSlotConvocations {
-  /// Builds a computed set of convocations.
-  const OcptSlotConvocations({required this.crew, required this.cast});
-
-  /// Every crew convocation, in the order [ocptComputeSlotConvocations] was given [
-  /// OcptCrewConvocationInput]s.
-  final List<OcptCrewConvocation> crew;
-
-  /// Every cast convocation, in the order [ocptComputeSlotConvocations] was given [
-  /// OcptCastConvocationInput]s.
-  final List<OcptCastConvocation> cast;
-}
-
-/// Computes every convocation of one slot from its already-chained [blocks] — the rule recorded as
-/// ADR 0017, implemented exactly once, here.
+/// Computes every convocation of a day from its [slots] — the rule recorded as ADR 0018, implemented
+/// exactly once, here.
 ///
-/// **Nobody types a call time, a wrap time or a PAT band.** [OcptCrewConvocationInput] and
-/// [OcptCastConvocationInput] carry only a lead time — a typed fact about a person and a look
-/// (hair, make-up, costume) or about the band they walk in with — and every clock this function
-/// returns is derived from [slotStartMinute] and [blocks] alone. Nothing computed here is ever
-/// overridable by hand: a typed clock is a claim nothing keeps true once a block moves, which is
-/// exactly the retyping this rework exists to remove (see ADR 0017's Decision).
+/// **Nothing is offset from anything, and nobody types a call time, a wrap time or a PAT band.** A
+/// person (or an uncast role) is convoked by being linked to one or more of [slots]
+/// (`OcptConvocationSlot.personIds`/`.uncastRoleIds`), and every clock this function returns for
+/// them is read off the slots they are linked to — `S`, the subset of [slots] listing them — and
+/// nothing else:
 ///
-/// **The slot's own band** is the minimum [OcptConvocationBlock.startMinute] and the maximum
-/// [OcptConvocationBlock.endMinute] over [blocks] — a minimum and a maximum rather than "the first
-/// and the last of the list", since a pinned anchor can put a block earlier than the one before it
-/// in the chain's own order.
+/// - [OcptDayConvocation.arrivalMinute] is the minimum `startMinute` over `S`.
+/// - [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] are the minimum non-null
+///   `shootingStartMinute` and the maximum non-null `shootingEndMinute` over `S`, both null together
+///   when no slot of `S` carries a shooting block at all (built from the same walk, so there is
+///   nothing to assert about the two agreeing).
+/// - [OcptDayConvocation.departureMinute] is the maximum, over `S`, of `endMinute ?? startMinute` —
+///   a slot with no block at all yet still ends at its own start, for whoever is linked to only
+///   that.
+/// - [OcptDayConvocation.slotIds] is the ids of `S`, in the order [slots] was given.
 ///
-/// **A crew convocation**'s `patStartMinute`/`patEndMinute` are the slot's own band, full stop —
-/// there is no per-block band for a technician, unlike a role's: the slot is what they are convoked
-/// for, not any one block inside it. `arrivalMinute` is `patStartMinute` minus the resolved lead —
-/// there is no after-offset anywhere in this model, either: finishing later is stated as a `wrap`
-/// block in the chain, which moves the band end, and with it every crew member's `patEndMinute` at
-/// once, rather than one row's.
+/// The result is one [OcptDayConvocation] per person and per uncast role named anywhere in [slots],
+/// sorted by [OcptDayConvocation.arrivalMinute], ties broken by [OcptDayConvocation.personId] `??`
+/// [OcptDayConvocation.roleId] — deterministic, but not "arrival then **name**": nothing here knows
+/// a person's or a role's own display name, so a caller wanting that ordering re-sorts on top of
+/// this one.
 ///
-/// **A cast convocation**'s `patStartMinute`/`patEndMinute` are the same minimum/maximum, but taken
-/// only over the blocks that actually name that role (a shot block through its `shot_characters`, a
-/// hold block through the scene it reserves time for — resolved into [OcptConvocationBlock.roleIds]
-/// by the caller). A role no block of the slot names keeps the **slot's own** band instead: someone
-/// convoked and not used is still convoked, and a production that put them on the sheet said so
-/// deliberately. `arrivalMinute` is `patStartMinute` minus the resolved lead — the make-up chair,
-/// which is why it is per role and per day rather than per film; a lead of zero means arriving
-/// ready.
-///
-/// **A resolved lead** is `leadMinutes ?? groupLeadMinutes ?? 0` on the matching input — the row's
-/// own figure wins over its group's. A resolved lead that is negative throws an [ArgumentError],
-/// for the same reason a negative block duration does in `ocpt_shooting_day_timeline.dart`: nothing
-/// in this mode means "be convoked after you are needed", and a lead is typed, not derived.
-///
-/// **A slot with no block at all** has no band to read: every [OcptCrewConvocation.patEndMinute] and
-/// [OcptCastConvocation.patEndMinute] comes back null (the same convention as [
-/// OcptShootingSlotTimeline.endMinute]'s own empty-slot case), while `patStartMinute` and
-/// `arrivalMinute` are computed off [slotStartMinute] instead — a convocation still has an arrival
-/// time when nothing is planned yet.
-OcptSlotConvocations ocptComputeSlotConvocations({
-  required int slotStartMinute,
-  required List<OcptConvocationBlock> blocks,
-  required List<OcptCrewConvocationInput> crew,
-  required List<OcptCastConvocationInput> cast,
-}) {
-  final slotBand = _bandOf(blocks);
+/// Minutes are offsets from the day's own midnight and **may exceed 1440** for a night shoot's small
+/// hours — nothing here ever takes anything modulo anything. Nothing here throws, either: there is
+/// no typed figure left to refuse, a lead time being gone along with the group it used to belong to
+/// (ADR 0018).
+List<OcptDayConvocation> ocptComputeDayConvocations({required List<OcptConvocationSlot> slots}) {
+  final slotsByPersonId = <String, List<OcptConvocationSlot>>{};
+  final slotsByRoleId = <String, List<OcptConvocationSlot>>{};
 
-  final crewConvocations = <OcptCrewConvocation>[];
-  for (final input in crew) {
-    final leadMinutes = _resolveLead(input.leadMinutes, input.groupLeadMinutes);
-    final patStartMinute = slotBand.start ?? slotStartMinute;
-    crewConvocations.add(
-      OcptCrewConvocation(
-        id: input.id,
-        arrivalMinute: patStartMinute - leadMinutes,
-        patStartMinute: patStartMinute,
-        patEndMinute: slotBand.end,
-        leadMinutes: leadMinutes,
-      ),
-    );
+  for (final slot in slots) {
+    for (final personId in slot.personIds) {
+      (slotsByPersonId[personId] ??= <OcptConvocationSlot>[]).add(slot);
+    }
+    for (final roleId in slot.uncastRoleIds) {
+      (slotsByRoleId[roleId] ??= <OcptConvocationSlot>[]).add(slot);
+    }
   }
 
-  final castConvocations = [
-    for (final input in cast)
-      _castConvocationOf(input: input, slotStartMinute: slotStartMinute, slotBand: slotBand, blocks: blocks),
+  final convocations = <OcptDayConvocation>[
+    for (final entry in slotsByPersonId.entries)
+      _convocationOf(personId: entry.key, roleId: null, ownSlots: entry.value),
+    for (final entry in slotsByRoleId.entries)
+      _convocationOf(personId: null, roleId: entry.key, ownSlots: entry.value),
   ];
 
-  return OcptSlotConvocations(crew: crewConvocations, cast: castConvocations);
+  convocations.sort((left, right) {
+    final byArrival = left.arrivalMinute.compareTo(right.arrivalMinute);
+    if (byArrival != 0) {
+      return byArrival;
+    }
+    return (left.personId ?? left.roleId ?? "").compareTo(right.personId ?? right.roleId ?? "");
+  });
+
+  return convocations;
 }
 
-/// Builds [input]'s [OcptCastConvocation]: its own band, when a block of [blocks] names its role, or
-/// [slotBand] otherwise — see [ocptComputeSlotConvocations]'s own doc comment.
-OcptCastConvocation _castConvocationOf({
-  required OcptCastConvocationInput input,
-  required int slotStartMinute,
-  required ({int? start, int? end}) slotBand,
-  required List<OcptConvocationBlock> blocks,
+/// Builds the [OcptDayConvocation] of [personId] (or [roleId]) over the slots naming them, [ownSlots]
+/// — see [ocptComputeDayConvocations]'s own doc comment for what each figure is read from.
+OcptDayConvocation _convocationOf({
+  required String? personId,
+  required String? roleId,
+  required List<OcptConvocationSlot> ownSlots,
 }) {
-  final roleBand = _bandOf(blocks.where((block) => block.roleIds.contains(input.roleId)));
-  final patStartMinute = roleBand.start ?? slotBand.start ?? slotStartMinute;
-  final patEndMinute = roleBand.end ?? slotBand.end;
-  final leadMinutes = _resolveLead(input.leadMinutes, input.groupLeadMinutes);
+  int? arrivalMinute;
+  int? patStartMinute;
+  int? patEndMinute;
+  int? departureMinute;
+  final slotIds = <String>[];
 
-  return OcptCastConvocation(
-    id: input.id,
-    arrivalMinute: patStartMinute - leadMinutes,
+  for (final slot in ownSlots) {
+    slotIds.add(slot.id);
+
+    if (arrivalMinute == null || slot.startMinute < arrivalMinute) {
+      arrivalMinute = slot.startMinute;
+    }
+
+    final shootingStart = slot.shootingStartMinute;
+    if (shootingStart != null && (patStartMinute == null || shootingStart < patStartMinute)) {
+      patStartMinute = shootingStart;
+    }
+    final shootingEnd = slot.shootingEndMinute;
+    if (shootingEnd != null && (patEndMinute == null || shootingEnd > patEndMinute)) {
+      patEndMinute = shootingEnd;
+    }
+
+    final ownDeparture = slot.endMinute ?? slot.startMinute;
+    if (departureMinute == null || ownDeparture > departureMinute) {
+      departureMinute = ownDeparture;
+    }
+  }
+
+  return OcptDayConvocation(
+    personId: personId,
+    roleId: roleId,
+    arrivalMinute: arrivalMinute!,
     patStartMinute: patStartMinute,
     patEndMinute: patEndMinute,
-    leadMinutes: leadMinutes,
+    departureMinute: departureMinute!,
+    slotIds: slotIds,
   );
-}
-
-/// The minimum [OcptConvocationBlock.startMinute] and the maximum [OcptConvocationBlock.endMinute]
-/// over [blocks], both null when [blocks] is empty.
-({int? start, int? end}) _bandOf(Iterable<OcptConvocationBlock> blocks) {
-  int? start;
-  int? end;
-  for (final block in blocks) {
-    if (start == null || block.startMinute < start) {
-      start = block.startMinute;
-    }
-    if (end == null || block.endMinute > end) {
-      end = block.endMinute;
-    }
-  }
-  return (start: start, end: end);
-}
-
-/// `own ?? group ?? 0` — the row's own lead time wins over its group's, and a convocation with
-/// neither carries no lead at all. Throws an [ArgumentError] when the resolved figure is negative:
-/// see [ocptComputeSlotConvocations]'s own doc comment on why that is refused rather than clamped.
-int _resolveLead(int? own, int? group) {
-  final lead = own ?? group ?? 0;
-  if (lead < 0) {
-    throw ArgumentError("A convocation's resolved lead time is negative ($lead minutes)");
-  }
-  return lead;
 }

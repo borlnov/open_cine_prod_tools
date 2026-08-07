@@ -6,163 +6,193 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
 void main() {
-  group("crew — arrival and PAT band read off the slot's own band", () {
-    test("arrivalMinute is the band start minus the lead, patStart/patEnd are the band itself", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [
-          OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {}),
-          OcptConvocationBlock(startMinute: 540, endMinute: 600, roleIds: {}),
-        ],
-        crew: const [OcptCrewConvocationInput(id: "crew-1", leadMinutes: 30)],
-        cast: const [],
+  group("one slot, one person", () {
+    test("arrival and departure read off the slot's own bounds", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 600,
+        shootingStartMinute: 500,
+        shootingEndMinute: 590,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
       );
 
-      final crew = result.crew.single;
-      expect(crew.arrivalMinute, 450); // 480 - 30
-      expect(crew.patStartMinute, 480);
-      expect(crew.patEndMinute, 600);
-      expect(crew.leadMinutes, 30);
-    });
+      final result = ocptComputeDayConvocations(slots: const [slot]);
 
-    test("a night slot crossing midnight is never taken modulo anything", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 1140, // 19:00
-        blocks: const [
-          OcptConvocationBlock(startMinute: 1140, endMinute: 1440, roleIds: {"role-1"}),
-          OcptConvocationBlock(startMinute: 1440, endMinute: 1620, roleIds: {"role-1"}), // -> 03:00
-        ],
-        crew: const [OcptCrewConvocationInput(id: "crew-1", leadMinutes: 45)],
-        cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-1", leadMinutes: 60)],
-      );
-
-      expect(result.crew.single.arrivalMinute, 1095); // 18:15, still expressed past no wrap point
-      expect(result.crew.single.patStartMinute, 1140);
-      expect(result.crew.single.patEndMinute, 1620); // 03:00 the following morning
-      expect(result.cast.single.patStartMinute, 1140);
-      expect(result.cast.single.patEndMinute, 1620);
-      expect(result.cast.single.arrivalMinute, 1080); // 18:00
+      final convocation = result.single;
+      expect(convocation.personId, "person-1");
+      expect(convocation.roleId, isNull);
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.patStartMinute, 500);
+      expect(convocation.patEndMinute, 590);
+      expect(convocation.departureMinute, 600);
+      expect(convocation.slotIds, ["slot-1"]);
     });
   });
 
-  group("cast — PAT band from the blocks naming the role", () {
-    test("patStart/patEnd span only the blocks naming that role", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [
-          OcptConvocationBlock(startMinute: 480, endMinute: 500, roleIds: {}), // preparation
-          OcptConvocationBlock(startMinute: 500, endMinute: 560, roleIds: {"role-1"}),
-          OcptConvocationBlock(startMinute: 560, endMinute: 600, roleIds: {}),
-        ],
-        crew: const [],
-        cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-1", leadMinutes: 20)],
+  group("a person on two slots", () {
+    test("arrival is the earliest, departure the latest, one PAT band spans both with a gap", () {
+      const morning = OcptConvocationSlot(
+        id: "slot-morning",
+        startMinute: 480, // 08:00
+        endMinute: 720, // 12:00
+        shootingStartMinute: 510, // 08:30
+        shootingEndMinute: 690, // 11:30
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+      );
+      const evening = OcptConvocationSlot(
+        id: "slot-evening",
+        startMinute: 1080, // 18:00
+        endMinute: 1260, // 21:00
+        shootingStartMinute: 1110, // 18:30
+        shootingEndMinute: 1230, // 20:30
+        personIds: {"person-1"},
+        uncastRoleIds: {},
       );
 
-      final cast = result.cast.single;
-      expect(cast.patStartMinute, 500);
-      expect(cast.patEndMinute, 560);
-      expect(cast.arrivalMinute, 480);
-    });
+      final result = ocptComputeDayConvocations(slots: const [morning, evening]);
 
-    test("a role convoked but never used by any block keeps the slot's own bounds", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [
-          OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {"role-other"}),
-          OcptConvocationBlock(startMinute: 540, endMinute: 600, roleIds: {}),
-        ],
-        crew: const [],
-        cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-never-named", leadMinutes: 10)],
-      );
-
-      final cast = result.cast.single;
-      // Someone convoked and not used is still convoked, over the slot's own whole band.
-      expect(cast.patStartMinute, 480);
-      expect(cast.patEndMinute, 600);
-      expect(cast.arrivalMinute, 470);
+      final convocation = result.single;
+      expect(convocation.arrivalMinute, 480);
+      // The band spans from the morning's own first shot to the evening's own last, gaps between
+      // the two slots included — it is not clipped to either slot alone.
+      expect(convocation.patStartMinute, 510);
+      expect(convocation.patEndMinute, 1230);
+      expect(convocation.departureMinute, 1260);
+      expect(convocation.slotIds, ["slot-morning", "slot-evening"]);
     });
   });
 
-  group("leads — the row's own figure wins over its group's", () {
-    test("a row with its own lead ignores the group's figure", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {})],
-        crew: const [OcptCrewConvocationInput(id: "crew-1", leadMinutes: 15, groupLeadMinutes: 90)],
-        cast: const [],
+  group("a person on a preparation-only slot", () {
+    test("has an arrival and a departure but no PAT band at all", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 540,
+        shootingStartMinute: null,
+        shootingEndMinute: null,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
       );
 
-      expect(result.crew.single.leadMinutes, 15);
-      expect(result.crew.single.arrivalMinute, 465); // 480 - 15, not 480 - 90
-    });
+      final result = ocptComputeDayConvocations(slots: const [slot]);
 
-    test("a row with no lead of its own falls back to its group's", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {"role-1"})],
-        crew: const [],
-        cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-1", groupLeadMinutes: 45)],
-      );
-
-      expect(result.cast.single.leadMinutes, 45);
-      expect(result.cast.single.arrivalMinute, 435); // 480 - 45
-    });
-
-    test("a row with neither its own lead nor a group resolves to zero", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {})],
-        crew: const [OcptCrewConvocationInput(id: "crew-1")],
-        cast: const [],
-      );
-
-      expect(result.crew.single.leadMinutes, 0);
-      expect(result.crew.single.arrivalMinute, 480); // arriving ready, right on the band start
-    });
-
-    test("a negative resolved lead is refused rather than convoking someone late", () {
-      expect(
-        () => ocptComputeSlotConvocations(
-          slotStartMinute: 480,
-          blocks: const [OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {})],
-          crew: const [OcptCrewConvocationInput(id: "crew-1", leadMinutes: -10)],
-          cast: const [],
-        ),
-        throwsArgumentError,
-      );
-    });
-
-    test("a negative group lead is refused too, when the row carries no override", () {
-      expect(
-        () => ocptComputeSlotConvocations(
-          slotStartMinute: 480,
-          blocks: const [OcptConvocationBlock(startMinute: 480, endMinute: 540, roleIds: {"role-1"})],
-          crew: const [],
-          cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-1", groupLeadMinutes: -5)],
-        ),
-        throwsArgumentError,
-      );
+      final convocation = result.single;
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 540);
+      expect(convocation.patStartMinute, isNull);
+      expect(convocation.patEndMinute, isNull);
     });
   });
 
   group("a slot with no block at all", () {
-    test("patEndMinute is null on both, the rest reads off the slot's own start", () {
-      final result = ocptComputeSlotConvocations(
-        slotStartMinute: 480,
-        blocks: const [],
-        crew: const [OcptCrewConvocationInput(id: "crew-1", leadMinutes: 15)],
-        cast: const [OcptCastConvocationInput(id: "cast-1", roleId: "role-1", leadMinutes: 20)],
+    test("ends at its own start minute", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: null,
+        shootingStartMinute: null,
+        shootingEndMinute: null,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
       );
 
-      final crew = result.crew.single;
-      expect(crew.arrivalMinute, 465); // 480 - 15
-      expect(crew.patStartMinute, 480); // slotStartMinute, with no block to read a band from
-      expect(crew.patEndMinute, isNull);
+      final result = ocptComputeDayConvocations(slots: const [slot]);
 
-      final cast = result.cast.single;
-      expect(cast.patStartMinute, 480);
-      expect(cast.patEndMinute, isNull);
-      expect(cast.arrivalMinute, 460); // 480 - 20
+      final convocation = result.single;
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 480);
+    });
+  });
+
+  group("an uncast role", () {
+    test("gets its own row, named by the role rather than by nobody", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 480,
+        endMinute: 600,
+        shootingStartMinute: 500,
+        shootingEndMinute: 590,
+        personIds: {},
+        uncastRoleIds: {"role-1"},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [slot]);
+
+      final convocation = result.single;
+      expect(convocation.personId, isNull);
+      expect(convocation.roleId, "role-1");
+      expect(convocation.arrivalMinute, 480);
+    });
+  });
+
+  group("a night slot crossing midnight", () {
+    test("minutes past 1440 are never taken modulo anything", () {
+      const slot = OcptConvocationSlot(
+        id: "slot-1",
+        startMinute: 1140, // 19:00
+        endMinute: 1620, // 03:00 the next morning
+        shootingStartMinute: 1140,
+        shootingEndMinute: 1620,
+        personIds: {"person-1"},
+        uncastRoleIds: {},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [slot]);
+
+      final convocation = result.single;
+      expect(convocation.arrivalMinute, 1140);
+      expect(convocation.patStartMinute, 1140);
+      expect(convocation.patEndMinute, 1620);
+      expect(convocation.departureMinute, 1620);
+    });
+  });
+
+  group("the result is sorted deterministically", () {
+    test("by arrival minute, ties broken by personId ?? roleId", () {
+      const early = OcptConvocationSlot(
+        id: "slot-early",
+        startMinute: 420,
+        endMinute: 480,
+        shootingStartMinute: null,
+        shootingEndMinute: null,
+        personIds: {"person-b"},
+        uncastRoleIds: {},
+      );
+      const tiedOne = OcptConvocationSlot(
+        id: "slot-tied-1",
+        startMinute: 480,
+        endMinute: 540,
+        shootingStartMinute: null,
+        shootingEndMinute: null,
+        personIds: {"person-z"},
+        uncastRoleIds: {},
+      );
+      const tiedTwo = OcptConvocationSlot(
+        id: "slot-tied-2",
+        startMinute: 480,
+        endMinute: 540,
+        shootingStartMinute: null,
+        shootingEndMinute: null,
+        personIds: {"person-a"},
+        uncastRoleIds: {},
+      );
+
+      final result = ocptComputeDayConvocations(slots: const [tiedOne, early, tiedTwo]);
+
+      expect(result.map((convocation) => convocation.personId), [
+        "person-b",
+        "person-a",
+        "person-z",
+      ]);
+    });
+  });
+
+  group("an empty slots list", () {
+    test("answers no convocation at all", () {
+      expect(ocptComputeDayConvocations(slots: const []), isEmpty);
     });
   });
 }

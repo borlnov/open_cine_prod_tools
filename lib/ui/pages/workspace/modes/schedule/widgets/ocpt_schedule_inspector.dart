@@ -45,9 +45,8 @@ class OcptScheduleInspector extends StatelessWidget {
   /// The selected day's own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? timeline;
 
-  /// The selected day's own earliest arrival — the minimum crew/cast convocation arrival across
-  /// every live slot, or the earliest slot start while nobody is convoked yet
-  /// (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all.
+  /// The selected day's own earliest arrival — the minimum `OcptShootingSlot.startMinute` over its
+  /// live slots (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all.
   final int? dayArrivalMinute;
 
   /// The selected day's own computed sun times, or null while its first slot has no location with
@@ -556,7 +555,7 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
 /// in steps of five.
 ///
 /// Follows [_OcptScheduleNoteField]'s own controller-sync idiom ([blockId] resets the controller,
-/// never mid-typing) and `OcptScheduleLeadField`'s own commit-on-submit-or-focus-loss idiom, guarded
+/// never mid-typing) and `OcptScheduleMinuteField`'s own commit-on-submit-or-focus-loss idiom, guarded
 /// by [_OcptScheduleBlockDurationFieldState._lastReportedDurationMinutes] against the double commit
 /// a submission's own focus loss would otherwise cause.
 ///

@@ -255,54 +255,6 @@ class OcptScheduleDayDeletionConfirmedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, dayId];
 }
 
-/// Creates a new group on day [dayId], appended at the end of its current groups, dispatched by the
-/// day view's own groups band `+ Group` control.
-class OcptScheduleGroupCreatedEvent extends OcptScheduleEvent {
-  /// The id of the day the new group belongs to.
-  final String dayId;
-
-  /// Class constructor
-  const OcptScheduleGroupCreatedEvent({required this.dayId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, dayId];
-}
-
-/// Writes a new lead time onto group [groupId] immediately, dispatched by the groups band's own
-/// lead field — a group always carries a figure, so, unlike a crew or cast row's own, this is never
-/// cleared back to "unset".
-class OcptScheduleGroupLeadChangedEvent extends OcptScheduleEvent {
-  /// The id of the group being edited.
-  final String groupId;
-
-  /// The group's own new lead time, in minutes.
-  final int leadMinutes;
-
-  /// Class constructor
-  const OcptScheduleGroupLeadChangedEvent({required this.groupId, required this.leadMinutes});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, groupId, leadMinutes];
-}
-
-/// Deletes group [groupId] for good, dispatched by the mode once its `OcptConfirmDialog` (opened by
-/// the groups band's own delete control) has already been answered. Leaves every crew and cast row
-/// pointing at it with no group rather than removing them from the day
-/// (`OcptScheduleService.deleteGroup`'s own rule).
-class OcptScheduleGroupDeletionConfirmedEvent extends OcptScheduleEvent {
-  /// The id of the group to delete.
-  final String groupId;
-
-  /// Class constructor
-  const OcptScheduleGroupDeletionConfirmedEvent({required this.groupId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, groupId];
-}
-
 /// Creates a new slot inside day [dayId], appended at the end of its current slots, dispatched by
 /// the day view's own `+ Créneau` control, once built.
 class OcptScheduleSlotCreatedEvent extends OcptScheduleEvent {
@@ -451,47 +403,6 @@ class OcptScheduleSlotCrewMemberRemovedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, crewMemberId];
 }
 
-/// Writes a new lead time onto crew assignment [crewMemberId] immediately, dispatched by its own
-/// row's own `OcptScheduleLeadField` — null clears it back to reading its group's own figure (or
-/// zero, with none either).
-class OcptScheduleSlotCrewMemberLeadChangedEvent extends OcptScheduleEvent {
-  /// The id of the crew assignment being edited.
-  final String crewMemberId;
-
-  /// The assignment's own new lead time, in minutes, or null to clear it.
-  final int? leadMinutes;
-
-  /// Class constructor
-  const OcptScheduleSlotCrewMemberLeadChangedEvent({
-    required this.crewMemberId,
-    required this.leadMinutes,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, crewMemberId, leadMinutes];
-}
-
-/// Writes a new group onto crew assignment [crewMemberId] immediately, dispatched by its own row's
-/// group picker — null clears it back to no group.
-class OcptScheduleSlotCrewMemberGroupChangedEvent extends OcptScheduleEvent {
-  /// The id of the crew assignment being edited.
-  final String crewMemberId;
-
-  /// The group just picked, or null to clear it.
-  final String? groupId;
-
-  /// Class constructor
-  const OcptScheduleSlotCrewMemberGroupChangedEvent({
-    required this.crewMemberId,
-    required this.groupId,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, crewMemberId, groupId];
-}
-
 /// Convokes role [roleId] during slot [slotId], dispatched by the slot card's own `+ Cast` footer.
 class OcptScheduleSlotCastRoleAddedEvent extends OcptScheduleEvent {
   /// The id of the slot the role is convoked to.
@@ -519,41 +430,6 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, castRoleId];
-}
-
-/// Writes a new lead time onto cast convocation [castRoleId] immediately, dispatched by its own
-/// row's own `OcptScheduleLeadField` — null clears it back to reading its group's own figure (or
-/// zero, with none either).
-class OcptScheduleSlotCastRoleLeadChangedEvent extends OcptScheduleEvent {
-  /// The id of the cast convocation being edited.
-  final String castRoleId;
-
-  /// The convocation's own new lead time, in minutes, or null to clear it.
-  final int? leadMinutes;
-
-  /// Class constructor
-  const OcptScheduleSlotCastRoleLeadChangedEvent({required this.castRoleId, required this.leadMinutes});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, castRoleId, leadMinutes];
-}
-
-/// Writes a new group onto cast convocation [castRoleId] immediately, dispatched by its own row's
-/// group picker — null clears it back to no group.
-class OcptScheduleSlotCastRoleGroupChangedEvent extends OcptScheduleEvent {
-  /// The id of the cast convocation being edited.
-  final String castRoleId;
-
-  /// The group just picked, or null to clear it.
-  final String? groupId;
-
-  /// Class constructor
-  const OcptScheduleSlotCastRoleGroupChangedEvent({required this.castRoleId, required this.groupId});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, castRoleId, groupId];
 }
 
 /// Selects shot [shotId] — a row of the left dock's own "shots still to place" list — showing its

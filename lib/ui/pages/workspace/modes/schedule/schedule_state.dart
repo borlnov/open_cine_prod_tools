@@ -13,10 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -105,15 +102,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// The project's whole address book, as last loaded — what the slot cards' crew picker offers,
   /// once built.
   final List<OcptPerson> people;
-
-  /// The role ids the breakdown pass tagged in each scene, keyed by scene id — every live
-  /// `breakdown_tags` row whose `targetKind` is `OcptBreakdownTargetKind.role`, grouped by
-  /// `sceneId`, as last loaded. What [_roleIdsOfBlock] resolves a **hold** block's own roles
-  /// through: the scene `shooting_day_blocks.sceneId` names is looked up here, so a hold reads
-  /// exactly the roles the breakdown pass already tagged for that sequence rather than asking for
-  /// them a second time. A scene with no role tag at all has no entry, read the same way an absent
-  /// key reads everywhere else in this state — as the empty set.
-  final Map<String, Set<String>> roleIdsBySceneId;
 
   /// The id of the currently selected day, or null while none is — which, past a load, only
   /// happens in a project holding no day at all: the mode opens on the day view, so a load picks a
@@ -286,16 +274,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         : (snapshot?.blocksByDayId[selectedDayId] ?? const []);
   }
 
-  /// [selectedDayId]'s own live groups, in `sortKey` order (empty while none is selected, or the
-  /// selected day carries none) — what the day view's own groups band lists, and what a slot card's
-  /// own group pickers offer.
-  List<OcptShootingDayGroup> get selectedDayGroups {
-    final selectedDayId = this.selectedDayId;
-    return selectedDayId == null
-        ? const []
-        : (snapshot?.groupsByDayId[selectedDayId] ?? const []);
-  }
-
   /// Every real scene of [shotListSnapshot], as an [OcptSceneShotSequence] — what a hold block's own
   /// sequence picker offers. [OcptOrphanShotSequence] is deliberately excluded: it names no `scenes`
   /// row, so `shooting_day_blocks.sceneId` could never point at it.
@@ -413,178 +391,103 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     );
   }
 
-  /// Every live slot of [snapshot], across every day, keyed by its own id — what [convocationsOfSlot]
-  /// resolves its target slot's own day through.
-  Map<String, OcptShootingSlot> get slotById => {
-    for (final slots in snapshot?.slotsByDayId.values ?? const <List<OcptShootingSlot>>[])
-      for (final slot in slots) slot.id: slot,
-  };
-
-  /// [slotId]'s own computed convocations (ADR 0017, `lib/utils/ocpt_shooting_convocations.dart`):
-  /// every crew member's and every convoked role's own PAT band/arrival — or null while
-  /// [slotId] names no live slot of [snapshot] (its day not loaded yet, or the slot itself since
-  /// deleted).
+  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
+  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at all.
   ///
-  /// Built from that slot's own already-chained blocks ([timelinesOfDay]), its live crew and cast
-  /// rows, and the lead time each row resolves to: its own [OcptShootingSlotCrewMember.leadMinutes]/
-  /// [OcptShootingSlotCastMember.leadMinutes] when set, else its own group's
-  /// [OcptShootingDayGroup.leadMinutes] looked up by `groupId` against the day's own
-  /// [OcptScheduleSnapshot.groupsByDayId] — [ocptComputeSlotConvocations] is what actually resolves
-  /// which one wins.
-  OcptSlotConvocations? convocationsOfSlot(String slotId) {
-    final slot = slotById[slotId];
-    if (slot == null) {
-      return null;
+  /// Built by [ocptComputeDayConvocations] over one [OcptConvocationSlot] per live slot
+  /// ([_convocationSlotOf]) — that pure function knows nothing of `shots`, `roles` or the timeline,
+  /// so joining a slot's already-chained blocks ([timelinesOfDay]) onto its own crew and cast rows,
+  /// and resolving a cast role's own actor through [roleById], is this state's job alone.
+  List<OcptDayConvocation> convocationsOfDay(String dayId) {
+    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+    if (slots.isEmpty) {
+      return const [];
     }
 
-    final slotTimeline = timelinesOfDay(slot.shootingDayId)?.bySlotId[slotId];
-    final entryByBlockId = {
-      for (final entry in slotTimeline?.entries ?? const <OcptShootingTimelineEntry>[])
-        entry.blockId: entry,
-    };
-    final dayBlocks = snapshot?.blocksByDayId[slot.shootingDayId] ?? const <OcptShootingDayBlock>[];
-    final groupLeadById = {
-      for (final group in snapshot?.groupsByDayId[slot.shootingDayId] ?? const <OcptShootingDayGroup>[])
-        group.id: group.leadMinutes,
+    final timelines = timelinesOfDay(dayId);
+    final blocksById = {
+      for (final block in snapshot?.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
+        block.id: block,
     };
 
-    final convocationBlocks = [
-      for (final block in dayBlocks)
-        if (block.slotId == slotId && entryByBlockId[block.id] != null)
-          OcptConvocationBlock(
-            startMinute: entryByBlockId[block.id]!.startMinute,
-            endMinute: entryByBlockId[block.id]!.endMinute,
-            roleIds: _roleIdsOfBlock(block),
-          ),
-    ];
-
-    return ocptComputeSlotConvocations(
-      slotStartMinute: slot.startMinute,
-      blocks: convocationBlocks,
-      crew: [
-        for (final member in slot.crew)
-          OcptCrewConvocationInput(
-            id: member.id,
-            leadMinutes: member.leadMinutes,
-            groupLeadMinutes: member.groupId == null ? null : groupLeadById[member.groupId],
-          ),
-      ],
-      cast: [
-        for (final member in slot.cast)
-          OcptCastConvocationInput(
-            id: member.id,
-            roleId: member.roleId,
-            leadMinutes: member.leadMinutes,
-            groupLeadMinutes: member.groupId == null ? null : groupLeadById[member.groupId],
-          ),
+    return ocptComputeDayConvocations(
+      slots: [
+        for (final slot in slots)
+          _convocationSlotOf(slot, timelines?.bySlotId[slot.id], blocksById),
       ],
     );
   }
 
-  /// Day [dayId]'s own earliest arrival — the minimum, over every live slot of the day, of every
-  /// crew and cast convocation's own [OcptCrewConvocation.arrivalMinute]/
-  /// [OcptCastConvocation.arrivalMinute] ([convocationsOfSlot]) — or, for a day that convokes
-  /// nobody yet, the earliest of its own slots' [OcptShootingSlot.startMinute]s: someone still has
-  /// to walk in even before a single crew or cast row is entered. Null while [dayId] names no day
-  /// with a live slot at all.
+  /// Builds [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
+  /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
+  /// [timeline]'s own entries whose [blocksById] row is a [OcptShootingBlockKind.shot] or a
+  /// [OcptShootingBlockKind.hold] — a minimum and a maximum rather than "the first and last entry",
+  /// since a pinned anchor can put a block earlier than the one before it in chain order — and
+  /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
+  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`.
+  OcptConvocationSlot _convocationSlotOf(
+    OcptShootingSlot slot,
+    OcptShootingSlotTimeline? timeline,
+    Map<String, OcptShootingDayBlock> blocksById,
+  ) {
+    int? shootingStartMinute;
+    int? shootingEndMinute;
+    for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) {
+      final kind = blocksById[entry.blockId]?.kind;
+      if (kind != OcptShootingBlockKind.shot && kind != OcptShootingBlockKind.hold) {
+        continue;
+      }
+      if (shootingStartMinute == null || entry.startMinute < shootingStartMinute) {
+        shootingStartMinute = entry.startMinute;
+      }
+      if (shootingEndMinute == null || entry.endMinute > shootingEndMinute) {
+        shootingEndMinute = entry.endMinute;
+      }
+    }
+
+    final personIds = <String>{for (final member in slot.crew) member.personId};
+    final uncastRoleIds = <String>{};
+    for (final member in slot.cast) {
+      final actorId = roleById[member.roleId]?.personId;
+      if (actorId != null) {
+        personIds.add(actorId);
+      } else {
+        uncastRoleIds.add(member.roleId);
+      }
+    }
+
+    return OcptConvocationSlot(
+      id: slot.id,
+      startMinute: slot.startMinute,
+      endMinute: timeline?.endMinute,
+      shootingStartMinute: shootingStartMinute,
+      shootingEndMinute: shootingEndMinute,
+      personIds: personIds,
+      uncastRoleIds: uncastRoleIds,
+    );
+  }
+
+  /// Day [dayId]'s own earliest arrival — the minimum [OcptShootingSlot.startMinute] over its live
+  /// slots — or null while it has no live slot at all.
   ///
-  /// This is what "when does the day start" honestly means once a lead time exists: a slot's own
-  /// [OcptShootingSlot.startMinute] is only the moment its first block begins, and every convoked
-  /// person walks in ahead of that by their own lead — computed here rather than stored, for the
-  /// same reason [convocationsOfSlot] is.
+  /// Reads off the slots alone, not off who is convoked (ADR 0018): nothing pulls an arrival ahead
+  /// of its own slot's start any more, so the day's earliest slot start already is its earliest
+  /// arrival, with no convocation to compute for it.
   int? dayArrivalMinute(String dayId) {
     final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     if (slots.isEmpty) {
       return null;
     }
 
-    int? earliestArrival;
-    int? earliestStart;
-    for (final slot in slots) {
-      if (earliestStart == null || slot.startMinute < earliestStart) {
-        earliestStart = slot.startMinute;
-      }
-
-      final convocations = convocationsOfSlot(slot.id);
-      for (final crew in convocations?.crew ?? const <OcptCrewConvocation>[]) {
-        if (earliestArrival == null || crew.arrivalMinute < earliestArrival) {
-          earliestArrival = crew.arrivalMinute;
-        }
-      }
-      for (final cast in convocations?.cast ?? const <OcptCastConvocation>[]) {
-        if (earliestArrival == null || cast.arrivalMinute < earliestArrival) {
-          earliestArrival = cast.arrivalMinute;
-        }
+    var earliest = slots.first.startMinute;
+    for (final slot in slots.skip(1)) {
+      if (slot.startMinute < earliest) {
+        earliest = slot.startMinute;
       }
     }
 
-    return earliestArrival ?? earliestStart;
+    return earliest;
   }
-
-  /// How many live crew and cast rows of day [dayId] — across every one of its slots — point at
-  /// each group, keyed by `OcptShootingDayGroup.id`. A group with no member at all has no entry
-  /// here rather than a zero one, which is what the groups band's own member-count read-out treats
-  /// a missing key as.
-  ///
-  /// Both kinds count towards the same figure — a group is a bag of convoked people, crew and cast
-  /// alike — computed on every
-  /// read rather than stored, for the same reason [unplacedGroups] is: nothing here rides a
-  /// per-keystroke timer that would need it cached.
-  Map<String, int> groupMemberCountsOfDay(String dayId) {
-    final counts = <String, int>{};
-
-    for (final slot in snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[]) {
-      for (final member in slot.crew) {
-        final groupId = member.groupId;
-        if (groupId != null) {
-          counts[groupId] = (counts[groupId] ?? 0) + 1;
-        }
-      }
-      for (final member in slot.cast) {
-        final groupId = member.groupId;
-        if (groupId != null) {
-          counts[groupId] = (counts[groupId] ?? 0) + 1;
-        }
-      }
-    }
-
-    return counts;
-  }
-
-  /// The roles [block] puts on the floor, fed to [ocptComputeSlotConvocations] as an
-  /// [OcptConvocationBlock.roleIds] — a **shot** block's own shot's `shot_characters`, matched
-  /// against [roles] by exact name (the same normalisation `OcptRoleIndexService.reconcile` and
-  /// `OcptShotListService.attachCharacter` already apply to a character name, so a role's own name
-  /// and a shot's own character are directly comparable with no further folding here); a **hold**
-  /// block's own [roleIdsBySceneId] entry for the sequence it reserves time for
-  /// (`OcptShootingDayBlock.sceneId`); every other kind, or a hold naming no scene (or a scene the
-  /// breakdown pass never tagged a role in), returns the empty set — which is what leaves a role
-  /// convoked in a slot whose only content is such a block keeping the slot's own bounds,
-  /// [ocptComputeSlotConvocations]'s own fallback for a role no block names.
-  Set<String> _roleIdsOfBlock(OcptShootingDayBlock block) {
-    if (block.kind == OcptShootingBlockKind.hold) {
-      final sceneId = block.sceneId;
-      return sceneId == null ? const {} : (roleIdsBySceneId[sceneId] ?? const {});
-    }
-
-    if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
-      return const {};
-    }
-
-    final shot = shotById(block.shotId!);
-    if (shot == null) {
-      return const {};
-    }
-
-    return {
-      for (final character in shot.characters)
-        if (roleByName[character] != null) roleByName[character]!.id,
-    };
-  }
-
-  /// The whole cast, keyed by its own name — what [_roleIdsOfBlock] matches a shot's characters
-  /// against.
-  Map<String, OcptRole> get roleByName => {for (final role in roles) role.name: role};
 
   /// [shotId]'s own `estimatedDurationMs`, converted to minutes, or null while it has none yet (or
   /// the shot isn't loaded).
@@ -633,7 +536,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.locations,
     required this.roles,
     required this.people,
-    required this.roleIdsBySceneId,
     required this.selectedDayId,
     required this.selectedBlockId,
     required this.centreView,
@@ -665,7 +567,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       locations = const [],
       roles = const [],
       people = const [],
-      roleIdsBySceneId = const {},
       selectedDayId = null,
       selectedBlockId = null,
       centreView = OcptScheduleCentreView.day,
@@ -703,7 +604,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     List<OcptLocation>? locations,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
-    Map<String, Set<String>>? roleIdsBySceneId,
     String? selectedDayId,
     bool clearSelectedDayId = false,
     String? selectedBlockId,
@@ -742,7 +642,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations: locations ?? this.locations,
     roles: roles ?? this.roles,
     people: people ?? this.people,
-    roleIdsBySceneId: roleIdsBySceneId ?? this.roleIdsBySceneId,
     selectedDayId: clearSelectedDayId ? null : (selectedDayId ?? this.selectedDayId),
     selectedBlockId: clearSelectedBlockId ? null : (selectedBlockId ?? this.selectedBlockId),
     centreView: centreView ?? this.centreView,
@@ -816,7 +715,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations,
     roles,
     people,
-    roleIdsBySceneId,
     selectedDayId,
     selectedBlockId,
     centreView,
