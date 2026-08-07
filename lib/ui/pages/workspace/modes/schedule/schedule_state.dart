@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
@@ -62,6 +63,68 @@ class OcptScheduleUnplacedGroup extends Equatable {
   /// Object properties
   @override
   List<Object?> get props => [sequenceId, displaySceneNumber, heading, shots];
+}
+
+/// The kind of transient notice [OcptScheduleIoNotice] carries, one per schedule export outcome.
+///
+/// A folder export (the two call sheet kinds) is the one path with a middle ground between success
+/// and failure — some files can be written while others aren't — which is why there are three kinds
+/// rather than the two a single-file export would need: [folderExportPartiallySucceeded] must never
+/// read as a plain success, `OcptCallSheetExportResult.failedFileNames` being non-empty meaning
+/// exactly that someone's call sheet did not make it into the folder.
+enum OcptScheduleIoNoticeKind {
+  /// A single-file export (the shooting plan) was written successfully.
+  fileExportSucceeded,
+
+  /// A folder export (a call sheets run) wrote every file it set out to.
+  folderExportSucceeded,
+
+  /// A folder export wrote some files but not every one — `OcptCallSheetExportResult
+  /// .failedFileNames` is non-empty.
+  folderExportPartiallySucceeded,
+
+  /// An export failed outright (an exception was thrown while rendering or writing it). A cancelled
+  /// save/folder dialog is a silent no-op instead, exactly as the breakdown sheets export treats it.
+  exportFailed,
+}
+
+/// A transient notice, produced by `OcptScheduleBloc`, reporting the outcome of one of the three
+/// PDF exports, shown as a SnackBar then dismissed. Modelled on `OcptBreakdownIoNotice`.
+///
+/// Only the fields [kind] actually needs are ever set: [path] for [OcptScheduleIoNoticeKind
+/// .fileExportSucceeded], [folderPath]/[writtenCount] for [OcptScheduleIoNoticeKind
+/// .folderExportSucceeded], and all four but [path] for [OcptScheduleIoNoticeKind
+/// .folderExportPartiallySucceeded].
+class OcptScheduleIoNotice extends Equatable {
+  /// The outcome this notice reports.
+  final OcptScheduleIoNoticeKind kind;
+
+  /// The path a single-file export was written to, only set when [kind] is [OcptScheduleIoNoticeKind
+  /// .fileExportSucceeded].
+  final String? path;
+
+  /// The folder a folder export wrote into, only set for the two folder-export kinds.
+  final String? folderPath;
+
+  /// How many files a folder export wrote successfully, only set for the two folder-export kinds.
+  final int? writtenCount;
+
+  /// How many files a folder export failed to write, only set for [OcptScheduleIoNoticeKind
+  /// .folderExportPartiallySucceeded].
+  final int? failedCount;
+
+  /// Class constructor
+  const OcptScheduleIoNotice({
+    required this.kind,
+    this.path,
+    this.folderPath,
+    this.writtenCount,
+    this.failedCount,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [kind, path, folderPath, writtenCount, failedCount];
 }
 
 /// The state of `OcptScheduleBloc`.
@@ -150,6 +213,16 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// The right (inspector/versions) dock's width, as a fraction of the mode's content row width.
   /// Persisted through `OcptPropertiesManager.scheduleRightDockFraction`.
   final double rightDockFraction;
+
+  /// The page setup the three PDF exports are typeset with: the open project's own page format,
+  /// paired with the app-wide margins preference, exactly as the shot list mode's own state pairs
+  /// them for the scenario coverage export. Reloaded by `OcptScheduleProjectSettingsChangedEvent`,
+  /// since page format is the one thing the project settings page can change under this mode.
+  final OcptPageSetup pageSetup;
+
+  /// The transient notice reporting the outcome of the last PDF export requested, or null once
+  /// dismissed — see [OcptScheduleIoNotice]'s own doc comment.
+  final OcptScheduleIoNotice? ioNotice;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -418,6 +491,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.pendingFieldEdits,
     required this.leftDockFraction,
     required this.rightDockFraction,
+    required this.pageSetup,
+    required this.ioNotice,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -449,6 +524,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       pendingFieldEdits = const {},
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
+      pageSetup = const OcptPageSetup.standard(),
+      ioNotice = null,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -490,6 +567,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     Map<OcptSchedulePendingFieldKey, String>? pendingFieldEdits,
     double? leftDockFraction,
     double? rightDockFraction,
+    OcptPageSetup? pageSetup,
+    OcptScheduleIoNotice? ioNotice,
+    bool clearIoNotice = false,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool clearPreviewedVersionId = false,
@@ -524,6 +604,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
+    pageSetup: pageSetup ?? this.pageSetup,
+    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId: clearPreviewedVersionId ? null : (previewedVersionId ?? this.previewedVersionId),
     workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
@@ -597,5 +679,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     pendingFieldEdits,
     leftDockFraction,
     rightDockFraction,
+    pageSetup,
+    ioNotice,
   ];
 }

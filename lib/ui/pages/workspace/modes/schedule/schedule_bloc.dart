@@ -9,6 +9,8 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -18,10 +20,12 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -66,6 +70,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
 
+  /// The manager the three PDF exports (the two call sheet kinds and the shooting plan) go through.
+  final OcptExportManager _exportManager;
+
   /// The service used to read and write the shooting schedule.
   final OcptScheduleService _scheduleService;
 
@@ -102,6 +109,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
     OcptScheduleService? scheduleService,
     OcptShotListService? shotListService,
     OcptLocationsService? locationsService,
@@ -111,6 +119,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _scheduleService =
            scheduleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
@@ -175,6 +184,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleBlockDeletionConfirmedEvent>(_onBlockDeletionConfirmed);
     on<OcptScheduleFieldChangedEvent>(_onFieldChanged);
     on<OcptScheduleFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
+    on<OcptScheduleProjectSettingsChangedEvent>(_onProjectSettingsChanged);
+    on<OcptScheduleCallSheetsExportRequestedEvent>(_onCallSheetsExportRequested);
+    on<OcptScheduleNamedCallSheetsExportRequestedEvent>(_onNamedCallSheetsExportRequested);
+    on<OcptScheduleShootingPlanExportRequestedEvent>(_onShootingPlanExportRequested);
+    on<OcptScheduleIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -255,6 +269,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       screenplayId: project.primaryScreenplayId,
     );
     final people = await _peopleService.loadPeople(database: project.database);
+    final pageSetup = await _loadPageSetup(project);
 
     final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
@@ -269,6 +284,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         locations: locations,
         roles: roles,
         people: people,
+        pageSetup: pageSetup,
         agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
         selectedDayId: defaultDay?.id,
         clearSelectedDayId: defaultDay == null,
@@ -282,6 +298,19 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       ),
     );
   }
+
+  /// Reads the page setup the three PDF exports are typeset with: the open project's own page
+  /// format, paired with the app-wide margins preference, exactly as the shot list mode's own bloc
+  /// pairs them for the scenario coverage export.
+  ///
+  /// A version being previewed is laid out with the setup it was written against instead, which
+  /// travels on the open project model and is never written anywhere.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
 
   /// The day a load lands on: the one dated today, failing that the next one still to come, and
   /// failing that the last one shot — null only for a project holding no day at all.
@@ -1163,5 +1192,183 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     if (state.rightDockTab == OcptScheduleRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
+  }
+
+  /// Re-reads the page setup after the project settings page changed something, so the three export
+  /// dialogs pre-fill from the page format actually in effect.
+  Future<void> _onProjectSettingsChanged(
+    OcptScheduleProjectSettingsChangedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    emitter(state.copyWith(pageSetup: await _loadPageSetup(project)));
+  }
+
+  /// Exports the general call sheets of `event.options.dayIds`, one PDF per day, into a folder the
+  /// user picks.
+  ///
+  /// Flushes whatever is still pending first — that flush re-reads the plan snapshot, so a printed
+  /// sheet holds the note or the label the user typed seconds ago — then hands what
+  /// [OcptScheduleState.planSnapshot] now carries to [OcptExportManager.exportGeneralCallSheets]. A
+  /// cancelled folder dialog is a silent no-op; a write failure is reported per file through
+  /// [OcptScheduleIoNoticeKind.folderExportPartiallySucceeded] rather than an exception, so only an
+  /// exception thrown before a folder was even chosen reaches the `catch` below.
+  Future<void> _onCallSheetsExportRequested(
+    OcptScheduleCallSheetsExportRequestedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final plan = state.planSnapshot;
+    if (plan == null) {
+      return;
+    }
+
+    try {
+      final result = await _exportManager.exportGeneralCallSheets(
+        plan: plan,
+        dayIds: event.options.dayIds,
+        pageSetup: OcptPageSetup(format: event.options.format, margins: event.options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        confirmButtonText: event.confirmButtonText,
+      );
+      if (result == null) {
+        // The user cancelled the folder dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptScheduleIoNotice(
+            kind: result.isComplete
+                ? OcptScheduleIoNoticeKind.folderExportSucceeded
+                : OcptScheduleIoNoticeKind.folderExportPartiallySucceeded,
+            folderPath: result.folderPath,
+            writtenCount: result.writtenFileNames.length,
+            failedCount: result.failedFileNames.length,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to export the call sheets of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the named call sheets of `event.options.dayIds`' single day, one PDF per selected
+  /// convocation, into a folder the user picks. See [_onCallSheetsExportRequested]'s own doc comment
+  /// for the flush, the cancellation and the partial-failure contract, identical here.
+  Future<void> _onNamedCallSheetsExportRequested(
+    OcptScheduleNamedCallSheetsExportRequestedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final plan = state.planSnapshot;
+    final dayId = event.options.dayIds.firstOrNull;
+    if (plan == null || dayId == null) {
+      return;
+    }
+
+    try {
+      final result = await _exportManager.exportNamedCallSheets(
+        plan: plan,
+        dayId: dayId,
+        convocationKeys: event.options.selectedConvocationKeys,
+        pageSetup: OcptPageSetup(format: event.options.format, margins: event.options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        confirmButtonText: event.confirmButtonText,
+      );
+      if (result == null) {
+        // The user cancelled the folder dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptScheduleIoNotice(
+            kind: result.isComplete
+                ? OcptScheduleIoNoticeKind.folderExportSucceeded
+                : OcptScheduleIoNoticeKind.folderExportPartiallySucceeded,
+            folderPath: result.folderPath,
+            writtenCount: result.writtenFileNames.length,
+            failedCount: result.failedFileNames.length,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to export the named call sheets of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the whole-shoot shooting plan of `event.options.dayIds` as a single PDF, written
+  /// through the native save dialog.
+  ///
+  /// Flushes whatever is still pending first, exactly as [_onCallSheetsExportRequested]; a cancelled
+  /// save dialog is a silent no-op (`OcptExportManager.exportShootingPlan` returns null for it, the
+  /// same convention every single-file export of this app follows).
+  Future<void> _onShootingPlanExportRequested(
+    OcptScheduleShootingPlanExportRequestedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final plan = state.planSnapshot;
+    if (plan == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportShootingPlan(
+        plan: plan,
+        dayIds: options.dayIds,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeTitlePage: options.includeTitlePage,
+        includeLocationsGrid: options.includeLocationsGrid,
+        includeSequencesGrid: options.includeSequencesGrid,
+        includePeopleGrid: options.includePeopleGrid,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to export the shooting plan of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Clears the transient export notice currently shown, if any.
+  Future<void> _onIoNoticeDismissed(
+    OcptScheduleIoNoticeDismissedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    emitter(state.copyWith(clearIoNotice: true));
   }
 }

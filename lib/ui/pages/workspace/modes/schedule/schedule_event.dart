@@ -3,6 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -670,4 +674,95 @@ class OcptScheduleFieldChangedEvent extends OcptScheduleEvent {
 class OcptScheduleFieldEditFlushRequestedEvent extends OcptScheduleEvent {
   /// Class constructor
   const OcptScheduleFieldEditFlushRequestedEvent();
+}
+
+/// Re-reads the page setup after the project settings page changed something, so the three export
+/// dialogs pre-fill from the page format actually in effect — mirrors `OcptShotListBloc`'s own
+/// handler for the very same reason.
+class OcptScheduleProjectSettingsChangedEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleProjectSettingsChangedEvent();
+}
+
+/// Requests exporting the general call sheets of [options]' own days, one PDF per day, into a
+/// folder the user picks — dispatched once `OcptScheduleCallSheetsExportDialog` returns its result.
+class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with (the page format/margins and which days to print).
+  final OcptCallSheetExportOptions options;
+
+  /// Every localized string the exported documents carry.
+  final OcptCallSheetLabels labels;
+
+  /// The localized label of the native "choose a folder" dialog's own confirm button.
+  final String confirmButtonText;
+
+  /// Class constructor
+  const OcptScheduleCallSheetsExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.confirmButtonText,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, confirmButtonText];
+}
+
+/// Requests exporting the named call sheets of [options]' own single day, one PDF per selected
+/// convocation, into a folder the user picks — dispatched once
+/// `OcptScheduleNamedCallSheetsExportDialog` returns its result.
+class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with: the page format/margins, the single day to print
+  /// ([OcptCallSheetExportOptions.dayIds] holding exactly one entry) and which of its own
+  /// convocations are printed.
+  final OcptCallSheetExportOptions options;
+
+  /// Every localized string the exported documents carry.
+  final OcptCallSheetLabels labels;
+
+  /// The localized label of the native "choose a folder" dialog's own confirm button.
+  final String confirmButtonText;
+
+  /// Class constructor
+  const OcptScheduleNamedCallSheetsExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.confirmButtonText,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, confirmButtonText];
+}
+
+/// Requests exporting the whole-shoot shooting plan of [options]' own days as a single PDF, written
+/// through the native save dialog — dispatched once `OcptScheduleShootingPlanExportDialog` returns
+/// its result.
+class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with (the page format/margins, which days to print, and
+  /// the title page/summary grid toggles).
+  final OcptShootingPlanExportOptions options;
+
+  /// Every localized string the exported document carries.
+  final OcptShootingPlanLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptScheduleShootingPlanExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Clears the transient export notice currently shown, if any.
+class OcptScheduleIoNoticeDismissedEvent extends OcptScheduleEvent {
+  /// Class constructor
+  const OcptScheduleIoNoticeDismissedEvent();
 }

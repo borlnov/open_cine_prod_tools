@@ -5,16 +5,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -242,4 +248,164 @@ String ocptScheduleConvocationSlotsLabel(
 String _ocptConvocationSlotLabelOf(Tr tr, OcptShootingSlot? slot) {
   final label = slot?.label ?? "";
   return label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label;
+}
+
+/// The display name of whoever holds the `director` position in [people] — the address book's own
+/// declared `person_positions`, not a project column — or an empty string when nobody does.
+///
+/// Read by [ocptCallSheetLabelsOf]/[ocptShootingPlanLabelsOf] to build the `directorLine` both
+/// label classes carry (through [ocptScheduleDirectorLineOf]): the director's name is not typed
+/// anywhere on the project, it is read off whoever the crew catalogue already says holds the
+/// position, and printing nothing is the honest reading when nobody does yet.
+String ocptScheduleDirectorNameOf(List<OcptPerson> people) {
+  for (final person in people) {
+    if (person.positions.any((position) => position.positionId == ocptDirectorPositionId)) {
+      return person.displayName;
+    }
+  }
+  return "";
+}
+
+/// The `directorLine` both `OcptCallSheetLabels` and `OcptShootingPlanLabels` carry:
+/// [Tr.scheduleExportDirectorLine] naming whoever [ocptScheduleDirectorNameOf] finds among [people],
+/// or an empty string while nobody holds the position yet — the manager-layer PDF services print
+/// nothing rather than a guess (both classes' own `directorLine` doc comments).
+String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
+  final name = ocptScheduleDirectorNameOf(people);
+  return name.isEmpty ? "" : tr.scheduleExportDirectorLine(name);
+}
+
+/// Builds every localized string the exported call sheets — general and named alike — carry.
+///
+/// The single bridge between the UI's `Tr` and `OcptCallSheetPdfService`, which runs in the manager
+/// layer and has no `BuildContext` of its own to resolve anything with — mirroring
+/// `ocptBreakdownSheetsLabelsOf`. Every enum label map reuses the very `ocpt…Label` helpers this
+/// file and `ocpt_resources_labels.dart` already expose to the mode's own widgets
+/// ([ocptCrewDepartmentLabel], [ocptCrewPositionLabel], [ocptShootingBlockKindLabel]), so a printed
+/// call sheet can never name a department, a position or a block kind differently from the screen.
+///
+/// [days] is resolved into [OcptCallSheetLabels.dayTitles] through `DateFormat.yMMMMEEEEd`, in the
+/// UI's own locale, upper-cased to match the reference `.docx`'s own shouted day heading
+/// (`FEUILLE DE SERVICE DU JEUDI 10 AOÛT 2023`) — the one section of this document whose whole
+/// point is to be read at a glance pinned to a wall. [people] is read for
+/// [ocptScheduleDirectorLineOf] alone.
+OcptCallSheetLabels ocptCallSheetLabelsOf(
+  BuildContext context, {
+  required List<OcptShootingDay> days,
+  required List<OcptPerson> people,
+}) {
+  final tr = Tr.of(context);
+  final locale = Localizations.localeOf(context).toString();
+
+  return OcptCallSheetLabels(
+    fileNamePrefix: tr.scheduleExportCallSheetFileNamePrefix,
+    documentTitle: tr.scheduleExportCallSheetDocumentTitle,
+    dayTitles: {
+      for (final day in days)
+        day.id: tr
+            .scheduleExportCallSheetDayTitle(DateFormat.yMMMMEEEEd(locale).format(day.date))
+            .toUpperCase(),
+    },
+    directorLine: ocptScheduleDirectorLineOf(tr, people),
+    dayTagPrefix: tr.scheduleDayTagPrefix,
+    dayNumberLabel: tr.scheduleExportDayNumberLabel,
+    recipientsSectionTitle: tr.scheduleExportRecipientsSectionTitle,
+    namedRecipientLabel: tr.scheduleExportNamedRecipientLabel,
+    crewNoteSectionTitle: tr.scheduleInspectorCrewNoteLabel,
+    locationSectionTitle: tr.scheduleInspectorLocationsLabel,
+    mapsLinkLabel: tr.scheduleExportMapsLinkLabel,
+    sunSectionTitle: tr.scheduleInspectorSunLabel,
+    civilDawnLabel: tr.scheduleExportCivilDawnLabel,
+    sunriseLabel: tr.scheduleExportSunriseLabel,
+    sunsetLabel: tr.scheduleExportSunsetLabel,
+    civilDuskLabel: tr.scheduleExportCivilDuskLabel,
+    contactsSectionTitle: tr.scheduleExportContactsSectionTitle,
+    crewDepartmentLabels: {
+      for (final department in OcptCrewDepartment.values) department: ocptCrewDepartmentLabel(tr, department),
+    },
+    crewPositionLabels: {
+      for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
+    },
+    hoursLinePrefix: tr.scheduleExportHoursLinePrefix,
+    patLabel: tr.scheduleExportPatLabel,
+    arrivalHeader: tr.scheduleExportArrivalHeader,
+    departureLabel: tr.scheduleExportDepartureLabel,
+    blockKindLabels: {
+      for (final kind in OcptShootingBlockKind.values) kind: ocptShootingBlockKindLabel(tr, kind),
+    },
+    seqHeader: tr.scheduleExportSeqHeader,
+    plansHeader: tr.scheduleExportPlansHeader,
+    effetHeader: tr.scheduleExportEffetHeader,
+    decorsHeader: tr.scheduleExportDecorsHeader,
+    rolesHeader: tr.scheduleExportRolesHeader,
+    castSectionTitle: tr.scheduleExportCastSectionTitle,
+    roleHeader: tr.scheduleExportRoleHeader,
+    actorHeader: tr.scheduleExportActorHeader,
+    nameHeader: tr.scheduleExportNameHeader,
+    positionsHeader: tr.scheduleExportPositionsHeader,
+    phoneHeader: tr.scheduleExportPhoneHeader,
+    emailHeader: tr.scheduleExportEmailHeader,
+    crewListSectionTitle: tr.scheduleExportCrewListSectionTitle,
+    castAndExtrasListSectionTitle: tr.scheduleExportCastAndExtrasListSectionTitle,
+    emptyDayNote: tr.scheduleExportEmptyDayNote,
+    unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
+  );
+}
+
+/// Builds every localized string the exported shooting plan carries — mirrors
+/// [ocptCallSheetLabelsOf] for the same reasons; see its own doc comment.
+///
+/// [days] is resolved into [OcptShootingPlanLabels.dayTitles] through `DateFormat.MMMMEEEEd` (no
+/// year, unlike the call sheet's own day heading): a day agenda page is a working document read
+/// alongside the rest of the plan rather than a sheet pinned on its own, so it reads in the app's
+/// ordinary sentence case rather than the call sheet's shouted one.
+OcptShootingPlanLabels ocptShootingPlanLabelsOf(
+  BuildContext context, {
+  required List<OcptShootingDay> days,
+  required List<OcptPerson> people,
+}) {
+  final tr = Tr.of(context);
+  final locale = Localizations.localeOf(context).toString();
+
+  return OcptShootingPlanLabels(
+    fileNameSuffix: tr.scheduleExportShootingPlanFileNameSuffix,
+    documentTitle: tr.scheduleExportShootingPlanDocumentTitle,
+    dayTitles: {
+      for (final day in days)
+        day.id: tr.scheduleExportShootingPlanDayTitle(DateFormat.MMMMEEEEd(locale).format(day.date)),
+    },
+    directorLine: ocptScheduleDirectorLineOf(tr, people),
+    titlePageVersionLabel: tr.scheduleExportTitlePageVersionLabel,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
+    locationsGridTitle: tr.scheduleExportLocationsGridTitle,
+    sequencesGridTitle: tr.scheduleExportSequencesGridTitle,
+    peopleGridTitle: tr.scheduleExportPeopleGridTitle,
+    locationsGridRowHeader: tr.scheduleExportLocationsGridRowHeader,
+    sequencesGridRowHeader: tr.scheduleExportSequencesGridRowHeader,
+    peopleGridRowHeader: tr.scheduleExportPeopleGridRowHeader,
+    persoLabel: tr.scheduleExportPersoLabel,
+    sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
+    presenceMark: tr.scheduleExportPresenceMark,
+    crewPositionLabels: {
+      for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
+    },
+    dayLocationLabel: tr.scheduleExportDayLocationLabel,
+    dayHoursLabel: tr.scheduleExportDayHoursLabel,
+    daySetsLabel: tr.scheduleExportDaySetsLabel,
+    dayTimetableLabel: tr.scheduleExportDayTimetableLabel,
+    callTimeLabel: tr.scheduleExportCallTimeLabel,
+    estimatedEndLabel: tr.scheduleExportEstimatedEndLabel,
+    milestoneFromLabel: tr.scheduleExportMilestoneFromLabel,
+    milestoneToLabel: tr.scheduleExportMilestoneToLabel,
+    blockKindLabels: {
+      for (final kind in OcptShootingBlockKind.values) kind: ocptShootingBlockKindLabel(tr, kind),
+    },
+    planHeader: tr.shotListColumnShot,
+    shotSizeHeader: tr.shotListColumnShotSize,
+    moveHeader: tr.scheduleExportMoveHeader,
+    framingHeader: tr.scheduleExportFramingHeader,
+    commentHeader: tr.scheduleExportCommentHeader,
+    emptyPlanNote: tr.scheduleExportEmptyPlanNote,
+    emptyDayScheduleNote: tr.scheduleExportEmptyDayNote,
+  );
 }

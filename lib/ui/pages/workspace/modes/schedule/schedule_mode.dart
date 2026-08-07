@@ -21,13 +21,16 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_month_grid.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_named_call_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
@@ -39,6 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
@@ -117,7 +121,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptScheduleBloc>().add(const OcptScheduleBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelSchedule,
-        overflowEntries: _buildOverflowEntries(context),
+        overflowEntries: _buildOverflowEntries(context, state),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
             context.read<OcptScheduleBloc>().add(const OcptScheduleLeftPanelToggledEvent()),
@@ -126,9 +130,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             context.read<OcptScheduleBloc>().add(const OcptScheduleRightDockToggledEvent()),
         onProjectSettingsRequested: state.isPreviewingVersion
             ? null
-            : () => unawaited(
-                globalGetIt().get<OcptRouterManager>().push(OcptRoute.projectSettings),
-              ),
+            : () => unawaited(_requestProjectSettings(context)),
         banner: _buildReadOnlyBanner(context, state),
         leftPanel: state.isListPanelVisible ? _buildLeftDock(context, state) : null,
         rightPanel: _buildRightDock(context, state),
@@ -150,14 +152,134 @@ class _ScheduleViewState extends State<_ScheduleView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: only "reset panel layout" in this milestone —
-  /// the exports arrive with M2.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
-    PopupMenuItem<void>(
-      onTap: () => context.read<OcptScheduleBloc>().add(const OcptScheduleDockLayoutResetEvent()),
-      child: Text(Tr.of(context).scheduleResetPanelLayoutAction),
-    ),
-  ];
+  /// Builds the mode's `⋮` overflow menu entries: the three PDF exports, then "reset panel layout".
+  ///
+  /// The two call sheet entries and the shooting plan one are disabled together when the project
+  /// holds no live day at all — there would be nothing to print — and the named call sheets entry
+  /// is disabled further still when the selected day convokes nobody, a call sheet with no recipient
+  /// having nothing to send. All three stay offered under a version preview, exactly as the
+  /// breakdown mode's own export entry does: an export only ever reads.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptScheduleState state) {
+    final hasAnyDay = state.days.isNotEmpty;
+    final selectedDayId = state.selectedDayId;
+    final hasNamedRecipients =
+        selectedDayId != null && state.convocationsOfDay(selectedDayId).isNotEmpty;
+
+    return [
+      PopupMenuItem<void>(
+        enabled: hasAnyDay,
+        // `onTap` fires as the menu closes, so the dialog this opens is shown from the mode's own
+        // context rather than from the entry's, which is already on its way out of the tree.
+        onTap: () => unawaited(_requestCallSheetsExport(context, state)),
+        child: Text(Tr.of(context).scheduleExportCallSheetsMenuAction),
+      ),
+      PopupMenuItem<void>(
+        enabled: hasAnyDay && hasNamedRecipients,
+        onTap: () => unawaited(_requestNamedCallSheetsExport(context, state)),
+        child: Text(Tr.of(context).scheduleExportNamedCallSheetsMenuAction),
+      ),
+      PopupMenuItem<void>(
+        enabled: hasAnyDay,
+        onTap: () => unawaited(_requestShootingPlanExport(context, state)),
+        child: Text(Tr.of(context).scheduleExportShootingPlanMenuAction),
+      ),
+      PopupMenuItem<void>(
+        onTap: () => context.read<OcptScheduleBloc>().add(const OcptScheduleDockLayoutResetEvent()),
+        child: Text(Tr.of(context).scheduleResetPanelLayoutAction),
+      ),
+    ];
+  }
+
+  /// Shows the general call sheets export options dialog, then dispatches the export request if the
+  /// user applied it, resolving here — the last place with a [BuildContext] — every localized string
+  /// the exported documents and the native folder dialog carry.
+  Future<void> _requestCallSheetsExport(BuildContext context, OcptScheduleState state) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final options = await OcptScheduleCallSheetsExportDialog.show(
+      context,
+      current: state.pageSetup,
+      days: state.days,
+      selectedDayId: state.selectedDayId,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptScheduleCallSheetsExportRequestedEvent(
+        options: options,
+        labels: ocptCallSheetLabelsOf(context, days: state.days, people: state.people),
+        confirmButtonText: tr.scheduleExportChooseFolderAction,
+      ),
+    );
+  }
+
+  /// Shows the named call sheets export options dialog for the selected day, then dispatches the
+  /// export request if the user applied it — mirrors [_requestCallSheetsExport].
+  ///
+  /// Does nothing when no day is selected: the `⋮` entry that opens this is disabled in that case
+  /// (see [_buildOverflowEntries]), so this only ever runs against a real day.
+  Future<void> _requestNamedCallSheetsExport(BuildContext context, OcptScheduleState state) async {
+    final day = state.selectedDay;
+    if (day == null) {
+      return;
+    }
+
+    final bloc = context.read<OcptScheduleBloc>();
+    final options = await OcptScheduleNamedCallSheetsExportDialog.show(
+      context,
+      current: state.pageSetup,
+      day: day,
+      convocations: state.convocationsOfDay(day.id),
+      personById: state.personById,
+      roleById: state.roleById,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptScheduleNamedCallSheetsExportRequestedEvent(
+        options: options,
+        labels: ocptCallSheetLabelsOf(context, days: state.days, people: state.people),
+        confirmButtonText: tr.scheduleExportChooseFolderAction,
+      ),
+    );
+  }
+
+  /// Shows the shooting plan export options dialog, then dispatches the export request if the user
+  /// applied it — mirrors [_requestCallSheetsExport].
+  Future<void> _requestShootingPlanExport(BuildContext context, OcptScheduleState state) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final options = await OcptScheduleShootingPlanExportDialog.show(
+      context,
+      current: state.pageSetup,
+      days: state.days,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptScheduleShootingPlanExportRequestedEvent(
+        options: options,
+        labels: ocptShootingPlanLabelsOf(context, days: state.days, people: state.people),
+        fileTypeLabel: tr.scheduleExportFileTypeLabel,
+      ),
+    );
+  }
 
   /// Builds the left dock, or null while it's hidden.
   Widget _buildLeftDock(BuildContext context, OcptScheduleState state) {
@@ -213,6 +335,21 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     bloc.add(OcptScheduleDayDeletionConfirmedEvent(dayId: dayId));
+  }
+
+  /// Opens the project settings page, then re-reads the page setup if the user changed something —
+  /// mirrors `OcptBreakdownMode._requestProjectSettings`/`OcptShotListMode`'s own handler: the page
+  /// format is what the three export dialogs pre-fill their format dropdown from.
+  Future<void> _requestProjectSettings(BuildContext context) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
+      OcptRoute.projectSettings,
+    );
+    if (hasChanged != true) {
+      return;
+    }
+
+    bloc.add(const OcptScheduleProjectSettingsChangedEvent());
   }
 
   /// Builds the shell's `centre`: the header band, then whichever of the agenda or the day view
@@ -773,13 +910,21 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions and the transient version
-  /// notice SnackBar.
+  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient export notice
+  /// SnackBar and the transient version notice SnackBar.
   void _onStateChanged(BuildContext context, OcptScheduleState state) {
     _dockLayoutController.syncFromPersisted(
       leftFraction: state.leftDockFraction,
       rightFraction: state.rightDockFraction,
     );
+
+    final ioNotice = state.ioNotice;
+    if (ioNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+      context.read<OcptScheduleBloc>().add(const OcptScheduleIoNoticeDismissedEvent());
+    }
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
@@ -790,5 +935,27 @@ class _ScheduleViewState extends State<_ScheduleView> {
         );
       context.read<OcptScheduleBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
+  }
+
+  /// Maps [notice] to its localized, user-facing message, mirroring
+  /// `OcptBreakdownMode._ioNoticeMessage`.
+  String _ioNoticeMessage(BuildContext context, OcptScheduleIoNotice notice) {
+    final tr = Tr.of(context);
+
+    return switch (notice.kind) {
+      OcptScheduleIoNoticeKind.fileExportSucceeded => tr.scheduleExportFileSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptScheduleIoNoticeKind.folderExportSucceeded => tr.scheduleExportFolderSuccessMessage(
+        notice.writtenCount ?? 0,
+        notice.folderPath ?? "",
+      ),
+      OcptScheduleIoNoticeKind.folderExportPartiallySucceeded => tr.scheduleExportFolderPartialMessage(
+        notice.writtenCount ?? 0,
+        notice.folderPath ?? "",
+        notice.failedCount ?? 0,
+      ),
+      OcptScheduleIoNoticeKind.exportFailed => tr.scheduleExportError,
+    };
   }
 }

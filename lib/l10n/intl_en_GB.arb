@@ -7044,5 +7044,578 @@
         "type": "String"
       }
     }
+  },
+  "scheduleExportCallSheetsMenuAction": "Export the call sheets…",
+  "@scheduleExportCallSheetsMenuAction": {
+    "description": "Label of the `⋮` menu entry opening the general call sheets export dialog",
+    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedCallSheetsMenuAction": "Export the named call sheets…",
+  "@scheduleExportNamedCallSheetsMenuAction": {
+    "description": "Label of the `⋮` menu entry opening the named call sheets export dialog",
+    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanMenuAction": "Export the shooting plan…",
+  "@scheduleExportShootingPlanMenuAction": {
+    "description": "Label of the `⋮` menu entry opening the shooting plan export dialog",
+    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetsDialogTitle": "Export the call sheets",
+  "@scheduleExportCallSheetsDialogTitle": {
+    "description": "Title of the general call sheets export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedCallSheetsDialogTitle": "Export the named call sheets",
+  "@scheduleExportNamedCallSheetsDialogTitle": {
+    "description": "Title of the named call sheets export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanDialogTitle": "Export the shooting plan",
+  "@scheduleExportShootingPlanDialogTitle": {
+    "description": "Title of the shooting plan export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSelectAllAction": "Select all",
+  "@scheduleExportSelectAllAction": {
+    "description": "Label of the control ticking every entry of an export dialog's own checkbox list",
+    "context": "Displayed above the day list or the convocation list of a schedule export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSelectNoneAction": "Select none",
+  "@scheduleExportSelectNoneAction": {
+    "description": "Label of the control unticking every entry of an export dialog's own checkbox list",
+    "context": "Displayed above the day list or the convocation list of a schedule export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDaysToPrintLabel": "Days to print",
+  "@scheduleExportDaysToPrintLabel": {
+    "description": "Caption above the scrollable day checkbox list of a schedule export dialog",
+    "context": "Displayed in the call sheets and shooting plan export dialogs",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedCallSheetsUncastRoleHint": "No one to send this to yet",
+  "@scheduleExportNamedCallSheetsUncastRoleHint": {
+    "description": "Hint under a convocation row of the named call sheets dialog naming an uncast role, saying it has no recipient",
+    "context": "Displayed in the named call sheets export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportChooseFolderAction": "Choose",
+  "@scheduleExportChooseFolderAction": {
+    "description": "Label of the native \"choose a folder\" dialog's own confirm button, shown when picking where the call sheets are written",
+    "context": "Passed to the OS folder picker opened by a call sheets export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportFileTypeLabel": "PDF document",
+  "@scheduleExportFileTypeLabel": {
+    "description": "Label of the native save dialog's own type filter, shown when saving the shooting plan",
+    "context": "Passed to the OS save dialog opened by the shooting plan export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanLocationsGridLabel": "Include the locations summary grid",
+  "@scheduleExportShootingPlanLocationsGridLabel": {
+    "description": "Label of the checkbox toggling the locations summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanSequencesGridLabel": "Include the sequences summary grid",
+  "@scheduleExportShootingPlanSequencesGridLabel": {
+    "description": "Label of the checkbox toggling the sequences summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanPeopleGridLabel": "Include the crew and cast summary grid",
+  "@scheduleExportShootingPlanPeopleGridLabel": {
+    "description": "Label of the checkbox toggling the crew and cast summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportFileSuccessMessage": "Exported to {path}",
+  "@scheduleExportFileSuccessMessage": {
+    "description": "Message shown when the shooting plan was successfully exported to a single PDF file",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportFolderSuccessMessage": "{writtenCount, plural, one{{writtenCount} file} other{{writtenCount} files}} written to {folder}",
+  "@scheduleExportFolderSuccessMessage": {
+    "description": "Message shown when a call sheets export wrote every file it set out to",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {
+      "writtenCount": {
+        "type": "int"
+      },
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportFolderPartialMessage": "{writtenCount, plural, one{{writtenCount} file} other{{writtenCount} files}} written to {folder} — {failedCount} could not be written",
+  "@scheduleExportFolderPartialMessage": {
+    "description": "Message shown when a call sheets export wrote only some of its files, never read as a plain success",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {
+      "writtenCount": {
+        "type": "int"
+      },
+      "folder": {
+        "type": "String"
+      },
+      "failedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleExportError": "The export could not be completed.",
+  "@scheduleExportError": {
+    "description": "Error shown when one of the three schedule PDF exports failed outright",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetFileNamePrefix": "CallSheet",
+  "@scheduleExportCallSheetFileNamePrefix": {
+    "description": "Short, file-name-safe prefix a call sheet's own suggested file name is built with (CallSheet-D2.pdf)",
+    "context": "Never shown on screen; only ever appears inside a suggested file name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetDocumentTitle": "Call sheet",
+  "@scheduleExportCallSheetDocumentTitle": {
+    "description": "Generic name of the call sheet document, printed as its own running head",
+    "context": "Printed small above every page of an exported call sheet, beside the project's own name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetDayTitle": "Call sheet for {date}",
+  "@scheduleExportCallSheetDayTitle": {
+    "description": "A day's own big heading on its general and named call sheets, the date already formatted in the UI's own locale",
+    "context": "Printed as the call sheet's own large title, upper-cased",
+    "type": "text",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportDirectorLine": "A film by {name}",
+  "@scheduleExportDirectorLine": {
+    "description": "Line naming the director, printed under the project's own title on a call sheet and on the shooting plan's title page",
+    "context": "Shown only when someone holds the director position in the address book",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportDayNumberLabel": "DAY",
+  "@scheduleExportDayNumberLabel": {
+    "description": "Label of the day-number line on a call sheet (DAY : 2)",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportRecipientsSectionTitle": "Recipients",
+  "@scheduleExportRecipientsSectionTitle": {
+    "description": "Heading of the general call sheet's own recipients line, and caption above the named call sheets dialog's own convocation list",
+    "context": "Printed on the general call sheet, and shown in the named call sheets export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedRecipientLabel": "For",
+  "@scheduleExportNamedRecipientLabel": {
+    "description": "Label a named call sheet's own header line is printed under, before the recipient's name",
+    "context": "Printed on every exported named call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMapsLinkLabel": "View on map",
+  "@scheduleExportMapsLinkLabel": {
+    "description": "Label printed before a location's Google Maps link on a call sheet, when it has coordinates to build one from",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCivilDawnLabel": "Civil dawn",
+  "@scheduleExportCivilDawnLabel": {
+    "description": "Label of the morning civil twilight figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSunriseLabel": "Sunrise",
+  "@scheduleExportSunriseLabel": {
+    "description": "Label of the sunrise figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSunsetLabel": "Sunset",
+  "@scheduleExportSunsetLabel": {
+    "description": "Label of the sunset figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCivilDuskLabel": "Civil dusk",
+  "@scheduleExportCivilDuskLabel": {
+    "description": "Label of the evening civil twilight figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportContactsSectionTitle": "Contacts",
+  "@scheduleExportContactsSectionTitle": {
+    "description": "Heading of the key-contacts block and of the by-department contacts table on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportHoursLinePrefix": "HOURS",
+  "@scheduleExportHoursLinePrefix": {
+    "description": "Prefix of a call sheet's own time-band line, and header of a people list's own schedule column",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPatLabel": "PAT",
+  "@scheduleExportPatLabel": {
+    "description": "Label of the ready-to-shoot band on a call sheet, printed as a table column header and as a band line",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportArrivalHeader": "ARRIVAL",
+  "@scheduleExportArrivalHeader": {
+    "description": "Header of a person's arrival figure on a call sheet, printed as a table column header and as a named sheet's own band line",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDepartureLabel": "DEPARTURE",
+  "@scheduleExportDepartureLabel": {
+    "description": "Label of a person's departure figure on a named call sheet's own band line",
+    "context": "Printed on every exported named call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSeqHeader": "SEQ",
+  "@scheduleExportSeqHeader": {
+    "description": "Header of a call sheet's own sequence column, shared by its main table and its cast table",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPlansHeader": "SHOTS",
+  "@scheduleExportPlansHeader": {
+    "description": "Header of a call sheet's own main table column listing the shot ranks of a scene",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEffetHeader": "INT/EXT",
+  "@scheduleExportEffetHeader": {
+    "description": "Header of a call sheet's own main table column naming a scene's interior/exterior and time of day",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDecorsHeader": "SET",
+  "@scheduleExportDecorsHeader": {
+    "description": "Header of a call sheet's own main table column naming the set a scene is shot at",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportRolesHeader": "CAST",
+  "@scheduleExportRolesHeader": {
+    "description": "Header of a call sheet's own main table column listing the roles appearing in a scene",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCastSectionTitle": "Cast",
+  "@scheduleExportCastSectionTitle": {
+    "description": "Heading of the general call sheet's own cast table",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportRoleHeader": "ROLE",
+  "@scheduleExportRoleHeader": {
+    "description": "Header of the cast table's own role column, also used as a named sheet's own label when its recipient is an uncast role",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportActorHeader": "ACTOR",
+  "@scheduleExportActorHeader": {
+    "description": "Header of the cast table's own actor column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNameHeader": "NAME",
+  "@scheduleExportNameHeader": {
+    "description": "Header of a call sheet's own people list name column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPositionsHeader": "POSITION(S)",
+  "@scheduleExportPositionsHeader": {
+    "description": "Header of a call sheet's own people list positions column, also used as a named sheet's own label for the positions or role its recipient is convoked under",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPhoneHeader": "PHONE",
+  "@scheduleExportPhoneHeader": {
+    "description": "Header of a call sheet's own people list phone column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEmailHeader": "EMAIL",
+  "@scheduleExportEmailHeader": {
+    "description": "Header of a call sheet's own people list email column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCrewListSectionTitle": "Crew",
+  "@scheduleExportCrewListSectionTitle": {
+    "description": "Heading of the general call sheet's own closing crew list",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCastAndExtrasListSectionTitle": "Cast and extras",
+  "@scheduleExportCastAndExtrasListSectionTitle": {
+    "description": "Heading of the general call sheet's own closing cast-and-extras list",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEmptyDayNote": "Nothing planned for this day.",
+  "@scheduleExportEmptyDayNote": {
+    "description": "Note printed in place of a call sheet's own main table, or a shooting plan day agenda's own timetable, when the day has no slot or no block on any of them",
+    "context": "Printed on every exported call sheet and shooting plan day agenda that has nothing to show",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportUnnamedPersonLabel": "Unnamed",
+  "@scheduleExportUnnamedPersonLabel": {
+    "description": "Label a person prints under on a call sheet when they hold no usable name, and the name a named sheet's own file name falls back to as well",
+    "context": "Printed on an exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanFileNameSuffix": "shooting plan",
+  "@scheduleExportShootingPlanFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported shooting plan's own file name",
+    "context": "Suggested as «My Movie - shooting plan.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanDocumentTitle": "Shooting plan",
+  "@scheduleExportShootingPlanDocumentTitle": {
+    "description": "Generic name of the shooting plan document, printed as its own running head and on its own title page",
+    "context": "Printed small above every page of the exported shooting plan, and as its title page's own document name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanDayTitle": "Day plan for {date}",
+  "@scheduleExportShootingPlanDayTitle": {
+    "description": "A day's own heading on its detailed agenda page of the shooting plan, the date already formatted in the UI's own locale",
+    "context": "Printed as a shooting plan day agenda's own title",
+    "type": "text",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportTitlePageVersionLabel": "Version",
+  "@scheduleExportTitlePageVersionLabel": {
+    "description": "Label the shooting plan's own title page export-date line is printed under",
+    "context": "Printed on the shooting plan's own title page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportLocationsGridTitle": "Summary - Locations",
+  "@scheduleExportLocationsGridTitle": {
+    "description": "Heading of the shooting plan's own locations summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSequencesGridTitle": "Summary - Sequences",
+  "@scheduleExportSequencesGridTitle": {
+    "description": "Heading of the shooting plan's own sequences summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPeopleGridTitle": "Summary - Crew and cast",
+  "@scheduleExportPeopleGridTitle": {
+    "description": "Heading of the shooting plan's own crew and cast summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportLocationsGridRowHeader": "Location",
+  "@scheduleExportLocationsGridRowHeader": {
+    "description": "Corner header of the locations grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSequencesGridRowHeader": "Sequence",
+  "@scheduleExportSequencesGridRowHeader": {
+    "description": "Corner header of the sequences grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPeopleGridRowHeader": "Crew / cast",
+  "@scheduleExportPeopleGridRowHeader": {
+    "description": "Corner header of the crew and cast grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPersoLabel": "People",
+  "@scheduleExportPersoLabel": {
+    "description": "Word reused both as a shooting plan shot table's own characters column header and as the locations grid's own nested row naming who is present",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSequenceRowPrefix": "Seq.",
+  "@scheduleExportSequenceRowPrefix": {
+    "description": "Prefix a sequences grid's own row label is built with (Seq. 2)",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPresenceMark": "x",
+  "@scheduleExportPresenceMark": {
+    "description": "Mark a crew and cast grid prints for an uncast role present in a slot with nobody to name",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayLocationLabel": "Location:",
+  "@scheduleExportDayLocationLabel": {
+    "description": "Label a shooting plan day agenda's own location line is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayHoursLabel": "Hours:",
+  "@scheduleExportDayHoursLabel": {
+    "description": "Label a shooting plan day agenda's own per-slot hours line is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDaySetsLabel": "Location details:",
+  "@scheduleExportDaySetsLabel": {
+    "description": "Label a shooting plan day agenda's own per-location sets line is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayTimetableLabel": "Detailed schedule:",
+  "@scheduleExportDayTimetableLabel": {
+    "description": "Label a shooting plan day agenda's own interleaved timetable is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallTimeLabel": "call time",
+  "@scheduleExportCallTimeLabel": {
+    "description": "Word introducing a slot's own resolved start on a shooting plan day agenda's own hours line",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEstimatedEndLabel": "estimated end around",
+  "@scheduleExportEstimatedEndLabel": {
+    "description": "Word introducing a slot's own resolved end on a shooting plan day agenda's own hours line",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMilestoneFromLabel": "From",
+  "@scheduleExportMilestoneFromLabel": {
+    "description": "Word introducing a milestone line's own start on a shooting plan day agenda",
+    "context": "Printed on every shooting plan day agenda, in prose such as «From 16:45 to 17:15: …»",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMilestoneToLabel": "to",
+  "@scheduleExportMilestoneToLabel": {
+    "description": "Word joining a milestone line's own start and end on a shooting plan day agenda",
+    "context": "Printed on every shooting plan day agenda, in prose such as «From 16:45 to 17:15: …»",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMoveHeader": "Move.",
+  "@scheduleExportMoveHeader": {
+    "description": "Header of a shooting plan shot table's own camera move column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportFramingHeader": "Framing",
+  "@scheduleExportFramingHeader": {
+    "description": "Header of a shooting plan shot table's own framing column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCommentHeader": "Comment",
+  "@scheduleExportCommentHeader": {
+    "description": "Header of a shooting plan shot table's own comment column, printing a shot's directing notes",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEmptyPlanNote": "Nothing to print.",
+  "@scheduleExportEmptyPlanNote": {
+    "description": "Note printed in place of the whole shooting plan, or in place of a grid, when the printed range holds nothing to show",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
   }
+
 }
