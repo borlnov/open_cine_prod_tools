@@ -12,8 +12,10 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
@@ -24,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
@@ -444,4 +447,144 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     emptyPlanNote: tr.scheduleExportEmptyPlanNote,
     emptyDayScheduleNote: tr.scheduleExportEmptyDayNote,
   );
+}
+
+/// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
+/// comment for exactly what each of the nine rules claims.
+String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (kind) {
+  OcptScheduleAlertKind.personUnavailable => tr.scheduleAlertKindPersonUnavailable,
+  OcptScheduleAlertKind.personDoubleBooked => tr.scheduleAlertKindPersonDoubleBooked,
+  OcptScheduleAlertKind.locationUncovered => tr.scheduleAlertKindLocationUncovered,
+  OcptScheduleAlertKind.positionLost => tr.scheduleAlertKindPositionLost,
+  OcptScheduleAlertKind.roleNotConvoked => tr.scheduleAlertKindRoleNotConvoked,
+  OcptScheduleAlertKind.roleUncast => tr.scheduleAlertKindRoleUncast,
+  OcptScheduleAlertKind.timelineOverrun => tr.scheduleAlertKindTimelineOverrun,
+  OcptScheduleAlertKind.slotFixedEndMissed => tr.scheduleAlertKindFixedEndMissed,
+  OcptScheduleAlertKind.presenceExceeded => tr.scheduleAlertKindPresenceExceeded,
+};
+
+/// The alerts panel's own body sentence for [alert] — the one place an id or a raw minute figure
+/// `lib/utils/ocpt_schedule_alerts.dart` carries is turned into a name or a formatted time, that
+/// file knowing neither by design (its own class doc comment).
+///
+/// A person, a role or a location an alert names that no longer resolves through [personById]/
+/// [roleById]/[locationById] still reads as something (`Tr.resourcesUnnamedPerson`/
+/// `Tr.resourcesRoleUnnamed`/`Tr.resourcesLocationUnnamed`), exactly as every other reader of those
+/// maps in this mode falls back — an alert computed against a stale read is not expected in
+/// practice ([alert] and the maps are built from the very same snapshot), but a sentence must never
+/// go blank over it. [slotById] and [blockById] are keyed across the **whole schedule**, not one
+/// day, since an alert's own [OcptScheduleAlert.dayId] is read separately by the caller (the day
+/// control beside the sentence) — this function only ever resolves the ids the alert itself carries.
+String ocptScheduleAlertSentence(
+  Tr tr,
+  OcptScheduleAlert alert, {
+  required Map<String, OcptPerson> personById,
+  required Map<String, OcptRole> roleById,
+  required Map<String, OcptLocation> locationById,
+  required Map<String, OcptShootingSlot> slotById,
+  required Map<String, OcptShootingDayBlock> blockById,
+  required OcptShot? Function(String shotId) shotOf,
+}) => switch (alert) {
+  OcptSchedulePersonUnavailableAlert(:final personId, :final slotIds) =>
+    tr.scheduleAlertPersonUnavailableSentence(
+      _ocptScheduleAlertPersonNameOf(tr, personById, personId),
+      [for (final slotId in slotIds) _ocptConvocationSlotLabelOf(tr, slotById[slotId])].join(" · "),
+    ),
+  OcptSchedulePersonDoubleBookedAlert(:final personId, :final firstSlotId, :final secondSlotId) =>
+    tr.scheduleAlertPersonDoubleBookedSentence(
+      _ocptScheduleAlertPersonNameOf(tr, personById, personId),
+      _ocptConvocationSlotLabelOf(tr, slotById[firstSlotId]),
+      _ocptConvocationSlotLabelOf(tr, slotById[secondSlotId]),
+    ),
+  OcptScheduleLocationUncoveredAlert(:final slotId, :final locationId) =>
+    tr.scheduleAlertLocationUncoveredSentence(
+      _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
+      _ocptScheduleAlertLocationNameOf(tr, locationById, locationId),
+    ),
+  OcptSchedulePositionLostAlert(:final personId, :final slotId, :final position) =>
+    tr.scheduleAlertPositionLostSentence(
+      position.positionId.isEmpty ? position.customLabel : ocptCrewPositionLabel(tr, position.positionId),
+      _ocptScheduleAlertPersonNameOf(tr, personById, personId),
+      _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
+    ),
+  OcptScheduleRoleNotConvokedAlert(:final roleId, :final shotId) =>
+    tr.scheduleAlertRoleNotConvokedSentence(
+      _ocptScheduleAlertRoleNameOf(tr, roleById, roleId),
+      shotOf(shotId)?.code ?? "",
+    ),
+  OcptScheduleRoleUncastAlert(:final roleId) =>
+    tr.scheduleAlertRoleUncastSentence(_ocptScheduleAlertRoleNameOf(tr, roleById, roleId)),
+  OcptScheduleTimelineOverrunAlert(:final blockId, :final reachedMinute, :final anchorMinute) =>
+    tr.scheduleAlertTimelineOverrunSentence(
+      _ocptScheduleAlertBlockLabelOf(tr, blockById[blockId], shotOf),
+      ocptFormatDayMinute(anchorMinute),
+      ocptFormatDayMinute(reachedMinute),
+    ),
+  OcptScheduleFixedEndMissedAlert(:final slotId, :final fixedEndMinute, :final actualEndMinute) =>
+    tr.scheduleAlertFixedEndMissedSentence(
+      _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
+      ocptFormatDayMinute(fixedEndMinute),
+      ocptFormatDayMinute(actualEndMinute),
+    ),
+  OcptSchedulePresenceExceededAlert(
+    :final personId,
+    :final presenceMinutes,
+    :final maxDailyPresenceMinutes,
+  ) =>
+    tr.scheduleAlertPresenceExceededSentence(
+      _ocptScheduleAlertPersonNameOf(tr, personById, personId),
+      ocptFormatMinuteDuration(presenceMinutes),
+      ocptFormatMinuteDuration(maxDailyPresenceMinutes),
+    ),
+};
+
+/// [personId]'s own display name, or [Tr.resourcesUnnamedPerson] while [personById] holds nothing
+/// for it (empty or missing) — see [ocptScheduleAlertSentence]'s own doc comment.
+String _ocptScheduleAlertPersonNameOf(Tr tr, Map<String, OcptPerson> personById, String personId) {
+  final displayName = personById[personId]?.displayName ?? "";
+  return displayName.isEmpty ? tr.resourcesUnnamedPerson : displayName;
+}
+
+/// [roleId]'s own name, or [Tr.resourcesRoleUnnamed] while [roleById] holds nothing for it.
+String _ocptScheduleAlertRoleNameOf(Tr tr, Map<String, OcptRole> roleById, String roleId) {
+  final name = roleById[roleId]?.name ?? "";
+  return name.isEmpty ? tr.resourcesRoleUnnamed : name;
+}
+
+/// [locationId]'s own name, or [Tr.resourcesLocationUnnamed] while [locationById] holds nothing for
+/// it.
+String _ocptScheduleAlertLocationNameOf(
+  Tr tr,
+  Map<String, OcptLocation> locationById,
+  String locationId,
+) {
+  final name = locationById[locationId]?.name ?? "";
+  return name.isEmpty ? tr.resourcesLocationUnnamed : name;
+}
+
+/// [block]'s own readable identity for the timeline-overrun sentence: a shot block reads as its own
+/// shot's code (falling back to the block kind's own label while the shot itself doesn't resolve),
+/// any other kind reads as its own free-text label (falling back to the block kind's own label while
+/// that is empty) — mirroring how a timetable row itself reads a block (`OcptScheduleTimetable`). An
+/// em dash while [block] itself doesn't resolve, which should not happen in practice (an alert is
+/// computed against the very snapshot the caller's own map is keyed from) but must still read as
+/// something.
+String _ocptScheduleAlertBlockLabelOf(
+  Tr tr,
+  OcptShootingDayBlock? block,
+  OcptShot? Function(String shotId) shotOf,
+) {
+  if (block == null) {
+    return "—";
+  }
+
+  final shotId = block.shotId;
+  if (block.kind == OcptShootingBlockKind.shot && shotId != null) {
+    final code = shotOf(shotId)?.code ?? "";
+    if (code.isNotEmpty) {
+      return code;
+    }
+  }
+
+  return block.label.isEmpty ? ocptShootingBlockKindLabel(tr, block.kind) : block.label;
 }

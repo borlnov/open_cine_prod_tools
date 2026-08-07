@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_alerts_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
@@ -140,6 +141,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         rightPanel: _buildRightDock(context, state),
         centre: _buildCentre(context, state),
         statusBar: OcptScheduleStatusBar(
+          alertCount: state.planSnapshot?.alerts.length ?? 0,
           dayCount: state.dayCount,
           placedShotCount: state.placedShotCount,
           shotsLeftToPlaceCount: state.shotsLeftToPlaceCount,
@@ -725,6 +727,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       activeTab: rightDockTab,
       inspectorChild: _buildInspector(context, state),
       convocationsChild: _buildConvocationsPanel(context, state),
+      alertsChild: _buildAlertsPanel(context, state),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) =>
           context.read<OcptScheduleBloc>().add(OcptScheduleRightDockTabSelectedEvent(tab: tab)),
@@ -744,6 +747,35 @@ class _ScheduleViewState extends State<_ScheduleView> {
       personById: state.personById,
       roleById: state.roleById,
       slotById: {for (final slot in state.selectedDaySlots) slot.id: slot},
+    );
+  }
+
+  /// Builds the `Alerts` tab's own content: every alert the whole shoot currently raises, with the
+  /// whole-schedule slot and block maps its cards need to resolve a card that isn't scoped to the
+  /// selected day — unlike [_buildConvocationsPanel]'s own `slotById`, which only ever needs the
+  /// selected day's slots.
+  Widget _buildAlertsPanel(BuildContext context, OcptScheduleState state) {
+    final snapshot = state.snapshot;
+
+    final slotById = <String, OcptShootingSlot>{
+      for (final slots in snapshot?.slotsByDayId.values ?? const <List<OcptShootingSlot>>[])
+        for (final slot in slots) slot.id: slot,
+    };
+    final blockById = <String, OcptShootingDayBlock>{
+      for (final blocks in snapshot?.blocksByDayId.values ?? const <List<OcptShootingDayBlock>>[])
+        for (final block in blocks) block.id: block,
+    };
+
+    return OcptScheduleAlertsPanel(
+      alerts: state.planSnapshot?.alerts ?? const <OcptScheduleAlert>[],
+      personById: state.personById,
+      roleById: state.roleById,
+      locationById: state.locationById,
+      daysById: state.daysById,
+      slotById: slotById,
+      blockById: blockById,
+      shotOf: state.shotById,
+      onDayOpenRequested: (dayId) => _openDay(context, dayId),
     );
   }
 

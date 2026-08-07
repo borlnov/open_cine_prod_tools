@@ -7788,6 +7788,246 @@
     "context": "Displayed in the schedule mode's presence view",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleRightDockAlertsTabLabel": "Alerts",
+  "@scheduleRightDockAlertsTabLabel": {
+    "description": "Label of the schedule mode's right dock Alerts tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleStatsAlerts": "{count, plural, =0{No alerts} one{1 alert} other{{count} alerts}}",
+  "@scheduleStatsAlerts": {
+    "description": "Number of alerts the plan currently raises, read as nothing wrong at zero",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleAlertsSummary": "{total, plural, one{1 issue} other{{total} issues}} · {hard, plural, =0{none blocking} one{1 blocking} other{{hard} blocking}}",
+  "@scheduleAlertsSummary": {
+    "description": "Heading the alerts panel's own list, naming how many issues the plan raises and how many of them are blocking",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "hard": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleAlertsEmptyHint": "The plan raises nothing to look at.",
+  "@scheduleAlertsEmptyHint": {
+    "description": "Shown in the alerts panel while the plan raises no alert at all",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPersonUnavailable": "Unavailable",
+  "@scheduleAlertKindPersonUnavailable": {
+    "description": "Title of an alert card reporting a person convoked despite a recorded unavailability (rule 1)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPersonDoubleBooked": "Double-booked",
+  "@scheduleAlertKindPersonDoubleBooked": {
+    "description": "Title of an alert card reporting a person convoked on two overlapping slots (rule 2)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindLocationUncovered": "Location uncovered",
+  "@scheduleAlertKindLocationUncovered": {
+    "description": "Title of an alert card reporting a slot booked outside every window recorded for its location (rule 3)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPositionLost": "Position lost",
+  "@scheduleAlertKindPositionLost": {
+    "description": "Title of an alert card reporting a crew position held on one slot and unfilled on the next (rule 4)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindRoleNotConvoked": "Role not convoked",
+  "@scheduleAlertKindRoleNotConvoked": {
+    "description": "Title of an alert card reporting a role a placed shot calls for and no slot of that day convokes (rule 5)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindRoleUncast": "Role not cast",
+  "@scheduleAlertKindRoleUncast": {
+    "description": "Title of an alert card reporting a role the schedule uses that has no actor yet (rule 6)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindTimelineOverrun": "Timeline overrun",
+  "@scheduleAlertKindTimelineOverrun": {
+    "description": "Title of an alert card reporting a pinned block the day's own chain could not reach without overlap (rule 7)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindFixedEndMissed": "Fixed end missed",
+  "@scheduleAlertKindFixedEndMissed": {
+    "description": "Title of an alert card reporting an end-anchored slot whose own blocks didn't land back on that fixed end (rule 8)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPresenceExceeded": "Presence exceeded",
+  "@scheduleAlertKindPresenceExceeded": {
+    "description": "Title of an alert card reporting a person whose computed presence on a day exceeds their recorded maximum (rule 9)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertPersonUnavailableSentence": "{personName} is convoked on {slots} despite being recorded unavailable that day.",
+  "@scheduleAlertPersonUnavailableSentence": {
+    "description": "Body sentence of a person-unavailable alert card (rule 1)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPersonDoubleBookedSentence": "{personName} is convoked on both {firstSlot} and {secondSlot}, whose times overlap.",
+  "@scheduleAlertPersonDoubleBookedSentence": {
+    "description": "Body sentence of a person-double-booked alert card (rule 2)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "firstSlot": {
+        "type": "String"
+      },
+      "secondSlot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertLocationUncoveredSentence": "{slotLabel} is booked at {locationName}, outside every window recorded for that location.",
+  "@scheduleAlertLocationUncoveredSentence": {
+    "description": "Body sentence of a location-uncovered alert card (rule 3)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "slotLabel": {
+        "type": "String"
+      },
+      "locationName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPositionLostSentence": "{position}, held by {personName} on the previous slot, is not filled on {slotLabel}.",
+  "@scheduleAlertPositionLostSentence": {
+    "description": "Body sentence of a position-lost alert card (rule 4)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "position": {
+        "type": "String"
+      },
+      "personName": {
+        "type": "String"
+      },
+      "slotLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertRoleNotConvokedSentence": "{roleName} appears in shot {shotCode}, but is convoked on no slot of the day.",
+  "@scheduleAlertRoleNotConvokedSentence": {
+    "description": "Body sentence of a role-not-convoked alert card (rule 5)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      },
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertRoleUncastSentence": "{roleName} has no actor cast yet.",
+  "@scheduleAlertRoleUncastSentence": {
+    "description": "Body sentence of a role-uncast alert card (rule 6)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertTimelineOverrunSentence": "{blockLabel} is fixed at {anchorTime}, but the blocks before it don't finish until {reachedTime}.",
+  "@scheduleAlertTimelineOverrunSentence": {
+    "description": "Body sentence of a timeline-overrun alert card (rule 7)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "blockLabel": {
+        "type": "String"
+      },
+      "anchorTime": {
+        "type": "String"
+      },
+      "reachedTime": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertFixedEndMissedSentence": "{slotLabel} is fixed to end at {fixedEndTime}, but its own blocks land on {actualEndTime}.",
+  "@scheduleAlertFixedEndMissedSentence": {
+    "description": "Body sentence of a fixed-end-missed alert card (rule 8)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "slotLabel": {
+        "type": "String"
+      },
+      "fixedEndTime": {
+        "type": "String"
+      },
+      "actualEndTime": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPresenceExceededSentence": "{personName}'s presence of {presenceDuration} on this day exceeds their recorded maximum of {maxDuration}.",
+  "@scheduleAlertPresenceExceededSentence": {
+    "description": "Body sentence of a presence-exceeded alert card (rule 9)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "presenceDuration": {
+        "type": "String"
+      },
+      "maxDuration": {
+        "type": "String"
+      }
+    }
   }
 
 }

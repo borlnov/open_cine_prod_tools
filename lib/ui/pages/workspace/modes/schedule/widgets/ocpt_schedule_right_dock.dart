@@ -22,6 +22,9 @@ class OcptScheduleRightDock extends StatelessWidget {
   /// [OcptScheduleRightDockTab.convocations].
   final Widget convocationsChild;
 
+  /// The built alerts panel, shown when [activeTab] is [OcptScheduleRightDockTab.alerts].
+  final Widget alertsChild;
+
   /// The built project versions panel, shown when [activeTab] is
   /// [OcptScheduleRightDockTab.versions].
   final Widget versionsChild;
@@ -38,6 +41,7 @@ class OcptScheduleRightDock extends StatelessWidget {
     required this.activeTab,
     required this.inspectorChild,
     required this.convocationsChild,
+    required this.alertsChild,
     required this.versionsChild,
     required this.onTabSelected,
     required this.onClose,
@@ -64,6 +68,7 @@ class OcptScheduleRightDock extends StatelessWidget {
                           OcptScheduleRightDockTab.inspector => tr.scheduleRightDockInspectorTabLabel,
                           OcptScheduleRightDockTab.convocations =>
                             tr.scheduleRightDockConvocationsTabLabel,
+                          OcptScheduleRightDockTab.alerts => tr.scheduleRightDockAlertsTabLabel,
                           OcptScheduleRightDockTab.versions => tr.scheduleRightDockVersionsTabLabel,
                         },
                         isActive: activeTab == tab,
@@ -86,6 +91,7 @@ class OcptScheduleRightDock extends StatelessWidget {
           child: switch (activeTab) {
             OcptScheduleRightDockTab.inspector => inspectorChild,
             OcptScheduleRightDockTab.convocations => convocationsChild,
+            OcptScheduleRightDockTab.alerts => alertsChild,
             OcptScheduleRightDockTab.versions => versionsChild,
           },
         ),

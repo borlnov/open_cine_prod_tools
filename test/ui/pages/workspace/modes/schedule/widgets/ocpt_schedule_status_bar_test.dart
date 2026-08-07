@@ -26,6 +26,7 @@ void main() {
   /// own computed end.
   Future<void> pumpStatusBar(
     WidgetTester tester, {
+    int alertCount = 0,
     int dayCount = 1,
     required bool isDaySelected,
     required int? selectedDayEndMinute,
@@ -33,6 +34,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         OcptScheduleStatusBar(
+          alertCount: alertCount,
           dayCount: dayCount,
           placedShotCount: 0,
           shotsLeftToPlaceCount: 0,
@@ -73,5 +75,20 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleStatusBar)));
     expect(find.text(tr.scheduleStatsEstimatedEnd("03:00")), findsOneWidget);
+  });
+
+  testWidgets("a plan with no alert reads as nothing wrong, not as a zero count", (tester) async {
+    await pumpStatusBar(tester, isDaySelected: false, selectedDayEndMinute: null);
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleStatusBar)));
+    expect(find.textContaining(tr.scheduleStatsAlerts(0)), findsOneWidget);
+    expect(find.textContaining("0 alert"), findsNothing);
+  });
+
+  testWidgets("a plan raising alerts reports how many", (tester) async {
+    await pumpStatusBar(tester, alertCount: 3, isDaySelected: false, selectedDayEndMinute: null);
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleStatusBar)));
+    expect(find.textContaining(tr.scheduleStatsAlerts(3)), findsOneWidget);
   });
 }
