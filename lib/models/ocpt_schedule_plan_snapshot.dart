@@ -3,16 +3,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
@@ -34,6 +38,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// [roleById]/[personById] are built **once**, in [OcptSchedulePlanSnapshot.build], and stored as
 /// unmodifiable maps — a caller walking a whole shoot's worth of days must not rebuild the address
 /// book once per day.
+///
+/// [alerts] is the same idea taken one step further: it is a whole-shoot walk (`lib/utils/
+/// ocpt_schedule_alerts.dart`), so it is a `late final` field computed once, on first read, rather
+/// than a getter recomputed on every one — see its own doc comment for why that field is also what
+/// keeps this class from being `const` any more.
 class OcptSchedulePlanSnapshot extends Equatable {
   /// The whole schedule read: days, slots and blocks.
   final OcptScheduleSnapshot schedule;
@@ -67,7 +76,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// Class constructor. Prefer [OcptSchedulePlanSnapshot.build], which derives [locationById],
   /// [setById], [roleById] and [personById] rather than asking a caller to keep them in step by
   /// hand.
-  const OcptSchedulePlanSnapshot({
+  ///
+  /// Not `const`, unlike most models in this app: [alerts] is a `late final` field, which a const
+  /// constructor cannot carry. Nothing ever built this snapshot as a constant.
+  OcptSchedulePlanSnapshot({
     required this.schedule,
     required this.shotList,
     required this.locations,
@@ -275,6 +287,146 @@ class OcptSchedulePlanSnapshot extends Equatable {
   OcptLocation? firstLocationOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     return slots.isEmpty ? null : locationById[slots.first.locationId];
+  }
+
+  /// Every [OcptScheduleAlert] the nine rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
+  /// the whole schedule, computed **once**, on first read, rather than per read — see the class doc
+  /// comment and [OcptSchedulePlanSnapshot]'s own constructor doc comment for why this is a
+  /// `late final` field rather than a getter.
+  ///
+  /// Every join that function needs onto `shots`, `roles`, `people` and `locations` happens here —
+  /// [_alertDayOf], [_roleIdByNormalizedName] and the location/people mappings below — exactly as
+  /// [_convocationSlotOf] joins onto `roles` for [convocationsOfDay]. `ocpt_schedule_alerts.dart`
+  /// itself knows none of those tables.
+  late final List<OcptScheduleAlert> alerts = ocptComputeScheduleAlerts(
+    days: [for (final day in schedule.days) _alertDayOf(day)],
+    people: [
+      for (final person in people)
+        OcptScheduleAlertPerson(
+          id: person.id,
+          maxDailyPresenceMinutes: person.maxDailyPresenceMinutes,
+          unavailabilities: [
+            for (final unavailability in person.unavailabilities)
+              OcptScheduleAlertUnavailability(
+                id: unavailability.id,
+                startDate: unavailability.startDate,
+                endDate: unavailability.endDate,
+                dayPart: unavailability.slot,
+                startMinute: unavailability.startMinute,
+                endMinute: unavailability.endMinute,
+              ),
+          ],
+        ),
+    ],
+    roles: [
+      for (final role in roles) OcptScheduleAlertRole(id: role.id, personId: role.personId),
+    ],
+    locationWindowsByLocationId: {
+      for (final location in locations)
+        location.id: [
+          for (final availability in location.availabilities)
+            OcptScheduleAlertLocationWindow(
+              startDate: availability.startDate,
+              endDate: availability.endDate,
+              weekdays: availability.weekdays,
+              dayPart: availability.slot,
+              startMinute: availability.startMinute,
+              endMinute: availability.endMinute,
+            ),
+        ],
+    },
+  );
+
+  /// Every [OcptRole.name] of [roles], normalised through `fountain_kit`'s `normalizeCharacterName`
+  /// and keyed onto its own id — the same join `OcptCallSheetPdfService` and
+  /// `OcptShootingPlanPdfService` already read a shot's characters through. Built once, alongside
+  /// [alerts], rather than once per day.
+  late final Map<String, String> _roleIdByNormalizedName = {
+    for (final role in roles) normalizeCharacterName(role.name): role.id,
+  };
+
+  /// Builds [day]'s own [OcptScheduleAlertDay]: its live slots ([_alertSlotOf]), the timeline
+  /// diagnostics [timelinesOfDay] already computes for it, and the roles a shot placed on it calls
+  /// for ([_calledRolesOfDay]).
+  OcptScheduleAlertDay _alertDayOf(OcptShootingDay day) {
+    final slots = schedule.slotsByDayId[day.id] ?? const <OcptShootingSlot>[];
+    final timelines = timelinesOfDay(day.id);
+
+    return OcptScheduleAlertDay(
+      id: day.id,
+      date: day.date,
+      slots: [
+        // Every slot of [slots] was just handed to [timelinesOfDay] above, so each has its own
+        // entry back: the `!`s are that round trip, not an assumption about the data (mirrors
+        // [convocationsOfDay]'s own).
+        for (final slot in slots) _alertSlotOf(slot, timelines!.bySlotId[slot.id]!),
+      ],
+      overruns: timelines?.overruns ?? const [],
+      fixedEndMisses: timelines?.fixedEndMisses ?? const [],
+      calledRoles: _calledRolesOfDay(day.id),
+    );
+  }
+
+  /// Builds [slot]'s own [OcptScheduleAlertSlot]: its resolved band (from [timeline]), who is
+  /// convoked on it as a human ([OcptScheduleAlertSlot.personIds], the same computation
+  /// [_convocationSlotOf] makes for [convocationsOfDay]) and which roles it convokes at all, cast or
+  /// not ([OcptScheduleAlertSlot.convokedRoleIds]).
+  OcptScheduleAlertSlot _alertSlotOf(OcptShootingSlot slot, OcptShootingSlotTimeline timeline) {
+    final personIds = <String>{for (final member in slot.crew) member.personId};
+    final convokedRoleIds = <String>{};
+    for (final member in slot.cast) {
+      convokedRoleIds.add(member.roleId);
+      final actorId = roleById[member.roleId]?.personId;
+      if (actorId != null) {
+        personIds.add(actorId);
+      }
+    }
+
+    return OcptScheduleAlertSlot(
+      id: slot.id,
+      startMinute: timeline.startMinute,
+      endMinute: timeline.endMinute,
+      locationId: slot.locationId,
+      crew: [
+        for (final member in slot.crew)
+          OcptScheduleAlertCrewMember(
+            personId: member.personId,
+            position: OcptCrewPositionRef(
+              positionId: member.positionId,
+              customLabel: member.customLabel,
+            ),
+          ),
+      ],
+      personIds: personIds,
+      convokedRoleIds: convokedRoleIds,
+    );
+  }
+
+  /// Every role a shot placed on [dayId] calls for, one [OcptScheduleAlertCalledRole] per matched
+  /// character of every `shot` block of that day's own blocks, in block order. A character with no
+  /// matching role (through [_roleIdByNormalizedName]) names nothing this rule can act on and is
+  /// silently skipped, exactly as `OcptShootingPlanPdfService._roleNamesOf` skips one.
+  List<OcptScheduleAlertCalledRole> _calledRolesOfDay(String dayId) {
+    final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
+    final calledRoles = <OcptScheduleAlertCalledRole>[];
+
+    for (final block in blocks) {
+      if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
+        continue;
+      }
+      final shot = shotById(block.shotId!);
+      if (shot == null) {
+        continue;
+      }
+      for (final character in shot.characters) {
+        final roleId = _roleIdByNormalizedName[character];
+        if (roleId != null) {
+          calledRoles.add(OcptScheduleAlertCalledRole(roleId: roleId, shotId: shot.id));
+        }
+      }
+    }
+
+    return calledRoles;
   }
 
   /// Object properties

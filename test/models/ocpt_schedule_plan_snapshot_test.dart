@@ -13,11 +13,16 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
@@ -140,6 +145,57 @@ OcptLocation _buildLocation({required String id, double? latitude, double? longi
       availabilities: const [],
     );
 
+/// Builds a shot with the few fields these tests read, everything else neutral.
+OcptShot _buildShot({
+  required String id,
+  List<String> characters = const [],
+}) => OcptShot(
+  id: id,
+  screenplayId: "screenplay-1",
+  sceneId: "scene-1",
+  orphanedHeading: null,
+  position: 0,
+  shotSize: "",
+  abbreviation: "",
+  framing: "",
+  cameraMove: "",
+  lens: "",
+  recordingFormat: "",
+  estimatedDurationMs: null,
+  shootingDay: null,
+  plannedTakes: null,
+  sound: "",
+  status: OcptShotStatus.toShoot,
+  difficultySet: 0,
+  difficultyCamera: 0,
+  difficultyActing: 0,
+  difficultySound: 0,
+  notes: "",
+  locationNotes: "",
+  needsCheck: false,
+  checkReason: null,
+  characters: characters,
+  coverageRanges: const [],
+  code: "1/1",
+  averageDifficulty: 0,
+);
+
+/// Builds a one-shot shot list, its single scene sequence holding [shots].
+OcptShotListSnapshot _buildShotList({required List<OcptShot> shots}) => OcptShotListSnapshot.build(
+  screenplayId: "screenplay-1",
+  sequences: [
+    OcptSceneShotSequence(
+      sceneId: "scene-1",
+      heading: "INT. KITCHEN - DAY",
+      sceneNumber: null,
+      displaySceneNumber: "1",
+      charStart: 0,
+      charEnd: 0,
+      shots: shots,
+    ),
+  ],
+);
+
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs — everything else defaulting to empty, exactly as
 /// `OcptScheduleState.init()` does.
@@ -147,6 +203,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   Map<String, List<OcptShootingDayBlock>> blocksByDayId = const {},
+  OcptShotListSnapshot? shotList,
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
@@ -157,7 +214,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,
   ),
-  shotList: null,
+  shotList: shotList,
   locations: locations,
   roles: roles,
   people: people,
@@ -346,6 +403,77 @@ void main() {
       expect(snapshot.dayArrivalMinute("day-1"), isNull);
       expect(snapshot.timelinesOfDay("day-1"), isNull);
       expect(snapshot.convocationsOfDay("day-1"), isEmpty);
+    });
+  });
+
+  group("alerts", () {
+    test("a person linked to two overlapping slots surfaces as a double-booking alert", () {
+      final slotA = _buildSlot(
+        id: "slot-a",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-a", personId: "person-1")],
+      );
+      final slotB = _buildSlot(
+        id: "slot-b",
+        anchorMinute: 550,
+        crew: [_buildCrewMember(id: "crew-2", slotId: "slot-b", personId: "person-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slotA, slotB],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(id: "block-a", slotId: "slot-a", durationMinutes: 200),
+            _buildBlock(id: "block-b", slotId: "slot-b", durationMinutes: 200),
+          ],
+        },
+      );
+
+      final alert = snapshot.alerts.whereType<OcptSchedulePersonDoubleBookedAlert>().single;
+      expect(alert.dayId, "day-1");
+      expect(alert.personId, "person-1");
+    });
+
+    test("a shot's character matched to a role convoked nowhere surfaces the role-not-convoked "
+        "alert", () {
+      final role = _buildRole(id: "role-1", name: "Alice");
+      final shot = _buildShot(id: "shot-1", characters: const ["ALICE"]);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480); // nobody cast on it
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-shot",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+        roles: [role],
+      );
+
+      final alert = snapshot.alerts.whereType<OcptScheduleRoleNotConvokedAlert>().single;
+      expect(alert.dayId, "day-1");
+      expect(alert.roleId, "role-1");
+      expect(alert.shotId, "shot-1");
+    });
+
+    test("is computed once, not once per read", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {});
+
+      expect(identical(snapshot.alerts, snapshot.alerts), isTrue);
     });
   });
 }
