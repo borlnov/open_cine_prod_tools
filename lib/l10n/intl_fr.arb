@@ -417,7 +417,6 @@
   "resourcesAddPositionAction": "+ Ajouter une fonction",
   "resourcesPositionCustomOptionLabel": "Intitulé libre…",
   "resourcesPositionLabelHint": "Poste",
-  "resourcesPositionScopePlaceholder": "défini dans le planning",
   "resourcesRemovePositionTooltip": "Retirer le poste",
   "resourcesMinorCalloutTitle": "Cadre horaire légal",
   "resourcesMinorNotesHint": "Horaires, présence d'un tuteur, autorisation…",

@@ -274,7 +274,6 @@ void main() {
     expect(find.text("Martin"), findsOneWidget);
     expect(find.text("lea@example.com"), findsOneWidget);
     expect(find.text("Director"), findsOneWidget);
-    expect(find.text("defined in the schedule"), findsOneWidget);
     expect(find.text("Végétarienne"), findsOneWidget);
     expect(find.text("Ponctuelle"), findsOneWidget);
   });

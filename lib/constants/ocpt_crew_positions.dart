@@ -9,8 +9,8 @@ class OcptCrewPosition {
   /// A stable code identifying this position (e.g. `director`, `soundEngineer`).
   ///
   /// **Never localised, and never renamed once shipped**: `person_positions.positionId` stores it
-  /// verbatim, and the schedule mode will reference it per time slot once it exists — renaming an
-  /// id would silently detach every row already pointing at it from the position it used to mean.
+  /// verbatim, and the schedule mode references it per time slot — renaming an id would silently
+  /// detach every row already pointing at it from the position it used to mean.
   /// Retiring a position removes it from this list without reusing its id for something else;
   /// adding a new one only ever appends.
   final String id;

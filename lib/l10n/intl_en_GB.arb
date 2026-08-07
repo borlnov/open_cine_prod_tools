@@ -3140,13 +3140,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesPositionScopePlaceholder": "defined in the schedule",
-  "@resourcesPositionScopePlaceholder": {
-    "description": "Read-only scope column of a function row, which the schedule mode will fill",
-    "context": "Displayed on the person sheet's crew positions card",
-    "type": "text",
-    "placeholders": {}
-  },
   "resourcesRemovePositionTooltip": "Remove position",
   "@resourcesRemovePositionTooltip": {
     "description": "Tooltip of a position row's remove button",
