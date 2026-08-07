@@ -402,10 +402,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
                 bloc.add(OcptScheduleSlotCrewMemberAddedEvent(slotId: slotId, personId: personId)),
       onSlotCrewMemberPositionChanged: isReadOnly
           ? null
-          : (crewMemberId, positionId) => bloc.add(
+          : (crewMemberId, position) => bloc.add(
               OcptScheduleSlotCrewMemberPositionChangedEvent(
                 crewMemberId: crewMemberId,
-                positionId: positionId,
+                positionId: position.positionId,
+                customLabel: position.customLabel,
               ),
             ),
       onSlotCrewMemberRemoved: isReadOnly

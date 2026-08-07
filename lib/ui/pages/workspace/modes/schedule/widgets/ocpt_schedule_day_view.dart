@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
@@ -137,9 +138,9 @@ class OcptScheduleDayView extends StatelessWidget {
   /// null while withheld.
   final void Function(String slotId, String personId)? onSlotCrewMemberAdded;
 
-  /// Called with a crew assignment's id and the catalogue position just picked, or null while
-  /// withheld.
-  final void Function(String crewMemberId, String positionId)? onSlotCrewMemberPositionChanged;
+  /// Called with a crew assignment's id and the position just picked, or null while withheld.
+  final void Function(String crewMemberId, OcptCrewPositionRef position)?
+  onSlotCrewMemberPositionChanged;
 
   /// Called with a crew assignment's id when its row's remove control is clicked, or null while
   /// withheld.

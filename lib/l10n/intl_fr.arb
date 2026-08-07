@@ -914,6 +914,7 @@
   "scheduleSlotCrewColumnTitle": "Équipe technique",
   "scheduleSlotPeopleCount": "{count, plural, one{{count} personne} other{{count} personnes}}",
   "scheduleSlotCrewEmptyHint": "Aucun technicien convoqué pour l'instant.",
+  "scheduleSlotCrewPositionPlaceholder": "Fonction…",
   "scheduleSlotUnassignedDepartmentLabel": "Non affecté",
   "scheduleAddCrewMemberAction": "Technicien",
   "scheduleSlotCastColumnTitle": "Comédiens",

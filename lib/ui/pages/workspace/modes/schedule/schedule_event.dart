@@ -369,9 +369,10 @@ class OcptScheduleSlotDeletionConfirmedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, slotId];
 }
 
-/// Adds [personId] to slot [slotId]'s own crew, with no position picked yet (filled in afterward
-/// through `OcptScheduleSlotCrewMemberPositionChangedEvent`), dispatched by the slot card's own
-/// `+ Crew member` footer.
+/// Adds [personId] to slot [slotId]'s own crew, dispatched by the slot card's own `+ Crew member`
+/// footer. The position is not carried here: `OcptScheduleService.addSlotCrewMember` pre-fills it
+/// from what [personId] declared in the address book, and
+/// `OcptScheduleSlotCrewMemberPositionChangedEvent` is what corrects it afterwards.
 class OcptScheduleSlotCrewMemberAddedEvent extends OcptScheduleEvent {
   /// The id of the slot the crew member is added to.
   final String slotId;
@@ -393,18 +394,24 @@ class OcptScheduleSlotCrewMemberPositionChangedEvent extends OcptScheduleEvent {
   /// The id of the crew assignment being edited.
   final String crewMemberId;
 
-  /// The `ocptCrewPositions` id just picked, or the empty string to fall back to a custom label.
+  /// The `ocptCrewPositions` id just picked, or the empty string when [customLabel] is set
+  /// instead — exactly one of the two, the discriminator `shooting_slot_crew` already models.
   final String positionId;
+
+  /// The free-text label just picked (a person's own declared free-label position), or the empty
+  /// string when [positionId] is set instead.
+  final String customLabel;
 
   /// Class constructor
   const OcptScheduleSlotCrewMemberPositionChangedEvent({
     required this.crewMemberId,
     required this.positionId,
+    required this.customLabel,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, crewMemberId, positionId];
+  List<Object?> get props => [...super.props, crewMemberId, positionId, customLabel];
 }
 
 /// Removes crew assignment [crewMemberId] for good, dispatched by its own row's dismissal.

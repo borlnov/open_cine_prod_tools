@@ -737,6 +737,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       crewMemberId: event.crewMemberId,
       positionId: Value(event.positionId),
+      customLabel: Value(event.customLabel),
     );
     await _applyScheduleSnapshot(emitter, project);
   }

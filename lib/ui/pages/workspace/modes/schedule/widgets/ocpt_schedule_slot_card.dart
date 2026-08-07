@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -26,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
@@ -163,9 +165,10 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// Called with the id of the person picked by the `+ Crew member` footer, or null while withheld.
   final ValueChanged<String>? onCrewMemberAdded;
 
-  /// Called with a crew assignment's id and the catalogue position just picked, or null while
-  /// withheld.
-  final void Function(String crewMemberId, String positionId)? onCrewMemberPositionChanged;
+  /// Called with a crew assignment's id and the position just picked — a declared one promoted by
+  /// [_OcptScheduleCrewSection] or a catalogue entry — or null while withheld.
+  final void Function(String crewMemberId, OcptCrewPositionRef position)?
+  onCrewMemberPositionChanged;
 
   /// Called with a crew assignment's id when its row's remove control is clicked, or null while
   /// withheld.
@@ -1000,6 +1003,12 @@ class _OcptScheduleSlotPeopleState extends State<_OcptScheduleSlotPeople> {
 ///
 /// The fold itself belongs to [_OcptScheduleSlotPeople], which the cast half shares: [onFoldToggled]
 /// folds and unfolds **both**.
+///
+/// **This is where a crew row's picker learns what to promote and what to refuse** —
+/// [_prefillFor] joins each member's own person's declared `person_positions` against every other
+/// live crew row of [crew] naming that same person, through `ocptCrewPositionPrefillOf`
+/// (`lib/utils/`): the promoted list and the taken set travel down to
+/// [_OcptScheduleCrewMemberRow] rather than being recomputed inside its own menu builder.
 class _OcptScheduleCrewSection extends StatelessWidget {
   /// The slot's own crew assignments, in `sortKey` order.
   final List<OcptShootingSlotCrewMember> crew;
@@ -1022,9 +1031,9 @@ class _OcptScheduleCrewSection extends StatelessWidget {
   /// Called with the id of the person picked by the `+ Crew member` footer, or null while withheld.
   final ValueChanged<String>? onCrewMemberAdded;
 
-  /// Called with a crew assignment's id and the catalogue position just picked, or null while
-  /// withheld.
-  final void Function(String crewMemberId, String positionId)? onCrewMemberPositionChanged;
+  /// Called with a crew assignment's id and the position just picked, or null while withheld.
+  final void Function(String crewMemberId, OcptCrewPositionRef position)?
+  onCrewMemberPositionChanged;
 
   /// Called with a crew assignment's id when its row's remove control is clicked, or null while
   /// withheld.
@@ -1100,18 +1109,7 @@ class _OcptScheduleCrewSection extends StatelessWidget {
                         for (final member in byDepartment[department]!)
                           SizedBox(
                             width: cardWidth,
-                            child: _OcptScheduleCrewMemberRow(
-                              key: ValueKey(member.id),
-                              member: member,
-                              person: personById[member.personId],
-                              onPositionChanged: onCrewMemberPositionChanged == null
-                                  ? null
-                                  : (positionId) =>
-                                      onCrewMemberPositionChanged!(member.id, positionId),
-                              onRemoved: onCrewMemberRemoved == null
-                                  ? null
-                                  : () => onCrewMemberRemoved!(member.id),
-                            ),
+                            child: _buildCrewMemberRow(member),
                           ),
                       ],
                     ),
@@ -1144,11 +1142,51 @@ class _OcptScheduleCrewSection extends StatelessWidget {
       ],
     );
   }
+
+  /// One crew card for [member], its picker's promoted and taken positions computed through
+  /// [_prefillFor] so the row and the service that later refuses a duplicate can never disagree.
+  Widget _buildCrewMemberRow(OcptShootingSlotCrewMember member) {
+    final prefill = _prefillFor(member);
+
+    return _OcptScheduleCrewMemberRow(
+      key: ValueKey(member.id),
+      member: member,
+      person: personById[member.personId],
+      promotedPositions: prefill.promotedPositions,
+      takenPositions: prefill.takenPositions,
+      onPositionChanged: onCrewMemberPositionChanged == null
+          ? null
+          : (position) => onCrewMemberPositionChanged!(member.id, position),
+      onRemoved: onCrewMemberRemoved == null ? null : () => onCrewMemberRemoved!(member.id),
+    );
+  }
+
+  /// Joins [member]'s own person's declared `person_positions` with every live crew row of [crew]
+  /// naming that same person on this slot — [member]'s own row included, so its current position
+  /// reads as taken rather than greyed — through `ocptCrewPositionPrefillOf`: what
+  /// [_buildCrewMemberRow]'s picker promotes above the catalogue, and what it must never offer.
+  OcptCrewPositionPrefill _prefillFor(OcptShootingSlotCrewMember member) =>
+      ocptCrewPositionPrefillOf(
+        declaredPositions: [
+          for (final position
+              in personById[member.personId]?.positions ?? const <OcptPersonPosition>[])
+            OcptCrewPositionRef(positionId: position.positionId, customLabel: position.customLabel),
+        ],
+        heldOnSlot: [
+          for (final other in crew)
+            if (other.personId == member.personId)
+              OcptCrewPositionRef(positionId: other.positionId, customLabel: other.customLabel),
+        ],
+      );
 }
 
 /// One crew card of [OcptScheduleSlotCard]'s own `Équipe technique` column, built exactly like
 /// [_OcptScheduleCastRoleRow]'s own card (see [_buildSlotPersonCard]): the position picker and the
 /// remove control on the first line, the person's own name underneath.
+///
+/// The picker promotes [promotedPositions] above the `ocptCrewPositions` catalogue and never
+/// offers anything in [takenPositions] — the two lists [_OcptScheduleCrewSection] hands down,
+/// join computed once rather than per menu build (see its own doc comment).
 class _OcptScheduleCrewMemberRow extends StatelessWidget {
   /// The crew assignment this row shows.
   final OcptShootingSlotCrewMember member;
@@ -1156,8 +1194,18 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
   /// The person [member] names, or null while not yet loaded.
   final OcptPerson? person;
 
-  /// Called with the catalogue position just picked, or null while withheld.
-  final ValueChanged<String>? onPositionChanged;
+  /// The person's declared positions not already held on this slot, in their declared order —
+  /// shown at the top of the picker, above the catalogue, behind a divider. Computed once by
+  /// [_OcptScheduleCrewSection._prefillFor] rather than recomputed on every menu build.
+  final List<OcptCrewPositionRef> promotedPositions;
+
+  /// Every position this person already holds on this slot, [member]'s own included — never
+  /// offered by the picker, catalogue entries among them.
+  final Set<OcptCrewPositionRef> takenPositions;
+
+  /// Called with the position just picked — a promoted one or a catalogue entry — or null while
+  /// withheld.
+  final ValueChanged<OcptCrewPositionRef>? onPositionChanged;
 
   /// Called when this row's remove control is clicked, or null while withheld.
   final VoidCallback? onRemoved;
@@ -1167,6 +1215,8 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
     super.key,
     required this.member,
     required this.person,
+    required this.promotedPositions,
+    required this.takenPositions,
     required this.onPositionChanged,
     required this.onRemoved,
   });
@@ -1176,7 +1226,9 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final positionLabel = member.positionId.isEmpty
-        ? (member.customLabel.isEmpty ? tr.resourcesPositionScopePlaceholder : member.customLabel)
+        ? (member.customLabel.isEmpty
+              ? tr.scheduleSlotCrewPositionPlaceholder
+              : member.customLabel)
         : ocptCrewPositionLabel(tr, member.positionId);
     final personName = person?.displayName.isEmpty ?? true
         ? tr.resourcesUnnamedPerson
@@ -1192,16 +1244,10 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
               Expanded(
                 child: onPositionChanged == null
                     ? Text(positionLabel, style: theme.textTheme.bodySmall)
-                    : PopupMenuButton<String>(
+                    : PopupMenuButton<OcptCrewPositionRef>(
                         tooltip: "",
                         onSelected: onPositionChanged,
-                        itemBuilder: (context) => [
-                          for (final position in ocptCrewPositions)
-                            PopupMenuItem<String>(
-                              value: position.id,
-                              child: Text(ocptCrewPositionLabel(tr, position.id)),
-                            ),
-                        ],
+                        itemBuilder: (context) => _buildPositionMenuItems(context, tr),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1237,6 +1283,60 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
       ),
     );
   }
+
+  /// Builds the position picker menu: [promotedPositions] first, then a divider (omitted when
+  /// that list is empty), then the `ocptCrewPositions` catalogue grouped under a disabled
+  /// department header each time the department changes — mirroring
+  /// `_OcptPersonPositionRow._buildMenuItems` — with [takenPositions] filtered out of both blocks.
+  List<PopupMenuEntry<OcptCrewPositionRef>> _buildPositionMenuItems(BuildContext context, Tr tr) {
+    final theme = Theme.of(context);
+    final items = <PopupMenuEntry<OcptCrewPositionRef>>[];
+
+    for (final position in promotedPositions) {
+      items.add(
+        PopupMenuItem<OcptCrewPositionRef>(
+          value: position,
+          child: Text(_labelOf(tr, position)),
+        ),
+      );
+    }
+    if (items.isNotEmpty) {
+      items.add(const PopupMenuDivider());
+    }
+
+    OcptCrewDepartment? lastDepartment;
+    for (final position in ocptCrewPositions) {
+      final ref = OcptCrewPositionRef(positionId: position.id, customLabel: "");
+      if (takenPositions.contains(ref)) {
+        continue;
+      }
+      if (position.department != lastDepartment) {
+        items.add(
+          PopupMenuItem<OcptCrewPositionRef>(
+            enabled: false,
+            height: 28,
+            child: Text(
+              ocptCrewDepartmentLabel(tr, position.department).toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        );
+        lastDepartment = position.department;
+      }
+      items.add(
+        PopupMenuItem<OcptCrewPositionRef>(
+          value: ref,
+          child: Text(ocptCrewPositionLabel(tr, position.id)),
+        ),
+      );
+    }
+
+    return items;
+  }
+
+  /// [position]'s own label: the catalogue's when it names one, [position].customLabel otherwise.
+  String _labelOf(Tr tr, OcptCrewPositionRef position) =>
+      position.positionId.isEmpty ? position.customLabel : ocptCrewPositionLabel(tr, position.positionId);
 }
 
 /// One cast card of [OcptScheduleSlotCard]'s own `Comédiens` column, its layout shared with

@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -20,6 +21,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
@@ -59,7 +62,11 @@ OcptShootingSlot _buildSlot({
 );
 
 /// Builds a person with the few fields these tests read, everything else neutral.
-OcptPerson _buildPerson({required String id, required String firstName}) => OcptPerson(
+OcptPerson _buildPerson({
+  required String id,
+  required String firstName,
+  List<OcptPersonPosition> positions = const [],
+}) => OcptPerson(
   id: id,
   firstName: firstName,
   lastName: "",
@@ -94,7 +101,7 @@ OcptPerson _buildPerson({required String id, required String firstName}) => Ocpt
   photoAssetId: null,
   photo: null,
   notes: "",
-  positions: const [],
+  positions: positions,
   skills: const [],
   unavailabilities: const [],
 );
@@ -137,9 +144,12 @@ void main() {
   Widget buildCard({
     required bool isReadOnly,
     String slotId = "slot-1",
+    OcptPerson? crewPerson,
     List<OcptShootingSlotCrewMember> crew = const [],
     List<OcptShootingSlotCastMember> cast = const [],
     ValueChanged<String>? onCrewMemberAdded,
+    void Function(String crewMemberId, OcptCrewPositionRef position)?
+    onCrewMemberPositionChanged,
     ValueChanged<String>? onCastRoleAdded,
     VoidCallback? onDeletionRequested,
     String notesValue = "",
@@ -171,9 +181,9 @@ void main() {
     location: null,
     set: null,
     locations: const [],
-    personById: {person.id: person},
+    personById: {(crewPerson ?? person).id: crewPerson ?? person},
     roleById: {role.id: role},
-    people: [person],
+    people: [crewPerson ?? person],
     roles: [role],
     labelValue: "Matin",
     onLabelChanged: isReadOnly ? null : (_) {},
@@ -186,7 +196,7 @@ void main() {
     onMovedDown: isReadOnly ? null : onMovedDown,
     onDeletionRequested: isReadOnly ? null : (onDeletionRequested ?? () {}),
     onCrewMemberAdded: isReadOnly ? null : (onCrewMemberAdded ?? (_) {}),
-    onCrewMemberPositionChanged: isReadOnly ? null : (_, _) {},
+    onCrewMemberPositionChanged: isReadOnly ? null : (onCrewMemberPositionChanged ?? (_, _) {}),
     onCrewMemberRemoved: isReadOnly ? null : (_) {},
     onCastRoleAdded: isReadOnly ? null : (onCastRoleAdded ?? (_) {}),
     onCastRoleRemoved: isReadOnly ? null : (_) {},
@@ -267,6 +277,189 @@ void main() {
     expect(find.text("Marie"), findsOneWidget);
     expect(find.byIcon(Icons.close), findsNWidgets(2));
   });
+
+  testWidgets(
+    "the crew row's position picker promotes the person's declared positions above the catalogue",
+    (tester) async {
+      final crewPerson = _buildPerson(
+        id: "person-1",
+        firstName: "Léa",
+        positions: const [
+          OcptPersonPosition(
+            id: "pp-1",
+            personId: "person-1",
+            positionId: "director",
+            customLabel: "",
+          ),
+        ],
+      );
+      final crew = [
+        const OcptShootingSlotCrewMember(
+          id: "crew-1",
+          slotId: "slot-1",
+          personId: "person-1",
+          positionId: "",
+          customLabel: "",
+          notes: "",
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrapInApp(buildCard(isReadOnly: false, crewPerson: crewPerson, crew: crew)),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+      await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
+      await tester.pumpAndSettle();
+
+      final menuItems = tester.widgetList<PopupMenuItem<OcptCrewPositionRef>>(
+        find.byType(PopupMenuItem<OcptCrewPositionRef>),
+      );
+      // The person's own declared position, promoted ahead of every catalogue entry, including
+      // the catalogue's own "director" one.
+      expect(
+        menuItems.first.value,
+        const OcptCrewPositionRef(positionId: "director", customLabel: ""),
+      );
+      expect(find.byType(PopupMenuDivider), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "the picker never offers a position that person already holds on that slot",
+    (tester) async {
+      final crewPerson = _buildPerson(
+        id: "person-1",
+        firstName: "Léa",
+        positions: const [
+          OcptPersonPosition(
+            id: "pp-1",
+            personId: "person-1",
+            positionId: "director",
+            customLabel: "",
+          ),
+          OcptPersonPosition(
+            id: "pp-2",
+            personId: "person-1",
+            positionId: "boomOperator",
+            customLabel: "",
+          ),
+        ],
+      );
+      final crew = [
+        // Already holds "director" on this slot.
+        const OcptShootingSlotCrewMember(
+          id: "crew-1",
+          slotId: "slot-1",
+          personId: "person-1",
+          positionId: "director",
+          customLabel: "",
+          notes: "",
+        ),
+        // The blank row whose picker is under test.
+        const OcptShootingSlotCrewMember(
+          id: "crew-2",
+          slotId: "slot-1",
+          personId: "person-1",
+          positionId: "",
+          customLabel: "",
+          notes: "",
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _wrapInApp(buildCard(isReadOnly: false, crewPerson: crewPerson, crew: crew)),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+      await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
+      await tester.pumpAndSettle();
+
+      final menuItems = tester.widgetList<PopupMenuItem<OcptCrewPositionRef>>(
+        find.byType(PopupMenuItem<OcptCrewPositionRef>),
+      );
+      // "Director" is already held on this slot — absent everywhere, promoted block and
+      // catalogue alike — while "boomOperator", still free, is promoted.
+      expect(
+        menuItems.map((item) => item.value),
+        isNot(contains(const OcptCrewPositionRef(positionId: "director", customLabel: ""))),
+      );
+      expect(
+        menuItems.first.value,
+        const OcptCrewPositionRef(positionId: "boomOperator", customLabel: ""),
+      );
+    },
+  );
+
+  testWidgets(
+    "picking a declared free-label entry reports a ref carrying that label",
+    (tester) async {
+      final crewPerson = _buildPerson(
+        id: "person-1",
+        firstName: "Léa",
+        positions: const [
+          OcptPersonPosition(id: "pp-1", personId: "person-1", positionId: "", customLabel: "Rigger"),
+        ],
+      );
+      final crew = [
+        const OcptShootingSlotCrewMember(
+          id: "crew-1",
+          slotId: "slot-1",
+          personId: "person-1",
+          positionId: "",
+          customLabel: "",
+          notes: "",
+        ),
+      ];
+      final reported = <(String, OcptCrewPositionRef)>[];
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          buildCard(
+            isReadOnly: false,
+            crewPerson: crewPerson,
+            crew: crew,
+            onCrewMemberPositionChanged: (crewMemberId, position) =>
+                reported.add((crewMemberId, position)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+      await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Rigger"));
+      await tester.pumpAndSettle();
+
+      expect(reported, [("crew-1", const OcptCrewPositionRef(positionId: "", customLabel: "Rigger"))]);
+    },
+  );
+
+  testWidgets(
+    "a read-only crew row shows its position as plain text, with no picker",
+    (tester) async {
+      final crew = [
+        const OcptShootingSlotCrewMember(
+          id: "crew-1",
+          slotId: "slot-1",
+          personId: "person-1",
+          positionId: "director",
+          customLabel: "",
+          notes: "",
+        ),
+      ];
+
+      await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: true, crew: crew)));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+      expect(find.text(ocptCrewPositionLabel(tr, "director")), findsOneWidget);
+      expect(find.byType(PopupMenuButton<OcptCrewPositionRef>), findsNothing);
+    },
+  );
 
   testWidgets("the card offers exactly one editable minute field: the slot's own anchor", (
     tester,

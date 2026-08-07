@@ -6831,6 +6831,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleSlotCrewPositionPlaceholder": "Function…",
+  "@scheduleSlotCrewPositionPlaceholder": {
+    "description": "Shown on a crew card in place of a position, before one is picked",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleSlotUnassignedDepartmentLabel": "Unassigned",
   "@scheduleSlotUnassignedDepartmentLabel": {
     "description": "Heading of a slot card's own crew group for a member with no catalogue position picked yet",
