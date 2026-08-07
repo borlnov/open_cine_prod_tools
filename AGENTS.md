@@ -110,7 +110,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28e | Schedule mode — a slot anchored by either edge (ADR 0015 amended a second time): schema v14 and payload format 9 replacing `shooting_slots.startMinute` with `anchorEdge`/`anchorMinute`/`anchorSlotId`, the dependency-ordered resolution in `ocptComputeShootingDayTimelines` with its missed-fixed-end and cycle records, `ocptSlotAnchorWouldCycle`, `OcptScheduleService.setSlotAnchor` with `duplicateDay`'s link remap and `deleteSlot`'s dependent freeze, the slot card's flat anchor menu, and every reader of a slot's hour moved onto the resolved one | ✅ |
 | 28f | Schedule mode — a convoked person's position pre-filled from the address book: `ocptCrewPositionPrefillOf` (`lib/utils/`, pure) joining a person's declared `person_positions` with what they already hold on that slot, `OcptScheduleService.addSlotCrewMember` pre-filling a fresh crew row with it, the slot card's position picker promoting the declared ones and refusing the taken ones, and the person sheet's `Portée` column deleted | ✅ |
 | 28g | Schedule mode M3 — the paperwork a shoot runs on: `OcptSchedulePlanSnapshot` owning the day-level joins both the mode and the manager layer read, `OcptCallSheetPdfService` (the general sheet and the named ones from one composition), `OcptShootingPlanPdfService` (three landscape summary grids over slot columns, then a detailed agenda per day), `ocpt_schedule_pdf_shared.dart` between them, a directory picker on `OcptSaveLocationService`, and the mode's three `⋮` entries with their options dialogs and their three-outcome notice | ✅ |
-| 28h | Schedule mode M4 — the positions matrix, the presence grid and the conflict alerts | 📝 planned |
+| 28h | Schedule mode M4 — seeing what the plan is about to break: schema v16 and payload format 11 adding `people.maxDailyPresenceMinutes`, `ocpt_schedule_alerts.dart` (pure, nine sealed alert kinds, the tenth deliberately absent) joined by `OcptSchedulePlanSnapshot.alerts`, the positions matrix and the presence grid as the third and fourth centre views (`shooting_presences` written at last, a click cycling an override back round to the computed value), the `Alerts` dock tab and the count in the status bar, and the agenda's `Colour by` control over `ocptSceneEffectOf`, shared with the call sheet's own `EFFET` column | ✅ |
 
 ## Ways of working
 
@@ -303,7 +303,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v15 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v16 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the fourteen resources tables (`role_elements` among them),
   `breakdown_tags`, `scene_breakdowns`,
   the six schedule tables, `row_field_versions`,
@@ -375,7 +375,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   is back to the plainest kind, format 6's **empty list**: a version captured in format 9 was taken
   when nothing in the app could say a role wore a coat, so "this role had no things" is a truthful
   statement about that moment — and restoring one therefore drops every link made since, which is
-  the reading, not a bug. Counters shown
+  the reading, not a bug. Format 11 is `people.maxDailyPresenceMinutes`, and it is format 7's
+  **null** rather than format 4's: the column is nullable by design, so a version captured before it
+  existed truthfully recorded no maximum for anybody, and that null is written back onto the working
+  copy like any other changed column — where the currency's null means "leave the live value alone",
+  a column that has never been nullable having always held one. Counters shown
   on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
@@ -749,7 +753,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   whole shoot, and a day lost to rain is re-planned at another date in one gesture. Convoking
   somebody **seeds nothing**: a convocation is the link and only the link, so there is no figure left
   to carry over from the day that last convoked them.
-  The centre is either the **agenda** — strip, week (an hour grid shaded by the sun times, stretched
+  The centre is one of **four views** (`OcptScheduleCentreView`, whose declaration order is the
+  header switch's own): the day view, the agenda, the positions matrix and the presence grid — the
+  working surface first, the three readings of it after. It is either the **agenda** — strip, week
+  (an hour grid shaded by the sun times, stretched
   to whatever the timeline returns so a night shoot draws where it belongs, a day's own column split
   into **one lane per slot** since two chains may overlap, the hour rules and the sun shading staying
   column-wide because they are facts about the day rather than about a unit) or month (a cell reading
@@ -810,7 +817,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   **selects** it — the inspector then reads that shot out (its sequence, its characters, its
   estimated duration, where it is already placed, and the same status control a shot block carries),
   which is all a click there does: the *placing* gesture it used to start, answered by a click on a
-  day, is gone. The right dock is `Inspector` + `Convocations` + the shared `Versions` tab, the
+  day, is gone. The right dock is `Inspector` + `Convocations` + `Alerts` + the shared `Versions`
+  tab, the
   inspector reading block, then shot, then day, the block and shot selections being mutually
   exclusive by construction. **`Convocations` is the day's whole call** — one card per person, crew
   and cast folded together (an actor read through `roles.personId`), plus one per **uncast role**,
@@ -837,12 +845,71 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   more (ADR 0018), so the day's earliest slot start already *is* its earliest arrival. The week and
   month grids read the same figure and mean something narrower by it on purpose: a cell there answers
   "when does this day shoot", not "when is the call".
-  `shooting_presences` is declared but only written when the presence grid lands; the mock's
-  `Couleur par` control and its alert list belong to that milestone too.
+  The **positions matrix** is the third view: positions × slots, one column per slot grouped under
+  its day and one row per position **somebody actually holds somewhere** (a position's identity being
+  the pair `positionId`/`customLabel` `ocptCrewPositionPrefillOf` already models one with, free
+  labels grouped last, having no department). Its one coloured cell is a position **lost mid-day**,
+  and it is read straight off `OcptSchedulePositionLostAlert` rather than recomputed — two readings
+  of one rule is how the matrix and the alerts panel would come to disagree about what a lost
+  position is. It writes nothing, so like the `Convocations` panel it carries no `isReadOnly` flag
+  at all.
+  The **presence grid** is the fourth: people × days, a trailing count of each person's working
+  days, and cells that are **computed** — `working` when that person is convoked that day,
+  `unavailable` when they are not but a `person_unavailabilities` window covers the date, and
+  **blank** otherwise, blank being absence of information rather than a claim about it. A click
+  cycles that cell's **override** (`shooting_presences`, declared since schema v11 and written at
+  last): `working` → `available` → `travelling` → `unavailable` → **no override at all**, back to
+  the computed value — the way round is what lets a mis-click be undone, and the cycle steps the
+  override rather than the effective value, since a computed cell has nothing of its own to step.
+  A row's *absence* means "the computed value stands", so removing an override is a **tombstone**
+  like every other deletion in this app, and setting one again reuses the row rather than minting a
+  second for the same (day, person). The join lives in `OcptSchedulePlanSnapshot.presenceCellOf`,
+  and a cell whose person is convoked on a day they are unavailable is marked from
+  `OcptSchedulePersonUnavailableAlert`, not from a second reading of that rule.
+  **`lib/utils/ocpt_schedule_alerts.dart`** (pure, no Flutter, no drift, no `Tr`) is what the mode
+  says about a plan before the plan breaks: a sealed `OcptScheduleAlert` per kind, each carrying
+  **ids and figures alone** — resolving a name and writing the sentence is the panel's job — and a
+  severity that is a property of the *kind* rather than of an occurrence. Nine kinds: a person
+  convoked on a day they are unavailable (honouring the day-part window), a person on two slots of
+  one day whose bands overlap, and a slot outside every window its location declares are **hard**;
+  a position lost between two consecutive slots, a role in a placed shot convoked on no slot that
+  day, a role with no actor (only among the roles the schedule actually uses), a timeline over-run
+  against a pinned anchor, a slot whose fixed end its own blocks over-run, and a person's day past
+  the maximum recorded for them are **soft**. Three absences are deliberate and each is argued in
+  the file's own doc comment: **a location declaring no window at all raises nothing** (absence of
+  data is not a refusal, and a project that never entered availabilities must not be drowned), an
+  **anchor cycle** is not an alert (the anchor menu already refuses to close one, so it is defence
+  against a hand-edited file rather than a state a user can reach), and there is **no "key position
+  unfilled" alert** — nothing in this app says which position on a film is key, and a list invented
+  for the occasion would read as the app's own opinion rather than the production's.
+  The maximum a day is measured against is `people.maxDailyPresenceMinutes` (schema v16, nullable):
+  **null means "nobody has recorded one", never "no limit"**, so the alert stays silent rather than
+  advancing a legal maximum nobody here validated — which is why the column exists at all instead of
+  a constant. It is not restricted to minors (an adult under a medical restriction is the same fact)
+  but sits beside `minorNotes` on the person sheet, where that constraint is thought about, and it is
+  blanked by **both** erasure paths alongside it.
+  The alerts live in the `Alerts` **dock tab** rather than above the agenda the mock puts them over:
+  a plan is broken whichever view is being read, and the count in the status bar is what says so from
+  the other three. Each entry names what it concerns and offers the day it concerns — a selection,
+  so the panel writes nothing and needs no `isReadOnly` handling either.
+  The agenda's own **`Colour by`** control tints its three presentations by **location** (the tint
+  they already painted) or by **effect**, INT/EXT crossed with day/night read off the headings of the
+  shots placed on that day through `ocptSceneEffectOf` (`lib/utils/ocpt_scene_effect.dart`, pure and
+  shared with `OcptCallSheetPdfService`'s own `EFFET` column, so a printed call sheet and the agenda
+  cannot disagree about what a heading says). It classifies `DAY`/`NIGHT`/`JOUR`/`NUIT` and **nothing
+  else** — widening that set is a decision about a language, not a bug fix — and a day mixing two
+  effects reads as an explicit **mixed** tint (`lib/constants/ocpt_schedule_effect_palette.dart`,
+  fixed ARGB like every other palette that must read the same in every project) rather than as a
+  dominance nobody computed, while a day with nothing placed or nothing classifiable keeps the
+  theme's neutral: information and its absence never wear the same colour. The choice is state beside
+  `agendaMode`, not persisted between sessions.
   **`OcptSchedulePlanSnapshot`** (`lib/models/`) is where the mode's five reads — the schedule, the
   shot list, the locations, the cast and the address book — are joined into the day-level facts
   everything else asks for: `timelinesOfDay`, `convocationsOfDay`, `sunTimesOfDay`,
-  `dayArrivalMinute`, `firstLocationOfDay`. It exists because those joins have **two** callers now,
+  `dayArrivalMinute`, `firstLocationOfDay`, `presenceCellOf`, and `alerts` — the whole-shoot walk,
+  computed **once** per snapshot rather than per read, which is what made this class stop being
+  `const` exactly as `OcptScheduleState` did before it. It exists because those joins have **two**
+  callers now,
   `OcptScheduleState` and the manager layer's two PDF services, and a second implementation over
   there is exactly how a printed call sheet and the day view would come to disagree about what hour
   a slot starts at. The state builds one **per state instance**, not per read: a state is immutable,
@@ -1061,13 +1128,18 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   cast and block control, the slot's own anchor menu (rendered as plain text, with no menu at
   all), the minute fields (which render as plain text with no callback), the inspector's own
   duration field,
-  the block anchor pin and the shot status. The `Convocations` panel is the one exception that
-  needs no handling at all: it offers nothing to withhold, so it draws identically either way.
+  the block anchor pin and the shot status, and the presence grid's own cell click — the grid still
+  drawing every code and every total, since reading a version's presence is exactly what a preview
+  is for. The `Convocations` panel is the exception that
+  needs no handling at all: it offers nothing to withhold, so it draws identically either way, and
+  the positions matrix and the `Alerts` panel are its two siblings in that — both only read, and
+  the day each of them opens is a selection.
   What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word
   still selects its target, since selecting writes nothing — the schedule's three agenda
-  presentations, its day view, its computed times and its sun bands, and the left dock's own click
+  presentations and their tint, its day view, its positions matrix, its alerts, its computed times
+  and its sun bands, and the left dock's own click
   on a shot, which now only selects one, plus the app-wide display
   preferences.
   Widgets express it as a **null callback** (`onChanged`/`onToggled`/`onSelectRequested`… nullable,
