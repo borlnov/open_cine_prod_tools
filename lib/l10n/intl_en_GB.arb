@@ -4533,6 +4533,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesRoleElementsCardTitle": "Their things",
+  "@resourcesRoleElementsCardTitle": {
+    "description": "Title of the role sheet's card holding what the role wears, carries and is made up with",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNoElementHint": "Nothing yet.",
+  "@resourcesRoleNoElementHint": {
+    "description": "Hint shown in the role sheet's things card while the role is linked to no element",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddElementToRoleAction": "+ Element",
+  "@resourcesAddElementToRoleAction": {
+    "description": "Label of the role sheet's picker adding an element the role needs",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveElementFromRoleTooltip": "This role doesn't need it",
+  "@resourcesRemoveElementFromRoleTooltip": {
+    "description": "Tooltip of the control unlinking an element from a role",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleElementNotesLabel": "Note for this role",
+  "@resourcesRoleElementNotesLabel": {
+    "description": "Label of the per-role notes field of a role to element link",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementRolesCardTitle": "Roles concerned",
+  "@resourcesElementRolesCardTitle": {
+    "description": "Title of the element sheet's read-only card naming the roles that wear or carry it",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesElementPurposeLabel": "Why it is needed",
   "@resourcesElementPurposeLabel": {
     "description": "Label of the element sheet's field saying what the element is for",

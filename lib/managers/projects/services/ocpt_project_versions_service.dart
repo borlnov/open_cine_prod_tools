@@ -58,6 +58,7 @@ class OcptProjectVersionsService {
     'scene_sets',
     'elements',
     'scene_elements',
+    'role_elements',
     'assets',
     'breakdown_tags',
     'scene_breakdowns',
@@ -349,6 +350,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptSceneSetsTable, payload.sceneSets)
         ..insertAll(database.ocptElementsTable, payload.elements)
         ..insertAll(database.ocptSceneElementsTable, payload.sceneElements)
+        ..insertAll(database.ocptRoleElementsTable, payload.roleElements)
         ..insertAll(database.ocptAssetsTable, payload.assets)
         // Both breakdown tables follow every table they may reference (scenes, roles, sets and
         // elements are all written above), so this is not a forward reference — unlike the
@@ -588,6 +590,7 @@ class OcptProjectVersionsService {
       sceneSets: await database.select(database.ocptSceneSetsTable).get(),
       elements: await database.select(database.ocptElementsTable).get(),
       sceneElements: await database.select(database.ocptSceneElementsTable).get(),
+      roleElements: await database.select(database.ocptRoleElementsTable).get(),
       assets: await database.select(database.ocptAssetsTable).get(),
       breakdownTags: await database.select(database.ocptBreakdownTagsTable).get(),
       sceneBreakdowns: await database.select(database.ocptSceneBreakdownsTable).get(),
@@ -634,7 +637,8 @@ class OcptProjectVersionsService {
   /// `person_unavailabilities` siblings, each pointing at it) before `roles` (which may cast one),
   /// before `locations` (whose contact may be one) before the `sets` inside them, before
   /// `scene_sets` linking a scene to one, before `elements` (whose owner and bringer may be a
-  /// person) before `scene_elements` linking a scene to one, and `assets` last, since a person, a
+  /// person) before `scene_elements` linking a scene to one and `role_elements` linking a role to
+  /// one, and `assets` last, since a person, a
   /// location or an element may name one as its photo or document before that row itself exists.
   /// That last point is also where the ordering stops being fully satisfiable: `people`,
   /// `locations` and `elements` each reference `assets` (a photo, a permit, a document) while
@@ -823,6 +827,15 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
+      table: database.ocptRoleElementsTable,
+      payloadRows: payload.roleElements,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
       table: database.ocptAssetsTable,
       payloadRows: payload.assets,
       rowIdOf: (row) => row.id,
@@ -982,6 +995,10 @@ class OcptProjectVersionsService {
       sceneSets: payload.sceneSets,
       elements: payload.elements,
       sceneElements: payload.sceneElements,
+      // A `role_elements` row names a role and an element, never a person: an actor is reached
+      // through `roles.personId`, which the `roles` list above already answers for. Nothing here
+      // to scrub.
+      roleElements: payload.roleElements,
       // An asset's `path` is personal data in its own right: an absolute path routinely names the
       // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
       // sits on this machine. So a row belonging to an erased person is tombstoned **and blanked**,

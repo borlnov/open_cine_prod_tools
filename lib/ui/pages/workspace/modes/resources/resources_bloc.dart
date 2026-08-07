@@ -260,6 +260,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSceneAssignedToElementEvent>(_onSceneAssignedToElement);
     on<OcptResourcesSceneElementUpdatedEvent>(_onSceneElementUpdated);
     on<OcptResourcesSceneElementRemovedEvent>(_onSceneElementRemoved);
+    on<OcptResourcesElementLinkedToRoleEvent>(_onElementLinkedToRole);
+    on<OcptResourcesRoleElementUpdatedEvent>(_onRoleElementUpdated);
+    on<OcptResourcesRoleElementRemovedEvent>(_onRoleElementRemoved);
+    on<OcptResourcesRoleSheetOpenRequestedEvent>(_onRoleSheetOpenRequested);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptResourcesSearchToggledEvent>(_onSearchToggled);
     on<OcptResourcesSearchQueryChangedEvent>(_onSearchQueryChanged);
@@ -2462,6 +2466,70 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     action: (project) =>
         _elementsService.removeSceneElement(database: project.database, id: event.id),
   );
+
+  /// Links role `event.roleId` to element `event.elementId`, written immediately.
+  Future<void> _onElementLinkedToRole(
+    OcptResourcesElementLinkedToRoleEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "link element ${event.elementId} to role ${event.roleId}",
+    action: (project) async {
+      await _elementsService.addRoleElement(
+        database: project.database,
+        roleId: event.roleId,
+        elementId: event.elementId,
+      );
+    },
+  );
+
+  /// Updates the notes of the role ↔ element link `event.id`, written immediately.
+  Future<void> _onRoleElementUpdated(
+    OcptResourcesRoleElementUpdatedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "update the role ↔ element link ${event.id}",
+    action: (project) => _elementsService.updateRoleElement(
+      database: project.database,
+      id: event.id,
+      notes: event.notes,
+    ),
+  );
+
+  /// Removes the role ↔ element link `event.id`, written immediately.
+  Future<void> _onRoleElementRemoved(
+    OcptResourcesRoleElementRemovedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "remove the role ↔ element link ${event.id}",
+    action: (project) =>
+        _elementsService.removeRoleElement(database: project.database, id: event.id),
+  );
+
+  /// Switches to the roles tab and selects role `event.roleId`, the element sheet's
+  /// `Roles concerned` chips being the one way in.
+  ///
+  /// [_onPersonSheetOpenRequested]'s sibling, down to the reason it emits one state rather than
+  /// dispatching a tab change: `OcptResourcesTabSelectedEvent` clears the selection, so the sheet
+  /// this was asked to open would be deselected in the very same frame.
+  Future<void> _onRoleSheetOpenRequested(
+    OcptResourcesRoleSheetOpenRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    emitter(
+      state.copyWith(
+        activeTab: OcptResourcesTab.roles,
+        selectedRoleId: event.roleId,
+        clearSelectedPersonId: true,
+        clearSelectedLocationId: true,
+        clearSelectedElementId: true,
+      ),
+    );
+  }
 
   /// Toggles the left (list) dock's visibility.
   Future<void> _onLeftPanelToggled(

@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -94,6 +95,14 @@ class OcptElement extends Equatable {
   /// scenes are.
   final List<OcptSceneElementLink> sceneLinks;
 
+  /// The roles wearing, carrying or made up with this element, in the cast's own order.
+  ///
+  /// The `role_elements` links seen from the element they point at, each carrying whatever that
+  /// role alone has to say about it. **This is also the list the role sheet's own card reads**: it
+  /// scans the catalogue for the links naming its role rather than carrying a copy of its own, so
+  /// the two sheets cannot disagree — see `OcptRoleElementLink`.
+  final List<OcptRoleElementLink> roleLinks;
+
   /// Class constructor
   const OcptElement({
     required this.id,
@@ -117,13 +126,15 @@ class OcptElement extends Equatable {
     required this.photoAssetId,
     required this.photo,
     required this.sceneLinks,
+    required this.roleLinks,
   });
 
-  /// Builds an [OcptElement] from its stored [row], the [sceneLinks] pointing at it and the
-  /// [photo] its `photoAssetId` resolves to.
+  /// Builds an [OcptElement] from its stored [row], the [sceneLinks] and [roleLinks] pointing at it
+  /// and the [photo] its `photoAssetId` resolves to.
   factory OcptElement.fromRow({
     required OcptElementRow row,
     required List<OcptSceneElementLink> sceneLinks,
+    List<OcptRoleElementLink> roleLinks = const [],
     OcptAssetRef? photo,
   }) => OcptElement(
     id: row.id,
@@ -147,6 +158,7 @@ class OcptElement extends Equatable {
     photoAssetId: row.photoAssetId,
     photo: photo,
     sceneLinks: sceneLinks,
+    roleLinks: roleLinks,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -177,5 +189,6 @@ class OcptElement extends Equatable {
     photoAssetId,
     photo,
     sceneLinks,
+    roleLinks,
   ];
 }

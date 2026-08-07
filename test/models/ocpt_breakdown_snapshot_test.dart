@@ -83,6 +83,7 @@ OcptElement _buildElement({
   photoAssetId: null,
   photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 /// Builds a role named [name].

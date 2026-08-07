@@ -39,6 +39,7 @@ void main() {
     sceneSets: const [],
     elements: const [],
     sceneElements: const [],
+    roleElements: const [],
     assets: const [],
     breakdownTags: const [],
     sceneBreakdowns: const [],

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -23,8 +24,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 /// The resources mode's centre, once an element is selected: the whole element sheet, a single
 /// scrolling column edited in place — the header (code, name, tracking badge, category,
 /// sub-category, quantity), a two-column grid pairing where it comes from with how far along it is,
-/// the full-width scenes card, the "why it is needed" and notes card, and `Delete this element` at
-/// the very bottom.
+/// the full-width scenes card, the read-only card naming the roles concerned, the "why it is
+/// needed" and notes card, and `Delete this element` at the very bottom.
 ///
 /// It is `OcptPersonSheet`'s, `OcptRoleSheet`'s and `OcptLocationSheet`'s sibling and follows the
 /// same grammar deliberately: the four tabs of the resources mode answer the same gesture — pick a
@@ -57,6 +58,9 @@ class OcptElementSheet extends StatelessWidget {
 
   /// The whole address book, offered by the owner and bringer pickers.
   final List<OcptPerson> people;
+
+  /// The whole cast: what the `Roles concerned` card resolves this element's own links against.
+  final List<OcptRole> roles;
 
   /// Every scene of the project's screenplay, in source order: what the scenes card names its links
   /// with and picks a new one from.
@@ -114,6 +118,13 @@ class OcptElementSheet extends StatelessWidget {
   /// Called with a person's id when the `↗` beside the owner or the bringer is clicked.
   final ValueChanged<String> onPersonSheetOpenRequested;
 
+  /// Called with a role's id when one of the `Roles concerned` chips is clicked.
+  ///
+  /// Given even under a read-only preview, and on purpose: selecting a role writes nothing, and
+  /// reading a version is exactly when following a link matters. It is the sibling of
+  /// [onPersonSheetOpenRequested], which is handed over unconditionally for the same reason.
+  final ValueChanged<String> onRoleSheetOpenRequested;
+
   /// Class constructor
   const OcptElementSheet({
     super.key,
@@ -121,6 +132,7 @@ class OcptElementSheet extends StatelessWidget {
     required this.owner,
     required this.bringer,
     required this.people,
+    required this.roles,
     required this.scenes,
     required this.currencyCode,
     this.isReadOnly = false,
@@ -138,6 +150,7 @@ class OcptElementSheet extends StatelessWidget {
     required this.onLinkRemoved,
     required this.onDeleteRequested,
     required this.onPersonSheetOpenRequested,
+    required this.onRoleSheetOpenRequested,
   });
 
   @override
@@ -195,6 +208,10 @@ class OcptElementSheet extends StatelessWidget {
             onLinkUpdated: isReadOnly ? null : onLinkUpdated,
             onLinkRemoved: isReadOnly ? null : onLinkRemoved,
           ),
+          if (_rolesConcerned case final rolesConcerned when rolesConcerned.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildRolesConcernedCard(context, tr, rolesConcerned),
+          ],
           const SizedBox(height: 12),
           OcptResourcesSheetCard(
             title: tr.resourcesElementPurposeLabel,
@@ -228,4 +245,40 @@ class OcptElementSheet extends StatelessWidget {
       ),
     );
   }
+
+  /// The roles wearing, carrying or made up with this element, in the order its links came in —
+  /// the cast's own. A link naming a role the cast no longer holds is left out by
+  /// `OcptElementsService.loadElements` already, so nothing here has to guard against one.
+  List<OcptRole> get _rolesConcerned {
+    final roleById = {for (final role in roles) role.id: role};
+
+    return [
+      for (final link in element.roleLinks)
+        if (roleById[link.roleId] case final role?) role,
+    ];
+  }
+
+  /// The `Roles concerned` card: one chip per role, clicked to land on that role's own sheet.
+  ///
+  /// **Read-only, whatever the sheet's own state.** A role's things are added and removed from the
+  /// role's sheet, which is where that question belongs; this card is the answer read from the
+  /// other side, and offering the same edit twice would only invite the two to disagree. It is
+  /// therefore rendered identically under a version preview — there is nothing here to withhold —
+  /// and it is absent altogether while no role names this element, an empty card saying nothing a
+  /// missing one doesn't.
+  Widget _buildRolesConcernedCard(BuildContext context, Tr tr, List<OcptRole> rolesConcerned) =>
+      OcptResourcesSheetCard(
+        title: tr.resourcesElementRolesCardTitle,
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final role in rolesConcerned)
+              ActionChip(
+                label: Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name),
+                onPressed: () => onRoleSheetOpenRequested(role.id),
+              ),
+          ],
+        ),
+      );
 }

@@ -839,6 +839,7 @@ void main() {
                   sceneSets: payload.sceneSets,
                   elements: payload.elements,
                   sceneElements: payload.sceneElements,
+                  roleElements: payload.roleElements,
                   assets: payload.assets,
                   breakdownTags: payload.breakdownTags,
                   sceneBreakdowns: payload.sceneBreakdowns,
@@ -941,6 +942,73 @@ void main() {
         database.ocptPeopleTable,
       )..where((table) => table.id.equals("person-2"))).getSingle();
       expect(restoredPerson2.isDeleted, isTrue);
+    });
+
+    test("a role's things come back, and a link made since is tombstoned", () async {
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-1",
+              screenplayId: screenplayId,
+              name: "CLARA",
+              kind: OcptRoleKind.speaking,
+            ),
+          );
+      await database
+          .into(database.ocptElementsTable)
+          .insert(
+            OcptElementsTableCompanion.insert(
+              id: "element-1",
+              name: "Manteau rouge",
+              category: OcptElementCategory.costume,
+              sourceKind: OcptElementSourceKind.owned,
+            ),
+          );
+      await database
+          .into(database.ocptRoleElementsTable)
+          .insert(
+            OcptRoleElementsTableCompanion.insert(
+              id: "link-1",
+              roleId: "role-1",
+              elementId: "element-1",
+              notes: const Value("Taché"),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured link's note is edited, and a second link is made since.
+      await (database.update(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals("link-1"))).write(
+        const OcptRoleElementsTableCompanion(notes: Value("Edited")),
+      );
+      await database
+          .into(database.ocptRoleElementsTable)
+          .insert(
+            OcptRoleElementsTableCompanion.insert(
+              id: "link-2",
+              roleId: "role-1",
+              elementId: "element-1",
+            ),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final restored = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals("link-1"))).getSingle();
+      expect(restored.notes, "Taché");
+      expect(restored.isDeleted, isFalse);
+
+      // The link the version never held is tombstoned, not deleted, like every other row.
+      final later = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals("link-2"))).getSingle();
+      expect(later.isDeleted, isTrue);
     });
 
     test("stamps a resources column it changed, above what it already held", () async {

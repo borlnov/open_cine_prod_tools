@@ -93,6 +93,7 @@ OcptBreakdownSnapshot _snapshot() {
         photoAssetId: null,
         photo: null,
         sceneLinks: [],
+        roleLinks: [],
       ),
     ],
     roles: const [],

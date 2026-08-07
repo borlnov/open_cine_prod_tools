@@ -79,6 +79,9 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `scene_elements` rows of the project.
   final List<OcptSceneElementRow> sceneElements;
 
+  /// The `role_elements` rows of the project: what each role wears, carries and is made up with.
+  final List<OcptRoleElementRow> roleElements;
+
   /// The `assets` rows of the project: the binary asset references, never the bytes they point at
   /// (`docs/adr/0013-binary-assets-referenced-by-path.md`). Restoring a version restores the
   /// reference, and the file it names may now be dangling — a normal state, not an error.
@@ -163,6 +166,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.sceneSets,
     required this.elements,
     required this.sceneElements,
+    required this.roleElements,
     required this.assets,
     required this.breakdownTags,
     required this.sceneBreakdowns,
@@ -188,6 +192,7 @@ class OcptProjectVersionPayload extends Equatable {
       "personUnavailabilities: ${personUnavailabilities.length}, roles: ${roles.length}, "
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
+      "roleElements: ${roleElements.length}, "
       "assets: ${assets.length}, breakdownTags: ${breakdownTags.length}, "
       "sceneBreakdowns: ${sceneBreakdowns.length}, shootingDays: ${shootingDays.length}, "
       "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
@@ -216,6 +221,7 @@ class OcptProjectVersionPayload extends Equatable {
     sceneSets,
     elements,
     sceneElements,
+    roleElements,
     assets,
     breakdownTags,
     sceneBreakdowns,

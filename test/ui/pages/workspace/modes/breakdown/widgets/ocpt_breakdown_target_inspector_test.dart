@@ -154,6 +154,7 @@ OcptElement _buildElement({
   photoAssetId: null,
   photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 /// Builds a person, every field left at a neutral value.

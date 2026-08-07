@@ -144,6 +144,7 @@ OcptElement _element({
   photoAssetId: null,
   photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 void main() {

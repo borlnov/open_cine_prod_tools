@@ -477,6 +477,22 @@ void main() {
         isDeleted: true,
       ),
     ],
+    roleElements: const [
+      OcptRoleElementRow(
+        id: "role-element-1",
+        roleId: "role-1",
+        elementId: "element-1",
+        notes: "Torn from scene 12 on",
+        isDeleted: false,
+      ),
+      OcptRoleElementRow(
+        id: "role-element-2",
+        roleId: "role-1",
+        elementId: "element-1",
+        notes: "",
+        isDeleted: true,
+      ),
+    ],
     assets: [
       OcptAssetRow(
         id: "asset-1",
@@ -1063,6 +1079,7 @@ void main() {
         sceneSets: [],
         elements: [],
         sceneElements: [],
+        roleElements: [],
         assets: [],
         breakdownTags: [],
         sceneBreakdowns: [],
@@ -1112,6 +1129,7 @@ void main() {
         sceneSets: payload.sceneSets.reversed.toList(),
         elements: payload.elements.reversed.toList(),
         sceneElements: payload.sceneElements.reversed.toList(),
+        roleElements: payload.roleElements.reversed.toList(),
         assets: payload.assets.reversed.toList(),
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
@@ -1149,6 +1167,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1194,6 +1213,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1242,6 +1262,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1279,6 +1300,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1316,6 +1338,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1355,6 +1378,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1392,6 +1416,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: [
           ...payload.breakdownTags,
@@ -1444,6 +1469,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(
@@ -1488,6 +1514,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(isDeleted: true),
@@ -1528,6 +1555,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: [
@@ -1571,6 +1599,7 @@ void main() {
           ...payload.elements.skip(1),
         ],
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1610,6 +1639,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1662,6 +1692,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1702,6 +1733,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1742,6 +1774,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1788,6 +1821,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1828,6 +1862,7 @@ void main() {
         sceneSets: payload.sceneSets,
         elements: payload.elements,
         sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2606,6 +2641,25 @@ void main() {
         expect(slotsById['slot-2']!.anchorSlotId, isNull);
       },
     );
+
+    test('a stored format-9 payload decodes with no role linked to any element', () {
+      // Format 9 predates `role_elements` entirely, so [_upgradeFormat9To10] materialises it as an
+      // **empty list** — the plain kind, not the currency's "leave the live value alone" null. The
+      // fixture is the current encoding with the key taken back out and the format wound back,
+      // rather than a second hand-written literal: what matters is the missing section, and every
+      // other section is exercised by the round-trip tests already.
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>
+        ..remove("roleElements")
+        ..["payloadFormat"] = 9;
+
+      final result = codec.decode(jsonEncode(encoded));
+
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value!.roleElements, isEmpty);
+      // And nothing else was disturbed on the way through: the rest of the project came back.
+      expect(result.value!.elements, buildRichPayload().elements);
+      expect(result.value!.roles, buildRichPayload().roles);
+    });
   });
 
   group('OcptProjectVersionCodec malformed payloads', () {

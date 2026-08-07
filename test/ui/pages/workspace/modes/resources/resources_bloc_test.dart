@@ -1084,6 +1084,60 @@ void main() {
     await bloc.close();
   });
 
+  test("linking an element to a role, noting it, then unlinking it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    final withRole = await waitForState(bloc, (state) => state.roles.length == 1);
+    final roleId = withRole.selectedRoleId!;
+
+    bloc.add(
+      const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.costume),
+    );
+    final created = await waitForState(bloc, (state) => state.elementCount == 1);
+    final elementId = created.selectedElementId!;
+
+    bloc.add(OcptResourcesElementLinkedToRoleEvent(roleId: roleId, elementId: elementId));
+    var state = await waitForState(bloc, (state) => state.elements.single.roleLinks.isNotEmpty);
+    final linkId = state.elements.single.roleLinks.single.id;
+    expect(state.elements.single.roleLinks.single.roleId, roleId);
+
+    bloc.add(OcptResourcesRoleElementUpdatedEvent(id: linkId, notes: "Taché"));
+    state = await waitForState(
+      bloc,
+      (state) => state.elements.single.roleLinks.single.notes == "Taché",
+    );
+
+    bloc.add(OcptResourcesRoleElementRemovedEvent(id: linkId));
+    state = await waitForState(bloc, (state) => state.elements.single.roleLinks.isEmpty);
+
+    // The element itself is untouched: only the link went.
+    expect(state.elementCount, 1);
+
+    await bloc.close();
+  });
+
+  test("opening a role's sheet from the elements tab selects it on the roles tab at once", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    final withRole = await waitForState(bloc, (state) => state.roles.length == 1);
+    final roleId = withRole.selectedRoleId!;
+
+    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.elements));
+    await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.elements);
+
+    bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId));
+    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
+
+    expect(state.selectedRoleId, roleId);
+    expect(state.selectedElementId, isNull);
+
+    await bloc.close();
+  });
+
   test("deleting the selected element clears the selection and drops its pending edit", () async {
     final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 30));
     await waitForState(bloc, (state) => !state.isLoading);

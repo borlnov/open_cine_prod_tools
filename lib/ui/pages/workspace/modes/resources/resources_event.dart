@@ -595,6 +595,26 @@ class OcptResourcesPersonSheetOpenRequestedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, personId];
 }
 
+/// Requests opening role [roleId]'s sheet, dispatched by the element sheet's `Roles concerned`
+/// chips.
+///
+/// [OcptResourcesPersonSheetOpenRequestedEvent]'s sibling and follows it exactly: it switches the
+/// left dock to [OcptResourcesTab.roles] and selects [roleId] in one state rather than dispatching
+/// `OcptResourcesTabSelectedEvent`, which clears the selection on every tab change. This is a plain
+/// tab-and-selection change **inside** the resources mode, so it carries no
+/// `OcptWorkspaceRevealRequest`: the user is already here.
+class OcptResourcesRoleSheetOpenRequestedEvent extends OcptResourcesEvent {
+  /// The id of the role whose sheet to open.
+  final String roleId;
+
+  /// Class constructor
+  const OcptResourcesRoleSheetOpenRequestedEvent({required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId];
+}
+
 /// Selects location [locationId], dispatched by a row of `OcptLocationsList`: the centre then shows
 /// that location's `OcptLocationSheet`.
 class OcptResourcesLocationSelectedEvent extends OcptResourcesEvent {
@@ -1372,6 +1392,61 @@ class OcptResourcesSceneElementRemovedEvent extends OcptResourcesEvent {
 
   /// Class constructor
   const OcptResourcesSceneElementRemovedEvent({required this.id});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, id];
+}
+
+/// Links role [roleId] to element [elementId], written immediately.
+///
+/// Dispatched by the role sheet's things card. The write is `OcptElementsService`'s, not
+/// `OcptRoleIndexService`'s: the row is a link onto an element, and one service owns both halves of
+/// it — see `OcptRoleElementsTable`.
+class OcptResourcesElementLinkedToRoleEvent extends OcptResourcesEvent {
+  /// The id of the role needing the element.
+  final String roleId;
+
+  /// The id of the element it needs.
+  final String elementId;
+
+  /// Class constructor
+  const OcptResourcesElementLinkedToRoleEvent({required this.roleId, required this.elementId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, elementId];
+}
+
+/// Updates the notes of the role ↔ element link [id], written immediately.
+///
+/// Carries the whole note rather than a keystroke: the row that reports it debounces its own typing
+/// locally, exactly as the scenes card's own row does.
+class OcptResourcesRoleElementUpdatedEvent extends OcptResourcesEvent {
+  /// The id of the link being updated.
+  final String id;
+
+  /// What this role has to say about its use of the element.
+  final String notes;
+
+  /// Class constructor
+  const OcptResourcesRoleElementUpdatedEvent({required this.id, required this.notes});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, id, notes];
+}
+
+/// Removes the role ↔ element link [id], written immediately.
+///
+/// The **element itself is untouched**: it stays in the catalogue, and so does every other link
+/// onto it. This says only that this role no longer wears, carries or is made up with it.
+class OcptResourcesRoleElementRemovedEvent extends OcptResourcesEvent {
+  /// The id of the link to remove.
+  final String id;
+
+  /// Class constructor
+  const OcptResourcesRoleElementRemovedEvent({required this.id});
 
   /// Object properties
   @override

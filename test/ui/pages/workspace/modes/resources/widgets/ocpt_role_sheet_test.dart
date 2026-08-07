@@ -6,14 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
 OcptPerson _person({required String id, String firstName = "", String lastName = ""}) => OcptPerson(
@@ -78,6 +84,38 @@ OcptRole _role({
   number: number,
 );
 
+/// An element the things card reads and its picker offers.
+OcptElement _element({
+  required String id,
+  required String name,
+  required OcptElementCategory category,
+  String code = "",
+  List<OcptRoleElementLink> roleLinks = const [],
+}) => OcptElement(
+  id: id,
+  category: category,
+  subCategory: "",
+  name: name,
+  code: code,
+  quantity: "",
+  sourceKind: OcptElementSourceKind.owned,
+  status: OcptElementStatus.toFind,
+  ownerPersonId: null,
+  ownerNotes: "",
+  broughtByPersonId: null,
+  storageNotes: "",
+  isSecured: false,
+  isReadyForShoot: false,
+  isReturned: false,
+  cost: null,
+  purposeNotes: "",
+  notes: "",
+  photoAssetId: null,
+  photo: null,
+  sceneLinks: const [],
+  roleLinks: roleLinks,
+);
+
 /// Finds [text] inside the header alone: the cast member's name and the not-cast placeholder both
 /// appear a second time in the casting card's own picker.
 Finder _inHeader(String text) =>
@@ -101,6 +139,7 @@ Widget _buildSheet({
   OcptPerson? castMember,
   List<OcptRole> otherRoles = const [],
   List<OcptPerson> people = const [],
+  List<OcptElement> elements = const [],
   bool isReadOnly = false,
   void Function(OcptRoleField field, String rawValue)? onFieldChanged,
   ValueChanged<String?>? onCastChanged,
@@ -108,12 +147,16 @@ Widget _buildSheet({
   VoidCallback? onDeleteRequested,
   VoidCallback? onOrphanedRoleKept,
   ValueChanged<String>? onPersonSheetOpenRequested,
+  ValueChanged<String>? onElementLinked,
+  void Function(String id, String notes)? onRoleElementUpdated,
+  ValueChanged<String>? onRoleElementRemoved,
 }) => _wrapInApp(
   OcptRoleSheet(
     role: role,
     castMember: castMember,
     otherRoles: otherRoles,
     people: people,
+    elements: elements,
     removedRoleAlert: OcptRemovedRoleAlert.of(role),
     isReadOnly: isReadOnly,
     fieldValueOf: (field) => switch (field) {
@@ -126,6 +169,9 @@ Widget _buildSheet({
     onDeleteRequested: onDeleteRequested ?? () {},
     onOrphanedRoleKept: onOrphanedRoleKept ?? () {},
     onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
+    onElementLinked: onElementLinked ?? (elementId) {},
+    onRoleElementUpdated: onRoleElementUpdated ?? (id, notes) {},
+    onRoleElementRemoved: onRoleElementRemoved ?? (id) {},
   ),
 );
 
@@ -377,5 +423,147 @@ void main() {
     expect(nameField.readOnly, isTrue);
     // What only reads stays: the ↗ affordance still opens the cast member's sheet.
     expect(find.byIcon(Icons.north_east), findsOneWidget);
+  });
+
+  testWidgets("the things card reads this role's links, grouped by category", (tester) async {
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(),
+        elements: [
+          _element(
+            id: "e1",
+            name: "Manteau rouge",
+            code: "COS-1",
+            category: OcptElementCategory.costume,
+            roleLinks: const [
+              OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché"),
+            ],
+          ),
+          _element(
+            id: "e2",
+            name: "Valise",
+            code: "PRP-1",
+            category: OcptElementCategory.prop,
+            // Linked to another role: this card must not show it.
+            roleLinks: const [OcptRoleElementLink(id: "l2", roleId: "r9", notes: "")],
+          ),
+          _element(id: "e3", name: "Perruque", category: OcptElementCategory.makeup),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+
+    expect(find.text(tr.resourcesRoleElementsCardTitle), findsOneWidget);
+    expect(find.text("COS-1 · Manteau rouge"), findsOneWidget);
+    // The category heading above it, and no heading for a category holding nothing.
+    expect(
+      find.text(ocptElementCategoryLabel(tr, OcptElementCategory.costume).toUpperCase()),
+      findsOneWidget,
+    );
+    expect(
+      find.text(ocptElementCategoryLabel(tr, OcptElementCategory.prop).toUpperCase()),
+      findsNothing,
+    );
+    // Another role's link, and an element nobody wears, are both absent.
+    expect(find.text("PRP-1 · Valise"), findsNothing);
+    expect(find.text("Perruque"), findsNothing);
+    // The link's own note is in its row.
+    expect(find.widgetWithText(TextField, "Taché"), findsOneWidget);
+  });
+
+  testWidgets("the picker offers every unlinked element, whatever its category", (tester) async {
+    final linked = <String>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(),
+        elements: [
+          _element(
+            id: "e1",
+            name: "Manteau rouge",
+            category: OcptElementCategory.costume,
+            roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "")],
+          ),
+          _element(id: "e2", name: "Valise", category: OcptElementCategory.prop),
+          _element(id: "e3", name: "Voiture", category: OcptElementCategory.vehicle),
+        ],
+        onElementLinked: linked.add,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    await tester.tap(find.text(tr.resourcesAddElementToRoleAction));
+    await tester.pumpAndSettle();
+
+    /// Finds [text] among the picker's own entries: the linked element's name also reads out in
+    /// its row of the card, which is not what this test is about.
+    Finder inMenu(String text) =>
+        find.descendant(of: find.byType(PopupMenuItem<String>), matching: find.text(text));
+
+    // The one already linked is not offered again; a vehicle is, the table knowing no category
+    // restriction.
+    expect(inMenu("Manteau rouge"), findsNothing);
+    expect(inMenu("Valise"), findsOneWidget);
+    expect(inMenu("Voiture"), findsOneWidget);
+
+    await tester.tap(inMenu("Voiture"));
+    await tester.pumpAndSettle();
+    expect(linked, ["e3"]);
+  });
+
+  testWidgets("a things row unlinks its element, the catalogue untouched", (tester) async {
+    final removed = <String>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(),
+        elements: [
+          _element(
+            id: "e1",
+            name: "Manteau rouge",
+            category: OcptElementCategory.costume,
+            roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "")],
+          ),
+        ],
+        onRoleElementRemoved: removed.add,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+
+    expect(removed, ["l1"]);
+  });
+
+  testWidgets("the things card offers nothing to write when read-only", (tester) async {
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(),
+        elements: [
+          _element(
+            id: "e1",
+            name: "Manteau rouge",
+            category: OcptElementCategory.costume,
+            roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché")],
+          ),
+          _element(id: "e2", name: "Valise", category: OcptElementCategory.prop),
+        ],
+        isReadOnly: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+
+    // What only reads stays: the link and its note are still there…
+    expect(find.text("Manteau rouge"), findsOneWidget);
+    expect(tester.widget<TextField>(find.widgetWithText(TextField, "Taché")).readOnly, isTrue);
+    // …while the picker and the unlink control are withheld, not disabled.
+    expect(find.text(tr.resourcesAddElementToRoleAction), findsNothing);
+    expect(find.byIcon(Icons.close), findsNothing);
   });
 }

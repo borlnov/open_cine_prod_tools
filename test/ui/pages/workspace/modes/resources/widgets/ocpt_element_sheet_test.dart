@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -16,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
@@ -84,6 +87,7 @@ OcptElement _element({
   String? broughtByPersonId,
   bool isSecured = false,
   List<OcptSceneElementLink> sceneLinks = const [],
+  List<OcptRoleElementLink> roleLinks = const [],
 }) => OcptElement(
       status: OcptElementStatus.toFind,
   id: "e1",
@@ -106,6 +110,20 @@ OcptElement _element({
   photoAssetId: null,
   photo: null,
   sceneLinks: sceneLinks,
+  roleLinks: roleLinks,
+);
+
+/// A role the `Roles concerned` card resolves a link against.
+OcptRole _role({required String id, required String name}) => OcptRole(
+  id: id,
+  screenplayId: "screenplay",
+  name: name,
+  personId: null,
+  kind: OcptRoleKind.speaking,
+  isFromScreenplay: true,
+  orphanedName: null,
+  castingNotes: "",
+  number: 1,
 );
 
 /// A scene the links and the picker name.
@@ -118,6 +136,7 @@ void main() {
     WidgetTester tester, {
     OcptElement? element,
     List<OcptPerson> people = const [],
+    List<OcptRole> roles = const [],
     List<OcptSceneRef> scenes = const [],
     String currencyCode = "EUR",
     bool isReadOnly = false,
@@ -130,6 +149,7 @@ void main() {
     ValueChanged<String>? onLinkRemoved,
     VoidCallback? onPhotoPickRequested,
     VoidCallback? onDeleteRequested,
+    ValueChanged<String>? onRoleSheetOpenRequested,
   }) async {
     final shown = element ?? _element();
 
@@ -140,6 +160,7 @@ void main() {
           owner: _personOf(people, shown.ownerPersonId),
           bringer: _personOf(people, shown.broughtByPersonId),
           people: people,
+          roles: roles,
           scenes: scenes,
           currencyCode: currencyCode,
           isReadOnly: isReadOnly,
@@ -157,6 +178,7 @@ void main() {
           onLinkRemoved: onLinkRemoved ?? (id) {},
           onDeleteRequested: onDeleteRequested ?? () {},
           onPersonSheetOpenRequested: (personId) {},
+          onRoleSheetOpenRequested: onRoleSheetOpenRequested ?? (roleId) {},
         ),
       ),
     );
@@ -348,6 +370,61 @@ void main() {
 
     // The sheet only asks: the question itself is the mode's confirmation dialog.
     expect(deleteCount, 1);
+  });
+
+  testWidgets("the roles concerned are read out and open their own sheet", (tester) async {
+    final opened = <String>[];
+
+    final tr = await pumpSheet(
+      tester,
+      element: _element(
+        roleLinks: const [
+          OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché"),
+          OcptRoleElementLink(id: "l2", roleId: "r2", notes: ""),
+        ],
+      ),
+      roles: [_role(id: "r1", name: "CLARA"), _role(id: "r2", name: "LE CLIENT")],
+      onRoleSheetOpenRequested: opened.add,
+    );
+
+    expect(find.text(tr.resourcesElementRolesCardTitle), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, "CLARA"), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, "LE CLIENT"), findsOneWidget);
+
+    // The card sits below the scenes one, past the bottom of the pumped box.
+    await tester.ensureVisible(find.widgetWithText(ActionChip, "LE CLIENT"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ActionChip, "LE CLIENT"));
+    await tester.pumpAndSettle();
+    expect(opened, ["r2"]);
+  });
+
+  testWidgets("no role names it, and the card is absent altogether", (tester) async {
+    final tr = await pumpSheet(tester);
+
+    expect(find.text(tr.resourcesElementRolesCardTitle), findsNothing);
+  });
+
+  testWidgets("the roles concerned stay clickable under a read-only preview", (tester) async {
+    final opened = <String>[];
+
+    // Selecting a role writes nothing, and reading a version is exactly when following a link
+    // matters — so this card is the one part of the sheet a preview withholds nothing from.
+    await pumpSheet(
+      tester,
+      element: _element(
+        roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "")],
+      ),
+      roles: [_role(id: "r1", name: "CLARA")],
+      isReadOnly: true,
+      onRoleSheetOpenRequested: opened.add,
+    );
+
+    await tester.ensureVisible(find.widgetWithText(ActionChip, "CLARA"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ActionChip, "CLARA"));
+    await tester.pumpAndSettle();
+    expect(opened, ["r1"]);
   });
 }
 

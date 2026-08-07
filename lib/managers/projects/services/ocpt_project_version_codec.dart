@@ -59,7 +59,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 9;
+  static const currentPayloadFormat = 10;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -113,6 +113,9 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `scene_elements` rows from a JSON object
   static const _sceneElementsKey = "sceneElements";
+
+  /// This is the key used to stringify or parse the `role_elements` rows from a JSON object
+  static const _roleElementsKey = "roleElements";
 
   /// This is the key used to stringify or parse the `assets` rows from a JSON object
   static const _assetsKey = "assets";
@@ -255,7 +258,7 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a free-form `notes` column (`shots.notes`,
   /// `people.notes`, `locations.notes`, `sets.notes`, `elements.notes`, `scene_elements.notes`,
-  /// `scene_breakdowns.notes`, `shooting_days.notes`, `shooting_slots.notes`,
+  /// `role_elements.notes`, `scene_breakdowns.notes`, `shooting_days.notes`, `shooting_slots.notes`,
   /// `shooting_slot_crew.notes` or `shooting_slot_cast.notes`) from a JSON object
   static const _notesKey = "notes";
 
@@ -520,8 +523,8 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `roleId` column
   /// (`breakdown_tags.roleId` — the sibling of [_elementIdKey] and [_setIdKey], non-null only when
-  /// the tag's `targetKind` names a role — or `shooting_slot_cast.roleId`, always non-null, the
-  /// role a slot convokes) from a JSON object
+  /// the tag's `targetKind` names a role —, `shooting_slot_cast.roleId`, always non-null, the role
+  /// a slot convokes, or `role_elements.roleId`, the role wearing an element) from a JSON object
   static const _roleIdKey = "roleId";
 
   /// This is the key used to stringify or parse an element's `category` column from a JSON object
@@ -570,8 +573,8 @@ class OcptProjectVersionCodec {
   /// object
   static const _purposeNotesKey = "purposeNotes";
 
-  /// This is the key used to stringify or parse an `elementId` column (`scene_elements.elementId`
-  /// or `breakdown_tags.elementId`) from a JSON object
+  /// This is the key used to stringify or parse an `elementId` column (`scene_elements.elementId`,
+  /// `role_elements.elementId` or `breakdown_tags.elementId`) from a JSON object
   static const _elementIdKey = "elementId";
 
   /// This is the key used to stringify or parse an asset's `path` column from a JSON object
@@ -710,6 +713,7 @@ class OcptProjectVersionCodec {
     6: _upgradeFormat6To7,
     7: _upgradeFormat7To8,
     8: _upgradeFormat8To9,
+    9: _upgradeFormat9To10,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -945,6 +949,22 @@ class OcptProjectVersionCodec {
     ],
   };
 
+  /// Turns a format-**9** JSON object into a format-**10** one: `role_elements` — what a role
+  /// wears, carries and is made up with — did not exist yet, so this materialises it as an **empty
+  /// list**.
+  ///
+  /// Back to the plainest of the three kinds, [_upgradeFormat5To6]'s: a version written in format 9
+  /// was captured when nothing in the app could say a role wore a coat, so "this role had no
+  /// things" is a truthful statement about that moment — unlike [_upgradeFormat3To4]'s null, which
+  /// means "leave the live value alone", and unlike [_upgradeFormat7To8]'s removal, which makes no
+  /// claim about the capture at all. `OcptProjectVersionsService._restoreTable` tombstones, on
+  /// restore, every row the payload doesn't hold, so restoring one correctly drops every link made
+  /// since, exactly as restoring a pre-schedule version drops the days planned since.
+  static Map<String, dynamic> _upgradeFormat9To10(Map<String, dynamic> json) => {
+    ...json,
+    _roleElementsKey: const <dynamic>[],
+  };
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1006,6 +1026,7 @@ class OcptProjectVersionCodec {
     _sceneSetsKey: [for (final row in payload.sceneSets) _sceneSetToJson(row)],
     _elementsKey: [for (final row in payload.elements) _elementToJson(row)],
     _sceneElementsKey: [for (final row in payload.sceneElements) _sceneElementToJson(row)],
+    _roleElementsKey: [for (final row in payload.roleElements) _roleElementToJson(row)],
     _assetsKey: [for (final row in payload.assets) _assetToJson(row)],
     _breakdownTagsKey: [for (final row in payload.breakdownTags) _breakdownTagToJson(row)],
     _sceneBreakdownsKey: [for (final row in payload.sceneBreakdowns) _sceneBreakdownToJson(row)],
@@ -1088,7 +1109,8 @@ class OcptProjectVersionCodec {
   ///
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
   ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `locations`, `sets`,
-  ///   `sceneSets`, `elements`, `sceneElements`, `assets`, `breakdownTags`, `sceneBreakdowns`,
+  ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `assets`, `breakdownTags`,
+  ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
   ///   `shootingDayBlocks`, `shootingPresences` — every column of each — plus `pageSetup.format`,
   ///   `settingsJson` and `currencyCode`. This is
@@ -1187,6 +1209,11 @@ class OcptProjectVersionCodec {
         payload.sceneElements,
         primaryKeyOf: (row) => row.id,
         toJson: _sceneElementToJson,
+      ),
+      _roleElementsKey: _canonicalRows(
+        payload.roleElements,
+        primaryKeyOf: (row) => row.id,
+        toJson: _roleElementToJson,
       ),
       _assetsKey: _canonicalRows(
         payload.assets,
@@ -1306,6 +1333,7 @@ class OcptProjectVersionCodec {
       sceneSets: [for (final row in _rows(json, _sceneSetsKey)) _sceneSetFromJson(row)],
       elements: [for (final row in _rows(json, _elementsKey)) _elementFromJson(row)],
       sceneElements: [for (final row in _rows(json, _sceneElementsKey)) _sceneElementFromJson(row)],
+      roleElements: [for (final row in _rows(json, _roleElementsKey)) _roleElementFromJson(row)],
       assets: [for (final row in _rows(json, _assetsKey)) _assetFromJson(row)],
       breakdownTags: [for (final row in _rows(json, _breakdownTagsKey)) _breakdownTagFromJson(row)],
       sceneBreakdowns: [
@@ -1851,6 +1879,24 @@ class OcptProjectVersionCodec {
         notes: _string(json, _notesKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
+
+  /// Serializes one `role_elements` row.
+  static Map<String, dynamic> _roleElementToJson(OcptRoleElementRow row) => {
+    _idKey: row.id,
+    _roleIdKey: row.roleId,
+    _elementIdKey: row.elementId,
+    _notesKey: row.notes,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `role_elements` row.
+  static OcptRoleElementRow _roleElementFromJson(Map<String, dynamic> json) => OcptRoleElementRow(
+    id: _string(json, _idKey),
+    roleId: _string(json, _roleIdKey),
+    elementId: _string(json, _elementIdKey),
+    notes: _string(json, _notesKey),
+    isDeleted: _bool(json, _isDeletedKey),
+  );
 
   /// Serializes one `assets` row.
   static Map<String, dynamic> _assetToJson(OcptAssetRow row) => {

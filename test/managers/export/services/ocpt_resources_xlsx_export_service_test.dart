@@ -271,6 +271,7 @@ OcptElement _buildElement({
   photoAssetId: null,
   photo: null,
   sceneLinks: sceneLinks,
+  roleLinks: const [],
 );
 
 /// Decodes [bytes] and returns the rows of [sheetName], every cell unwrapped to a plain Dart value

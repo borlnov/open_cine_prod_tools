@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_skills_t
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_person_unavailabilities_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_role_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_row_field_versions_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scene_breakdowns_table.dart';
@@ -104,7 +105,8 @@ part 'ocpt_project_database.g.dart';
 /// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). Schema version 14 replaces
 /// `shooting_slots.startMinute` with the three columns an anchored edge needs, so a slot can be
 /// pinned by its end as well as its start, or read its hour off another slot of the same day (ADR
-/// 0015, amended a second time). `OcptProjectsManager` owns the
+/// 0015, amended a second time). Schema version 15 adds [OcptRoleElementsTable], what a role wears,
+/// carries and is made up with. `OcptProjectsManager` owns the
 /// single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -128,6 +130,7 @@ part 'ocpt_project_database.g.dart';
     OcptSceneSetsTable,
     OcptElementsTable,
     OcptSceneElementsTable,
+    OcptRoleElementsTable,
     OcptAssetsTable,
     OcptLocalErasuresTable,
     OcptBreakdownTagsTable,
@@ -208,7 +211,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   /// The database options used by this database.
   ///
@@ -271,7 +274,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `shooting_slots.start_minute` with the three columns an anchored edge needs — `anchor_edge`,
   /// `anchor_minute` and the self-referencing `anchor_slot_id` (see [_alterScheduleTablesToV14]) —
   /// so a slot can be pinned by its **end** as well as its start, or read its hour off another slot
-  /// of the same day. Every step is additive, as
+  /// of the same day. From 14 to 15 it creates [OcptRoleElementsTable], what a role wears, carries
+  /// and is made up with: it is a plain `createTable` on a file coming from any version, since both
+  /// tables it references (`roles` and `elements`) exist by version 6 and are created above for a
+  /// file older than that. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -402,6 +408,12 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 14 && from >= 12) {
         await _alterScheduleTablesToV14(m);
+      }
+
+      if (from < 15) {
+        // Both tables it references — `roles` and `elements` — exist by version 6, and a file
+        // older than that has just had them created above, so this is never a forward reference.
+        await m.createTable(ocptRoleElementsTable);
       }
     },
     beforeOpen: (details) async {
