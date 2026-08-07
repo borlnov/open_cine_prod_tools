@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -18,7 +19,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
@@ -49,11 +49,6 @@ const PdfColor _bandColor = PdfColor.fromInt(0xFFEDEDED);
 
 /// The grey the running head and every muted label is printed in.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
-
-/// What a sheet prints in place of a value the project has not filled in yet, or a convocation with
-/// no PAT band (ADR 0018) — the em dash the app's own tables already show for the same reason,
-/// exactly as `OcptBreakdownSheetsPdfService._emptyValue` is.
-const String _emptyValue = "—";
 
 /// The main table's `SEQ / PLANS / EFFET / DÉCORS / RÔLES` columns.
 ///
@@ -200,8 +195,8 @@ class OcptCallSheetPdfService {
     final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     final timelines = plan.timelinesOfDay(dayId);
     final convocations = plan.convocationsOfDay(dayId);
-    final headingBySceneId = _headingBySceneId(plan);
-    final orderedEntries = _orderedEntriesOfDay(plan: plan, dayId: dayId);
+    final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
+    final orderedEntries = ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId);
     final rows = _buildDayRows(
       plan: plan,
       orderedEntries: orderedEntries,
@@ -210,7 +205,7 @@ class OcptCallSheetPdfService {
     );
     final castRows = _castRowsOfDay(plan: plan, dayId: dayId, orderedEntries: orderedEntries);
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
-    final locations = _locationsOfSlots(plan, slots);
+    final locations = ocptScheduleLocationsOfSlots(plan, slots);
 
     pdfDocument.addPage(
       _page(
@@ -303,8 +298,8 @@ class OcptCallSheetPdfService {
     final onlySlotIds = convocation.slotIds.toSet();
     final allSlots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     final ownSlots = [for (final slot in allSlots) if (onlySlotIds.contains(slot.id)) slot];
-    final headingBySceneId = _headingBySceneId(plan);
-    final orderedEntries = _orderedEntriesOfDay(plan: plan, dayId: dayId, onlySlotIds: onlySlotIds);
+    final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
+    final orderedEntries = ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId, onlySlotIds: onlySlotIds);
     final rows = _buildDayRows(
       plan: plan,
       orderedEntries: orderedEntries,
@@ -312,7 +307,7 @@ class OcptCallSheetPdfService {
       labels: labels,
     );
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
-    final locations = _locationsOfSlots(plan, ownSlots);
+    final locations = ocptScheduleLocationsOfSlots(plan, ownSlots);
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
     final positionsOrRole = _convocationPositionsLabel(
       convocation: convocation,
@@ -385,7 +380,7 @@ class OcptCallSheetPdfService {
     required List<OcptShootingSlot> slots,
     required OcptShootingDayTimelines? timelines,
     required List<OcptDayConvocation> convocations,
-    required List<_OrderedEntry> orderedEntries,
+    required List<OcptOrderedScheduleEntry> orderedEntries,
     required List<_DayRow> rows,
     required List<_CrewContact> crewContacts,
     required Set<OcptCrewDepartment> contactDepartments,
@@ -471,7 +466,7 @@ class OcptCallSheetPdfService {
       children: [
         _sectionTitle(painter: painter, title: labels.recipientsSectionTitle),
         pw.SizedBox(height: 2),
-        _noteWidget(painter: painter, text: names.isEmpty ? _emptyValue : names.join(", ")),
+        _noteWidget(painter: painter, text: names.isEmpty ? ocptScheduleEmptyValue : names.join(", ")),
       ],
     );
   }
@@ -489,7 +484,7 @@ class OcptCallSheetPdfService {
       _sectionTitle(painter: painter, title: labels.namedRecipientLabel),
       pw.SizedBox(height: 2),
       pw.Text(
-        displayName.isEmpty ? _emptyValue : displayName,
+        displayName.isEmpty ? ocptScheduleEmptyValue : displayName,
         style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
       ),
       if (positionsOrRole.trim().isNotEmpty) ...[
@@ -587,10 +582,10 @@ class OcptCallSheetPdfService {
       _sectionTitle(painter: painter, title: labels.locationSectionTitle),
       pw.SizedBox(height: 2),
       if (locations.isEmpty)
-        _noteWidget(painter: painter, text: _emptyValue)
+        _noteWidget(painter: painter, text: ocptScheduleEmptyValue)
       else
         for (final location in locations) ...[
-          _noteWidget(painter: painter, text: _locationAddressLine(location)),
+          _noteWidget(painter: painter, text: ocptScheduleLocationAddressLine(location)),
           if (_mapsUrlOf(location) case final url?) ...[
             pw.SizedBox(height: 1),
             pw.UrlLink(
@@ -607,7 +602,7 @@ class OcptCallSheetPdfService {
   );
 
   /// The day's own sunrise, sunset and the two civil twilights, each independently printed as
-  /// [_emptyValue] while [sunTimes] has no figure for it (ADR 0016).
+  /// [ocptScheduleEmptyValue] while [sunTimes] has no figure for it (ADR 0016).
   pw.Widget _sunSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -633,7 +628,7 @@ class OcptCallSheetPdfService {
   /// One figure of [_sunSection].
   pw.Widget _sunFigure({required OcptScriptPagePainter painter, required String label, required int? minute}) =>
       pw.Text(
-        "$label ${minute == null ? _emptyValue : ocptFormatDayMinute(minute)}",
+        "$label ${minute == null ? ocptScheduleEmptyValue : ocptFormatDayMinute(minute)}",
         style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
       );
 
@@ -666,7 +661,7 @@ class OcptCallSheetPdfService {
         _sectionTitle(painter: painter, title: labels.contactsSectionTitle),
         pw.SizedBox(height: 2),
         if (present.isEmpty)
-          _noteWidget(painter: painter, text: _emptyValue)
+          _noteWidget(painter: painter, text: ocptScheduleEmptyValue)
         else
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -720,7 +715,7 @@ class OcptCallSheetPdfService {
     required List<OcptShootingSlot> slots,
     required OcptShootingDayTimelines? timelines,
     required List<OcptDayConvocation> convocations,
-    required List<_OrderedEntry> orderedEntries,
+    required List<OcptOrderedScheduleEntry> orderedEntries,
   }) {
     final lines = <String>[];
 
@@ -853,10 +848,10 @@ class OcptCallSheetPdfService {
       for (final row in rows)
         pw.TableRow(
           children: [
-            _textCell(painter: painter, text: row.shots.isEmpty ? _emptyValue : _sceneNumberOf(row.shots.first)),
-            _textCell(painter: painter, text: row.shots.map(_planNumberOf).join(",")),
-            _textCell(painter: painter, text: _effectOf(row.heading) ?? _emptyValue),
-            _textCell(painter: painter, text: row.decors ?? _emptyValue),
+            _textCell(painter: painter, text: row.shots.isEmpty ? ocptScheduleEmptyValue : ocptShotSceneNumberOf(row.shots.first)),
+            _textCell(painter: painter, text: row.shots.map(ocptShotRankOf).join(",")),
+            _textCell(painter: painter, text: _effectOf(row.heading) ?? ocptScheduleEmptyValue),
+            _textCell(painter: painter, text: row.decors ?? ocptScheduleEmptyValue),
             _textCell(painter: painter, text: _rolesLabelOf(row, roles)),
           ],
         ),
@@ -889,7 +884,7 @@ class OcptCallSheetPdfService {
       _sectionTitle(painter: painter, title: labels.castSectionTitle),
       pw.SizedBox(height: 4),
       if (rows.isEmpty)
-        _noteWidget(painter: painter, text: _emptyValue)
+        _noteWidget(painter: painter, text: ocptScheduleEmptyValue)
       else
         pw.Table(
           border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
@@ -914,12 +909,12 @@ class OcptCallSheetPdfService {
                   _textCell(painter: painter, text: "${row.role.number} · ${row.role.name}"),
                   _textCell(
                     painter: painter,
-                    text: (row.actor?.displayName ?? "").trim().isEmpty ? _emptyValue : row.actor!.displayName,
+                    text: (row.actor?.displayName ?? "").trim().isEmpty ? ocptScheduleEmptyValue : row.actor!.displayName,
                   ),
-                  _textCell(painter: painter, text: row.sceneNumbers.isEmpty ? _emptyValue : row.sceneNumbers.join(", ")),
+                  _textCell(painter: painter, text: row.sceneNumbers.isEmpty ? ocptScheduleEmptyValue : row.sceneNumbers.join(", ")),
                   _textCell(
                     painter: painter,
-                    text: row.convocation == null ? _emptyValue : ocptFormatDayMinute(row.convocation!.arrivalMinute),
+                    text: row.convocation == null ? ocptScheduleEmptyValue : ocptFormatDayMinute(row.convocation!.arrivalMinute),
                   ),
                   _textCell(painter: painter, text: _patCellOf(row.convocation)),
                 ],
@@ -942,7 +937,7 @@ class OcptCallSheetPdfService {
       _sectionTitle(painter: painter, title: title),
       pw.SizedBox(height: 4),
       if (entries.isEmpty)
-        _noteWidget(painter: painter, text: _emptyValue)
+        _noteWidget(painter: painter, text: ocptScheduleEmptyValue)
       else
         pw.Table(
           border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
@@ -995,7 +990,7 @@ class OcptCallSheetPdfService {
       pw.Padding(
         padding: const pw.EdgeInsets.all(_cellPaddingPt),
         child: pw.Text(
-          text.isEmpty ? _emptyValue : text,
+          text.isEmpty ? ocptScheduleEmptyValue : text,
           style: pw.TextStyle(font: painter.fonts.variant(bold: isBold, italic: false), fontSize: _bodyFontSizePt),
         ),
       );
@@ -1005,21 +1000,6 @@ class OcptCallSheetPdfService {
 // Pure data-preparation types and functions — no `pw.Widget` in sight, so a future test can exercise
 // them directly if it ever needs to.
 // ===================================================================================================
-
-/// One slot's own block, already placed on the day's clock — the raw material [_buildDayRows] and
-/// the meal-band extraction inside `_timeBandsSection` both read.
-class _OrderedEntry {
-  const _OrderedEntry({required this.slot, required this.block, required this.entry});
-
-  /// The slot [block] belongs to.
-  final OcptShootingSlot slot;
-
-  /// The block itself.
-  final OcptShootingDayBlock block;
-
-  /// Where [block] is placed — the *resolved* clock, never a stored anchor.
-  final OcptShootingTimelineEntry entry;
-}
 
 /// One printed row of the main table: either a run of one or more consecutive [shots] on the same
 /// slot and the same scene, collapsed the way the reference call sheets do, or a single
@@ -1157,68 +1137,8 @@ class _PeopleListEntry {
   /// Their own email address, empty for the same reason.
   final String email;
 
-  /// Their own arrival – departure band, or [_emptyValue] while they have no convocation at all.
+  /// Their own arrival – departure band, or [ocptScheduleEmptyValue] while they have no convocation at all.
   final String scheduleLabel;
-}
-
-/// A map from every real scene's id to its own heading, built once per generated document —
-/// [_buildDayRows] and [_captionOf] (for a [OcptShootingBlockKind.hold] block) both read it, never
-/// re-deriving it from `OcptSchedulePlanSnapshot.shotList` themselves.
-Map<String, String> _headingBySceneId(OcptSchedulePlanSnapshot plan) => {
-  for (final sequence in plan.shotList?.sequences ?? const [])
-    if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
-};
-
-/// Every block of [dayId], across every live slot (or only [onlySlotIds]' own, for a named sheet),
-/// placed on the day's clock and sorted **in resolved clock order across every slot**: two blocks
-/// starting at the same minute are ordered by their slot's own position in the day, then by chain
-/// order — the one place a day's parallel chains are read as a single run, which is what lets the
-/// reference call sheet's two crews fall out of this app's own per-slot model.
-List<_OrderedEntry> _orderedEntriesOfDay({
-  required OcptSchedulePlanSnapshot plan,
-  required String dayId,
-  Set<String>? onlySlotIds,
-}) {
-  final timelines = plan.timelinesOfDay(dayId);
-  if (timelines == null) {
-    return const [];
-  }
-
-  final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-  final blocksById = {
-    for (final block in plan.schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[]) block.id: block,
-  };
-
-  final tagged = <(int, OcptShootingSlot, OcptShootingTimelineEntry, int)>[];
-  for (final (slotIndex, slot) in slots.indexed) {
-    if (onlySlotIds != null && !onlySlotIds.contains(slot.id)) {
-      continue;
-    }
-    final timeline = timelines.bySlotId[slot.id];
-    if (timeline == null) {
-      continue;
-    }
-    for (final (chainIndex, entry) in timeline.entries.indexed) {
-      tagged.add((slotIndex, slot, entry, chainIndex));
-    }
-  }
-
-  tagged.sort((a, b) {
-    final byStart = a.$3.startMinute.compareTo(b.$3.startMinute);
-    if (byStart != 0) {
-      return byStart;
-    }
-    final bySlot = a.$1.compareTo(b.$1);
-    if (bySlot != 0) {
-      return bySlot;
-    }
-    return a.$4.compareTo(b.$4);
-  });
-
-  return [
-    for (final (_, slot, entry, _) in tagged)
-      if (blocksById[entry.blockId] case final block?) _OrderedEntry(slot: slot, block: block, entry: entry),
-  ];
 }
 
 /// Turns [orderedEntries] into the printed rows of the main table: a run of consecutive
@@ -1226,7 +1146,7 @@ List<_OrderedEntry> _orderedEntriesOfDay({
 /// [_DayRow], every other kind prints its own [_DayRow.milestone].
 List<_DayRow> _buildDayRows({
   required OcptSchedulePlanSnapshot plan,
-  required List<_OrderedEntry> orderedEntries,
+  required List<OcptOrderedScheduleEntry> orderedEntries,
   required Map<String, String> headingBySceneId,
   required OcptCallSheetLabels labels,
 }) {
@@ -1283,25 +1203,18 @@ List<_DayRow> _buildDayRows({
 /// The caption a non-shot [block] prints: its own free-text label when it has one, a
 /// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
 /// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback.
+///
+/// A thin alias over [ocptScheduleBlockCaptionOf] (`ocpt_schedule_pdf_shared.dart`), shared with
+/// `OcptShootingPlanPdfService` — see that function's own doc comment for why.
 String _captionOf({
   required OcptShootingDayBlock block,
   required OcptCallSheetLabels labels,
   required Map<String, String> headingBySceneId,
-}) {
-  final ownLabel = block.label.trim();
-  if (ownLabel.isNotEmpty) {
-    return ownLabel;
-  }
-
-  if (block.kind == OcptShootingBlockKind.hold && block.sceneId != null) {
-    final heading = headingBySceneId[block.sceneId]?.trim();
-    if (heading != null && heading.isNotEmpty) {
-      return heading;
-    }
-  }
-
-  return labels.blockKindLabelOf(block.kind);
-}
+}) => ocptScheduleBlockCaptionOf(
+  block: block,
+  headingBySceneId: headingBySceneId,
+  blockKindLabelOf: labels.blockKindLabelOf,
+);
 
 /// The day's own cast table rows: one per cast role convoked on any live slot of the day (or, for a
 /// named sheet, of [orderedEntries]' own restricted slots — though a named sheet never builds this
@@ -1310,7 +1223,7 @@ String _captionOf({
 List<_CastRow> _castRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,
-  required List<_OrderedEntry> orderedEntries,
+  required List<OcptOrderedScheduleEntry> orderedEntries,
 }) {
   final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
   final convocations = plan.convocationsOfDay(dayId);
@@ -1341,7 +1254,7 @@ List<_CastRow> _castRowsOfDay({
         }
         final shot = plan.shotById(ordered.block.shotId!);
         if (shot != null && shot.characters.contains(normalizedName)) {
-          sceneNumbers.add(_sceneNumberOf(shot));
+          sceneNumbers.add(ocptShotSceneNumberOf(shot));
         }
       }
 
@@ -1435,25 +1348,25 @@ List<_PeopleListEntry> _castListEntries({required List<_CastRow> castRows, requi
   return entries;
 }
 
-/// [convocation]'s own arrival – departure band, or [_emptyValue] while there is no convocation at
+/// [convocation]'s own arrival – departure band, or [ocptScheduleEmptyValue] while there is no convocation at
 /// all.
 String _scheduleLabelOf(OcptDayConvocation? convocation) {
   if (convocation == null) {
-    return _emptyValue;
+    return ocptScheduleEmptyValue;
   }
   return "${ocptFormatDayMinute(convocation.arrivalMinute)} – ${ocptFormatDayMinute(convocation.departureMinute)}";
 }
 
-/// [convocation]'s own PAT band, or [_emptyValue] while it has none — ADR 0018: a slot with no
+/// [convocation]'s own PAT band, or [ocptScheduleEmptyValue] while it has none — ADR 0018: a slot with no
 /// shooting block gives no band at all, and this is never fabricated.
 String _patCellOf(OcptDayConvocation? convocation) {
   if (convocation == null) {
-    return _emptyValue;
+    return ocptScheduleEmptyValue;
   }
   final start = convocation.patStartMinute;
   final end = convocation.patEndMinute;
   if (start == null || end == null) {
-    return _emptyValue;
+    return ocptScheduleEmptyValue;
   }
   return "${ocptFormatDayMinute(start)} – ${ocptFormatDayMinute(end)}";
 }
@@ -1464,7 +1377,7 @@ String _patCellOf(OcptDayConvocation? convocation) {
 String _rolesLabelOf(_DayRow row, List<OcptRole> roles) {
   final characterNames = <String>{for (final shot in row.shots) ...shot.characters};
   if (characterNames.isEmpty) {
-    return _emptyValue;
+    return ocptScheduleEmptyValue;
   }
 
   final byNormalizedName = {for (final role in roles) normalizeCharacterName(role.name): role};
@@ -1477,19 +1390,12 @@ String _rolesLabelOf(_DayRow row, List<OcptRole> roles) {
   }
 
   if (matched.isEmpty) {
-    return _emptyValue;
+    return ocptScheduleEmptyValue;
   }
 
   final sorted = matched.toList()..sort((a, b) => a.number.compareTo(b.number));
   return sorted.map((role) => "${role.number}").join(", ");
 }
-
-/// The scene number half of [shot]'s own `<sceneNumber>/<rank>` display code.
-String _sceneNumberOf(OcptShot shot) => shot.code.contains("/") ? shot.code.split("/").first : shot.code;
-
-/// The per-scene rank half of [shot]'s own `<sceneNumber>/<rank>` display code — what the reference
-/// call sheet's own `PLANS` column prints, since its own `SEQ` column already says the scene.
-String _planNumberOf(OcptShot shot) => shot.code.contains("/") ? shot.code.split("/").last : shot.code;
 
 /// [heading]'s own interior/exterior half and time-of-day half, joined as the reference call sheet's
 /// own `EFFET` column reads (`EXT / JOUR`), or null while [heading] is null or carries no time of
@@ -1534,18 +1440,6 @@ String _timeBandLine({required String label, required int startMinute, required 
   return "$label : $start – ${ocptFormatDayMinute(endMinute)}";
 }
 
-/// [location]'s own name and address, joined into one printable line, or [_emptyValue] when every
-/// part of it is blank.
-String _locationAddressLine(OcptLocation location) {
-  final parts = [
-    location.name.trim(),
-    [location.addressLine1, location.addressLine2].where((line) => line.trim().isNotEmpty).join(", "),
-    [location.postalCode, location.city].where((part) => part.trim().isNotEmpty).join(" "),
-  ].where((part) => part.trim().isNotEmpty).toList();
-
-  return parts.isEmpty ? _emptyValue : parts.join(" — ");
-}
-
 /// The Google Maps URL built from [location]'s own coordinates, or null while it has none — the app
 /// holds no map-link column of its own and makes no network call to build one (§A.8 of the reference
 /// note this service was built against).
@@ -1556,26 +1450,6 @@ String? _mapsUrlOf(OcptLocation location) {
     return null;
   }
   return "https://www.google.com/maps?q=$latitude,$longitude";
-}
-
-/// Every distinct location of [slots], in the order they are first met — the general sheet's own
-/// locations (every slot of the day) or a named sheet's own (only the slots its recipient is linked
-/// to).
-List<OcptLocation> _locationsOfSlots(OcptSchedulePlanSnapshot plan, List<OcptShootingSlot> slots) {
-  final seen = <String>{};
-  final locations = <OcptLocation>[];
-  for (final slot in slots) {
-    final locationId = slot.locationId;
-    if (locationId == null) {
-      continue;
-    }
-    final location = plan.locationById[locationId];
-    if (location == null || !seen.add(location.id)) {
-      continue;
-    }
-    locations.add(location);
-  }
-  return locations;
 }
 
 /// [convocation]'s own display name: the person's, the uncast role's, or

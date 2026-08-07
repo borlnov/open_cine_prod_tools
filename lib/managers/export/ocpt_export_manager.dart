@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_se
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
@@ -29,6 +30,7 @@ import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:path/path.dart' as p;
@@ -47,13 +49,13 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
 /// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
 /// breakdown as one printed sheet per scene, and its shooting schedule as call sheets — the general
-/// one and the named ones, both per day.
+/// one and the named ones, both per day — and as one whole-shoot shooting plan.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
-/// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService] and
-/// [callSheetPdfService], and the "save as"/"choose a folder" location picking to
-/// [saveLocationService] — the eight services this manager owns (RFL18).
+/// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
+/// [callSheetPdfService] and [shootingPlanPdfService], and the "save as"/"choose a folder" location
+/// picking to [saveLocationService] — the nine services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -78,6 +80,9 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service rendering the general and the named call sheets PDFs.
   final OcptCallSheetPdfService callSheetPdfService;
+
+  /// The service rendering the whole-shoot shooting plan PDF.
+  final OcptShootingPlanPdfService shootingPlanPdfService;
 
   /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
   /// path.
@@ -108,6 +113,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
        breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(fontsLoader: fontsLoader),
        callSheetPdfService = OcptCallSheetPdfService(fontsLoader: fontsLoader),
+       shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -406,6 +412,51 @@ class OcptExportManager extends AbsWithLifeCycle {
     }
 
     return OcptCallSheetExportResult(folderPath: folderPath, writtenFileNames: written, failedFileNames: failed);
+  }
+
+  /// Renders the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and shows the
+  /// native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the day titles, the
+  /// director line, the grid and section headings, the shot table's own headers and the file name's
+  /// own suffix) and [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of
+  /// its own. Unlike the call sheets, this is a **single** file: the whole shoot's own plan, through
+  /// `pickSaveLocation` rather than a folder. Returns the path of the written file, or null if the
+  /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
+  Future<String?> exportShootingPlan({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptShootingPlanLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required bool includeLocationsGrid,
+    required bool includeSequencesGrid,
+    required bool includePeopleGrid,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await shootingPlanPdfService.generate(
+      plan: plan,
+      dayIds: dayIds,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+      includeLocationsGrid: includeLocationsGrid,
+      includeSequencesGrid: includeSequencesGrid,
+      includePeopleGrid: includePeopleGrid,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: shootingPlanPdfService.shootingPlanFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
   }
 
   /// [fileName], suffixed with `-2`, `-3`… while [written] or [failed] already holds it.

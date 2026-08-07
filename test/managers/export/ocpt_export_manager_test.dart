@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
@@ -866,6 +867,134 @@ void main() {
         expect(result.failedFileNames, isEmpty);
         expect(tempDir.listSync().length, 2);
       });
+    });
+  });
+
+  group('exportShootingPlan', () {
+    const labels = OcptShootingPlanLabels(
+      fileNameSuffix: "shooting plan",
+      documentTitle: "Shooting plan",
+      dayTitles: {},
+      directorLine: "",
+      titlePageVersionLabel: "Version",
+      dayTagPrefix: "D",
+      locationsGridTitle: "Summary - Locations",
+      sequencesGridTitle: "Summary - Sequences",
+      peopleGridTitle: "Summary - Crew and cast",
+      locationsGridRowHeader: "Location",
+      sequencesGridRowHeader: "Sequence",
+      peopleGridRowHeader: "Position / Role",
+      persoLabel: "Cast",
+      sequenceRowPrefix: "Seq.",
+      presenceMark: "x",
+      crewPositionLabels: {},
+      dayLocationLabel: "Location",
+      dayHoursLabel: "Hours",
+      daySetsLabel: "Sets",
+      dayTimetableLabel: "Timetable",
+      callTimeLabel: "call at",
+      estimatedEndLabel: "estimated end",
+      milestoneFromLabel: "From",
+      milestoneToLabel: "to",
+      blockKindLabels: {},
+      planHeader: "Plan",
+      shotSizeHeader: "Shot size",
+      moveHeader: "Move.",
+      framingHeader: "Frame",
+      commentHeader: "Comment",
+      emptyPlanNote: "Nothing planned yet.",
+      emptyDayScheduleNote: "Nothing planned for this day yet.",
+    );
+
+    /// A one-day, one-slot schedule plan — enough for one shooting plan document.
+    OcptSchedulePlanSnapshot buildPlan() {
+      final day = OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026, 1, 2),
+        dayNumber: 2,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final slot = const OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
+        notes: "",
+        crew: [],
+        cast: [],
+      );
+
+      return OcptSchedulePlanSnapshot.build(
+        schedule: OcptScheduleSnapshot.build(
+          screenplayId: "screenplay-1",
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: const {},
+        ),
+        shotList: null,
+        locations: const [],
+        roles: const [],
+        people: const [],
+      );
+    }
+
+    Future<String?> export(OcptExportManager manager) => manager.exportShootingPlan(
+      plan: buildPlan(),
+      dayIds: const ["day-1"],
+      pageSetup: const OcptPageSetup.standard(),
+      labels: labels,
+      projectName: "My Movie",
+      includeTitlePage: true,
+      includeLocationsGrid: true,
+      includeSequencesGrid: true,
+      includePeopleGrid: true,
+      fileTypeLabel: "PDF document",
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      expect(await export(manager), isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a single PDF and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - shooting plan.pdf");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      expect(await export(manager), chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+    });
+
+    test('suggests the file name computed by OcptShootingPlanPdfService, suffixed', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await export(manager);
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - shooting plan.pdf");
+      expect(saveLocationService.lastFileTypeLabel, "PDF document");
+      expect(saveLocationService.lastExtensions, const ["pdf"]);
     });
   });
 }
