@@ -32,8 +32,11 @@ more.
 | **Convocations read off the slots alone** | ADR 0018 superseding ADR 0017, `ocptComputeDayConvocations`, schema v13 and payload format 8 dropping `shooting_day_groups` and both lead-time columns, the groups band and the card clocks gone, and the `Convocations` dock tab. |
 | **A slot anchored by either edge** | ADR 0015 amended a second time, schema v14 and payload format 9 replacing `shooting_slots.startMinute` with the anchor trio, the resolution in `ocptComputeShootingDayTimelines` with its two new records and `ocptSlotAnchorWouldCycle`, `setSlotAnchor` with `duplicateDay`'s remap and `deleteSlot`'s freeze, the slot card's anchor menu, and every reader of a slot's hour moved onto the resolved one. |
 
-What is left is three milestones, in the order below: **M2 pre-fills a convoked person's position
-from the address book**, **M3 prints the paperwork**, **M4 shows what the plan is about to break**.
+What is left is four milestones, in the order below: **M2 pre-fills a convoked person's position
+from the address book**, **M2b repairs and finishes two resources sheets**, **M3 prints the
+paperwork**, **M4 shows what the plan is about to break**. M2b is the odd one out and says so in
+its own section: it is resources work, held by this branch rather than owed to this mode, and
+nothing after it depends on it.
 
 M1 came first on purpose, and has shipped: it changed what "the hour of a slot" *is*, and every
 reader of that figure — the three agendas, the convocations, the day inspector — followed. Printing
@@ -127,7 +130,99 @@ surfaces.
 
 No schema change, no payload change.
 
-## 5. M3 — the three PDF exports
+## 5. M2b — the resources sheets: a photo, and the things a role wears
+
+**This milestone is not schedule work.** It lands here because it is what the branch is holding,
+and because both halves of it were found while using the mode the rest of this plan builds. It
+touches the resources mode alone; nothing in M3 or M4 depends on it, and it may be reordered or
+split off without disturbing them.
+
+It has three commits, in this order, the first of which is independent of the other two.
+
+### 5.1 A colour swatch is not a menu item
+
+A live crash, on two surfaces. Clicking a person's photo slot (`OcptPersonSheetAvatar`) or a
+location's colour bar (`_OcptLocationColorBar`) throws
+`RenderFlex children have non-zero flex but incoming width constraints are unbounded` and the
+popover never draws.
+
+The cause is one line of Flutter's own layout, and it is worth stating so the third site is never
+written: **a `MenuItemButton` never goes inside a `Wrap`.** `_MenuItemLabel` puts the item's child
+in an `Expanded`, inside a `Row` sized to the maximum; a `Wrap` hands its children an unbounded
+main-axis width, and a flexible child under an unbounded constraint is exactly what that assertion
+refuses. It is fine down a menu's single column, which is the only place a menu item is meant to be.
+
+Both popovers hold the same sixteen-swatch grid, duplicated line for line, so the fix is one
+extraction rather than two edits: `OcptResourcesColorSwatches`
+(`lib/ui/pages/workspace/modes/resources/widgets/`) owns the grid, its sizes and the ring on the
+current swatch, and each swatch is a plain `InkWell` closing the popover itself through
+`MenuController.maybeOf`, which is the only thing the menu item was ever doing for it.
+
+No schema change, no ARB key, no behaviour change beyond the popover opening at all.
+
+### 5.2 The three orphaned asset columns
+
+`people.photoAssetId`, `elements.photoAssetId` and `people.imageRightsAssetId` have existed since
+schema v6 and **none of them has ever had a way to be filled**: the doc comments say a later
+milestone would do it, and this is that milestone. There is nothing to design — referencing a file
+is already written, three times over, for a location's scouting photos and its permit document.
+
+- **`OcptAssetsService`**, the twelfth service `OcptProjectsManager` owns. `_insertAsset` moves out
+  of `OcptLocationsService`, where it hard-codes `locationId`, and becomes generic over the owner
+  column; `removeAsset`, already generic, moves with it — the resources bloc today drops *any*
+  asset through `_locationsService.removeAsset`, which is the bend this straightens.
+  `OcptLocationsService` keeps its public API and delegates.
+- **Six writes**, all shaped like `setPermitDocument`: `setPersonPhoto`/`clearPersonPhoto`,
+  `setElementPhoto`/`clearElementPhoto`, `setImageRightsDocument`/`clearImageRightsDocument`. Each
+  tombstones the row it replaces in the same transaction — a column pointing at one file has no
+  history worth keeping, only orphans.
+- **The photo slot becomes a menu**: `Reference a photo…`, `Remove the photo` (absent while there
+  is none), a divider, then the swatch grid of §5.1. One anchor, both things a slot is about, and
+  the header's layout untouched. The element sheet's header gains the same slot and the same menu;
+  the image rights card gains the `OcptAssetFileLine` the permit card already uses, and the doc
+  comment promising it holds no picker is rewritten.
+- **The photo propagates**: `OcptPersonSheetAvatar`, the left dock's own person avatar and
+  `OcptRoleAvatar` show the thumbnail when the file resolves and the initials on the colour when it
+  does not. That rule is written once, in a shared avatar widget, so the three cannot drift.
+  **A missing file stays a state, not an error** (ADR 0013), exactly as a scouting tile reads it.
+- **No schema change and no payload change**: the three columns and the `assets` table are already
+  captured by the codec.
+
+### 5.3 A role and its things
+
+A role can be linked to the elements it needs — its props, its costumes, its make-up and
+prosthetics. Nothing today says this: `breakdown_tags` links a *passage* to a role or to an
+element, never a role to an element, and "whose costume is this?" has no answer anywhere in the
+app.
+
+- **Schema v15**: `role_elements` (`id`, `roleId`, `elementId`, `notes`, `isDeleted`), modelled on
+  `scene_elements` down to its doc comment. **No `sortKey`**: a role's things are a set the user
+  adds to and removes from, not a list they reorder. The number is allocated **at merge time**
+  (ADR 0007) and the `onUpgrade` 14→15 path is pinned by the existing migration test.
+- **Payload format 10**: the list joins the codec's three places — the capture, `contentDigest` and
+  `_applyPayload` — and the upgrade entry from format 9 materialises it **empty**. That is the
+  plain-empty-list kind (format 6's), not the currency's null: a version captured before the table
+  existed genuinely held no link, so restoring one tombstones every link made since, which is the
+  truthful reading.
+- **The links go on `OcptElementsService`**, beside `addSceneElement`: the row is an element link,
+  and the role side of it is a read. `deleteElement` tombstones them as it already tombstones its
+  `scene_elements`; deleting a role does the same. **`local_erasures` is untouched** — the table
+  names a role, never a person.
+- **The role sheet's own card**, after the casting card and before the notes: one row per link —
+  the element with its code, a free note on the local debounce `OcptElementSheetScenesCard` already
+  uses, and the control that unlinks — **grouped by category**, under a picker offering the whole
+  catalogue grouped the way the elements list is. The table knows nothing of categories on purpose:
+  a character's car, dog or stunt harness is a fact about them exactly as their coat is, and a
+  restriction written into the schema would be paid for with a migration the day it gets in the way.
+- **The element sheet reads it back**: a `Roles concerned` row of read-only chips, each selecting
+  that role in the roles tab. It is a plain tab-and-selection change inside one mode, not an
+  `OcptWorkspaceRevealRequest` — the user is already in Resources.
+- **Read-only**: null callbacks throughout, as every other sheet does it.
+- The card's title and the reverse row are new ARB keys in both files — « Ses affaires » and
+  « Rôles concernés » in French. Nothing here names a scene, so the *séquence* rule does not come
+  into it.
+
+## 6. M3 — the three PDF exports
 
 **Goal: the paperwork a shoot actually runs on.**
 
@@ -160,7 +255,7 @@ Each is reached from the mode's `⋮` menu through an options dialog opened by `
 (which days, which people, title page, page format pre-filled from the project), and each writes
 through `OcptSaveLocationService` — no export ever picks a path silently.
 
-## 6. M4 — grids and alerts
+## 7. M4 — grids and alerts
 
 **Goal: seeing what the plan is about to break before it breaks.**
 
@@ -188,7 +283,7 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
 - The alerts panel in the mode, and the alert count in the status bar. The mode header's own
   `Couleur par` control belongs to this milestone too.
 
-## 7. What this mode does not do
+## 8. What this mode does not do
 
 - No spreadsheet export (decided; may follow later).
 - No weather feed, no map tiles, no geocoding: the app stays offline-only.
@@ -202,7 +297,7 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
 - **No slot link across two days**, and none between two same-side edges. Both are stated in ADR
   0015's second amendment.
 
-## 8. Definition of done, per milestone
+## 9. Definition of done, per milestone
 
 The eight verification gates of `CLAUDE.md` pass at every commit, plus the ninth for any `.md`
 touched. In addition:
@@ -211,6 +306,14 @@ touched. In addition:
   a third convocation pre-fills nothing. A person with a free-label position pre-fills that label.
   The picker never offers a position that person already holds on that slot. The `Portée` column is
   gone from the sheet and its ARB key from both files.
+- **M2b**: the colour popover opens without throwing, on a person **and** on a location, and a
+  swatch picked is reported and closes it. A referenced photo shows on the person sheet, in the
+  left dock's list and on the role avatar; a file moved since reads as missing without raising
+  anything; removing a reference leaves the person alone. An element's photo and a signed image
+  rights release reference the same way. A role linked to three elements of three categories reads
+  them grouped, and each of the three names the role back. Deleting an element or a role carries
+  its links away with it. A version round trip keeps the links, and restoring one captured before
+  the table erases them.
 - **M3**: the three PDFs are generated from the reference project and read against the documents
   in `debug/plan/`; a day with two slots and two crews prints both; a night slot crossing midnight
   prints the right hours; an `end`-anchored slot prints the hours the day view shows; a person's
