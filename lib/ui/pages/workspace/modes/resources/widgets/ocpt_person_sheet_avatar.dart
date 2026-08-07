@@ -3,109 +3,51 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
-import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dashed_rounded_rect_painter.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_photo_slot.dart';
 
-/// The width and height of the person sheet's photo slot.
-const Size _slotSize = Size(104, 130);
-
-/// The diameter of the colour avatar circle sitting inside the photo slot.
+/// The diameter of the colour avatar circle standing in for a person who references no photo.
 const double _avatarDiameter = 42;
 
-/// The person sheet's header photo slot: a dashed-outline box (no photo asset picker yet — that
-/// lands in a later milestone, see `OcptPerson.photoAssetId`'s own doc comment) holding a circular
-/// avatar filled with `ocptCoverageColorAt(person.colorIndex)` and carrying the person's initials.
+/// The person sheet's header photo slot: their photo, or the circular avatar carrying their
+/// initials on their palette colour while they reference none.
 ///
-/// The whole slot is the one place a person's avatar colour can be changed: clicking it opens a
-/// [MenuAnchor] popover holding the shared [OcptResourcesColorSwatches] grid, which is also what
-/// the location sheet's colour bar opens. Withheld (no popover, a plain unclickable slot) while
-/// [onColorChanged] is null, the read-only idiom every writing affordance of the sheet follows.
+/// It is [OcptResourcesPhotoSlot] with a person's own placeholder, and everything the slot does —
+/// the menu referencing a photo, dropping it and picking the fallback colour, and what a missing
+/// file falls back to — is stated there rather than repeated here. The element sheet's header uses
+/// the very same slot with an icon in place of these initials.
 class OcptPersonSheetAvatar extends StatelessWidget {
-  /// The person whose avatar is shown.
+  /// The person whose photo and colour this slot shows.
   final OcptPerson person;
 
-  /// Called with the palette index picked, or null while the colour may not be changed (a project
-  /// version being previewed read-only): the slot then shows no popover at all.
+  /// Called when the menu's reference entry is picked, or null while the sheet may not be written
+  /// to.
+  final VoidCallback? onPhotoPickRequested;
+
+  /// Called when the menu's remove entry is picked, or null while it may not be used.
+  final VoidCallback? onPhotoCleared;
+
+  /// Called with the palette index picked, or null while the colour may not be changed.
   final ValueChanged<int>? onColorChanged;
 
   /// Class constructor
-  const OcptPersonSheetAvatar({super.key, required this.person, required this.onColorChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onColorChanged = this.onColorChanged;
-
-    final avatar = CircleAvatar(
-      radius: _avatarDiameter / 2,
-      backgroundColor: Color(ocptCoverageColorAt(person.colorIndex)),
-      child: Text(
-        person.initials,
-        style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-    );
-
-    final slot = CustomPaint(
-      painter: OcptDashedRoundedRectPainter(color: theme.colorScheme.outline),
-      child: Container(
-        width: _slotSize.width,
-        height: _slotSize.height,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
-        ),
-        child: avatar,
-      ),
-    );
-
-    if (onColorChanged == null) {
-      return slot;
-    }
-
-    return _OcptPersonAvatarColorMenu(currentColorIndex: person.colorIndex, onSelected: onColorChanged, slot: slot);
-  }
-}
-
-/// The [MenuAnchor] popover [OcptPersonSheetAvatar] opens on [OcptPersonSheetAvatar.onColorChanged].
-class _OcptPersonAvatarColorMenu extends StatelessWidget {
-  /// The palette index the person currently holds, marked in the popover.
-  final int currentColorIndex;
-
-  /// Called with the palette index picked.
-  final ValueChanged<int> onSelected;
-
-  /// The avatar slot the popover is anchored on.
-  final Widget slot;
-
-  /// Class constructor
-  const _OcptPersonAvatarColorMenu({
-    required this.currentColorIndex,
-    required this.onSelected,
-    required this.slot,
+  const OcptPersonSheetAvatar({
+    super.key,
+    required this.person,
+    required this.onPhotoPickRequested,
+    required this.onPhotoCleared,
+    required this.onColorChanged,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-
-    return MenuAnchor(
-      menuChildren: [
-        OcptResourcesColorSwatches(currentColorIndex: currentColorIndex, onSelected: onSelected),
-      ],
-      builder: (context, controller, child) => Tooltip(
-        message: tr.resourcesChangeColorTooltip,
-        child: InkWell(
-          onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
-          child: slot,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => OcptResourcesPhotoSlot(
+    photo: person.photo,
+    currentColorIndex: person.colorIndex,
+    placeholderBuilder: (context) =>
+        Center(child: OcptPersonInitialsAvatar(person: person, radius: _avatarDiameter / 2)),
+    onPhotoPickRequested: onPhotoPickRequested,
+    onPhotoCleared: onPhotoCleared,
+    onColorChanged: onColorChanged,
+  );
 }

@@ -3,12 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_breakdown_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_code_read_out.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_photo_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_decimal_input.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
@@ -19,6 +22,9 @@ const double _codeFieldWidth = 92;
 /// How far above the bottom of the row's fields the tracking badge sits, so it reads as sitting on
 /// the name's own baseline rather than on the very bottom of its input box.
 const double _trackingBadgeBottomInset = 8;
+
+/// The size of the icon standing in for an element that references no photo.
+const double _photoPlaceholderIconSize = 34;
 
 /// The element sheet's header: the element's code — read out, never typed, see
 /// [OcptResourcesCodeReadOut] — and its name as a title on the first row, its tracking state as a
@@ -32,6 +38,12 @@ const double _trackingBadgeBottomInset = 8;
 ///
 /// The category sits here rather than in a card because it decides where the element appears in the
 /// list at all: it is part of naming the thing, not of describing it.
+///
+/// The photo slot sits on the left, exactly where the person sheet's does
+/// ([OcptResourcesPhotoSlot]) — a costume or a prop is a thing somebody has to recognise on a
+/// trestle table, so a photograph of it is worth as much here as a headshot is there. It carries
+/// **no colour grid**: `elements` has no `colorIndex`, an element being read by its category's own
+/// colour, so the slot's menu holds the two photo entries alone.
 class OcptElementSheetHeader extends StatelessWidget {
   /// The element this header shows.
   final OcptElement element;
@@ -47,6 +59,12 @@ class OcptElementSheetHeader extends StatelessWidget {
   /// Called with the newly picked category, or null while it may not be changed.
   final ValueChanged<OcptElementCategory>? onCategoryChanged;
 
+  /// Called when the photo slot's reference entry is picked, or null while it may not be used.
+  final VoidCallback? onPhotoPickRequested;
+
+  /// Called when the photo slot's remove entry is picked, or null while it may not be used.
+  final VoidCallback? onPhotoCleared;
+
   /// Class constructor
   const OcptElementSheetHeader({
     super.key,
@@ -54,6 +72,8 @@ class OcptElementSheetHeader extends StatelessWidget {
     required this.fieldValueOf,
     required this.onFieldChanged,
     required this.onCategoryChanged,
+    required this.onPhotoPickRequested,
+    required this.onPhotoCleared,
   });
 
   @override
@@ -61,7 +81,37 @@ class OcptElementSheetHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OcptResourcesPhotoSlot(
+          photo: element.photo,
+          currentColorIndex: null,
+          placeholderBuilder: _buildPhotoPlaceholder,
+          onPhotoPickRequested: onPhotoPickRequested,
+          onPhotoCleared: onPhotoCleared,
+          onColorChanged: null,
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: _buildFields(context, theme, tr)),
+      ],
+    );
+  }
+
+  /// What the photo slot shows while the element references none: the category's own colour, which
+  /// is the colour that category already reads as everywhere in the breakdown and its exports.
+  Widget _buildPhotoPlaceholder(BuildContext context) {
+    final color = Color(
+      ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: element.category),
+    );
+
+    return Center(
+      child: Icon(Icons.inventory_2_outlined, size: _photoPlaceholderIconSize, color: color),
+    );
+  }
+
+  /// The header's own two rows, to the right of the photo slot.
+  Widget _buildFields(BuildContext context, ThemeData theme, Tr tr) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Aligned by the bottom rather than by the top: the code carries a label and the name does
@@ -120,7 +170,6 @@ class OcptElementSheetHeader extends StatelessWidget {
         ),
       ],
     );
-  }
 
   /// The badge reading how far along the element is, read-only: the three checkboxes of the
   /// tracking card are what change it.

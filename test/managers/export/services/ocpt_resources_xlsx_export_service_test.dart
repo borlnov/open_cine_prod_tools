@@ -131,7 +131,9 @@ OcptPerson _buildPerson({
   imageRightsStatus: imageRightsStatus,
   imageRightsDate: imageRightsDate,
   imageRightsAssetId: null,
+  imageRightsDocument: null,
   photoAssetId: null,
+  photo: null,
   notes: "",
   positions: positions,
   skills: skills,
@@ -267,6 +269,7 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: sceneLinks,
 );
 

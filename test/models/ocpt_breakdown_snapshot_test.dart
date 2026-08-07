@@ -81,6 +81,7 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
 );
 

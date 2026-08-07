@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
@@ -107,6 +108,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read the physical elements catalogue.
   final OcptElementsService _elementsService;
 
+  /// The service used to drop a file reference, whatever owns it.
+  ///
+  /// Referencing a file is the owning service's — a person's photo is `OcptPeopleService`'s, since
+  /// which asset is *the* headshot is a fact about the person — but dropping one by its id is not:
+  /// this bloc's `⨯` control answers for a scouting photo exactly as it does for anything else, and
+  /// having it pick a service by the kind of the row would be inventing a distinction the row does
+  /// not make.
+  final OcptAssetsService _assetsService;
+
   /// The manager used to show the native "open" dialog when a photo or a document is referenced,
   /// or null to resolve it through [globalGetIt] the first time one actually is.
   ///
@@ -146,6 +156,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptRoleIndexService? roleIndexService,
     OcptLocationsService? locationsService,
     OcptElementsService? elementsService,
+    OcptAssetsService? assetsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     OcptResourcesRevealRequest? revealRequest,
@@ -166,6 +177,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
+       _assetsService =
+           assetsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).assetsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptResourcesState.init()) {
@@ -222,6 +236,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
     on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
     on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
+    on<OcptResourcesPersonPhotoPickRequestedEvent>(_onPersonPhotoPickRequested);
+    on<OcptResourcesPersonPhotoClearedEvent>(_onPersonPhotoCleared);
+    on<OcptResourcesImageRightsDocumentPickRequestedEvent>(_onImageRightsDocumentPickRequested);
+    on<OcptResourcesImageRightsDocumentClearedEvent>(_onImageRightsDocumentCleared);
+    on<OcptResourcesElementPhotoPickRequestedEvent>(_onElementPhotoPickRequested);
+    on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
     on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
     on<OcptResourcesPermitDocumentClearedEvent>(_onPermitDocumentCleared);
     on<OcptResourcesAssetRemovedEvent>(_onAssetRemoved);
@@ -1924,6 +1944,124 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
+  /// Asks for person `event.personId`'s photo through the native picker and references the file
+  /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
+  Future<void> _onPersonPhotoPickRequested(
+    OcptResourcesPersonPhotoPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptImageFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the photo of person ${event.personId}",
+      action: (project) async {
+        await _peopleService.setPersonPhoto(
+          database: project.database,
+          personId: event.personId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops person `event.personId`'s reference to their photo, written immediately.
+  Future<void> _onPersonPhotoCleared(
+    OcptResourcesPersonPhotoClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the photo of person ${event.personId}",
+    action: (project) =>
+        _peopleService.clearPersonPhoto(database: project.database, personId: event.personId),
+  );
+
+  /// Asks for person `event.personId`'s signed image rights release through the native picker and
+  /// references the file picked, written immediately. A cancelled dialog leaves the document
+  /// already referenced alone, and neither outcome touches `imageRightsStatus`.
+  Future<void> _onImageRightsDocumentPickRequested(
+    OcptResourcesImageRightsDocumentPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptDocumentFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the image rights document of person ${event.personId}",
+      action: (project) async {
+        await _peopleService.setImageRightsDocument(
+          database: project.database,
+          personId: event.personId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops person `event.personId`'s reference to their signed image rights release, written
+  /// immediately.
+  Future<void> _onImageRightsDocumentCleared(
+    OcptResourcesImageRightsDocumentClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the image rights document of person ${event.personId}",
+    action: (project) => _peopleService.clearImageRightsDocument(
+      database: project.database,
+      personId: event.personId,
+    ),
+  );
+
+  /// Asks for element `event.elementId`'s photo through the native picker and references the file
+  /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
+  Future<void> _onElementPhotoPickRequested(
+    OcptResourcesElementPhotoPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptImageFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the photo of element ${event.elementId}",
+      action: (project) async {
+        await _elementsService.setElementPhoto(
+          database: project.database,
+          elementId: event.elementId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops element `event.elementId`'s reference to its photo, written immediately.
+  Future<void> _onElementPhotoCleared(
+    OcptResourcesElementPhotoClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the photo of element ${event.elementId}",
+    action: (project) =>
+        _elementsService.clearElementPhoto(database: project.database, elementId: event.elementId),
+  );
+
   /// Asks for the filming permit document through the native picker and references the file picked,
   /// written immediately. A cancelled dialog leaves the document already referenced alone.
   Future<void> _onPermitDocumentPickRequested(
@@ -1972,7 +2110,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter: emitter,
     logContext: "drop the asset reference ${event.assetId}",
     action: (project) =>
-        _locationsService.removeAsset(database: project.database, assetId: event.assetId),
+        _assetsService.removeAsset(database: project.database, assetId: event.assetId),
   );
 
   /// Adds an availability window to location `event.locationId`, written immediately.

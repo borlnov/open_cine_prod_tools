@@ -66,7 +66,9 @@ OcptPerson _person({required String id, required String firstName, required Stri
       imageRightsStatus: OcptImageRightsStatus.notApplicable,
       imageRightsDate: null,
       imageRightsAssetId: null,
+      imageRightsDocument: null,
       photoAssetId: null,
+      photo: null,
       notes: "",
       positions: const [],
       skills: const [],
@@ -102,6 +104,7 @@ OcptElement _element({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: sceneLinks,
 );
 
@@ -125,6 +128,7 @@ void main() {
     ValueChanged<String>? onSceneAssigned,
     void Function(String id, {required String quantity, required String notes})? onLinkUpdated,
     ValueChanged<String>? onLinkRemoved,
+    VoidCallback? onPhotoPickRequested,
     VoidCallback? onDeleteRequested,
   }) async {
     final shown = element ?? _element();
@@ -142,6 +146,8 @@ void main() {
           fieldValueOf: fieldValueOf ?? (field) => "",
           onFieldChanged: onFieldChanged ?? (field, rawValue) {},
           onCategoryChanged: (category) {},
+          onPhotoPickRequested: onPhotoPickRequested ?? () {},
+          onPhotoCleared: () {},
           onSourceKindChanged: (sourceKind) {},
           onOwnerChanged: onOwnerChanged ?? (personId) {},
           onBringerChanged: (personId) {},

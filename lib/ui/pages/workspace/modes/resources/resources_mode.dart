@@ -345,6 +345,22 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onColorChanged: (colorIndex) => bloc.add(
         OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
       ),
+      onPhotoPickRequested: () => bloc.add(
+        OcptResourcesPersonPhotoPickRequestedEvent(
+          personId: selectedPerson.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoCleared: () =>
+          bloc.add(OcptResourcesPersonPhotoClearedEvent(personId: selectedPerson.id)),
+      onImageRightsDocumentPickRequested: () => bloc.add(
+        OcptResourcesImageRightsDocumentPickRequestedEvent(
+          personId: selectedPerson.id,
+          fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
+        ),
+      ),
+      onImageRightsDocumentCleared: () =>
+          bloc.add(OcptResourcesImageRightsDocumentClearedEvent(personId: selectedPerson.id)),
       onBirthDateChanged: (date) => bloc.add(
         OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
       ),
@@ -712,6 +728,14 @@ class _ResourcesViewState extends State<_ResourcesView> {
       currencyCode: state.currencyCode,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _elementFieldValueOf(state, selectedElement, field),
+      onPhotoPickRequested: () => bloc.add(
+        OcptResourcesElementPhotoPickRequestedEvent(
+          elementId: selectedElement.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoCleared: () =>
+          bloc.add(OcptResourcesElementPhotoClearedEvent(elementId: selectedElement.id)),
       onFieldChanged: (field, rawValue) => bloc.add(
         OcptResourcesElementFieldChangedEvent(
           elementId: selectedElement.id,

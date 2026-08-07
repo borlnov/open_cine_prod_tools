@@ -130,6 +130,7 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
 );
 
@@ -182,7 +183,9 @@ OcptPerson _buildPerson({
   imageRightsStatus: OcptImageRightsStatus.notApplicable,
   imageRightsDate: null,
   imageRightsAssetId: null,
+  imageRightsDocument: null,
   photoAssetId: null,
+  photo: null,
   notes: "",
   positions: const [],
   skills: const [],

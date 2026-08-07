@@ -79,6 +79,13 @@ class OcptElementSheet extends StatelessWidget {
   /// Called with the newly picked category.
   final ValueChanged<OcptElementCategory> onCategoryChanged;
 
+  /// Called when the photo slot's reference entry is picked, the native dialog being the caller's
+  /// to open.
+  final VoidCallback onPhotoPickRequested;
+
+  /// Called when the photo slot's remove entry is picked.
+  final VoidCallback onPhotoCleared;
+
   /// Called with the newly picked provenance.
   final ValueChanged<OcptElementSourceKind> onSourceKindChanged;
 
@@ -120,6 +127,8 @@ class OcptElementSheet extends StatelessWidget {
     required this.fieldValueOf,
     required this.onFieldChanged,
     required this.onCategoryChanged,
+    required this.onPhotoPickRequested,
+    required this.onPhotoCleared,
     required this.onSourceKindChanged,
     required this.onOwnerChanged,
     required this.onBringerChanged,
@@ -145,6 +154,8 @@ class OcptElementSheet extends StatelessWidget {
             fieldValueOf: fieldValueOf,
             onFieldChanged: isReadOnly ? null : onFieldChanged,
             onCategoryChanged: isReadOnly ? null : onCategoryChanged,
+            onPhotoPickRequested: isReadOnly ? null : onPhotoPickRequested,
+            onPhotoCleared: isReadOnly ? null : onPhotoCleared,
           ),
           const SizedBox(height: 16),
           Row(

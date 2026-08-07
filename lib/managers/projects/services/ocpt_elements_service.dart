@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -26,11 +29,16 @@ import 'package:uuid/uuid.dart';
 /// `scene_elements` carries no `sortKey`: a scene's elements are a set the user adds to and removes
 /// from, not a list they reorder (see `OcptSceneElementsTable`'s own doc comment).
 class OcptElementsService {
+  /// The service minting and tombstoning the `assets` row an element's photo is. Held rather than
+  /// reached for, exactly as `OcptPeopleService` and `OcptLocationsService` hold their own.
+  final OcptAssetsService assetsService;
+
   /// Class constructor
-  const OcptElementsService();
+  const OcptElementsService({this.assetsService = const OcptAssetsService()});
 
   /// Loads every live element of [database], in `sortKey` order, each joined with the live
-  /// `scene_elements` links pointing at it, themselves in the screenplay's own scene order.
+  /// `scene_elements` links pointing at it (themselves in the screenplay's own scene order) and
+  /// with the photo it references.
   ///
   /// A link's `sceneId` names a **live scene only**: a row whose scene was tombstoned by the last
   /// reconciliation is skipped rather than shown as a scene that no longer exists, and comes back
@@ -39,14 +47,28 @@ class OcptElementsService {
   /// the two must not disagree about what a link onto a vanished scene means.
   Future<List<OcptElement>> loadElements({required OcptProjectDatabase database}) async {
     final rows = await _liveElementRows(database);
+    final elementIds = rows.map((row) => row.id).toList(growable: false);
+
     final linksByElementId = await _liveSceneLinksByElementId(
       database: database,
-      elementIds: rows.map((row) => row.id).toList(growable: false),
+      elementIds: elementIds,
     );
+
+    final assetRows = elementIds.isEmpty
+        ? const <OcptAssetRow>[]
+        : await (database.select(database.ocptAssetsTable)
+                ..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not()))
+              .get();
+
+    final assetsById = {for (final row in assetRows) row.id: OcptAssetRef.fromRow(row)};
 
     return [
       for (final row in rows)
-        OcptElement.fromRow(row: row, sceneLinks: linksByElementId[row.id] ?? const []),
+        OcptElement.fromRow(
+          row: row,
+          sceneLinks: linksByElementId[row.id] ?? const [],
+          photo: assetsById[row.photoAssetId],
+        ),
     ];
   }
 
@@ -223,12 +245,99 @@ class OcptElementsService {
       )..where((table) => table.elementId.equals(elementId))).write(
         const OcptSceneElementsTableCompanion(isDeleted: Value(true)),
       );
+      // The photo goes with the element: nothing can reach that row any more, which is what makes
+      // it an orphan rather than history. Its `photoAssetId` is left pointing at the tombstone,
+      // exactly as every other tombstoned link keeps its ids.
+      await _tombstoneElementPhoto(database: database, elementId: elementId);
       await (database.update(
         database.ocptElementsTable,
       )..where((table) => table.id.equals(elementId))).write(
         const OcptElementsTableCompanion(isDeleted: Value(true)),
       );
     });
+  }
+
+  /// References the file at [path] as element [elementId]'s photo, replacing whichever file it
+  /// referenced before, and returns the freshly generated id of the `assets` row.
+  ///
+  /// The replaced photo's row is tombstoned in the same transaction, for the reason
+  /// `OcptPeopleService.setPersonPhoto` gives: an element has one photo, so a row nothing points at
+  /// any more is an orphan rather than history. **No byte of the file is read, copied or written**
+  /// — see `docs/adr/0013-binary-assets-referenced-by-path.md`.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> setElementPhoto({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required String path,
+    String label = "",
+  }) async {
+    if (database.refusesUserWrite("setElementPhoto")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      await _tombstoneElementPhoto(database: database, elementId: elementId);
+
+      final id = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.elementPhoto,
+        elementId: elementId,
+        path: path,
+        label: label,
+      );
+
+      await (database.update(
+        database.ocptElementsTable,
+      )..where((table) => table.id.equals(elementId))).write(
+        OcptElementsTableCompanion(photoAssetId: Value(id)),
+      );
+
+      return id;
+    });
+  }
+
+  /// Drops element [elementId]'s reference to its photo: the `assets` row is tombstoned and
+  /// `photoAssetId` goes back to null. The file itself is never touched.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> clearElementPhoto({
+    required OcptProjectDatabase database,
+    required String elementId,
+  }) async {
+    if (database.refusesUserWrite("clearElementPhoto")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      await _tombstoneElementPhoto(database: database, elementId: elementId);
+
+      await (database.update(
+        database.ocptElementsTable,
+      )..where((table) => table.id.equals(elementId))).write(
+        const OcptElementsTableCompanion(photoAssetId: Value(null)),
+      );
+    });
+  }
+
+  /// Tombstones whichever `assets` row element [elementId] currently names as its photo, if any.
+  /// Leaves `photoAssetId` alone: both callers write it themselves.
+  Future<void> _tombstoneElementPhoto({
+    required OcptProjectDatabase database,
+    required String elementId,
+  }) async {
+    final row = await (database.select(
+      database.ocptElementsTable,
+    )..where((table) => table.id.equals(elementId))).getSingleOrNull();
+
+    final photoAssetId = row?.photoAssetId;
+    if (photoAssetId == null) {
+      return;
+    }
+
+    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId);
   }
 
   /// Moves element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`

@@ -91,6 +91,7 @@ OcptBreakdownSnapshot _snapshot() {
         purposeNotes: "",
         notes: "",
         photoAssetId: null,
+        photo: null,
         sceneLinks: [],
       ),
     ],

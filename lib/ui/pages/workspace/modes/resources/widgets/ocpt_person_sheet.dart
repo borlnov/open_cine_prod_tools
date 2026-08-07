@@ -51,8 +51,22 @@ class OcptPersonSheet extends StatelessWidget {
   /// Called with a field's raw text on every keystroke.
   final void Function(OcptPersonField field, String rawValue) onFieldChanged;
 
-  /// Called with the palette index picked from the avatar's colour popover.
+  /// Called with the palette index picked from the photo slot's colour grid.
   final ValueChanged<int> onColorChanged;
+
+  /// Called when the photo slot's reference entry is picked, the native dialog being the caller's
+  /// to open.
+  final VoidCallback onPhotoPickRequested;
+
+  /// Called when the photo slot's remove entry is picked.
+  final VoidCallback onPhotoCleared;
+
+  /// Called when the image rights card's reference entry is picked, the native dialog being the
+  /// caller's to open.
+  final VoidCallback onImageRightsDocumentPickRequested;
+
+  /// Called when the image rights card's remove control is clicked.
+  final VoidCallback onImageRightsDocumentCleared;
 
   /// Called with the newly picked date of birth, or null to clear it.
   final ValueChanged<DateTime?> onBirthDateChanged;
@@ -122,6 +136,10 @@ class OcptPersonSheet extends StatelessWidget {
     required this.fieldValueOf,
     required this.onFieldChanged,
     required this.onColorChanged,
+    required this.onPhotoPickRequested,
+    required this.onPhotoCleared,
+    required this.onImageRightsDocumentPickRequested,
+    required this.onImageRightsDocumentCleared,
     required this.onBirthDateChanged,
     required this.onTransportAutonomyChanged,
     required this.onImageRightsStatusChanged,
@@ -152,6 +170,8 @@ class OcptPersonSheet extends StatelessWidget {
             fieldValueOf: fieldValueOf,
             onFieldChanged: isReadOnly ? null : onFieldChanged,
             onColorChanged: isReadOnly ? null : onColorChanged,
+            onPhotoPickRequested: isReadOnly ? null : onPhotoPickRequested,
+            onPhotoCleared: isReadOnly ? null : onPhotoCleared,
             onBirthDateChanged: isReadOnly ? null : onBirthDateChanged,
           ),
           const SizedBox(height: 16),
@@ -240,6 +260,9 @@ class OcptPersonSheet extends StatelessWidget {
               date: person.imageRightsDate,
               onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
               onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
+              document: person.imageRightsDocument,
+              onDocumentPickRequested: isReadOnly ? null : onImageRightsDocumentPickRequested,
+              onDocumentCleared: isReadOnly ? null : onImageRightsDocumentCleared,
             ),
           ),
           const SizedBox(width: 12),

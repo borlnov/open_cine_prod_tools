@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -41,6 +43,8 @@ OcptPerson _person({
   String hmcNotes = "",
   OcptImageRightsStatus imageRightsStatus = OcptImageRightsStatus.notApplicable,
   DateTime? imageRightsDate,
+  OcptAssetRef? photo,
+  OcptAssetRef? imageRightsDocument,
   String notes = "",
   List<OcptPersonPosition> positions = const [],
   List<OcptPersonSkill> skills = const [],
@@ -75,12 +79,31 @@ OcptPerson _person({
   hmcNotes: hmcNotes,
   imageRightsStatus: imageRightsStatus,
   imageRightsDate: imageRightsDate,
-  imageRightsAssetId: null,
-  photoAssetId: null,
+  imageRightsAssetId: imageRightsDocument?.id,
+  imageRightsDocument: imageRightsDocument,
+  photoAssetId: photo?.id,
+  photo: photo,
   notes: notes,
   positions: positions,
   skills: skills,
   unavailabilities: unavailabilities,
+);
+
+/// Builds an [OcptAssetRef] pointing at [path] — a path these tests deliberately never create, so
+/// every widget under test falls back to what it shows without a file.
+OcptAssetRef _asset({
+  String id = "a1",
+  OcptAssetKind kind = OcptAssetKind.personPhoto,
+  String path = "/nowhere/portrait.jpg",
+}) => OcptAssetRef(
+  id: id,
+  kind: kind,
+  path: path,
+  label: "",
+  addedAt: DateTime(2026, 8, 7),
+  personId: "p1",
+  locationId: null,
+  elementId: null,
 );
 
 /// [person]'s current value for [field], mirroring `OcptResourcesMode._fieldValueOf` with no
@@ -173,6 +196,10 @@ Widget _buildSheet({
   onUnavailabilityUpdated,
   ValueChanged<String>? onUnavailabilityRemoved,
   ValueChanged<int>? onColorChanged,
+  VoidCallback? onPhotoPickRequested,
+  VoidCallback? onPhotoCleared,
+  VoidCallback? onImageRightsDocumentPickRequested,
+  VoidCallback? onImageRightsDocumentCleared,
   VoidCallback? onDeleteRequested,
 }) => _wrapInApp(
   OcptPersonSheet(
@@ -181,6 +208,10 @@ Widget _buildSheet({
     fieldValueOf: (field) => _fieldValueOf(person, field),
     onFieldChanged: onFieldChanged ?? (_, __) {},
     onColorChanged: onColorChanged ?? (_) {},
+    onPhotoPickRequested: onPhotoPickRequested ?? () {},
+    onPhotoCleared: onPhotoCleared ?? () {},
+    onImageRightsDocumentPickRequested: onImageRightsDocumentPickRequested ?? () {},
+    onImageRightsDocumentCleared: onImageRightsDocumentCleared ?? () {},
     onBirthDateChanged: (_) {},
     onTransportAutonomyChanged: (_) {},
     onImageRightsStatusChanged: (_) {},
@@ -358,6 +389,120 @@ void main() {
     expect(changes, contains((OcptPersonField.email, "x")));
   });
 
+  testWidgets("the photo slot offers to reference a photo, and reports the pick", (tester) async {
+    await _useTallSurface(tester);
+    var pickRequested = false;
+
+    await tester.pumpWidget(
+      _buildSheet(person: _person(), onPhotoPickRequested: () => pickRequested = true),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    await tester.tap(find.byTooltip(tr.resourcesPhotoSlotTooltip));
+    await tester.pumpAndSettle();
+
+    // Nothing is referenced yet, so the menu invites rather than offering to replace, and there is
+    // nothing to remove.
+    expect(find.text(tr.resourcesReferencePhotoAction), findsOneWidget);
+    expect(find.text(tr.resourcesReplacePhotoAction), findsNothing);
+    expect(find.text(tr.resourcesRemovePhotoAction), findsNothing);
+
+    await tester.tap(find.text(tr.resourcesReferencePhotoAction));
+    await tester.pumpAndSettle();
+
+    // The sheet only asks: the native dialog is the mode's to open.
+    expect(pickRequested, isTrue);
+  });
+
+  testWidgets("a referenced photo turns the slot's menu into replace and remove", (tester) async {
+    await _useTallSurface(tester);
+    var cleared = false;
+
+    await tester.pumpWidget(
+      _buildSheet(person: _person(photo: _asset()), onPhotoCleared: () => cleared = true),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    await tester.tap(find.byTooltip(tr.resourcesPhotoSlotTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.resourcesReplacePhotoAction), findsOneWidget);
+    expect(find.text(tr.resourcesReferencePhotoAction), findsNothing);
+
+    await tester.tap(find.text(tr.resourcesRemovePhotoAction));
+    await tester.pumpAndSettle();
+
+    expect(cleared, isTrue);
+  });
+
+  testWidgets("a photo whose file is gone falls back to the initials, silently", (tester) async {
+    await _useTallSurface(tester);
+
+    await tester.pumpWidget(
+      _buildSheet(person: _person(firstName: "Léa", lastName: "Roy", photo: _asset())),
+    );
+    await tester.pumpAndSettle();
+
+    // `_asset` names a path these tests never create. A person has one photo and their initials
+    // are a perfectly good thing to see in its place, so nothing is reported — unlike a scouting
+    // photo, which is one item of a list and says so.
+    expect(tester.takeException(), isNull);
+    expect(find.text("LR"), findsWidgets);
+    expect(find.text(Tr.of(tester.element(find.byType(OcptPersonSheet))).resourcesAssetFileMissing),
+        findsNothing);
+  });
+
+  testWidgets("the image rights card references a document and drops it", (tester) async {
+    await _useTallSurface(tester);
+    var pickRequested = false;
+
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(),
+        onImageRightsDocumentPickRequested: () => pickRequested = true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    await tester.tap(find.text(tr.resourcesReferenceDocumentAction));
+    await tester.pump();
+
+    expect(pickRequested, isTrue);
+  });
+
+  testWidgets("a referenced release reads by its file name and says it is missing", (tester) async {
+    await _useTallSurface(tester);
+    var cleared = false;
+
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(
+          imageRightsDocument: _asset(
+            kind: OcptAssetKind.document,
+            path: "/nowhere/cession.pdf",
+          ),
+        ),
+        onImageRightsDocumentCleared: () => cleared = true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    // A document is read by its name rather than drawn, so unlike a photo it *does* report a path
+    // that resolves to nothing: the reference is kept and the user can re-point it.
+    expect(find.text("cession.pdf"), findsOneWidget);
+    expect(find.text(tr.resourcesAssetFileMissing), findsOneWidget);
+    expect(find.text(tr.resourcesReferenceDocumentAction), findsNothing);
+
+    await tester.tap(find.byTooltip(tr.resourcesRemoveDocumentTooltip));
+    await tester.pump();
+
+    expect(cleared, isTrue);
+  });
+
   testWidgets("the photo slot opens the palette and reports the swatch picked", (tester) async {
     await _useTallSurface(tester);
     final colorPicks = <int>[];
@@ -366,7 +511,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
-    await tester.tap(find.byTooltip(tr.resourcesChangeColorTooltip));
+    await tester.tap(find.byTooltip(tr.resourcesPhotoSlotTooltip));
     await tester.pumpAndSettle();
 
     // The popover used to throw on layout before showing a single swatch.

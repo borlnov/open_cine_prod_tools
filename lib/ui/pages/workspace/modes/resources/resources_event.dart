@@ -899,6 +899,109 @@ class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, locationId];
 }
 
+/// Requests referencing person [personId]'s photo, replacing whichever one they referenced before.
+/// See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+class OcptResourcesPersonPhotoPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the person the photo is referenced for.
+  final String personId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesPersonPhotoPickRequestedEvent({
+    required this.personId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId, fileTypeLabel];
+}
+
+/// Drops person [personId]'s reference to their photo. The file itself is never touched.
+class OcptResourcesPersonPhotoClearedEvent extends OcptResourcesEvent {
+  /// The id of the person whose photo reference is dropped.
+  final String personId;
+
+  /// Class constructor
+  const OcptResourcesPersonPhotoClearedEvent({required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId];
+}
+
+/// Requests referencing person [personId]'s signed image rights release, replacing whichever one
+/// they referenced before. See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+///
+/// Writes the reference alone: `imageRightsStatus` stays whatever the sheet's own control says, a
+/// filed document being a different claim from a signed one.
+class OcptResourcesImageRightsDocumentPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the person the document is referenced for.
+  final String personId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesImageRightsDocumentPickRequestedEvent({
+    required this.personId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId, fileTypeLabel];
+}
+
+/// Drops person [personId]'s reference to their signed image rights release. Neither the file nor
+/// `imageRightsStatus` is touched.
+class OcptResourcesImageRightsDocumentClearedEvent extends OcptResourcesEvent {
+  /// The id of the person whose image rights document reference is dropped.
+  final String personId;
+
+  /// Class constructor
+  const OcptResourcesImageRightsDocumentClearedEvent({required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId];
+}
+
+/// Requests referencing element [elementId]'s photo, replacing whichever one it referenced before.
+/// See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+class OcptResourcesElementPhotoPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the element the photo is referenced for.
+  final String elementId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesElementPhotoPickRequestedEvent({
+    required this.elementId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, fileTypeLabel];
+}
+
+/// Drops element [elementId]'s reference to its photo. The file itself is never touched.
+class OcptResourcesElementPhotoClearedEvent extends OcptResourcesEvent {
+  /// The id of the element whose photo reference is dropped.
+  final String elementId;
+
+  /// Class constructor
+  const OcptResourcesElementPhotoClearedEvent({required this.elementId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId];
+}
+
 /// Drops the asset reference [assetId] — a scouting photo. The file itself is never touched.
 class OcptResourcesAssetRemovedEvent extends OcptResourcesEvent {
   /// The id of the asset reference to drop.

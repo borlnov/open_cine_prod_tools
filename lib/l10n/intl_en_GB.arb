@@ -4092,6 +4092,55 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesReferencePhotoAction": "Reference a photo…",
+  "@resourcesReferencePhotoAction": {
+    "description": "Menu entry opening the picker referencing a record's photo by path",
+    "context": "Displayed in the photo slot's menu, on the person and element sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReplacePhotoAction": "Replace the photo…",
+  "@resourcesReplacePhotoAction": {
+    "description": "Menu entry opening the picker replacing the photo a record already references",
+    "context": "Displayed in the photo slot's menu, on the person and element sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovePhotoAction": "Remove the photo",
+  "@resourcesRemovePhotoAction": {
+    "description": "Menu entry dropping a record's photo reference, leaving the file untouched",
+    "context": "Displayed in the photo slot's menu, on the person and element sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPhotoSlotTooltip": "Photo and colour",
+  "@resourcesPhotoSlotTooltip": {
+    "description": "Tooltip of a sheet header's photo slot, opening its menu",
+    "context": "Displayed on hover over the person and element sheets' photo slot",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPhotoSlotPhotoOnlyTooltip": "Photo",
+  "@resourcesPhotoSlotPhotoOnlyTooltip": {
+    "description": "Tooltip of a photo slot whose record has no colour of its own",
+    "context": "Displayed on hover over the element sheet's photo slot",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsDocumentLabel": "Signed release",
+  "@resourcesImageRightsDocumentLabel": {
+    "description": "Label of the referenced image rights release document",
+    "context": "Displayed in the resources mode's person sheet, image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReferenceDocumentAction": "+ Reference a document",
+  "@resourcesReferenceDocumentAction": {
+    "description": "Action opening the picker referencing a document by path",
+    "context": "Displayed in the resources mode's person sheet, image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesAssetFileMissing": "File not found",
   "@resourcesAssetFileMissing": {
     "description": "Marker shown for a referenced file whose path no longer resolves to anything",

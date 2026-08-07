@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
@@ -24,8 +27,13 @@ import 'package:uuid/uuid.dart';
 /// **[deletePerson] is an erasure, not a plain tombstone** — decision 6 of the plan this service
 /// ships under. See its own doc comment for exactly which columns are blanked.
 class OcptPeopleService {
+  /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
+  /// signed image rights release. Held rather than reached for, exactly as
+  /// `OcptLocationsService` holds its own.
+  final OcptAssetsService assetsService;
+
   /// Class constructor
-  const OcptPeopleService();
+  const OcptPeopleService({this.assetsService = const OcptAssetsService()});
 
   /// The write [deletePerson] uses to blank a person's personal columns.
   ///
@@ -73,14 +81,28 @@ class OcptPeopleService {
   );
 
   /// Loads every live person of [database], in `sortKey` order, each joined with its live
-  /// [OcptPersonPosition]s, [OcptPersonSkill]s and [OcptPersonUnavailability]s.
+  /// [OcptPersonPosition]s, [OcptPersonSkill]s and [OcptPersonUnavailability]s, and with the two
+  /// files it references — the photo and the signed image rights release.
   ///
-  /// Runs four queries (one per table) regardless of how many people there are, the same trade-off
+  /// Runs five queries (one per table) regardless of how many people there are, the same trade-off
   /// `OcptShotListService.loadShotList` makes: an address book is dozens of rows, not millions, so
   /// joining them in memory here keeps each query trivial to read.
+  ///
+  /// A `photoAssetId` naming a tombstoned row resolves to null, the way a set's link onto a
+  /// vanished scene is skipped: the reference is gone, and "no photo" is what that means. A path
+  /// resolving to no file on disk is a different question entirely, and not this layer's — see
+  /// `docs/adr/0013-binary-assets-referenced-by-path.md`.
   Future<List<OcptPerson>> loadPeople({required OcptProjectDatabase database}) async {
     final personRows = await _liveRows(database);
     final personIds = personRows.map((row) => row.id).toList(growable: false);
+
+    final assetRows = personIds.isEmpty
+        ? const <OcptAssetRow>[]
+        : await (database.select(database.ocptAssetsTable)
+                ..where((table) => table.personId.isIn(personIds) & table.isDeleted.not()))
+              .get();
+
+    final assetsById = {for (final row in assetRows) row.id: OcptAssetRef.fromRow(row)};
 
     final positionRows = personIds.isEmpty
         ? const <OcptPersonPositionRow>[]
@@ -127,6 +149,8 @@ class OcptPeopleService {
           positions: positionsByPersonId[row.id] ?? const [],
           skills: skillsByPersonId[row.id] ?? const [],
           unavailabilities: unavailabilitiesByPersonId[row.id] ?? const [],
+          photo: assetsById[row.photoAssetId],
+          imageRightsDocument: assetsById[row.imageRightsAssetId],
         ),
     ];
   }
@@ -263,6 +287,11 @@ class OcptPeopleService {
   /// production rather than the person, and once the row it hangs off holds no name it identifies
   /// nobody.
   ///
+  /// The `assets` rows this person owns — their photo, their signed release — are tombstoned **and
+  /// their path and label blanked**, through `OcptAssetsService.erasePersonAssets`: a path names
+  /// the person as readily as a field does, and says where a photograph of them sits. The
+  /// referenced files themselves are not touched, being the user's own and never copied in.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> deletePerson({
     required OcptProjectDatabase database,
@@ -303,12 +332,189 @@ class OcptPeopleService {
         const OcptPersonUnavailabilitiesTableCompanion(isDeleted: Value(true), reason: Value('')),
       );
 
+      await assetsService.erasePersonAssets(database: database, personId: personId);
+
       await database
           .into(database.ocptLocalErasuresTable)
           .insertOnConflictUpdate(
             OcptLocalErasuresTableCompanion.insert(personId: personId, erasedAt: DateTime.now()),
           );
     });
+  }
+
+  /// References the file at [path] as person [personId]'s photo, replacing whichever file they
+  /// referenced before, and returns the freshly generated id of the `assets` row.
+  ///
+  /// The replaced photo's row is tombstoned in the same transaction: a person has one photo, so a
+  /// row nothing points at any more is not history worth keeping — it is an orphan. That is
+  /// `OcptLocationsService.setPermitDocument`'s rule, and this is the same shape for the same
+  /// reason. **No byte of the file is read, copied or written** — see
+  /// `docs/adr/0013-binary-assets-referenced-by-path.md`.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> setPersonPhoto({
+    required OcptProjectDatabase database,
+    required String personId,
+    required String path,
+    String label = "",
+  }) => _setPersonAsset(
+    database: database,
+    logContext: "setPersonPhoto",
+    personId: personId,
+    path: path,
+    label: label,
+    kind: OcptAssetKind.personPhoto,
+    currentAssetIdOf: (row) => row.photoAssetId,
+    companionOf: (assetId) => OcptPeopleTableCompanion(photoAssetId: Value(assetId)),
+  );
+
+  /// Drops person [personId]'s reference to their photo: the `assets` row is tombstoned and
+  /// `photoAssetId` goes back to null. The file itself is never touched.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> clearPersonPhoto({
+    required OcptProjectDatabase database,
+    required String personId,
+  }) => _clearPersonAsset(
+    database: database,
+    logContext: "clearPersonPhoto",
+    personId: personId,
+    currentAssetIdOf: (row) => row.photoAssetId,
+    companionOf: (assetId) => OcptPeopleTableCompanion(photoAssetId: Value(assetId)),
+  );
+
+  /// References the file at [path] as person [personId]'s signed image rights release, replacing
+  /// whichever document they referenced before, and returns the freshly generated id of the
+  /// `assets` row.
+  ///
+  /// **This writes the reference alone and never `imageRightsStatus`.** Attaching a scan is not the
+  /// same claim as saying the release is signed — a production routinely files a draft before it
+  /// comes back signed — and deducing the status from the presence of a file would put a claim in
+  /// the project nobody made. The status stays the sheet's own control.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> setImageRightsDocument({
+    required OcptProjectDatabase database,
+    required String personId,
+    required String path,
+    String label = "",
+  }) => _setPersonAsset(
+    database: database,
+    logContext: "setImageRightsDocument",
+    personId: personId,
+    path: path,
+    label: label,
+    kind: OcptAssetKind.document,
+    currentAssetIdOf: (row) => row.imageRightsAssetId,
+    companionOf: (assetId) => OcptPeopleTableCompanion(imageRightsAssetId: Value(assetId)),
+  );
+
+  /// Drops person [personId]'s reference to their signed image rights release: the `assets` row is
+  /// tombstoned and `imageRightsAssetId` goes back to null. The file itself is never touched, and
+  /// neither is `imageRightsStatus` — see [setImageRightsDocument].
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> clearImageRightsDocument({
+    required OcptProjectDatabase database,
+    required String personId,
+  }) => _clearPersonAsset(
+    database: database,
+    logContext: "clearImageRightsDocument",
+    personId: personId,
+    currentAssetIdOf: (row) => row.imageRightsAssetId,
+    companionOf: (assetId) => OcptPeopleTableCompanion(imageRightsAssetId: Value(assetId)),
+  );
+
+  /// The body [setPersonPhoto] and [setImageRightsDocument] share: tombstone whichever row the
+  /// column named, mint a new one of [kind], and point the column at it, all in one transaction.
+  ///
+  /// [currentAssetIdOf] reads the column out of the person's row and [companionOf] writes it back;
+  /// the pair is what makes the two columns one method rather than two copies that could drift on
+  /// the ordering the paragraph above depends on.
+  Future<String?> _setPersonAsset({
+    required OcptProjectDatabase database,
+    required String logContext,
+    required String personId,
+    required String path,
+    required String label,
+    required OcptAssetKind kind,
+    required String? Function(OcptPersonRow row) currentAssetIdOf,
+    required OcptPeopleTableCompanion Function(String? assetId) companionOf,
+  }) async {
+    if (database.refusesUserWrite(logContext)) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      await _tombstonePersonAsset(
+        database: database,
+        personId: personId,
+        currentAssetIdOf: currentAssetIdOf,
+      );
+
+      final id = await assetsService.insertAsset(
+        database: database,
+        kind: kind,
+        personId: personId,
+        path: path,
+        label: label,
+      );
+
+      await (database.update(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals(personId))).write(companionOf(id));
+
+      return id;
+    });
+  }
+
+  /// The body [clearPersonPhoto] and [clearImageRightsDocument] share. See [_setPersonAsset] for
+  /// what [currentAssetIdOf] and [companionOf] are.
+  Future<void> _clearPersonAsset({
+    required OcptProjectDatabase database,
+    required String logContext,
+    required String personId,
+    required String? Function(OcptPersonRow row) currentAssetIdOf,
+    required OcptPeopleTableCompanion Function(String? assetId) companionOf,
+  }) async {
+    if (database.refusesUserWrite(logContext)) {
+      return;
+    }
+
+    await database.transaction(() async {
+      await _tombstonePersonAsset(
+        database: database,
+        personId: personId,
+        currentAssetIdOf: currentAssetIdOf,
+      );
+
+      await (database.update(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals(personId))).write(companionOf(null));
+    });
+  }
+
+  /// Tombstones whichever `assets` row [currentAssetIdOf] reads off person [personId], if any.
+  /// Leaves the column alone: both callers write it themselves.
+  Future<void> _tombstonePersonAsset({
+    required OcptProjectDatabase database,
+    required String personId,
+    required String? Function(OcptPersonRow row) currentAssetIdOf,
+  }) async {
+    final row = await (database.select(
+      database.ocptPeopleTable,
+    )..where((table) => table.id.equals(personId))).getSingleOrNull();
+
+    final assetId = row == null ? null : currentAssetIdOf(row);
+    if (assetId == null) {
+      return;
+    }
+
+    await assetsService.tombstoneAsset(database: database, assetId: assetId);
   }
 
   /// Moves person [personId] to [newPosition] (0-based) within the address book, by giving it a

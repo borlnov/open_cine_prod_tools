@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -177,6 +178,68 @@ void main() {
 
       final tombstoned = await readElement(firstId);
       expect(tombstoned.isDeleted, isTrue);
+    });
+  });
+
+  group("referenced photo", () {
+    test("setElementPhoto references the file and points the element at it", () async {
+      final id = (await elementsService.createElement(
+        database: database,
+        name: "Vélo rouge",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.toBuy,
+      ))!;
+
+      await elementsService.setElementPhoto(
+        database: database,
+        elementId: id,
+        path: "/photos/velo.jpg",
+      );
+
+      final elements = await elementsService.loadElements(database: database);
+      expect(elements.single.photo?.path, "/photos/velo.jpg");
+      expect(elements.single.photo?.kind, OcptAssetKind.elementPhoto);
+    });
+
+    test("clearElementPhoto tombstones the row and nulls the column", () async {
+      final id = (await elementsService.createElement(
+        database: database,
+        name: "Vélo rouge",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.toBuy,
+      ))!;
+      await elementsService.setElementPhoto(
+        database: database,
+        elementId: id,
+        path: "/photos/velo.jpg",
+      );
+
+      await elementsService.clearElementPhoto(database: database, elementId: id);
+
+      final elements = await elementsService.loadElements(database: database);
+      expect(elements.single.photo, isNull);
+    });
+
+    test("deleting an element carries its photo away with it", () async {
+      final id = (await elementsService.createElement(
+        database: database,
+        name: "Vélo rouge",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.toBuy,
+      ))!;
+      final assetId = (await elementsService.setElementPhoto(
+        database: database,
+        elementId: id,
+        path: "/photos/velo.jpg",
+      ))!;
+
+      await elementsService.deleteElement(database: database, elementId: id);
+
+      // Nothing can reach that row any more, which is what makes it an orphan rather than history.
+      final asset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(assetId))).getSingle();
+      expect(asset.isDeleted, isTrue);
     });
   });
 

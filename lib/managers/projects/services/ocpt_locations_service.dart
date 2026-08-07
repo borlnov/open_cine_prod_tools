@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -18,8 +19,13 @@ import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `locations`, their `sets`, the `scene_sets` links between a scene and the sets it is
-/// shot in, the `location_availabilities` windows a location may be shot in, and the `assets` rows
-/// a location owns (its scouting photos and its permit document).
+/// shot in, the `location_availabilities` windows a location may be shot in, and which files a
+/// location references (its scouting photos and its permit document).
+///
+/// The `assets` rows behind those references are [OcptAssetsService]'s: this service decides
+/// *that* a location has a permit document and which one, and that service is what mints and
+/// tombstones the row. The two halves are written in one transaction here, since a location
+/// pointing at a row that does not exist yet is not a state a reader may see.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
@@ -35,8 +41,13 @@ import 'package:uuid/uuid.dart';
 /// [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode calls once the user
 /// has picked (or confirmed) one.
 class OcptLocationsService {
+  /// The service minting and tombstoning the `assets` rows a location owns. Held rather than
+  /// reached for so a test can hand in its own, exactly as `OcptBreakdownService` holds the two
+  /// services it composes.
+  final OcptAssetsService assetsService;
+
   /// Class constructor
-  const OcptLocationsService();
+  const OcptLocationsService({this.assetsService = const OcptAssetsService()});
 
   /// Loads every live location of [database], in `sortKey` order, each joined with its live
   /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
@@ -746,7 +757,7 @@ class OcptLocationsService {
               ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
             .get();
 
-    return _insertAsset(
+    return assetsService.insertAsset(
       database: database,
       kind: OcptAssetKind.locationPhoto,
       locationId: locationId,
@@ -778,13 +789,12 @@ class OcptLocationsService {
     return database.transaction(() async {
       await _tombstonePermitDocument(database: database, locationId: locationId);
 
-      final id = await _insertAsset(
+      final id = await assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.document,
         locationId: locationId,
         path: path,
         label: label,
-        sortKey: "",
       );
 
       await (database.update(
@@ -821,54 +831,6 @@ class OcptLocationsService {
     });
   }
 
-  /// Drops the reference [assetId], whatever it illustrates. The file itself is never touched.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeAsset({
-    required OcptProjectDatabase database,
-    required String assetId,
-  }) async {
-    if (database.refusesUserWrite("removeAsset")) {
-      return;
-    }
-
-    await (database.update(
-      database.ocptAssetsTable,
-    )..where((table) => table.id.equals(assetId))).write(
-      const OcptAssetsTableCompanion(isDeleted: Value(true)),
-    );
-  }
-
-  /// Inserts one `assets` row and returns its freshly generated id.
-  Future<String> _insertAsset({
-    required OcptProjectDatabase database,
-    required OcptAssetKind kind,
-    required String locationId,
-    required String path,
-    required String label,
-    required String sortKey,
-  }) async {
-    final id = const Uuid().v4();
-
-    await database
-        .into(database.ocptAssetsTable)
-        .insert(
-          OcptAssetsTableCompanion.insert(
-            id: id,
-            kind: kind,
-            path: path,
-            label: Value(label),
-            addedAt: DateTime.now(),
-            sortKey: Value(sortKey),
-            locationId: Value(locationId),
-          ),
-        );
-
-    return id;
-  }
-
   /// Tombstones whichever `assets` row location [locationId] currently names as its permit
   /// document, if any. Leaves `permitAssetId` alone: both callers write it themselves.
   Future<void> _tombstonePermitDocument({
@@ -884,11 +846,7 @@ class OcptLocationsService {
       return;
     }
 
-    await (database.update(
-      database.ocptAssetsTable,
-    )..where((table) => table.id.equals(permitAssetId))).write(
-      const OcptAssetsTableCompanion(isDeleted: Value(true)),
-    );
+    await assetsService.tombstoneAsset(database: database, assetId: permitAssetId);
   }
 
   /// The ids of the live scenes linked to each of [setIds], keyed by set id and ordered by the

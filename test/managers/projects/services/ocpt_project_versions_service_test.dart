@@ -1273,6 +1273,67 @@ void main() {
       },
     );
 
+    test("restoring a version does not put back an erased person's referenced files", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(
+              id: "person-1",
+              firstName: const Value("Clara"),
+              lastName: const Value("Martin"),
+            ),
+          );
+      final photoId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: "person-1",
+        path: "/photos/clara-martin.jpg",
+      ))!;
+
+      final version = await createVersion();
+
+      await peopleService.deletePerson(database: database, personId: "person-1");
+
+      final result = await restore(version.id);
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // An asset's path is personal data in its own right — it names the person and says where a
+      // photograph of them sits — so the payload's copy is scrubbed exactly as the person's own
+      // row is, or a restore would write the leak straight back.
+      final asset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(photoId))).getSingle();
+      expect(asset.isDeleted, isTrue);
+      expect(asset.path, isEmpty);
+    });
+
+    test("restoring keeps a location's own referenced files, which are nobody's data", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
+      await database
+          .into(database.ocptLocationsTable)
+          .insert(
+            OcptLocationsTableCompanion.insert(id: "location-1", name: "Le hangar"),
+          );
+      final photoId = (await locationsService.addLocationPhoto(
+        database: database,
+        locationId: "location-1",
+        path: "/photos/repérage.jpg",
+      ))!;
+
+      final version = await createVersion();
+      await peopleService.deletePerson(database: database, personId: "person-1");
+
+      final result = await restore(version.id);
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final asset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(photoId))).getSingle();
+      expect(asset.isDeleted, isFalse);
+      expect(asset.path, "/photos/repérage.jpg");
+    });
+
     test("previewing a version captured before an erasure shows nothing of the person", () async {
       await database
           .into(database.ocptPeopleTable)

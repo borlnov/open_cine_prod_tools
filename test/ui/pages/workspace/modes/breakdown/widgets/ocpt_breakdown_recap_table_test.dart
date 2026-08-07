@@ -173,6 +173,7 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: notes,
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
 );
 
@@ -209,7 +210,9 @@ OcptPerson _buildPerson({required String id, String firstName = "Léa", String l
       imageRightsStatus: OcptImageRightsStatus.notApplicable,
       imageRightsDate: null,
       imageRightsAssetId: null,
+      imageRightsDocument: null,
       photoAssetId: null,
+      photo: null,
       notes: "",
       positions: const [],
       skills: const [],

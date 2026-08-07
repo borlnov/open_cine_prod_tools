@@ -906,8 +906,8 @@ class OcptProjectVersionsService {
   }
 
   /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
-  /// `person_unavailabilities` rows hanging off them — for every person `local_erasures` names in
-  /// [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
+  /// `person_unavailabilities`/`assets` rows hanging off them — for every person `local_erasures`
+  /// names in [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
   /// writing one back into the working copy, nor [hydratePreview] putting one on screen. [loadPayload]
   /// is the single door both come through, which is why the scrub lives there.
   ///
@@ -982,7 +982,18 @@ class OcptProjectVersionsService {
       sceneSets: payload.sceneSets,
       elements: payload.elements,
       sceneElements: payload.sceneElements,
-      assets: payload.assets,
+      // An asset's `path` is personal data in its own right: an absolute path routinely names the
+      // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
+      // sits on this machine. So a row belonging to an erased person is tombstoned **and blanked**,
+      // exactly as `OcptAssetsService.erasePersonAssets` does it live — the mirror this comment's
+      // method doc warns must be kept in step. A row belonging to a location or an element is
+      // nobody's personal data and travels through untouched.
+      assets: [
+        for (final row in payload.assets)
+          row.personId != null && erasedPersonIds.contains(row.personId)
+              ? row.copyWith(isDeleted: true, path: '', label: '')
+              : row,
+      ],
       // A breakdown tag never names a person — only an element, a role or a set — and a scene
       // breakdown carries nothing about anyone either, so neither list has anything for this method
       // to scrub: both travel through unchanged.

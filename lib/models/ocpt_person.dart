@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -215,11 +216,25 @@ class OcptPerson extends Equatable {
   /// `OcptPeopleTable.imageRightsDate`.
   final DateTime? imageRightsDate;
 
-  /// The signed release document, or null while there is none. → `OcptAssetRef`
+  /// The id of the signed release document, or null while there is none. [imageRightsDocument]
+  /// is that row resolved.
   final String? imageRightsAssetId;
 
-  /// This person's photo, or null while there is none. → `OcptAssetRef`
+  /// The id of this person's photo, or null while there is none. [photo] is that row resolved.
   final String? photoAssetId;
+
+  /// This person's photo, or null while they reference none — or while the row [photoAssetId]
+  /// names has been tombstoned, which reads the same way and means the same thing.
+  ///
+  /// Holding the resolved row beside its id spares every widget a lookup into a separate asset
+  /// map, the way [positions] and [skills] are held rather than re-queried. Whether the file at
+  /// its path still exists is nobody's business here: that is asked once, by the widget drawing
+  /// it, and a missing file is a state rather than an error
+  /// (`docs/adr/0013-binary-assets-referenced-by-path.md`).
+  final OcptAssetRef? photo;
+
+  /// This person's signed image rights release, or null while they reference none. See [photo].
+  final OcptAssetRef? imageRightsDocument;
 
   /// Free-form notes about this person.
   final String notes;
@@ -266,6 +281,8 @@ class OcptPerson extends Equatable {
     required this.imageRightsDate,
     required this.imageRightsAssetId,
     required this.photoAssetId,
+    required this.photo,
+    required this.imageRightsDocument,
     required this.notes,
     required this.positions,
     required this.skills,
@@ -279,6 +296,8 @@ class OcptPerson extends Equatable {
     required List<OcptPersonPosition> positions,
     required List<OcptPersonSkill> skills,
     required List<OcptPersonUnavailability> unavailabilities,
+    OcptAssetRef? photo,
+    OcptAssetRef? imageRightsDocument,
   }) => OcptPerson(
     id: row.id,
     firstName: row.firstName,
@@ -311,6 +330,8 @@ class OcptPerson extends Equatable {
     imageRightsDate: row.imageRightsDate,
     imageRightsAssetId: row.imageRightsAssetId,
     photoAssetId: row.photoAssetId,
+    photo: photo,
+    imageRightsDocument: imageRightsDocument,
     notes: row.notes,
     positions: positions,
     skills: skills,
@@ -389,6 +410,8 @@ class OcptPerson extends Equatable {
     imageRightsDate,
     imageRightsAssetId,
     photoAssetId,
+    photo,
+    imageRightsDocument,
     notes,
     positions,
     skills,
