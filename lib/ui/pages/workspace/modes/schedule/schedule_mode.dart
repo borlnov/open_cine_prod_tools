@@ -347,6 +347,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
         final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
         return state.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
       },
+      slotNotesValueOf: (slotId) {
+        final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
+        return state.fieldValueOf(slotId, OcptScheduleField.slotNotes, slot.notes);
+      },
       groupLabelValueOf: (groupId) {
         final group = state.selectedDayGroups.firstWhere((candidate) => candidate.id == groupId);
         return state.fieldValueOf(groupId, OcptScheduleField.groupLabel, group.label);
@@ -362,6 +366,15 @@ class _ScheduleViewState extends State<_ScheduleView> {
                 rawValue: rawValue,
               ),
             ),
+      onSlotNotesChanged: isReadOnly
+          ? null
+          : (slotId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: slotId,
+                field: OcptScheduleField.slotNotes,
+                rawValue: rawValue,
+              ),
+            ),
       onSlotPlaceChanged: isReadOnly
           ? null
           : (slotId, locationId, setId) => bloc.add(
@@ -371,6 +384,15 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (slotId, startMinute) =>
                 bloc.add(OcptScheduleSlotStartChangedEvent(slotId: slotId, startMinute: startMinute)),
+      onSlotMoved: isReadOnly
+          ? null
+          : (slotId, newPosition) => bloc.add(
+              OcptScheduleSlotReorderedEvent(
+                dayId: day.id,
+                slotId: slotId,
+                newPosition: newPosition,
+              ),
+            ),
       onSlotDeletionRequested: isReadOnly
           ? null
           : (slotId) => unawaited(_handleSlotDeletionRequested(context, slotId)),

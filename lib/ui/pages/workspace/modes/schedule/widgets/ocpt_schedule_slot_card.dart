@@ -46,7 +46,9 @@ const String _noGroupOption = "";
 /// half narrower than this shrinks every card of that half down to fit instead of overflowing it.
 const double _personCardWidth = 230;
 
-/// One slot's own card in the day view: its label, its location and set, its own **start**
+/// One slot's own card in the day view: its label, its location and set, its own note below
+/// them — what this slot alone needs saying, the day's own note to the crew being a different
+/// thing — its own **start**
 /// minute — the one clock left on a slot — then a row of two halves, `Équipe technique` (grouped by
 /// department, foldable — see [_OcptScheduleCrewSection]) and `Comédiens`, each ending on its own
 /// `+ Crew member`/`+ Cast` footer opening a person or role picker right there on the card, with no
@@ -66,7 +68,8 @@ const double _personCardWidth = 230;
 /// muted and in italics rather than blank (see [OcptScheduleLeadField]'s own doc comment).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
-/// previewed (`isReadOnly`): the label field, the location/set pickers, the start field, every
+/// previewed (`isReadOnly`): the label field, the location/set pickers, the note field below them,
+/// the start field, the `▲`/`▼` controls moving the card in its day's list, every
 /// crew/cast row's own position picker, lead field, group picker and remove control, both `+`
 /// footers, and every writing affordance of the timetable itself, its own hold row's sequence
 /// picker included (see [OcptScheduleTimetable]'s own doc comment). Nothing here reads a
@@ -112,11 +115,28 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// Called with the label's raw text on every keystroke, or null while withheld.
   final ValueChanged<String>? onLabelChanged;
 
+  /// [slot]'s own notes, as currently held (a pending edit, or its stored value).
+  final String notesValue;
+
+  /// Called with the note's raw text on every keystroke, or null while withheld.
+  final ValueChanged<String>? onNotesChanged;
+
   /// Called with the location and set just picked, or null while withheld.
   final void Function(String? locationId, String? setId)? onPlaceChanged;
 
   /// Called with the slot's own new start minute once committed, or null while withheld.
   final ValueChanged<int>? onStartChanged;
+
+  /// Called when the card's own `▲` control is clicked, or null when this slot cannot move up (it
+  /// is its day's first) or the affordance is withheld. **The pair is drawn as soon as either of
+  /// the two is non-null**, the one that is null reading as a disabled control rather than
+  /// disappearing: a column of cards whose arrows shift about from one card to the next is harder
+  /// to aim at than one greyed arrow.
+  final VoidCallback? onMovedUp;
+
+  /// Called when the card's own `▼` control is clicked, or null when this slot cannot move down (it
+  /// is its day's last) or the affordance is withheld — see [onMovedUp].
+  final VoidCallback? onMovedDown;
 
   /// Called when the `Delete this slot…` action is picked, or null while withheld.
   final VoidCallback? onDeletionRequested;
@@ -231,8 +251,12 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.convocations,
     required this.labelValue,
     required this.onLabelChanged,
+    required this.notesValue,
+    required this.onNotesChanged,
     required this.onPlaceChanged,
     required this.onStartChanged,
+    required this.onMovedUp,
+    required this.onMovedDown,
     required this.onDeletionRequested,
     required this.onCrewMemberAdded,
     required this.onCrewMemberPositionChanged,
@@ -291,6 +315,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
                 Expanded(child: _buildHeaderFields(context)),
                 const SizedBox(width: 11),
                 _buildStartField(context),
+                if (onMovedUp != null || onMovedDown != null) _buildMoveControls(context),
                 if (onDeletionRequested != null)
                   PopupMenuButton<VoidCallback>(
                     icon: const Icon(Icons.more_vert, size: 16),
@@ -481,6 +506,64 @@ class OcptScheduleSlotCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+        ..._buildNoteField(context),
+      ],
+    );
+  }
+
+  /// The header's own note, below the location · set line — what this slot alone needs saying
+  /// ("parking derrière l'église"), as opposed to the day's own note to the crew.
+  ///
+  /// Read-only, an empty note draws **nothing** rather than a dash: the line would then only add
+  /// noise under a place that already reads fully.
+  List<Widget> _buildNoteField(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final onNotesChanged = this.onNotesChanged;
+
+    if (onNotesChanged == null) {
+      if (notesValue.isEmpty) {
+        return const [];
+      }
+
+      return [
+        const SizedBox(height: 3),
+        Text(notesValue, style: theme.textTheme.bodySmall),
+      ];
+    }
+
+    return [
+      const SizedBox(height: 3),
+      _OcptScheduleSlotNoteField(
+        key: ValueKey(slot.id),
+        value: notesValue,
+        hintText: tr.scheduleSlotNotesHint,
+        onChanged: onNotesChanged,
+      ),
+    ];
+  }
+
+  /// The header's own pair of `▲`/`▼` controls, moving this card one place up or down its day's
+  /// list — the pointer-light path onto the same reorder a `sortKey` states, shown as soon as one
+  /// of the two is available (see [onMovedUp]).
+  Widget _buildMoveControls(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.keyboard_arrow_up, size: 15),
+          tooltip: tr.scheduleMoveSlotUpTooltip,
+          visualDensity: VisualDensity.compact,
+          onPressed: onMovedUp,
+        ),
+        IconButton(
+          icon: const Icon(Icons.keyboard_arrow_down, size: 15),
+          tooltip: tr.scheduleMoveSlotDownTooltip,
+          visualDensity: VisualDensity.compact,
+          onPressed: onMovedDown,
         ),
       ],
     );
@@ -1218,6 +1301,61 @@ class _OcptScheduleSlotLabelFieldState extends State<_OcptScheduleSlotLabelField
     controller: _controller,
     onChanged: widget.onChanged,
     style: Theme.of(context).textTheme.titleSmall,
+    decoration: InputDecoration(isDense: true, hintText: widget.hintText),
+  );
+}
+
+/// The slot card's own note field, below its location · set line — [_OcptScheduleSlotLabelField]'s
+/// own controller-sync idiom, drawn as a body-sized field that grows with what is typed into it
+/// rather than a single-line title.
+class _OcptScheduleSlotNoteField extends StatefulWidget {
+  /// The field's current authoritative value.
+  final String value;
+
+  /// The hint shown while [value] is empty.
+  final String hintText;
+
+  /// Called with the field's raw text on every keystroke.
+  final ValueChanged<String> onChanged;
+
+  /// Class constructor
+  const _OcptScheduleSlotNoteField({
+    super.key,
+    required this.value,
+    required this.hintText,
+    required this.onChanged,
+  });
+
+  @override
+  State<_OcptScheduleSlotNoteField> createState() => _OcptScheduleSlotNoteFieldState();
+}
+
+/// The state of [_OcptScheduleSlotNoteField]: owns the controller the class doc comment explains.
+class _OcptScheduleSlotNoteFieldState extends State<_OcptScheduleSlotNoteField> {
+  /// The field's own text editing controller, seeded from the widget's initial value and kept in
+  /// sync with it afterward, see [didUpdateWidget].
+  late final TextEditingController _controller = TextEditingController(text: widget.value);
+
+  @override
+  void didUpdateWidget(covariant _OcptScheduleSlotNoteField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: _controller,
+    onChanged: widget.onChanged,
+    maxLines: null,
+    style: Theme.of(context).textTheme.bodySmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
 }

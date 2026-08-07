@@ -109,6 +109,10 @@ class OcptScheduleDayView extends StatelessWidget {
   /// value).
   final String Function(String slotId) slotLabelValueOf;
 
+  /// Resolves a slot's id to its own notes, as currently held (a pending edit, or its stored
+  /// value).
+  final String Function(String slotId) slotNotesValueOf;
+
   /// Resolves a group's id to its own label, as currently held (a pending edit, or its stored
   /// value) — [OcptScheduleGroupsBand]'s own `labelValueOf`.
   final String Function(String groupId) groupLabelValueOf;
@@ -123,11 +127,19 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a slot's id and its raw label text on every keystroke, or null while withheld.
   final void Function(String slotId, String rawValue)? onSlotLabelChanged;
 
+  /// Called with a slot's id and its raw note text on every keystroke, or null while withheld.
+  final void Function(String slotId, String rawValue)? onSlotNotesChanged;
+
   /// Called with a slot's id and the location/set just picked, or null while withheld.
   final void Function(String slotId, String? locationId, String? setId)? onSlotPlaceChanged;
 
   /// Called with a slot's id and its own new start minute once committed, or null while withheld.
   final void Function(String slotId, int startMinute)? onSlotStartChanged;
+
+  /// Called with a slot's id and its 0-based new position within [slots] once one of its card's own
+  /// `▲`/`▼` controls is clicked, or null while withheld — this view hands each card only the
+  /// arrows that lead anywhere, the first and last ones losing theirs.
+  final void Function(String slotId, int newPosition)? onSlotMoved;
 
   /// Called with a slot's id when its own `Delete this slot…` action is picked, or null while
   /// withheld.
@@ -242,12 +254,15 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.selectedBlockId,
     required this.sequences,
     required this.slotLabelValueOf,
+    required this.slotNotesValueOf,
     required this.groupLabelValueOf,
     required this.slotConvocationsOf,
     required this.onSlotAdded,
     required this.onSlotLabelChanged,
+    required this.onSlotNotesChanged,
     required this.onSlotPlaceChanged,
     required this.onSlotStartChanged,
+    required this.onSlotMoved,
     required this.onSlotDeletionRequested,
     required this.onGroupLabelChanged,
     required this.onGroupLeadChanged,
@@ -292,7 +307,7 @@ class OcptScheduleDayView extends StatelessWidget {
           onGroupDeletionRequested: onGroupDeletionRequested,
         ),
         const SizedBox(height: 16),
-        for (final slot in slots)
+        for (final (index, slot) in slots.indexed)
           Padding(
             padding: const EdgeInsets.only(bottom: 11),
             child: OcptScheduleSlotCard(
@@ -310,12 +325,22 @@ class OcptScheduleDayView extends StatelessWidget {
               onLabelChanged: onSlotLabelChanged == null
                   ? null
                   : (value) => onSlotLabelChanged!(slot.id, value),
+              notesValue: slotNotesValueOf(slot.id),
+              onNotesChanged: onSlotNotesChanged == null
+                  ? null
+                  : (value) => onSlotNotesChanged!(slot.id, value),
               onPlaceChanged: onSlotPlaceChanged == null
                   ? null
                   : (locationId, setId) => onSlotPlaceChanged!(slot.id, locationId, setId),
               onStartChanged: onSlotStartChanged == null
                   ? null
                   : (startMinute) => onSlotStartChanged!(slot.id, startMinute),
+              onMovedUp: onSlotMoved == null || index == 0
+                  ? null
+                  : () => onSlotMoved!(slot.id, index - 1),
+              onMovedDown: onSlotMoved == null || index == slots.length - 1
+                  ? null
+                  : () => onSlotMoved!(slot.id, index + 1),
               onDeletionRequested: onSlotDeletionRequested == null
                   ? null
                   : () => onSlotDeletionRequested!(slot.id),

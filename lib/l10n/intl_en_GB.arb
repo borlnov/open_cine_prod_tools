@@ -6619,6 +6619,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleMoveSlotUpTooltip": "Move this slot up",
+  "@scheduleMoveSlotUpTooltip": {
+    "description": "Tooltip of a slot card's own control moving it one place up in the day's list",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveSlotDownTooltip": "Move this slot down",
+  "@scheduleMoveSlotDownTooltip": {
+    "description": "Tooltip of a slot card's own control moving it one place down in the day's list",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotNotesHint": "Note",
+  "@scheduleSlotNotesHint": {
+    "description": "Hint of a slot card's own note field, below its location and set",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleSlotStartLabel": "Start",
   "@scheduleSlotStartLabel": {
     "description": "Label of a slot card's own start minute field",

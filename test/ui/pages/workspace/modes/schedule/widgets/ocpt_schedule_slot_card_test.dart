@@ -136,6 +136,10 @@ void main() {
     ValueChanged<String>? onCrewMemberAdded,
     ValueChanged<String>? onCastRoleAdded,
     VoidCallback? onDeletionRequested,
+    String notesValue = "",
+    ValueChanged<String>? onNotesChanged,
+    VoidCallback? onMovedUp,
+    VoidCallback? onMovedDown,
     void Function(String crewMemberId, int? leadMinutes)? onCrewMemberLeadChanged,
     void Function(String crewMemberId, String? groupId)? onCrewMemberGroupChanged,
     void Function(String castRoleId, int? leadMinutes)? onCastRoleLeadChanged,
@@ -159,8 +163,12 @@ void main() {
     convocations: convocations,
     labelValue: "Matin",
     onLabelChanged: isReadOnly ? null : (_) {},
+    notesValue: notesValue,
+    onNotesChanged: isReadOnly ? null : (onNotesChanged ?? (_) {}),
     onPlaceChanged: isReadOnly ? null : (_, _) {},
     onStartChanged: isReadOnly ? null : (_) {},
+    onMovedUp: isReadOnly ? null : onMovedUp,
+    onMovedDown: isReadOnly ? null : onMovedDown,
     onDeletionRequested: isReadOnly ? null : (onDeletionRequested ?? () {}),
     onCrewMemberAdded: isReadOnly ? null : (onCrewMemberAdded ?? (_) {}),
     onCrewMemberPositionChanged: isReadOnly ? null : (_, _) {},
@@ -635,7 +643,17 @@ void main() {
     final block = _buildBlock(id: "block-1", slotId: "slot-1", label: "Prep");
 
     await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: true, crew: crew, cast: cast, blocks: [block])),
+      _wrapInApp(
+        buildCard(
+          isReadOnly: true,
+          crew: crew,
+          cast: cast,
+          blocks: [block],
+          notesValue: "Parking derrière l'église",
+          onMovedUp: () {},
+          onMovedDown: () {},
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -654,11 +672,16 @@ void main() {
         .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
         .where((field) => field.onChanged != null);
     expect(editableFields, isEmpty);
-    // The rows still read, though: nothing here withholds seeing who is convoked, or which blocks
-    // are placed.
+    // The slot cannot be moved in its day's list either, both controls being withheld with the
+    // rest.
+    expect(find.byIcon(Icons.keyboard_arrow_up), findsNothing);
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
+    // The rows still read, though: nothing here withholds seeing who is convoked, which blocks
+    // are placed, or what the slot's own note says.
     expect(find.text("Léa"), findsOneWidget);
     expect(find.text("Marie"), findsOneWidget);
     expect(find.text("Prep"), findsOneWidget);
+    expect(find.text("Parking derrière l'église"), findsOneWidget);
   });
 
   testWidgets("a slot card shows only its own blocks, none of another slot's", (tester) async {
@@ -765,4 +788,63 @@ void main() {
       expect(find.text(tr.scheduleAddCastAction), findsOneWidget);
     },
   );
+
+  testWidgets("the note field reports what is typed into it, below the location line", (
+    tester,
+  ) async {
+    final typed = <String>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: false, onNotesChanged: typed.add)),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    final noteField = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.hintText == tr.scheduleSlotNotesHint,
+    );
+    expect(noteField, findsOneWidget);
+
+    await tester.enterText(noteField, "Parking derrière l'église");
+    await tester.pumpAndSettle();
+
+    expect(typed, ["Parking derrière l'église"]);
+  });
+
+  testWidgets("the `▲`/`▼` controls report the position the slot moves to", (tester) async {
+    var movedUp = 0;
+    var movedDown = 0;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(isReadOnly: false, onMovedUp: () => movedUp++, onMovedDown: () => movedDown++),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_up));
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
+    await tester.pumpAndSettle();
+
+    expect(movedUp, 1);
+    expect(movedDown, 1);
+  });
+
+  testWidgets("the `▲` control is drawn but disabled when the slot cannot move up", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: false, onMovedDown: () {})),
+    );
+    await tester.pumpAndSettle();
+
+    // Both controls are drawn as soon as one of them leads anywhere: a column of cards whose
+    // arrows come and go is harder to aim at than one greyed arrow.
+    final upButton = tester.widget<IconButton>(
+      find.ancestor(of: find.byIcon(Icons.keyboard_arrow_up), matching: find.byType(IconButton)),
+    );
+    expect(upButton.onPressed, isNull);
+    final downButton = tester.widget<IconButton>(
+      find.ancestor(of: find.byIcon(Icons.keyboard_arrow_down), matching: find.byType(IconButton)),
+    );
+    expect(downButton.onPressed, isNotNull);
+  });
 }
