@@ -174,6 +174,7 @@ OcptPerson _buildPerson({required String id, String firstName = "Jean", String l
       colorIndex: 0,
       birthDate: null,
       minorNotes: "",
+      maxDailyPresenceMinutes: null,
       isTransportAutonomous: null,
       accommodationNotes: "",
       travelNotes: "",

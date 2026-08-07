@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -897,6 +898,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           database: database,
           personId: personId,
           minorNotes: Value(rawValue),
+        );
+      case OcptPersonField.maxDailyPresenceMinutes:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          maxDailyPresenceMinutes: Value(ocptMaxDailyPresenceMinutesOf(rawValue)),
         );
       case OcptPersonField.accommodationNotes:
         await _peopleService.updatePerson(

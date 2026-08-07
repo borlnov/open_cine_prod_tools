@@ -169,6 +169,11 @@ class OcptPerson extends Equatable {
   /// The legal framing to observe when this person is a minor, free text.
   final String minorNotes;
 
+  /// The longest presence this person may have on one shooting day, in minutes, or null while
+  /// nobody has recorded one. See `OcptPeopleTable.maxDailyPresenceMinutes` for why null never
+  /// means "no limit is imposed".
+  final int? maxDailyPresenceMinutes;
+
   /// Whether this person can travel to set on their own. Tri-state: null means "not asked yet".
   final bool? isTransportAutonomous;
 
@@ -264,6 +269,7 @@ class OcptPerson extends Equatable {
     required this.colorIndex,
     required this.birthDate,
     required this.minorNotes,
+    required this.maxDailyPresenceMinutes,
     required this.isTransportAutonomous,
     required this.accommodationNotes,
     required this.travelNotes,
@@ -313,6 +319,7 @@ class OcptPerson extends Equatable {
     colorIndex: row.colorIndex,
     birthDate: row.birthDate,
     minorNotes: row.minorNotes,
+    maxDailyPresenceMinutes: row.maxDailyPresenceMinutes,
     isTransportAutonomous: row.isTransportAutonomous,
     accommodationNotes: row.accommodationNotes,
     travelNotes: row.travelNotes,
@@ -393,6 +400,7 @@ class OcptPerson extends Equatable {
     colorIndex,
     birthDate,
     minorNotes,
+    maxDailyPresenceMinutes,
     isTransportAutonomous,
     accommodationNotes,
     travelNotes,

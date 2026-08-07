@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 
 /// Builds a minimal [OcptPerson] for these tests, every free-text field left blank except the ones
 /// a case cares about.
@@ -28,6 +29,7 @@ OcptPerson _person({
   int colorIndex = 0,
   DateTime? birthDate,
   String minorNotes = "",
+  int? maxDailyPresenceMinutes,
   bool? isTransportAutonomous,
   String accommodationNotes = "",
   String travelNotes = "",
@@ -64,6 +66,7 @@ OcptPerson _person({
   colorIndex: colorIndex,
   birthDate: birthDate,
   minorNotes: minorNotes,
+  maxDailyPresenceMinutes: maxDailyPresenceMinutes,
   isTransportAutonomous: isTransportAutonomous,
   accommodationNotes: accommodationNotes,
   travelNotes: travelNotes,
@@ -120,6 +123,9 @@ String _fieldValueOf(OcptPerson person, OcptPersonField field) => switch (field)
   OcptPersonField.region => person.region,
   OcptPersonField.country => person.country,
   OcptPersonField.minorNotes => person.minorNotes,
+  OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
+    person.maxDailyPresenceMinutes,
+  ),
   OcptPersonField.accommodationNotes => person.accommodationNotes,
   OcptPersonField.travelNotes => person.travelNotes,
   OcptPersonField.dietaryNotes => person.dietaryNotes,
@@ -356,17 +362,74 @@ void main() {
     expect(find.text("Guardian on set at all times"), findsOneWidget);
   });
 
-  testWidgets("no minor badge or callout for an adult", (tester) async {
+  testWidgets("no minor badge or callout for an adult, but the presence card stays", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     final now = DateTime.now();
 
     await tester.pumpWidget(
-      _buildSheet(person: _person(birthDate: DateTime(now.year - 30, now.month, now.day))),
+      _buildSheet(
+        person: _person(
+          birthDate: DateTime(now.year - 30, now.month, now.day),
+          maxDailyPresenceMinutes: 480,
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
     expect(find.text(tr.resourcesMinorCalloutTitle), findsNothing);
+    // The maximum daily presence card isn't restricted to minors: an adult under a medical
+    // restriction is the same fact, so it stays even while the callout is gone.
+    expect(find.text(tr.resourcesMaxDailyPresenceTitle), findsOneWidget);
+    expect(find.text("480"), findsOneWidget);
+  });
+
+  testWidgets("the maximum daily presence card sits beside the legal-hours callout for a minor", (
+    tester,
+  ) async {
+    await _useTallSurface(tester);
+    final now = DateTime.now();
+
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(birthDate: DateTime(now.year - 15, now.month, now.day)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    expect(find.text(tr.resourcesMinorCalloutTitle), findsOneWidget);
+    expect(find.text(tr.resourcesMaxDailyPresenceTitle), findsOneWidget);
+  });
+
+  testWidgets("typing into the maximum daily presence field dispatches the change", (
+    tester,
+  ) async {
+    await _useTallSurface(tester);
+    final changes = <(OcptPersonField, String)>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(),
+        onFieldChanged: (field, rawValue) => changes.add((field, rawValue)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    final field = find.descendant(
+      of: find.ancestor(
+        of: find.text(tr.resourcesMaxDailyPresenceTitle),
+        matching: find.byType(OcptResourcesSheetCard),
+      ),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(field, "480");
+    await tester.pump();
+
+    expect(changes, contains((OcptPersonField.maxDailyPresenceMinutes, "480")));
   });
 
   testWidgets("typing into the email field dispatches the change", (tester) async {

@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
@@ -459,6 +460,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptPersonField.region => person.region,
       OcptPersonField.country => person.country,
       OcptPersonField.minorNotes => person.minorNotes,
+      OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
+        person.maxDailyPresenceMinutes,
+      ),
       OcptPersonField.accommodationNotes => person.accommodationNotes,
       OcptPersonField.travelNotes => person.travelNotes,
       OcptPersonField.dietaryNotes => person.dietaryNotes,

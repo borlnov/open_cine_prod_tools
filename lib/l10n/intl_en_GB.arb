@@ -3161,6 +3161,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesMaxDailyPresenceTitle": "Maximum daily presence",
+  "@resourcesMaxDailyPresenceTitle": {
+    "description": "Title of the person sheet's card recording the longest presence this person may have on one shooting day",
+    "context": "Displayed on the person sheet, beside the legal hours callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceHint": "e.g. 660",
+  "@resourcesMaxDailyPresenceHint": {
+    "description": "Placeholder of the maximum daily presence field while it is empty",
+    "context": "Displayed on the person sheet's maximum daily presence card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceSuffix": "min",
+  "@resourcesMaxDailyPresenceSuffix": {
+    "description": "Unit suffix of the maximum daily presence field",
+    "context": "Displayed on the person sheet's maximum daily presence card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceFormatError": "Not a number of minutes: no maximum will be recorded",
+  "@resourcesMaxDailyPresenceFormatError": {
+    "description": "Error shown under the maximum daily presence field when it holds something other than a whole number of minutes",
+    "context": "Displayed on the person sheet's maximum daily presence card",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesLocationAvailabilityCardTitle": "Availability",
   "@resourcesLocationAvailabilityCardTitle": {
     "description": "Title of the location sheet's availability card",

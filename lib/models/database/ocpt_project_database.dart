@@ -85,7 +85,8 @@ part 'ocpt_project_database.g.dart';
 /// per-column version stamps a merge resolves conflicts with ([OcptRowFieldVersionsTable]), and
 /// from schema version 5 the user's named project versions ([OcptProjectVersionsTable]). From
 /// schema version 6 it holds the resources mode's catalogue: the address book
-/// ([OcptPeopleTable]) and its [OcptPersonPositionsTable]/[OcptPersonSkillsTable]/
+/// ([OcptPeopleTable], gaining a person's maximum daily presence at schema version 16) and its
+/// [OcptPersonPositionsTable]/[OcptPersonSkillsTable]/
 /// [OcptPersonUnavailabilitiesTable] siblings, the cast ([OcptRolesTable]), locations and their
 /// sets ([OcptLocationsTable], [OcptSetsTable], [OcptSceneSetsTable]), the physical elements
 /// catalogue ([OcptElementsTable], [OcptSceneElementsTable]), the binary asset references
@@ -211,7 +212,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   /// The database options used by this database.
   ///
@@ -277,7 +278,12 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// of the same day. From 14 to 15 it creates [OcptRoleElementsTable], what a role wears, carries
   /// and is made up with: it is a plain `createTable` on a file coming from any version, since both
   /// tables it references (`roles` and `elements`) exist by version 6 and are created above for a
-  /// file older than that. Every step is additive, as
+  /// file older than that. From 15 to 16 it adds `people.maxDailyPresenceMinutes`, guarded by
+  /// `from >= 6` at its call site for the same reason `elements.status` (version 8 to 9) is: a file
+  /// coming from below version 6 has just had `people` created fresh above, from the current
+  /// declaration, so it already carries the column. It gets no backfill, staying null on every row a
+  /// project already had — null is not "no maximum", it is "nobody has recorded one", exactly as
+  /// true the moment after the migration as it was the moment before it. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -414,6 +420,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // Both tables it references — `roles` and `elements` — exist by version 6, and a file
         // older than that has just had them created above, so this is never a forward reference.
         await m.createTable(ocptRoleElementsTable);
+      }
+
+      if (from < 16 && from >= 6) {
+        await m.addColumn(ocptPeopleTable, ocptPeopleTable.maxDailyPresenceMinutes);
       }
     },
     beforeOpen: (details) async {

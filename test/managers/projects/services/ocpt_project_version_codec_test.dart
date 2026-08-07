@@ -190,6 +190,7 @@ void main() {
         country: "France",
         colorIndex: 2,
         minorNotes: "",
+        maxDailyPresenceMinutes: 480,
         isTransportAutonomous: true,
         accommodationNotes: "Chez Camille",
         travelNotes: "Carte jeune SNCF",
@@ -806,11 +807,13 @@ void main() {
       expect(person.country, "France");
       expect(person.colorIndex, 2);
       expect(person.birthDate, isNull);
+      expect(person.maxDailyPresenceMinutes, 480);
       expect(person.isTransportAutonomous, isTrue);
       expect(person.imageRightsStatus, OcptImageRightsStatus.signed);
       expect(person.imageRightsAssetId, "asset-1");
       final erasedPerson = roundTripped.people.last;
       expect(erasedPerson.birthDate, DateTime.utc(1990, 5, 12));
+      expect(erasedPerson.maxDailyPresenceMinutes, isNull);
       expect(erasedPerson.isTransportAutonomous, isNull);
       expect(erasedPerson.imageRightsStatus, OcptImageRightsStatus.notApplicable);
 
@@ -2660,6 +2663,38 @@ void main() {
       expect(result.value!.elements, buildRichPayload().elements);
       expect(result.value!.roles, buildRichPayload().roles);
     });
+
+    test(
+      "a stored format-10 payload decodes with nobody's maximum daily presence recorded",
+      () {
+        // Format 10 predates `people.maxDailyPresenceMinutes` entirely, so [_upgradeFormat10To11]
+        // materialises it as **null** on every person — the same kind of null
+        // [_upgradeFormat6To7] writes for a crew or cast row's dropped `groupId`/`leadMinutes`,
+        // never the currency's "leave the live value alone" one, since the column is nullable by
+        // design and null is its own truthful state. The fixture is the current encoding with the
+        // key taken back out of every person row and the format wound back, rather than a second
+        // hand-written literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        for (final person in encoded["people"] as List) {
+          (person as Map<String, dynamic>).remove("maxDailyPresenceMinutes");
+        }
+        encoded["payloadFormat"] = 10;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(
+          result.value!.people.map((row) => row.maxDailyPresenceMinutes),
+          everyElement(isNull),
+        );
+        // And nothing else was disturbed on the way through: the rest of the project came back,
+        // the first person's own name included — only the one column was ever missing.
+        expect(
+          result.value!.people.map((row) => row.firstName),
+          buildRichPayload().people.map((row) => row.firstName),
+        );
+      },
+    );
   });
 
   group('OcptProjectVersionCodec malformed payloads', () {

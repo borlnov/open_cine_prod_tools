@@ -1298,6 +1298,7 @@ void main() {
                 lastName: const Value("Martin"),
                 email: const Value("clara@example.com"),
                 phone: const Value("0102030405"),
+                maxDailyPresenceMinutes: const Value(480),
               ),
             );
         await database
@@ -1328,6 +1329,7 @@ void main() {
         expect(person.lastName, isEmpty);
         expect(person.email, isEmpty);
         expect(person.phone, isEmpty);
+        expect(person.maxDailyPresenceMinutes, isNull);
 
         final skill = await (database.select(
           database.ocptPersonSkillsTable,

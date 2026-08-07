@@ -30,6 +30,7 @@ OcptPerson _person({required String id, String firstName = "", String lastName =
       colorIndex: colorIndex,
       birthDate: null,
       minorNotes: "",
+      maxDailyPresenceMinutes: null,
       isTransportAutonomous: null,
       accommodationNotes: "",
       travelNotes: "",

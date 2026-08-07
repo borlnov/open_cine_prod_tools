@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_hmc_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_image_rights_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_logistics_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_max_presence_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_meals_health_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_minor_callout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_positions_card.dart';
@@ -21,7 +22,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 
 /// The resources mode's centre, once a person is selected: the whole person sheet, a single
 /// scrolling column edited in place — the header (photo slot, name, minor badge, contact grid),
-/// the crew positions card, the legal-hours callout (only while the person is a minor), a
+/// the crew positions card, the legal-hours callout (only while the person is a minor) beside the
+/// maximum daily presence card (always shown — the constraint isn't restricted to minors, only
+/// thought about beside them), a
 /// two-column grid of cards (meals/health/skills; logistics; image rights; hair, make-up and
 /// costume), the
 /// full-width unavailabilities card, the notes card, and `Delete this person` at the very bottom.
@@ -182,16 +185,31 @@ class OcptPersonSheet extends StatelessWidget {
             onRemoved: isReadOnly ? null : onPositionRemoved,
             onAdded: isReadOnly ? null : onPositionAdded,
           ),
-          if (isMinor) ...[
-            const SizedBox(height: 12),
-            OcptPersonSheetMinorCallout(
-              personId: person.id,
-              value: fieldValueOf(OcptPersonField.minorNotes),
-              onChanged: isReadOnly
-                  ? null
-                  : (value) => onFieldChanged(OcptPersonField.minorNotes, value),
-            ),
-          ],
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isMinor) ...[
+                Expanded(
+                  child: OcptPersonSheetMinorCallout(
+                    personId: person.id,
+                    value: fieldValueOf(OcptPersonField.minorNotes),
+                    onChanged: isReadOnly
+                        ? null
+                        : (value) => onFieldChanged(OcptPersonField.minorNotes, value),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: OcptPersonSheetMaxPresenceCard(
+                  personId: person.id,
+                  fieldValueOf: fieldValueOf,
+                  onFieldChanged: isReadOnly ? null : onFieldChanged,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           _buildCardGrid(context),
           const SizedBox(height: 12),

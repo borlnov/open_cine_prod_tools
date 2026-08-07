@@ -200,6 +200,7 @@ OcptPerson _buildPerson({
   colorIndex: 0,
   birthDate: null,
   minorNotes: "",
+  maxDailyPresenceMinutes: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",

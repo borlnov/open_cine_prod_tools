@@ -59,7 +59,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 10;
+  static const currentPayloadFormat = 11;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -321,6 +321,10 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a person's `minorNotes` column from a JSON object
   static const _minorNotesKey = "minorNotes";
+
+  /// This is the key used to stringify or parse a person's `maxDailyPresenceMinutes` column from a
+  /// JSON object
+  static const _maxDailyPresenceMinutesKey = "maxDailyPresenceMinutes";
 
   /// This is the key used to stringify or parse a person's `isTransportAutonomous` column from a
   /// JSON object
@@ -714,6 +718,7 @@ class OcptProjectVersionCodec {
     7: _upgradeFormat7To8,
     8: _upgradeFormat8To9,
     9: _upgradeFormat9To10,
+    10: _upgradeFormat10To11,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -963,6 +968,29 @@ class OcptProjectVersionCodec {
   static Map<String, dynamic> _upgradeFormat9To10(Map<String, dynamic> json) => {
     ...json,
     _roleElementsKey: const <dynamic>[],
+  };
+
+  /// Turns a format-**10** JSON object into a format-**11** one: `people.maxDailyPresenceMinutes`
+  /// didn't exist yet, so every `people` row gains a **null** value for it.
+  ///
+  /// This null is the same kind [_upgradeFormat6To7] writes for a crew or cast row's `groupId`/
+  /// `leadMinutes`, not [_upgradeFormat3To4]'s currency: the currency's null means "leave the
+  /// working copy's own value alone" because the column has never itself been nullable — a project
+  /// captured before format 4 *did* have a currency, the payload simply never recorded which. Here
+  /// the column is nullable by design (see `OcptPeopleTable.maxDailyPresenceMinutes`'s own doc
+  /// comment) and null is its own truthful state: a payload that never reached format 11 was
+  /// captured when nobody could record a maximum for anybody, so "nobody has said" is exactly what
+  /// every row of it means, restored or not. `OcptProjectVersionsService.restoreVersion` therefore
+  /// writes this null onto the working copy like any other changed column, rather than skipping it
+  /// the way it skips the currency's — and, as with every materialised value this codec writes,
+  /// **nothing is guessed**: no figure is invented from a legal maximum this build happens to know
+  /// about, which is the whole reason the column exists rather than a hard-coded one.
+  static Map<String, dynamic> _upgradeFormat10To11(Map<String, dynamic> json) => {
+    ...json,
+    _peopleKey: [
+      for (final person in _rows(json, _peopleKey))
+        {...person, _maxDailyPresenceMinutesKey: null},
+    ],
   };
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
@@ -1532,6 +1560,7 @@ class OcptProjectVersionCodec {
     _colorIndexKey: row.colorIndex,
     _birthDateKey: row.birthDate?.toIso8601String(),
     _minorNotesKey: row.minorNotes,
+    _maxDailyPresenceMinutesKey: row.maxDailyPresenceMinutes,
     _isTransportAutonomousKey: row.isTransportAutonomous,
     _accommodationNotesKey: row.accommodationNotes,
     _travelNotesKey: row.travelNotes,
@@ -1570,6 +1599,7 @@ class OcptProjectVersionCodec {
     colorIndex: _int(json, _colorIndexKey),
     birthDate: _nullableDateTime(json, _birthDateKey),
     minorNotes: _string(json, _minorNotesKey),
+    maxDailyPresenceMinutes: _nullableInt(json, _maxDailyPresenceMinutesKey),
     isTransportAutonomous: _nullableBool(json, _isTransportAutonomousKey),
     accommodationNotes: _string(json, _accommodationNotesKey),
     travelNotes: _string(json, _travelNotesKey),

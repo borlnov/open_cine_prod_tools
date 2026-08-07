@@ -46,6 +46,8 @@ class OcptPeopleService {
   /// notes — held
   /// something about the person and is reset to its table default (empty string, `null`, or
   /// [OcptImageRightsStatus.notApplicable] for the one enum column) in this single write.
+  /// `maxDailyPresenceMinutes` is blanked with them: it is personal data of the same nature as
+  /// `minorNotes`, the two constraints being thought about together on the sheet.
   static const _erasureCompanion = OcptPeopleTableCompanion(
     isDeleted: Value(true),
     firstName: Value(''),
@@ -60,6 +62,7 @@ class OcptPeopleService {
     country: Value(''),
     birthDate: Value(null),
     minorNotes: Value(''),
+    maxDailyPresenceMinutes: Value(null),
     isTransportAutonomous: Value(null),
     accommodationNotes: Value(''),
     travelNotes: Value(''),
@@ -202,6 +205,7 @@ class OcptPeopleService {
     Value<int> colorIndex = const Value.absent(),
     Value<DateTime?> birthDate = const Value.absent(),
     Value<String> minorNotes = const Value.absent(),
+    Value<int?> maxDailyPresenceMinutes = const Value.absent(),
     Value<bool?> isTransportAutonomous = const Value.absent(),
     Value<String> accommodationNotes = const Value.absent(),
     Value<String> travelNotes = const Value.absent(),
@@ -242,6 +246,7 @@ class OcptPeopleService {
         colorIndex: colorIndex,
         birthDate: birthDate,
         minorNotes: minorNotes,
+        maxDailyPresenceMinutes: maxDailyPresenceMinutes,
         isTransportAutonomous: isTransportAutonomous,
         accommodationNotes: accommodationNotes,
         travelNotes: travelNotes,

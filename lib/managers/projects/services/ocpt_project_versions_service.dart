@@ -1035,8 +1035,9 @@ class OcptProjectVersionsService {
 
   /// [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live row:
   /// every column held something about the person except `id`, `sortKey`, `isDeleted` (set to true
-  /// here rather than left alone) and `colorIndex`. See [_scrubErasedPeople] for why the two must
-  /// stay in step by hand.
+  /// here rather than left alone) and `colorIndex`. `maxDailyPresenceMinutes` is blanked with the
+  /// rest, being personal data of the same nature as `minorNotes`. See [_scrubErasedPeople] for why
+  /// the two must stay in step by hand.
   static OcptPersonRow _erasedPersonRow(OcptPersonRow row) => row.copyWith(
     isDeleted: true,
     firstName: '',
@@ -1051,6 +1052,7 @@ class OcptProjectVersionsService {
     country: '',
     birthDate: const Value(null),
     minorNotes: '',
+    maxDailyPresenceMinutes: const Value(null),
     isTransportAutonomous: const Value(null),
     accommodationNotes: '',
     travelNotes: '',

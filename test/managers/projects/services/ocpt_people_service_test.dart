@@ -132,6 +132,7 @@ void main() {
         colorIndex: const Value(3),
         birthDate: Value(DateTime(2000)),
         minorNotes: const Value("n/a"),
+        maxDailyPresenceMinutes: const Value(480),
         isTransportAutonomous: const Value(true),
         accommodationNotes: const Value("Chez Camille"),
         travelNotes: const Value("Carte de fidélité 1234"),
@@ -169,6 +170,7 @@ void main() {
       expect(row.country, "");
       expect(row.birthDate, isNull);
       expect(row.minorNotes, "");
+      expect(row.maxDailyPresenceMinutes, isNull);
       expect(row.isTransportAutonomous, isNull);
       expect(row.accommodationNotes, "");
       expect(row.travelNotes, "");

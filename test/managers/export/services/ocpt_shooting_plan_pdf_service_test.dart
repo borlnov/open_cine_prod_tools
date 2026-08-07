@@ -178,6 +178,7 @@ OcptPerson _buildPerson({required String id, required String firstName, required
   colorIndex: 0,
   birthDate: null,
   minorNotes: "",
+  maxDailyPresenceMinutes: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",

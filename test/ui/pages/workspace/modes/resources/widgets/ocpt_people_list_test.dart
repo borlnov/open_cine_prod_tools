@@ -34,6 +34,7 @@ OcptPerson _person({
   colorIndex: colorIndex,
   birthDate: null,
   minorNotes: "",
+  maxDailyPresenceMinutes: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",
