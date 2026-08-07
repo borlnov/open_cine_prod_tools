@@ -7,6 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
@@ -14,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
 /// The display label of shooting day status [status], read by the day list's own status column and
@@ -172,4 +176,70 @@ String ocptScheduleUtcOffsetLabel(Duration offset) {
   final minutes = absoluteMinutes % 60;
 
   return minutes == 0 ? "UTC$sign$hours" : "UTC$sign$hours:${minutes.toString().padLeft(2, "0")}";
+}
+
+/// `06:30 → 08:00–19:15 → 20:00`, the convocations panel's own card line reading arrival → PAT
+/// band → departure — the whole of a day's call for one person or one uncast role, in one line, as
+/// a printed call sheet would.
+///
+/// The PAT band prints as an em dash when [OcptDayConvocation.patStartMinute]/
+/// [OcptDayConvocation.patEndMinute] are null together (ADR 0018): someone convoked only on
+/// preparation slots is there, not waiting to shoot, and the dash says exactly that rather than a
+/// fabricated band or a row silently missing the middle figure.
+String ocptScheduleConvocationBandLabel(OcptDayConvocation convocation) {
+  final patStart = convocation.patStartMinute;
+  final patEnd = convocation.patEndMinute;
+  final band = patStart == null || patEnd == null
+      ? "—"
+      : "${ocptFormatDayMinute(patStart)}–${ocptFormatDayMinute(patEnd)}";
+
+  return "${ocptFormatDayMinute(convocation.arrivalMinute)} → $band → "
+      "${ocptFormatDayMinute(convocation.departureMinute)}";
+}
+
+/// The convocations panel's own card title for [convocation]: [personById]'s own display name for
+/// a person, or [roleById]'s own name read through [Tr.scheduleConvocationsUncastRoleLabel] for an
+/// uncast role — exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId] is ever
+/// non-null (the same discriminator `breakdown_tags` uses, ADR 0014), so there is never a choice
+/// to make between the two readings, only which one applies.
+///
+/// An uncast role's own suffix is what keeps a role's row from reading as a person's: the question
+/// this panel answers is "when does this human arrive", and a role nobody is cast in is still a
+/// convocation the production has to honour, just not yet a human one.
+String ocptScheduleConvocationTitle(
+  Tr tr,
+  OcptDayConvocation convocation,
+  Map<String, OcptPerson> personById,
+  Map<String, OcptRole> roleById,
+) {
+  final personId = convocation.personId;
+  if (personId != null) {
+    final person = personById[personId];
+    return person == null || person.displayName.isEmpty
+        ? tr.resourcesUnnamedPerson
+        : person.displayName;
+  }
+
+  return tr.scheduleConvocationsUncastRoleLabel(roleById[convocation.roleId]?.name ?? "");
+}
+
+/// The convocations panel's own card footer: every slot [convocation] is linked to
+/// ([OcptDayConvocation.slotIds]), by label, joined with " · " — the "where" behind the card's own
+/// arrival/PAT/departure line. A slot with no label of its own, or one [slotById] no longer holds
+/// (a stale id, which should not happen but is read defensively rather than crashing), reads as
+/// [Tr.scheduleInspectorUnnamedSlot], the day inspector's own fallback, reused here rather than a
+/// second one invented for this panel.
+String ocptScheduleConvocationSlotsLabel(
+  Tr tr,
+  OcptDayConvocation convocation,
+  Map<String, OcptShootingSlot> slotById,
+) => [
+  for (final slotId in convocation.slotIds) _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
+].join(" · ");
+
+/// [slot]'s own label, or [Tr.scheduleInspectorUnnamedSlot] while it is empty or [slot] itself is
+/// null — see [ocptScheduleConvocationSlotsLabel]'s own doc comment.
+String _ocptConvocationSlotLabelOf(Tr tr, OcptShootingSlot? slot) {
+  final label = slot?.label ?? "";
+  return label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label;
 }

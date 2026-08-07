@@ -6853,5 +6853,37 @@
     "context": "Displayed in the shot picker dialog opened from the day view",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleRightDockConvocationsTabLabel": "Convocations",
+  "@scheduleRightDockConvocationsTabLabel": {
+    "description": "Label of the schedule mode's right dock Convocations tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsEmptyHint": "Select a day to see its convocations.",
+  "@scheduleConvocationsEmptyHint": {
+    "description": "Shown in the convocations panel while no day is selected",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsNoConvocationHint": "Nobody is convoked on this day yet.",
+  "@scheduleConvocationsNoConvocationHint": {
+    "description": "Shown in the convocations panel when the selected day links nobody to a slot yet",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsUncastRoleLabel": "{roleName} (not cast)",
+  "@scheduleConvocationsUncastRoleLabel": {
+    "description": "Title of a convocations panel card for a cast role convoked with nobody cast in it yet",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      }
+    }
   }
 }

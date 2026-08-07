@@ -917,5 +917,9 @@
   "scheduleShotPickerNoResultsHint": "Aucun plan ne correspond à la recherche.",
   "scheduleShotPickerEmptyHint": "Ce découpage ne contient encore aucun plan.",
   "scheduleShotPickerAlreadyPlacedTooltip": "Déjà placé",
-  "scheduleShotPickerCancelAction": "Annuler"
+  "scheduleShotPickerCancelAction": "Annuler",
+  "scheduleRightDockConvocationsTabLabel": "Convocations",
+  "scheduleConvocationsEmptyHint": "Sélectionnez un jour pour voir ses convocations.",
+  "scheduleConvocationsNoConvocationHint": "Personne n'est encore convoqué ce jour-là.",
+  "scheduleConvocationsUncastRoleLabel": "{roleName} (non distribué)"
 }

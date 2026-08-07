@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 
 /// The chrome of the schedule mode's right dock: a compact tab row, a trailing × close button, and
-/// the active tab's body below — the exact mirror of `OcptBreakdownRightDock`, reduced to the two
-/// tabs [OcptScheduleRightDockTab] carries.
+/// the active tab's body below — the exact mirror of `OcptBreakdownRightDock`, reduced to the
+/// three tabs [OcptScheduleRightDockTab] carries.
 class OcptScheduleRightDock extends StatelessWidget {
   /// The currently active tab, whose body is shown below the tab row.
   final OcptScheduleRightDockTab activeTab;
@@ -17,6 +17,10 @@ class OcptScheduleRightDock extends StatelessWidget {
   /// The built inspector — the selected block's own read-out, or the selected day's own — shown
   /// when [activeTab] is [OcptScheduleRightDockTab.inspector].
   final Widget inspectorChild;
+
+  /// The built convocations panel, shown when [activeTab] is
+  /// [OcptScheduleRightDockTab.convocations].
+  final Widget convocationsChild;
 
   /// The built project versions panel, shown when [activeTab] is
   /// [OcptScheduleRightDockTab.versions].
@@ -33,6 +37,7 @@ class OcptScheduleRightDock extends StatelessWidget {
     super.key,
     required this.activeTab,
     required this.inspectorChild,
+    required this.convocationsChild,
     required this.versionsChild,
     required this.onTabSelected,
     required this.onClose,
@@ -57,6 +62,8 @@ class OcptScheduleRightDock extends StatelessWidget {
                       _OcptScheduleRightDockTabLabel(
                         label: switch (tab) {
                           OcptScheduleRightDockTab.inspector => tr.scheduleRightDockInspectorTabLabel,
+                          OcptScheduleRightDockTab.convocations =>
+                            tr.scheduleRightDockConvocationsTabLabel,
                           OcptScheduleRightDockTab.versions => tr.scheduleRightDockVersionsTabLabel,
                         },
                         isActive: activeTab == tab,
@@ -78,6 +85,7 @@ class OcptScheduleRightDock extends StatelessWidget {
         Expanded(
           child: switch (activeTab) {
             OcptScheduleRightDockTab.inspector => inspectorChild,
+            OcptScheduleRightDockTab.convocations => convocationsChild,
             OcptScheduleRightDockTab.versions => versionsChild,
           },
         ),

@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
@@ -51,7 +52,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// [OcptScheduleState.agendaMode] — or [OcptScheduleDayView], the mode's own working surface (the
 /// day's summary band, then one slot card per convocation, each carrying its own chained
 /// timetable). The right dock is `Inspector` (the selected block's own read-out, else the selected
-/// shot's own, else the selected day's own) + the shared `Versions` tab.
+/// shot's own, else the selected day's own) + `Convocations` (the selected day's whole call, one
+/// row per person or per uncast role, ADR 0018) + the shared `Versions` tab.
 ///
 /// **There is no save control and no mode-specific toolbar action**: every write here is its own
 /// event, exactly as the breakdown mode's own shell is built.
@@ -526,10 +528,26 @@ class _ScheduleViewState extends State<_ScheduleView> {
     return OcptScheduleRightDock(
       activeTab: rightDockTab,
       inspectorChild: _buildInspector(context, state),
+      convocationsChild: _buildConvocationsPanel(context, state),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) =>
           context.read<OcptScheduleBloc>().add(OcptScheduleRightDockTabSelectedEvent(tab: tab)),
       onClose: () => context.read<OcptScheduleBloc>().add(const OcptScheduleRightDockClosedEvent()),
+    );
+  }
+
+  /// Builds the `Convocations` tab's own content: the selected day's whole call, or nothing while
+  /// no day is selected — [OcptScheduleConvocationsPanel] tells the two apart through whether
+  /// [OcptScheduleState.selectedDayId] itself is null, rather than through the emptiness of the
+  /// list, a day with no convocation yet being a different fact from no day chosen at all.
+  Widget _buildConvocationsPanel(BuildContext context, OcptScheduleState state) {
+    final selectedDayId = state.selectedDayId;
+
+    return OcptScheduleConvocationsPanel(
+      convocations: selectedDayId == null ? null : state.convocationsOfDay(selectedDayId),
+      personById: state.personById,
+      roleById: state.roleById,
+      slotById: {for (final slot in state.selectedDaySlots) slot.id: slot},
     );
   }
 
