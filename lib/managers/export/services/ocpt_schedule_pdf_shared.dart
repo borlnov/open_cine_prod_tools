@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -97,14 +98,57 @@ Map<String, String> ocptScheduleHeadingBySceneId(OcptSchedulePlanSnapshot plan) 
     if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
 };
 
+/// The numbers of the roles [slot] convokes, sorted ascending — what a
+/// [OcptShootingBlockKind.hairMakeUp] block prints beside its own caption.
+///
+/// Read off `slot.cast` and nothing else: a make-up chair is a fact about the **unit**, not about
+/// which shot happens to be running while somebody sits in it, so every role linked to the slot is
+/// expected there whatever the day's blocks say. A role the cast still names but the project has
+/// since deleted resolves to nothing and is skipped rather than printed as a gap.
+List<int> ocptScheduleSlotRoleNumbersOf({
+  required OcptShootingSlot slot,
+  required Map<String, OcptRole> roleById,
+}) =>
+    [for (final member in slot.cast) if (roleById[member.roleId] case final role?) role.number]..sort();
+
 /// The caption a non-shot [block] prints: its own free-text label when it has one, a
 /// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
-/// label, or [blockKindLabelOf] as the final fallback.
+/// label, or [blockKindLabelOf] as the final fallback — then, for a
+/// [OcptShootingBlockKind.hairMakeUp] block alone, the numbers of the roles [slot] convokes, in
+/// brackets.
+///
+/// Those numbers are appended **whatever the caption turned out to be**, a production's own free
+/// text for its make-up band ("HMC Loge 2") saying what the band is rather than who is expected in
+/// it. They are the one thing a person reads that line for: `HMC (3, 5)` tells the make-up artist
+/// which two actors to plan for, where `HMC` alone leaves them counting heads off the cast table.
+/// A slot convoking no role at all prints the caption alone rather than an empty pair of brackets.
 ///
 /// [blockKindLabelOf] is a resolver rather than a labels object: the two schedule PDF exports each
 /// carry their own labels class (`OcptCallSheetLabels`, `OcptShootingPlanLabels`), and this
 /// function has no reason to know about either — its caller hands in the one accessor it needs.
 String ocptScheduleBlockCaptionOf({
+  required OcptShootingDayBlock block,
+  required OcptShootingSlot slot,
+  required Map<String, OcptRole> roleById,
+  required Map<String, String> headingBySceneId,
+  required String Function(OcptShootingBlockKind kind) blockKindLabelOf,
+}) {
+  final caption = _blockOwnCaptionOf(
+    block: block,
+    headingBySceneId: headingBySceneId,
+    blockKindLabelOf: blockKindLabelOf,
+  );
+
+  if (block.kind != OcptShootingBlockKind.hairMakeUp) {
+    return caption;
+  }
+
+  final roleNumbers = ocptScheduleSlotRoleNumbersOf(slot: slot, roleById: roleById);
+  return roleNumbers.isEmpty ? caption : "$caption (${roleNumbers.join(", ")})";
+}
+
+/// [block]'s own caption, before [ocptScheduleBlockCaptionOf] appends anything to it.
+String _blockOwnCaptionOf({
   required OcptShootingDayBlock block,
   required Map<String, String> headingBySceneId,
   required String Function(OcptShootingBlockKind kind) blockKindLabelOf,

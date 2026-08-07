@@ -858,9 +858,17 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   milestone rows, then the cast table and the two directories. That table carries **five columns, not
   the reference's six**: no field of this app says what happens in a sequence, so `RÉSUMÉ` could only
   ever have printed an em dash on every row, and a heading that promises what it never delivers is
-  worse than one column fewer. A **named** sheet keeps the day's header and only the rows its
-  recipient's own slots carry, and deliberately holds **neither directory** — a call sheet sent to
-  one person must not carry everyone else's telephone number. Both write **one PDF per file into a
+  worse than one column fewer. A **hair-and-make-up block additionally names the numbers of the roles
+  its slot convokes** (`HMC (3, 5)`, `ocptScheduleSlotRoleNumbersOf`), appended whatever the caption
+  itself turned out to be — a production's own free text for that band says what it is, not who is
+  expected in it, and the numbers are the one thing the make-up department reads the line for. They
+  come off `slot.cast` alone: a chair is a fact about the **unit**, not about whichever shot happens
+  to be running. Every other block kind is left alone, and a slot convoking nobody prints no empty
+  brackets. What a **named** sheet narrows is the **timetable, and only the timetable**: it keeps the
+  day's header, prints the rows its recipient's own slots carry — and then the day's own cast table
+  and both directories, exactly as the general sheet does, those answering "who else is on this day
+  and how do I reach them", which is a question about the day rather than about the reader. Both
+  write **one PDF per file into a
   folder the user picks**, and two recipients whose names collide each keep a file of their own
   (`-2`, `-3`), an overwrite being somebody never told to turn up.
   `OcptShootingPlanPdfService` prints the whole shoot: three **landscape** summary grids (locations,
@@ -869,9 +877,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   wide, then one portrait agenda per day with its hours, its sets and its shot tables. Its
   `Description` column is dropped for the same reason `RÉSUMÉ` is.
   `ocpt_schedule_pdf_shared.dart` holds what the two documents must not read differently: the walk
-  that puts a day's parallel slot chains back into a single clock order, a block's caption, a
-  location's address line. **Every hour on either page is the resolved one** and every convocation
-  figure comes from `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
+  that puts a day's parallel slot chains back into a single clock order, a block's caption (the HMC
+  role numbers among it, so both documents gain them at once), a location's address line. **Every
+  hour on either page is the resolved one** and every convocation figure comes from
+  `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is

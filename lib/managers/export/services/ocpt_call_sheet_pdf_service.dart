@@ -121,12 +121,17 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 ///
 /// **One composition, two audiences**: every section a general and a named sheet share
 /// (the title block, the day heading, the crew note, the location(s), the sun block, the key
-/// contacts and the main table) is built by one shared private widget builder, called from both
-/// [generateGeneralCallSheet] and [generateNamedCallSheet] rather than duplicated between them. A
-/// named sheet's own sections — its recipient line and its own arrival/PAT/departure band — have no
-/// counterpart to share with, and a general sheet's own crew list, cast table and cast-and-extras
-/// list are never built for a named one at all: a call sheet sent to one person must not hold
-/// everyone else's telephone number.
+/// contacts, the main table, the cast table and the two closing directories) is built by one shared
+/// private widget builder, called from both [generateGeneralCallSheet] and [generateNamedCallSheet]
+/// rather than duplicated between them. Only two sections belong to one sheet alone: a named
+/// sheet's own recipient line and its own arrival/PAT/departure band, which have no counterpart to
+/// share with.
+///
+/// **What a named sheet narrows is the timetable, and only the timetable.** Its main table holds the
+/// blocks of its recipient's own slots, since that is what they are being told to turn up for; the
+/// cast table and the two directories are day-wide on both sheets, because they answer "who else is
+/// on this day and how do I reach them", which is a question about the day rather than about the
+/// reader — and a crew that cannot phone each other on the morning of a shoot is a crew that stops.
 ///
 /// **Every hour printed comes off [OcptSchedulePlanSnapshot.timelinesOfDay]'s resolved clocks and
 /// [OcptSchedulePlanSnapshot.convocationsOfDay]'s computed figures** — never off a stored anchor,
@@ -269,8 +274,9 @@ class OcptCallSheetPdfService {
 
   /// Renders the named call sheet of [convocation] on [dayId]: the same day header, their own
   /// arrival/PAT/departure band, the crew note, the location(s) and blocks of their own slots alone,
-  /// the sun block and the key contacts — and **never** the crew list, the cast table or the
-  /// cast-and-extras list: a sheet sent to one person must not hold everyone else's contact details.
+  /// the sun block, the key contacts — then the day's own cast table, crew list and cast-and-extras
+  /// list, exactly as the general sheet prints them. Only the main table is narrowed to the
+  /// recipient's slots; see the class doc comment for why the three closing tables are not.
   Future<Uint8List> generateNamedCallSheet({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
@@ -306,6 +312,12 @@ class OcptCallSheetPdfService {
       headingBySceneId: headingBySceneId,
       labels: labels,
     );
+    // The day's own whole run, not the recipient's restricted one: the three closing tables are
+    // facts about the **day**, and a cast row saying which sequences an actor shoots today would be
+    // wrong the moment its reader is convoked on only one of the day's two units.
+    final dayEntries = ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId);
+    final convocations = plan.convocationsOfDay(dayId);
+    final castRows = _castRowsOfDay(plan: plan, dayId: dayId, orderedEntries: dayEntries);
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
     final locations = ocptScheduleLocationsOfSlots(plan, ownSlots);
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
@@ -351,6 +363,22 @@ class OcptCallSheetPdfService {
           ),
           pw.SizedBox(height: 10),
           _mainTableSection(painter: painter, labels: labels, rows: rows, roles: plan.roles),
+          pw.SizedBox(height: 10),
+          _castTableSection(painter: painter, labels: labels, rows: castRows),
+          pw.SizedBox(height: 10),
+          _peopleListSection(
+            painter: painter,
+            labels: labels,
+            title: labels.crewListSectionTitle,
+            entries: _crewListEntries(crewContacts: crewContacts, convocations: convocations),
+          ),
+          pw.SizedBox(height: 10),
+          _peopleListSection(
+            painter: painter,
+            labels: labels,
+            title: labels.castAndExtrasListSectionTitle,
+            entries: _castListEntries(castRows: castRows, labels: labels),
+          ),
         ],
       ),
     );
@@ -367,7 +395,8 @@ class OcptCallSheetPdfService {
   /// lists all print **after** what this method returns, since the reference call sheet's own
   /// contacts-by-department table sits between the sun block and the main table; they are added by
   /// [generateGeneralCallSheet] itself rather than folded in here, over the very same
-  /// [_contactsBlock]/[_mainTableSection] builders [generateNamedCallSheet] also calls directly.
+  /// [_contactsBlock]/[_mainTableSection]/[_castTableSection]/[_peopleListSection] builders
+  /// [generateNamedCallSheet] also calls directly.
   /// [generateNamedCallSheet] does not call this method at all: its own recipient line and its own
   /// single band ([_ownBandSection], replacing the day-wide time bands this method prints) make its
   /// ordering different enough that composing it from this list would need more conditionals than
@@ -398,6 +427,7 @@ class OcptCallSheetPdfService {
       timelines: timelines,
       convocations: convocations,
       orderedEntries: orderedEntries,
+      roleById: plan.roleById,
     ),
     pw.SizedBox(height: 10),
     _dayHeadingSection(painter: painter, labels: labels, day: day),
@@ -716,6 +746,7 @@ class OcptCallSheetPdfService {
     required OcptShootingDayTimelines? timelines,
     required List<OcptDayConvocation> convocations,
     required List<OcptOrderedScheduleEntry> orderedEntries,
+    required Map<String, OcptRole> roleById,
   }) {
     final lines = <String>[];
 
@@ -756,7 +787,13 @@ class OcptCallSheetPdfService {
       }
       lines.add(
         _timeBandLine(
-          label: _captionOf(block: ordered.block, labels: labels, headingBySceneId: const {}),
+          label: _captionOf(
+            block: ordered.block,
+            slot: ordered.slot,
+            roleById: roleById,
+            labels: labels,
+            headingBySceneId: const {},
+          ),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
         ),
@@ -870,7 +907,7 @@ class OcptCallSheetPdfService {
   );
 
   // ---------------------------------------------------------------------------------------------
-  // Cast table, crew list, cast-and-extras list — general sheet only
+  // Cast table, crew list, cast-and-extras list — day-wide, on both sheets
   // ---------------------------------------------------------------------------------------------
 
   /// The day's own cast table: `RÔLE / COMÉDIEN / SEQ / ARRIVÉE / PAT`.
@@ -1190,7 +1227,13 @@ List<_DayRow> _buildDayRows({
 
     rows.add(
       _DayRow.milestone(
-        caption: _captionOf(block: block, labels: labels, headingBySceneId: headingBySceneId),
+        caption: _captionOf(
+          block: block,
+          slot: slot,
+          roleById: plan.roleById,
+          labels: labels,
+          headingBySceneId: headingBySceneId,
+        ),
         startMinute: entry.startMinute,
         endMinute: entry.endMinute,
       ),
@@ -1202,24 +1245,31 @@ List<_DayRow> _buildDayRows({
 
 /// The caption a non-shot [block] prints: its own free-text label when it has one, a
 /// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
-/// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback.
+/// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback — then, for a
+/// [OcptShootingBlockKind.hairMakeUp] block, the numbers of the roles [slot] convokes.
 ///
 /// A thin alias over [ocptScheduleBlockCaptionOf] (`ocpt_schedule_pdf_shared.dart`), shared with
 /// `OcptShootingPlanPdfService` — see that function's own doc comment for why.
 String _captionOf({
   required OcptShootingDayBlock block,
+  required OcptShootingSlot slot,
+  required Map<String, OcptRole> roleById,
   required OcptCallSheetLabels labels,
   required Map<String, String> headingBySceneId,
 }) => ocptScheduleBlockCaptionOf(
   block: block,
+  slot: slot,
+  roleById: roleById,
   headingBySceneId: headingBySceneId,
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 
-/// The day's own cast table rows: one per cast role convoked on any live slot of the day (or, for a
-/// named sheet, of [orderedEntries]' own restricted slots — though a named sheet never builds this
-/// table at all, see the class doc comment), the scenes it actually shoots today read off
-/// [orderedEntries]' own shot blocks.
+/// The day's own cast table rows: one per cast role convoked on any live slot of the day, the
+/// scenes it actually shoots today read off [orderedEntries]' own shot blocks.
+///
+/// Both generators pass the **whole day's** entries, a named sheet included: this table says who is
+/// cast on the day, and a `SEQ` cell counting only the sequences its reader happens to share a slot
+/// with would understate every other actor's day.
 List<_CastRow> _castRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,

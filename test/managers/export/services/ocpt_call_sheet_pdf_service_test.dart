@@ -642,30 +642,7 @@ void main() {
   });
 
   group("generateNamedCallSheet vs generateGeneralCallSheet", () {
-    test("a named sheet is smaller than the general one for the same day", () async {
-      final plan = buildTwoSlotDaySnapshot();
-      final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
-
-      final generalBytes = await service.generateGeneralCallSheet(
-        plan: plan,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-      );
-      final namedBytes = await service.generateNamedCallSheet(
-        plan: plan,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: convocation,
-      );
-
-      expect(namedBytes.length, lessThan(generalBytes.length));
-    });
-
-    test("a named sheet's own bytes never change when the crew list grows", () async {
+    test("a named sheet carries the day's own directories, so it grows with the crew", () async {
       final plan = buildTwoSlotDaySnapshot();
       final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
       final namedBytes = await service.generateNamedCallSheet(
@@ -678,8 +655,8 @@ void main() {
       );
 
       // A brand new crew member, on the *other* unit, in a department that never reaches the key
-      // contacts block either (image, not production/direction) — visible only in the general
-      // sheet's own department-contacts table and crew list.
+      // contacts block either (image, not production/direction): the only sections that can see them
+      // are the department-contacts table and the crew list, both of which a named sheet now prints.
       final grownPlan = buildTwoSlotDaySnapshot(
         extraEveningCrew: [
           _buildCrewMember(id: "crew-3", slotId: "slot-evening", personId: "person-3", positionId: "cameraOperator"),
@@ -718,8 +695,36 @@ void main() {
 
       // The general sheet's own crew list grew...
       expect(_contentStreams(generalBytesBefore), isNot(_contentStreams(generalBytesAfter)));
-      // ...but the named sheet, which never builds a crew list at all, reads exactly the same.
-      expect(_contentStreams(namedBytes), _contentStreams(namedBytesAfter));
+      // ...and so did the named one's, the two directories being facts about the day rather than
+      // about whoever the sheet is addressed to.
+      expect(_contentStreams(namedBytes), isNot(_contentStreams(namedBytesAfter)));
+    });
+
+    test("two recipients of one day get sheets narrowed to their own slots", () async {
+      final plan = buildTwoSlotDaySnapshot();
+      final morning = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final evening = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-2");
+
+      final morningBytes = await service.generateNamedCallSheet(
+        plan: plan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: morning,
+      );
+      final eveningBytes = await service.generateNamedCallSheet(
+        plan: plan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: evening,
+      );
+
+      // Every closing table is day-wide and therefore identical between the two; what still has to
+      // differ is the recipient line, their own band, their location and their own timetable.
+      expect(_contentStreams(morningBytes), isNot(_contentStreams(eveningBytes)));
     });
 
     test("a person's arrival, PAT band and departure print as three distinct figures", () async {

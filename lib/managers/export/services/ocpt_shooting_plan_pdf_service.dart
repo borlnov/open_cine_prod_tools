@@ -835,6 +835,8 @@ class OcptShootingPlanPdfService {
       flush();
       final caption = ocptScheduleBlockCaptionOf(
         block: block,
+        slot: ordered.slot,
+        roleById: plan.roleById,
         headingBySceneId: headingBySceneId,
         blockKindLabelOf: labels.blockKindLabelOf,
       );
