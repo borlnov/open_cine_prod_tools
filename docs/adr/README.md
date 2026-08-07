@@ -63,7 +63,8 @@ number is a stable identifier other documents and commits can reference.
 | [0014](0014-breakdown-tags-as-the-script-to-catalogue-anchor.md) | Breakdown tags as the script-to-catalogue anchor | Accepted |
 | [0015](0015-shooting-days-as-chained-blocks-with-pinned-anchors.md) | Shooting days as chained blocks with pinned anchors | Accepted |
 | [0016](0016-sun-times-computed-offline-from-the-locations-coordinates.md) | Sun times computed offline from the location's coordinates | Accepted |
-| [0017](0017-convocations-computed-from-the-slot-chain.md) | Convocations computed from the slot chain | Accepted |
+| [0017](0017-convocations-computed-from-the-slot-chain.md) | Convocations computed from the slot chain | Superseded by ADR-0018 |
+| [0018](0018-a-convocation-is-the-slot-you-are-linked-to.md) | A convocation is the slot you are linked to | Accepted |
 
 ## Candidates
 

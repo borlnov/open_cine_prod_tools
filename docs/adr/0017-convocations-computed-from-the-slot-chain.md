@@ -8,7 +8,15 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Status
 
-Accepted
+Superseded by [ADR-0018](0018-a-convocation-is-the-slot-you-are-linked-to.md)
+
+The lead time this record introduced — the one figure a user still typed beside a person — is gone,
+and with it `shooting_day_groups`, the resolution rule between the two places it could be typed, and
+`ocptComputeSlotConvocations` itself. A convocation is now the slot somebody is linked to, read
+across the whole day; see ADR 0018 for why an offset could not say what a slot already says. What
+this record established and 0018 keeps unchanged: nobody types a clock, nothing computed is
+overridable by hand, and there is no after-offset anywhere in the model — finishing later is stated
+as a `wrap` block. The rest below is kept as the reasoning that applied while it did.
 
 ## Context
 
