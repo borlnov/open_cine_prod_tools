@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 
@@ -171,6 +172,7 @@ Widget _buildSheet({
   })?
   onUnavailabilityUpdated,
   ValueChanged<String>? onUnavailabilityRemoved,
+  ValueChanged<int>? onColorChanged,
   VoidCallback? onDeleteRequested,
 }) => _wrapInApp(
   OcptPersonSheet(
@@ -178,7 +180,7 @@ Widget _buildSheet({
     isReadOnly: isReadOnly,
     fieldValueOf: (field) => _fieldValueOf(person, field),
     onFieldChanged: onFieldChanged ?? (_, __) {},
-    onColorChanged: (_) {},
+    onColorChanged: onColorChanged ?? (_) {},
     onBirthDateChanged: (_) {},
     onTransportAutonomyChanged: (_) {},
     onImageRightsStatusChanged: (_) {},
@@ -354,6 +356,31 @@ void main() {
     await tester.pump();
 
     expect(changes, contains((OcptPersonField.email, "x")));
+  });
+
+  testWidgets("the photo slot opens the palette and reports the swatch picked", (tester) async {
+    await _useTallSurface(tester);
+    final colorPicks = <int>[];
+
+    await tester.pumpWidget(_buildSheet(person: _person(), onColorChanged: colorPicks.add));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    await tester.tap(find.byTooltip(tr.resourcesChangeColorTooltip));
+    await tester.pumpAndSettle();
+
+    // The popover used to throw on layout before showing a single swatch.
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OcptResourcesColorSwatches),
+        matching: find.byType(InkWell),
+      ).at(4),
+    );
+    await tester.pumpAndSettle();
+
+    expect(colorPicks, [4]);
   });
 
   testWidgets("clicking Delete this person reports it", (tester) async {

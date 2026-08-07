@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dashed_rounded_rect_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 
 /// The width and height of the person sheet's photo slot.
 const Size _slotSize = Size(104, 130);
@@ -20,10 +21,9 @@ const double _avatarDiameter = 42;
 /// avatar filled with `ocptCoverageColorAt(person.colorIndex)` and carrying the person's initials.
 ///
 /// The whole slot is the one place a person's avatar colour can be changed: clicking it opens a
-/// small popover of `ocptCoveragePalette`'s swatches, built on [MenuAnchor]/[MenuItemButton]
-/// exactly as `OcptShotListColumnsMenu` uses them for its own popover, so picking a swatch closes
-/// the menu for free. Withheld (no popover, a plain unclickable slot) while [onColorChanged] is
-/// null, the read-only idiom every writing affordance of the sheet follows.
+/// [MenuAnchor] popover holding the shared [OcptResourcesColorSwatches] grid, which is also what
+/// the location sheet's colour bar opens. Withheld (no popover, a plain unclickable slot) while
+/// [onColorChanged] is null, the read-only idiom every writing affordance of the sheet follows.
 class OcptPersonSheetAvatar extends StatelessWidget {
   /// The person whose avatar is shown.
   final OcptPerson person;
@@ -91,40 +91,11 @@ class _OcptPersonAvatarColorMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tr = Tr.of(context);
 
     return MenuAnchor(
       menuChildren: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (var index = 0; index < ocptCoveragePalette.length; index++)
-                MenuItemButton(
-                  style: MenuItemButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(28, 28),
-                    shape: const CircleBorder(),
-                  ),
-                  onPressed: () => onSelected(index),
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: Color(ocptCoveragePalette[index]),
-                      shape: BoxShape.circle,
-                      border: index == currentColorIndex
-                          ? Border.all(color: theme.colorScheme.onSurface, width: 2)
-                          : null,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+        OcptResourcesColorSwatches(currentColorIndex: currentColorIndex, onSelected: onSelected),
       ],
       builder: (context, controller, child) => Tooltip(
         message: tr.resourcesChangeColorTooltip,

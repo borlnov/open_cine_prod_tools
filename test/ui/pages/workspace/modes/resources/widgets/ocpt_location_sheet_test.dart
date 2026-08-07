@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dated_window_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
@@ -331,6 +332,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(openedPersonId, "p1");
+  });
+
+  testWidgets("the colour bar opens the palette and reports the swatch picked", (tester) async {
+    final colorPicks = <int>[];
+
+    await pumpSheet(tester, onColorChanged: colorPicks.add);
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.tap(find.byTooltip(tr.resourcesChangeColorTooltip));
+    await tester.pumpAndSettle();
+
+    // The popover used to throw on layout before showing a single swatch.
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OcptResourcesColorSwatches),
+        matching: find.byType(InkWell),
+      ).at(2),
+    );
+    await tester.pumpAndSettle();
+
+    expect(colorPicks, [2]);
   });
 
   testWidgets("clicking Delete this location reports it", (tester) async {
