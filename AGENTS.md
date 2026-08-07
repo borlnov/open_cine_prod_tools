@@ -105,7 +105,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28 | Schedule mode M1 — planning (issue #49): schema v11 (the six schedule tables, and the legacy `shots.shootingDay` erased by the migration), `ocpt_shooting_day_timeline.dart` (ADR 0015) and `ocpt_sun_times.dart` (ADR 0016), both pure, `OcptScheduleService` with its day duplication and its one-placement-per-shot rule (dropped in 28c), payload format 6, `OcptScheduleMode` with its agenda in three presentations and its day view, and the shot list's shooting day turned into a read-out of the placement | ✅ |
 | 28b | Schedule mode M1' — per-slot timetables and computed convocations: schema v12 (`shooting_day_blocks.slotId` made required and a `sceneId` given to the `hold` that names a sequence, a slot's typed clocks reduced to its `startMinute`, `shooting_day_groups` added, the crew and cast convocations trading their typed times for a group and a lead), `ocpt_shooting_day_timeline.dart` amended per slot (ADR 0015 amended) and `ocpt_shooting_convocations.dart` (ADR 0017), both pure, `OcptScheduleService` seeding a convocation from the day that last carried it, payload format 7, and the mode reading its call times out rather than asking for them | ✅ |
 | 28c | Schedule mode M2' — the day view: a timetable on each slot card (the day's own gone), blocks dragged between slots or moved through their row's `Move to…`, a hold's sequence picker and the roles the breakdown tagged in it, the lead times and group pickers on every crew and cast row, the groups band, and the agendas drawing a day's slots as parallel lanes; then the placement rework — the one-placement-per-shot rule dropped, a shot placed from a slot's own `+ Block` menu through `OcptScheduleShotPickerDialog`, the left dock's click turned into a plain selection read out by the inspector, and the strip agenda made informative; then the review pass — a PAT band for the crew (ADR 0017 amended), a `pause` block, the days ranked and renumbered by date with a `Change the date…` action, the day tag localized (`D3`/`J3`), the crew rows rebuilt as cards wrapping in a foldable half-width column, `Groupes de personnes` and its `ⓘ`, the `±` snapped to five minutes against a typed duration in the inspector, a day's band read arrival → end, and a slot card given its own note and its `▲`/`▼` reorder | ✅ |
-| 28d | Schedule mode — convocations read off the slots alone: the lead times and the groups that carried them dropped, a person's arrival/PAT/departure read off the slots they are linked to, schema v13, payload format 8, ADR 0018 superseding ADR 0017, and the `Convocations` dock tab replacing the times on the crew and cast cards | 📝 planned |
+| 28d | Schedule mode — convocations read off the slots alone (ADR 0018 superseding ADR 0017): the lead times and the `shooting_day_groups` that carried them dropped (schema v13, payload format 8, the first payload upgrade that *removes*), `ocptComputeDayConvocations` reading a person's arrival, PAT band and departure off every slot they are linked to across the whole day, the groups band and the lead fields gone with the clocks on the crew and cast cards, `dayArrivalMinute` reduced to the day's earliest slot start, and the `Convocations` dock tab where those times now live | ✅ |
 | 28e | Schedule mode — the three PDFs, then the positions matrix, the presence grid and the conflict alerts | 📝 planned |
 
 ## Ways of working
@@ -299,9 +299,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v12 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v13 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
-  the seven schedule tables, `row_field_versions`,
+  the six schedule tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -321,7 +321,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-six captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  twenty-five captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
   plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
   independent of the schema
@@ -351,7 +351,16 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   to a **null** group and a **null** lead — null here meaning "nobody has said", not "leave a live
   value alone", since nothing may be reconstructed from a timetable that has since moved. A block
   that names no live slot is put on its day's **first** one, and a block whose day has no slot at
-  all is dropped from the payload, exactly as the migration drops it from the file. Counters shown
+  all is dropped from the payload, exactly as the migration drops it from the file. Format 8 is the
+  payload's half of v12-to-v13, and it is the **first entry that removes rather than materialises** —
+  a third kind alongside the other two, and the one worth reading the doc comment of before adding a
+  fourth. It drops the `shooting_day_groups` list and the `groupId`/`leadMinutes` pair on every crew
+  and cast row: unlike an empty list it makes no claim about the moment of capture (a format-7
+  version genuinely *did* carry groups and lead times), and unlike the currency's null it leaves no
+  live value alone (there is none to leave). A version captured then comes back with every crew and
+  cast row it held, simply carrying no group and no lead any more, because the project being restored
+  into has no concept for either to mean anything — and, as everywhere else, **nothing is
+  reconstructed**: a lead time does not become a preparation slot nobody asked for. Counters shown
   on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
@@ -622,35 +631,35 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   functions and nothing re-derives them. A `hold` block reserves time for a sequence not yet
   shot-listed, which is how a production schedules ahead of its own découpage; a `pause` block is
   the break that is not a meal, and like every milestone kind it names no role.
-  **A convocation is computed, and what a user edits is its cause** (`ocptComputeSlotConvocations`,
-  `lib/utils/ocpt_shooting_convocations.dart`, ADR 0017 as amended): nobody types a call time. A crew
-  member **arrives** their **lead time** before their slot's first block starts, is *prêt à tourner*
-  for that slot's own whole band, and wraps at its last block end — the same three figures a role
-  carries, a technician's PAT being as real a moment as an actor's. There is no after-offset
-  anywhere, finishing later being said with a `wrap` block, which
-  moves everybody's wrap at once. A role's PAT band is the first and last block of that slot naming
-  it (a shot block through its `shot_characters`, resolved onto a role by name; a hold block through
-  the roles the breakdown pass tagged in the sequence it reserves,
-  `OcptScheduleState.roleIdsBySceneId`), the slot's own bounds when no block does — someone convoked
-  and not used is still convoked — and their arrival is that band's start minus their lead. A
-  **hold** names its sequence through `shooting_day_blocks.sceneId` rather than through its
-  free-text label, free text answering nobody; the column is nullable (a production blocks time out
-  before settling which sequence goes there), filled in by the timetable row's own sequence picker,
-  and a hold naming no sequence — or a sequence the breakdown pass never tagged a role in — still
-  names no role. A lead time lives either on the
-  convocation itself or on a **group** (`shooting_day_groups`, a named lead time a day carries, that
-  crew and cast rows alike point at), the row's own figure winning; a group is deliberately not a
-  department — a department says which trade someone practises, a group says who walks in at the
-  same time. Groups belong to the **day** because the lead time does: the same crew called at 06:00
-  on a January exterior is called at 09:00 in a studio — which is what the band's own `ⓘ` says, a
-  group being a thing nobody guesses the use of from its name alone. **Nothing computed is
-  overridable by hand** —
-  arriving earlier is a lead time, finishing later is a block, and a typed clock is a claim nothing
-  keeps true once a block moves. The day view's own **groups band** (`People groups`), above the
-  slot cards, is the one
-  place a group is created, renamed, retimed or deleted, and deleting one leaves its members with no
-  group rather than dropping them from the day (`OcptScheduleService.deleteGroup` nulls every
-  `groupId` pointing at it in the same transaction), which is what its confirmation says.
+  **A convocation is the slot you are linked to** (`ocptComputeDayConvocations`,
+  `lib/utils/ocpt_shooting_convocations.dart`, ADR 0018 superseding ADR 0017): nobody types a call
+  time, and **nothing is offset from anything**. A person is convoked by being **linked to a slot** —
+  a `shooting_slot_crew` row by person, a `shooting_slot_cast` row by role, both kinds counting — and
+  every figure about them is read off the slots they are linked to and the blocks in them, joined
+  across the **whole day**: their **arrival** is the earliest `startMinute` over those slots, their
+  **PAT band** runs from the earliest shooting block to the latest, and their **departure** is the
+  latest slot end. A production that wants somebody there at 06:00 for make-up creates a 06:00 slot
+  and links them to it — its label (`HMC`, `Installation`) is what says why, its blocks are what say
+  how long, and the day view already draws slots as parallel lanes. That is the trade ADR 0018
+  accepts: convoking one actor earlier now costs a **slot** rather than a number typed in place, and
+  the resulting file says what is actually happening, and prints.
+  A **shooting block** means `shot` **and** `hold` — a production scheduling ahead of its own
+  découpage still owes its cast a band — while every other kind (`preparation`, `hairMakeUp`, `meal`,
+  `pause`, `travel`, `wrap`) is not shooting time and never opens or closes one. **A slot with no
+  shooting block therefore gives no PAT at all**: somebody convoked only on preparation slots has an
+  arrival and a departure and no band, which is the truthful reading — they are there, they are not
+  waiting to shoot — and a slot carrying no block whatsoever ends at its own `startMinute`, a
+  convocation with no content yet rather than a zero-length error. The band is **not clipped to one
+  slot**: someone on a morning slot and an evening slot reads one band spanning both, gaps included,
+  and the day view's lanes are where those gaps are read. **Nothing depends on a block naming the
+  person**: `shot_characters` and the roles the breakdown tagged in a hold's sequence take no part in
+  a convocation — whoever is linked to the slot is convoked by the slot, for the whole of it. There
+  is no after-offset anywhere, finishing later being said with a `wrap` block, which moves
+  everybody's departure at once, and **nothing computed is overridable by hand**: a typed clock is a
+  claim nothing keeps true once a block moves. A **hold** names its sequence through
+  `shooting_day_blocks.sceneId` rather than through its free-text label, free text answering nobody;
+  the column is nullable (a production blocks time out before settling which sequence goes there) and
+  is filled in by the timetable row's own sequence picker.
   Sunrise, sunset and the three twilights are **computed offline** from the day's first slot's
   location (`ocptSunTimesOf`, `lib/utils/ocpt_sun_times.dart`, ADR 0016), each figure independently
   nullable — no coordinates, or a phase that never happens at that latitude, prints nothing rather
@@ -667,35 +676,28 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   Deleting a day cascades onto everything hanging off
   it; deleting a **slot** carries its blocks over to the day's first remaining slot, and tombstones
   them with it only when it was the day's last one — nothing can hold a block any more then.
-  `duplicateDay` copies the slots, their crew, their cast, their groups and every lead time, and
+  `duplicateDay` copies the slots, their crew and their cast, and
   deliberately **neither the placed shots nor the crew note**: a stable crew is entered once for a
-  whole shoot, and a day lost to rain is re-planned at another date in one gesture. A day **created**
-  after another inherits that day's groups, labels and figures alike, and nothing else. Convoking a
-  person or a role **seeds their own lead time and group** from the most recent day that convoked
-  them — walking back past the days they don't work on, and matching a group by label since group
-  ids are per day — so "ANNA needs 90 minutes of prosthetics" is typed once rather than on each of
-  her days.
+  whole shoot, and a day lost to rain is re-planned at another date in one gesture. Convoking
+  somebody **seeds nothing**: a convocation is the link and only the link, so there is no figure left
+  to carry over from the day that last convoked them.
   The centre is either the **agenda** — strip, week (an hour grid shaded by the sun times, stretched
   to whatever the timeline returns so a night shoot draws where it belongs, a day's own column split
   into **one lane per slot** since two chains may overlap, the hour rules and the sun shading staying
   column-wide because they are facts about the day rather than about a unit) or month (a cell reading
   the **earliest** of its slots' starts, the first in `sortKey` order not being the earliest once
   slots run in parallel, and saying how many units the day carries) — or the **day view**, the
-  working surface: the groups band, then the slot cards, each carrying its own **note** under its
+  working surface: the slot cards, each carrying its own **note** under its
   location and set (what that unit alone needs saying — the parking, the key holder —, the day's
   own note to the crew being a different thing) and a `▲`/`▼` pair moving it in the day's list (the
   pair is drawn as soon as one of the two leads anywhere, the other reading as disabled rather than
   disappearing, and it writes the same `sortKey` `OcptScheduleService.reorderSlot` already stated),
   each entering its own crew and cast on
-  itself and **reading their convocation times out** rather than asking for them, with the row's own
-  **lead time** (`Avance` in French) as the one figure it offers to edit and the group it inherits
-  one from when it
-  carries none (shown as inherited rather than blank, `OcptScheduleLeadField` being the minutes
-  sibling of `OcptScheduleMinuteField`'s clock face). A convoked person is **one card**, crew and
-  cast alike — the position picker or the role name, then who that is, then the computed arrival and
-  PAT band, then the lead time, then the group on a line of its own (a card is half a card wide, and
-  a group's name beside a figure had nothing but ellipsized pixels left) — the two kinds sharing one
-  shell rather than each
+  itself. A convoked person is **one card**, crew and cast alike — the position picker or the role
+  name, then who that is, and **no clock at all**: a card there says who is convoked and in what
+  function, nothing more, because a convocation is a fact about a person on a **day**, joined across
+  every slot they sit on, and cannot honestly be read from one slot's card in isolation. The times
+  live in the `Convocations` dock tab instead. The two kinds share one shell rather than each
   drawing its own; the two lists sit side by side, **at most half the card's width each**, and their
   cards **wrap** into as many columns as that half affords rather than stacking in a single file.
   The two halves **fold together**, on either title, expanded by default, each title saying how many
@@ -726,20 +728,31 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   **selects** it — the inspector then reads that shot out (its sequence, its characters, its
   estimated duration, where it is already placed, and the same status control a shot block carries),
   which is all a click there does: the *placing* gesture it used to start, answered by a click on a
-  day, is gone. The right dock is `Inspector` + the shared `Versions` tab, the inspector reading
-  block, then shot, then day, the block and shot selections being mutually exclusive by
-  construction. A block's own **duration is typed there** — any figure, 12 included, against the
+  day, is gone. The right dock is `Inspector` + `Convocations` + the shared `Versions` tab, the
+  inspector reading block, then shot, then day, the block and shot selections being mutually
+  exclusive by construction. **`Convocations` is the day's whole call** — one card per person, crew
+  and cast folded together (an actor read through `roles.personId`), plus one per **uncast role**,
+  which is a convocation the production still has to honour and is named by the role; each card
+  reads arrival → PAT band → departure, an **em dash** where there is no band, over the slots it is
+  linked to by label. It is scoped to the **selected day**, sorted by arrival then by name (the order
+  people walk in — `ocptComputeDayConvocations` itself can only tie on id, knowing no names, so the
+  panel does that last sort), and it is the reading no slot card can give once a person sits on
+  several slots of one day. Being **entirely computed it is entirely read-only**, offers no callback
+  at all, and is therefore the one panel of the app needing no `isReadOnly` handling: it draws
+  identically under a version preview because it has nothing to withhold.
+  A block's own **duration is typed in the inspector** — any figure, 12 included, against the
   `±` stepper's five-minute grid — the two writing the same column from the two places a duration is
   thought about. The strip agenda is **informative**: it shows what each day carries and **opens**
   one (a click on its header switches to the day view, exactly as the week and month grids do),
   and nothing is placed or unplaced from it — a block lives in a slot, so it is made and unmade
   where the slot is.
   A day's own band is read **arrival → end**, on the strip card as in the day inspector and the day
-  view's summary: `OcptScheduleState.dayArrivalMinute` is the earliest minute anybody has to be
-  there — the minimum arrival over every convocation of every slot, falling back to the earliest
-  slot start when the day convokes nobody — and never the first slot's `startMinute`, which is when
-  work begins rather than when the first person walks in. The week and month grids keep saying the
-  latter on purpose: a cell there answers "when does this day shoot", not "when is the call".
+  view's summary: `OcptScheduleState.dayArrivalMinute` is the **earliest `startMinute` over the day's
+  live slots**. It used to be the minimum arrival over every convocation, which was a different
+  figure only while a lead time could pull somebody in ahead of their slot; nothing does that any
+  more (ADR 0018), so the day's earliest slot start already *is* its earliest arrival. The week and
+  month grids read the same figure and mean something narrower by it on purpose: a cell there answers
+  "when does this day shoot", not "when is the call".
   `shooting_presences` is declared but only written in M3, when the presence grid lands; the mock's
   `Couleur par` control and its alert list belong to that milestone too.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
@@ -904,7 +917,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   creation and its card's `⋮`, the `+ Block` menu and the shot picker it opens, every slot, crew,
   cast and block control, the
   minute fields (which render as plain text with no callback), the inspector's own duration field,
-  the anchor pin and the shot status.
+  the anchor pin and the shot status. The `Convocations` panel is the one exception that needs no
+  handling at all: it offers nothing to withhold, so it draws identically either way.
   What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word

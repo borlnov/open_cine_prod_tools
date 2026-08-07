@@ -8,7 +8,8 @@
 /// single slot card.
 enum OcptScheduleRightDockTab {
   /// The selected block's own read-out, or — while none is selected — the selected day's own
-  /// read-out (date, status, locations, sets, slots, the PAT band, the sun times, the weather and
+  /// read-out (date, status, locations, sets, slots, the day's arrival → end band, the sun times,
+  /// the weather and
   /// crew notes).
   inspector,
 

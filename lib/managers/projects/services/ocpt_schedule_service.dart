@@ -68,7 +68,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Duplicating a day copies the shape of the crew, not the day's own work.** [duplicateDay] copies
 /// the source day's slots, their crew and their cast — but copies **neither the placed shots nor the
-/// crew note**, and (a decision this service makes, the plan leaving it unsaid) starts the new day's
+/// crew note**, and (a decision this service makes on its own) starts the new day's
 /// own `status`, `weatherNote` and `notes` at their column defaults too: a stable crew is entered
 /// once for a whole shoot and reused day after day, while what got shot, what the weather did and
 /// why a day was lost are all facts of the specific day being duplicated *away* from, not of the one
