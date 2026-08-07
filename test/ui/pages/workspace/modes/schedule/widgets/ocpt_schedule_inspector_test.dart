@@ -192,7 +192,15 @@ void main() {
   testWidgets("reads the arrival-to-end range off the given arrival, not the first slot start", (
     tester,
   ) async {
-    const timeline = OcptShootingDayTimelines(bySlotId: {}, entries: [], overruns: [], dayEndMinute: 1080);
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
+      entries: [],
+      overruns: [],
+      fixedEndMisses: [],
+      anchorCycles: [],
+      dayStartMinute: null,
+      dayEndMinute: 1080,
+    );
 
     await _pumpDayInspector(
       tester,

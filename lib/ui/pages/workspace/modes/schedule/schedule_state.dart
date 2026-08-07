@@ -72,11 +72,6 @@ class OcptScheduleUnplacedGroup extends Equatable {
 /// naming which shot's own read-out the inspector currently shows.
 class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     with MixinOcptProjectVersionsState<OcptScheduleState> {
-  /// The duration, in minutes, a block resolves to when it has neither its own `durationMinutes`
-  /// nor (for a shot block) an estimate to fall back to — `ocptComputeShootingDayTimelines`'s own
-  /// `defaultDurationMinutes`, decided once here so every timeline this state computes agrees.
-  static const int defaultBlockDurationMinutes = 30;
-
   /// Whether the schedule read is still being loaded from the project database.
   final bool isLoading;
 
@@ -370,7 +365,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       for (final slot in slots)
         OcptShootingTimelineSlot(
           id: slot.id,
-          startMinute: slot.startMinute,
+          anchorEdge: slot.anchorEdge,
+          anchorMinute: slot.anchorMinute,
+          anchorSlotId: slot.anchorSlotId,
           blocks: [
             for (final block in blocksBySlotId[slot.id] ?? const <OcptShootingDayBlock>[])
               OcptShootingTimelineBlock(
@@ -387,7 +384,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
     return ocptComputeShootingDayTimelines(
       slots: timelineSlots,
-      defaultDurationMinutes: defaultBlockDurationMinutes,
+      defaultDurationMinutes: ocptDefaultBlockDurationMinutes,
     );
   }
 
@@ -412,8 +409,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
     return ocptComputeDayConvocations(
       slots: [
+        // Every live slot of the day was handed to [timelinesOfDay] just above, so each has its own
+        // entry back: the `!` is that round trip, not an assumption about the data.
         for (final slot in slots)
-          _convocationSlotOf(slot, timelines?.bySlotId[slot.id], blocksById),
+          _convocationSlotOf(slot, timelines!.bySlotId[slot.id]!, blocksById),
       ],
     );
   }
@@ -425,14 +424,18 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// since a pinned anchor can put a block earlier than the one before it in chain order — and
   /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
   /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`.
+  ///
+  /// [OcptConvocationSlot.startMinute] is [timeline]'s own **resolved** start, never a stored
+  /// column: a slot pinned by its end starts wherever its blocks put it, and a convocation is what
+  /// that lands on.
   OcptConvocationSlot _convocationSlotOf(
     OcptShootingSlot slot,
-    OcptShootingSlotTimeline? timeline,
+    OcptShootingSlotTimeline timeline,
     Map<String, OcptShootingDayBlock> blocksById,
   ) {
     int? shootingStartMinute;
     int? shootingEndMinute;
-    for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) {
+    for (final entry in timeline.entries) {
       final kind = blocksById[entry.blockId]?.kind;
       if (kind != OcptShootingBlockKind.shot && kind != OcptShootingBlockKind.hold) {
         continue;
@@ -458,8 +461,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
     return OcptConvocationSlot(
       id: slot.id,
-      startMinute: slot.startMinute,
-      endMinute: timeline?.endMinute,
+      startMinute: timeline.startMinute,
+      endMinute: timeline.endMinute,
       shootingStartMinute: shootingStartMinute,
       shootingEndMinute: shootingEndMinute,
       personIds: personIds,
@@ -467,27 +470,15 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     );
   }
 
-  /// Day [dayId]'s own earliest arrival — the minimum [OcptShootingSlot.startMinute] over its live
-  /// slots — or null while it has no live slot at all.
+  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots
+  /// ([OcptShootingDayTimelines.dayStartMinute]) — or null while it has no live slot at all.
   ///
   /// Reads off the slots alone, not off who is convoked (ADR 0018): nothing pulls an arrival ahead
   /// of its own slot's start any more, so the day's earliest slot start already is its earliest
-  /// arrival, with no convocation to compute for it.
-  int? dayArrivalMinute(String dayId) {
-    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    if (slots.isEmpty) {
-      return null;
-    }
-
-    var earliest = slots.first.startMinute;
-    for (final slot in slots.skip(1)) {
-      if (slot.startMinute < earliest) {
-        earliest = slot.startMinute;
-      }
-    }
-
-    return earliest;
-  }
+  /// arrival, with no convocation to compute for it. It reads the **resolved** start rather than a
+  /// stored column, an end-anchored slot's own start being a fact about its blocks (ADR 0015,
+  /// amended a second time).
+  int? dayArrivalMinute(String dayId) => timelinesOfDay(dayId)?.dayStartMinute;
 
   /// [shotId]'s own `estimatedDurationMs`, converted to minutes, or null while it has none yet (or
   /// the shot isn't loaded).

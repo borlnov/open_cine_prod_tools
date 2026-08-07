@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 
 /// A compact `HH:mm` field editing one of the schedule's own minute-from-midnight columns
-/// (`shooting_slots.crewCallMinute`, a crew member's own call override, a role's own arrival…),
-/// shared by every slot card row and the day inspector rather than a bespoke `TextField` at each
-/// call site.
+/// (`shooting_slots.anchorMinute`, a block's own anchor), shared by the slot cards, the timetable
+/// and the day inspector rather than a bespoke `TextField` at each call site — and, with a null
+/// [OcptScheduleMinuteField.onChanged], the way every **computed** hour is read out too.
 ///
 /// Unlike the mode's own free-text fields (`OcptScheduleField`), a minute is never typed into the
 /// debounce: it commits the moment the field is submitted or loses focus, exactly as every other

@@ -17,8 +17,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the day view's own scroll area.
@@ -33,18 +35,24 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 640, height: 700, child: child)),
 );
 
-/// Builds a slot with the few fields these tests read, everything else neutral.
+/// Builds a slot with the few fields these tests read, everything else neutral — anchored by its
+/// start at 08:00 unless a test says otherwise.
 OcptShootingSlot _buildSlot({
   String id = "slot-1",
   List<OcptShootingSlotCrewMember> crew = const [],
   List<OcptShootingSlotCastMember> cast = const [],
+  OcptShootingSlotAnchorEdge anchorEdge = OcptShootingSlotAnchorEdge.start,
+  int? anchorMinute = 480,
+  String? anchorSlotId,
 }) => OcptShootingSlot(
   id: id,
   shootingDayId: "day-1",
   label: "Matin",
   locationId: null,
   setId: null,
-  startMinute: 480,
+  anchorEdge: anchorEdge,
+  anchorMinute: anchorMinute,
+  anchorSlotId: anchorSlotId,
   notes: "",
   crew: crew,
   cast: cast,
@@ -142,8 +150,22 @@ void main() {
     ValueChanged<OcptShootingBlockKind>? onBlockAdded,
     VoidCallback? onShotBlockRequested,
     void Function(String blockId, String targetSlotId)? onBlockMovedToSlot,
+    OcptShootingSlotAnchorEdge anchorEdge = OcptShootingSlotAnchorEdge.start,
+    int? anchorMinute = 480,
+    String? anchorSlotId,
+    Map<String, String?> anchorSourceBySlotId = const {},
+    OcptShootingSlotTimeline? timeline,
+    void Function(OcptShootingSlotAnchorEdge edge, int? minute, String? sourceSlotId)?
+    onAnchorChanged,
   }) => OcptScheduleSlotCard(
-    slot: _buildSlot(id: slotId, crew: crew, cast: cast),
+    slot: _buildSlot(
+      id: slotId,
+      crew: crew,
+      cast: cast,
+      anchorEdge: anchorEdge,
+      anchorMinute: anchorMinute,
+      anchorSlotId: anchorSlotId,
+    ),
     location: null,
     set: null,
     locations: const [],
@@ -156,7 +178,8 @@ void main() {
     notesValue: notesValue,
     onNotesChanged: isReadOnly ? null : (onNotesChanged ?? (_) {}),
     onPlaceChanged: isReadOnly ? null : (_, _) {},
-    onStartChanged: isReadOnly ? null : (_) {},
+    onAnchorChanged: isReadOnly ? null : (onAnchorChanged ?? (_, _, _) {}),
+    anchorSourceBySlotId: anchorSourceBySlotId,
     onMovedUp: isReadOnly ? null : onMovedUp,
     onMovedDown: isReadOnly ? null : onMovedDown,
     onDeletionRequested: isReadOnly ? null : (onDeletionRequested ?? () {}),
@@ -166,7 +189,7 @@ void main() {
     onCastRoleAdded: isReadOnly ? null : (onCastRoleAdded ?? (_) {}),
     onCastRoleRemoved: isReadOnly ? null : (_) {},
     blocks: blocks,
-    timeline: null,
+    timeline: timeline,
     shotOf: _noShot,
     selectedBlockId: null,
     sequences: sequences,
@@ -243,7 +266,7 @@ void main() {
     expect(find.byIcon(Icons.close), findsNWidgets(2));
   });
 
-  testWidgets("the card offers exactly one editable minute field: the slot's own start", (
+  testWidgets("the card offers exactly one editable minute field: the slot's own anchor", (
     tester,
   ) async {
     await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
@@ -254,6 +277,135 @@ void main() {
         .where((field) => field.onChanged != null);
     expect(editableFields, hasLength(1));
     expect(editableFields.single.minute, 480);
+  });
+
+  testWidgets("the anchor control names the pinned edge and reads the other one out", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          anchorEdge: OcptShootingSlotAnchorEdge.end,
+          anchorMinute: 1080,
+          timeline: const OcptShootingSlotTimeline(
+            entries: [],
+            overruns: [],
+            startMinute: 900,
+            endMinute: 1080,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotEndLabel), findsOneWidget);
+    // The opposite edge is computed, never typed: it is read out under the pinned one.
+    expect(find.text("${tr.scheduleSlotStartLabel} 15:00"), findsOneWidget);
+  });
+
+  testWidgets("a linked edge carries its whole sentence and no editable minute field", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          anchorMinute: null,
+          anchorSlotId: "slot-2",
+          otherSlots: const [("slot-2", "Prépa")],
+          anchorSourceBySlotId: const {"slot-1": "slot-2", "slot-2": null},
+          timeline: const OcptShootingSlotTimeline(
+            entries: [],
+            overruns: [],
+            startMinute: 600,
+            endMinute: 720,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotAnchorStartFromSlot("Prépa")), findsOneWidget);
+    expect(
+      tester
+          .widgetList<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField))
+          .where((field) => field.onChanged != null),
+      isEmpty,
+    );
+  });
+
+  testWidgets("picking a fixed-hour entry freezes the hour the edge was reading", (tester) async {
+    OcptShootingSlotAnchorEdge? pickedEdge;
+    int? pickedMinute;
+    String? pickedSourceSlotId;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          anchorMinute: null,
+          anchorSlotId: "slot-2",
+          otherSlots: const [("slot-2", "Prépa")],
+          anchorSourceBySlotId: const {"slot-1": "slot-2", "slot-2": null},
+          timeline: const OcptShootingSlotTimeline(
+            entries: [],
+            overruns: [],
+            startMinute: 600,
+            endMinute: 720,
+          ),
+          onAnchorChanged: (edge, minute, sourceSlotId) {
+            pickedEdge = edge;
+            pickedMinute = minute;
+            pickedSourceSlotId = sourceSlotId;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleSlotAnchorStartFromSlot("Prépa")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.scheduleSlotAnchorStartFixed));
+    await tester.pumpAndSettle();
+
+    expect(pickedEdge, OcptShootingSlotAnchorEdge.start);
+    expect(pickedMinute, 600);
+    expect(pickedSourceSlotId, isNull);
+  });
+
+  testWidgets("an anchor entry that would close a circle is shown disabled, with its reason", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          otherSlots: const [("slot-2", "Prépa")],
+          // slot-2 already reads slot-1's own edge, so slot-1 reading slot-2's would close the
+          // circle both directions of that entry would build.
+          anchorSourceBySlotId: const {"slot-1": null, "slot-2": "slot-1"},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleSlotStartLabel));
+    await tester.pumpAndSettle();
+
+    // Shown rather than left out — in a menu this short, a missing entry reads as a bug — and
+    // greyed, with the reason under it, in both directions the link could have been read in.
+    expect(find.text(tr.scheduleSlotAnchorStartFromSlot("Prépa")), findsOneWidget);
+    expect(find.text(tr.scheduleSlotAnchorEndFromSlot("Prépa")), findsOneWidget);
+    expect(find.text(tr.scheduleSlotAnchorCycleReason), findsNWidgets(2));
+    expect(
+      find.byWidgetPredicate((widget) => widget is PopupMenuItem && !widget.enabled),
+      findsNWidgets(2),
+    );
   });
 
   testWidgets("every writing affordance is withheld when the mode is read-only", (tester) async {

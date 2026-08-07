@@ -106,7 +106,8 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28b | Schedule mode M1' — per-slot timetables and computed convocations: schema v12 (`shooting_day_blocks.slotId` made required and a `sceneId` given to the `hold` that names a sequence, a slot's typed clocks reduced to its `startMinute`, `shooting_day_groups` added, the crew and cast convocations trading their typed times for a group and a lead), `ocpt_shooting_day_timeline.dart` amended per slot (ADR 0015 amended) and `ocpt_shooting_convocations.dart` (ADR 0017), both pure, `OcptScheduleService` seeding a convocation from the day that last carried it, payload format 7, and the mode reading its call times out rather than asking for them | ✅ |
 | 28c | Schedule mode M2' — the day view: a timetable on each slot card (the day's own gone), blocks dragged between slots or moved through their row's `Move to…`, a hold's sequence picker and the roles the breakdown tagged in it, the lead times and group pickers on every crew and cast row, the groups band, and the agendas drawing a day's slots as parallel lanes; then the placement rework — the one-placement-per-shot rule dropped, a shot placed from a slot's own `+ Block` menu through `OcptScheduleShotPickerDialog`, the left dock's click turned into a plain selection read out by the inspector, and the strip agenda made informative; then the review pass — a PAT band for the crew (ADR 0017 amended), a `pause` block, the days ranked and renumbered by date with a `Change the date…` action, the day tag localized (`D3`/`J3`), the crew rows rebuilt as cards wrapping in a foldable half-width column, `Groupes de personnes` and its `ⓘ`, the `±` snapped to five minutes against a typed duration in the inspector, a day's band read arrival → end, and a slot card given its own note and its `▲`/`▼` reorder | ✅ |
 | 28d | Schedule mode — convocations read off the slots alone (ADR 0018 superseding ADR 0017): the lead times and the `shooting_day_groups` that carried them dropped (schema v13, payload format 8, the first payload upgrade that *removes*), `ocptComputeDayConvocations` reading a person's arrival, PAT band and departure off every slot they are linked to across the whole day, the groups band and the lead fields gone with the clocks on the crew and cast cards, `dayArrivalMinute` reduced to the day's earliest slot start, and the `Convocations` dock tab where those times now live | ✅ |
-| 28e | Schedule mode — the three PDFs, then the positions matrix, the presence grid and the conflict alerts | 📝 planned |
+| 28e | Schedule mode — a slot anchored by either edge (ADR 0015 amended a second time): schema v14 and payload format 9 replacing `shooting_slots.startMinute` with `anchorEdge`/`anchorMinute`/`anchorSlotId`, the dependency-ordered resolution in `ocptComputeShootingDayTimelines` with its missed-fixed-end and cycle records, `ocptSlotAnchorWouldCycle`, `OcptScheduleService.setSlotAnchor` with `duplicateDay`'s link remap and `deleteSlot`'s dependent freeze, the slot card's flat anchor menu, and every reader of a slot's hour moved onto the resolved one | ✅ |
+| 28f | Schedule mode — a convoked person's position pre-filled from the address book, then the three PDFs, then the positions matrix, the presence grid and the conflict alerts | 📝 planned |
 
 ## Ways of working
 
@@ -299,7 +300,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v13 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v14 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
   the six schedule tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
@@ -360,7 +361,13 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   live value alone (there is none to leave). A version captured then comes back with every crew and
   cast row it held, simply carrying no group and no lead any more, because the project being restored
   into has no concept for either to mean anything — and, as everywhere else, **nothing is
-  reconstructed**: a lead time does not become a preparation slot nobody asked for. Counters shown
+  reconstructed**: a lead time does not become a preparation slot nobody asked for. Format 9 is the
+  payload's half of v13-to-v14, and it is a plain **rename**, the kind format 7 already shows for
+  `crewCallMinute`: every slot's `startMinute` becomes an `anchorEdge` of `start`, an `anchorMinute`
+  holding the very hour it had, and a null `anchorSlotId` — which is exactly what a format-8 payload
+  meant, so restoring one draws the day it drew when it was captured, and nothing is guessed the
+  other way round (no slot becomes end-anchored because its blocks happened to land on a round hour,
+  and no link is invented between two slots that merely met). Counters shown
   on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
@@ -605,8 +612,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   no `Tr` of its own, takes that letter as `OcptShotListXlsxLabels.dayTagPrefix`.
   A day holds one or more **slots** (`shooting_slots`), the *créneaux* — a working unit with its own
   location, set, crew and hours; a real call sheet regularly has two, with different crews and
-  different call times, which is why they are rows rather than columns. A slot owns **one typed
-  clock and no other**, its `startMinute`, the moment its first block begins. Who is convoked is
+  different call times, which is why they are rows rather than columns. A slot owns **one anchored
+  edge and no other clock** (ADR 0015, amended a second time): `anchorEdge` says whether its start or
+  its **end** is the pinned one, and that edge's hour comes from exactly one of a typed
+  `anchorMinute` and the **opposite** edge of another slot of the same day (`anchorSlotId`) — the
+  discriminator idiom `breakdown_tags` already uses. A production books a studio until 22:00, or
+  plans backwards from a sunset, as often as it plans forwards; where the slot actually starts and
+  ends is computed from that one hour and its own blocks, never read off a column. A link never
+  crosses two days and never joins two same-side edges ("these two start together" is said by typing
+  the same hour twice). Who is convoked is
   `shooting_slot_crew` (a person and a position, two rows for one person holding two functions) and
   `shooting_slot_cast` (**the role, not the person** — the actor is read through `roles.personId`, so
   recasting never rewrites the schedule). A convoked person — technician as much as actor — has
@@ -620,11 +634,23 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   A timetable is `shooting_day_blocks`, and **every block belongs to exactly one slot**: a day is a
   set of **parallel chains**, one per slot, not one chain shared by all of them. **How a chain
   becomes clock times is stated once and implemented once**, in `ocptComputeSlotTimeline`
-  (`lib/utils/ocpt_shooting_day_timeline.dart`, ADR 0015 as amended): durations chaining from that
-  slot's own `startMinute`, a block with an `anchorMinute` starting exactly there, and an anchor the
-  chain has already run past reported as an `OcptTimelineOverrun` rather than silently pushed.
-  `ocptComputeShootingDayTimelines` is the thin loop over a day's slots, its `dayEndMinute` the
-  **maximum** over them — a day ends when its last unit wraps. Two slots overlapping in wall-clock
+  (`lib/utils/ocpt_shooting_day_timeline.dart`, ADR 0015 as amended twice): durations chaining from
+  that slot's own resolved start, a block with an `anchorMinute` starting exactly there, and an
+  anchor the chain has already run past reported as an `OcptTimelineOverrun` rather than silently
+  pushed.
+  `ocptComputeShootingDayTimelines` is what **resolves the anchors** before that loop runs, and the
+  amendment is deliberately made around `ocptComputeSlotTimeline` rather than inside it: slots are
+  resolved in **dependency order**, an `end`-anchored one starts at `end − Σ durations` and then
+  chains forward unchanged (so adding a block pulls its start earlier and leaves its end where it
+  was), a pinned block that makes such a slot finish elsewhere is an `OcptTimelineFixedEndMiss` —
+  **reported, never absorbed**, the fixed end winning — and a circle of anchors is an
+  `OcptTimelineAnchorCycle` whose slots are placed at the day's earliest already-resolved start
+  rather than hung on. That circle is defence against a file, not a state a user can reach: the
+  anchor menu greys out an entry that would close one (`ocptSlotAnchorWouldCycle`) and
+  `OcptScheduleService.setSlotAnchor` refuses to write one. `OcptShootingSlotTimeline.startMinute` is
+  the **resolved** start every reader of "the hour of this slot" reads; `dayStartMinute` is the
+  minimum over them and `dayEndMinute` the **maximum** over their ends — a day ends when its last
+  unit wraps. Two slots overlapping in wall-clock
   time is **legal, not a conflict**: that is what splitting a day into slots is for, and one *person*
   convoked in both at once is M3's alert, a different question. No computed time is ever stored —
   that is what makes a day cheap to rework between takes — so everything downstream reads those
@@ -747,8 +773,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   and nothing is placed or unplaced from it — a block lives in a slot, so it is made and unmade
   where the slot is.
   A day's own band is read **arrival → end**, on the strip card as in the day inspector and the day
-  view's summary: `OcptScheduleState.dayArrivalMinute` is the **earliest `startMinute` over the day's
-  live slots**. It used to be the minimum arrival over every convocation, which was a different
+  view's summary: `OcptScheduleState.dayArrivalMinute` is the **earliest resolved start over the
+  day's live slots** (`OcptShootingDayTimelines.dayStartMinute`), never a stored column — an
+  end-anchored slot's own start being a fact about its blocks. It used to be the minimum arrival
+  over every convocation, which was a different
   figure only while a lead time could pull somebody in ahead of their slot; nothing does that any
   more (ADR 0018), so the day's earliest slot start already *is* its earliest arrival. The week and
   month grids read the same figure and mean something narrower by it on purpose: a cell there answers
@@ -915,10 +943,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   sets row's picker and chip dismissals, every
   notes field, the suggestion acceptances and the tag removal; and — in the schedule mode — the day
   creation and its card's `⋮`, the `+ Block` menu and the shot picker it opens, every slot, crew,
-  cast and block control, the
-  minute fields (which render as plain text with no callback), the inspector's own duration field,
-  the anchor pin and the shot status. The `Convocations` panel is the one exception that needs no
-  handling at all: it offers nothing to withhold, so it draws identically either way.
+  cast and block control, the slot's own anchor menu (rendered as plain text, with no menu at
+  all), the minute fields (which render as plain text with no callback), the inspector's own
+  duration field,
+  the block anchor pin and the shot status. The `Convocations` panel is the one exception that
+  needs no handling at all: it offers nothing to withhold, so it draws identically either way.
   What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The mode's own default duration used across these tests, standing in for whatever value a
@@ -228,12 +229,16 @@ void main() {
         slots: const [
           OcptShootingTimelineSlot(
             id: "slot-1",
-            startMinute: 480,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 30)],
           ),
           OcptShootingTimelineSlot(
             id: "slot-2",
-            startMinute: 600,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 600,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "b2", durationMinutes: 45)],
           ),
         ],
@@ -250,7 +255,9 @@ void main() {
         slots: const [
           OcptShootingTimelineSlot(
             id: "slot-1",
-            startMinute: 480,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
             blocks: [
               OcptShootingTimelineBlock(id: "b1", durationMinutes: 60), // 480 -> 540
               OcptShootingTimelineBlock(id: "b2", anchorMinute: 510, durationMinutes: 15), // over-run
@@ -258,7 +265,9 @@ void main() {
           ),
           OcptShootingTimelineSlot(
             id: "slot-2",
-            startMinute: 600,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 600,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "b3", durationMinutes: 30)],
           ),
         ],
@@ -275,12 +284,16 @@ void main() {
         slots: const [
           OcptShootingTimelineSlot(
             id: "slot-1",
-            startMinute: 480,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 30)], // ends 510
           ),
           OcptShootingTimelineSlot(
             id: "slot-2",
-            startMinute: 1140,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 1140,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "b2", durationMinutes: 300)], // ends 1440
           ),
         ],
@@ -293,8 +306,12 @@ void main() {
     test("dayEndMinute is null when every slot is empty", () {
       final result = ocptComputeShootingDayTimelines(
         slots: const [
-          OcptShootingTimelineSlot(id: "slot-1", startMinute: 480, blocks: []),
-          OcptShootingTimelineSlot(id: "slot-2", startMinute: 600, blocks: []),
+          OcptShootingTimelineSlot(id: "slot-1", anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null, blocks: []),
+          OcptShootingTimelineSlot(id: "slot-2", anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 600,
+            anchorSlotId: null, blocks: []),
         ],
         defaultDurationMinutes: _defaultDuration,
       );
@@ -311,12 +328,16 @@ void main() {
         slots: const [
           OcptShootingTimelineSlot(
             id: "unit-a",
-            startMinute: 480,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "a1", durationMinutes: 120)], // 480 -> 600
           ),
           OcptShootingTimelineSlot(
             id: "unit-b",
-            startMinute: 500,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 500,
+            anchorSlotId: null,
             blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 120)], // 500 -> 620
           ),
         ],
@@ -336,7 +357,393 @@ void main() {
       expect(result.bySlotId, isEmpty);
       expect(result.entries, isEmpty);
       expect(result.overruns, isEmpty);
+      expect(result.dayStartMinute, isNull);
       expect(result.dayEndMinute, isNull);
+    });
+
+    test("dayStartMinute is the minimum over every slot's own resolved start", () {
+      // The evening unit is listed first (`sortKey` order says nothing about hours), so this is a
+      // minimum rather than "the first slot's own".
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "evening",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 1140,
+            anchorSlotId: null,
+            blocks: [],
+          ),
+          OcptShootingTimelineSlot(
+            id: "morning",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
+            blocks: [],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      // A slot with nothing placed in it still has a start, which is why this is not null even
+      // though `dayEndMinute` is.
+      expect(result.dayStartMinute, 480);
+      expect(result.dayEndMinute, isNull);
+    });
+  });
+
+  group("ocptComputeShootingDayTimelines — anchoring a slot by either edge", () {
+    test("an end-anchored slot starts at its fixed end minus what it holds", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "studio",
+            anchorEdge: OcptShootingSlotAnchorEdge.end,
+            anchorMinute: 1320, // The studio is booked until 22:00.
+            anchorSlotId: null,
+            blocks: [
+              OcptShootingTimelineBlock(id: "b1", durationMinutes: 60),
+              OcptShootingTimelineBlock(id: "b2", durationMinutes: 90),
+            ],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      final timeline = result.bySlotId["studio"]!;
+      expect(timeline.startMinute, 1170); // 1320 - 150
+      expect(timeline.entries.map((entry) => entry.startMinute), [1170, 1230]);
+      expect(timeline.endMinute, 1320);
+      expect(result.fixedEndMisses, isEmpty);
+    });
+
+    test("adding a block to an end-anchored slot pulls its start earlier, leaving its end", () {
+      OcptShootingSlotTimeline timelineOf(List<OcptShootingTimelineBlock> blocks) =>
+          ocptComputeShootingDayTimelines(
+            slots: [
+              OcptShootingTimelineSlot(
+                id: "studio",
+                anchorEdge: OcptShootingSlotAnchorEdge.end,
+                anchorMinute: 1320,
+                anchorSlotId: null,
+                blocks: blocks,
+              ),
+            ],
+            defaultDurationMinutes: _defaultDuration,
+          ).bySlotId["studio"]!;
+
+      final before = timelineOf(const [OcptShootingTimelineBlock(id: "b1", durationMinutes: 60)]);
+      final after = timelineOf(const [
+        OcptShootingTimelineBlock(id: "b0", durationMinutes: 45),
+        OcptShootingTimelineBlock(id: "b1", durationMinutes: 60),
+      ]);
+
+      expect(before.startMinute, 1260);
+      expect(after.startMinute, 1215);
+      expect(before.endMinute, 1320);
+      expect(after.endMinute, 1320);
+    });
+
+    test("a fixed end its own blocks over-run is reported, never absorbed", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "studio",
+            anchorEdge: OcptShootingSlotAnchorEdge.end,
+            anchorMinute: 1320,
+            anchorSlotId: null,
+            blocks: [
+              OcptShootingTimelineBlock(id: "b1", durationMinutes: 60),
+              // Pinned to a minute the chain hasn't reached yet, which pushes the whole tail past
+              // the fixed end: ADR 0015's rule 3 still wins, and the mismatch is stated.
+              OcptShootingTimelineBlock(id: "b2", anchorMinute: 1290, durationMinutes: 90),
+            ],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.fixedEndMisses, hasLength(1));
+      expect(result.fixedEndMisses.single.slotId, "studio");
+      expect(result.fixedEndMisses.single.fixedEndMinute, 1320);
+      expect(result.fixedEndMisses.single.actualEndMinute, 1380);
+      // Nothing was stretched or squeezed to make it fit.
+      expect(result.bySlotId["studio"]!.endMinute, 1380);
+    });
+
+    test("a start-anchored slot reports no fixed-end miss, however its blocks land", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "morning",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
+            blocks: [
+              OcptShootingTimelineBlock(id: "b1", durationMinutes: 60),
+              OcptShootingTimelineBlock(id: "b2", anchorMinute: 510, durationMinutes: 30),
+            ],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.fixedEndMisses, isEmpty);
+      // The pinned block still over-ran, which is a different record and still made.
+      expect(result.overruns, hasLength(1));
+    });
+
+    test("a linked start reads its source's end, whatever order the slots are given in", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          // The dependent is given **first**: resolution follows the dependency, not the list.
+          OcptShootingTimelineSlot(
+            id: "shoot",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "prep",
+            blocks: [OcptShootingTimelineBlock(id: "b2", durationMinutes: 120)],
+          ),
+          OcptShootingTimelineSlot(
+            id: "prep",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 420,
+            anchorSlotId: null,
+            blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 60)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.bySlotId["prep"]!.endMinute, 480);
+      expect(result.bySlotId["shoot"]!.startMinute, 480);
+      expect(result.bySlotId["shoot"]!.endMinute, 600);
+      // Flattened in the order the slots were given, never in the order they were resolved.
+      expect(result.entries.map((entry) => entry.blockId), ["b2", "b1"]);
+    });
+
+    test("a linked end reads its source's start", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "prep",
+            anchorEdge: OcptShootingSlotAnchorEdge.end,
+            anchorMinute: null,
+            anchorSlotId: "shoot",
+            blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 60)],
+          ),
+          OcptShootingTimelineSlot(
+            id: "shoot",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 540,
+            anchorSlotId: null,
+            blocks: [OcptShootingTimelineBlock(id: "b2", durationMinutes: 120)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      // The preparation slot finishes exactly when the shoot starts, and therefore begins an hour
+      // before it.
+      expect(result.bySlotId["prep"]!.startMinute, 480);
+      expect(result.bySlotId["prep"]!.endMinute, 540);
+    });
+
+    test("a source slot with no block at all is read as ending where it starts", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "empty",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 600,
+            anchorSlotId: null,
+            blocks: [],
+          ),
+          OcptShootingTimelineSlot(
+            id: "after",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "empty",
+            blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 30)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.bySlotId["empty"]!.endMinute, isNull);
+      expect(result.bySlotId["after"]!.startMinute, 600);
+    });
+
+    test("a chain of three links resolves right through", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "third",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "second",
+            blocks: [OcptShootingTimelineBlock(id: "c", durationMinutes: 30)],
+          ),
+          OcptShootingTimelineSlot(
+            id: "second",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "first",
+            blocks: [OcptShootingTimelineBlock(id: "b", durationMinutes: 60)],
+          ),
+          OcptShootingTimelineSlot(
+            id: "first",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
+            blocks: [OcptShootingTimelineBlock(id: "a", durationMinutes: 45)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.bySlotId["first"]!.endMinute, 525);
+      expect(result.bySlotId["second"]!.startMinute, 525);
+      expect(result.bySlotId["third"]!.startMinute, 585);
+      expect(result.anchorCycles, isEmpty);
+    });
+
+    test("a circle of anchors is reported, and its slots resolved rather than hung on", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "fixed",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 600,
+            anchorSlotId: null,
+            blocks: [],
+          ),
+          // Neither of these can be resolved before the other: the picker and the service both
+          // refuse to build this, and a file that carries it anyway must still open.
+          OcptShootingTimelineSlot(
+            id: "a",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "b",
+            blocks: [OcptShootingTimelineBlock(id: "ba", durationMinutes: 30)],
+          ),
+          OcptShootingTimelineSlot(
+            id: "b",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "a",
+            blocks: [OcptShootingTimelineBlock(id: "bb", durationMinutes: 30)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.anchorCycles, hasLength(1));
+      expect(result.anchorCycles.single.slotIds, containsAll(["a", "b"]));
+      // Both are placed, at the earliest start the day had already resolved.
+      expect(result.bySlotId["a"], isNotNull);
+      expect(result.bySlotId["b"], isNotNull);
+      expect(result.bySlotId["a"]!.startMinute, 600);
+    });
+
+    test("a day with no link at all reports no cycle and no fixed-end miss", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "morning",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
+            blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 60)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.anchorCycles, isEmpty);
+      expect(result.fixedEndMisses, isEmpty);
+      expect(result.bySlotId["morning"]!.startMinute, 480);
+    });
+
+    test("a link naming no slot of the day falls back rather than hanging or inventing", () {
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [
+          OcptShootingTimelineSlot(
+            id: "kept",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 540,
+            anchorSlotId: null,
+            blocks: [],
+          ),
+          OcptShootingTimelineSlot(
+            id: "dangling",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: null,
+            anchorSlotId: "gone",
+            blocks: [OcptShootingTimelineBlock(id: "b1", durationMinutes: 30)],
+          ),
+        ],
+        defaultDurationMinutes: _defaultDuration,
+      );
+
+      expect(result.bySlotId["dangling"]!.startMinute, 540);
+      expect(result.bySlotId["dangling"]!.endMinute, 570);
+    });
+  });
+
+  group("ocptSlotAnchorWouldCycle", () {
+    test("a slot reading itself is the shortest circle there is", () {
+      expect(
+        ocptSlotAnchorWouldCycle(
+          anchorSourceBySlotId: const {"a": null},
+          slotId: "a",
+          sourceSlotId: "a",
+        ),
+        isTrue,
+      );
+    });
+
+    test("reading a slot that already reads this one closes a circle", () {
+      expect(
+        ocptSlotAnchorWouldCycle(
+          anchorSourceBySlotId: const {"a": null, "b": "a"},
+          slotId: "a",
+          sourceSlotId: "b",
+        ),
+        isTrue,
+      );
+    });
+
+    test("reading a slot two links away from this one closes a circle too", () {
+      expect(
+        ocptSlotAnchorWouldCycle(
+          anchorSourceBySlotId: const {"a": null, "b": "a", "c": "b"},
+          slotId: "a",
+          sourceSlotId: "c",
+        ),
+        isTrue,
+      );
+    });
+
+    test("reading a slot anchored to a typed hour closes nothing", () {
+      expect(
+        ocptSlotAnchorWouldCycle(
+          anchorSourceBySlotId: const {"a": null, "b": null},
+          slotId: "a",
+          sourceSlotId: "b",
+        ),
+        isFalse,
+      );
+    });
+
+    test("a map that already holds a circle answers rather than spinning", () {
+      expect(
+        ocptSlotAnchorWouldCycle(
+          anchorSourceBySlotId: const {"b": "c", "c": "b"},
+          slotId: "a",
+          sourceSlotId: "b",
+        ),
+        isTrue,
+      );
     });
   });
 }

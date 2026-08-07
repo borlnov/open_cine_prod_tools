@@ -45,8 +45,8 @@ class OcptScheduleInspector extends StatelessWidget {
   /// The selected day's own computed timetable, or null while it has nothing placed yet.
   final OcptShootingDayTimelines? timeline;
 
-  /// The selected day's own earliest arrival — the minimum `OcptShootingSlot.startMinute` over its
-  /// live slots (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all.
+  /// The selected day's own earliest arrival — the minimum **resolved** start over its live slots
+  /// (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all.
   final int? dayArrivalMinute;
 
   /// The selected day's own computed sun times, or null while its first slot has no location with
@@ -250,7 +250,10 @@ class OcptScheduleInspector extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
                           "${slot.label.isEmpty ? tr.scheduleInspectorUnnamedSlot : slot.label} · "
-                          "${ocptScheduleDayMinuteRangeLabel(slot.startMinute, timeline?.bySlotId[slot.id]?.endMinute)}",
+                          "${ocptScheduleDayMinuteRangeLabel(
+                            timeline?.bySlotId[slot.id]?.startMinute,
+                            timeline?.bySlotId[slot.id]?.endMinute,
+                          )}",
                           style: theme.textTheme.bodySmall,
                         ),
                       ),

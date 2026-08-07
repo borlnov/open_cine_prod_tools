@@ -162,7 +162,7 @@ void main() {
     required String id,
     required String shootingDayId,
     String sortKey = "V",
-    int startMinute = 420,
+    int anchorMinute = 420,
     bool isDeleted = false,
   }) => database
       .into(database.ocptShootingSlotsTable)
@@ -171,7 +171,7 @@ void main() {
           id: id,
           shootingDayId: shootingDayId,
           sortKey: Value(sortKey),
-          startMinute: startMinute,
+          anchorMinute: Value(anchorMinute),
           isDeleted: Value(isDeleted),
         ),
       );
@@ -1095,12 +1095,12 @@ void main() {
 
         final version = await createVersion(name: "v1 — Day planned");
 
-        // Diverge: the slot's start minute is edited, its position renamed by the shooting day it
+        // Diverge: the slot's anchored hour is edited, its position renamed by the shooting day it
         // belongs to, a second day is added, and the crew row is tombstoned.
         await (database.update(
           database.ocptShootingSlotsTable,
         )..where((table) => table.id.equals("slot-1"))).write(
-          const OcptShootingSlotsTableCompanion(startMinute: Value(360)),
+          const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)),
         );
         await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
         await scheduleService.removeSlotCrewMember(database: database, crewMemberId: "crew-1");
@@ -1112,7 +1112,7 @@ void main() {
         final restoredSlot = await (database.select(
           database.ocptShootingSlotsTable,
         )..where((table) => table.id.equals("slot-1"))).getSingle();
-        expect(restoredSlot.startMinute, 420);
+        expect(restoredSlot.anchorMinute, 420);
         expect(restoredSlot.sortKey, "V");
 
         final restoredDay = await (database.select(
@@ -1144,7 +1144,7 @@ void main() {
       await (database.update(
         database.ocptShootingSlotsTable,
       )..where((table) => table.id.equals("slot-1"))).write(
-        const OcptShootingSlotsTableCompanion(startMinute: Value(360)),
+        const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)),
       );
 
       // As if the edit had already been stamped by the changeset engine.
@@ -1154,7 +1154,7 @@ void main() {
             OcptRowFieldVersionsTableCompanion.insert(
               targetTableName: "shooting_slots",
               rowId: "slot-1",
-              columnName: "startMinute",
+              columnName: "anchorMinute",
               version: 4,
               deviceId: "device-0",
             ),
@@ -1163,8 +1163,8 @@ void main() {
       await restore(version.id);
 
       final stamps = await readStamps();
-      expect(stamps["shooting_slots/slot-1/startMinute"]?.version, 5);
-      expect(stamps["shooting_slots/slot-1/startMinute"]?.deviceId, deviceId);
+      expect(stamps["shooting_slots/slot-1/anchorMinute"]?.version, 5);
+      expect(stamps["shooting_slots/slot-1/anchorMinute"]?.deviceId, deviceId);
     });
 
     test("restores the currency the version was captured with", () async {

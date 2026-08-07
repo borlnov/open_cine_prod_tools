@@ -20,11 +20,13 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The value the "no location" entry of the location picker menu carries, distinct from every
@@ -32,15 +34,33 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// selectable.
 const String _noLocationOption = "";
 
+/// The header width under which a linked anchor reads as `⛓ <slot>` rather than as the whole
+/// sentence — the inspector opening beside the day view is what usually takes a card below it.
+const double _compactHeaderWidth = 460;
+
+/// One choice of the slot card's own anchor menu: which edge is being pinned, and — for a link —
+/// the slot whose **opposite** edge it reads. A null [_OcptScheduleSlotAnchorChoice.sourceSlotId]
+/// is the fixed-hour entry of that edge.
+class _OcptScheduleSlotAnchorChoice {
+  /// The edge this entry pins.
+  final OcptShootingSlotAnchorEdge edge;
+
+  /// The slot this entry reads the opposite edge of, or null for a typed hour.
+  final String? sourceSlotId;
+
+  /// Class constructor
+  const _OcptScheduleSlotAnchorChoice(this.edge, this.sourceSlotId);
+}
+
 /// The width every crew or cast card of a slot's own people sections claims when there is room for
 /// it. [OcptScheduleSlotCard.build] never hands a card more than half its own body width, though: a
 /// half narrower than this shrinks every card of that half down to fit instead of overflowing it.
 const double _personCardWidth = 230;
 
-/// One slot's own card in the day view: its label, its location and set, its own note below
-/// them — what this slot alone needs saying, the day's own note to the crew being a different
-/// thing — its own **start**
-/// minute — the one clock left on a slot — then a row of two halves, `Équipe technique` (grouped by
+/// One slot's own card in the day view: its `▲`/`▼` reorder pair, its label, its location and set,
+/// its own note below them — what this slot alone needs saying, the day's own note to the crew
+/// being a different thing — its own **anchored edge** — the one hour a slot is pinned by, with the
+/// computed opposite edge read out under it — then a row of two halves, `Équipe technique` (grouped by
 /// department, foldable — see [_OcptScheduleCrewSection]) and `Comédiens`, each ending on its own
 /// `+ Crew member`/`+ Cast` footer opening a person or role picker right there on the card, with no
 /// duplicate list anywhere in the right dock — and, below both, this slot's **own**
@@ -54,11 +74,21 @@ const double _personCardWidth = 230;
 /// is a fact about a person on a **day**, joined across every slot they sit on, so it cannot be read
 /// from one slot's card in isolation — the computed arrival/PAT/departure that used to sit here move
 /// to the day's own convocations panel instead. The one editable clock on the whole card is the
-/// slot's own start ([onStartChanged]).
+/// slot's own anchor ([onAnchorChanged]).
+///
+/// **The anchor control is a flat menu on the edge label** (`Début à heure fixe`, `Fin à heure
+/// fixe`, then one entry per other slot of the day, in both directions), with the typed hour beside
+/// it and the computed opposite edge under it. An entry that would close a circle of anchors is
+/// shown **disabled with its reason** rather than left out — in a menu this short, a missing entry
+/// reads as a bug — and picking a fixed-hour entry while the edge is linked **freezes the hour it
+/// was reading at that moment**, rather than emptying the field or resurrecting a stale value. A
+/// linked edge's button carries the whole sentence, falling back to `⛓ <slot>` with the sentence in
+/// its tooltip once the card narrows.
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed (`isReadOnly`): the label field, the location/set pickers, the note field below them,
-/// the start field, the `▲`/`▼` controls moving the card in its day's list, every
+/// the anchor menu and its own minute field, the `▲`/`▼` controls moving the card in its day's
+/// list, every
 /// crew/cast row's own position picker and remove control, both `+`
 /// footers, and every writing affordance of the timetable itself, its own hold row's sequence
 /// picker included (see [OcptScheduleTimetable]'s own doc comment). Nothing here reads a
@@ -105,8 +135,16 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// Called with the location and set just picked, or null while withheld.
   final void Function(String? locationId, String? setId)? onPlaceChanged;
 
-  /// Called with the slot's own new start minute once committed, or null while withheld.
-  final ValueChanged<int>? onStartChanged;
+  /// Called with the slot's own new anchor once picked or committed, or null while withheld:
+  /// which edge is pinned, and then **exactly one** of the typed hour and the slot whose opposite
+  /// edge it reads — the discriminator `OcptShootingSlotsTable` declares.
+  final void Function(OcptShootingSlotAnchorEdge edge, int? minute, String? sourceSlotId)?
+  onAnchorChanged;
+
+  /// Every live slot of this slot's own day mapped to the id its own anchor currently reads, or
+  /// null when that anchor is a typed hour — what the anchor menu greys a circular entry out with
+  /// (`ocptSlotAnchorWouldCycle`).
+  final Map<String, String?> anchorSourceBySlotId;
 
   /// Called when the card's own `▲` control is clicked, or null when this slot cannot move up (it
   /// is its day's first) or the affordance is withheld. **The pair is drawn as soon as either of
@@ -215,7 +253,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.notesValue,
     required this.onNotesChanged,
     required this.onPlaceChanged,
-    required this.onStartChanged,
+    required this.onAnchorChanged,
+    required this.anchorSourceBySlotId,
     required this.onMovedUp,
     required this.onMovedDown,
     required this.onDeletionRequested,
@@ -260,33 +299,38 @@ class OcptScheduleSlotCard extends StatelessWidget {
           Container(
             color: theme.colorScheme.surfaceContainer,
             padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 4,
-                  constraints: const BoxConstraints(minHeight: 30),
-                  decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(2)),
-                ),
-                const SizedBox(width: 11),
-                Expanded(child: _buildHeaderFields(context)),
-                const SizedBox(width: 11),
-                _buildStartField(context),
-                if (onMovedUp != null || onMovedDown != null) _buildMoveControls(context),
-                if (onDeletionRequested != null)
-                  PopupMenuButton<VoidCallback>(
-                    icon: const Icon(Icons.more_vert, size: 16),
-                    tooltip: "",
-                    padding: EdgeInsets.zero,
-                    onSelected: (action) => action(),
-                    itemBuilder: (context) => [
-                      PopupMenuItem<VoidCallback>(
-                        value: onDeletionRequested,
-                        child: Text(tr.scheduleDeleteSlotAction),
-                      ),
-                    ],
+            child: LayoutBuilder(
+              builder: (context, constraints) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (onMovedUp != null || onMovedDown != null) _buildMoveControls(context),
+                  Container(
+                    width: 4,
+                    constraints: const BoxConstraints(minHeight: 30),
+                    decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(2)),
                   ),
-              ],
+                  const SizedBox(width: 11),
+                  Expanded(child: _buildHeaderFields(context)),
+                  const SizedBox(width: 11),
+                  _buildAnchorControl(
+                    context,
+                    isCompact: constraints.maxWidth < _compactHeaderWidth,
+                  ),
+                  if (onDeletionRequested != null)
+                    PopupMenuButton<VoidCallback>(
+                      icon: const Icon(Icons.more_vert, size: 16),
+                      tooltip: "",
+                      padding: EdgeInsets.zero,
+                      onSelected: (action) => action(),
+                      itemBuilder: (context) => [
+                        PopupMenuItem<VoidCallback>(
+                          value: onDeletionRequested,
+                          child: Text(tr.scheduleDeleteSlotAction),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
           Padding(
@@ -530,26 +574,224 @@ class OcptScheduleSlotCard extends StatelessWidget {
     style: Theme.of(context).textTheme.bodySmall,
   );
 
-  /// The header's own start field — the one clock a slot still carries, right-aligned.
-  Widget _buildStartField(BuildContext context) {
+  /// The header's own anchor control, right-aligned: the pinned edge on top — a menu picking which
+  /// edge that is and where its hour comes from, then either the typed hour or the computed one —
+  /// and the **opposite**, always-computed edge read out under it in the muted colour.
+  ///
+  /// [isCompact] is the card's own header width falling under [_compactHeaderWidth] (the inspector
+  /// opening beside it, most often): a linked edge then reads as `⛓ <slot>` rather than the whole
+  /// sentence, which moves to the button's tooltip.
+  Widget _buildAnchorControl(BuildContext context, {required bool isCompact}) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    final isEndAnchored = slot.anchorEdge == OcptShootingSlotAnchorEdge.end;
+    final resolvedStartMinute = timeline?.startMinute;
+    // ADR 0015's rule 5: a slot with nothing placed in it ends where it starts.
+    final resolvedEndMinute = timeline?.endMinute ?? resolvedStartMinute;
+    final anchoredMinute = isEndAnchored ? resolvedEndMinute : resolvedStartMinute;
+    final oppositeMinute = isEndAnchored ? resolvedStartMinute : resolvedEndMinute;
+    final oppositeLabel = isEndAnchored ? tr.scheduleSlotStartLabel : tr.scheduleSlotEndLabel;
+    final sourceLabel = slot.anchorSlotId == null ? null : _labelOfSlot(context, slot.anchorSlotId!);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text("${tr.scheduleSlotStartLabel} ", style: theme.textTheme.labelSmall),
-        OcptScheduleMinuteField(
-          minute: slot.startMinute,
-          isClearable: false,
-          emptyHint: "—",
-          onChanged: onStartChanged == null
-              ? null
-              : (value) => onStartChanged!(value ?? slot.startMinute),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildAnchorButton(
+              context,
+              isCompact: isCompact,
+              sourceLabel: sourceLabel,
+              anchoredMinute: anchoredMinute,
+            ),
+            const SizedBox(width: 4),
+            // A linked edge's hour is computed like every other, so its field carries no callback
+            // and renders as plain text — the same way every computed time in this mode is read out.
+            OcptScheduleMinuteField(
+              minute: sourceLabel == null ? slot.anchorMinute : anchoredMinute,
+              isClearable: false,
+              emptyHint: "—",
+              onChanged: onAnchorChanged == null || sourceLabel != null
+                  ? null
+                  : (value) => onAnchorChanged!(
+                      slot.anchorEdge,
+                      value ?? slot.anchorMinute ?? anchoredMinute ?? 0,
+                      null,
+                    ),
+            ),
+          ],
+        ),
+        Text(
+          "$oppositeLabel ${oppositeMinute == null ? "—" : ocptFormatDayMinute(oppositeMinute)}",
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ],
     );
   }
+
+  /// The anchor control's own edge button: the flat menu when this card may be written to, the same
+  /// wording as plain text when it may not.
+  Widget _buildAnchorButton(
+    BuildContext context, {
+    required bool isCompact,
+    required String? sourceLabel,
+    required int? anchoredMinute,
+  }) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final isEndAnchored = slot.anchorEdge == OcptShootingSlotAnchorEdge.end;
+
+    final sentence = sourceLabel == null
+        ? (isEndAnchored ? tr.scheduleSlotEndLabel : tr.scheduleSlotStartLabel)
+        : (isEndAnchored
+              ? tr.scheduleSlotAnchorEndFromSlot(sourceLabel)
+              : tr.scheduleSlotAnchorStartFromSlot(sourceLabel));
+    final shown = sourceLabel != null && isCompact
+        ? tr.scheduleSlotAnchorLinkedShort(sourceLabel)
+        : sentence;
+    final label = Text(
+      shown,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.labelSmall,
+    );
+
+    if (onAnchorChanged == null) {
+      return Tooltip(message: sentence, child: label);
+    }
+
+    return PopupMenuButton<_OcptScheduleSlotAnchorChoice>(
+      tooltip: sourceLabel == null ? tr.scheduleSlotAnchorTooltip : sentence,
+      onSelected: (choice) => _onAnchorChoicePicked(choice, anchoredMinute),
+      itemBuilder: _buildAnchorMenu,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: label),
+          const Icon(Icons.arrow_drop_down, size: 14),
+        ],
+      ),
+    );
+  }
+
+  /// The anchor menu's own entries: the two fixed-hour ones, then, per other live slot of the day,
+  /// the two directions a link can read it in. Every entry carries a **non-null** value, a
+  /// [PopupMenuButton] reading null as "the menu was dismissed" and never calling `onSelected` for
+  /// it — the trap `ocptNewLocationMenuValue` already documents.
+  List<PopupMenuEntry<_OcptScheduleSlotAnchorChoice>> _buildAnchorMenu(BuildContext context) {
+    final tr = Tr.of(context);
+    final isLinked = slot.anchorSlotId != null;
+
+    return [
+      _buildAnchorMenuItem(
+        context,
+        choice: const _OcptScheduleSlotAnchorChoice(OcptShootingSlotAnchorEdge.start, null),
+        label: tr.scheduleSlotAnchorStartFixed,
+        isSelected: !isLinked && slot.anchorEdge == OcptShootingSlotAnchorEdge.start,
+      ),
+      _buildAnchorMenuItem(
+        context,
+        choice: const _OcptScheduleSlotAnchorChoice(OcptShootingSlotAnchorEdge.end, null),
+        label: tr.scheduleSlotAnchorEndFixed,
+        isSelected: !isLinked && slot.anchorEdge == OcptShootingSlotAnchorEdge.end,
+      ),
+      if (otherSlots.isNotEmpty) const PopupMenuDivider(),
+      for (final (sourceId, rawLabel) in otherSlots)
+        for (final edge in OcptShootingSlotAnchorEdge.values)
+          _buildAnchorMenuItem(
+            context,
+            choice: _OcptScheduleSlotAnchorChoice(edge, sourceId),
+            label: edge == OcptShootingSlotAnchorEdge.start
+                ? tr.scheduleSlotAnchorStartFromSlot(_labelOf(context, rawLabel))
+                : tr.scheduleSlotAnchorEndFromSlot(_labelOf(context, rawLabel)),
+            isSelected: slot.anchorSlotId == sourceId && slot.anchorEdge == edge,
+            disabledReason: ocptSlotAnchorWouldCycle(
+              anchorSourceBySlotId: anchorSourceBySlotId,
+              slotId: slot.id,
+              sourceSlotId: sourceId,
+            )
+                ? tr.scheduleSlotAnchorCycleReason
+                : null,
+          ),
+    ];
+  }
+
+  /// One entry of the anchor menu: its wording, a `✓` when it is the anchor in force, and — when it
+  /// would close a circle — its own reason under it, greyed rather than left out.
+  PopupMenuEntry<_OcptScheduleSlotAnchorChoice> _buildAnchorMenuItem(
+    BuildContext context, {
+    required _OcptScheduleSlotAnchorChoice choice,
+    required String label,
+    required bool isSelected,
+    String? disabledReason,
+  }) {
+    final theme = Theme.of(context);
+
+    return PopupMenuItem<_OcptScheduleSlotAnchorChoice>(
+      value: choice,
+      enabled: disabledReason == null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label),
+                if (disabledReason != null)
+                  Text(
+                    disabledReason,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (isSelected) const Icon(Icons.check, size: 14),
+        ],
+      ),
+    );
+  }
+
+  /// Reports [choice] to [onAnchorChanged], **freezing the hour the edge was reading** when it goes
+  /// back to a typed one: switching away from a link pre-fills the field with what it was showing
+  /// at that moment, rather than emptying it or resurrecting whatever was typed before the link.
+  void _onAnchorChoicePicked(_OcptScheduleSlotAnchorChoice choice, int? anchoredMinute) {
+    final onAnchorChanged = this.onAnchorChanged;
+    if (onAnchorChanged == null) {
+      return;
+    }
+
+    if (choice.sourceSlotId != null) {
+      onAnchorChanged(choice.edge, null, choice.sourceSlotId);
+      return;
+    }
+
+    final resolvedStartMinute = timeline?.startMinute;
+    final frozen = choice.edge == OcptShootingSlotAnchorEdge.end
+        ? (timeline?.endMinute ?? resolvedStartMinute)
+        : resolvedStartMinute;
+    onAnchorChanged(choice.edge, frozen ?? anchoredMinute ?? slot.anchorMinute ?? 0, null);
+  }
+
+  /// The label of the day's own slot [slotId], as [otherSlots] carries it, or the unnamed-slot
+  /// wording when it has none (or names no slot of this day any more).
+  String _labelOfSlot(BuildContext context, String slotId) {
+    for (final (id, rawLabel) in otherSlots) {
+      if (id == slotId) {
+        return _labelOf(context, rawLabel);
+      }
+    }
+
+    return Tr.of(context).scheduleInspectorUnnamedSlot;
+  }
+
+  /// [rawLabel], or the unnamed-slot wording when it is empty.
+  String _labelOf(BuildContext context, String rawLabel) =>
+      rawLabel.isEmpty ? Tr.of(context).scheduleInspectorUnnamedSlot : rawLabel;
 
   /// The `Comédiens` half: [slot]'s own convoked roles wrapped at [cardWidth] each, then the
   /// `+ Cast` footer — both hidden while [isExpanded] is false, its title then standing for the

@@ -44,8 +44,9 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   /// month's own weeks, as [firstWeekday] cuts them.
   final List<OcptShootingDay> days;
 
-  /// Each day's own live slots, keyed by day id — what a cell's own call time
-  /// ([_ocptEarliestSlotStartMinute]) and its multi-slot badge are both read off.
+  /// Each day's own live slots, keyed by day id — what a cell's own multi-slot badge is read off.
+  /// Its **call time** comes from [timelineOf] instead: a slot's own hour is computed, never
+  /// stored (ADR 0015, amended a second time).
   final Map<String, List<OcptShootingSlot>> slotsByDayId;
 
   /// Each day's own first slot's location, keyed by day id.
@@ -130,19 +131,6 @@ class OcptScheduleMonthGrid extends StatelessWidget {
 /// [date] with its time component dropped, so it can key a `Map` alongside `OcptShootingDay.date`.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
-/// The earliest of [slots]' own [OcptShootingSlot.startMinute], or null when [slots] is empty.
-///
-/// A day's own slots chain independently (ADR 0015, amended), each from its own `startMinute`, so
-/// the **first** slot in `sortKey` order is not necessarily the one that calls its crew earliest —
-/// a production may well list its evening unit before its morning one. A cell's own "call" reads as
-/// this instead: the earliest moment anyone on the day is due, whichever slot that turns out to be.
-int? _ocptEarliestSlotStartMinute(List<OcptShootingSlot> slots) {
-  if (slots.isEmpty) {
-    return null;
-  }
-  return slots.map((slot) => slot.startMinute).reduce((a, b) => a < b ? a : b);
-}
-
 /// One cell of the month grid.
 class _OcptScheduleMonthCell extends StatelessWidget {
   /// The calendar date this cell stands for.
@@ -193,7 +181,12 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     final tr = Tr.of(context);
     final day = this.day;
     final tint = day == null ? null : ocptScheduleDayLocationTint(context, location);
-    final earliestCallMinute = _ocptEarliestSlotStartMinute(slots);
+    // A day's own slots chain independently (ADR 0015, amended twice), each from its own resolved
+    // start, so the **first** slot in `sortKey` order is not necessarily the one that calls its
+    // crew earliest — a production may well list its evening unit before its morning one. A cell's
+    // own "call" reads as the earliest moment anyone on the day is due, whichever slot that turns
+    // out to be, which is exactly what `dayStartMinute` is.
+    final earliestCallMinute = timeline?.dayStartMinute;
     final sunTimes = this.sunTimes;
 
     return InkWell(

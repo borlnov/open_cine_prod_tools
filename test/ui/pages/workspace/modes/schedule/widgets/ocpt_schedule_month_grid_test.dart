@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_month_grid.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
@@ -40,14 +41,19 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
       notes: "",
     );
 
-/// Builds a shooting slot with the few fields these tests read, everything else neutral.
-OcptShootingSlot _buildSlot({required String id, required int startMinute}) => OcptShootingSlot(
+/// Builds a shooting slot with the few fields these tests read, everything else neutral. Its own
+/// hour is deliberately absent: a cell reads its call off the day's computed timelines, never off a
+/// slot's stored anchor (ADR 0015, amended a second time), and these slots are only here for the
+/// multi-slot badge that counts them.
+OcptShootingSlot _buildSlot({required String id}) => OcptShootingSlot(
   id: id,
   shootingDayId: "day-1",
   label: "",
   locationId: null,
   setId: null,
-  startMinute: startMinute,
+  anchorEdge: OcptShootingSlotAnchorEdge.start,
+  anchorMinute: 480,
+  anchorSlotId: null,
   notes: "",
   crew: const [],
   cast: const [],
@@ -57,17 +63,23 @@ void main() {
   // Any date inside August 2026 — the tests below only ever place a single day, on the 3rd.
   final anchorDate = DateTime(2026, 8, 3);
 
-  testWidgets("a month cell reads the earliest slot's start, not the first slot's own", (
+  testWidgets("a month cell reads the day's own earliest resolved start, not its first slot's", (
     tester,
   ) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: anchorDate);
     // slot-1 is given first (`sortKey` order) but starts later than slot-2: the day's own call is
-    // still 08:00, the earliest of the two, not 10:00.
-    final slots = [
-      _buildSlot(id: "slot-1", startMinute: 600),
-      _buildSlot(id: "slot-2", startMinute: 480),
-    ];
-    const timeline = OcptShootingDayTimelines(bySlotId: {}, entries: [], overruns: [], dayEndMinute: 1080);
+    // still 08:00, the earliest of the two, not 10:00 — which is exactly what `dayStartMinute` is,
+    // computed over the resolved starts rather than read off the first slot in the list.
+    final slots = [_buildSlot(id: "slot-1"), _buildSlot(id: "slot-2")];
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
+      entries: [],
+      overruns: [],
+      fixedEndMisses: [],
+      anchorCycles: [],
+      dayStartMinute: 480,
+      dayEndMinute: 1080,
+    );
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -92,7 +104,7 @@ void main() {
 
   testWidgets("a single-slot day's cell carries no multi-slot badge", (tester) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: anchorDate);
-    final slots = [_buildSlot(id: "slot-1", startMinute: 480)];
+    final slots = [_buildSlot(id: "slot-1")];
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -117,8 +129,8 @@ void main() {
   testWidgets("a multi-slot day's cell carries a badge naming its own slot count", (tester) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: anchorDate);
     final slots = [
-      _buildSlot(id: "slot-1", startMinute: 480),
-      _buildSlot(id: "slot-2", startMinute: 600),
+      _buildSlot(id: "slot-1"),
+      _buildSlot(id: "slot-2"),
     ];
 
     await tester.pumpWidget(

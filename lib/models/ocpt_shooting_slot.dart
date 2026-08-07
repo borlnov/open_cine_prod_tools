@@ -6,15 +6,20 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// A convocation window inside a `OcptShootingDay` — the *créneau* the reference call sheets print
 /// — joined with its live [crew] and [cast], both in `sortKey` order, exactly as
 /// `OcptLocation.sets` nests a location's live sets.
 ///
-/// **[startMinute] may exceed 1440.** See `OcptShootingSlotsTable`'s own doc comment: it is this
-/// slot's one typed clock, and every other convocation time is computed off it, never stored here —
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015) and
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0017).
+/// **[anchorEdge] plus exactly one of [anchorMinute]/[anchorSlotId] is the whole of what this slot
+/// says about time**, and a stored minute may exceed 1440. See `OcptShootingSlotsTable`'s own doc
+/// comment: where this slot actually starts and ends is computed, never read off a column here —
+/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended twice) and
+/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). A widget that wants "the hour of this
+/// slot" reads its resolved `OcptShootingSlotTimeline.startMinute`, not [anchorMinute], which is
+/// null the moment the edge is linked and is the *end* whenever [anchorEdge] is
+/// [OcptShootingSlotAnchorEdge.end].
 class OcptShootingSlot extends Equatable {
   /// The stable, unique id of this slot (a UUID).
   final String id;
@@ -31,8 +36,15 @@ class OcptShootingSlot extends Equatable {
   /// The set (décor) this slot is shot at, or null while none is chosen.
   final String? setId;
 
-  /// The minute, from the day's own midnight, this slot's own chain of blocks starts at.
-  final int startMinute;
+  /// Which of this slot's two edges is the pinned one.
+  final OcptShootingSlotAnchorEdge anchorEdge;
+
+  /// The hour [anchorEdge] is pinned to, typed by hand — null exactly when [anchorSlotId] is set.
+  final int? anchorMinute;
+
+  /// The slot of the same day whose **opposite** edge [anchorEdge] reads its hour off — null
+  /// exactly when [anchorMinute] is set.
+  final String? anchorSlotId;
 
   /// Free-form notes about this slot.
   final String notes;
@@ -50,7 +62,9 @@ class OcptShootingSlot extends Equatable {
     required this.label,
     required this.locationId,
     required this.setId,
-    required this.startMinute,
+    required this.anchorEdge,
+    required this.anchorMinute,
+    required this.anchorSlotId,
     required this.notes,
     required this.crew,
     required this.cast,
@@ -67,7 +81,9 @@ class OcptShootingSlot extends Equatable {
     label: row.label,
     locationId: row.locationId,
     setId: row.setId,
-    startMinute: row.startMinute,
+    anchorEdge: row.anchorEdge,
+    anchorMinute: row.anchorMinute,
+    anchorSlotId: row.anchorSlotId,
     notes: row.notes,
     crew: crew,
     cast: cast,
@@ -85,7 +101,9 @@ class OcptShootingSlot extends Equatable {
     label,
     locationId,
     setId,
-    startMinute,
+    anchorEdge,
+    anchorMinute,
+    anchorSlotId,
     notes,
     crew,
     cast,

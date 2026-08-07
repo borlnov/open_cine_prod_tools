@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
@@ -74,7 +75,9 @@ void main() {
           label: "",
           locationId: null,
           setId: null,
-          startMinute: 480,
+          anchorEdge: OcptShootingSlotAnchorEdge.start,
+          anchorMinute: 480,
+          anchorSlotId: null,
           notes: "",
           crew: [],
           cast: [
@@ -140,7 +143,9 @@ void main() {
         label: "",
         locationId: null,
         setId: null,
-        startMinute: 480,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
         notes: "",
         crew: [],
         cast: [
@@ -197,7 +202,9 @@ void main() {
         label: "",
         locationId: null,
         setId: null,
-        startMinute: 420,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 420,
+        anchorSlotId: null,
         notes: "",
         crew: [],
         cast: [],
@@ -208,7 +215,9 @@ void main() {
         label: "",
         locationId: null,
         setId: null,
-        startMinute: 480,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
         notes: "",
         crew: [],
         cast: [],
@@ -235,6 +244,48 @@ void main() {
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
       expect(state.dayArrivalMinute("day-1"), 420);
+    });
+
+    test("an end-anchored slot's own resolved start counts, not the hour it stores", () {
+      // The slot is pinned to finish at 12:00 and holds an hour of work, so it starts at 11:00 —
+      // which is what a day's arrival reads, never the 720 stored on the row.
+      const endAnchoredSlot = OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.end,
+        anchorMinute: 720,
+        anchorSlotId: null,
+        notes: "",
+        crew: [],
+        cast: [],
+      );
+      final day = OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026),
+        dayNumber: 1,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final snapshot = OcptScheduleSnapshot.build(
+        screenplayId: "screenplay-1",
+        days: [day],
+        slotsByDayId: const {
+          "day-1": [endAnchoredSlot],
+        },
+        blocksByDayId: {
+          "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", durationMinutes: 60)],
+        },
+      );
+
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+
+      expect(state.dayArrivalMinute("day-1"), 660);
     });
 
     test("a day with no live slot at all answers null", () {

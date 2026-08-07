@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -27,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
@@ -579,20 +581,36 @@ void main() {
         label: "Matin",
         locationId: "location-1",
         setId: "set-1",
-        startMinute: 420,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 420,
         notes: "Check the generator before crew call",
         isDeleted: false,
       ),
       OcptShootingSlotRow(
         id: "slot-2",
-        // A night slot running past midnight: startMinute exceeds 1440, never taken modulo
-        // anything — see ocpt_shooting_slots_table.dart.
+        // A night slot running past midnight: its anchor minute exceeds 1440, never taken modulo
+        // anything — see ocpt_shooting_slots_table.dart. It is pinned by its **end** and reads
+        // nothing off another slot, the other half of the discriminator being exercised by
+        // "slot-3" below.
         shootingDayId: "day-1",
         sortKey: "k",
         label: "",
-        startMinute: 1140,
+        anchorEdge: OcptShootingSlotAnchorEdge.end,
+        anchorMinute: 1620,
         notes: "",
         isDeleted: true,
+      ),
+      OcptShootingSlotRow(
+        id: "slot-3",
+        // The linked half of the anchor discriminator: no typed minute at all, its start read off
+        // slot-1's own end.
+        shootingDayId: "day-1",
+        sortKey: "p",
+        label: "Soir",
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorSlotId: "slot-1",
+        notes: "",
+        isDeleted: false,
       ),
     ],
     shootingSlotCrew: const [
@@ -922,14 +940,24 @@ void main() {
       expect(slot.label, "Matin");
       expect(slot.locationId, "location-1");
       expect(slot.setId, "set-1");
-      expect(slot.startMinute, 420);
-      // A night slot's start minute exceeds 1440 and comes back exactly as stored, never taken
+      expect(slot.anchorEdge, OcptShootingSlotAnchorEdge.start);
+      expect(slot.anchorMinute, 420);
+      expect(slot.anchorSlotId, isNull);
+      // A night slot's anchored minute exceeds 1440 and comes back exactly as stored, never taken
       // modulo anything — see ocpt_shooting_slots_table.dart.
       final nightSlot = roundTripped.shootingSlots.firstWhere((row) => row.id == "slot-2");
-      expect(nightSlot.startMinute, 1140);
+      expect(nightSlot.anchorEdge, OcptShootingSlotAnchorEdge.end);
+      expect(nightSlot.anchorMinute, 1620);
       expect(nightSlot.locationId, isNull);
       expect(nightSlot.setId, isNull);
       expect(nightSlot.isDeleted, isTrue);
+
+      // The other half of the anchor discriminator: a linked edge comes back with no minute and
+      // the slot it reads.
+      final linkedSlot = roundTripped.shootingSlots.firstWhere((row) => row.id == "slot-3");
+      expect(linkedSlot.anchorEdge, OcptShootingSlotAnchorEdge.start);
+      expect(linkedSlot.anchorMinute, isNull);
+      expect(linkedSlot.anchorSlotId, "slot-1");
 
       final crew = roundTripped.shootingSlotCrew.firstWhere((row) => row.id == "crew-1");
       expect(crew.slotId, "slot-1");
@@ -1615,7 +1643,7 @@ void main() {
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewDay)));
     });
 
-    test("changes when a slot's start minute changes", () {
+    test("changes when a slot's anchored hour changes", () {
       final payload = buildRichPayload();
       final recalled = OcptProjectVersionPayload(
         screenplays: payload.screenplays,
@@ -1639,7 +1667,7 @@ void main() {
         sceneBreakdowns: payload.sceneBreakdowns,
         shootingDays: payload.shootingDays,
         shootingSlots: [
-          payload.shootingSlots.first.copyWith(startMinute: 360),
+          payload.shootingSlots.first.copyWith(anchorMinute: const drift.Value(360)),
           ...payload.shootingSlots.skip(1),
         ],
         shootingSlotCrew: payload.shootingSlotCrew,
@@ -2327,12 +2355,16 @@ void main() {
         expect(result.status, OcptProjectVersionPayloadStatus.ok);
         final payload = result.value!;
 
-        // (a) every slot gains startMinute from its old crewCallMinute; the three dropped columns
+        // (a) every slot gains its start from its old crewCallMinute; the three dropped columns
         // simply aren't read any more (there is no field left on the row to read them through).
+        // Decoding always upgrades to the current format, so what that start lands in is the
+        // format-9 anchor trio: pinned by the start edge, at the hour the payload carried.
         final firstSlot = payload.shootingSlots.firstWhere((row) => row.id == "slot-first");
-        expect(firstSlot.startMinute, 480);
+        expect(firstSlot.anchorEdge, OcptShootingSlotAnchorEdge.start);
+        expect(firstSlot.anchorMinute, 480);
+        expect(firstSlot.anchorSlotId, isNull);
         final secondSlot = payload.shootingSlots.firstWhere((row) => row.id == "slot-second");
-        expect(secondSlot.startMinute, 600);
+        expect(secondSlot.anchorMinute, 600);
 
         // (b) the crew and cast rows survived their old clock overrides being dropped, and — this
         // payload also being carried straight through the format-7-to-8 step, since decoding always
@@ -2475,6 +2507,103 @@ void main() {
         expect(crew.positionId, "director");
         final cast = payload.shootingSlotCast.single;
         expect(cast.roleId, "role-1");
+      },
+    );
+
+    test(
+      'a stored format-8 payload decodes with every slot anchored by the start it had',
+      () {
+        // The shape ADR 0018 left behind: a slot owning a single typed `startMinute`, which M1
+        // replaces with the anchored-edge trio. [_upgradeFormat8To9] is a **rename**, so the hour
+        // itself must come back untouched, on the start edge, reading no other slot.
+        const format8Payload = '''
+{
+  "payloadFormat": 8,
+  "screenplays": [],
+  "scenes": [],
+  "shots": [],
+  "shotCharacters": [],
+  "shotCoverages": [],
+  "people": [],
+  "personPositions": [],
+  "personSkills": [],
+  "personUnavailabilities": [],
+  "roles": [],
+  "locations": [],
+  "locationAvailabilities": [],
+  "sets": [],
+  "sceneSets": [],
+  "elements": [],
+  "sceneElements": [],
+  "assets": [],
+  "breakdownTags": [],
+  "sceneBreakdowns": [],
+  "shootingDays": [
+    {
+      "id": "day-1",
+      "screenplayId": "screenplay-1",
+      "date": "2026-03-10T00:00:00.000Z",
+      "sortKey": "V",
+      "status": "planned",
+      "crewNote": "",
+      "weatherNote": "",
+      "notes": "",
+      "isDeleted": false
+    }
+  ],
+  "shootingSlots": [
+    {
+      "id": "slot-1",
+      "shootingDayId": "day-1",
+      "sortKey": "V",
+      "label": "Matin",
+      "locationId": null,
+      "setId": null,
+      "startMinute": 480,
+      "notes": "",
+      "isDeleted": false
+    },
+    {
+      "id": "slot-2",
+      "shootingDayId": "day-1",
+      "sortKey": "k",
+      "label": "Nuit",
+      "locationId": null,
+      "setId": null,
+      "startMinute": 1140,
+      "notes": "",
+      "isDeleted": false
+    }
+  ],
+  "shootingSlotCrew": [],
+  "shootingSlotCast": [],
+  "shootingDayBlocks": [],
+  "shootingPresences": [],
+  "rowFieldVersions": [],
+  "projectSettings": { "pageFormat": "a4", "settingsJson": null, "currencyCode": "EUR" },
+  "pageMargins": {
+    "leftInches": 1.5,
+    "rightInches": 1,
+    "topInches": 0.75,
+    "bottomInches": 1.25
+  }
+}
+''';
+
+        final result = codec.decode(format8Payload);
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        final payload = result.value!;
+
+        final slotsById = {for (final row in payload.shootingSlots) row.id: row};
+        expect(slotsById['slot-1']!.anchorEdge, OcptShootingSlotAnchorEdge.start);
+        expect(slotsById['slot-1']!.anchorMinute, 480);
+        expect(slotsById['slot-1']!.anchorSlotId, isNull);
+        // A night slot's own hour exceeds 1440 and is carried across untouched, never taken modulo
+        // anything.
+        expect(slotsById['slot-2']!.anchorEdge, OcptShootingSlotAnchorEdge.start);
+        expect(slotsById['slot-2']!.anchorMinute, 1140);
+        expect(slotsById['slot-2']!.anchorSlotId, isNull);
       },
     );
   });

@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
@@ -86,7 +87,9 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   label: label,
   locationId: null,
   setId: null,
-  startMinute: 480,
+  anchorEdge: OcptShootingSlotAnchorEdge.start,
+  anchorMinute: 480,
+  anchorSlotId: null,
   notes: "",
   crew: const [],
   cast: const [],

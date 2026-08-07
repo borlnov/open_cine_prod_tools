@@ -44,7 +44,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptPermitStatusConverter, OcptElementCategoryConverter, OcptElementSourceKindConverter,
 // OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
-// OcptShootingDayStatusConverter, OcptShootingBlockKindConverter, OcptPresenceCodeConverter), but
+// OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
+// OcptShootingSlotAnchorEdgeConverter, OcptPresenceCodeConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -63,6 +64,7 @@ import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -99,7 +101,10 @@ part 'ocpt_project_database.g.dart';
 /// point at; schema version 13 drops that table again, and the `groupId`/`leadMinutes` columns of
 /// those two convocation tables with it — a convocation is read off the slots a person or a role is
 /// linked to from here on, never offset by a typed figure (see
-/// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). `OcptProjectsManager` owns the
+/// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). Schema version 14 replaces
+/// `shooting_slots.startMinute` with the three columns an anchored edge needs, so a slot can be
+/// pinned by its end as well as its start, or read its hour off another slot of the same day (ADR
+/// 0015, amended a second time). `OcptProjectsManager` owns the
 /// single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -203,7 +208,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   /// The database options used by this database.
   ///
@@ -262,12 +267,17 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [_alterScheduleTablesToV13]), drops the `groupId`/`leadMinutes` columns
   /// `shooting_slot_crew`/`shooting_slot_cast` briefly gained: a convocation is read off the slots a
   /// person or a role is linked to from here on, never offset by a typed figure (see
-  /// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). Every step is additive, as
+  /// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). From 13 to 14 it replaces
+  /// `shooting_slots.start_minute` with the three columns an anchored edge needs — `anchor_edge`,
+  /// `anchor_minute` and the self-referencing `anchor_slot_id` (see [_alterScheduleTablesToV14]) —
+  /// so a slot can be pinned by its **end** as well as its start, or read its hour off another slot
+  /// of the same day. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
-  /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, and version 13's own column
-  /// and table drops, none of which a plain `addColumn` can express, which is why both versions
-  /// reshape existing tables through [Migrator.alterTable]/[Migrator.deleteTable] instead.
+  /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
+  /// and table drops, and version 14's rename, none of which a plain `addColumn` can express, which
+  /// is why all three reshape existing tables through
+  /// [Migrator.alterTable]/[Migrator.deleteTable] instead.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
   /// them: a file coming from version 1 has just had those three tables created above, from the
@@ -388,6 +398,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         if (from >= 12) {
           await _alterScheduleTablesToV13(m);
         }
+      }
+
+      if (from < 14 && from >= 12) {
+        await _alterScheduleTablesToV14(m);
       }
     },
     beforeOpen: (details) async {
@@ -522,9 +536,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// reshaping a table in place (create the new shape under a temporary name, copy the old rows
   /// across, drop the old table, rename the temporary one).
   ///
-  /// `shooting_slots.crew_call_minute` is carried across as `start_minute` through a
-  /// `TableMigration.columnTransformer` naming the column by its raw SQL name (the rename left it
-  /// with no Dart getter to reference); `crew_wrap_minute`/`cast_call_minute`/`cast_wrap_minute` are
+  /// `shooting_slots.crew_call_minute` is carried across as `anchor_minute`, on a row anchored by
+  /// its `start`, through a `TableMigration.columnTransformer` naming the old column by its raw SQL
+  /// name (the rename left it with no Dart getter to reference). Schema version 12 spelled that
+  /// destination `start_minute`; version 14 has since replaced it with the anchored-edge trio
+  /// ([_alterScheduleTablesToV14]), and, exactly as with the crew/cast columns below, a file
+  /// reshaped straight from its v11 shape by this method lands on the **current** shape rather than
+  /// on the intermediate one — which is why the version 14 step is guarded by `from >= 12` and
+  /// therefore skipped for it. `crew_wrap_minute`/`cast_call_minute`/`cast_wrap_minute` are
   /// simply absent from the target shape and therefore dropped with no further action.
   /// `shooting_day_blocks.slot_id` is carried across unchanged — [_assignOrphanBlocksToFirstSlot] has
   /// already made sure every row holds one, which is what lets the freshly `NOT NULL` column accept
@@ -547,9 +566,16 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       // ignore: experimental_member_use
       TableMigration(
         ocptShootingSlotsTable,
-        newColumns: [ocptShootingSlotsTable.startMinute],
+        newColumns: [
+          ocptShootingSlotsTable.anchorEdge,
+          ocptShootingSlotsTable.anchorMinute,
+          ocptShootingSlotsTable.anchorSlotId,
+        ],
         columnTransformer: {
-          ocptShootingSlotsTable.startMinute: const CustomExpression<int>('crew_call_minute'),
+          // The literal must match `OcptShootingSlotAnchorEdge.start.name`, for the same reason the
+          // column's own default has to.
+          ocptShootingSlotsTable.anchorEdge: const Constant<String>('start'),
+          ocptShootingSlotsTable.anchorMinute: const CustomExpression<int>('crew_call_minute'),
         },
       ),
     );
@@ -609,6 +635,51 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       // Same as above.
       // ignore: experimental_member_use
       TableMigration(ocptShootingSlotCastTable),
+    );
+  }
+
+  /// Replaces `shooting_slots.start_minute` with the anchored-edge trio, on the way to schema
+  /// version 14 — guarded by `from >= 12` at its call site: a file from below 11 has just had
+  /// `shooting_slots` created fresh in its current (already v14) shape, and one coming from
+  /// version 11 has just been reshaped straight onto that same shape by
+  /// [_alterScheduleTablesToV12], whose own slots step already carries `crew_call_minute` into
+  /// `anchor_minute`. Only a file that genuinely reached version 12 or 13 still holds a
+  /// `start_minute` column for this method to rename.
+  ///
+  /// The same [Migrator.alterTable]/`TableMigration` recipe [_alterScheduleTablesToV12] uses, and
+  /// for the same reason — drift's migrator has no plain "rename column" step, and its picture of
+  /// the table mid-migration is the *current* Dart declaration, which no longer knows the name
+  /// `startMinute` at all.
+  ///
+  /// Every existing row comes out **anchored by its start, at the very hour it already had**:
+  /// `anchor_minute` is carried across from `start_minute` through a `columnTransformer` naming that
+  /// column by its raw SQL name, `anchor_edge` is written as the literal `start`, and
+  /// `anchor_slot_id` is left null — which is exactly how the app behaved for every project that
+  /// reaches this step, so a file opened after the migration draws the day it drew before it.
+  /// Nothing is guessed the other way round: no slot is turned into an end-anchored one because its
+  /// last block happened to land on a round hour.
+  ///
+  /// The new `anchor_slot_id` is a **self-referencing** foreign key, which the copy above can never
+  /// violate: it comes out null on every row.
+  Future<void> _alterScheduleTablesToV14(Migrator m) async {
+    await m.alterTable(
+      // TableMigration is drift's documented, if still @experimental, recipe for a rename: see the
+      // method's own doc comment.
+      // ignore: experimental_member_use
+      TableMigration(
+        ocptShootingSlotsTable,
+        newColumns: [
+          ocptShootingSlotsTable.anchorEdge,
+          ocptShootingSlotsTable.anchorMinute,
+          ocptShootingSlotsTable.anchorSlotId,
+        ],
+        columnTransformer: {
+          // The literal must match `OcptShootingSlotAnchorEdge.start.name`, for the same reason the
+          // column's own default has to.
+          ocptShootingSlotsTable.anchorEdge: const Constant<String>('start'),
+          ocptShootingSlotsTable.anchorMinute: const CustomExpression<int>('start_minute'),
+        },
+      ),
     );
   }
 

@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
@@ -50,7 +51,7 @@ class OcptScheduleDayView extends StatelessWidget {
   /// each slot card reads its own [OcptShootingDayTimelines.bySlotId] entry instead.
   final OcptShootingDayTimelines? timeline;
 
-  /// [day]'s own earliest arrival — the minimum [OcptShootingSlot.startMinute] over its live slots
+  /// [day]'s own earliest arrival — the minimum **resolved** start over its live slots
   /// (`OcptScheduleState.dayArrivalMinute`) — or null while it has no live slot at all. Read here
   /// for the summary band's own arrival-to-end range and its own total duration.
   final int? dayArrivalMinute;
@@ -112,8 +113,16 @@ class OcptScheduleDayView extends StatelessWidget {
   /// Called with a slot's id and the location/set just picked, or null while withheld.
   final void Function(String slotId, String? locationId, String? setId)? onSlotPlaceChanged;
 
-  /// Called with a slot's id and its own new start minute once committed, or null while withheld.
-  final void Function(String slotId, int startMinute)? onSlotStartChanged;
+  /// Called with a slot's id and its own new anchor once picked or committed, or null while
+  /// withheld: which edge is pinned, then **exactly one** of the typed hour and the slot whose
+  /// opposite edge it reads — see `OcptScheduleSlotCard.onAnchorChanged`.
+  final void Function(
+    String slotId,
+    OcptShootingSlotAnchorEdge edge,
+    int? minute,
+    String? sourceSlotId,
+  )?
+  onSlotAnchorChanged;
 
   /// Called with a slot's id and its 0-based new position within [slots] once one of its card's own
   /// `▲`/`▼` controls is clicked, or null while withheld — this view hands each card only the
@@ -207,7 +216,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onSlotLabelChanged,
     required this.onSlotNotesChanged,
     required this.onSlotPlaceChanged,
-    required this.onSlotStartChanged,
+    required this.onSlotAnchorChanged,
     required this.onSlotMoved,
     required this.onSlotDeletionRequested,
     required this.onSlotCrewMemberAdded,
@@ -258,9 +267,13 @@ class OcptScheduleDayView extends StatelessWidget {
               onPlaceChanged: onSlotPlaceChanged == null
                   ? null
                   : (locationId, setId) => onSlotPlaceChanged!(slot.id, locationId, setId),
-              onStartChanged: onSlotStartChanged == null
+              onAnchorChanged: onSlotAnchorChanged == null
                   ? null
-                  : (startMinute) => onSlotStartChanged!(slot.id, startMinute),
+                  : (edge, minute, sourceSlotId) =>
+                        onSlotAnchorChanged!(slot.id, edge, minute, sourceSlotId),
+              anchorSourceBySlotId: {
+                for (final other in slots) other.id: other.anchorSlotId,
+              },
               onMovedUp: onSlotMoved == null || index == 0
                   ? null
                   : () => onSlotMoved!(slot.id, index - 1),

@@ -181,7 +181,15 @@ void main() {
   });
 
   testWidgets("the card's own right column reads the day's own arrival-to-end range", (tester) async {
-    const timeline = OcptShootingDayTimelines(bySlotId: {}, entries: [], overruns: [], dayEndMinute: 1080);
+    const timeline = OcptShootingDayTimelines(
+      bySlotId: {},
+      entries: [],
+      overruns: [],
+      fixedEndMisses: [],
+      anchorCycles: [],
+      dayStartMinute: null,
+      dayEndMinute: 1080,
+    );
 
     await tester.pumpWidget(
       _wrapInApp(

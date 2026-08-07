@@ -155,7 +155,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
     on<OcptScheduleSlotCreatedEvent>(_onSlotCreated);
     on<OcptScheduleSlotPlaceChangedEvent>(_onSlotPlaceChanged);
-    on<OcptScheduleSlotStartChangedEvent>(_onSlotStartChanged);
+    on<OcptScheduleSlotAnchorChangedEvent>(_onSlotAnchorChanged);
     on<OcptScheduleSlotReorderedEvent>(_onSlotReordered);
     on<OcptScheduleSlotDeletionConfirmedEvent>(_onSlotDeletionConfirmed);
     on<OcptScheduleSlotCrewMemberAddedEvent>(_onSlotCrewMemberAdded);
@@ -629,7 +629,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _scheduleService.createSlot(
       database: project.database,
       shootingDayId: event.dayId,
-      startMinute: _defaultSlotStartMinute,
+      anchorMinute: _defaultSlotStartMinute,
     );
     await _applyScheduleSnapshot(emitter, project);
   }
@@ -653,9 +653,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
-  /// Writes a new start minute onto a slot.
-  Future<void> _onSlotStartChanged(
-    OcptScheduleSlotStartChangedEvent event,
+  /// Pins a slot's own anchored edge to a typed hour or to another slot's opposite edge.
+  Future<void> _onSlotAnchorChanged(
+    OcptScheduleSlotAnchorChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -663,10 +663,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.updateSlot(
+    await _scheduleService.setSlotAnchor(
       database: project.database,
       slotId: event.slotId,
-      startMinute: Value(event.startMinute),
+      edge: event.edge,
+      minute: event.minute,
+      sourceSlotId: event.sourceSlotId,
     );
     await _applyScheduleSnapshot(emitter, project);
   }

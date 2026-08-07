@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
 /// The events handled by `OcptScheduleBloc`.
@@ -295,22 +296,38 @@ class OcptScheduleSlotPlaceChangedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, slotId, locationId, setId];
 }
 
-/// Writes a new start minute onto slot [slotId] immediately, dispatched by the slot card's own
-/// (single, still-typed) start field — the renamed crew call, and the one clock a slot still has:
-/// everything else a call sheet prints for the slot is computed off it.
-class OcptScheduleSlotStartChangedEvent extends OcptScheduleEvent {
+/// Pins slot [slotId]'s own [edge] immediately, dispatched by the slot card's own anchor menu and
+/// by the minute field beside it — the one hour a slot carries, everything else a call sheet prints
+/// for it being computed off that (ADR 0015, amended a second time).
+///
+/// **Exactly one of [minute] and [sourceSlotId] is non-null**, the discriminator
+/// `OcptShootingSlotsTable` declares: a typed hour, or the slot whose **opposite** edge this one
+/// reads. `OcptScheduleService.setSlotAnchor` writes nothing at all for anything else, and for a
+/// link that isn't a live slot of the same day or would close a circle of anchors.
+class OcptScheduleSlotAnchorChangedEvent extends OcptScheduleEvent {
   /// The id of the slot being edited.
   final String slotId;
 
-  /// The minute, from the day's own midnight, the slot's own chain of blocks now starts at.
-  final int startMinute;
+  /// Which of the slot's two edges is now the pinned one.
+  final OcptShootingSlotAnchorEdge edge;
+
+  /// The hour [edge] is pinned to, or null when [sourceSlotId] is given instead.
+  final int? minute;
+
+  /// The slot whose opposite edge [edge] now reads, or null when [minute] is given instead.
+  final String? sourceSlotId;
 
   /// Class constructor
-  const OcptScheduleSlotStartChangedEvent({required this.slotId, required this.startMinute});
+  const OcptScheduleSlotAnchorChangedEvent({
+    required this.slotId,
+    required this.edge,
+    required this.minute,
+    required this.sourceSlotId,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, slotId, startMinute];
+  List<Object?> get props => [...super.props, slotId, edge, minute, sourceSlotId];
 }
 
 /// Moves slot [slotId] to [newPosition] (0-based) within its own day, dispatched by a slot-reorder

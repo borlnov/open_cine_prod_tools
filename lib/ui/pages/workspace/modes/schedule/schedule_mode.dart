@@ -374,10 +374,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (slotId, locationId, setId) => bloc.add(
               OcptScheduleSlotPlaceChangedEvent(slotId: slotId, locationId: locationId, setId: setId),
             ),
-      onSlotStartChanged: isReadOnly
+      onSlotAnchorChanged: isReadOnly
           ? null
-          : (slotId, startMinute) =>
-                bloc.add(OcptScheduleSlotStartChangedEvent(slotId: slotId, startMinute: startMinute)),
+          : (slotId, edge, minute, sourceSlotId) => bloc.add(
+              OcptScheduleSlotAnchorChangedEvent(
+                slotId: slotId,
+                edge: edge,
+                minute: minute,
+                sourceSlotId: sourceSlotId,
+              ),
+            ),
       onSlotMoved: isReadOnly
           ? null
           : (slotId, newPosition) => bloc.add(

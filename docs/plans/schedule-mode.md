@@ -21,7 +21,8 @@ are the record from the moment a step lands, and this file never re-describes th
 
 ## 1. Where the mode stands
 
-Four rounds of work have shipped on the branch. None of them is a milestone of this plan any more.
+Five rounds of work have shipped on the branch. None of them is a milestone of this plan any
+more.
 
 | Shipped | What it left behind |
 | --- | --- |
@@ -29,15 +30,19 @@ Four rounds of work have shipped on the branch. None of them is a milestone of t
 | **Per-slot timetables and computed convocations** | Schema v12 (a block belongs to exactly one slot, a slot keeps one typed clock, a `hold` names its sequence, groups and lead times added), ADR 0015 amended per slot, ADR 0017, payload format 7. |
 | **The day view** | A timetable on every slot card, blocks dragged or moved between slots, the hold sequence picker, the groups band, the lead and group controls, the placement rework (a shot may be placed as many times as the plan needs), the review pass, and a slot's own note and `▲`/`▼` reorder. |
 | **Convocations read off the slots alone** | ADR 0018 superseding ADR 0017, `ocptComputeDayConvocations`, schema v13 and payload format 8 dropping `shooting_day_groups` and both lead-time columns, the groups band and the card clocks gone, and the `Convocations` dock tab. |
+| **A slot anchored by either edge** | ADR 0015 amended a second time, schema v14 and payload format 9 replacing `shooting_slots.startMinute` with the anchor trio, the resolution in `ocptComputeShootingDayTimelines` with its two new records and `ocptSlotAnchorWouldCycle`, `setSlotAnchor` with `duplicateDay`'s remap and `deleteSlot`'s freeze, the slot card's anchor menu, and every reader of a slot's hour moved onto the resolved one. |
 
-What is left is two milestones, in the order below: **M1 prints the paperwork**, **M2 shows what the
-plan is about to break**. Both are downstream of the convocation rework that has just shipped — a
-call sheet prints exactly the figures `ocptComputeDayConvocations` now answers, and printing them a
-second time from a rule of its own is the one mistake worth avoiding here.
+What is left is three milestones, in the order below: **M2 pre-fills a convoked person's position
+from the address book**, **M3 prints the paperwork**, **M4 shows what the plan is about to break**.
+
+M1 came first on purpose, and has shipped: it changed what "the hour of a slot" *is*, and every
+reader of that figure — the three agendas, the convocations, the day inspector — followed. Printing
+call sheets against a figure that was about to change its definition would have meant writing those
+services twice.
 
 ## 2. What the reference documents demand
 
-Four real production documents were read before any of this was written; they are still what M1 is
+Four real production documents were read before any of this was written; they are still what M3 is
 measured against, and they live in `debug/plan/`.
 
 - `20230719-planning tournage.docx` — the shooting plan of *lonelyJourney*. Three summary grids
@@ -65,8 +70,8 @@ invented for the prototype, and the schema wins.
 
 ## 3. Decisions that still stand
 
-Answered by Benoit; settled, not open questions. Two of the original answers have since been
-replaced, and are listed as such rather than quietly dropped.
+Answered by Benoit; settled, not open questions. Answers that have since been replaced are listed
+as such rather than quietly dropped.
 
 | Question | Decision |
 | --- | --- |
@@ -78,17 +83,59 @@ replaced, and are listed as such rather than quietly dropped.
 | Named call sheets | One folder, **one PDF per person**. |
 | Extras | Ordinary `extra` roles; a nameless crowd is said in the crew note. |
 | Actual times | **Not recorded** — this mode says what is planned. |
+| Cast rows | **Unchanged this round.** The cast picker keeps its casting order and its current behaviour; M2 is about crew positions only. |
+| The person sheet's `Portée` column | **Dropped.** When a position is held is the schedule's answer, and writing it on the sheet too would be a second copy of one truth. |
 | ~~An actor has three times: arrival and a PAT band~~ | Replaced by ADR 0018: arrival, PAT band and departure, all computed, for crew and cast alike. |
 | ~~A convocation is a band minus a typed lead time~~ | Replaced by ADR 0018: a convocation is the slot you are linked to. |
+| ~~A slot owns one typed clock and no other, its `startMinute`~~ | Replaced by ADR 0015's second amendment: a slot owns **one anchored edge**, which may be its end, and whose hour may be read off another slot. |
 
-## 4. M1 — the three PDF exports
+## 4. M2 — a convoked person's position, pre-filled
+
+**Goal: `person_positions` finally feeds the schedule instead of looking like a duplicate of it.**
+
+The two tables answer different questions — the address book says *that* someone is a chief
+operator on this film, the slot says *when* and *at which post* on a given day, and one person may
+hold two posts in one slot. What made them look redundant is that nothing ever joined them: the
+slot's position picker offers the whole `ocptCrewPositions` catalogue without once looking at what
+the person declared.
+
+- A pure helper under `lib/utils/`, tested: given a person's declared positions (in their display
+  order) and the crew rows that person already has **on that slot**, it answers the position to
+  pre-fill and the promoted order for the picker.
+- **Adding a crew member pre-fills their first declared position not already taken by them on that
+  slot.** Adding the same person again therefore lands on their second, then their third. Nothing
+  declared, or everything already taken, pre-fills nothing — exactly today's behaviour.
+- A declared position that is a **free label** pre-fills the row's `customLabel`, not only
+  catalogue entries: a position's identity, for all of this, is the pair
+  (`positionId`, `customLabel`), which is how both tables already model one.
+- **The picker never offers a position that person already holds on that slot** — the duplicate is
+  refused where it is chosen, rather than the add being blocked. Adding someone twice with nothing
+  declared stays possible: two rows the user then fills.
+- **Declared positions sit at the top of the picker**, above the catalogue's departments, behind a
+  divider. A declared one that is already taken is simply absent rather than greyed — unlike the
+  slot menu above, it is visible on the card right beside the picker.
+- The pre-fill belongs to `OcptScheduleService.addSlotCrewMember`, not to a bloc: every caller
+  should get it, and it needs both the person's positions and the slot's existing rows, which the
+  service already has.
+
+Then the column this was blocked on: **the person sheet's `Portée` column is deleted** —
+`ocpt_person_sheet_positions_card.dart`, its width constant, and the
+`resourcesPositionScopePlaceholder` key in both ARB files. `OcptPersonPositionsTable`'s own doc
+comment, which promises the schedule mode will fill it, is rewritten to say what is now true: a
+row says *that* a person holds a function, and *when* is the schedule's to answer, on its own
+surfaces.
+
+No schema change, no payload change.
+
+## 5. M3 — the three PDF exports
 
 **Goal: the paperwork a shoot actually runs on.**
 
 Two new services under `lib/managers/export/services/`, both owned by `OcptExportManager`, both
 sharing the existing `OcptCourierPrimeFontsLoader`, both taking a labels object so no manager or
 service ever sees a `Tr` — the pattern `OcptScenarioCoverageLabels` established. Every convocation
-figure they print comes from `ocptComputeDayConvocations` (ADR 0018) and is never re-derived.
+figure they print comes from `ocptComputeDayConvocations` (ADR 0018) and is never re-derived, and
+every hour comes from the resolved timelines (M1) rather than from a column.
 
 1. **`OcptCallSheetPdfService`** — one day, two audiences from one composition:
    - *General call sheet*, following the reference `.docx` section by section: recipients, film
@@ -113,9 +160,7 @@ Each is reached from the mode's `⋮` menu through an options dialog opened by `
 (which days, which people, title page, page format pre-filled from the project), and each writes
 through `OcptSaveLocationService` — no export ever picks a path silently.
 
-**Checkpoint with Benoit** before M2.
-
-## 5. M2 — grids and alerts
+## 6. M4 — grids and alerts
 
 **Goal: seeing what the plan is about to break before it breaks.**
 
@@ -138,11 +183,12 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
   - a role appearing in a placed shot but convoked in no slot that day — soft;
   - a role with no actor — soft;
   - a timeline over-run against a pinned anchor (ADR 0015) — soft;
+  - **a slot whose fixed end its own blocks over-run** (M1's rule 4) — soft;
   - a minor's day exceeding what `people.minorNotes` records — soft.
 - The alerts panel in the mode, and the alert count in the status bar. The mode header's own
   `Couleur par` control belongs to this milestone too.
 
-## 6. What this mode does not do
+## 7. What this mode does not do
 
 - No spreadsheet export (decided; may follow later).
 - No weather feed, no map tiles, no geocoding: the app stays offline-only.
@@ -153,16 +199,22 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
   — already on the roadmap — and doing half of it here would produce a document nobody can rely on.
 - No budget or day-rate arithmetic — that is the budget mode's.
 - No per-slot working-time law enforcement beyond the minor's soft alert.
+- **No slot link across two days**, and none between two same-side edges. Both are stated in ADR
+  0015's second amendment.
 
-## 7. Definition of done, per milestone
+## 8. Definition of done, per milestone
 
 The eight verification gates of `CLAUDE.md` pass at every commit, plus the ninth for any `.md`
 touched. In addition:
 
-- **M1**: the three PDFs are generated from the reference project and read against the documents
+- **M2**: a person with two declared positions convoked twice on one slot lands on both, in order;
+  a third convocation pre-fills nothing. A person with a free-label position pre-fills that label.
+  The picker never offers a position that person already holds on that slot. The `Portée` column is
+  gone from the sheet and its ARB key from both files.
+- **M3**: the three PDFs are generated from the reference project and read against the documents
   in `debug/plan/`; a day with two slots and two crews prints both; a night slot crossing midnight
-  prints the right hours; a person's arrival, PAT band and departure print as distinct figures; the
-  named sheets land in the chosen folder, one file per person, none of them carrying the full
-  directory.
-- **M2**: every alert has a test with a case that fires it and a case that does not; the presence
+  prints the right hours; an `end`-anchored slot prints the hours the day view shows; a person's
+  arrival, PAT band and departure print as distinct figures; the named sheets land in the chosen
+  folder, one file per person, none of them carrying the full directory.
+- **M4**: every alert has a test with a case that fires it and a case that does not; the presence
   grid's overrides survive a save, a reload and a version round trip.

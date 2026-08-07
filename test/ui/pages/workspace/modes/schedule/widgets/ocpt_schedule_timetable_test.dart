@@ -146,6 +146,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
 
@@ -163,6 +164,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [OcptTimelineOverrun(blockId: "block-1", reachedMinute: 540, anchorMinute: 480)],
+      startMinute: 480,
       endMinute: 510,
     );
 
@@ -181,6 +183,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     final durations = <(String, int)>[];
@@ -210,6 +213,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 495, durationMinutes: 15),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 495,
     );
     final durations = <(String, int)>[];
@@ -239,6 +243,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 492, durationMinutes: 12),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 492,
     );
     final durations = <(String, int)>[];
@@ -269,6 +274,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 483, durationMinutes: 3),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 483,
     );
     final durations = <(String, int)>[];
@@ -299,6 +305,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-b", startMinute: 510, endMinute: 540, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 540,
     );
     final reordered = <(String, int)>[];
@@ -331,6 +338,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     OcptShotStatus? pickedStatus;
@@ -369,6 +377,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
 
@@ -421,6 +430,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 745, endMinute: 790, durationMinutes: 45),
       ],
       overruns: [],
+      startMinute: 745,
       endMinute: 790,
     );
     final anchors = <int?>[];
@@ -450,6 +460,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 525, durationMinutes: 45),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 525,
     );
 
@@ -469,6 +480,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-own", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
 
@@ -559,6 +571,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
 
@@ -585,6 +598,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     final moved = <(String, String)>[];
@@ -623,6 +637,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     final moved = <(String, String)>[];
@@ -713,6 +728,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
 
@@ -821,6 +837,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     final durations = <(String, int)>[];
@@ -853,6 +870,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-2", startMinute: 510, endMinute: 540, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 540,
     );
     final sequence = _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A");
@@ -882,6 +900,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     final sequence = _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A");
@@ -924,6 +943,7 @@ void main() {
         OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
       ],
       overruns: [],
+      startMinute: 480,
       endMinute: 510,
     );
     final sequence = _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A");

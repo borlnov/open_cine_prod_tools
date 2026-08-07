@@ -124,3 +124,60 @@ Rules 1-4 above, and everything this record's Consequences and Alternatives sect
 them, are otherwise unchanged: only their scope narrows from "the day" to "the slot". See ADR 0017
 for the convocation rules this amendment enables — a slot's own computed call, wrap and PAT times,
 built on top of its own `OcptShootingSlotTimeline`.
+
+## Second amendment — a slot is anchored by either edge
+
+The decision above is amended again: a slot no longer owns a typed `startMinute`, it owns **one
+anchored edge**, and the hour that edge sits at may itself be read off another slot of the same day.
+`shooting_slots.startMinute` becomes `anchorEdge` (`start` or `end`), `anchorMinute` (the typed
+hour) and `anchorSlotId` (the slot whose **opposite** edge is read) — exactly one of the last two
+non-null, the discriminator idiom ADR 0014 already uses. Schema version 14 and payload format 9 are
+the file's half of it, and both carry every existing slot across as `start`-anchored at the hour it
+already had.
+
+A production books a studio until 22:00, or plans backwards from a sunset. Saying either meant doing
+the subtraction by hand and redoing it every time a block moved — the exact cost this record exists
+to remove, left standing on the one edge it never questioned.
+
+`ocptComputeSlotTimeline` is **untouched**: it still chains forward from a start it is handed, which
+is why the amendment is made *around* it, in `ocptComputeShootingDayTimelines`.
+
+1. **Resolution order is dependency order**, not the order the slots are given in: a slot's start
+   may depend on another slot's end, which depends on that slot's whole chain. A day where nothing
+   is linked resolves exactly as it did before.
+2. **A `start`-anchored slot** chains from its resolved hour, as always.
+3. **An `end`-anchored slot** starts at `resolvedHour − Σ(resolved durations of its blocks)` and
+   then chains forward, unchanged. Adding a block pulls its start earlier and leaves its end where
+   it is, which is what pinning an end is for.
+4. **A pinned block inside an `end`-anchored slot still obeys rule 3** — it starts exactly at its
+   own anchor — so the slot may finish somewhere other than its fixed end. That is an
+   `OcptTimelineFixedEndMiss` on the result, **reported, never absorbed**: the same refusal rule 4
+   already makes for an over-run. The fixed end wins; nothing is stretched or squeezed to make the
+   plan look like it fits.
+5. **A source slot with no block at all has no end**, and its end is read as equal to its own
+   resolved start — the `endMinute ?? startMinute` convention ADR 0018 already applies to a
+   departure.
+6. **A circle of anchors** is reported as an `OcptTimelineAnchorCycle` and its slots are resolved as
+   if `start`-anchored at the earliest start already resolved for the day (minute 0 when the whole
+   day cycles). This is defence, not a state a user can reach: the anchor menu greys out an entry
+   that would close one (`ocptSlotAnchorWouldCycle`) and `OcptScheduleService.setSlotAnchor` refuses
+   to write one. A pure function that can be handed a database row must not hang on it.
+
+A link only ever joins **two slots of the same day** — a night crossing midnight is already carried
+by the day it starts on, in minutes past 1440 — and never two edges of the same side: "these two
+start together" is said by typing the same hour twice, not by a link that would have no direction.
+
+`OcptShootingSlotTimeline` gains a non-null `startMinute`, and it is what every reader of "the hour
+of this slot" now reads: the three agendas, the day inspector, the convocations and the slot card
+alike. `OcptShootingDayTimelines` gains `dayStartMinute` (the minimum over them, and therefore the
+day's own earliest arrival, ADR 0018 having removed everything that could pull somebody in ahead of
+their slot), `fixedEndMisses` and `anchorCycles`.
+
+Two service rules follow from links existing at all. `duplicateDay` **remaps them onto the copies**:
+a copy pointing back at the original day's slot would be a cross-day link, which nothing allows.
+`deleteSlot` **freezes its dependents**: each slot reading the deleted one's edge keeps the hour it
+was reading, as a typed anchor on its own edge — the same rule unlinking by hand follows, so a
+deletion never silently moves a day.
+
+Rules 1-4 of the original decision, and everything its Consequences and Alternatives sections say,
+are otherwise unchanged.

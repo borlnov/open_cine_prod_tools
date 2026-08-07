@@ -13,7 +13,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over a screenplay's shooting schedule: its days, the convocation windows inside each day
@@ -44,6 +46,17 @@ import 'package:uuid/uuid.dart';
 /// earlier — a make-up call, a rigging call — creates the slot that says so, with its own label and
 /// its own blocks, and links them to it; this service exposes no way to offset a convocation from
 /// its slot instead.
+///
+/// **A slot is pinned by one edge, and that edge may read another slot's.** [createSlot] mints a
+/// slot anchored by its **start** at a typed hour, exactly as every slot was before schema version
+/// 14; [setSlotAnchor] is the one entry point that changes an anchor afterwards, and it refuses
+/// anything that isn't a live slot of the same day, the slot itself, or a link that would close a
+/// circle (`ocptSlotAnchorWouldCycle`) — so `ocptComputeShootingDayTimelines`' own cycle rule stays
+/// a defence against a file rather than a state this service can put a project in. Two rules follow
+/// from links existing at all: [duplicateDay] **remaps them onto the copies** (a copy linked to the
+/// original day's slot would be a cross-day link, which nothing allows), and [deleteSlot]
+/// **freezes its dependents** — each slot reading the deleted one's edge keeps the hour it was
+/// reading, as a typed anchor, so a deletion never silently moves a day.
 ///
 /// **A shot may be placed as many times as the plan needs.** [placeShot] only ever creates: a shot
 /// interrupted by the meal break and resumed after it is two blocks on the same day, not one, and a
@@ -420,9 +433,31 @@ class OcptScheduleService {
 
       final newSlotIds = [for (var i = 0; i < sourceSlots.length; i++) const Uuid().v4()];
       final slotSortKeys = ocptFractionalKeySequence(sourceSlots.length);
+      final newSlotIdBySourceId = {
+        for (var i = 0; i < sourceSlots.length; i++) sourceSlots[i].id: newSlotIds[i],
+      };
+
+      // Read once, and only when some source anchor names a slot that isn't being copied — see
+      // [_frozenAnchorMinuteOf] for why that branch exists at all.
+      OcptShootingDayTimelines? sourceTimelines;
 
       for (var i = 0; i < sourceSlots.length; i++) {
         final sourceSlot = sourceSlots[i];
+
+        // The copy links to the copy: a slot pointing back at the original day's would be a
+        // cross-day link, which nothing in this app allows.
+        final copiedAnchorSlotId = sourceSlot.anchorSlotId == null
+            ? null
+            : newSlotIdBySourceId[sourceSlot.anchorSlotId];
+        var anchorMinute = sourceSlot.anchorMinute;
+        if (sourceSlot.anchorSlotId != null && copiedAnchorSlotId == null) {
+          sourceTimelines ??= await _timelinesOfDay(
+            database: database,
+            dayId: sourceDayId,
+            slots: sourceSlots,
+          );
+          anchorMinute = _frozenAnchorMinuteOf(sourceSlot, sourceTimelines);
+        }
 
         await database
             .into(database.ocptShootingSlotsTable)
@@ -434,7 +469,9 @@ class OcptScheduleService {
                 label: Value(sourceSlot.label),
                 locationId: Value(sourceSlot.locationId),
                 setId: Value(sourceSlot.setId),
-                startMinute: sourceSlot.startMinute,
+                anchorEdge: Value(sourceSlot.anchorEdge),
+                anchorMinute: Value(anchorMinute),
+                anchorSlotId: Value(copiedAnchorSlotId),
                 notes: Value(sourceSlot.notes),
               ),
             );
@@ -480,14 +517,19 @@ class OcptScheduleService {
     });
   }
 
-  /// Creates a new slot inside day [shootingDayId], appended at the end of its current slots, and
-  /// returns its freshly generated id.
+  /// Creates a new slot inside day [shootingDayId], appended at the end of its current slots,
+  /// anchored **by its start** at [anchorMinute], and returns its freshly generated id.
+  ///
+  /// A new slot is always start-anchored at a typed hour, which is the only anchor a slot could
+  /// have before schema version 14 and the only one that needs nothing else to already exist:
+  /// pinning it by its end, or reading its hour off a sibling, is [setSlotAnchor]'s job, once there
+  /// is a slot to talk about.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createSlot({
     required OcptProjectDatabase database,
     required String shootingDayId,
-    required int startMinute,
+    required int anchorMinute,
     String label = "",
     String? locationId,
     String? setId,
@@ -509,7 +551,8 @@ class OcptScheduleService {
             label: Value(label),
             locationId: Value(locationId),
             setId: Value(setId),
-            startMinute: startMinute,
+            anchorEdge: const Value(OcptShootingSlotAnchorEdge.start),
+            anchorMinute: Value(anchorMinute),
             notes: Value(notes),
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
@@ -522,7 +565,9 @@ class OcptScheduleService {
 
   /// Updates the fields of slot [slotId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
-  /// [reorderSlot] and [deleteSlot].
+  /// [reorderSlot] and [deleteSlot], nor the anchor trio, which is [setSlotAnchor]'s alone — the
+  /// three columns are one fact between them, and a method that let a caller write any one of them
+  /// on its own would let it write a slot anchored by nothing.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateSlot({
@@ -531,7 +576,6 @@ class OcptScheduleService {
     Value<String> label = const Value.absent(),
     Value<String?> locationId = const Value.absent(),
     Value<String?> setId = const Value.absent(),
-    Value<int> startMinute = const Value.absent(),
     Value<String> notes = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateSlot")) {
@@ -545,10 +589,78 @@ class OcptScheduleService {
         label: label,
         locationId: locationId,
         setId: setId,
-        startMinute: startMinute,
         notes: notes,
       ),
     );
+  }
+
+  /// Pins slot [slotId]'s [edge] to a typed [minute], or to the **opposite** edge of
+  /// [sourceSlotId], and returns whether anything was written.
+  ///
+  /// **Exactly one of [minute]/[sourceSlotId] must be given**: they are the two halves of one
+  /// discriminator (see `OcptShootingSlotsTable`), and a call passing both, or neither, writes
+  /// nothing rather than picking one. A link is refused — again writing nothing — when
+  /// [sourceSlotId] is [slotId] itself, is not a **live slot of the same day**, or would close a
+  /// circle of anchors (`ocptSlotAnchorWouldCycle`): the picker greys those entries out, and this is
+  /// the guarantee behind that, so `ocptComputeShootingDayTimelines`' own cycle rule never has to
+  /// fire on a project this app wrote.
+  ///
+  /// **Unlinking freezes nothing on its own.** Passing a [minute] simply writes it; the *hour that
+  /// was being read* is the caller's to pass, because only the caller knows which moment the user
+  /// was looking at when they picked the entry. [deleteSlot] is the one place this service works
+  /// that hour out itself, having taken the slot away from under its dependents.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<bool> setSlotAnchor({
+    required OcptProjectDatabase database,
+    required String slotId,
+    required OcptShootingSlotAnchorEdge edge,
+    int? minute,
+    String? sourceSlotId,
+  }) async {
+    if (database.refusesUserWrite("setSlotAnchor")) {
+      return false;
+    }
+
+    if ((minute == null) == (sourceSlotId == null)) {
+      return false;
+    }
+
+    return database.transaction(() async {
+      final slot = await _getSlotRow(database: database, slotId: slotId);
+
+      if (sourceSlotId != null) {
+        if (sourceSlotId == slotId) {
+          return false;
+        }
+
+        final daySlots = await _liveSlotRows(database: database, dayId: slot.shootingDayId);
+        if (!daySlots.any((row) => row.id == sourceSlotId)) {
+          return false;
+        }
+
+        final wouldCycle = ocptSlotAnchorWouldCycle(
+          anchorSourceBySlotId: {for (final row in daySlots) row.id: row.anchorSlotId},
+          slotId: slotId,
+          sourceSlotId: sourceSlotId,
+        );
+        if (wouldCycle) {
+          return false;
+        }
+      }
+
+      await (database.update(
+        database.ocptShootingSlotsTable,
+      )..where((table) => table.id.equals(slotId) & table.isDeleted.not())).write(
+        OcptShootingSlotsTableCompanion(
+          anchorEdge: Value(edge),
+          anchorMinute: Value(minute),
+          anchorSlotId: Value(sourceSlotId),
+        ),
+      );
+
+      return true;
+    });
   }
 
   /// Moves slot [slotId] to [newPosition] (0-based) within its own day's slots, by giving it a
@@ -597,6 +709,12 @@ class OcptScheduleService {
   /// `NOT NULL` from schema v12), so a day with no slot at all can hold no timetable either — see
   /// the class doc comment.
   ///
+  /// **Every slot reading this one's edge freezes the hour it was reading**, as a typed anchor on
+  /// its own edge — the same rule unlinking by hand follows, so a deletion never silently moves a
+  /// day. The hour is worked out here, from the day's own timelines *before* anything is
+  /// tombstoned: a dependent pinned by its start was reading this slot's **end**, one pinned by its
+  /// end was reading its **start**, and an empty slot's end is its own start (ADR 0015's rule 5).
+  ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -607,6 +725,8 @@ class OcptScheduleService {
 
     await database.transaction(() async {
       final slot = await _getSlotRow(database: database, slotId: slotId);
+
+      await _freezeDependentsOf(database: database, slot: slot);
 
       await (database.update(
         database.ocptShootingSlotCrewTable,
@@ -1165,8 +1285,8 @@ class OcptScheduleService {
     });
   }
 
-  /// Inserts the default first slot a brand new day is never without: an empty label and the
-  /// default start [_defaultStartMinute]. Shared by [createDay] and [duplicateDay]'s empty-source
+  /// Inserts the default first slot a brand new day is never without: an empty label, anchored by
+  /// its start at [_defaultStartMinute]. Shared by [createDay] and [duplicateDay]'s empty-source
   /// fallback.
   Future<void> _insertDefaultSlot({
     required OcptProjectDatabase database,
@@ -1177,10 +1297,132 @@ class OcptScheduleService {
         OcptShootingSlotsTableCompanion.insert(
           id: const Uuid().v4(),
           shootingDayId: dayId,
-          startMinute: _defaultStartMinute,
+          anchorEdge: const Value(OcptShootingSlotAnchorEdge.start),
+          anchorMinute: const Value(_defaultStartMinute),
           sortKey: Value(ocptFractionalKeyBetween()),
         ),
       );
+
+  /// The hour [slot]'s own anchored edge was reading in [timelines] — what a link that cannot be
+  /// carried across freezes into a typed anchor, so the copy still says the same thing about time as
+  /// the slot it was copied from.
+  ///
+  /// Reached only from [duplicateDay], and only for a source slot whose `anchorSlotId` names no
+  /// live slot of its own day. Nothing this app writes leaves one like that — [deleteSlot] freezes
+  /// the dependents of the slot it takes away — but a restored payload or a hand-edited file can,
+  /// and the alternative would be a copy anchored by neither a slot nor an hour.
+  static int _frozenAnchorMinuteOf(
+    OcptShootingSlotRow slot,
+    OcptShootingDayTimelines timelines,
+  ) {
+    final timeline = timelines.bySlotId[slot.id];
+    return slot.anchorEdge == OcptShootingSlotAnchorEdge.start
+        ? (timeline?.startMinute ?? 0)
+        : (timeline?.endMinute ?? timeline?.startMinute ?? 0);
+  }
+
+  /// Turns every live slot of [slot]'s own day that reads [slot]'s edge into one anchored by a
+  /// **typed** hour: the very hour it was reading at the moment of the call. Called by [deleteSlot]
+  /// before anything is tombstoned — see its own doc comment.
+  Future<void> _freezeDependentsOf({
+    required OcptProjectDatabase database,
+    required OcptShootingSlotRow slot,
+  }) async {
+    final daySlots = await _liveSlotRows(database: database, dayId: slot.shootingDayId);
+    final dependents = [
+      for (final row in daySlots)
+        if (row.anchorSlotId == slot.id) row,
+    ];
+    if (dependents.isEmpty) {
+      return;
+    }
+
+    final timelines = await _timelinesOfDay(
+      database: database,
+      dayId: slot.shootingDayId,
+      slots: daySlots,
+    );
+    final deletedTimeline = timelines.bySlotId[slot.id];
+    final startMinute = deletedTimeline?.startMinute ?? 0;
+    final endMinute = deletedTimeline?.endMinute ?? startMinute;
+
+    for (final dependent in dependents) {
+      await (database.update(
+        database.ocptShootingSlotsTable,
+      )..where((table) => table.id.equals(dependent.id))).write(
+        OcptShootingSlotsTableCompanion(
+          anchorMinute: Value(
+            dependent.anchorEdge == OcptShootingSlotAnchorEdge.start ? endMinute : startMinute,
+          ),
+          anchorSlotId: const Value(null),
+        ),
+      );
+    }
+  }
+
+  /// Day [dayId]'s own computed timelines, one chain per live slot (ADR 0015, amended twice), read
+  /// straight out of [database].
+  ///
+  /// This service computes them for one reason only: [deleteSlot] has to know the hour a dependent
+  /// was reading before it takes that hour's slot away. Nothing else here reads a clock — the mode
+  /// computes its own from the snapshot it already holds — so this stays private, and it uses the
+  /// same `ocptDefaultBlockDurationMinutes` every other reader does, that constant living beside the
+  /// rule rather than on one caller.
+  Future<OcptShootingDayTimelines> _timelinesOfDay({
+    required OcptProjectDatabase database,
+    required String dayId,
+    List<OcptShootingSlotRow>? slots,
+  }) async {
+    final slotRows = slots ?? await _liveSlotRows(database: database, dayId: dayId);
+    final blockRows =
+        await (database.select(database.ocptShootingDayBlocksTable)
+              ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+            .get();
+
+    final shotIds = {
+      for (final row in blockRows)
+        if (row.kind == OcptShootingBlockKind.shot && row.shotId != null) row.shotId!,
+    };
+    final shotRows = shotIds.isEmpty
+        ? const <OcptShotRow>[]
+        : await (database.select(
+            database.ocptShotsTable,
+          )..where((table) => table.id.isIn(shotIds))).get();
+    final estimateByShotId = {
+      for (final row in shotRows)
+        if (row.estimatedDurationMs != null) row.id: (row.estimatedDurationMs! / 60000).round(),
+    };
+
+    final blocksBySlotId = <String, List<OcptShootingDayBlockRow>>{};
+    for (final row in blockRows) {
+      blocksBySlotId.putIfAbsent(row.slotId, () => []).add(row);
+    }
+
+    return ocptComputeShootingDayTimelines(
+      slots: [
+        for (final row in slotRows)
+          OcptShootingTimelineSlot(
+            id: row.id,
+            anchorEdge: row.anchorEdge,
+            anchorMinute: row.anchorMinute,
+            anchorSlotId: row.anchorSlotId,
+            blocks: [
+              for (final block in blocksBySlotId[row.id] ?? const <OcptShootingDayBlockRow>[])
+                OcptShootingTimelineBlock(
+                  id: block.id,
+                  durationMinutes: block.durationMinutes,
+                  fallbackDurationMinutes: block.shotId == null
+                      ? null
+                      : estimateByShotId[block.shotId],
+                  anchorMinute: block.anchorMinute,
+                ),
+            ],
+          ),
+      ],
+      defaultDurationMinutes: ocptDefaultBlockDurationMinutes,
+    );
+  }
 
   /// Reads back the day row [dayId], throwing if it doesn't exist or has been tombstoned.
   Future<OcptShootingDayRow> _getDayRow({

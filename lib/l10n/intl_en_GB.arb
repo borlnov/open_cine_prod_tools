@@ -6642,7 +6642,75 @@
   },
   "scheduleSlotStartLabel": "Start",
   "@scheduleSlotStartLabel": {
-    "description": "Label of a slot card's own start minute field",
+    "description": "Label of a slot card's own start edge, on the anchor control and on the computed read-out under it",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotEndLabel": "End",
+  "@scheduleSlotEndLabel": {
+    "description": "Label of a slot card's own end edge, on the anchor control and on the computed read-out under it",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorTooltip": "Which edge of this slot is pinned",
+  "@scheduleSlotAnchorTooltip": {
+    "description": "Tooltip of the slot card's own anchor menu button",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorStartFixed": "Start at a fixed time",
+  "@scheduleSlotAnchorStartFixed": {
+    "description": "Anchor menu entry pinning a slot's start to a typed hour",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorEndFixed": "End at a fixed time",
+  "@scheduleSlotAnchorEndFixed": {
+    "description": "Anchor menu entry pinning a slot's end to a typed hour",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorStartFromSlot": "Start = end of « {slot} »",
+  "@scheduleSlotAnchorStartFromSlot": {
+    "description": "Anchor menu entry reading a slot's start off another slot's end",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleSlotAnchorEndFromSlot": "End = start of « {slot} »",
+  "@scheduleSlotAnchorEndFromSlot": {
+    "description": "Anchor menu entry reading a slot's end off another slot's start",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleSlotAnchorLinkedShort": "⛓ {slot}",
+  "@scheduleSlotAnchorLinkedShort": {
+    "description": "Short form of a linked anchor, shown on a narrow slot card with the whole sentence in its tooltip",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleSlotAnchorCycleReason": "These two slots would read each other",
+  "@scheduleSlotAnchorCycleReason": {
+    "description": "Why an anchor menu entry is shown disabled: picking it would close a circle of anchors",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {}

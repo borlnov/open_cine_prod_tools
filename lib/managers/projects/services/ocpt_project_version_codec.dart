@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
@@ -58,7 +59,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 8;
+  static const currentPayloadFormat = 9;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -409,9 +410,13 @@ class OcptProjectVersionCodec {
   /// object
   static const _slotKey = "slot";
 
-  /// This is the key used to stringify or parse a `startMinute` column (an unavailability's, or —
-  /// from payload format 7 — `shooting_slots.startMinute`, the slot's own one typed clock) from a
-  /// JSON object
+  /// This is the key used to stringify or parse a `startMinute` column (an unavailability's or a
+  /// location availability's) from a JSON object.
+  ///
+  /// Payload formats 7 and 8 also stored `shooting_slots.startMinute` under it, back when a slot
+  /// owned one typed start and nothing else; from format 9 on that column is
+  /// [_anchorMinuteKey]/[_anchorEdgeKey]/[_anchorSlotIdKey], and this key is read for a slot only
+  /// by [_upgradeFormat8To9], which renames it.
   static const _startMinuteKey = "startMinute";
 
   /// This is the key used to stringify or parse an unavailability's `endMinute` column from a JSON
@@ -626,8 +631,9 @@ class OcptProjectVersionCodec {
   /// a JSON object
   static const _durationMinutesKey = "durationMinutes";
 
-  /// This is the key used to stringify or parse a `shooting_day_blocks.anchorMinute` column from a
-  /// JSON object
+  /// This is the key used to stringify or parse an `anchorMinute` column — a
+  /// `shooting_day_blocks`', the minute a block is pinned to, or (from payload format 9) a
+  /// `shooting_slots`', the hour its own anchored edge is pinned to — from a JSON object
   static const _anchorMinuteKey = "anchorMinute";
 
   /// The key a `shooting_slot_crew`/`shooting_slot_cast` row of payload format 7 stored its
@@ -640,6 +646,14 @@ class OcptProjectVersionCodec {
   /// `leadMinutes` column under. Read by [_upgradeFormat6To7], which writes it as null, and by
   /// [_upgradeFormat7To8], which drops it again — the column itself is gone from format 8 on.
   static const _leadMinutesKey = "leadMinutes";
+
+  /// This is the key used to stringify or parse a `shooting_slots.anchorEdge` column from a JSON
+  /// object
+  static const _anchorEdgeKey = "anchorEdge";
+
+  /// This is the key used to stringify or parse a `shooting_slots.anchorSlotId` column from a JSON
+  /// object — the slot whose opposite edge this one reads its hour off.
+  static const _anchorSlotIdKey = "anchorSlotId";
 
   /// This is the key used to stringify or parse a version stamp's `tableName` column from a JSON
   /// object
@@ -695,6 +709,7 @@ class OcptProjectVersionCodec {
     5: _upgradeFormat5To6,
     6: _upgradeFormat6To7,
     7: _upgradeFormat7To8,
+    8: _upgradeFormat8To9,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -900,6 +915,35 @@ class OcptProjectVersionCodec {
       _shootingDayBlocksKey: blocks,
     };
   }
+
+  /// Turns a format-**8** JSON object into a format-**9** one: `shooting_slots.startMinute` becomes
+  /// the anchored-edge trio, the payload's own half of the schema's v13-to-v14 migration.
+  ///
+  /// This is a **rename**, the kind [_upgradeFormat6To7] already shows for `crewCallMinute`, and
+  /// neither of the other two kinds: nothing materialises (the column existed and held a real
+  /// value), and nothing is removed (that value is exactly what the new columns say). Every slot
+  /// comes back anchored **by its start, at the hour it already had** — [_anchorEdgeKey] the
+  /// literal `start`, [_anchorMinuteKey] the old [_startMinuteKey], [_anchorSlotIdKey] null —
+  /// which is what every slot of a format-8 payload meant, so restoring one draws the day it drew
+  /// when it was captured. Nothing is guessed the other way round: no slot becomes end-anchored
+  /// because its last block happened to land on a round hour, and no link is invented between two
+  /// slots that merely met.
+  ///
+  /// The retired [_startMinuteKey] is left on the row rather than removed, exactly as
+  /// [_upgradeFormat6To7] leaves `crewCallMinute` on one: [_shootingSlotFromJson] reads the keys it
+  /// knows and ignores the rest, and an upgrade step that also tidied would be doing two things.
+  static Map<String, dynamic> _upgradeFormat8To9(Map<String, dynamic> json) => {
+    ...json,
+    _shootingSlotsKey: [
+      for (final slot in _rows(json, _shootingSlotsKey))
+        {
+          ...slot,
+          _anchorEdgeKey: OcptShootingSlotAnchorEdge.start.name,
+          _anchorMinuteKey: slot[_startMinuteKey],
+          _anchorSlotIdKey: null,
+        },
+    ],
+  };
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
@@ -1920,7 +1964,9 @@ class OcptProjectVersionCodec {
     _labelKey: row.label,
     _locationIdKey: row.locationId,
     _setIdKey: row.setId,
-    _startMinuteKey: row.startMinute,
+    _anchorEdgeKey: row.anchorEdge.name,
+    _anchorMinuteKey: row.anchorMinute,
+    _anchorSlotIdKey: row.anchorSlotId,
     _notesKey: row.notes,
     _isDeletedKey: row.isDeleted,
   };
@@ -1934,7 +1980,9 @@ class OcptProjectVersionCodec {
         label: _string(json, _labelKey),
         locationId: _nullableString(json, _locationIdKey),
         setId: _nullableString(json, _setIdKey),
-        startMinute: _int(json, _startMinuteKey),
+        anchorEdge: OcptShootingSlotAnchorEdge.values.byName(_string(json, _anchorEdgeKey)),
+        anchorMinute: _nullableInt(json, _anchorMinuteKey),
+        anchorSlotId: _nullableString(json, _anchorSlotIdKey),
         notes: _string(json, _notesKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
