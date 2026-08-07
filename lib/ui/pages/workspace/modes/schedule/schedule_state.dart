@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -178,6 +179,28 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   @override
   final OcptProjectVersionNoticeKind? projectVersionNotice;
 
+  /// [snapshot] joined with [shotListSnapshot]/[locations]/[roles]/[people] into the day-level
+  /// facts the mode reads (`OcptSchedulePlanSnapshot`'s own doc comment) — null exactly while
+  /// [snapshot] is, since a plan snapshot always carries a whole schedule read.
+  ///
+  /// Built **once per state instance**, on the first read, rather than on every read: a state is
+  /// immutable and rebuilt per emit, so the join can never go stale inside one, and the mode reads
+  /// it far too often for a per-read build — [timelinesOfDay] alone is handed to the three agendas
+  /// as a function reference and called once per day cell, which on a month grid is thirty reads in
+  /// a single frame. That is also why this is `late final` rather than a getter, and why the class
+  /// constructor is not `const`: a `late final` field and a const constructor cannot coexist, and
+  /// nothing ever built this state as a constant.
+  late final OcptSchedulePlanSnapshot? planSnapshot = switch (snapshot) {
+    null => null,
+    final schedule => OcptSchedulePlanSnapshot.build(
+      schedule: schedule,
+      shotList: shotListSnapshot,
+      locations: locations,
+      roles: roles,
+      people: people,
+    ),
+  };
+
   /// Every live day of [snapshot], in `dayNumber` order (empty while nothing is loaded).
   List<OcptShootingDay> get days => snapshot?.days ?? const [];
 
@@ -233,24 +256,23 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return selectedShotId == null ? null : shotById(selectedShotId);
   }
 
-  /// The whole location catalogue, keyed by id.
-  Map<String, OcptLocation> get locationById => {for (final location in locations) location.id: location};
+  /// The whole location catalogue, keyed by id. Delegates to [planSnapshot], empty while it is
+  /// null.
+  Map<String, OcptLocation> get locationById => planSnapshot?.locationById ?? const {};
 
-  /// Every set of every location of [locations], keyed by id.
-  Map<String, OcptSet> get setById => {
-    for (final location in locations)
-      for (final set in location.sets) set.id: set,
-  };
+  /// Every set of every location of [locations], keyed by id. Delegates to [planSnapshot], empty
+  /// while it is null.
+  Map<String, OcptSet> get setById => planSnapshot?.setById ?? const {};
 
-  /// The whole cast, keyed by id.
-  Map<String, OcptRole> get roleById => {for (final role in roles) role.id: role};
+  /// The whole cast, keyed by id. Delegates to [planSnapshot], empty while it is null.
+  Map<String, OcptRole> get roleById => planSnapshot?.roleById ?? const {};
 
-  /// The whole address book, keyed by id.
-  Map<String, OcptPerson> get personById => {for (final person in people) person.id: person};
+  /// The whole address book, keyed by id. Delegates to [planSnapshot], empty while it is null.
+  Map<String, OcptPerson> get personById => planSnapshot?.personById ?? const {};
 
   /// The shot [shotId] names, or null while [shotListSnapshot] hasn't loaded it (or it has since
-  /// been deleted).
-  OcptShot? shotById(String shotId) => shotListSnapshot?.shotsById[shotId];
+  /// been deleted). Delegates to [planSnapshot].
+  OcptShot? shotById(String shotId) => planSnapshot?.shotById(shotId);
 
   /// [selectedDayId]'s own live slots, in `sortKey` order (empty while none is selected, or the
   /// selected day carries none).
@@ -344,174 +366,27 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
   /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
-  /// all.
-  ///
-  /// Computed here rather than stored: reading it
-  /// costs nothing beyond a handful of list lookups already held in memory, and storing it would be
-  /// one more thing every write to that day's blocks would have to remember to invalidate.
-  OcptShootingDayTimelines? timelinesOfDay(String dayId) {
-    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    if (slots.isEmpty) {
-      return null;
-    }
-
-    final blocks = snapshot?.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
-    final blocksBySlotId = <String, List<OcptShootingDayBlock>>{};
-    for (final block in blocks) {
-      (blocksBySlotId[block.slotId] ??= <OcptShootingDayBlock>[]).add(block);
-    }
-
-    final timelineSlots = [
-      for (final slot in slots)
-        OcptShootingTimelineSlot(
-          id: slot.id,
-          anchorEdge: slot.anchorEdge,
-          anchorMinute: slot.anchorMinute,
-          anchorSlotId: slot.anchorSlotId,
-          blocks: [
-            for (final block in blocksBySlotId[slot.id] ?? const <OcptShootingDayBlock>[])
-              OcptShootingTimelineBlock(
-                id: block.id,
-                durationMinutes: block.durationMinutes,
-                fallbackDurationMinutes: block.kind == OcptShootingBlockKind.shot && block.shotId != null
-                    ? _durationMinutesOfShot(block.shotId!)
-                    : null,
-                anchorMinute: block.anchorMinute,
-              ),
-          ],
-        ),
-    ];
-
-    return ocptComputeShootingDayTimelines(
-      slots: timelineSlots,
-      defaultDurationMinutes: ocptDefaultBlockDurationMinutes,
-    );
-  }
+  /// all. Delegates to [planSnapshot].
+  OcptShootingDayTimelines? timelinesOfDay(String dayId) => planSnapshot?.timelinesOfDay(dayId);
 
   /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
-  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at all.
-  ///
-  /// Built by [ocptComputeDayConvocations] over one [OcptConvocationSlot] per live slot
-  /// ([_convocationSlotOf]) — that pure function knows nothing of `shots`, `roles` or the timeline,
-  /// so joining a slot's already-chained blocks ([timelinesOfDay]) onto its own crew and cast rows,
-  /// and resolving a cast role's own actor through [roleById], is this state's job alone.
-  List<OcptDayConvocation> convocationsOfDay(String dayId) {
-    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    if (slots.isEmpty) {
-      return const [];
-    }
+  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at
+  /// all (or while [planSnapshot] itself is null). Delegates to [planSnapshot].
+  List<OcptDayConvocation> convocationsOfDay(String dayId) =>
+      planSnapshot?.convocationsOfDay(dayId) ?? const [];
 
-    final timelines = timelinesOfDay(dayId);
-    final blocksById = {
-      for (final block in snapshot?.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
-        block.id: block,
-    };
-
-    return ocptComputeDayConvocations(
-      slots: [
-        // Every live slot of the day was handed to [timelinesOfDay] just above, so each has its own
-        // entry back: the `!` is that round trip, not an assumption about the data.
-        for (final slot in slots)
-          _convocationSlotOf(slot, timelines!.bySlotId[slot.id]!, blocksById),
-      ],
-    );
-  }
-
-  /// Builds [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
-  /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
-  /// [timeline]'s own entries whose [blocksById] row is a [OcptShootingBlockKind.shot] or a
-  /// [OcptShootingBlockKind.hold] — a minimum and a maximum rather than "the first and last entry",
-  /// since a pinned anchor can put a block earlier than the one before it in chain order — and
-  /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
-  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`.
-  ///
-  /// [OcptConvocationSlot.startMinute] is [timeline]'s own **resolved** start, never a stored
-  /// column: a slot pinned by its end starts wherever its blocks put it, and a convocation is what
-  /// that lands on.
-  OcptConvocationSlot _convocationSlotOf(
-    OcptShootingSlot slot,
-    OcptShootingSlotTimeline timeline,
-    Map<String, OcptShootingDayBlock> blocksById,
-  ) {
-    int? shootingStartMinute;
-    int? shootingEndMinute;
-    for (final entry in timeline.entries) {
-      final kind = blocksById[entry.blockId]?.kind;
-      if (kind != OcptShootingBlockKind.shot && kind != OcptShootingBlockKind.hold) {
-        continue;
-      }
-      if (shootingStartMinute == null || entry.startMinute < shootingStartMinute) {
-        shootingStartMinute = entry.startMinute;
-      }
-      if (shootingEndMinute == null || entry.endMinute > shootingEndMinute) {
-        shootingEndMinute = entry.endMinute;
-      }
-    }
-
-    final personIds = <String>{for (final member in slot.crew) member.personId};
-    final uncastRoleIds = <String>{};
-    for (final member in slot.cast) {
-      final actorId = roleById[member.roleId]?.personId;
-      if (actorId != null) {
-        personIds.add(actorId);
-      } else {
-        uncastRoleIds.add(member.roleId);
-      }
-    }
-
-    return OcptConvocationSlot(
-      id: slot.id,
-      startMinute: timeline.startMinute,
-      endMinute: timeline.endMinute,
-      shootingStartMinute: shootingStartMinute,
-      shootingEndMinute: shootingEndMinute,
-      personIds: personIds,
-      uncastRoleIds: uncastRoleIds,
-    );
-  }
-
-  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots
-  /// ([OcptShootingDayTimelines.dayStartMinute]) — or null while it has no live slot at all.
-  ///
-  /// Reads off the slots alone, not off who is convoked (ADR 0018): nothing pulls an arrival ahead
-  /// of its own slot's start any more, so the day's earliest slot start already is its earliest
-  /// arrival, with no convocation to compute for it. It reads the **resolved** start rather than a
-  /// stored column, an end-anchored slot's own start being a fact about its blocks (ADR 0015,
-  /// amended a second time).
-  int? dayArrivalMinute(String dayId) => timelinesOfDay(dayId)?.dayStartMinute;
-
-  /// [shotId]'s own `estimatedDurationMs`, converted to minutes, or null while it has none yet (or
-  /// the shot isn't loaded).
-  int? _durationMinutesOfShot(String shotId) {
-    final estimatedDurationMs = shotById(shotId)?.estimatedDurationMs;
-    return estimatedDurationMs == null ? null : (estimatedDurationMs / 60000).round();
-  }
+  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots — or
+  /// null while it has no live slot at all. Delegates to [planSnapshot].
+  int? dayArrivalMinute(String dayId) => planSnapshot?.dayArrivalMinute(dayId);
 
   /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
-  /// has no location, or that location has no coordinates pinned yet.
-  OcptSunTimes? sunTimesOfDay(String dayId) {
-    final day = daysById[dayId];
-    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    if (day == null || slots.isEmpty) {
-      return null;
-    }
-
-    final location = locationById[slots.first.locationId];
-    final latitude = location?.latitude;
-    final longitude = location?.longitude;
-    if (latitude == null || longitude == null) {
-      return null;
-    }
-
-    return ocptSunTimesOf(date: day.date, latitudeDegrees: latitude, longitudeDegrees: longitude);
-  }
+  /// has no location, or that location has no coordinates pinned yet. Delegates to [planSnapshot].
+  OcptSunTimes? sunTimesOfDay(String dayId) => planSnapshot?.sunTimesOfDay(dayId);
 
   /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
   /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
-  OcptLocation? firstLocationOfDay(String dayId) {
-    final slots = snapshot?.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    return slots.isEmpty ? null : locationById[slots.first.locationId];
-  }
+  /// Delegates to [planSnapshot].
+  OcptLocation? firstLocationOfDay(String dayId) => planSnapshot?.firstLocationOfDay(dayId);
 
   /// [targetId]'s current value for `field` — a pending edit still sitting in [pendingFieldEdits],
   /// or [storedValue] (the entity's own value, read off the call site) otherwise.
@@ -519,7 +394,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       pendingFieldEdits[(targetId, field)] ?? storedValue;
 
   /// Class constructor
-  const OcptScheduleState({
+  ///
+  /// Not `const`, unlike the other modes' own states: [planSnapshot] is a `late final` field, which
+  /// a const constructor cannot carry. Nothing ever built this state as a constant.
+  OcptScheduleState({
     required this.isLoading,
     required this.title,
     required this.snapshot,
