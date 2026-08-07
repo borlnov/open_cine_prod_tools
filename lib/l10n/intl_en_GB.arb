@@ -7644,6 +7644,52 @@
     "context": "Printed on the exported shooting plan",
     "type": "text",
     "placeholders": {}
+  },
+  "scheduleHeaderPositionsSegmentLabel": "Positions",
+  "@scheduleHeaderPositionsSegmentLabel": {
+    "description": "Label of the header's own Positions segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixEmptyHint": "No position has been held on a slot yet.",
+  "@schedulePositionsMatrixEmptyHint": {
+    "description": "Empty state shown by the positions matrix when no crew position has been assigned to any slot of the schedule yet",
+    "context": "Displayed in the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixPositionColumnHeader": "Position",
+  "@schedulePositionsMatrixPositionColumnHeader": {
+    "description": "Header of the positions matrix's own frozen first column",
+    "context": "Displayed in the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixLegend": "An orange cell marks a position held on the slot just before and dropped on this one.",
+  "@schedulePositionsMatrixLegend": {
+    "description": "Caption explaining the positions matrix's own warning cell",
+    "context": "Displayed above the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixLostCellLabel": "Lost",
+  "@schedulePositionsMatrixLostCellLabel": {
+    "description": "Short marker printed on a positions matrix cell where the position was dropped mid-day",
+    "context": "Displayed in the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixLostCellTooltip": "Held by {name} on the previous slot",
+  "@schedulePositionsMatrixLostCellTooltip": {
+    "description": "Tooltip of a positions matrix cell where the position was dropped mid-day, naming who held it on the previous slot",
+    "context": "Displayed in the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 
 }

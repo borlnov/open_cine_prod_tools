@@ -1023,5 +1023,11 @@
   "scheduleExportMoveHeader": "Mouv.",
   "scheduleExportFramingHeader": "Cadre",
   "scheduleExportCommentHeader": "Commentaire",
-  "scheduleExportEmptyPlanNote": "Rien à imprimer."
+  "scheduleExportEmptyPlanNote": "Rien à imprimer.",
+  "scheduleHeaderPositionsSegmentLabel": "Postes",
+  "schedulePositionsMatrixEmptyHint": "Aucun poste n'a encore été tenu sur un créneau.",
+  "schedulePositionsMatrixPositionColumnHeader": "Poste",
+  "schedulePositionsMatrixLegend": "Une case orange signale un poste tenu sur le créneau précédent et perdu sur celui-ci.",
+  "schedulePositionsMatrixLostCellLabel": "Perdu",
+  "schedulePositionsMatrixLostCellTooltip": "Tenu par {name} sur le créneau précédent"
 }

@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_month_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_named_call_sheets_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_positions_matrix.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
@@ -44,6 +45,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The schedule production mode: planning the shoot day by day.
@@ -374,9 +376,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: state.centreView == OcptScheduleCentreView.day
-                ? _buildDayView(context, state)
-                : _buildAgenda(context, state),
+            child: switch (state.centreView) {
+              OcptScheduleCentreView.day => _buildDayView(context, state),
+              OcptScheduleCentreView.agenda => _buildAgenda(context, state),
+              OcptScheduleCentreView.positions => _buildPositionsMatrix(context, state),
+            },
           ),
         ),
         const SizedBox(height: 24),
@@ -443,6 +447,22 @@ class _ScheduleViewState extends State<_ScheduleView> {
       ),
     };
   }
+
+  /// Builds the positions matrix: who holds which crew position, slot by slot, across the whole
+  /// shoot — [OcptSchedulePositionLostAlert] is read straight out of `state.planSnapshot`'s own
+  /// alerts (rule 4 of `lib/utils/ocpt_schedule_alerts.dart`) rather than recomputed here, so this
+  /// view can never disagree with the alerts panel about what "lost" means.
+  Widget _buildPositionsMatrix(BuildContext context, OcptScheduleState state) => OcptSchedulePositionsMatrix(
+    days: state.days,
+    slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
+    personById: state.personById,
+    timelinesOfDay: state.timelinesOfDay,
+    lostPositionAlerts: [
+      for (final alert in state.planSnapshot?.alerts ?? const <OcptScheduleAlert>[])
+        if (alert is OcptSchedulePositionLostAlert) alert,
+    ],
+    onDayOpenRequested: (dayId) => _openDay(context, dayId),
+  );
 
   /// Builds the day view: the selected day's own summary band and its slot cards, each with its own
   /// timetable — or a plain hint while no day is selected yet.

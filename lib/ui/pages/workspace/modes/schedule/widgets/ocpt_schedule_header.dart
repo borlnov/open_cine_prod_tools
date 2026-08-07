@@ -10,10 +10,10 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 
-/// The schedule mode's own header band: the `Day`/`Agenda` switch and, while the agenda is shown,
-/// its own `Strip`/`Week`/`Month` segmented control beside it, plus — for the week and month
-/// presentations — the previous/next/today paging row, mirroring the mock's header row
-/// (`design.html` lines 423-433) and `OcptBreakdownHeader`'s own segmented-switch styling.
+/// The schedule mode's own header band: the `Day`/`Agenda`/`Positions` switch and, while the
+/// agenda is shown, its own `Strip`/`Week`/`Month` segmented control beside it, plus — for the
+/// week and month presentations — the previous/next/today paging row, mirroring the mock's header
+/// row (`design.html` lines 423-433) and `OcptBreakdownHeader`'s own segmented-switch styling.
 ///
 /// **The mock's "Couleur par lieu / Int-Ext · Jour-Nuit" segmented control and the alert list under
 /// it are deliberately not built here** — they arrive with the grids and alerts milestone
@@ -75,6 +75,7 @@ class OcptScheduleHeader extends StatelessWidget {
             labelOf: (view) => switch (view) {
               OcptScheduleCentreView.day => Tr.of(context).scheduleHeaderDaySegmentLabel,
               OcptScheduleCentreView.agenda => Tr.of(context).scheduleHeaderAgendaSegmentLabel,
+              OcptScheduleCentreView.positions => Tr.of(context).scheduleHeaderPositionsSegmentLabel,
             },
             onChanged: onCentreViewSelected,
           ),
