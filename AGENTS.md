@@ -101,6 +101,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 25 | Project versions (issue #20): schema v5 (`project_versions` with its `contentDigest`, `project_info.currentVersionId`), `OcptProjectVersionCodec` and its versioned payload, the `Versions` dock tab shared by every mode, the read-only preview swapping an in-memory database in, and the restore (safety version, tombstones and version stamps, post-commit margins) | ✅ |
 | 25b | Project versions rework: the working copy as the list's first entry (`OcptProjectWorkingCopyCard`, live counters, drift from its base), `currentVersionId` read as the **base** and its card no longer inert, inline rename, `contentDigest` deduplicating the restore's safety version, and the fork dropped in favour of a plain restore | ✅ |
 | 26 | Resources mode (issue #45): schema v6 (the address book, the cast, locations with their sets, the elements catalogue, referenced assets and the local `local_erasures`) then v7 (`location_availabilities`), payload format 2 carrying the schema v6 tables then format 3 carrying `location_availabilities`, the four-tab mode (people, roles, locations, elements) with its sheets, roles reconciled from the screenplay, scene ↔ set and scene ↔ element links, search across the four tabs, and the four-sheet XLSX export; then schema v8 adding `project_info.currencyCode` (payload format 4, a version predating it leaving the project's currency untouched on restore rather than guessing one), `OcptProjectSettingsPage` reached from a dedicated action in every mode's toolbar, and the currency shown as the element sheet's cost suffix and named in the exported workbook's cost column | ✅ |
+| 26b | Resources sheets — a photo, and the things a role wears: the colour palette pulled out of its `MenuItemButton`s (`OcptResourcesColorSwatches`, the crash a `Wrap` caused), `OcptAssetsService` owning the `assets` rows every service used to mint through the locations one, the three orphaned asset columns wired up (`people.photoAssetId`, `elements.photoAssetId`, `people.imageRightsAssetId`) behind one `OcptResourcesPhotoSlot` menu, an erased person's asset paths blanked on both erasure paths, then schema v15 and payload format 10 adding `role_elements` — the role sheet's `Their things` card grouped by category and the element sheet's read-only `Roles concerned` chips | ✅ |
 | 27 | Breakdown mode (issue #47): schema v9 (`breakdown_tags` anchoring a passage to an element, a role or a set — ADR 0014 —, `scene_breakdowns` holding the pass's per-scene progress, `elements.status`) then v10 (a code backfilled onto every set), payload format 5, `OcptBreakdownService` with tag reconciliation on the screenplay save path, the script view with its two-click tagging gesture and its popover that links or creates in one click, the recap cross-table and its search, the scene and target inspectors, the occurrence suggestions, the per-category palette, and the breakdown sheets PDF export | ✅ |
 | 28 | Schedule mode M1 — planning (issue #49): schema v11 (the six schedule tables, and the legacy `shots.shootingDay` erased by the migration), `ocpt_shooting_day_timeline.dart` (ADR 0015) and `ocpt_sun_times.dart` (ADR 0016), both pure, `OcptScheduleService` with its day duplication and its one-placement-per-shot rule (dropped in 28c), payload format 6, `OcptScheduleMode` with its agenda in three presentations and its day view, and the shot list's shooting day turned into a read-out of the placement | ✅ |
 | 28b | Schedule mode M1' — per-slot timetables and computed convocations: schema v12 (`shooting_day_blocks.slotId` made required and a `sceneId` given to the `hold` that names a sequence, a slot's typed clocks reduced to its `startMinute`, `shooting_day_groups` added, the crew and cast convocations trading their typed times for a group and a lead), `ocpt_shooting_day_timeline.dart` amended per slot (ADR 0015 amended) and `ocpt_shooting_convocations.dart` (ADR 0017), both pure, `OcptScheduleService` seeding a convocation from the day that last carried it, payload format 7, and the mode reading its call times out rather than asking for them | ✅ |
@@ -300,8 +301,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v14 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
-  the three shot list tables, the thirteen resources tables, `breakdown_tags`, `scene_breakdowns`,
+- Persistence: drift schema v15 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+  the three shot list tables, the fourteen resources tables (`role_elements` among them),
+  `breakdown_tags`, `scene_breakdowns`,
   the six schedule tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
@@ -322,7 +324,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-five captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  twenty-six captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
   plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
   independent of the schema
@@ -367,7 +369,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   holding the very hour it had, and a null `anchorSlotId` — which is exactly what a format-8 payload
   meant, so restoring one draws the day it drew when it was captured, and nothing is guessed the
   other way round (no slot becomes end-anchored because its blocks happened to land on a round hour,
-  and no link is invented between two slots that merely met). Counters shown
+  and no link is invented between two slots that merely met). Format 10 is `role_elements`, and it
+  is back to the plainest kind, format 6's **empty list**: a version captured in format 9 was taken
+  when nothing in the app could say a role wore a coat, so "this role had no things" is a truthful
+  statement about that moment — and restoring one therefore drops every link made since, which is
+  the reading, not a bug. Counters shown
   on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
@@ -469,6 +475,32 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   table with a category and a free sub-category rather than one table per department, because the
   tracking columns (owner, who brings it, secured, ready, returned, where) are the same whatever
   the item is.
+  **What a role wears, carries and is made up with** is `role_elements`, `scene_elements`' sibling
+  on the other side of the production: the same catalogue, linked from a role, with the same kind of
+  per-link note and no quantity (a role wears the coat or they do not). It is **written from
+  `OcptElementsService`** although the role sheet is where the user adds to it — the row is a link
+  onto an element, it is loaded with the element it names on `OcptElement.roleLinks`, and the role
+  sheet's own card scans the catalogue for the links naming its role rather than carrying a copy, so
+  that card and the element sheet's reverse read-out cannot disagree. `OcptRoleIndexService.deleteRole`
+  reaches for the one cascade it needs (`tombstoneRoleLinksOfRole`); neither deletion ever touches
+  the **element**, a coat outliving the character who wore it. **No category restriction, and
+  deliberately none**: a character's car, their dog and their stunt harness are facts about them
+  exactly as their coat is, so the grouping by category is read-time work in the card (and the
+  breakdown mode's own per-category colour heads it), never a rule in the schema that a migration
+  would have to undo the day it gets in the way. The element sheet reads it back as
+  `Roles concerned` — read-only chips landing on that role's sheet, a plain tab-and-selection change
+  inside one mode rather than an `OcptWorkspaceRevealRequest`, and **rendered identically under a
+  version preview**, selecting a role writing nothing. A role's things are added and removed from
+  the role's sheet alone: offering the same edit from both ends would only invite the two to
+  disagree.
+  **A photo is a slot, not a field**: `OcptResourcesPhotoSlot` is the person sheet's header avatar
+  and the element sheet's alike, and it is **one menu** — reference a photo, drop it, then the
+  palette — because "what does this record look like?" is one question and the colour is the
+  photo's *fallback* rather than a competing setting. A record with no colour of its own passes a
+  null `currentColorIndex` and gets the photo entries alone: `elements` carries no `colorIndex`, an
+  element being read by its category's colour. A person's photo is resolved once, by
+  `OcptPersonAvatar`, so referencing one on the sheet shows it in the address book's list and on the
+  role avatar too.
   Roles are **reconciled from the screenplay**, not typed from nothing: `OcptRoleIndexService`
   mirrors `OcptSceneIndexService` on the same save path — a speaking character with no row gets a
   `speaking` role, a role whose character disappeared keeps its casting and its notes and gains an
@@ -788,8 +820,16 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
   a normal state rather than an error — the UI shows the reference with a "file not found" marker —
   and it is the honest cost of the choice: a `.ocpt` sent to a colleague arrives without its
-  photos, and a restored version restores a reference that may now dangle. `OcptLocationsService`
-  is so far the only service that writes these rows (scouting photos, the permit document).
+  photos, and a restored version restores a reference that may now dangle. **`OcptAssetsService`
+  is the one place a row of that table is minted or tombstoned** (`insertAsset`/`tombstoneAsset`,
+  unguarded because their callers already refused the write and are already inside their own
+  transaction; `removeAsset`, guarded, is the user's own gesture): the four services that reference
+  a file hold it rather than each writing the table their own way, so a photo, a scouting photo, a
+  permit and a signed release are all created and dropped alike. What a reference **looks like** is
+  decided once too, by `OcptReferencedImage` (the image draws, or the caller's fallback does, a
+  missing file being a state) and by `OcptAssetFileLine` (a document, read by its name, saying so
+  out loud) — a photo silently falling back to initials and a list silently one item short are not
+  the same failure.
 - Erasing a person (`local_erasures`): deleting a person writes the tombstone **and blanks their
   personal columns**, so the file stops holding a phone number, a home address and an allergy for
   someone who asked to be removed. Versions cut across that — a payload captured earlier still
@@ -799,9 +839,14 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   byte-identical (the codec never rewrites a stored payload), and the working copy never
   resurrects an erased person. The scrubbed row is blanked and tombstoned rather than dropped —
   `roles.personId`, `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may
-  still point at it. **`_scrubErasedPeople` and `OcptPeopleService.deletePerson` implement the same
+  still point at it. **Their `assets` rows are blanked too, path and label**: an absolute path
+  routinely names the person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a
+  photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
+  **`_scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
+  `OcptAssetsService.erasePersonAssets`) implement the same
   erasure from two starting points and must be kept in step by hand**: a column blanked by one but
-  not the other reopens the leak. That list is a table for the same reason
+  not the other reopens the leak. A row belonging to a location or an element is nobody's personal
+  data and is left alone by both. That list is a table for the same reason
   `project_versions` is one: parked in `project_info.settingsJson` it would be captured, hashed and
   written back by any restore, which would forget the erasure and resurrect the person in one
   transaction. `local_erasures` is therefore local — no tombstone, no `sortKey`, no stamps, never
@@ -937,7 +982,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   that rewrite (import & replace, page setup, title page), the metadata panel's "Edit…", the shot
   list's `+ Shot`, its orphan delete buttons, its inspector controls and its deleted-character
   banner actions, every one of the resources mode's `+ Add …` footers, sheet fields, pickers,
-  sub-list rows and delete actions, and — in the breakdown mode — the word click that opens a range
+  sub-list rows and delete actions — including the photo slot, which loses its menu altogether and
+  becomes a plain unclickable picture, and the role sheet's things card, which keeps its links and
+  their notes readable while withholding the picker and the unlink control (its `Roles concerned`
+  counterpart withholding nothing, having nothing to withhold) —, and — in the breakdown mode —
+  the word click that opens a range
   (nulling that one callback withholds the whole tagging path, since no anchor can open and no
   popover ever has a range to show), the status and category chips, the scene status control, its
   sets row's picker and chip dismissals, every
@@ -1053,6 +1102,14 @@ minimum before each commit):
   `TextInputConnection.updateStyle(TextInputStyle)`). dev.52 re-exports `BlinkController`, so
   tests get it from `package:super_editor/super_editor.dart` with no direct `super_text_layout`
   dependency.
+- **A `MenuItemButton` may not go inside a `Wrap`**, and the failure is a thrown
+  `RenderFlex children have non-zero flex but incoming width constraints are unbounded`, not a
+  layout that merely looks wrong. A menu item lays its child out inside an `Expanded`, itself inside
+  a `Row` sized to the maximum, which is fine down a menu's single column and throws the moment a
+  `Wrap` hands it the unbounded width a wrap always gives its children. A grid inside a
+  `MenuAnchor`'s `menuChildren` therefore uses plain `InkWell`s and closes the menu itself
+  (`MenuController.maybeOf(context)?.close()`, before reporting the pick, since reporting it
+  rebuilds the tree the anchor lives in) — which is what `OcptResourcesColorSwatches` does.
 - super_editor stylesheets: only TextStyle/padding merge across rules — use one mutually
   exclusive `StyleRule` per Fountain line type (no `BlockSelector.all` baseline), or
   maxWidth/textAlign silently drop.
