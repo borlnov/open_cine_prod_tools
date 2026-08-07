@@ -8028,6 +8028,46 @@
         "type": "String"
       }
     }
+  },
+  "scheduleAgendaColorByLabel": "Colour by",
+  "@scheduleAgendaColorByLabel": {
+    "description": "Label preceding the agenda header's own Colour by segmented control",
+    "context": "Displayed in the schedule mode's agenda header"
+  },
+  "scheduleAgendaColorModeLocation": "Location",
+  "@scheduleAgendaColorModeLocation": {
+    "description": "Label of the Colour by control's Location segment",
+    "context": "Displayed in the schedule mode's agenda header"
+  },
+  "scheduleAgendaColorModeEffect": "Effect",
+  "@scheduleAgendaColorModeEffect": {
+    "description": "Label of the Colour by control's Effect segment",
+    "context": "Displayed in the schedule mode's agenda header"
+  },
+  "scheduleAgendaEffectLegendInteriorDay": "Interior · Day",
+  "@scheduleAgendaEffectLegendInteriorDay": {
+    "description": "Legend entry for a day whose placed shots all read INT/day",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendInteriorNight": "Interior · Night",
+  "@scheduleAgendaEffectLegendInteriorNight": {
+    "description": "Legend entry for a day whose placed shots all read INT/night",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendExteriorDay": "Exterior · Day",
+  "@scheduleAgendaEffectLegendExteriorDay": {
+    "description": "Legend entry for a day whose placed shots all read EXT/day",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendExteriorNight": "Exterior · Night",
+  "@scheduleAgendaEffectLegendExteriorNight": {
+    "description": "Legend entry for a day whose placed shots all read EXT/night",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendMixed": "Mixed",
+  "@scheduleAgendaEffectLegendMixed": {
+    "description": "Legend entry for a day whose placed shots classify into more than one effect",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
   }
 
 }

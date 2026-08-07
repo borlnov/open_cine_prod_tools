@@ -23,8 +23,8 @@ const int _ocptMonthGridWeekCount = 6;
 const double _ocptMonthGridMultiSlotBadgeRadius = 3;
 
 /// How opaque the multi-slot badge's own background wash is drawn against `primary` — a discreet
-/// tint, not a solid fill: a cell already carries a location tint and a day tag, and the badge is
-/// one more small fact rather than the thing the eye is drawn to first.
+/// tint, not a solid fill: a cell already carries its own tint and a day tag, and the badge is one
+/// more small fact rather than the thing the eye is drawn to first.
 const double _ocptMonthGridMultiSlotBadgeAlpha = 0.18;
 
 /// The month presentation of the agenda: the shoot at a glance, one cell per day of the month
@@ -49,8 +49,14 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   /// stored (ADR 0015, amended a second time).
   final Map<String, List<OcptShootingSlot>> slotsByDayId;
 
-  /// Each day's own first slot's location, keyed by day id.
+  /// Each day's own first slot's location, keyed by day id — read for a cell's own location line
+  /// regardless of what [dayTintOf] currently paints its top border with.
   final Map<String, OcptLocation?> firstLocationByDayId;
+
+  /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
+  /// stays ignorant of which fact a day is coloured by.
+  final Color Function(String dayId) dayTintOf;
 
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed.
   final OcptShootingDayTimelines? Function(String dayId) timelineOf;
@@ -73,6 +79,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     required this.days,
     required this.slotsByDayId,
     required this.firstLocationByDayId,
+    required this.dayTintOf,
     required this.timelineOf,
     required this.sunTimesOf,
     required this.selectedDayId,
@@ -111,6 +118,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
                             day: day,
                             slots: day == null ? const [] : slotsByDayId[day.id] ?? const [],
                             location: day == null ? null : firstLocationByDayId[day.id],
+                            tint: day == null ? null : dayTintOf(day.id),
                             timeline: day == null ? null : timelineOf(day.id),
                             sunTimes: day == null ? null : sunTimesOf(day.id),
                             isSelected: day != null && day.id == selectedDayId,
@@ -146,8 +154,13 @@ class _OcptScheduleMonthCell extends StatelessWidget {
   /// [day]'s own live slots.
   final List<OcptShootingSlot> slots;
 
-  /// [day]'s own first slot's location, or null.
+  /// [day]'s own first slot's location, or null — read for the cell's own location line regardless
+  /// of what [tint] currently paints its top border with.
   final OcptLocation? location;
+
+  /// [day]'s own resolved tint (`OcptScheduleMonthGrid.dayTintOf`, already applied), or null while
+  /// [day] itself is null — nothing to colour.
+  final Color? tint;
 
   /// [day]'s own computed timetable, or null while it has nothing placed (or [day] is null).
   final OcptShootingDayTimelines? timeline;
@@ -169,6 +182,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     required this.day,
     required this.slots,
     required this.location,
+    required this.tint,
     required this.timeline,
     required this.sunTimes,
     required this.isSelected,
@@ -180,7 +194,6 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final day = this.day;
-    final tint = day == null ? null : ocptScheduleDayLocationTint(context, location);
     // A day's own slots chain independently (ADR 0015, amended twice), each from its own resolved
     // start, so the **first** slot in `sortKey` order is not necessarily the one that calls its
     // crew earliest — a production may well list its evening unit before its morning one. A cell's

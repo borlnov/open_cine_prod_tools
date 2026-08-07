@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -371,6 +372,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
           onCentreViewSelected: (view) => bloc.add(OcptScheduleCentreViewSelectedEvent(view: view)),
           agendaMode: state.agendaMode,
           onAgendaModeSelected: (mode) => bloc.add(OcptScheduleAgendaModeSelectedEvent(mode: mode)),
+          agendaColorMode: state.agendaColorMode,
+          onAgendaColorModeSelected: (mode) =>
+              bloc.add(OcptScheduleAgendaColorModeSelectedEvent(mode: mode)),
           agendaAnchorDate: state.agendaAnchorDate,
           onAgendaAnchorDateChanged: (date) =>
               bloc.add(OcptScheduleAgendaAnchorDateChangedEvent(date: date)),
@@ -409,6 +413,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final firstLocationByDayId = {
       for (final day in state.days) day.id: state.firstLocationOfDay(day.id),
     };
+    final dayTintOf = _dayTintOf(context, state);
     final blocksByDayId =
         state.snapshot?.blocksByDayId ?? const <String, List<OcptShootingDayBlock>>{};
     final slotsByDayId = state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{};
@@ -418,6 +423,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         days: state.days,
         selectedDayId: state.selectedDayId,
         firstLocationByDayId: firstLocationByDayId,
+        dayTintOf: dayTintOf,
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
@@ -430,7 +436,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         anchorDate: state.agendaAnchorDate,
         firstWeekday: state.firstWeekday,
         days: state.days,
-        firstLocationByDayId: firstLocationByDayId,
+        dayTintOf: dayTintOf,
         slotsByDayId: slotsByDayId,
         blocksByDayId: blocksByDayId,
         shotOf: state.shotById,
@@ -445,6 +451,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         days: state.days,
         slotsByDayId: slotsByDayId,
         firstLocationByDayId: firstLocationByDayId,
+        dayTintOf: dayTintOf,
         timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
         selectedDayId: state.selectedDayId,
@@ -452,6 +459,19 @@ class _ScheduleViewState extends State<_ScheduleView> {
       ),
     };
   }
+
+  /// The resolver every one of the three agendas' own tint reads through — a day's own
+  /// [OcptScheduleState.firstLocationOfDay] under [OcptScheduleAgendaColorMode.location], or its
+  /// `OcptSchedulePlanSnapshot.effectCategoryOfDay` under [OcptScheduleAgendaColorMode.effect] —
+  /// built once per build so switching the "Colour by" control re-tints all three presentations at
+  /// once without any of them knowing which fact they are currently reading.
+  Color Function(String dayId) _dayTintOf(BuildContext context, OcptScheduleState state) =>
+      switch (state.agendaColorMode) {
+        OcptScheduleAgendaColorMode.location => (dayId) =>
+            ocptScheduleDayLocationTint(context, state.firstLocationOfDay(dayId)),
+        OcptScheduleAgendaColorMode.effect => (dayId) =>
+            ocptScheduleDayEffectTint(context, state.planSnapshot?.effectCategoryOfDay(dayId)),
+      };
 
   /// Builds the positions matrix: who holds which crew position, slot by slot, across the whole
   /// shoot — [OcptSchedulePositionLostAlert] is read straight out of `state.planSnapshot`'s own

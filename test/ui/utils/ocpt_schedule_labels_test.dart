@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
+import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 
 void main() {
@@ -50,6 +52,68 @@ void main() {
       expect(
         ocptScheduleStartOfWeek(DateTime(2026, 9), OcptFirstWeekday.monday),
         DateTime(2026, 8, 31),
+      );
+    });
+  });
+
+  group("ocptScheduleDayEffectTint", () {
+    testWidgets("a day with nothing to say (null category) reads the theme's own outlineVariant", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              expect(ocptScheduleDayEffectTint(context, null), theme.colorScheme.outlineVariant);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+      "a mixed day reads a colour distinct from both the neutral and every category",
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final neutral = ocptScheduleDayEffectTint(context, null);
+                final mixed = ocptScheduleDayEffectTint(context, OcptSceneEffectCategory.mixed);
+
+                expect(mixed, isNot(neutral));
+                for (final category in OcptSceneEffectCategory.values) {
+                  if (category == OcptSceneEffectCategory.mixed) {
+                    continue;
+                  }
+                  expect(mixed, isNot(ocptScheduleDayEffectTint(context, category)));
+                }
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    testWidgets("switching the category switches the resolved tint", (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              // Every one of the five readings resolves to its own distinct colour — "the control
+              // switches the tint" holds for every pair, not just one.
+              final colors = {
+                for (final category in OcptSceneEffectCategory.values)
+                  category: ocptScheduleDayEffectTint(context, category),
+              };
+              expect(colors.values.toSet(), hasLength(OcptSceneEffectCategory.values.length));
+              return const SizedBox();
+            },
+          ),
+        ),
       );
     });
   });

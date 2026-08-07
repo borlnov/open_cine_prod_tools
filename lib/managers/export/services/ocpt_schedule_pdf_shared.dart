@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
@@ -89,14 +88,13 @@ List<OcptOrderedScheduleEntry> ocptOrderedScheduleEntriesOfDay({
   ];
 }
 
-/// A map from every real scene's id to its own heading, built once per generated document — read
-/// by both schedule PDF exports for a [OcptShootingBlockKind.hold] block's own caption, and by the
-/// call sheet's main table for its own `EFFET` column, never re-derived from
-/// `OcptSchedulePlanSnapshot.shotList` at each call site.
-Map<String, String> ocptScheduleHeadingBySceneId(OcptSchedulePlanSnapshot plan) => {
-  for (final sequence in plan.shotList?.sequences ?? const [])
-    if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
-};
+/// A map from every real scene's id to its own heading — read by both schedule PDF exports for a
+/// [OcptShootingBlockKind.hold] block's own caption, and by the call sheet's main table for its own
+/// `EFFET` column. A thin wrapper over `OcptSchedulePlanSnapshot.headingBySceneId`, which the
+/// schedule agenda's own "Colour by effect" tint reads too — kept here so neither PDF service has to
+/// know the field moved.
+Map<String, String> ocptScheduleHeadingBySceneId(OcptSchedulePlanSnapshot plan) =>
+    plan.headingBySceneId;
 
 /// The numbers of the roles [slot] convokes, sorted ascending — what a
 /// [OcptShootingBlockKind.hairMakeUp] block prints beside its own caption.

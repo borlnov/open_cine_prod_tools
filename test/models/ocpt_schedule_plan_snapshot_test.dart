@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -214,11 +215,12 @@ OcptPersonUnavailability _buildUnavailability({
 /// Builds a shot with the few fields these tests read, everything else neutral.
 OcptShot _buildShot({
   required String id,
+  String sceneId = "scene-1",
   List<String> characters = const [],
 }) => OcptShot(
   id: id,
   screenplayId: "screenplay-1",
-  sceneId: "scene-1",
+  sceneId: sceneId,
   orphanedHeading: null,
   position: 0,
   shotSize: "",
@@ -258,6 +260,35 @@ OcptShotListSnapshot _buildShotList({required List<OcptShot> shots}) => OcptShot
       charStart: 0,
       charEnd: 0,
       shots: shots,
+    ),
+  ],
+);
+
+/// Builds a shot list holding two scenes — `scene-1` (`INT. KITCHEN - DAY`) and `scene-2`
+/// (`EXT. STREET - NIGHT`) — what `effectCategoryOfDay`'s own "mixed" test places its two shots in.
+OcptShotListSnapshot _buildTwoSceneShotList({
+  required List<OcptShot> sceneOneShots,
+  required List<OcptShot> sceneTwoShots,
+}) => OcptShotListSnapshot.build(
+  screenplayId: "screenplay-1",
+  sequences: [
+    OcptSceneShotSequence(
+      sceneId: "scene-1",
+      heading: "INT. KITCHEN - DAY",
+      sceneNumber: null,
+      displaySceneNumber: "1",
+      charStart: 0,
+      charEnd: 0,
+      shots: sceneOneShots,
+    ),
+    OcptSceneShotSequence(
+      sceneId: "scene-2",
+      heading: "EXT. STREET - NIGHT",
+      sceneNumber: null,
+      displaySceneNumber: "2",
+      charStart: 0,
+      charEnd: 0,
+      shots: sceneTwoShots,
     ),
   ],
 );
@@ -471,6 +502,101 @@ void main() {
       expect(snapshot.dayArrivalMinute("day-1"), isNull);
       expect(snapshot.timelinesOfDay("day-1"), isNull);
       expect(snapshot.convocationsOfDay("day-1"), isEmpty);
+    });
+  });
+
+  group("effectCategoryOfDay", () {
+    test("null while nothing is placed on the day at all", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final snapshot = _buildSnapshot(days: [day], slotsByDayId: {"day-1": [slot]});
+
+      expect(snapshot.effectCategoryOfDay("day-1"), isNull);
+    });
+
+    test("a single category when every placed shot's own scene heading agrees", () {
+      final shot = _buildShot(id: "shot-1"); // scene-1: INT. KITCHEN - DAY
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {"day-1": [slot]},
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+      );
+
+      expect(snapshot.effectCategoryOfDay("day-1"), OcptSceneEffectCategory.interiorDay);
+    });
+
+    test("mixed when two placed shots' own scenes disagree", () {
+      final sceneOneShot = _buildShot(id: "shot-1"); // INT. KITCHEN - DAY
+      final sceneTwoShot = _buildShot(id: "shot-2", sceneId: "scene-2"); // EXT. STREET - NIGHT
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {"day-1": [slot]},
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-2",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        shotList: _buildTwoSceneShotList(sceneOneShots: [sceneOneShot], sceneTwoShots: [sceneTwoShot]),
+      );
+
+      expect(snapshot.effectCategoryOfDay("day-1"), OcptSceneEffectCategory.mixed);
+    });
+
+    test("a hold block naming a sequence with a known heading contributes nothing — only a shot "
+        "block's own scene counts", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {"day-1": [slot]},
+        blocksByDayId: {
+          "day-1": [
+            const OcptShootingDayBlock(
+              id: "hold-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.hold,
+              shotId: null,
+              sceneId: "scene-1",
+              label: "",
+              durationMinutes: 60,
+              anchorMinute: null,
+              notes: "",
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: const []),
+      );
+
+      expect(snapshot.effectCategoryOfDay("day-1"), isNull);
     });
   });
 

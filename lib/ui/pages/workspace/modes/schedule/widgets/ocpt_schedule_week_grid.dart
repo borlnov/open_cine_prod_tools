@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -82,8 +81,10 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   /// week.
   final List<OcptShootingDay> days;
 
-  /// Each day's own first slot's location, keyed by day id.
-  final Map<String, OcptLocation?> firstLocationByDayId;
+  /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
+  /// stays ignorant of which fact a day is coloured by.
+  final Color Function(String dayId) dayTintOf;
 
   /// Each day's own live slots, keyed by day id, in `sortKey` order — the lanes a day's own column
   /// is divided into.
@@ -115,7 +116,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     required this.anchorDate,
     required this.firstWeekday,
     required this.days,
-    required this.firstLocationByDayId,
+    required this.dayTintOf,
     required this.slotsByDayId,
     required this.blocksByDayId,
     required this.shotOf,
@@ -199,7 +200,9 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                   for (final date in weekDates)
                     Expanded(
                       child: _OcptScheduleWeekColumnBody(
-                        location: dayByDate[date] == null ? null : firstLocationByDayId[dayByDate[date]!.id],
+                        tint: dayByDate[date] == null
+                            ? theme.colorScheme.outlineVariant
+                            : dayTintOf(dayByDate[date]!.id),
                         slots: dayByDate[date] == null ? const [] : slotsByDayId[dayByDate[date]!.id] ?? const [],
                         blocks: dayByDate[date] == null ? const [] : blocksByDayId[dayByDate[date]!.id] ?? const [],
                         shotOf: shotOf,
@@ -333,8 +336,9 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
 /// One day's own column body: its sun shading and its placed blocks, positioned against the
 /// grid's own `[startMinute, endMinute)` range, with its blocks split into one lane per live slot.
 class _OcptScheduleWeekColumnBody extends StatelessWidget {
-  /// This column's own first slot's location, or null.
-  final OcptLocation? location;
+  /// This column's own resolved tint (`OcptScheduleWeekGrid.dayTintOf`, already applied) — the
+  /// grid's own `outlineVariant` fallback when the date carries no shooting day at all.
+  final Color tint;
 
   /// This column's own live slots, in `sortKey` order — the lanes the column's own width is split
   /// into. Empty for a date with no shooting day at all, in which case there is nothing to lay out
@@ -366,7 +370,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
 
   /// Class constructor
   const _OcptScheduleWeekColumnBody({
-    required this.location,
+    required this.tint,
     required this.slots,
     required this.blocks,
     required this.shotOf,
@@ -525,7 +529,6 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     final overrunBlockIds = {
       for (final overrun in timeline?.overruns ?? const <OcptTimelineOverrun>[]) overrun.blockId,
     };
-    final tint = ocptScheduleDayLocationTint(context, location);
     final laneCount = slots.isEmpty ? 1 : slots.length;
     final laneWidth = columnWidth / laneCount;
 

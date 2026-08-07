@@ -31,8 +31,14 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// The id of the currently selected day, or null while none is.
   final String? selectedDayId;
 
-  /// Each day's own first slot's location, keyed by day id, or null while it has none.
+  /// Each day's own first slot's location, keyed by day id, or null while it has none — what a
+  /// card's own location line reads, whatever [dayTintOf] is currently painting it with.
   final Map<String, OcptLocation?> firstLocationByDayId;
+
+  /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
+  /// stays ignorant of which fact a day is coloured by.
+  final Color Function(String dayId) dayTintOf;
 
   /// Each day's own live blocks, keyed by day id.
   final Map<String, List<OcptShootingDayBlock>> blocksByDayId;
@@ -60,6 +66,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.days,
     required this.selectedDayId,
     required this.firstLocationByDayId,
+    required this.dayTintOf,
     required this.blocksByDayId,
     required this.shotOf,
     required this.timelineOf,
@@ -90,6 +97,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
           day: day,
           isSelected: day.id == selectedDayId,
           location: firstLocationByDayId[day.id],
+          tint: dayTintOf(day.id),
           blocks: blocksByDayId[day.id] ?? const [],
           shotOf: shotOf,
           timeline: timelineOf(day.id),
@@ -110,8 +118,12 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   /// Whether this is the currently selected day.
   final bool isSelected;
 
-  /// This day's own first slot's location, or null while it has none.
+  /// This day's own first slot's location, or null while it has none — read for the card's own
+  /// location line regardless of what [tint] currently paints.
   final OcptLocation? location;
+
+  /// This day's own resolved tint (`OcptScheduleStripAgenda.dayTintOf`, already applied).
+  final Color tint;
 
   /// This day's own live blocks, in timetable order.
   final List<OcptShootingDayBlock> blocks;
@@ -137,6 +149,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.day,
     required this.isSelected,
     required this.location,
+    required this.tint,
     required this.blocks,
     required this.shotOf,
     required this.timeline,
@@ -149,7 +162,6 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final tint = ocptScheduleDayLocationTint(context, location);
     final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).toList();
     final entryByBlockId = <String, OcptShootingTimelineEntry>{

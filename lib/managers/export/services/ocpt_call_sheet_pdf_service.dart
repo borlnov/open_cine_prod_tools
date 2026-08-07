@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_effect.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
@@ -887,7 +888,10 @@ class OcptCallSheetPdfService {
           children: [
             _textCell(painter: painter, text: row.shots.isEmpty ? ocptScheduleEmptyValue : ocptShotSceneNumberOf(row.shots.first)),
             _textCell(painter: painter, text: row.shots.map(ocptShotRankOf).join(",")),
-            _textCell(painter: painter, text: _effectOf(row.heading) ?? ocptScheduleEmptyValue),
+            _textCell(
+              painter: painter,
+              text: ocptSceneEffectOf(row.heading).printedEffect ?? ocptScheduleEmptyValue,
+            ),
             _textCell(painter: painter, text: row.decors ?? ocptScheduleEmptyValue),
             _textCell(painter: painter, text: _rolesLabelOf(row, roles)),
           ],
@@ -1445,39 +1449,6 @@ String _rolesLabelOf(_DayRow row, List<OcptRole> roles) {
 
   final sorted = matched.toList()..sort((a, b) => a.number.compareTo(b.number));
   return sorted.map((role) => "${role.number}").join(", ");
-}
-
-/// [heading]'s own interior/exterior half and time-of-day half, joined as the reference call sheet's
-/// own `EFFET` column reads (`EXT / JOUR`), or null while [heading] is null or carries no time of
-/// day to split off.
-String? _effectOf(String? heading) {
-  if (heading == null) {
-    return null;
-  }
-  final trimmed = heading.trim();
-  final separatorIndex = trimmed.lastIndexOf(" - ");
-  if (separatorIndex <= 0) {
-    return null;
-  }
-
-  final prefix = trimmed.substring(0, separatorIndex).trim().toUpperCase();
-  final timeOfDay = trimmed.substring(separatorIndex + 3).trim();
-  if (prefix.isEmpty || timeOfDay.isEmpty) {
-    return null;
-  }
-
-  final String intExt;
-  if (prefix.startsWith("INT./EXT") || prefix.startsWith("INT/EXT") || prefix.startsWith("I/E")) {
-    intExt = "INT/EXT";
-  } else if (prefix.startsWith("EXT") || prefix.startsWith("EST")) {
-    intExt = "EXT";
-  } else if (prefix.startsWith("INT")) {
-    intExt = "INT";
-  } else {
-    intExt = prefix;
-  }
-
-  return "$intExt / $timeOfDay";
 }
 
 /// One time-band line (`<label> : 16:45 – 22:45`), or `<label> : 16:45` when [endMinute] is null —

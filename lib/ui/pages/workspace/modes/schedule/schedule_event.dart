@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart'
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -158,6 +159,20 @@ class OcptScheduleAgendaModeSelectedEvent extends OcptScheduleEvent {
 
   /// Class constructor
   const OcptScheduleAgendaModeSelectedEvent({required this.mode});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, mode];
+}
+
+/// Selects what fact the agenda tints a day with, dispatched by the header's own "Colour by"
+/// segmented control.
+class OcptScheduleAgendaColorModeSelectedEvent extends OcptScheduleEvent {
+  /// The colour mode to select.
+  final OcptScheduleAgendaColorMode mode;
+
+  /// Class constructor
+  const OcptScheduleAgendaColorModeSelectedEvent({required this.mode});
 
   /// Object properties
   @override

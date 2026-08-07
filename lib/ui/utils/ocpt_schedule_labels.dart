@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_schedule_effect_palette.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -20,6 +21,8 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
+import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -131,6 +134,34 @@ Color ocptScheduleDayLocationTint(BuildContext context, OcptLocation? location) 
 
   return Color(ocptCoverageColorAt(location.colorIndex));
 }
+
+/// The colour a day (or a week/month cell) is tinted with under [OcptScheduleAgendaColorMode.effect]
+/// — [ocptScheduleEffectColorOf] applied to [category], or the same neutral `outlineVariant`
+/// [ocptScheduleDayLocationTint] falls back to while [category] is null: a day with nothing placed,
+/// or whose placed shots carry nothing classifiable (`ocptSceneEffectCategoryOf`), has nothing to
+/// say either way.
+Color ocptScheduleDayEffectTint(BuildContext context, OcptSceneEffectCategory? category) {
+  if (category == null) {
+    return Theme.of(context).colorScheme.outlineVariant;
+  }
+
+  return Color(ocptScheduleEffectColorOf(category));
+}
+
+/// The display label of "Colour by" segment [mode], read by the header's own segmented control.
+String ocptScheduleAgendaColorModeLabel(Tr tr, OcptScheduleAgendaColorMode mode) => switch (mode) {
+  OcptScheduleAgendaColorMode.location => tr.scheduleAgendaColorModeLocation,
+  OcptScheduleAgendaColorMode.effect => tr.scheduleAgendaColorModeEffect,
+};
+
+/// The display label of legend entry [category], read by the header's own effect legend.
+String ocptSceneEffectCategoryLabel(Tr tr, OcptSceneEffectCategory category) => switch (category) {
+  OcptSceneEffectCategory.interiorDay => tr.scheduleAgendaEffectLegendInteriorDay,
+  OcptSceneEffectCategory.interiorNight => tr.scheduleAgendaEffectLegendInteriorNight,
+  OcptSceneEffectCategory.exteriorDay => tr.scheduleAgendaEffectLegendExteriorDay,
+  OcptSceneEffectCategory.exteriorNight => tr.scheduleAgendaEffectLegendExteriorNight,
+  OcptSceneEffectCategory.mixed => tr.scheduleAgendaEffectLegendMixed,
+};
 
 /// `08:00 – 18:00`, or an em dash while either bound is unset — the day list's own creneaux
 /// summary and the inspector's own PAT/estimated-end line share this reading.

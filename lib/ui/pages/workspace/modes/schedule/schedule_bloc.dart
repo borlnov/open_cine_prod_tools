@@ -157,6 +157,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleBlockSelectedEvent>(_onBlockSelected);
     on<OcptScheduleCentreViewSelectedEvent>(_onCentreViewSelected);
     on<OcptScheduleAgendaModeSelectedEvent>(_onAgendaModeSelected);
+    on<OcptScheduleAgendaColorModeSelectedEvent>(_onAgendaColorModeSelected);
     on<OcptScheduleAgendaAnchorDateChangedEvent>(_onAgendaAnchorDateChanged);
     on<OcptScheduleDayCreatedEvent>(_onDayCreated);
     on<OcptScheduleDayDateChangedEvent>(_onDayDateChanged);
@@ -543,6 +544,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     Emitter<OcptScheduleState> emitter,
   ) async {
     emitter(state.copyWith(agendaMode: event.mode));
+  }
+
+  /// Switches what fact the agenda tints a day with.
+  Future<void> _onAgendaColorModeSelected(
+    OcptScheduleAgendaColorModeSelectedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    emitter(state.copyWith(agendaColorMode: event.mode));
   }
 
   /// Pages the week/month agenda to a new anchor date.

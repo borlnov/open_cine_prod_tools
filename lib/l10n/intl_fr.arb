@@ -1065,5 +1065,13 @@
   "scheduleAlertRoleUncastSentence": "{roleName} n'est pas encore distribué·e.",
   "scheduleAlertTimelineOverrunSentence": "{blockLabel} est fixé·e à {anchorTime}, mais les blocs précédents ne se terminent qu'à {reachedTime}.",
   "scheduleAlertFixedEndMissedSentence": "{slotLabel} est fixé pour se terminer à {fixedEndTime}, mais ses blocs se terminent en réalité à {actualEndTime}.",
-  "scheduleAlertPresenceExceededSentence": "La présence de {personName} ce jour-là ({presenceDuration}) dépasse le maximum enregistré de {maxDuration}."
+  "scheduleAlertPresenceExceededSentence": "La présence de {personName} ce jour-là ({presenceDuration}) dépasse le maximum enregistré de {maxDuration}.",
+  "scheduleAgendaColorByLabel": "Couleur par",
+  "scheduleAgendaColorModeLocation": "Lieu",
+  "scheduleAgendaColorModeEffect": "Effet",
+  "scheduleAgendaEffectLegendInteriorDay": "Intérieur · Jour",
+  "scheduleAgendaEffectLegendInteriorNight": "Intérieur · Nuit",
+  "scheduleAgendaEffectLegendExteriorDay": "Extérieur · Jour",
+  "scheduleAgendaEffectLegendExteriorNight": "Extérieur · Nuit",
+  "scheduleAgendaEffectLegendMixed": "Mixte"
 }

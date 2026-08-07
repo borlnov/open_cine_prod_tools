@@ -15,9 +15,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
+import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_effect.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
@@ -289,6 +292,36 @@ class OcptSchedulePlanSnapshot extends Equatable {
   OcptLocation? firstLocationOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     return slots.isEmpty ? null : locationById[slots.first.locationId];
+  }
+
+  /// A map from every real scene's id to its own heading, built once — read by the two schedule PDF
+  /// exports for a [OcptShootingBlockKind.hold] block's own caption and the call sheet's own `EFFET`
+  /// column (`ocptScheduleHeadingBySceneId`, now a thin wrapper over this field), and by
+  /// [effectCategoryOfDay] below for the agenda's own "Colour by effect" tint — the very same join,
+  /// so a printed call sheet and the agenda can never read a heading differently.
+  late final Map<String, String> headingBySceneId = {
+    for (final sequence in shotList?.sequences ?? const <OcptShotSequence>[])
+      if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
+  };
+
+  /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
+  /// [OcptShootingBlockKind.shot] block's own scene heading placed on it, one of the four categories
+  /// when they agree, [OcptSceneEffectCategory.mixed] when they don't, or null when nothing placed
+  /// on [dayId] classifies at all. What `OcptScheduleAgendaColorMode.effect` tints a day with,
+  /// mirroring [firstLocationOfDay] for `OcptScheduleAgendaColorMode.location`.
+  ///
+  /// A [OcptShootingBlockKind.hold] block is deliberately left out, unlike [_calledRolesOfDay]'s own
+  /// restriction to shot blocks for a different reason here: it may name a sequence not yet
+  /// shot-listed at all, and a day is tinted by what is actually being **shot** on it, not by what
+  /// is merely blocked out for later.
+  OcptSceneEffectCategory? effectCategoryOfDay(String dayId) {
+    final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
+
+    return ocptSceneEffectCategoryOf([
+      for (final block in blocks)
+        if (block.kind == OcptShootingBlockKind.shot && block.shotId != null)
+          if (shotById(block.shotId!)?.sceneId case final sceneId?) headingBySceneId[sceneId],
+    ]);
   }
 
   /// Every day's own working person ids — everyone convoked on it as a human, cast or crew — built
