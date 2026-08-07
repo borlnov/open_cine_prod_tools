@@ -766,3 +766,23 @@ class OcptScheduleIoNoticeDismissedEvent extends OcptScheduleEvent {
   /// Class constructor
   const OcptScheduleIoNoticeDismissedEvent();
 }
+
+/// Cycles the presence-grid override of [personId] on [dayId] one step
+/// (`ocptNextPresenceOverride`), dispatched by the presence grid's own cell click. The override
+/// currently stored for that pair — never the cell's *effective* value — is what the bloc reads to
+/// find the next one; this event carries neither, since only the bloc's own snapshot can answer
+/// that honestly by the time the event is handled.
+class OcptSchedulePresenceCellClickedEvent extends OcptScheduleEvent {
+  /// The id of the day whose cell was clicked.
+  final String dayId;
+
+  /// The id of the person whose cell was clicked.
+  final String personId;
+
+  /// Class constructor
+  const OcptSchedulePresenceCellClickedEvent({required this.dayId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, personId];
+}

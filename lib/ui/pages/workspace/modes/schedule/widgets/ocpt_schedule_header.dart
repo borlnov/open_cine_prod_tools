@@ -76,6 +76,7 @@ class OcptScheduleHeader extends StatelessWidget {
               OcptScheduleCentreView.day => Tr.of(context).scheduleHeaderDaySegmentLabel,
               OcptScheduleCentreView.agenda => Tr.of(context).scheduleHeaderAgendaSegmentLabel,
               OcptScheduleCentreView.positions => Tr.of(context).scheduleHeaderPositionsSegmentLabel,
+              OcptScheduleCentreView.presence => Tr.of(context).scheduleHeaderPresenceSegmentLabel,
             },
             onChanged: onCentreViewSelected,
           ),

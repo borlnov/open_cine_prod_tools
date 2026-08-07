@@ -34,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_presence_override_cycle.dart';
 
 /// This is the bloc class for the schedule production mode.
 ///
@@ -189,6 +190,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleNamedCallSheetsExportRequestedEvent>(_onNamedCallSheetsExportRequested);
     on<OcptScheduleShootingPlanExportRequestedEvent>(_onShootingPlanExportRequested);
     on<OcptScheduleIoNoticeDismissedEvent>(_onIoNoticeDismissed);
+    on<OcptSchedulePresenceCellClickedEvent>(_onPresenceCellClicked);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -1370,5 +1372,28 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     Emitter<OcptScheduleState> emitter,
   ) async {
     emitter(state.copyWith(clearIoNotice: true));
+  }
+
+  /// Cycles the presence-grid override of a (day, person) pair one step
+  /// (`ocptNextPresenceOverride`), reading the override currently stored for that pair — never the
+  /// cell's effective value — off [OcptScheduleSnapshot.presenceOverrideByDayAndPerson].
+  Future<void> _onPresenceCellClicked(
+    OcptSchedulePresenceCellClickedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final currentOverride =
+        state.snapshot?.presenceOverrideByDayAndPerson[(event.dayId, event.personId)];
+    await _scheduleService.setPresenceOverride(
+      database: project.database,
+      dayId: event.dayId,
+      personId: event.personId,
+      code: ocptNextPresenceOverride(currentOverride),
+    );
+    await _applyScheduleSnapshot(emitter, project);
   }
 }

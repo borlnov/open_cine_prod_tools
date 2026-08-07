@@ -7690,6 +7690,104 @@
         "type": "String"
       }
     }
+  },
+  "scheduleHeaderPresenceSegmentLabel": "Presence",
+  "@scheduleHeaderPresenceSegmentLabel": {
+    "description": "Label of the header's own Presence segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridEmptyHint": "Add people to the address book to see them here.",
+  "@schedulePresenceGridEmptyHint": {
+    "description": "Empty state shown by the presence grid when the address book holds nobody yet",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridPersonColumnHeader": "Person",
+  "@schedulePresenceGridPersonColumnHeader": {
+    "description": "Header of the presence grid's own frozen first column",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridTotalColumnHeader": "Total",
+  "@schedulePresenceGridTotalColumnHeader": {
+    "description": "Header of the presence grid's own trailing column, counting a row's working days",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridLegend": "Click a cell to set whether that person is working, available, travelling or unavailable; the red border marks someone convoked despite being recorded unavailable that day.",
+  "@schedulePresenceGridLegend": {
+    "description": "Caption explaining the presence grid's own click gesture and its warning cell",
+    "context": "Displayed above the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridConflictTooltip": "convoked despite being recorded unavailable this day",
+  "@schedulePresenceGridConflictTooltip": {
+    "description": "Suffix appended to a presence grid cell's own tooltip when it conflicts with a recorded unavailability",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLabelWorking": "Working",
+  "@presenceCodeLabelWorking": {
+    "description": "Full label of the presence code meaning this person is working that day",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLabelAvailable": "Available",
+  "@presenceCodeLabelAvailable": {
+    "description": "Full label of the presence code meaning this person is available but not convoked that day",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLabelTravelling": "Travelling",
+  "@presenceCodeLabelTravelling": {
+    "description": "Full label of the presence code meaning this person is travelling to or from set that day",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLabelUnavailable": "Unavailable",
+  "@presenceCodeLabelUnavailable": {
+    "description": "Full label of the presence code meaning this person is unavailable that day",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLetterWorking": "W",
+  "@presenceCodeLetterWorking": {
+    "description": "Single-letter pill label of the working presence code, printed in a narrow grid cell",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLetterAvailable": "A",
+  "@presenceCodeLetterAvailable": {
+    "description": "Single-letter pill label of the available presence code, printed in a narrow grid cell",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLetterTravelling": "T",
+  "@presenceCodeLetterTravelling": {
+    "description": "Single-letter pill label of the travelling presence code, printed in a narrow grid cell",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLetterUnavailable": "U",
+  "@presenceCodeLetterUnavailable": {
+    "description": "Single-letter pill label of the unavailable presence code, printed in a narrow grid cell",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

@@ -1029,5 +1029,19 @@
   "schedulePositionsMatrixPositionColumnHeader": "Poste",
   "schedulePositionsMatrixLegend": "Une case orange signale un poste tenu sur le créneau précédent et perdu sur celui-ci.",
   "schedulePositionsMatrixLostCellLabel": "Perdu",
-  "schedulePositionsMatrixLostCellTooltip": "Tenu par {name} sur le créneau précédent"
+  "schedulePositionsMatrixLostCellTooltip": "Tenu par {name} sur le créneau précédent",
+  "scheduleHeaderPresenceSegmentLabel": "Présence",
+  "schedulePresenceGridEmptyHint": "Ajoutez des personnes au carnet d'adresses pour les voir ici.",
+  "schedulePresenceGridPersonColumnHeader": "Personne",
+  "schedulePresenceGridTotalColumnHeader": "Total",
+  "schedulePresenceGridLegend": "Cliquez sur une case pour indiquer si cette personne travaille, est disponible, voyage ou est indisponible ; le contour rouge signale une personne convoquée alors qu'elle est indisponible ce jour-là.",
+  "schedulePresenceGridConflictTooltip": "convoqué·e alors qu'indisponible ce jour",
+  "presenceCodeLabelWorking": "Travail",
+  "presenceCodeLabelAvailable": "Disponible",
+  "presenceCodeLabelTravelling": "Voyage",
+  "presenceCodeLabelUnavailable": "Indisponible",
+  "presenceCodeLetterWorking": "T",
+  "presenceCodeLetterAvailable": "D",
+  "presenceCodeLetterTravelling": "V",
+  "presenceCodeLetterUnavailable": "X"
 }
