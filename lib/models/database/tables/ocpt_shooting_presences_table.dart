@@ -26,8 +26,10 @@ class OcptPresenceCodeConverter extends TypeConverter<OcptPresenceCode, String> 
 ///
 /// A row exists **only** when the user overrides what the grid would otherwise compute from that
 /// day's convocations and from `person_unavailabilities`: a row's *absence* means "the computed
-/// value stands", never "unknown". Filled from milestone M3 onward, once the presence grid itself
-/// exists.
+/// value stands", never "unknown". Written by `OcptScheduleService.setPresenceOverride` alone, and
+/// joined against the computed reading by `OcptSchedulePlanSnapshot.presenceCellOf` — the presence
+/// grid (`OcptSchedulePresenceGrid`, `OcptScheduleCentreView.presence`) is the one place either is
+/// read from.
 ///
 /// **No `sortKey`**: nothing orders these rows, one cell of a grid having no rank of its own.
 @DataClassName('OcptShootingPresenceRow')

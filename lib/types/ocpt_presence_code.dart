@@ -6,8 +6,10 @@
 ///
 /// A cell of the grid is normally **computed** from that day's convocations and from
 /// `person_unavailabilities`; this code is only what a `shooting_presences` row overrides it with
-/// by hand. Declared in schema v11 alongside the rest of the schedule mode's tables, but only
-/// filled from milestone M3 onward, once the presence grid itself exists.
+/// by hand. Declared in schema v11 alongside the rest of the schedule mode's tables, and read and
+/// written from `OcptSchedulePresenceGrid` on. **Declared in the order the grid's own click cycle
+/// steps through them** (`ocptNextPresenceOverride`, `lib/utils/`): reordering these values
+/// reorders that cycle too.
 enum OcptPresenceCode {
   /// This person is working on this day.
   working,

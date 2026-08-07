@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
 /// The whole schedule of one screenplay, as `OcptScheduleService.loadSchedule` builds it and the
@@ -47,6 +48,12 @@ class OcptScheduleSnapshot extends Equatable {
   /// placements is read.
   final Set<String> placedShotIds;
 
+  /// Every live `shooting_presences` row, keyed by `(shootingDayId, personId)` — the presence grid's
+  /// own by-hand overrides, one cell lookup being one map read rather than a scan. A pair with no
+  /// entry here carries no override at all, which `OcptSchedulePlanSnapshot.presenceCellOf` reads as
+  /// "the computed value stands", exactly as `OcptShootingPresencesTable`'s own doc comment says.
+  final Map<(String dayId, String personId), OcptPresenceCode> presenceOverrideByDayAndPerson;
+
   /// Class constructor
   const OcptScheduleSnapshot({
     required this.screenplayId,
@@ -55,15 +62,18 @@ class OcptScheduleSnapshot extends Equatable {
     required this.slotsByDayId,
     required this.blocksByDayId,
     required this.placedShotIds,
+    required this.presenceOverrideByDayAndPerson,
   });
 
   /// Builds an [OcptScheduleSnapshot] for [screenplayId] from its already-ordered [days],
-  /// [slotsByDayId] and [blocksByDayId], deriving [daysById] and [placedShotIds] from them.
+  /// [slotsByDayId], [blocksByDayId] and [presenceOverrideByDayAndPerson], deriving [daysById] and
+  /// [placedShotIds] from them.
   factory OcptScheduleSnapshot.build({
     required String screenplayId,
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,
     required Map<String, List<OcptShootingDayBlock>> blocksByDayId,
+    Map<(String dayId, String personId), OcptPresenceCode> presenceOverrideByDayAndPerson = const {},
   }) {
     final placedShotIds = <String>{
       for (final blocks in blocksByDayId.values)
@@ -78,6 +88,7 @@ class OcptScheduleSnapshot extends Equatable {
       slotsByDayId: Map.unmodifiable(slotsByDayId),
       blocksByDayId: Map.unmodifiable(blocksByDayId),
       placedShotIds: Set.unmodifiable(placedShotIds),
+      presenceOverrideByDayAndPerson: Map.unmodifiable(presenceOverrideByDayAndPerson),
     );
   }
 
@@ -99,5 +110,6 @@ class OcptScheduleSnapshot extends Equatable {
     slotsByDayId,
     blocksByDayId,
     placedShotIds,
+    presenceOverrideByDayAndPerson,
   ];
 }

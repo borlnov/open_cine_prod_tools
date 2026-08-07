@@ -16,7 +16,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -145,6 +148,69 @@ OcptLocation _buildLocation({required String id, double? latitude, double? longi
       availabilities: const [],
     );
 
+/// Builds a person with the few fields these tests read, everything else neutral.
+OcptPerson _buildPerson({
+  required String id,
+  String firstName = "",
+  List<OcptPersonUnavailability> unavailabilities = const [],
+}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  imageRightsDocument: null,
+  photoAssetId: null,
+  photo: null,
+  notes: "",
+  positions: const [],
+  skills: const [],
+  unavailabilities: unavailabilities,
+);
+
+/// Builds an unavailability window with the few fields these tests read, everything else neutral.
+OcptPersonUnavailability _buildUnavailability({
+  required String id,
+  required String personId,
+  required DateTime startDate,
+  required DateTime endDate,
+}) => OcptPersonUnavailability(
+  id: id,
+  personId: personId,
+  startDate: startDate,
+  endDate: endDate,
+  slot: OcptDayPartSlot.fullDay,
+  startMinute: null,
+  endMinute: null,
+  reason: "",
+);
+
 /// Builds a shot with the few fields these tests read, everything else neutral.
 OcptShot _buildShot({
   required String id,
@@ -207,12 +273,14 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
+  Map<(String, String), OcptPresenceCode> presenceOverrideByDayAndPerson = const {},
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     screenplayId: "screenplay-1",
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,
+    presenceOverrideByDayAndPerson: presenceOverrideByDayAndPerson,
   ),
   shotList: shotList,
   locations: locations,
@@ -474,6 +542,86 @@ void main() {
       final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {});
 
       expect(identical(snapshot.alerts, snapshot.alerts), isTrue);
+    });
+  });
+
+  group("presenceCellOf", () {
+    test("reads working when the person is convoked on a slot of the day", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final person = _buildPerson(id: "person-1");
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        people: [person],
+      );
+
+      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+
+      expect(cell.code, OcptPresenceCode.working);
+      expect(cell.isOverridden, isFalse);
+    });
+
+    test("reads unavailable when not convoked but a window covers the day's date", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1); // 2026-01-01, per _buildDay
+      final person = _buildPerson(
+        id: "person-1",
+        unavailabilities: [
+          _buildUnavailability(
+            id: "unavailability-1",
+            personId: "person-1",
+            startDate: DateTime(2025, 12, 31),
+            endDate: DateTime(2026, 1, 3),
+          ),
+        ],
+      );
+      final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {}, people: [person]);
+
+      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+
+      expect(cell.code, OcptPresenceCode.unavailable);
+      expect(cell.isOverridden, isFalse);
+    });
+
+    test("reads blank — neither convoked nor covered by a window", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final person = _buildPerson(id: "person-1");
+      final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {}, people: [person]);
+
+      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+
+      expect(cell.code, isNull);
+      expect(cell.isOverridden, isFalse);
+    });
+
+    test("a live override always wins over the computed reading", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final person = _buildPerson(id: "person-1");
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        people: [person],
+        // Computed would read `working` — the override says otherwise, and wins.
+        presenceOverrideByDayAndPerson: {("day-1", "person-1"): OcptPresenceCode.unavailable},
+      );
+
+      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+
+      expect(cell.code, OcptPresenceCode.unavailable);
+      expect(cell.isOverridden, isTrue);
     });
   });
 }

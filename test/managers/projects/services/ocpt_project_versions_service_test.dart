@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -1201,6 +1202,67 @@ void main() {
         )..where((table) => table.id.equals("crew-1"))).getSingle();
         expect(restoredCrew.isDeleted, isFalse);
         expect(restoredCrew.personId, "person-1");
+      },
+    );
+
+    test(
+      "a presence-grid override survives a capture and a restore, tombstone and revival included",
+      () async {
+        await insertShootingDay(id: "day-1");
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(
+              OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
+            );
+        await scheduleService.setPresenceOverride(
+          database: database,
+          dayId: "day-1",
+          personId: "person-1",
+          code: OcptPresenceCode.travelling,
+        );
+
+        final version = await createVersion(name: "v1 — Presence set");
+
+        // Diverge: the override is changed, then cleared (tombstoned) in the working copy.
+        await scheduleService.setPresenceOverride(
+          database: database,
+          dayId: "day-1",
+          personId: "person-1",
+          code: OcptPresenceCode.unavailable,
+        );
+        await scheduleService.setPresenceOverride(
+          database: database,
+          dayId: "day-1",
+          personId: "person-1",
+          code: null,
+        );
+        final clearedRow = await (database.select(
+          database.ocptShootingPresencesTable,
+        )..where((table) => table.shootingDayId.equals("day-1"))).getSingle();
+        expect(clearedRow.isDeleted, isTrue);
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        // The row is revived — live again, and back to the code the version was captured with —
+        // rather than a second row being minted for the same (day, person) pair.
+        final restoredRow = await (database.select(
+          database.ocptShootingPresencesTable,
+        )..where((table) => table.shootingDayId.equals("day-1"))).getSingle();
+        expect(restoredRow.id, clearedRow.id);
+        expect(restoredRow.isDeleted, isFalse);
+        expect(restoredRow.code, OcptPresenceCode.travelling);
+
+        // And the schedule mode reads that override back exactly the way it wrote it.
+        final restoredSnapshot = await scheduleService.loadSchedule(
+          database: database,
+          screenplayId: screenplayId,
+        );
+        expect(
+          restoredSnapshot.presenceOverrideByDayAndPerson[("day-1", "person-1")],
+          OcptPresenceCode.travelling,
+        );
       },
     );
 

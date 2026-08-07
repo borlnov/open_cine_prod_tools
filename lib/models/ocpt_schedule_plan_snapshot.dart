@@ -7,6 +7,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_presence_cell.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
@@ -287,6 +289,80 @@ class OcptSchedulePlanSnapshot extends Equatable {
   OcptLocation? firstLocationOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     return slots.isEmpty ? null : locationById[slots.first.locationId];
+  }
+
+  /// Every day's own working person ids — everyone convoked on it as a human, cast or crew — built
+  /// once, alongside [alerts], out of [convocationsOfDay] over every live day: the presence grid's
+  /// own computed `working` reading ([presenceCellOf]) must agree with the `Convocations` panel
+  /// about who is convoked, so it reads off that very computation rather than a second join over
+  /// `shooting_slot_crew`/`shooting_slot_cast`.
+  late final Map<String, Set<String>> _workingPersonIdsByDayId = {
+    for (final day in schedule.days)
+      day.id: {
+        for (final convocation in convocationsOfDay(day.id))
+          if (convocation.personId != null) convocation.personId!,
+      },
+  };
+
+  /// The presence grid's own effective cell for [personId] on [dayId]: the live override
+  /// (`OcptScheduleSnapshot.presenceOverrideByDayAndPerson`) when there is one — which always wins,
+  /// whatever it says — otherwise the computed reading, in order: [OcptPresenceCode.working] when
+  /// [personId] is convoked on [dayId] ([_workingPersonIdsByDayId]), [OcptPresenceCode.unavailable]
+  /// when they are not convoked but one of their own [OcptPerson.unavailabilities] covers [dayId]'s
+  /// own calendar date, or a blank cell ([OcptSchedulePresenceCell.code] null) when neither applies
+  /// — absence of information, never a claim.
+  ///
+  /// The unavailability check here compares calendar dates alone, not the day-part overlap rule 1 of
+  /// `lib/utils/ocpt_schedule_alerts.dart` refines against a slot's own band: a person read as
+  /// [OcptPresenceCode.unavailable] here is, by construction, convoked on **no** slot of [dayId] at
+  /// all (the `working` branch above already claimed that case), so there is no band left to refine
+  /// against — the two checks never fire on the same person on the same day, and can therefore never
+  /// disagree.
+  OcptSchedulePresenceCell presenceCellOf({required String dayId, required String personId}) {
+    final override = schedule.presenceOverrideByDayAndPerson[(dayId, personId)];
+    if (override != null) {
+      return OcptSchedulePresenceCell(code: override, isOverridden: true);
+    }
+
+    if (_workingPersonIdsByDayId[dayId]?.contains(personId) ?? false) {
+      return const OcptSchedulePresenceCell(code: OcptPresenceCode.working, isOverridden: false);
+    }
+
+    final day = schedule.daysById[dayId];
+    final person = personById[personId];
+    if (day != null && person != null && _unavailabilityCoversDate(person, day.date)) {
+      return const OcptSchedulePresenceCell(code: OcptPresenceCode.unavailable, isOverridden: false);
+    }
+
+    return const OcptSchedulePresenceCell(code: null, isOverridden: false);
+  }
+
+  /// Whether any of [person]'s own recorded unavailabilities covers calendar [date] — comparing
+  /// dates alone, own time-of-day component dropped, mirroring
+  /// `lib/utils/ocpt_schedule_alerts.dart`'s own private `_dateRangeContains` (duplicated rather
+  /// than shared: that file's own doc comment keeps it free of anything beyond the nine alert
+  /// rules, and this one-line check creates no risk of disagreement — see [presenceCellOf]'s own
+  /// doc comment for why the two never fire on the same case).
+  bool _unavailabilityCoversDate(OcptPerson person, DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+
+    for (final unavailability in person.unavailabilities) {
+      final start = DateTime(
+        unavailability.startDate.year,
+        unavailability.startDate.month,
+        unavailability.startDate.day,
+      );
+      final end = DateTime(
+        unavailability.endDate.year,
+        unavailability.endDate.month,
+        unavailability.endDate.day,
+      );
+      if (!day.isBefore(start) && !day.isAfter(end)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /// Every [OcptScheduleAlert] the nine rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
