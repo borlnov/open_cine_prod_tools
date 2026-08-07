@@ -21,7 +21,7 @@ are the record from the moment a step lands, and this file never re-describes th
 
 ## 1. Where the mode stands
 
-Six rounds of work have shipped on the branch. None of them is a milestone of this plan any
+Seven rounds of work have shipped on the branch. None of them is a milestone of this plan any
 more.
 
 | Shipped | What it left behind |
@@ -33,19 +33,15 @@ more.
 | **A slot anchored by either edge** | ADR 0015 amended a second time, schema v14 and payload format 9 replacing `shooting_slots.startMinute` with the anchor trio, the resolution in `ocptComputeShootingDayTimelines` with its two new records and `ocptSlotAnchorWouldCycle`, `setSlotAnchor` with `duplicateDay`'s remap and `deleteSlot`'s freeze, the slot card's anchor menu, and every reader of a slot's hour moved onto the resolved one. |
 | **The resources sheets** | Not schedule work, but the branch's: the colour palette out of its `MenuItemButton`s, `OcptAssetsService` and the three orphaned asset columns behind one photo-slot menu, and schema v15 / payload format 10's `role_elements` with its card on the role sheet and its read-out on the element one. |
 | **A convoked person's position, pre-filled** | `ocptCrewPositionPrefillOf` (`lib/utils/`, pure), `OcptScheduleService.addSlotCrewMember` landing a fresh crew row on the person's first declared position not already taken on that slot, the slot card's picker promoting the declared ones and refusing the taken ones, and the person sheet's `Portée` column deleted with its ARB key. |
+| **The three PDFs** | `OcptSchedulePlanSnapshot` holding the day-level joins both the mode and the manager layer read, `OcptCallSheetPdfService` and `OcptShootingPlanPdfService` over `ocpt_schedule_pdf_shared.dart`, `OcptSaveLocationService.pickDirectory`, and the mode's three `⋮` entries with their options dialogs and their three-outcome notice. |
 
-What is left is two milestones, in the order below: **M3 prints the paperwork**, **M4 shows what the
-plan is about to break**.
-
-M1 came first on purpose, and has shipped: it changed what "the hour of a slot" *is*, and every
-reader of that figure — the three agendas, the convocations, the day inspector — followed. Printing
-call sheets against a figure that was about to change its definition would have meant writing those
-services twice.
+What is left is **one milestone: M4 shows what the plan is about to break.**
 
 ## 2. What the reference documents demand
 
-Four real production documents were read before any of this was written; they are still what M3 is
-measured against, and they live in `debug/plan/`.
+Four real production documents were read before any of this was written. They are what M3's three
+PDFs were measured against, and what M4's grids are measured against still; they live in
+`debug/plan/`.
 
 - `20230719-planning tournage.docx` — the shooting plan of *lonelyJourney*. Three summary grids
   (locations, sequences, crew and cast) crossing **days × day-parts**, then one detailed timetable
@@ -89,40 +85,7 @@ as such rather than quietly dropped.
 | ~~A convocation is a band minus a typed lead time~~ | Replaced by ADR 0018: a convocation is the slot you are linked to. |
 | ~~A slot owns one typed clock and no other, its `startMinute`~~ | Replaced by ADR 0015's second amendment: a slot owns **one anchored edge**, which may be its end, and whose hour may be read off another slot. |
 
-## 4. M3 — the three PDF exports
-
-**Goal: the paperwork a shoot actually runs on.**
-
-Two new services under `lib/managers/export/services/`, both owned by `OcptExportManager`, both
-sharing the existing `OcptCourierPrimeFontsLoader`, both taking a labels object so no manager or
-service ever sees a `Tr` — the pattern `OcptScenarioCoverageLabels` established. Every convocation
-figure they print comes from `ocptComputeDayConvocations` (ADR 0018) and is never re-derived, and
-every hour comes from the resolved timelines (M1) rather than from a column.
-
-1. **`OcptCallSheetPdfService`** — one day, two audiences from one composition:
-   - *General call sheet*, following the reference `.docx` section by section: recipients, film
-     title and director, production and direction contacts, the day's time bands and day number,
-     the crew note, the location(s) with address and map link, the sun block, contacts by
-     department, the `SEQ / PLANS / EFFET / DÉCORS / RÉSUMÉ / RÔLES` table interleaved with the
-     timed milestones (preparation, travel, meal, pause, wrap), the cast table, then the crew list
-     and the cast-and-extras list with telephone and e-mail. `EFFET` and `DÉCORS` are read from the
-     scene heading and the linked set — the breakdown mode already owns both links.
-   - *Named call sheets*, **one PDF per convoked person, written into a folder the user picks**
-     (`FDS-J2-Elisa-Mabit.pdf`, …): the same day header, **their** arrival, PAT band and departure,
-     their positions or roles that day, only the slots and blocks they are expected on, the crew
-     note, and the key contacts. Not the directory — a call sheet sent to one person should not
-     carry everyone else's telephone number. This is the one export that does not write a single
-     file, so `OcptSaveLocationService` gains a directory-picking entry point beside its save
-     dialog.
-2. **`OcptShootingPlanPdfService`** — the whole shoot, following the `planning tournage.docx`: the
-   three summary grids (days × day-parts, by location, by sequence, by person) and then one
-   detailed day agenda per day, hour by hour, with its shot tables.
-
-Each is reached from the mode's `⋮` menu through an options dialog opened by `OcptRouterManager`
-(which days, which people, title page, page format pre-filled from the project), and each writes
-through `OcptSaveLocationService` — no export ever picks a path silently.
-
-## 5. M4 — grids and alerts
+## 4. M4 — grids and alerts
 
 **Goal: seeing what the plan is about to break before it breaks.**
 
@@ -150,7 +113,7 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
 - The alerts panel in the mode, and the alert count in the status bar. The mode header's own
   `Couleur par` control belongs to this milestone too.
 
-## 6. What this mode does not do
+## 5. What this mode does not do
 
 - No spreadsheet export (decided; may follow later).
 - No weather feed, no map tiles, no geocoding: the app stays offline-only.
@@ -164,15 +127,10 @@ through `OcptSaveLocationService` — no export ever picks a path silently.
 - **No slot link across two days**, and none between two same-side edges. Both are stated in ADR
   0015's second amendment.
 
-## 7. Definition of done, per milestone
+## 6. Definition of done
 
 The eight verification gates of `CLAUDE.md` pass at every commit, plus the ninth for any `.md`
 touched. In addition:
 
-- **M3**: the three PDFs are generated from the reference project and read against the documents
-  in `debug/plan/`; a day with two slots and two crews prints both; a night slot crossing midnight
-  prints the right hours; an `end`-anchored slot prints the hours the day view shows; a person's
-  arrival, PAT band and departure print as distinct figures; the named sheets land in the chosen
-  folder, one file per person, none of them carrying the full directory.
 - **M4**: every alert has a test with a case that fires it and a case that does not; the presence
   grid's overrides survive a save, a reload and a version round trip.

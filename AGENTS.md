@@ -109,7 +109,8 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28d | Schedule mode — convocations read off the slots alone (ADR 0018 superseding ADR 0017): the lead times and the `shooting_day_groups` that carried them dropped (schema v13, payload format 8, the first payload upgrade that *removes*), `ocptComputeDayConvocations` reading a person's arrival, PAT band and departure off every slot they are linked to across the whole day, the groups band and the lead fields gone with the clocks on the crew and cast cards, `dayArrivalMinute` reduced to the day's earliest slot start, and the `Convocations` dock tab where those times now live | ✅ |
 | 28e | Schedule mode — a slot anchored by either edge (ADR 0015 amended a second time): schema v14 and payload format 9 replacing `shooting_slots.startMinute` with `anchorEdge`/`anchorMinute`/`anchorSlotId`, the dependency-ordered resolution in `ocptComputeShootingDayTimelines` with its missed-fixed-end and cycle records, `ocptSlotAnchorWouldCycle`, `OcptScheduleService.setSlotAnchor` with `duplicateDay`'s link remap and `deleteSlot`'s dependent freeze, the slot card's flat anchor menu, and every reader of a slot's hour moved onto the resolved one | ✅ |
 | 28f | Schedule mode — a convoked person's position pre-filled from the address book: `ocptCrewPositionPrefillOf` (`lib/utils/`, pure) joining a person's declared `person_positions` with what they already hold on that slot, `OcptScheduleService.addSlotCrewMember` pre-filling a fresh crew row with it, the slot card's position picker promoting the declared ones and refusing the taken ones, and the person sheet's `Portée` column deleted | ✅ |
-| 28g | Schedule mode — the three PDFs, then the positions matrix, the presence grid and the conflict alerts | 📝 planned |
+| 28g | Schedule mode M3 — the paperwork a shoot runs on: `OcptSchedulePlanSnapshot` owning the day-level joins both the mode and the manager layer read, `OcptCallSheetPdfService` (the general sheet and the named ones from one composition), `OcptShootingPlanPdfService` (three landscape summary grids over slot columns, then a detailed agenda per day), `ocpt_schedule_pdf_shared.dart` between them, a directory picker on `OcptSaveLocationService`, and the mode's three `⋮` entries with their options dialogs and their three-outcome notice | ✅ |
+| 28h | Schedule mode M4 — the positions matrix, the presence grid and the conflict alerts | 📝 planned |
 
 ## Ways of working
 
@@ -424,19 +425,25 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and seven services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and nine services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
   annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook),
-  `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene) and
-  `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
+  `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene),
+  `OcptCallSheetPdfService` and `OcptShootingPlanPdfService` (the schedule's own paperwork, below)
+  and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
-  to a default location silently). The three PDF services share one `OcptCourierPrimeFontsLoader`
+  to a default location silently; its `pickDirectory` is the same promise for the one export that
+  writes **several** files, the named call sheets). The five PDF services share one
+  `OcptCourierPrimeFontsLoader`
   (handed to each by the manager, so the 4 embedded TTFs are decoded once) and one
   `OcptScriptPagePainter` — the two script exports for the positioned line drawing they both start
-  from, the breakdown sheets for its metrics and fonts alone, their pages flowing rather than
-  typeset. The home
+  from, the breakdown sheets and the two schedule documents for its metrics and fonts alone, their
+  pages flowing rather than
+  typeset. An export writing into a folder reports an `OcptCallSheetExportResult` rather than a
+  path: some files landing and others not is a third outcome, and it must never read as success —
+  somebody would go unwarned about a day they are called on. The home
   page's "Import a screenplay…" action and the editor's `⋮` export / export-to-PDF /
   import-and-replace menu all go through the manager; the screenplay text itself is always written
   through `OcptScreenplayService.saveScreenplayText`, never by hand.
@@ -830,8 +837,41 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   more (ADR 0018), so the day's earliest slot start already *is* its earliest arrival. The week and
   month grids read the same figure and mean something narrower by it on purpose: a cell there answers
   "when does this day shoot", not "when is the call".
-  `shooting_presences` is declared but only written in M3, when the presence grid lands; the mock's
+  `shooting_presences` is declared but only written when the presence grid lands; the mock's
   `Couleur par` control and its alert list belong to that milestone too.
+  **`OcptSchedulePlanSnapshot`** (`lib/models/`) is where the mode's five reads — the schedule, the
+  shot list, the locations, the cast and the address book — are joined into the day-level facts
+  everything else asks for: `timelinesOfDay`, `convocationsOfDay`, `sunTimesOfDay`,
+  `dayArrivalMinute`, `firstLocationOfDay`. It exists because those joins have **two** callers now,
+  `OcptScheduleState` and the manager layer's two PDF services, and a second implementation over
+  there is exactly how a printed call sheet and the day view would come to disagree about what hour
+  a slot starts at. The state builds one **per state instance**, not per read: a state is immutable,
+  so the join cannot go stale inside one, and `timelinesOfDay` is handed to the three agendas as a
+  function reference and called once per day cell.
+  The `⋮` menu prints the three documents the reference production paperwork is modelled on, each
+  through its own options dialog and each offered **under a version preview too**, an export only
+  reading. `OcptCallSheetPdfService` renders the **general** call sheet and the **named** ones from
+  one composition, section for section against the reference `.docx`: recipients, the title block,
+  the day's per-slot time bands, the crew note, the location(s) with a map link built from the
+  coordinates alone (**never a network call**), the sun block, the contacts by department, the
+  `SEQ / PLANS / EFFET / DÉCORS / RÔLES` table interleaved with the non-shooting blocks as full-width
+  milestone rows, then the cast table and the two directories. That table carries **five columns, not
+  the reference's six**: no field of this app says what happens in a sequence, so `RÉSUMÉ` could only
+  ever have printed an em dash on every row, and a heading that promises what it never delivers is
+  worse than one column fewer. A **named** sheet keeps the day's header and only the rows its
+  recipient's own slots carry, and deliberately holds **neither directory** — a call sheet sent to
+  one person must not carry everyone else's telephone number. Both write **one PDF per file into a
+  folder the user picks**, and two recipients whose names collide each keep a file of their own
+  (`-2`, `-3`), an overwrite being somebody never told to turn up.
+  `OcptShootingPlanPdfService` prints the whole shoot: three **landscape** summary grids (locations,
+  sequences, crew and cast) whose columns are **one per slot grouped under its day** — the
+  reference's day-parts being exactly what a slot is here — chunked across pages when a shoot runs
+  wide, then one portrait agenda per day with its hours, its sets and its shot tables. Its
+  `Description` column is dropped for the same reason `RÉSUMÉ` is.
+  `ocpt_schedule_pdf_shared.dart` holds what the two documents must not read differently: the walk
+  that puts a day's parallel slot chains back into a single clock order, a block's caption, a
+  location's address line. **Every hour on either page is the resolved one** and every convocation
+  figure comes from `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
