@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:uuid/uuid.dart';
@@ -46,6 +47,12 @@ import 'package:uuid/uuid.dart';
 /// earlier — a make-up call, a rigging call — creates the slot that says so, with its own label and
 /// its own blocks, and links them to it; this service exposes no way to offset a convocation from
 /// its slot instead.
+///
+/// **`person_positions` is what a fresh crew row's position is pre-filled from, and only that** —
+/// see `lib/utils/ocpt_crew_position_prefill.dart`. [addSlotCrewMember] reads a person's declared
+/// positions and what they already hold on the slot being added to, and lands on their first
+/// declared position not already taken there; nothing stops a user changing it afterwards, and
+/// nothing keeps the two tables in step once it has.
 ///
 /// **A slot is pinned by one edge, and that edge may read another slot's.** [createSlot] mints a
 /// slot anchored by its **start** at a typed hour, exactly as every slot was before schema version
@@ -793,6 +800,13 @@ class OcptScheduleService {
   /// doc comment — so, unlike [addSlotCastRole], this never refuses a duplicate `{slotId, personId}`
   /// pair.
   ///
+  /// **When the caller passes neither [positionId] nor [customLabel], the position is pre-filled**
+  /// through `ocptCrewPositionPrefillOf`: [personId]'s live `person_positions` rows, in their
+  /// declared order, joined against what they already hold live on this same slot, land the new row
+  /// on their first declared position not already taken there — nothing declared, or everything
+  /// already taken, leaves the row with no position, exactly as before this join existed. A caller
+  /// passing either explicitly keeps it untouched; the pre-fill only ever fills a blank.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addSlotCrewMember({
     required OcptProjectDatabase database,
@@ -807,6 +821,29 @@ class OcptScheduleService {
     }
 
     final existing = await _liveCrewRowsOfSlot(database: database, slotId: slotId);
+
+    var resolvedPositionId = positionId;
+    var resolvedCustomLabel = customLabel;
+    if (resolvedPositionId.isEmpty && resolvedCustomLabel.isEmpty) {
+      final declaredPositions = await _livePositionRowsOfPerson(
+        database: database,
+        personId: personId,
+      );
+      final prefill = ocptCrewPositionPrefillOf(
+        declaredPositions: [
+          for (final row in declaredPositions)
+            OcptCrewPositionRef(positionId: row.positionId, customLabel: row.customLabel),
+        ],
+        heldOnSlot: [
+          for (final row in existing)
+            if (row.personId == personId)
+              OcptCrewPositionRef(positionId: row.positionId, customLabel: row.customLabel),
+        ],
+      ).prefill;
+      resolvedPositionId = prefill?.positionId ?? "";
+      resolvedCustomLabel = prefill?.customLabel ?? "";
+    }
+
     final id = const Uuid().v4();
 
     await database
@@ -816,8 +853,8 @@ class OcptScheduleService {
             id: id,
             slotId: slotId,
             personId: personId,
-            positionId: Value(positionId),
-            customLabel: Value(customLabel),
+            positionId: Value(resolvedPositionId),
+            customLabel: Value(resolvedCustomLabel),
             notes: Value(notes),
             sortKey: Value(
               ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
@@ -1468,6 +1505,17 @@ class OcptScheduleService {
     required String dayId,
   }) => (database.select(database.ocptShootingSlotsTable)
         ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
+        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+      .get();
+
+  /// Every live `person_positions` row of [personId], ordered by `sortKey` — what
+  /// [addSlotCrewMember] reads to pre-fill a fresh crew row's position, written exactly as
+  /// `OcptPeopleService._positionRowsOfPerson` is.
+  Future<List<OcptPersonPositionRow>> _livePositionRowsOfPerson({
+    required OcptProjectDatabase database,
+    required String personId,
+  }) => (database.select(database.ocptPersonPositionsTable)
+        ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
 

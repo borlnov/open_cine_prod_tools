@@ -655,6 +655,146 @@ void main() {
     });
   });
 
+  group("addSlotCrewMember pre-fills the position", () {
+    setUp(insertScreenplay);
+
+    test("a person with two declared positions convoked twice lands on both, in order", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      await peopleService.addPosition(
+        database: database,
+        personId: personId,
+        positionId: "director",
+        customLabel: "",
+      );
+      await peopleService.addPosition(
+        database: database,
+        personId: personId,
+        positionId: "soundEngineer",
+        customLabel: "",
+      );
+
+      final firstId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+      final secondId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+
+      final crew = {for (final row in await readAllCrew(slotId)) row.id: row};
+      expect(crew[firstId]!.positionId, "director");
+      expect(crew[secondId]!.positionId, "soundEngineer");
+    });
+
+    test("a third convocation of the same person pre-fills nothing", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      await peopleService.addPosition(
+        database: database,
+        personId: personId,
+        positionId: "director",
+        customLabel: "",
+      );
+
+      await scheduleService.addSlotCrewMember(database: database, slotId: slotId, personId: personId);
+      final thirdId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+
+      final crew = {for (final row in await readAllCrew(slotId)) row.id: row};
+      expect(crew[thirdId]!.positionId, "");
+      expect(crew[thirdId]!.customLabel, "");
+    });
+
+    test("a person with a free-label declared position pre-fills that label", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      await peopleService.addPosition(
+        database: database,
+        personId: personId,
+        positionId: "",
+        customLabel: "Rigger",
+      );
+
+      final crewId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+
+      final crew = {for (final row in await readAllCrew(slotId)) row.id: row};
+      expect(crew[crewId]!.positionId, "");
+      expect(crew[crewId]!.customLabel, "Rigger");
+    });
+
+    test("an explicit positionId passed by the caller wins over the pre-fill", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      await peopleService.addPosition(
+        database: database,
+        personId: personId,
+        positionId: "director",
+        customLabel: "",
+      );
+
+      final crewId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+        positionId: "boomOperator",
+      ))!;
+
+      final crew = {for (final row in await readAllCrew(slotId)) row.id: row};
+      expect(crew[crewId]!.positionId, "boomOperator");
+    });
+
+    test("a person with nothing declared gets an empty position, as before", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+
+      final crewId = (await scheduleService.addSlotCrewMember(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+
+      final crew = {for (final row in await readAllCrew(slotId)) row.id: row};
+      expect(crew[crewId]!.positionId, "");
+      expect(crew[crewId]!.customLabel, "");
+    });
+  });
+
   group("the timetable", () {
     setUp(insertScreenplay);
 
