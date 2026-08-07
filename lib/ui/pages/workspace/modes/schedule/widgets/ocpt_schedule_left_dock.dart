@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 
 /// The schedule mode's left dock: the list of shooting days over the list of shots still to
-/// place, grouped by sequence — `docs/plans/schedule-mode.md` §8's own left-dock spec, mirroring
+/// place, grouped by sequence — mirroring
 /// the mock's `bandeDays`/`unplacedGroups` (`design.html` lines 192-243).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being

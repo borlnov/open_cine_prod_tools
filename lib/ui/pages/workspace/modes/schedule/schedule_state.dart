@@ -369,12 +369,11 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     };
   }
 
-  /// [dayId]'s own computed timelines (ADR 0015, amended per
-  /// `docs/plans/schedule-slots-and-computed-convocations.md`), one chain per live slot, joined
+  /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
   /// all.
   ///
-  /// Computed here rather than stored, exactly as `docs/plans/schedule-mode.md` §8 asks: reading it
+  /// Computed here rather than stored: reading it
   /// costs nothing beyond a handful of list lookups already held in memory, and storing it would be
   /// one more thing every write to that day's blocks would have to remember to invalidate.
   OcptShootingDayTimelines? timelinesOfDay(String dayId) {
@@ -528,7 +527,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// a missing key as.
   ///
   /// Both kinds count towards the same figure — a group is a bag of convoked people, crew and cast
-  /// alike (§2.3 of `docs/plans/schedule-slots-and-computed-convocations.md`) — computed on every
+  /// alike — computed on every
   /// read rather than stored, for the same reason [unplacedGroups] is: nothing here rides a
   /// per-keystroke timer that would need it cached.
   Map<String, int> groupMemberCountsOfDay(String dayId) {

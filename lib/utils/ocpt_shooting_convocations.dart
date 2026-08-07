@@ -30,8 +30,8 @@ class OcptConvocationBlock {
   final Set<String> roleIds;
 }
 
-/// One `shooting_slot_crew` row's own figure and the figure of the group it belongs to (§2.3 of
-/// `docs/plans/schedule-slots-and-computed-convocations.md`) — resolving *which* group a row points
+/// One `shooting_slot_crew` row's own figure and the figure of the group it belongs to — resolving
+/// *which* group a row points
 /// at, from its nullable `groupId`, is the caller's job, groups being scoped to a day rather than
 /// known here.
 class OcptCrewConvocationInput {
@@ -159,9 +159,8 @@ class OcptSlotConvocations {
   final List<OcptCastConvocation> cast;
 }
 
-/// Computes every convocation of one slot from its already-chained [blocks] — the rule stated in
-/// `docs/plans/schedule-slots-and-computed-convocations.md` §2.2 and recorded as ADR 0017,
-/// implemented exactly once, here.
+/// Computes every convocation of one slot from its already-chained [blocks] — the rule recorded as
+/// ADR 0017, implemented exactly once, here.
 ///
 /// **Nobody types a call time, a wrap time or a PAT band.** [OcptCrewConvocationInput] and
 /// [OcptCastConvocationInput] carry only a lead time — a typed fact about a person and a look

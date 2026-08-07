@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_lead_field.dart';
 
-/// The day view's own groups band, drawn between the summary band and the first slot card
-/// (`docs/plans/schedule-slots-and-computed-convocations.md`, M2' item 10): the day's own
+/// The day view's own groups band, drawn between the summary band and the first slot card: the
+/// day's own
 /// [OcptShootingDayGroup]s, each as a small card carrying its own label, its own lead time and how
 /// many crew and cast rows currently point at it, over a `+ Group` control.
 ///

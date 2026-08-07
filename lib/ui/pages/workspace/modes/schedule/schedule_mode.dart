@@ -41,8 +41,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
-/// The schedule production mode: planning the shoot day by day (`docs/plans/schedule-mode.md`,
-/// milestone M1).
+/// The schedule production mode: planning the shoot day by day.
 ///
 /// The left dock lists the shooting days over the shots still to place, grouped by sequence — a
 /// click on an unplaced shot brings its own read-out up in the inspector, purely informative; a

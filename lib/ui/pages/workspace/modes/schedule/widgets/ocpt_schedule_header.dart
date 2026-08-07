@@ -16,8 +16,8 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 /// (`design.html` lines 423-433) and `OcptBreakdownHeader`'s own segmented-switch styling.
 ///
 /// **The mock's "Couleur par lieu / Int-Ext · Jour-Nuit" segmented control and the alert list under
-/// it are deliberately not built here** — they arrive with M3 (`docs/plans/schedule-mode.md` §10),
-/// per Benoit's own M1 decision.
+/// it are deliberately not built here** — they arrive with the grids and alerts milestone
+/// (`docs/plans/schedule-mode.md`).
 ///
 /// Purely presentational: every affordance here only reads or pages the agenda (never a database
 /// write), so it needs no `isReadOnly` flag.

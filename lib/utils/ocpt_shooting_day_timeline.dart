@@ -5,8 +5,8 @@
 /// One block of a slot's timetable, already resolved out of its `shooting_day_blocks` row (and,
 /// for a shot block, out of the `shots` row it points at) by the caller — [ocptComputeSlotTimeline]
 /// itself knows nothing of drift or of the schedule mode's own enums, on purpose: it is the one
-/// place the plan's chaining rule (§2.1 of `docs/plans/schedule-slots-and-computed-convocations.md`)
-/// is implemented, and it must stay reachable from a plain unit test.
+/// place the chaining rule (ADR 0015, as amended) is implemented, and it must stay reachable from
+/// a plain unit test.
 class OcptShootingTimelineBlock {
   /// Builds a block to feed to [ocptComputeSlotTimeline].
   const OcptShootingTimelineBlock({
@@ -101,8 +101,7 @@ class OcptShootingSlotTimeline {
 }
 
 /// Chains [blocks], in the order given, into a computed [OcptShootingSlotTimeline] — the rule
-/// stated in `docs/plans/schedule-slots-and-computed-convocations.md` §2.1 and recorded as ADR
-/// 0015 (amended by that plan), implemented exactly once, here.
+/// recorded as ADR 0015 (as amended), implemented exactly once, here.
 ///
 /// A slot owns its own chain: it starts at [slotStartMinute] and runs only over that slot's own
 /// [blocks], independently of every other slot of the day. Two slots of one day may therefore
@@ -199,9 +198,8 @@ class OcptShootingTimelineSlot {
   /// The slot's own id (`shooting_slots.id`).
   final String id;
 
-  /// The slot's own `startMinute` — the one clock time still typed by hand (§2.4 of
-  /// `docs/plans/schedule-slots-and-computed-convocations.md`), and the point [ocptComputeSlotTimeline]
-  /// starts this slot's chain at.
+  /// The slot's own `startMinute` — the one clock time still typed by hand, and the point
+  /// [ocptComputeSlotTimeline] starts this slot's chain at.
   final int startMinute;
 
   /// This slot's own blocks, in `sortKey` order — a block belongs to exactly one slot, so no block

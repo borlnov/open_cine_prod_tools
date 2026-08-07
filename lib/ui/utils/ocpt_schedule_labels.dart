@@ -59,8 +59,8 @@ String ocptScheduleAgendaModeLabel(Tr tr, OcptScheduleAgendaMode mode) => switch
   OcptScheduleAgendaMode.month => tr.scheduleAgendaModeMonth,
 };
 
-/// A day's printed rank, `D3`/`J3` — the shorthand `docs/plans/schedule-mode.md` itself prints,
-/// and the one the reference production documents this mode is modelled on use throughout.
+/// A day's printed rank, `D3`/`J3` — the shorthand the reference production documents this mode
+/// is modelled on use throughout.
 ///
 /// The letter is [Tr.scheduleDayTagPrefix], **localized**: the paperwork a crew reads is printed
 /// in the language the app is set to, so the letter that opens a day's own tag follows it, the

@@ -92,9 +92,9 @@ its `shots` row) into one of these before calling it.
   keep the numbers tidy is worse than one that says, in red, that the plan no longer fits — the
   person reading it can then actually fix the real problem instead of trusting a lie.
 
-## Amendment (schedule mode M1')
+## Amendment — one chain per slot
 
-`docs/plans/schedule-slots-and-computed-convocations.md` §2.1 amends the decision above: a day no
+The decision above is amended: a day no
 longer runs **one** chain shared by every slot, it runs **one chain per slot**, each starting at
 that slot's own `startMinute` (the renamed `crewCallMinute`).
 

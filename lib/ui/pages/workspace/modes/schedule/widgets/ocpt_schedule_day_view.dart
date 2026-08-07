@@ -26,8 +26,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
-/// The day view: the mode's real working surface (`docs/plans/schedule-mode.md` §8) — the day's own
-/// summary band, then [OcptScheduleGroupsBand] (M2'), then one [OcptScheduleSlotCard] per slot with
+/// The day view: the mode's real working surface — the day's own
+/// summary band, then [OcptScheduleGroupsBand], then one [OcptScheduleSlotCard] per slot with
 /// its own `+ Slot` footer. A day used to draw one shared [OcptScheduleTimetable] of its own beneath
 /// every card; it no longer does (M2') — each card now draws its own, over that slot's own blocks
 /// alone, so [blocks] and [timeline] here only ever feed the summary band's own totals and each

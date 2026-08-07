@@ -808,10 +808,9 @@ class OcptProjectVersionCodec {
     _shootingPresencesKey: const <dynamic>[],
   };
 
-  /// Turns a format-**6** JSON object into a format-**7** one: the schedule mode's M1' rework
-  /// (`docs/plans/schedule-slots-and-computed-convocations.md`) reshaped four of the six schedule
-  /// tables and added a seventh, so this is the payload's own half of the schema's v11-to-v12
-  /// migration, and for the same reasons.
+  /// Turns a format-**6** JSON object into a format-**7** one: per-slot timetables and computed
+  /// convocations reshaped four of the six schedule tables and added a seventh, so this is the
+  /// payload's own half of the schema's v11-to-v12 migration, and for the same reasons.
   ///
   /// - [_shootingDayGroupsKey] materialises as an **empty list** — the plain kind of upgrade, like
   ///   [_upgradeFormat5To6], not the *null* kind [_upgradeFormat3To4] uses for the currency: a

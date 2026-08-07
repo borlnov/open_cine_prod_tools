@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_t
 /// A group is deliberately **not** the crew department: a department says which trade someone
 /// practises, a group says who walks in at the same time, and the two only coincide by accident —
 /// "figurants" is a bag of `extra` roles, "équipe technique" a bag of people, and both are the same
-/// idea here (`docs/plans/schedule-slots-and-computed-convocations.md` §2.3).
+/// idea here.
 ///
 /// A group lives on the **day**, because [leadMinutes] does: the same crew called at 06:00 on a
 /// January exterior is called at 09:00 in a studio. `OcptScheduleService.createDay` copies the

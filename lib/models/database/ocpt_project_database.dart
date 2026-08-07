@@ -249,8 +249,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [_assignOrphanBlocksToFirstSlot] and [_alterScheduleTablesToV12]), fixes up
   /// `shooting_day_blocks.slot_id` — assigning an orphan one (null, or naming a slot that isn't
   /// live) to its day's first live slot, or dropping the block outright when its day has no live
-  /// slot at all — before reshaping the four tables
-  /// `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1') describes: `shooting_slots`'
+  /// slot at all — before reshaping the four tables schema version 12 changes:
+  /// `shooting_slots`'
   /// `crewCallMinute` renamed `startMinute` and its `crewWrapMinute`/`castCallMinute`/
   /// `castWrapMinute` dropped, `shooting_day_blocks.slotId` made non-null and gaining the nullable
   /// `sceneId` a `hold` names its sequence by, and
@@ -496,8 +496,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     }
   }
 
-  /// Reshapes the four tables `docs/plans/schedule-slots-and-computed-convocations.md` §4 (M1')
-  /// changes in place, on the way to schema version 12 — guarded by `from >= 11` at its call site
+  /// Reshapes the four schedule tables whose shape changes in place, on the way to schema version
+  /// 12 — guarded by `from >= 11` at its call site
   /// for the same reason [_assignOrphanBlocksToFirstSlot] is: a file from below 11 has just had
   /// these tables created fresh in their current (already v12) shape, so there is nothing left here
   /// to reshape.

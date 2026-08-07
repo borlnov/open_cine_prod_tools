@@ -42,9 +42,9 @@ class _OcptScheduleDraggedBlock {
 }
 
 /// One slot's own timetable: its chained blocks in `sortKey` order, each with its computed start
-/// time (ADR 0015, amended per `docs/plans/schedule-slots-and-computed-convocations.md`), its
-/// title, its duration and the controls `docs/plans/schedule-mode.md` §8 and Benoit's own M1
-/// decision #2 ask for — `±` duration, drag-to-reorder within the slot, a cross-slot drag (or the
+/// time (ADR 0015, as amended), its
+/// title, its duration and the controls the mode asks for — `±` duration, drag-to-reorder within
+/// the slot, a cross-slot drag (or the
 /// row's own `Move to…` menu for the keyboard path), the anchor pin, a shot block's own status
 /// control, and a delete/add-block pair (`design.html` lines 311-335).
 ///

@@ -344,9 +344,8 @@ class OcptScheduleSlotPlaceChangedEvent extends OcptScheduleEvent {
 }
 
 /// Writes a new start minute onto slot [slotId] immediately, dispatched by the slot card's own
-/// (single, still-typed) start field — the renamed crew call, and the one clock a slot still has
-/// (§2.4 of `docs/plans/schedule-slots-and-computed-convocations.md`): everything else a call sheet
-/// prints for the slot is computed off it.
+/// (single, still-typed) start field — the renamed crew call, and the one clock a slot still has:
+/// everything else a call sheet prints for the slot is computed off it.
 class OcptScheduleSlotStartChangedEvent extends OcptScheduleEvent {
   /// The id of the slot being edited.
   final String slotId;

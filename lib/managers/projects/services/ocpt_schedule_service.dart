@@ -60,7 +60,7 @@ import 'package:uuid/uuid.dart';
 /// convocation window must not silently unplace whatever was scheduled inside it, so its blocks
 /// simply join a different chain. When the slot being deleted is the day's **last** live one, there
 /// is nowhere left for its blocks to go, and they are tombstoned along with it — a decision taken
-/// deliberately (`docs/plans/schedule-slots-and-computed-convocations.md` §4, M1'): a block can
+/// deliberately: a block can
 /// never be slotless (`shooting_day_blocks.slotId` is `NOT NULL` from schema v12), so a day with no
 /// slot at all can hold no timetable either.
 ///
