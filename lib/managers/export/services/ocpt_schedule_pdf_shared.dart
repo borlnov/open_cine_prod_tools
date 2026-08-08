@@ -7,8 +7,11 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// What every PDF built off a shooting schedule prints in place of a value the project has not
@@ -231,3 +234,146 @@ String ocptShotSceneNumberOf(OcptShot shot) => shot.code.contains("/") ? shot.co
 /// own `PLANS` column and a shooting plan's own `Plan`/sequence-grid cells read, since whichever one
 /// is naming it already says the scene.
 String ocptShotRankOf(OcptShot shot) => shot.code.contains("/") ? shot.code.split("/").last : shot.code;
+
+/// [convocation]'s own arrival – departure band, or [ocptScheduleEmptyValue] while there is no
+/// convocation at all.
+///
+/// Shared by both schedule PDF exports: a call sheet's own crew list and cast-and-extras list read
+/// it over a convocation that may not exist (nobody convoked at that position, or an uncast role),
+/// which is why it stays nullable-tolerant rather than moving that check onto each caller; a day's
+/// own trailing guest table ([ocptScheduleGuestRowsOfDay]) reads the very same band over a
+/// convocation that always does.
+String ocptScheduleArrivalDepartureLabel(OcptDayConvocation? convocation) {
+  if (convocation == null) {
+    return ocptScheduleEmptyValue;
+  }
+  return "${ocptFormatDayMinute(convocation.arrivalMinute)} – ${ocptFormatDayMinute(convocation.departureMinute)}";
+}
+
+/// One row of a day's own trailing guest table: a guest convocation's own display name, the
+/// reason(s) their own `shooting_slot_guests` rows carry, and their own arrival – departure band.
+/// **Never a PAT band** — a guest is not there to shoot (ADR 0018), so there is no field here to
+/// carry one at all, unlike a crew or cast row's own.
+///
+/// Shared by `OcptCallSheetPdfService` and `OcptShootingPlanPdfService`, which both print this exact
+/// table (`NOM / MOTIF / HORAIRES`) trailing their own timetable: the join belongs here for the same
+/// reason [ocptScheduleBlockCaptionOf] does — two documents reading a guest's name, reason and hours
+/// two different ways is exactly what this file exists to rule out. Each service keeps only its own
+/// widget that draws the table, the section title and the labels object differing between them.
+class OcptScheduleGuestRow {
+  /// Class constructor
+  const OcptScheduleGuestRow({required this.name, required this.reason, required this.notes, required this.hours});
+
+  /// The guest's own display name — the address-book person's, the free name, or the
+  /// `unnamedPersonLabel` [ocptScheduleGuestRowsOfDay] was given while neither names anybody
+  /// printable.
+  final String name;
+
+  /// The distinct, non-empty reasons every `shooting_slot_guests` row naming this guest on one of
+  /// their own slots carries, comma-joined — never picked down to one, since somebody attending two
+  /// slots for two different reasons is telling the truth about both.
+  final String reason;
+
+  /// The same join over those rows' own free-form notes, printed under [reason] on a muted second
+  /// line — empty when none of them carries any.
+  final String notes;
+
+  /// This guest's own arrival – departure band ([ocptScheduleArrivalDepartureLabel]).
+  final String hours;
+}
+
+/// Whether [guest]'s own discriminator half — [OcptShootingSlotGuest.personId] or
+/// [OcptShootingSlotGuest.freeName] — matches [convocation]'s, the join [ocptScheduleGuestRowsOfDay]
+/// makes between a `shooting_slot_guests` row and the computed convocation it feeds.
+bool _guestMatchesConvocation(OcptShootingSlotGuest guest, OcptDayConvocation convocation) =>
+    convocation.guestPersonId != null
+        ? guest.personId == convocation.guestPersonId
+        : guest.freeName == convocation.guestFreeName;
+
+/// [convocation]'s own display name for the trailing guest table: the address-book display name
+/// when it carries a [OcptDayConvocation.guestPersonId], its own [OcptDayConvocation.guestFreeName]
+/// otherwise — the same discriminator `OcptShootingSlotGuest` itself uses — or [unnamedPersonLabel]
+/// while neither names anybody printable, exactly as a crew or cast convocation falls back on its
+/// own labels object's equivalent word.
+String _guestDisplayNameOf(
+  OcptDayConvocation convocation,
+  OcptSchedulePlanSnapshot plan,
+  String unnamedPersonLabel,
+) {
+  final guestPersonId = convocation.guestPersonId;
+  if (guestPersonId != null) {
+    final name = plan.personById[guestPersonId]?.displayName.trim() ?? "";
+    if (name.isNotEmpty) {
+      return name;
+    }
+  }
+
+  final freeName = convocation.guestFreeName?.trim() ?? "";
+  if (freeName.isNotEmpty) {
+    return freeName;
+  }
+
+  return unnamedPersonLabel;
+}
+
+/// The day's own trailing guest table rows: one per [OcptDayConvocation.isGuest] convocation of
+/// [dayId], sorted the way [OcptSchedulePlanSnapshot.convocationsOfDay] already sorts every
+/// convocation (by arrival, then by identity).
+///
+/// A convocation carries no reason and no notes of its own — those live on the
+/// `shooting_slot_guests` rows themselves, one per slot a guest is linked to — so this function
+/// joins [OcptDayConvocation.slotIds] back onto [OcptShootingSlot.guests], keeping only the rows
+/// [_guestMatchesConvocation] matches to this convocation, and folds their distinct non-empty
+/// `reason`s and `notes` into the two comma-joined strings [OcptScheduleGuestRow] prints. Both are
+/// day-wide, exactly like the section they feed: a guest attending two of the day's slots for two
+/// different reasons has both printed, never one picked over the other.
+///
+/// [unnamedPersonLabel] is the calling document's own already-localized fallback word
+/// (`OcptCallSheetLabels.unnamedPersonLabel`/`OcptShootingPlanLabels.unnamedPersonLabel`), taken as a
+/// plain string exactly as [ocptScheduleBlockCaptionOf] takes its own `blockKindLabelOf` resolver —
+/// this file must not learn about either labels class.
+List<OcptScheduleGuestRow> ocptScheduleGuestRowsOfDay({
+  required OcptSchedulePlanSnapshot plan,
+  required String dayId,
+  required String unnamedPersonLabel,
+}) {
+  final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+  final guestConvocations = plan.convocationsOfDay(dayId).where((convocation) => convocation.isGuest);
+
+  final rows = <OcptScheduleGuestRow>[];
+  for (final convocation in guestConvocations) {
+    final ownSlotIds = convocation.slotIds.toSet();
+    final reasons = <String>[];
+    final notes = <String>[];
+
+    for (final slot in slots) {
+      if (!ownSlotIds.contains(slot.id)) {
+        continue;
+      }
+      for (final guest in slot.guests) {
+        if (!_guestMatchesConvocation(guest, convocation)) {
+          continue;
+        }
+        final reason = guest.reason.trim();
+        if (reason.isNotEmpty && !reasons.contains(reason)) {
+          reasons.add(reason);
+        }
+        final note = guest.notes.trim();
+        if (note.isNotEmpty && !notes.contains(note)) {
+          notes.add(note);
+        }
+      }
+    }
+
+    rows.add(
+      OcptScheduleGuestRow(
+        name: _guestDisplayNameOf(convocation, plan, unnamedPersonLabel),
+        reason: reasons.join(", "),
+        notes: notes.join(", "),
+        hours: ocptScheduleArrivalDepartureLabel(convocation),
+      ),
+    );
+  }
+
+  return rows;
+}

@@ -20,7 +20,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -257,7 +256,11 @@ class OcptCallSheetPdfService {
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
     final locations = ocptScheduleLocationsOfSlots(plan, slots);
     final events = plan.schedule.eventsByDayId[dayId] ?? const <OcptShootingDayEvent>[];
-    final guestRows = _guestRowsOfDay(plan: plan, dayId: dayId, labels: labels);
+    final guestRows = ocptScheduleGuestRowsOfDay(
+      plan: plan,
+      dayId: dayId,
+      unnamedPersonLabel: labels.unnamedPersonLabel,
+    );
 
     pdfDocument.addPage(
       _page(
@@ -386,7 +389,11 @@ class OcptCallSheetPdfService {
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
     final locations = ocptScheduleLocationsOfSlots(plan, ownSlots);
     final events = plan.schedule.eventsByDayId[dayId] ?? const <OcptShootingDayEvent>[];
-    final guestRows = _guestRowsOfDay(plan: plan, dayId: dayId, labels: labels);
+    final guestRows = ocptScheduleGuestRowsOfDay(
+      plan: plan,
+      dayId: dayId,
+      unnamedPersonLabel: labels.unnamedPersonLabel,
+    );
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
     final positionsOrRole = _convocationPositionsLabel(
       convocation: convocation,
@@ -1249,7 +1256,7 @@ class OcptCallSheetPdfService {
   pw.Widget _guestsSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
-    required List<_GuestRow> rows,
+    required List<OcptScheduleGuestRow> rows,
   }) => pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
@@ -1282,7 +1289,10 @@ class OcptCallSheetPdfService {
   /// One [_guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own note(s)
   /// on a muted second line when they carry any — the same shape [_contactsBlock]'s own contact
   /// entries print a phone number under a position in.
-  pw.Widget _guestReasonCell({required OcptScriptPagePainter painter, required _GuestRow row}) => pw.Padding(
+  pw.Widget _guestReasonCell({
+    required OcptScriptPagePainter painter,
+    required OcptScheduleGuestRow row,
+  }) => pw.Padding(
     padding: const pw.EdgeInsets.all(_cellPaddingPt),
     child: pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1495,30 +1505,6 @@ class _PeopleListEntry {
 
   /// Their own arrival – departure band, or [ocptScheduleEmptyValue] while they have no convocation at all.
   final String scheduleLabel;
-}
-
-/// One row of the day's own trailing guest table: a guest convocation's own display name, the
-/// reason(s) their own `shooting_slot_guests` rows carry, and their own arrival – departure band.
-/// **Never a PAT band** — a guest is not there to shoot (ADR 0018), so there is no field here to
-/// carry one at all, unlike [_CastRow]'s and [_PeopleListEntry]'s own.
-class _GuestRow {
-  const _GuestRow({required this.name, required this.reason, required this.notes, required this.hours});
-
-  /// The guest's own display name — the address-book person's, the free name, or
-  /// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable.
-  final String name;
-
-  /// The distinct, non-empty reasons every `shooting_slot_guests` row naming this guest on one of
-  /// their own slots carries, comma-joined — never picked down to one, since somebody attending two
-  /// slots for two different reasons is telling the truth about both.
-  final String reason;
-
-  /// The same join over those rows' own free-form notes, printed under [reason] on a muted second
-  /// line — empty when none of them carries any.
-  final String notes;
-
-  /// This guest's own arrival – departure band ([_scheduleLabelOf]).
-  final String hours;
 }
 
 /// One row of a named sheet's own "to bring" table: an element
@@ -1794,97 +1780,6 @@ List<_CrewContact> _crewContactsOfDay({
   return contacts;
 }
 
-/// Whether [guest]'s own discriminator half — [OcptShootingSlotGuest.personId] or
-/// [OcptShootingSlotGuest.freeName] — matches [convocation]'s, the join `_guestRowsOfDay` makes
-/// between a `shooting_slot_guests` row and the computed convocation it feeds.
-bool _guestMatchesConvocation(OcptShootingSlotGuest guest, OcptDayConvocation convocation) =>
-    convocation.guestPersonId != null
-        ? guest.personId == convocation.guestPersonId
-        : guest.freeName == convocation.guestFreeName;
-
-/// The day's own trailing guest table rows: one per [OcptDayConvocation.isGuest] convocation of
-/// [dayId], sorted the way [OcptSchedulePlanSnapshot.convocationsOfDay] already sorts every
-/// convocation (by arrival, then by identity).
-///
-/// A convocation carries no reason and no notes of its own — those live on the
-/// `shooting_slot_guests` rows themselves, one per slot a guest is linked to — so this function
-/// joins [OcptDayConvocation.slotIds] back onto [OcptShootingSlot.guests], keeping only the rows
-/// [_guestMatchesConvocation] matches to this convocation, and folds their distinct non-empty
-/// `reason`s and `notes` into the two comma-joined strings [_GuestRow] prints. Both are day-wide,
-/// exactly like the section they feed: a guest attending two of the day's slots for two different
-/// reasons has both printed, never one picked over the other.
-List<_GuestRow> _guestRowsOfDay({
-  required OcptSchedulePlanSnapshot plan,
-  required String dayId,
-  required OcptCallSheetLabels labels,
-}) {
-  final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-  final guestConvocations = plan.convocationsOfDay(dayId).where((convocation) => convocation.isGuest);
-
-  final rows = <_GuestRow>[];
-  for (final convocation in guestConvocations) {
-    final ownSlotIds = convocation.slotIds.toSet();
-    final reasons = <String>[];
-    final notes = <String>[];
-
-    for (final slot in slots) {
-      if (!ownSlotIds.contains(slot.id)) {
-        continue;
-      }
-      for (final guest in slot.guests) {
-        if (!_guestMatchesConvocation(guest, convocation)) {
-          continue;
-        }
-        final reason = guest.reason.trim();
-        if (reason.isNotEmpty && !reasons.contains(reason)) {
-          reasons.add(reason);
-        }
-        final note = guest.notes.trim();
-        if (note.isNotEmpty && !notes.contains(note)) {
-          notes.add(note);
-        }
-      }
-    }
-
-    rows.add(
-      _GuestRow(
-        name: _guestDisplayNameOf(convocation, plan, labels),
-        reason: reasons.join(", "),
-        notes: notes.join(", "),
-        hours: _scheduleLabelOf(convocation),
-      ),
-    );
-  }
-
-  return rows;
-}
-
-/// [convocation]'s own display name for the trailing guest table: the address-book display name
-/// when it carries a [OcptDayConvocation.guestPersonId], its own [OcptDayConvocation.guestFreeName]
-/// otherwise — the same discriminator `OcptShootingSlotGuest` itself uses — or
-/// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable, exactly as
-/// [_convocationDisplayNameOf] falls back for a crew or cast convocation.
-String _guestDisplayNameOf(
-  OcptDayConvocation convocation,
-  OcptSchedulePlanSnapshot plan,
-  OcptCallSheetLabels labels,
-) {
-  final guestPersonId = convocation.guestPersonId;
-  if (guestPersonId != null) {
-    final name = plan.personById[guestPersonId]?.displayName.trim() ?? "";
-    if (name.isNotEmpty) {
-      return name;
-    }
-  }
-
-  final freeName = convocation.guestFreeName?.trim() ?? "";
-  if (freeName.isNotEmpty) {
-    return freeName;
-  }
-
-  return labels.unnamedPersonLabel;
-}
-
 /// The crew list's own rows: one per distinct person of [crewContacts], their own positions
 /// comma-joined, their own arrival – departure band read off [convocations].
 List<_PeopleListEntry> _crewListEntries({
@@ -1907,7 +1802,7 @@ List<_PeopleListEntry> _crewListEntries({
         positionOrRole: (positionsByPersonId[person.id] ?? const <String>[]).join(", "),
         phone: person.phone,
         email: person.email,
-        scheduleLabel: _scheduleLabelOf(convocationByPersonId[person.id]),
+        scheduleLabel: ocptScheduleArrivalDepartureLabel(convocationByPersonId[person.id]),
       ),
   ];
 
@@ -1931,21 +1826,12 @@ List<_PeopleListEntry> _castListEntries({required List<_CastRow> castRows, requi
         positionOrRole: "${row.role.number} · ${row.role.name}",
         phone: row.actor?.phone ?? "",
         email: row.actor?.email ?? "",
-        scheduleLabel: _scheduleLabelOf(row.convocation),
+        scheduleLabel: ocptScheduleArrivalDepartureLabel(row.convocation),
       ),
   ];
 
   entries.sort((a, b) => a.name.compareTo(b.name));
   return entries;
-}
-
-/// [convocation]'s own arrival – departure band, or [ocptScheduleEmptyValue] while there is no convocation at
-/// all.
-String _scheduleLabelOf(OcptDayConvocation? convocation) {
-  if (convocation == null) {
-    return ocptScheduleEmptyValue;
-  }
-  return "${ocptFormatDayMinute(convocation.arrivalMinute)} – ${ocptFormatDayMinute(convocation.departureMinute)}";
 }
 
 /// [convocation]'s own PAT band, or [ocptScheduleEmptyValue] while it has none — ADR 0018: a slot with no

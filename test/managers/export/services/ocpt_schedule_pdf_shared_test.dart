@@ -4,12 +4,19 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// What both schedule PDF exports hand [ocptScheduleBlockCaptionOf] as its own kind resolver —
@@ -26,24 +33,120 @@ String _blockKindLabelOf(OcptShootingBlockKind kind) => switch (kind) {
 };
 
 /// Builds a slot with the few fields these tests read, everything else neutral.
-OcptShootingSlot _buildSlot({List<OcptShootingSlotCastMember> cast = const []}) => OcptShootingSlot(
-  id: "slot-1",
+OcptShootingSlot _buildSlot({
+  String id = "slot-1",
+  int anchorMinute = 480,
+  List<OcptShootingSlotCastMember> cast = const [],
+  List<OcptShootingSlotGuest> guests = const [],
+}) => OcptShootingSlot(
+  id: id,
   shootingDayId: "day-1",
   label: "",
   locationId: null,
   setId: null,
   anchorEdge: OcptShootingSlotAnchorEdge.start,
-  anchorMinute: 480,
+  anchorMinute: anchorMinute,
   anchorSlotId: null,
   notes: "",
   crew: const [],
   cast: cast,
-  guests: const [],
+  guests: guests,
 );
 
 /// Builds a cast member linking [roleId] to the fixture's own slot.
 OcptShootingSlotCastMember _buildCastMember(String roleId) =>
     OcptShootingSlotCastMember(id: "cast-$roleId", slotId: "slot-1", roleId: roleId, notes: "");
+
+/// Builds a slot guest with the few fields these tests read, everything else neutral.
+OcptShootingSlotGuest _buildGuest({
+  required String id,
+  required String slotId,
+  String? personId,
+  String freeName = "",
+  String reason = "",
+  String notes = "",
+}) => OcptShootingSlotGuest(
+  id: id,
+  slotId: slotId,
+  personId: personId,
+  freeName: freeName,
+  reason: reason,
+  notes: notes,
+);
+
+/// Builds a person with the few fields these tests read, everything else neutral.
+OcptPerson _buildPerson({required String id, required String firstName, required String lastName}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: lastName,
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  photoAssetId: null,
+  photo: null,
+  imageRightsDocument: null,
+  notes: "",
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
+);
+
+/// Builds a one-day plan snapshot over [slots], plus whichever [people] a guest test needs to
+/// resolve (or fail to resolve) an address-book name from.
+OcptSchedulePlanSnapshot _buildSnapshot({
+  required List<OcptShootingSlot> slots,
+  List<OcptPerson> people = const [],
+}) => OcptSchedulePlanSnapshot.build(
+  schedule: OcptScheduleSnapshot.build(
+    screenplayId: "screenplay-1",
+    days: [
+      OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026),
+        dayNumber: 1,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      ),
+    ],
+    slotsByDayId: {"day-1": slots},
+    blocksByDayId: const {},
+    eventsByDayId: const {},
+  ),
+  shotList: null,
+  locations: const [],
+  roles: const [],
+  people: people,
+  elements: const [],
+  minimumRestMinutes: null,
+);
 
 /// Builds a block with the few fields these tests read, everything else neutral.
 OcptShootingDayBlock _buildBlock({
@@ -228,6 +331,109 @@ void main() {
       );
 
       expect(caption, "Reserved for the storm");
+    });
+  });
+
+  group("ocptScheduleArrivalDepartureLabel", () {
+    test("no convocation at all reads as the empty value", () {
+      expect(ocptScheduleArrivalDepartureLabel(null), ocptScheduleEmptyValue);
+    });
+
+    test("a live convocation reads its own arrival and departure", () {
+      final plan = _buildSnapshot(
+        slots: [
+          _buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Mayor Dupont")]),
+        ],
+      );
+      final convocation = plan.convocationsOfDay("day-1").single;
+
+      // The slot carries no block, so its own start is its own end too (ADR 0018): a convocation
+      // with nothing placed on it yet still reads a band, just a zero-length one.
+      expect(ocptScheduleArrivalDepartureLabel(convocation), "08:00 – 08:00");
+    });
+  });
+
+  group("ocptScheduleGuestRowsOfDay", () {
+    test("a guest on two slots keeps both slots' own reasons, comma-joined", () {
+      final plan = _buildSnapshot(
+        slots: [
+          _buildSlot(
+            id: "slot-morning",
+            guests: [
+              _buildGuest(
+                id: "guest-morning",
+                slotId: "slot-morning",
+                freeName: "Mayor Dupont",
+                reason: "Ribbon cutting",
+              ),
+            ],
+          ),
+          _buildSlot(
+            id: "slot-afternoon",
+            anchorMinute: 600,
+            guests: [
+              _buildGuest(
+                id: "guest-afternoon",
+                slotId: "slot-afternoon",
+                freeName: "Mayor Dupont",
+                reason: "Closing speech",
+                notes: "Leaves early",
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+
+      // Both slots convoke the very same free-named guest, so the join reads as one row rather than
+      // two — a guest attending two slots for two different reasons has both printed, never one
+      // picked over the other.
+      expect(rows, hasLength(1));
+      expect(rows.single.name, "Mayor Dupont");
+      expect(rows.single.reason, "Ribbon cutting, Closing speech");
+      expect(rows.single.notes, "Leaves early");
+    });
+
+    test("a free-name guest reads their own name, having no address-book row to prefer", () {
+      final plan = _buildSnapshot(
+        slots: [_buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Zoé Martin")])],
+      );
+
+      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+
+      expect(rows.single.name, "Zoé Martin");
+    });
+
+    test("an address-book guest reads the address book's own display name", () {
+      final plan = _buildSnapshot(
+        slots: [
+          _buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-1")]),
+        ],
+        people: [_buildPerson(id: "person-1", firstName: "Camille", lastName: "Roy")],
+      );
+
+      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+
+      expect(rows.single.name, "Camille Roy");
+    });
+
+    test("a guest whose person resolves to nothing falls back to the given label", () {
+      final plan = _buildSnapshot(
+        slots: [
+          _buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-gone")]),
+        ],
+      );
+
+      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+
+      expect(rows.single.name, "Unnamed");
+    });
+
+    test("a day with no guest at all answers with no row", () {
+      final plan = _buildSnapshot(slots: [_buildSlot()]);
+
+      expect(ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed"), isEmpty);
     });
   });
 }
