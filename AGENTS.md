@@ -116,6 +116,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29c | Schedule review M4 — the two crossings v17 made possible: `OcptScheduleRestTimeAlert` (a person's departure against their arrival on the next day they are actually convoked on, raised on the second of the two) and `OcptSchedulePermitNotValidAlert` (the plan's `…Missing` renamed for what it says, a location filing no permit raising nothing), both soft and both silent while the figure they measure against was never recorded, `ocptComputeScheduleAlerts` taking the project's minimum and a location's permit windows, `OcptSchedulePlanSnapshot.minimumRestMinutes` joining them, the two sentences in the `Alerts` panel, the permit's `validFrom`/`validUntil` typed under the location sheet's document line, and the project's minimum rest typed on `OcptProjectSettingsPage` | ✅ |
 | 29d | Schedule review M5 — the stamp that tells two issues of one document apart: `ocptScheduleGeneratedAtStamp` in `ocpt_schedule_pdf_shared.dart` (date **and** time, deliberately not locale-formatted), an `exportDate` on both call sheet generators beside the shooting plan's own — resolved once per document, and once per run by `OcptExportManager` for the two exports that write a folder — the shooting plan's version line repeated in every page's running head, and the call sheets' own in the title block | ✅ |
 | 29e | Schedule review M6 — the call sheets: the named export picking its own days (the recipient list the **union** of the ticked days' convocations, one file per **recipient × day**, the collision suffixes and the three-outcome reporting unchanged), the day's guests as a trailing `NOM / MOTIF / HORAIRES` table and its events as their own timed section on both sheets, a block's `crewNote` printed under its own row (a shot run closing its `pw.Table` chunk so the note can span), and the named sheet's own `À apporter` table over `OcptSchedulePlanSnapshot.elementsToBringOnDay`/`sceneIdsOfDay` — the schedule mode's sixth read | ✅ |
+| 29f | Schedule review M7 — the shooting plan: an hours column leading every shot table, the day agenda printing the day's events, its guests and a block's `crewNote` (the guest-row join moved into `ocpt_schedule_pdf_shared.dart` rather than copied), `OcptShootingDayAgendaGrid` (`lib/models/`, pure and tested) drawn as an optional ten-minute page per day — its rows bounded by the blocks alone, an out-of-band event a marker at the edge it falls beyond — a fourth summary grid crossing **days** rather than slots for the elements a printed range needs, and the two things a torn-out page needs to say for itself: the running head on **every** page (`pw.MultiPage`'s own `header:`) and a table's own header repeated across them | ✅ |
 
 ## Ways of working
 
@@ -1087,11 +1088,48 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   sequences, crew and cast) whose columns are **one per slot grouped under its day** — the
   reference's day-parts being exactly what a slot is here — chunked across pages when a shoot runs
   wide, then one portrait agenda per day with its hours, its sets and its shot tables. Its
-  `Description` column is dropped for the same reason `RÉSUMÉ` is.
+  `Description` column is dropped for the same reason `RÉSUMÉ` is. A shot table **leads with the
+  hours** its block resolves to, the one column the reference's own table has no equivalent of, and
+  the day agenda prints the three facts schema v17 added exactly as the call sheets do: the day's
+  **events** beside its hours section (a fact about the day, in no chain), its **guests** as a
+  trailing `NOM / MOTIF / HORAIRES` table, and a block's **`crewNote`** under its own row — the
+  guest rows themselves computed by `ocptScheduleGuestRowsOfDay` in `ocpt_schedule_pdf_shared.dart`
+  rather than by each document (below), a guest's name and hours being precisely what the two must
+  not read differently.
+  A **fourth summary grid**, the elements one, crosses **days** rather than slots: an element is
+  needed on a day or it is not, and which unit of that day carries it is not something this app
+  says. Its rows are the elements at least one scene of the printed range plays
+  (`sceneIdsOfDay` ∩ `OcptElement.sceneLinks`, the join `elementsToBringOnDay` already makes for one
+  recipient, widened to everybody), grouped under an `OcptElementCategory` band in the enum's own
+  order and **never** by `OcptCrewDepartment` — fourteen entries against six, and a mapping between
+  them would be the app's own opinion about how a production is organised. A cell is the presence
+  mark, **never a quantity summed across the day's scenes**: `scene_elements.quantity` is per link,
+  so the same coat in three scenes is one coat, and a total would be a figure nobody entered.
+  A day may additionally be printed as an optional **ten-minute grid** page, one per day, which
+  **adds to** the detailed agenda rather than replacing it: rows every ten minutes, one column per
+  slot, a block as a tile spanning the rows it touches with its **exact** times printed inside it,
+  and an event as a full-width marker. Its whole geometry is `OcptShootingDayAgendaGrid`
+  (`lib/models/`, **pure Dart, no `pdf` and no Flutter**, the shape `OcptScenarioCoverageLayout`
+  has), so the hard cases — a 12-minute block on a ten-minute grid, two slots whose chains overlap,
+  a night crossing midnight, a band resolving to a **negative** minute because an end-anchored slot
+  walked back past its own midnight — are decided and tested with no PDF generated, and the service
+  only draws. Its rows are bounded by the **blocks alone**: an event outside that band is a marker
+  drawn at the edge it falls beyond (`OcptShootingDayAgendaEventPlacement`), never a reason to
+  stretch the rows to it — the week grid on screen scrolls and may stretch, a printed page would pay
+  for it in blank rows, which is the one place the two deliberately read differently.
+  Every page of this document carries its running head through `pw.MultiPage`'s own `header:` rather
+  than as a body child, and every table that can flow marks its header row `repeat: true`: a day
+  agenda torn out of the plan, or a grid's second page pinned on a wall, has nowhere else to say
+  which issue it is or which unit a column belongs to. An elements-grid **category band** is
+  deliberately not repeated — `repeat` redraws every marked row on every page, so several bands
+  would stack into a heading that lies, and an element row already names itself.
   `ocpt_schedule_pdf_shared.dart` holds what the two documents must not read differently: the walk
   that puts a day's parallel slot chains back into a single clock order, a block's caption, the HMC
   role numbers and the line they print as (so both documents say them identically, each handing in
-  its own already-localized `RÔLES` label), a location's address line, and
+  its own already-localized `RÔLES` label), a location's address line, a day's **guest rows**
+  (`ocptScheduleGuestRowsOfDay`, taking the fallback name as a plain string so this file never
+  learns either document's labels class) and the **arrival – departure** band both print
+  (`ocptScheduleArrivalDepartureLabel`), and
   `ocptScheduleGeneratedAtStamp` — **the moment a document was produced**, `yyyy-MM-dd HH:mm`,
   deliberately carrying the **time** (a call sheet is regularly reissued the afternoon of the day it
   first went out, and two sheets stamped with the date alone cannot be told apart in the hand of
@@ -1107,11 +1145,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `versionLabel` word out of their own labels object. **Every
   hour on either page is the resolved one** and every convocation figure comes from
   `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
-  The **shooting plan** prints no guest, no event and no block crew note yet — the call sheets do,
-  above — and the named call sheets **filter guest convocations out** of their *recipient* list even
-  though they print a guest table: the dialog's own selection keys and every reader behind them
-  assume a convocation names a person or a role. A guest is somebody the sheet tells you about, not
-  yet somebody a sheet is addressed to.
+  Both documents print a day's guests, its events and a block's crew note now; the named call sheets
+  still **filter guest convocations out** of their *recipient* list even though they print a guest
+  table, the dialog's own selection keys and every reader behind them assuming a convocation names a
+  person or a role. A guest is somebody the sheet tells you about, not yet somebody a sheet is
+  addressed to.
   Schema v17's own two tables are drawn by the mode as of M3. A **guest**
   (`shooting_slot_guests`) is somebody neither crew nor cast — a mayor lending a square, a
   journalist, an owner's cousin — convoked **by a slot** exactly as everybody else is, named by
