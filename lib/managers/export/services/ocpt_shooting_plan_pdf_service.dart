@@ -1472,12 +1472,17 @@ class OcptShootingPlanPdfService {
   /// [OcptShootingDayAgendaTile.rowSpan] is more than 1 is drawn as one ordinary bordered cell per
   /// row, its own top and bottom border switched off on every row but its first and its last
   /// ([_tenMinuteGridTileCell]) — which reads as a single merged rectangle without the package ever
-  /// being asked to merge one. An event breaks the table at its own row into two chunks with its
-  /// own full-width band between them ([_tenMinuteGridEventWidget]), mirroring
-  /// [_dayTimetableWidgets]'s own milestone break: `pw.Table` cannot span a *column* any more than
-  /// a row, so there is no other way to print one line the whole width of the page. A tile whose
-  /// own band happens to cross that break is therefore drawn as two bordered rectangles rather than
-  /// one — a visual seam this reading aid accepts rather than a claim the grid cannot make.
+  /// being asked to merge one. An [OcptShootingDayAgendaEventPlacement.inGrid] event breaks the
+  /// table at its own row into two chunks with its own full-width band between them
+  /// ([_tenMinuteGridEventWidget]), mirroring [_dayTimetableWidgets]'s own milestone break:
+  /// `pw.Table` cannot span a *column* any more than a row, so there is no other way to print one
+  /// line the whole width of the page. A tile whose own band happens to cross that break is
+  /// therefore drawn as two bordered rectangles rather than one — a visual seam this reading aid
+  /// accepts rather than a claim the grid cannot make. A `.beforeGrid`/`.afterGrid` event is the
+  /// same band, simply printed before the first table chunk or after the last one instead of
+  /// breaking one open — the grid's own bounds no longer stretch to reach it (see
+  /// `OcptShootingDayAgendaGrid`'s own doc comment for why a printed page decided that differently
+  /// from the schedule mode's own on-screen week grid).
   pw.MultiPage _tenMinuteGridPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -1512,9 +1517,11 @@ class OcptShootingPlanPdfService {
     );
   }
 
-  /// The grid's own body: one [pw.Table] per run of rows uninterrupted by an event, a header row
+  /// The grid's own body: an [OcptShootingDayAgendaEventPlacement.beforeGrid] event's own band
+  /// first, then one [pw.Table] per run of rows uninterrupted by an `.inGrid` one — a header row
   /// (the slot labels) leading every one of them so a page reached after a break still says which
-  /// column is which slot, or [OcptShootingPlanLabels.emptyDayScheduleNote] while [grid] is empty.
+  /// column is which slot — then every `.afterGrid` event's own band last, or
+  /// [OcptShootingPlanLabels.emptyDayScheduleNote] while [grid] is empty.
   List<pw.Widget> _tenMinuteGridWidgets({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -1537,9 +1544,18 @@ class OcptShootingPlanPdfService {
       }
     }
 
+    final leadingMarkers = <OcptShootingDayAgendaEventMarker>[];
+    final trailingMarkers = <OcptShootingDayAgendaEventMarker>[];
     final eventsByRow = <int, List<OcptShootingDayAgendaEventMarker>>{};
     for (final marker in grid.events) {
-      (eventsByRow[marker.row] ??= <OcptShootingDayAgendaEventMarker>[]).add(marker);
+      switch (marker.placement) {
+        case OcptShootingDayAgendaEventPlacement.beforeGrid:
+          leadingMarkers.add(marker);
+        case OcptShootingDayAgendaEventPlacement.afterGrid:
+          trailingMarkers.add(marker);
+        case OcptShootingDayAgendaEventPlacement.inGrid:
+          (eventsByRow[marker.row!] ??= <OcptShootingDayAgendaEventMarker>[]).add(marker);
+      }
     }
 
     final columnWidths = <int, pw.TableColumnWidth>{0: const pw.FlexColumnWidth(0.8)};
@@ -1547,7 +1563,9 @@ class OcptShootingPlanPdfService {
       columnWidths[index + 1] = const pw.FlexColumnWidth();
     }
 
-    final widgets = <pw.Widget>[];
+    final widgets = <pw.Widget>[
+      for (final marker in leadingMarkers) _tenMinuteGridEventWidget(painter: painter, marker: marker),
+    ];
     var pendingRows = <pw.TableRow>[];
 
     void flush() {
@@ -1597,6 +1615,10 @@ class OcptShootingPlanPdfService {
       }
     }
     flush();
+
+    for (final marker in trailingMarkers) {
+      widgets.add(_tenMinuteGridEventWidget(painter: painter, marker: marker));
+    }
 
     return widgets;
   }

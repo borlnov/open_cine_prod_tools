@@ -182,7 +182,7 @@ void main() {
   });
 
   group("an event pinned outside the blocks' own band", () {
-    test("the grid's own bounds stretch to keep it visible", () {
+    test("the grid's own bounds do not stretch to keep it visible on paper", () {
       final grid = OcptShootingDayAgendaGrid.of(
         columns: [
           OcptShootingDayAgendaColumnInput(
@@ -197,14 +197,17 @@ void main() {
         ],
       );
 
+      // Bounds come from the blocks alone now — no thirty blank rows to reach a marker.
       expect(grid.startMinute, 540);
-      expect(grid.endMinute, 1030); // ceiled just past the event's own minute
+      expect(grid.endMinute, 600);
+      expect(grid.rowCount, 6);
       final marker = grid.events.single;
       expect(marker.minute, 1025);
-      expect(marker.row, grid.rowCount - 1);
+      expect(marker.placement, OcptShootingDayAgendaEventPlacement.afterGrid);
+      expect(marker.row, isNull);
     });
 
-    test("an event before every slot's own start also stretches the bounds", () {
+    test("an event before every slot's own start is a leading marker, not a new bound", () {
       final grid = OcptShootingDayAgendaGrid.of(
         columns: [
           OcptShootingDayAgendaColumnInput(
@@ -217,36 +220,73 @@ void main() {
         events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 480, label: "Early gate opening")],
       );
 
-      expect(grid.startMinute, 480);
-      expect(grid.events.single.row, 0);
+      expect(grid.startMinute, 540); // untouched by the event
+      final marker = grid.events.single;
+      expect(marker.placement, OcptShootingDayAgendaEventPlacement.beforeGrid);
+      expect(marker.row, isNull);
     });
 
-    test(
-      "an event exactly on the grid's own exclusive end boundary lands on the last row, "
-      "not one past it",
-      () {
-        // The block's own band ends at 550; the event, at 600 — already an exact multiple of ten —
-        // is the single latest bound, so the grid's own snapped end lands exactly on the event's
-        // minute with nothing to round up. That is precisely the case the row's own `.clamp` in
-        // `OcptShootingDayAgendaGrid.of` exists for.
-        final grid = OcptShootingDayAgendaGrid.of(
-          columns: [
-            OcptShootingDayAgendaColumnInput(
-              slotId: "s1",
-              label: "Unit A",
-              timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 10),
-              captionByBlockId: const {"b1": "Shot 1"},
-            ),
-          ],
-          events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 600, label: "Wrap party")],
-        );
+    test("an event exactly on the grid's own exclusive end boundary is a trailing marker", () {
+      // The block's own band runs 540-600, already an exact multiple of ten at both ends, so
+      // nothing is rounded up. The event, pinned exactly at 600, has nothing to sit on: a row
+      // covers [start, start + stepMinutes), and 600 is the end of the last row rather than a
+      // minute any row contains.
+      final grid = OcptShootingDayAgendaGrid.of(
+        columns: [
+          OcptShootingDayAgendaColumnInput(
+            slotId: "s1",
+            label: "Unit A",
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 60),
+            captionByBlockId: const {"b1": "Shot 1"},
+          ),
+        ],
+        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 600, label: "Wrap party")],
+      );
 
-        expect(grid.startMinute, 540);
-        expect(grid.endMinute, 600); // already an exact multiple of ten: nothing left to round up
-        expect(grid.rowCount, 6);
-        expect(grid.events.single.row, 5); // the last real row, never 6
-      },
-    );
+      expect(grid.endMinute, 600);
+      final marker = grid.events.single;
+      expect(marker.placement, OcptShootingDayAgendaEventPlacement.afterGrid);
+      expect(marker.row, isNull);
+    });
+
+    test("an event on the grid's own last row's own start is still in it", () {
+      // The mirror of the previous test: 590 is exactly [endMinute - stepMinutes], the *start* of
+      // the last row, so it belongs inside the grid rather than trailing it.
+      final grid = OcptShootingDayAgendaGrid.of(
+        columns: [
+          OcptShootingDayAgendaColumnInput(
+            slotId: "s1",
+            label: "Unit A",
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 60),
+            captionByBlockId: const {"b1": "Shot 1"},
+          ),
+        ],
+        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 590, label: "Last call")],
+      );
+
+      expect(grid.endMinute, 600);
+      final marker = grid.events.single;
+      expect(marker.placement, OcptShootingDayAgendaEventPlacement.inGrid);
+      expect(marker.row, 5);
+    });
+
+    test("an event inside the band keeps a row of its own", () {
+      final grid = OcptShootingDayAgendaGrid.of(
+        columns: [
+          OcptShootingDayAgendaColumnInput(
+            slotId: "s1",
+            label: "Unit A",
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 60), // 09:00-10:00
+            captionByBlockId: const {"b1": "Shot 1"},
+          ),
+        ],
+        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 565, label: "Camera check")],
+      );
+
+      final marker = grid.events.single;
+      expect(marker.placement, OcptShootingDayAgendaEventPlacement.inGrid);
+      expect(marker.row, 2); // [560, 570)
+    });
   });
 
   group("bounds below the day's own midnight", () {
@@ -299,26 +339,27 @@ void main() {
       expect(tile.rowSpan, 2); // -113 spills into the second row, [-120, -110)
     });
 
-    test("an event pinned at a negative minute stretches the bounds below midnight", () {
-      // -15 must floor to -20, not the -10 a truncating `~/` would give.
+    test("an event at a negative minute before a band starting at 07:00 is a leading marker", () {
+      // The rounding fix must keep working here too: even though this event no longer touches the
+      // bounds, `_eventMarkerOf`'s own `event.minute < snappedStart` comparison must still read
+      // -15 as before a band starting at 420 (07:00), not accidentally fold it in some other way.
       final grid = OcptShootingDayAgendaGrid.of(
         columns: [
           OcptShootingDayAgendaColumnInput(
             slotId: "s1",
             label: "Unit A",
-            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 0, duration: 60),
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 420, duration: 60),
             captionByBlockId: const {"b1": "Shot 1"},
           ),
         ],
         events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: -15, label: "Early crew arrival")],
       );
 
-      expect(grid.startMinute, -20);
-      expect(grid.endMinute, 60);
-      expect(grid.rowCount, 8);
+      expect(grid.startMinute, 420); // untouched by the event
       final marker = grid.events.single;
       expect(marker.minute, -15);
-      expect(marker.row, 0); // -15 falls inside the very first row, [-20, -10)
+      expect(marker.placement, OcptShootingDayAgendaEventPlacement.beforeGrid);
+      expect(marker.row, isNull);
     });
   });
 

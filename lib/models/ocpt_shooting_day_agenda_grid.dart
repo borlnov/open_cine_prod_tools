@@ -133,13 +133,39 @@ class OcptShootingDayAgendaTile extends Equatable {
   List<Object?> get props => [blockId, slotId, caption, startMinute, endMinute, startRow, rowSpan];
 }
 
-/// One event drawn as a full-width marker on its own [row].
+/// Where an event's own marker sits relative to the grid's own `[startMinute, endMinute)` band —
+/// see [OcptShootingDayAgendaGrid]'s own doc comment for why the grid's bounds no longer stretch to
+/// reach one, unlike the schedule mode's own on-screen week grid.
+enum OcptShootingDayAgendaEventPlacement {
+  /// The event's own minute falls strictly before [OcptShootingDayAgendaGrid.startMinute]: drawn as
+  /// a leading marker above the grid, adjacent to its first row, with no blank row in between.
+  /// [OcptShootingDayAgendaEventMarker.row] is null.
+  beforeGrid,
+
+  /// The event's own minute falls inside `[startMinute, endMinute)`: drawn as a full-width marker on
+  /// its own [OcptShootingDayAgendaEventMarker.row], exactly as before this placement existed.
+  inGrid,
+
+  /// The event's own minute falls at or after [OcptShootingDayAgendaGrid.endMinute]: drawn as a
+  /// trailing marker below the grid, adjacent to its last row, with no blank row in between.
+  /// [OcptShootingDayAgendaEventMarker.row] is null.
+  ///
+  /// The boundary is deliberately inclusive of [OcptShootingDayAgendaGrid.endMinute] itself: a row
+  /// covers `[start, start + stepMinutes)`, so `endMinute` is one past the last row's own last
+  /// minute rather than a minute any row contains — an event landing exactly there has nothing to
+  /// sit on and reads as just after the band, not as part of it.
+  afterGrid,
+}
+
+/// One event drawn either as a full-width marker inside the grid's own rows, or as a leading or
+/// trailing one just outside them — see [OcptShootingDayAgendaEventPlacement].
 class OcptShootingDayAgendaEventMarker extends Equatable {
   /// Class constructor
   const OcptShootingDayAgendaEventMarker({
     required this.eventId,
     required this.label,
     required this.minute,
+    required this.placement,
     required this.row,
   });
 
@@ -152,23 +178,28 @@ class OcptShootingDayAgendaEventMarker extends Equatable {
   /// The event's own exact minute, unsnapped — mirrors [OcptShootingDayAgendaTile.startMinute].
   final int minute;
 
-  /// The 0-based row this event's marker is drawn across, the whole width of the grid — the row
-  /// [minute] falls into once the grid's own bounds are snapped to [OcptShootingDayAgendaGrid
-  /// .stepMinutes].
-  final int row;
+  /// Where this marker is drawn relative to the grid's own rows.
+  final OcptShootingDayAgendaEventPlacement placement;
+
+  /// The 0-based row this marker is drawn across, the whole width of the grid — meaningful only
+  /// when [placement] is [OcptShootingDayAgendaEventPlacement.inGrid], null otherwise: there is no
+  /// row to name for a marker drawn outside the grid entirely.
+  final int? row;
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptShootingDayAgendaEventMarker(eventId: $eventId, row: $row)";
+  String toString() => "OcptShootingDayAgendaEventMarker(eventId: $eventId, placement: $placement, row: $row)";
 
   /// Object properties
   @override
-  List<Object?> get props => [eventId, label, minute, row];
+  List<Object?> get props => [eventId, label, minute, placement, row];
 }
 
 /// A day's own timetable, read as a grid: rows every [stepMinutes] from the day's earliest
 /// resolved start to its latest resolved end, one column per slot, a block drawn as a tile
-/// spanning the rows its band covers, an event drawn as a full-width marker.
+/// spanning the rows its band covers, an event drawn as a full-width marker — inside the grid on
+/// its own row, or leading/trailing just outside it when its own minute falls beyond the blocks'
+/// own band (see the "its bounds" paragraph below).
 ///
 /// Pure Dart on purpose (no `pdf`, no Flutter, no drift): exactly the shape
 /// `OcptScenarioCoverageLayout` already is, and for the same reason — every rule lives here, where
@@ -181,11 +212,16 @@ class OcptShootingDayAgendaEventMarker extends Equatable {
 /// [OcptShootingSlotTimeline.endMinute], or that same start when the slot carries no block at all
 /// — the `endMinute ?? startMinute` convention `ocptComputeShootingDayTimelines` already applies),
 /// both then snapped **outward** onto [stepMinutes] so the first and the last row are always whole.
-/// An event's own minute is folded into that same span before the snapping runs: the schedule
-/// mode's own week grid (`OcptScheduleWeekGrid`) already stretches its hour range the same way, for
-/// the same reason — an event pinned an hour before the first slot's call, or an hour after the
-/// last one wraps, is exactly the kind of fact a call sheet's reader most needs to see, and a
-/// marker drawn off the edge of a printed page says nothing at all.
+/// **An event plays no part in this span** — a deliberate difference from the schedule mode's own
+/// on-screen week grid (`OcptScheduleWeekGrid`), which does stretch its hour range to reach one.
+/// That grid is read by scrolling, so widening it costs nothing; this one is a printed page, where
+/// the very same stretch turns a day shooting 07:00–12:00 with one event pinned at 17:00 into
+/// thirty-odd blank rows and a second page to reach a single marker — worse than the problem it
+/// would have solved. An event outside `[startMinute, endMinute)` is instead drawn at the edge it
+/// falls beyond, adjacent to the grid with no blank row in between
+/// ([OcptShootingDayAgendaEventPlacement.beforeGrid]/`.afterGrid`); only one that already falls
+/// inside the blocks' own band gets a row of its own (`.inGrid`), exactly as before this placement
+/// existed.
 ///
 /// **A block that does not fall on tens.** A 12-minute block on a 10-minute grid spans the rows it
 /// touches — [OcptShootingDayAgendaTile.rowSpan] rounds up rather than down, so a block is never
@@ -252,7 +288,8 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// Every block placed as a tile, across every column.
   final List<OcptShootingDayAgendaTile> tiles;
 
-  /// Every event placed as a full-width marker.
+  /// Every event, each carrying its own [OcptShootingDayAgendaEventPlacement] — inside the grid's
+  /// own rows, or leading/trailing just outside them.
   final List<OcptShootingDayAgendaEventMarker> events;
 
   /// How many [stepMinutes]-wide rows the grid holds, 0 while [isEmpty].
@@ -284,20 +321,12 @@ class OcptShootingDayAgendaGrid extends Equatable {
         latest = end;
       }
     }
-    for (final event in events) {
-      if (earliest == null || event.minute < earliest) {
-        earliest = event.minute;
-      }
-      if (latest == null || event.minute > latest) {
-        latest = event.minute;
-      }
-    }
 
     final snappedStart = _floorToStep(earliest!);
     var snappedEnd = _ceilToStep(latest!);
     if (snappedEnd <= snappedStart) {
-      // Every column's own band and every event fell on the very same minute (a single slot with
-      // no block yet, no event outside it): one row is still owed, so something is visible.
+      // Every column's own band fell on the very same minute (a single slot with no block yet):
+      // one row is still owed, so something is visible.
       snappedEnd = snappedStart + stepMinutes;
     }
 
@@ -325,23 +354,8 @@ class OcptShootingDayAgendaGrid extends Equatable {
       }
     }
 
-    final rowCount = (snappedEnd - snappedStart) ~/ stepMinutes;
-    final eventMarkers = <OcptShootingDayAgendaEventMarker>[
-      for (final event in events)
-        OcptShootingDayAgendaEventMarker(
-          eventId: event.id,
-          label: event.label,
-          minute: event.minute,
-          // The lower bound is unreachable by construction (`snappedStart` is floored from the very
-          // minimum this loop folded every event's own minute into, so the difference is always
-          // >= 0) and is only here because `clamp` takes both ends together. The **upper** bound is
-          // not dead: when the single latest event is itself the grid's own latest bound and already
-          // an exact multiple of `stepMinutes`, `snappedEnd` lands exactly on that minute — the
-          // half-open row convention `[row start, row start + stepMinutes)` has no row that *starts*
-          // there, so the unclamped index would be `rowCount`, one past the last real row, rather
-          // than land inside it.
-          row: _floorDiv(event.minute - snappedStart, stepMinutes).clamp(0, rowCount - 1),
-        ),
+    final eventMarkers = [
+      for (final event in events) _eventMarkerOf(event, snappedStart: snappedStart, snappedEnd: snappedEnd),
     ];
 
     return OcptShootingDayAgendaGrid(
@@ -351,6 +365,47 @@ class OcptShootingDayAgendaGrid extends Equatable {
       columns: [for (final column in columns) OcptShootingDayAgendaColumn(slotId: column.slotId, label: column.label)],
       tiles: tiles,
       events: eventMarkers,
+    );
+  }
+
+  /// [event] placed against the grid's already-snapped `[snappedStart, snappedEnd)` band: outside
+  /// it on either side reads as [OcptShootingDayAgendaEventPlacement.beforeGrid]/`.afterGrid` with
+  /// no [OcptShootingDayAgendaEventMarker.row], inside it as `.inGrid` with one.
+  ///
+  /// No `.clamp` is needed here, unlike a first version of this method that folded an event's own
+  /// minute into the bounds themselves: an event can no longer be the source of either bound, so an
+  /// `.inGrid` marker's own `event.minute - snappedStart` is always in `[0, snappedEnd -
+  /// snappedStart)` by the two comparisons just above it, and [_floorDiv] of a value already in that
+  /// range can never land outside `[0, rowCount)`.
+  static OcptShootingDayAgendaEventMarker _eventMarkerOf(
+    OcptShootingDayAgendaEventInput event, {
+    required int snappedStart,
+    required int snappedEnd,
+  }) {
+    if (event.minute < snappedStart) {
+      return OcptShootingDayAgendaEventMarker(
+        eventId: event.id,
+        label: event.label,
+        minute: event.minute,
+        placement: OcptShootingDayAgendaEventPlacement.beforeGrid,
+        row: null,
+      );
+    }
+    if (event.minute >= snappedEnd) {
+      return OcptShootingDayAgendaEventMarker(
+        eventId: event.id,
+        label: event.label,
+        minute: event.minute,
+        placement: OcptShootingDayAgendaEventPlacement.afterGrid,
+        row: null,
+      );
+    }
+    return OcptShootingDayAgendaEventMarker(
+      eventId: event.id,
+      label: event.label,
+      minute: event.minute,
+      placement: OcptShootingDayAgendaEventPlacement.inGrid,
+      row: _floorDiv(event.minute - snappedStart, stepMinutes),
     );
   }
 
