@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
 /// Every localized string the exported shooting plan carries, resolved by the caller.
@@ -62,6 +63,11 @@ class OcptShootingPlanLabels extends Equatable {
   /// The heading of the crew and cast summary grid (`Résumé - Équipe technique et comédiens`).
   final String peopleGridTitle;
 
+  /// The heading of the elements summary grid (`Résumé - Éléments`) — the reference `.xlsx`'s own
+  /// `ANIMAUX`/`VÉHICULES`/`ÉQUIPEMENTS SPÉCIAUX` bands, printed here as one grid grouped by
+  /// [OcptElementCategory] rather than three.
+  final String elementsGridTitle;
+
   /// The corner header of the locations grid's own row-label column.
   final String locationsGridRowHeader;
 
@@ -70,6 +76,16 @@ class OcptShootingPlanLabels extends Equatable {
 
   /// The corner header of the crew and cast grid's own row-label column.
   final String peopleGridRowHeader;
+
+  /// The corner header of the elements grid's own row-label column.
+  final String elementsGridRowHeader;
+
+  /// The display label of every [OcptElementCategory], keyed by the enum value — the same shape
+  /// [crewPositionLabels] and [blockKindLabels] already carry, and the elements grid's own band
+  /// rows are printed with it. Sourced from `ocptElementCategoryLabel`, the resources mode's own
+  /// reader for the very same map, so the printed plan and the resources mode can never name a
+  /// category differently.
+  final Map<OcptElementCategory, String> elementCategoryLabels;
 
   /// The word `Perso.`, reused both as a shot table's own characters column header and as the
   /// locations grid's own nested row naming who is present — the reference document uses the same
@@ -80,7 +96,11 @@ class OcptShootingPlanLabels extends Equatable {
   final String sequenceRowPrefix;
 
   /// The mark a crew and cast grid prints for an uncast role present in a slot with nobody to name
-  /// (`x`).
+  /// (`x`), reused by the elements grid's own cells: whether an element is needed on a day is a
+  /// presence fact, never a quantity summed across that day's own scenes — `scene_elements
+  /// .quantity` is carried per scene link, so the same coat appearing in three scenes of one day is
+  /// one coat on set, and a total would be a figure this app invented rather than read off the
+  /// schedule.
   final String presenceMark;
 
   /// The display label of every catalogued crew position (`ocptCrewPositions`), keyed by its stable
@@ -195,9 +215,12 @@ class OcptShootingPlanLabels extends Equatable {
     required this.locationsGridTitle,
     required this.sequencesGridTitle,
     required this.peopleGridTitle,
+    required this.elementsGridTitle,
     required this.locationsGridRowHeader,
     required this.sequencesGridRowHeader,
     required this.peopleGridRowHeader,
+    required this.elementsGridRowHeader,
+    required this.elementCategoryLabels,
     required this.persoLabel,
     required this.sequenceRowPrefix,
     required this.presenceMark,
@@ -238,6 +261,9 @@ class OcptShootingPlanLabels extends Equatable {
   /// The default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
+  /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
+  String elementCategoryLabelOf(OcptElementCategory category) => elementCategoryLabels[category] ?? "";
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() => "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
@@ -255,9 +281,12 @@ class OcptShootingPlanLabels extends Equatable {
     locationsGridTitle,
     sequencesGridTitle,
     peopleGridTitle,
+    elementsGridTitle,
     locationsGridRowHeader,
     sequencesGridRowHeader,
     peopleGridRowHeader,
+    elementsGridRowHeader,
+    elementCategoryLabels,
     persoLabel,
     sequenceRowPrefix,
     presenceMark,

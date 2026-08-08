@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_selection_list.dart';
 
 /// A dialog letting the user pick the one-off options a shooting plan export runs with: the whole
-/// shoot as a single PDF, the three summary grids and one detailed day agenda per selected day.
+/// shoot as a single PDF, the four summary grids and one detailed day agenda per selected day.
 ///
 /// Modelled on `OcptScheduleCallSheetsExportDialog`, whose page-format dropdown, day list and two
 /// buttons it shares the same reused strings for — the title page checkbox reuses
@@ -75,6 +75,9 @@ class _OcptScheduleShootingPlanExportDialogState
   /// Whether each printed day's own ten-minute grid will be added after its detailed agenda.
   bool _includeTenMinuteGrid = true;
 
+  /// Whether the elements summary grid will be included.
+  bool _includeElementsGrid = true;
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +137,12 @@ class _OcptScheduleShootingPlanExportDialogState
             ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
+              value: _includeElementsGrid,
+              title: Text(tr.scheduleExportShootingPlanElementsGridLabel),
+              onChanged: (value) => setState(() => _includeElementsGrid = value ?? true),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
               value: _includeTenMinuteGrid,
               title: Text(tr.scheduleExportShootingPlanTenMinuteGridLabel),
               onChanged: (value) => setState(() => _includeTenMinuteGrid = value ?? true),
@@ -182,6 +191,7 @@ class _OcptScheduleShootingPlanExportDialogState
       includeSequencesGrid: _includeSequencesGrid,
       includePeopleGrid: _includePeopleGrid,
       includeTenMinuteGrid: _includeTenMinuteGrid,
+      includeElementsGrid: _includeElementsGrid,
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptShootingPlanExportOptions>(options);
   }

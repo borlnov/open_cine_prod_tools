@@ -7,7 +7,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 /// The options a one-off shooting plan export runs with: the physical page [format], its [margins],
-/// which days are printed, and a toggle per optional section — the title page and the three summary
+/// which days are printed, and a toggle per optional section — the title page and the four summary
 /// grids.
 ///
 /// [margins] is always carried through unedited from the `OcptPageSetup` the export dialog was
@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 /// and a shared options class would make one mode's dialog able to produce something another
 /// mode's service would silently ignore.
 class OcptShootingPlanExportOptions extends Equatable {
-  /// The physical page format to typeset the exported document with. The three summary grids are
+  /// The physical page format to typeset the exported document with. The four summary grids are
   /// always printed landscape regardless (`OcptShootingPlanPdfService`'s own doc comment); this is
   /// the format every detailed day agenda, portrait, and the title page are typeset with.
   final OcptPageFormat format;
@@ -52,6 +52,11 @@ class OcptShootingPlanExportOptions extends Equatable {
   /// full-width marker. It **adds to** the existing detailed agenda rather than replacing it.
   final bool includeTenMinuteGrid;
 
+  /// Whether the elements summary grid is printed — elements × **days**, unlike the other three
+  /// grids' own one column per slot: an element is needed on a day or it is not, and which of that
+  /// day's own units carries it is not something this app's data says.
+  final bool includeElementsGrid;
+
   /// Class constructor
   const OcptShootingPlanExportOptions({
     required this.format,
@@ -62,6 +67,7 @@ class OcptShootingPlanExportOptions extends Equatable {
     required this.includeSequencesGrid,
     required this.includePeopleGrid,
     required this.includeTenMinuteGrid,
+    required this.includeElementsGrid,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -70,7 +76,7 @@ class OcptShootingPlanExportOptions extends Equatable {
       "OcptShootingPlanExportOptions(format: $format, margins: $margins, dayIds: $dayIds, "
       "includeTitlePage: $includeTitlePage, includeLocationsGrid: $includeLocationsGrid, "
       "includeSequencesGrid: $includeSequencesGrid, includePeopleGrid: $includePeopleGrid, "
-      "includeTenMinuteGrid: $includeTenMinuteGrid)";
+      "includeTenMinuteGrid: $includeTenMinuteGrid, includeElementsGrid: $includeElementsGrid)";
 
   /// Object properties
   @override
@@ -83,5 +89,6 @@ class OcptShootingPlanExportOptions extends Equatable {
     includeSequencesGrid,
     includePeopleGrid,
     includeTenMinuteGrid,
+    includeElementsGrid,
   ];
 }

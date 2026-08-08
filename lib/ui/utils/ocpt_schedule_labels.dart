@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
@@ -358,8 +359,10 @@ String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
 /// layer and has no `BuildContext` of its own to resolve anything with — mirroring
 /// `ocptBreakdownSheetsLabelsOf`. Every enum label map reuses the very `ocpt…Label` helpers this
 /// file and `ocpt_resources_labels.dart` already expose to the mode's own widgets
-/// ([ocptCrewDepartmentLabel], [ocptCrewPositionLabel], [ocptShootingBlockKindLabel]), so a printed
-/// call sheet can never name a department, a position or a block kind differently from the screen.
+/// ([ocptCrewDepartmentLabel], [ocptCrewPositionLabel], [ocptShootingBlockKindLabel] — and, for
+/// [ocptShootingPlanLabelsOf]'s own [OcptShootingPlanLabels.elementCategoryLabels],
+/// [ocptElementCategoryLabel]), so a printed call sheet or shooting plan can never name a
+/// department, a position, a block kind or an element category differently from the screen.
 ///
 /// [days] is resolved into [OcptCallSheetLabels.dayTitles] through `DateFormat.yMMMMEEEEd`, in the
 /// UI's own locale, upper-cased to match the reference `.docx`'s own shouted day heading
@@ -468,9 +471,14 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     locationsGridTitle: tr.scheduleExportLocationsGridTitle,
     sequencesGridTitle: tr.scheduleExportSequencesGridTitle,
     peopleGridTitle: tr.scheduleExportPeopleGridTitle,
+    elementsGridTitle: tr.scheduleExportElementsGridTitle,
     locationsGridRowHeader: tr.scheduleExportLocationsGridRowHeader,
     sequencesGridRowHeader: tr.scheduleExportSequencesGridRowHeader,
     peopleGridRowHeader: tr.scheduleExportPeopleGridRowHeader,
+    elementsGridRowHeader: tr.scheduleExportElementsGridRowHeader,
+    elementCategoryLabels: {
+      for (final category in OcptElementCategory.values) category: ocptElementCategoryLabel(tr, category),
+    },
     persoLabel: tr.scheduleExportPersoLabel,
     sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
     presenceMark: tr.scheduleExportPresenceMark,

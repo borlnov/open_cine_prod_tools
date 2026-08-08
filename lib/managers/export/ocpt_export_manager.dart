@@ -464,6 +464,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required bool includeSequencesGrid,
     required bool includePeopleGrid,
     required bool includeTenMinuteGrid,
+    required bool includeElementsGrid,
     required String fileTypeLabel,
   }) async {
     final bytes = await shootingPlanPdfService.generate(
@@ -477,6 +478,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       includeSequencesGrid: includeSequencesGrid,
       includePeopleGrid: includePeopleGrid,
       includeTenMinuteGrid: includeTenMinuteGrid,
+      includeElementsGrid: includeElementsGrid,
     );
 
     return _writeToPickedLocation(

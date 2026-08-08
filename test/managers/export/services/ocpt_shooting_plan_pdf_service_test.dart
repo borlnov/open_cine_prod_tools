@@ -7,10 +7,12 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -24,6 +26,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -47,9 +52,17 @@ const _labels = OcptShootingPlanLabels(
   locationsGridTitle: "Summary - Locations",
   sequencesGridTitle: "Summary - Sequences",
   peopleGridTitle: "Summary - Crew and cast",
+  elementsGridTitle: "Summary - Elements",
   locationsGridRowHeader: "Location",
   sequencesGridRowHeader: "Sequence",
   peopleGridRowHeader: "Position / Role",
+  elementsGridRowHeader: "Element",
+  elementCategoryLabels: {
+    OcptElementCategory.prop: "Props",
+    OcptElementCategory.vehicle: "Vehicles",
+    OcptElementCategory.animal: "Animals",
+    OcptElementCategory.specialEquipment: "Special equipment",
+  },
   persoLabel: "Cast",
   sequenceRowPrefix: "Seq.",
   presenceMark: "x",
@@ -342,6 +355,42 @@ OcptShotListSnapshot _buildShotList({required List<OcptShot> shots, String headi
       ],
     );
 
+/// Builds a scene-element link with the few fields these tests read, everything else neutral.
+OcptSceneElementLink _buildSceneElementLink({required String id, required String sceneId}) =>
+    OcptSceneElementLink(id: id, sceneId: sceneId, quantity: "", notes: "");
+
+/// Builds an element with the few fields these tests read, everything else neutral.
+OcptElement _buildElement({
+  required String id,
+  required String name,
+  required String code,
+  OcptElementCategory category = OcptElementCategory.prop,
+  List<OcptSceneElementLink> sceneLinks = const [],
+}) => OcptElement(
+  id: id,
+  category: category,
+  subCategory: "",
+  name: name,
+  code: code,
+  quantity: "",
+  sourceKind: OcptElementSourceKind.owned,
+  status: OcptElementStatus.toFind,
+  ownerPersonId: null,
+  ownerNotes: "",
+  broughtByPersonId: null,
+  storageNotes: "",
+  isSecured: false,
+  isReadyForShoot: false,
+  isReturned: false,
+  cost: null,
+  purposeNotes: "",
+  notes: "",
+  photoAssetId: null,
+  photo: null,
+  sceneLinks: sceneLinks,
+  roleLinks: const [],
+);
+
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs.
 OcptSchedulePlanSnapshot _buildSnapshot({
@@ -352,6 +401,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
+  List<OcptElement> elements = const [],
   OcptShotListSnapshot? shotList,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
@@ -365,7 +415,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   locations: locations,
   roles: roles,
   people: people,
-  elements: const [],
+  elements: elements,
   minimumRestMinutes: null,
 );
 
@@ -401,6 +451,7 @@ void main() {
         includeSequencesGrid: true,
         includePeopleGrid: true,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -440,6 +491,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -476,6 +528,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -524,6 +577,7 @@ void main() {
         includeSequencesGrid: includeGrids,
         includePeopleGrid: includeGrids,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -567,6 +621,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -633,6 +688,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -691,6 +747,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -714,6 +771,7 @@ void main() {
         includeSequencesGrid: true,
         includePeopleGrid: true,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -735,6 +793,7 @@ void main() {
         includeSequencesGrid: true,
         includePeopleGrid: true,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -764,6 +823,7 @@ void main() {
         includeSequencesGrid: true,
         includePeopleGrid: true,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -794,6 +854,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: exportDate,
       );
 
@@ -857,6 +918,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -906,6 +968,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -951,6 +1014,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: false,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -996,6 +1060,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: includeTenMinuteGrid,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -1045,6 +1110,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: true,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -1087,6 +1153,7 @@ void main() {
         includeSequencesGrid: false,
         includePeopleGrid: false,
         includeTenMinuteGrid: true,
+        includeElementsGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -1095,6 +1162,181 @@ void main() {
 
       expect(ascii.decode(withBytes.sublist(0, 4)), "%PDF");
       expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
+    });
+  });
+
+  group("elements grid", () {
+    test("toggled on grows the document, toggled off leaves it as it was", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+      final element = _buildElement(
+        id: "element-1",
+        name: "Revolver",
+        code: "PRP-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+      );
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+        elements: [element],
+      );
+
+      Future<Uint8List> generateFor({required bool includeElementsGrid}) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: false,
+        includeElementsGrid: includeElementsGrid,
+        exportDate: pinnedExportDate,
+      );
+
+      final without = await generateFor(includeElementsGrid: false);
+      final withGrid = await generateFor(includeElementsGrid: true);
+      final withGridAgain = await generateFor(includeElementsGrid: true);
+
+      expect(withGrid.length, greaterThan(without.length));
+      // Toggled off twice in a row, at the very same export date, draws exactly the same pages —
+      // nothing about the rest of the document changed by the option existing at all.
+      final withoutAgain = await generateFor(includeElementsGrid: false);
+      expect(_contentStreams(without), _contentStreams(withoutAgain));
+      expect(_contentStreams(withGrid), _contentStreams(withGridAgain));
+    });
+
+    test("an element linked to a scene the printed range never plays adds no row", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+      final playedElement = _buildElement(
+        id: "element-1",
+        name: "Revolver",
+        code: "PRP-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+      );
+      final unplayedElement = _buildElement(
+        id: "element-2",
+        name: "Getaway car",
+        code: "VEH-1",
+        category: OcptElementCategory.vehicle,
+        sceneLinks: [_buildSceneElementLink(id: "link-2", sceneId: "scene-2")],
+      );
+
+      OcptSchedulePlanSnapshot buildPlan(List<OcptElement> elements) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+        elements: elements,
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: false,
+        includeElementsGrid: true,
+        exportDate: pinnedExportDate,
+      );
+
+      // The unplayed element contributes no row at all, so adding it changes nothing about the
+      // printed grid.
+      final onlyPlayed = await generateFor(buildPlan([playedElement]));
+      final playedAndUnplayed = await generateFor(buildPlan([playedElement, unplayedElement]));
+
+      expect(_contentStreams(onlyPlayed), _contentStreams(playedAndUnplayed));
+    });
+
+    test("a range wide enough to chunk the day columns adds at least one extra page", () async {
+      // Eight days, each with its own single slot and shot on its own scene — eight day columns,
+      // well past the grid's own per-page chunk size, and one element needed on the first of them
+      // alone so the grid draws at least one row.
+      final days = [for (var i = 1; i <= 8; i++) _buildDay(id: "day-$i", dayNumber: i)];
+      final slotsByDayId = {
+        for (var i = 1; i <= 8; i++) "day-$i": [_buildSlot(id: "slot-$i", shootingDayId: "day-$i", anchorMinute: 480)],
+      };
+      final shots = [for (var i = 1; i <= 8; i++) _buildShot(id: "shot-$i", sceneId: "scene-$i", code: "$i/1")];
+      final blocksByDayId = {
+        for (var i = 1; i <= 8; i++)
+          "day-$i": [
+            _buildBlock(
+              id: "block-$i",
+              shootingDayId: "day-$i",
+              slotId: "slot-$i",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-$i",
+            ),
+          ],
+      };
+      final element = _buildElement(
+        id: "element-1",
+        name: "Revolver",
+        code: "PRP-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+      );
+      final dayIds = [for (var i = 1; i <= 8; i++) "day-$i"];
+      final plan = _buildSnapshot(
+        days: days,
+        slotsByDayId: slotsByDayId,
+        blocksByDayId: blocksByDayId,
+        shotList: _buildShotList(shots: shots),
+        elements: [element],
+      );
+
+      Future<Uint8List> generateFor({required bool includeElementsGrid}) => service.generate(
+        plan: plan,
+        dayIds: dayIds,
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: false,
+        includeElementsGrid: includeElementsGrid,
+        exportDate: pinnedExportDate,
+      );
+
+      final withGrid = await generateFor(includeElementsGrid: true);
+      final withoutGrid = await generateFor(includeElementsGrid: false);
+
+      expect(_pageCount(withGrid) - _pageCount(withoutGrid), greaterThanOrEqualTo(2));
     });
   });
 

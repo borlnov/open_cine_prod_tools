@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -21,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
@@ -52,8 +54,9 @@ const PdfColor _bandColor = PdfColor.fromInt(0xFFEDEDED);
 /// The grey the running head and every muted label is printed in.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 
-/// How many slot columns one page of a summary grid holds before the rest carries on, chunked, onto
-/// the next one — a grid silently printing only its first few days is worse than one that runs on.
+/// How many columns one page of a summary grid holds before the rest carries on, chunked, onto the
+/// next one — a slot column for three of the four grids, a day column for the elements one — a grid
+/// silently printing only its first few days is worse than one that runs on.
 const int _maxGridColumnsPerPage = 6;
 
 /// A shot table's `Hours / Plan / Valeur de plan / Move. / Cadre / Commentaire / Perso.` columns —
@@ -79,9 +82,10 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
   2: pw.FlexColumnWidth(1.2),
 };
 
-/// Renders the whole shoot's own shooting plan: an optional title page, the three summary grids —
-/// locations, sequences, crew and cast, each crossing every printed day's own slots — and then one
-/// detailed agenda per day, hour by hour.
+/// Renders the whole shoot's own shooting plan: an optional title page, the four summary grids —
+/// locations, sequences, crew and cast, each crossing every printed day's own slots, and the
+/// elements grid crossing every printed **day** instead — and then one detailed agenda per day, hour
+/// by hour.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -111,21 +115,36 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 /// the page width the note deserves. All three are skipped entirely on a day that carries none,
 /// rather than drawn over an em dash.
 ///
-/// **The three summary grids are landscape** (page width and height swapped from the painter's own
+/// **The four summary grids are landscape** (page width and height swapped from the painter's own
 /// geometry): a shoot is wide, and a grid silently cropped to whatever a portrait page holds would
-/// be worse than one that runs the columns on. Their own columns are **one per slot, grouped under
-/// its day** — a decision already taken (`docs/plans/schedule-mode.md` §4.2): the reference
-/// document's own day-parts are exactly what a slot is in this app. When more columns exist than
-/// [_maxGridColumnsPerPage] holds, a grid's own rows repeat over as many chunked pages as it takes;
-/// the detailed day agendas that follow stay portrait, so one document mixes both orientations.
+/// be worse than one that runs the columns on. The locations, sequences and crew-and-cast grids'
+/// own columns are **one per slot, grouped under its day** — a decision already taken
+/// (`docs/plans/schedule-mode.md` §4.2): the reference document's own day-parts are exactly what a
+/// slot is in this app. When more columns exist than [_maxGridColumnsPerPage] holds, a grid's own
+/// rows repeat over as many chunked pages as it takes; the detailed day agendas that follow stay
+/// portrait, so one document mixes both orientations.
+///
+/// **The elements grid's own columns are one per day instead**, never per slot: an element is
+/// needed on a day or it is not, and which of that day's own units carries it is not something this
+/// app's data says. Its rows are grouped under a [OcptElementCategory] band — the reference
+/// `.xlsx`'s own `ANIMAUX`/`VÉHICULES`/`ÉQUIPEMENTS SPÉCIAUX` bands — in the enum's own declaration
+/// order and **never by `OcptCrewDepartment`**: that type has six entries against the element
+/// category's fourteen, and a mapping between the two would be this app's own opinion about how a
+/// production organises itself, which no field of the schema states. A cell is
+/// [OcptShootingPlanLabels.presenceMark] or blank, **never a quantity summed across that day's own
+/// scenes**: `scene_elements.quantity` is carried per scene link, so the same coat appearing in
+/// three scenes of one day is one coat on set, and a total would be a figure this app invented
+/// rather than read off the schedule. [_chunkColumns] paginates it by the very same rule the other
+/// three grids use, over its own day columns rather than slot ones, so [_maxGridColumnsPerPage]
+/// never means two different things depending on which grid asks.
 ///
 /// **Each day's own ten-minute grid** (`includeTenMinuteGrid` on [generate]) is an optional extra
 /// page, added right after that day's detailed agenda rather than replacing it: rows every
 /// [OcptShootingDayAgendaGrid.stepMinutes] from the day's earliest resolved start to its latest
 /// resolved end, one column per slot, a block drawn as a tile and an event as a full-width marker.
-/// It is drawn **portrait**, unlike the three summary grids — a whole shoot's own slots run wide
+/// It is drawn **portrait**, unlike the four summary grids — a whole shoot's own slots run wide
 /// across many days, while a single day's own slots are few, exactly the trade this class's own
-/// three-grids paragraph already argues the other way. The geometry is entirely
+/// grids paragraphs already argue the other way. The geometry is entirely
 /// [OcptShootingDayAgendaGrid.of]'s own; this service only draws it, and only the drawing choices
 /// specific to `pdf`'s own `Table` widget belong here — see [_tenMinuteGridPage]'s own doc comment
 /// for the one it has to work around (no cell can span more than one row of a `pw.Table`).
@@ -173,6 +192,7 @@ class OcptShootingPlanPdfService {
     required bool includeSequencesGrid,
     required bool includePeopleGrid,
     required bool includeTenMinuteGrid,
+    required bool includeElementsGrid,
     DateTime? exportDate,
   }) async {
     final painter = await _painterFor(pageSetup);
@@ -242,6 +262,18 @@ class OcptShootingPlanPdfService {
         rowHeaderLabel: labels.peopleGridRowHeader,
         chunks: chunks,
         rows: _peopleGridRows(plan: plan, columns: columns, labels: labels),
+      );
+    }
+    if (includeElementsGrid) {
+      final dayColumns = _dayColumnsOf(plan, resolvedDayIds);
+      _addElementsGridPages(
+        pdfDocument: pdfDocument,
+        painter: painter,
+        labels: labels,
+        projectName: projectName,
+        versionLine: versionLine,
+        chunks: _chunkColumns(dayColumns, _maxGridColumnsPerPage),
+        rows: _elementsGridRows(plan: plan, columns: dayColumns, labels: labels),
       );
     }
 
@@ -488,7 +520,8 @@ class OcptShootingPlanPdfService {
     );
   }
 
-  /// A grid's own blank top-left corner cell.
+  /// A grid's own blank cell — the top-left corner of a header row, or one of a category band row's
+  /// own trailing cells, which carry no per-column value (the elements grid's own band rows).
   pw.Widget _gridCornerCell({required OcptScriptPagePainter painter}) =>
       pw.Padding(padding: const pw.EdgeInsets.all(_cellPaddingPt), child: pw.SizedBox());
 
@@ -527,8 +560,9 @@ class OcptShootingPlanPdfService {
   );
 
   /// One grid data cell. Deliberately **not** [_textCell]: a blank cell here means "not applicable
-  /// to this slot" (a location's row against a slot shot somewhere else), not a missing value, so it
-  /// prints truly empty rather than substituting [ocptScheduleEmptyValue].
+  /// to this column" (a location's row against a slot shot somewhere else, an element's row against
+  /// a day it is not needed on), not a missing value, so it prints truly empty rather than
+  /// substituting [ocptScheduleEmptyValue].
   pw.Widget _gridDataCell({required OcptScriptPagePainter painter, required String text, bool isMuted = false}) =>
       pw.Padding(
         padding: const pw.EdgeInsets.all(_cellPaddingPt),
@@ -739,6 +773,165 @@ class OcptShootingPlanPdfService {
     }
     final sorted = names.toList()..sort();
     return sorted;
+  }
+
+  /// Adds one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
+  /// [rows] over that chunk's own day columns — or a single note page when [chunks] or [rows] is
+  /// empty. Mirrors [_addGridPages] over [OcptShootingDay] columns rather than [_GridColumnRef]
+  /// ones: the elements grid's own columns are days, not slots, so it is its own page-building
+  /// method rather than a second call through [_gridPage], which draws a second, slot-label header
+  /// row this grid has none of.
+  void _addElementsGridPages({
+    required pw.Document pdfDocument,
+    required OcptScriptPagePainter painter,
+    required OcptShootingPlanLabels labels,
+    required String projectName,
+    required String versionLine,
+    required List<List<OcptShootingDay>> chunks,
+    required List<_ElementsGridRow> rows,
+  }) {
+    if (chunks.isEmpty || rows.isEmpty) {
+      pdfDocument.addPage(
+        _gridNotePage(
+          painter: painter,
+          labels: labels,
+          projectName: projectName,
+          versionLine: versionLine,
+          title: labels.elementsGridTitle,
+        ),
+      );
+      return;
+    }
+
+    for (final (chunkIndex, chunk) in chunks.indexed) {
+      pdfDocument.addPage(
+        _elementsGridPage(
+          painter: painter,
+          labels: labels,
+          projectName: projectName,
+          versionLine: versionLine,
+          pageTitle: chunks.length > 1
+              ? "${labels.elementsGridTitle} (${chunkIndex + 1}/${chunks.length})"
+              : labels.elementsGridTitle,
+          columns: chunk,
+          rows: rows,
+        ),
+      );
+    }
+  }
+
+  /// One landscape elements-grid page: the running head, the grid's own title, then its table — a
+  /// single header row (the day tag over each column, unlike [_gridPage]'s own two: **the elements
+  /// grid's own columns are days, not slots**, so there is no second, slot-label row to draw), then
+  /// [rows] — an [_ElementsGridCategoryBand] painted as its own full band row and an
+  /// [_ElementsGridElementRow] as an ordinary data row.
+  pw.MultiPage _elementsGridPage({
+    required OcptScriptPagePainter painter,
+    required OcptShootingPlanLabels labels,
+    required String projectName,
+    required String versionLine,
+    required String pageTitle,
+    required List<OcptShootingDay> columns,
+    required List<_ElementsGridRow> rows,
+  }) {
+    final columnWidths = <int, pw.TableColumnWidth>{0: const pw.FlexColumnWidth(2.4)};
+    for (var index = 0; index < columns.length; index++) {
+      columnWidths[index + 1] = const pw.FlexColumnWidth();
+    }
+
+    return pw.MultiPage(
+      pageFormat: _landscapePageFormat(painter),
+      build: (context) => [
+        _runningHead(
+          painter: painter,
+          projectName: projectName,
+          documentTitle: labels.documentTitle,
+          versionLine: versionLine,
+        ),
+        pw.SizedBox(height: 6),
+        pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+        pw.SizedBox(height: 8),
+        pw.Table(
+          border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
+          columnWidths: columnWidths,
+          children: [
+            pw.TableRow(
+              decoration: const pw.BoxDecoration(color: _bandColor),
+              children: [
+                _gridRowLabelCell(painter: painter, text: labels.elementsGridRowHeader, isBold: true),
+                for (final day in columns)
+                  _gridHeaderCell(painter: painter, text: "${labels.dayTagPrefix}${day.dayNumber}"),
+              ],
+            ),
+            for (final row in rows)
+              switch (row) {
+                _ElementsGridCategoryBand() => pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: _bandColor),
+                  children: [
+                    _gridRowLabelCell(painter: painter, text: row.label, isBold: true),
+                    for (final _ in columns) _gridCornerCell(painter: painter),
+                  ],
+                ),
+                _ElementsGridElementRow() => pw.TableRow(
+                  children: [
+                    _gridRowLabelCell(painter: painter, text: row.label),
+                    for (final day in columns) _gridDataCell(painter: painter, text: row.valueOf(day)),
+                  ],
+                ),
+              },
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// The elements grid's own rows: every [OcptElement] linked to a scene at least one of [columns]
+  /// actually plays ([OcptSchedulePlanSnapshot.sceneIdsOfDay]), grouped under an
+  /// [OcptElementCategory] band in the enum's own declaration order, each band's own elements
+  /// sorted by name — the same join [OcptSchedulePlanSnapshot.elementsToBringOnDay] already reads
+  /// for one recipient's own elements of one day, widened here to every element the whole printed
+  /// range needs, by anybody. An element linked to no scene of [columns] contributes no row at all.
+  ///
+  /// See the class doc comment for why the grouping is by category and never by department, and why
+  /// a cell is a presence mark rather than a quantity summed across a day's own scenes.
+  List<_ElementsGridRow> _elementsGridRows({
+    required OcptSchedulePlanSnapshot plan,
+    required List<OcptShootingDay> columns,
+    required OcptShootingPlanLabels labels,
+  }) {
+    final sceneIdsByDayId = {for (final day in columns) day.id: plan.sceneIdsOfDay(day.id)};
+    final playedSceneIds = {for (final sceneIds in sceneIdsByDayId.values) ...sceneIds};
+
+    final elementsByCategory = <OcptElementCategory, List<OcptElement>>{};
+    for (final element in plan.elements) {
+      if (!element.sceneLinks.any((link) => playedSceneIds.contains(link.sceneId))) {
+        continue;
+      }
+      (elementsByCategory[element.category] ??= <OcptElement>[]).add(element);
+    }
+
+    final rows = <_ElementsGridRow>[];
+    for (final category in OcptElementCategory.values) {
+      final elements = elementsByCategory[category];
+      if (elements == null || elements.isEmpty) {
+        continue;
+      }
+      elements.sort((a, b) => a.name.compareTo(b.name));
+      rows.add(_ElementsGridCategoryBand(label: labels.elementCategoryLabelOf(category)));
+      for (final element in elements) {
+        rows.add(
+          _ElementsGridElementRow(
+            label: "${element.code} · ${element.name}",
+            valueOf: (day) {
+              final sceneIds = sceneIdsByDayId[day.id] ?? const {};
+              final isNeeded = element.sceneLinks.any((link) => sceneIds.contains(link.sceneId));
+              return isNeeded ? labels.presenceMark : "";
+            },
+          ),
+        );
+      }
+    }
+    return rows;
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -1609,6 +1802,42 @@ class _GridRow {
   final bool isIndented;
 }
 
+/// One row of the elements grid — either an [OcptElementCategory] band or one element's own data
+/// row. A sealed alternative to widening [_GridRow] itself: that class's own [_GridRow.valueOf]
+/// reads a slot column, and the elements grid's own columns are days (the class doc comment), so
+/// reusing it would either force a slot-shaped column onto a grid that has none or force every slot
+/// grid's own row to accept a column type it never sees.
+sealed class _ElementsGridRow {
+  const _ElementsGridRow();
+}
+
+/// An [OcptElementCategory] band row — the reference `.xlsx`'s own `ANIMAUX`/`VÉHICULES`/
+/// `ÉQUIPEMENTS SPÉCIAUX` bands, drawn as a whole table row painted in [_bandColor] with no
+/// per-column value: `pw.Table` cannot merge a cell across columns any more than across rows (the
+/// same limit [OcptShootingPlanPdfService._tenMinuteGridPage]'s own doc comment already works
+/// around), so the band reads as one by its colour and its lone label rather than by a true merge.
+class _ElementsGridCategoryBand extends _ElementsGridRow {
+  const _ElementsGridCategoryBand({required this.label});
+
+  /// The category's own display label.
+  final String label;
+}
+
+/// One element's own row: its `<code> · <name>` label — the same shape
+/// `OcptSchedulePlanSnapshot.elementsToBringOnDay`'s own printed line already carries on a named
+/// call sheet — and [valueOf] reading, for a given day, whether it prints
+/// [OcptShootingPlanLabels.presenceMark] or nothing at all.
+class _ElementsGridElementRow extends _ElementsGridRow {
+  const _ElementsGridElementRow({required this.label, required this.valueOf});
+
+  /// This row's own leading label.
+  final String label;
+
+  /// This row's own value at a given day, or the empty string when the element is not needed that
+  /// day — never [ocptScheduleEmptyValue], for the same reason [_GridRow.valueOf] never is.
+  final String Function(OcptShootingDay day) valueOf;
+}
+
 /// Every live day of [dayIds] that carries at least one live slot, in the order given — a day with
 /// none contributes no column to a summary grid at all.
 List<_DayColumnGroup> _dayColumnGroupsOf(OcptSchedulePlanSnapshot plan, List<String> dayIds) {
@@ -1634,13 +1863,27 @@ List<_GridColumnRef> _flattenColumns(List<_DayColumnGroup> groups) => [
     for (final slot in group.slots) _GridColumnRef(day: group.day, slot: slot),
 ];
 
+/// [dayIds] resolved to the live [OcptShootingDay]s they name, in order — the elements grid's own
+/// columns, one per **day** rather than one per slot (the class doc comment): an element is needed
+/// on a day or it is not, and which of that day's own slots carries it is not something this app's
+/// data says. Unlike [_dayColumnGroupsOf], a day contributes a column here even while it carries no
+/// live slot at all — an element's own need is read off [OcptSchedulePlanSnapshot.sceneIdsOfDay],
+/// never off a slot.
+List<OcptShootingDay> _dayColumnsOf(OcptSchedulePlanSnapshot plan, List<String> dayIds) => [
+  for (final dayId in dayIds)
+    if (plan.schedule.daysById[dayId] case final day?) day,
+];
+
 /// [columns] split into chunks of at most [chunkSize], in order — empty when [columns] itself is.
-List<List<_GridColumnRef>> _chunkColumns(List<_GridColumnRef> columns, int chunkSize) {
+/// Generic over the column's own type so every summary grid paginates by the very same rule: a
+/// slot column for the locations, sequences and crew-and-cast grids, a day column for the elements
+/// one — [_maxGridColumnsPerPage] never meaning two different things depending on which grid asks.
+List<List<T>> _chunkColumns<T>(List<T> columns, int chunkSize) {
   if (columns.isEmpty) {
     return const [];
   }
 
-  final chunks = <List<_GridColumnRef>>[];
+  final chunks = <List<T>>[];
   for (var start = 0; start < columns.length; start += chunkSize) {
     final end = start + chunkSize < columns.length ? start + chunkSize : columns.length;
     chunks.add(columns.sublist(start, end));

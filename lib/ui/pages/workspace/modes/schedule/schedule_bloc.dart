@@ -1494,6 +1494,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         includeSequencesGrid: options.includeSequencesGrid,
         includePeopleGrid: options.includePeopleGrid,
         includeTenMinuteGrid: options.includeTenMinuteGrid,
+        includeElementsGrid: options.includeElementsGrid,
         fileTypeLabel: event.fileTypeLabel,
       );
       if (path == null) {

@@ -7346,6 +7346,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportShootingPlanElementsGridLabel": "Include the elements summary grid",
+  "@scheduleExportShootingPlanElementsGridLabel": {
+    "description": "Label of the checkbox toggling the elements summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportFileSuccessMessage": "Exported to {path}",
   "@scheduleExportFileSuccessMessage": {
     "description": "Message shown when the shooting plan was successfully exported to a single PDF file",
@@ -7708,6 +7715,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportElementsGridTitle": "Summary - Elements",
+  "@scheduleExportElementsGridTitle": {
+    "description": "Heading of the shooting plan's own elements summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportLocationsGridRowHeader": "Location",
   "@scheduleExportLocationsGridRowHeader": {
     "description": "Corner header of the locations grid's own row-label column",
@@ -7725,6 +7739,13 @@
   "scheduleExportPeopleGridRowHeader": "Crew / cast",
   "@scheduleExportPeopleGridRowHeader": {
     "description": "Corner header of the crew and cast grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportElementsGridRowHeader": "Element",
+  "@scheduleExportElementsGridRowHeader": {
+    "description": "Corner header of the elements grid's own row-label column",
     "context": "Printed on the exported shooting plan",
     "type": "text",
     "placeholders": {}

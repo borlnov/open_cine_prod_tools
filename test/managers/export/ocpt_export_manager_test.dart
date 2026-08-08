@@ -1023,9 +1023,12 @@ void main() {
       locationsGridTitle: "Summary - Locations",
       sequencesGridTitle: "Summary - Sequences",
       peopleGridTitle: "Summary - Crew and cast",
+      elementsGridTitle: "Summary - Elements",
       locationsGridRowHeader: "Location",
       sequencesGridRowHeader: "Sequence",
       peopleGridRowHeader: "Position / Role",
+      elementsGridRowHeader: "Element",
+      elementCategoryLabels: {},
       persoLabel: "Cast",
       sequenceRowPrefix: "Seq.",
       presenceMark: "x",
@@ -1113,6 +1116,7 @@ void main() {
       includeSequencesGrid: true,
       includePeopleGrid: true,
       includeTenMinuteGrid: true,
+      includeElementsGrid: true,
       fileTypeLabel: "PDF document",
     );
 
