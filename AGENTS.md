@@ -357,9 +357,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   value alone", since nothing may be reconstructed from a timetable that has since moved. A block
   that names no live slot is put on its day's **first** one, and a block whose day has no slot at
   all is dropped from the payload, exactly as the migration drops it from the file. Format 8 is the
-  payload's half of v12-to-v13, and it is the **first entry that removes rather than materialises** —
-  a third kind alongside the other two, and the one worth reading the doc comment of before adding a
-  fourth. It drops the `shooting_day_groups` list and the `groupId`/`leadMinutes` pair on every crew
+  payload's half of v12-to-v13, and it is the **first entry that removes rather than materialises**
+  — a third kind alongside the other two, and the one worth reading the doc comment of before
+  adding a fourth. It drops the `shooting_day_groups` list and the `groupId`/`leadMinutes` pair on
+  every crew
   and cast row: unlike an empty list it makes no claim about the moment of capture (a format-7
   version genuinely *did* carry groups and lead times), and unlike the currency's null it leaves no
   live value alone (there is none to leave). A version captured then comes back with every crew and
@@ -705,8 +706,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   the break that is not a meal, and like every milestone kind it names no role.
   **A convocation is the slot you are linked to** (`ocptComputeDayConvocations`,
   `lib/utils/ocpt_shooting_convocations.dart`, ADR 0018 superseding ADR 0017): nobody types a call
-  time, and **nothing is offset from anything**. A person is convoked by being **linked to a slot** —
-  a `shooting_slot_crew` row by person, a `shooting_slot_cast` row by role, both kinds counting — and
+  time, and **nothing is offset from anything**. A person is convoked by being **linked to a
+  slot** — a `shooting_slot_crew` row by person, a `shooting_slot_cast` row by role, both kinds
+  counting — and
   every figure about them is read off the slots they are linked to and the blocks in them, joined
   across the **whole day**: their **arrival** is the earliest `startMinute` over those slots, their
   **PAT band** runs from the earliest shooting block to the latest, and their **departure** is the
