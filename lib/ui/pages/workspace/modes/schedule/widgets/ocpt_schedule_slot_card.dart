@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
@@ -65,18 +66,31 @@ const double _personCardWidth = 230;
 /// computed opposite edge read out under it — then a row of two halves, `Équipe technique` (grouped by
 /// department, foldable — see [_OcptScheduleCrewSection]) and `Comédiens`, each ending on its own
 /// `+ Crew member`/`+ Cast` footer opening a person or role picker right there on the card, with no
-/// duplicate list anywhere in the right dock — and, below both, this slot's **own**
-/// [OcptScheduleTimetable]: a day used to carry one timetable shared by every slot; now each card
-/// draws its own, over its own [blocks] alone, chained by its own [timeline]. Neither half is ever
-/// handed more than half the card's own body width, and every crew or cast card within its own half
-/// wraps at [_personCardWidth] (shrunk to fit when that half is narrower), so a wide day view flows
-/// several cards per row instead of leaving the sides empty.
+/// duplicate list anywhere in the right dock — then, when [slot] has one or the reveal menu entry was
+/// picked (see below), a third **guest band**, full width under those two halves — and, below all of
+/// it, this slot's **own** [OcptScheduleTimetable]: a day used to carry one timetable shared by every
+/// slot; now each card draws its own, over its own [blocks] alone, chained by its own [timeline].
+/// Neither of the two people halves is ever handed more than half the card's own body width, and
+/// every crew or cast card within its own half wraps at [_personCardWidth] (shrunk to fit when that
+/// half is narrower), so a wide day view flows several cards per row instead of leaving the sides
+/// empty — the guest band wraps the same cards over the card's **whole** width instead, not being
+/// split into halves.
 ///
 /// **A crew or cast row says only who is convoked and in what function** (ADR 0018): a convocation
 /// is a fact about a person on a **day**, joined across every slot they sit on, so it cannot be read
 /// from one slot's card in isolation — the computed arrival/PAT/departure that used to sit here move
-/// to the day's own convocations panel instead. The one editable clock on the whole card is the
-/// slot's own anchor ([onAnchorChanged]).
+/// to the day's own convocations panel instead. A guest card carries **no clock at all** either, for
+/// the same reason. The one editable clock on the whole card is the slot's own anchor
+/// ([onAnchorChanged]).
+///
+/// **The guest band is entirely absent while [slot] has no guest** — not a collapsed band, nothing
+/// at all — since guests are rare and a slot holding none must read exactly as it did before this
+/// band existed. Reaching its own `+ Guest` footer therefore starts from the card's own `⋮` menu,
+/// whose `Add a guest` entry (shown only while [onGuestAdded] is non-null) flips a **local widget
+/// `State` flag** revealing the band with nothing in it yet — see [_OcptScheduleSlotGuestReveal],
+/// the same reasoning `_OcptScheduleSlotPeopleState`'s own fold already argues for: losing that flag
+/// on a later rebuild costs nothing, since the band stays revealed on its own the moment a guest is
+/// actually added.
 ///
 /// **The anchor control is a flat menu on the edge label** (`Début à heure fixe`, `Fin à heure
 /// fixe`, then one entry per other slot of the day, in both directions), with the typed hour beside
@@ -91,7 +105,8 @@ const double _personCardWidth = 230;
 /// previewed (`isReadOnly`): the label field, the location/set pickers, the note field below them,
 /// the anchor menu and its own minute field, the `▲`/`▼` controls moving the card in its day's
 /// list, every
-/// crew/cast row's own position picker and remove control, both `+`
+/// crew/cast row's own position picker and remove control, every guest row's own remove control and
+/// its own reason/notes fields, the `⋮` menu's own `Add a guest` entry, all three `+`
 /// footers, and every writing affordance of the timetable itself, its own hold row's sequence
 /// picker included (see [OcptScheduleTimetable]'s own doc comment). Nothing here reads a
 /// `pendingFieldEdits` map itself — [labelValue] is already resolved by the caller, exactly as
@@ -181,6 +196,30 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onCastRoleRemoved;
 
+  /// Called with the id of the person picked by the guest band's own `+ Guest` footer, or null while
+  /// withheld — also what gates the `⋮` menu's own `Add a guest` entry (see the class doc comment).
+  final ValueChanged<String>? onGuestAdded;
+
+  /// Called with a guest attendance's id when its row's remove control is clicked, or null while
+  /// withheld.
+  final ValueChanged<String>? onGuestRemoved;
+
+  /// Resolves a guest attendance's id to its own reason, as currently held (a pending edit, or its
+  /// stored value).
+  final String Function(String guestId) guestReasonValueOf;
+
+  /// Called with a guest attendance's id and its raw reason text on every keystroke, or null while
+  /// withheld.
+  final void Function(String guestId, String rawValue)? onGuestReasonChanged;
+
+  /// Resolves a guest attendance's id to its own notes, as currently held (a pending edit, or its
+  /// stored value).
+  final String Function(String guestId) guestNotesValueOf;
+
+  /// Called with a guest attendance's id and its raw note text on every keystroke, or null while
+  /// withheld.
+  final void Function(String guestId, String rawValue)? onGuestNotesChanged;
+
   /// [slot]'s own **day**'s live blocks, across every slot, in `sortKey` order — this card filters
   /// them down to [slot]'s own before handing them to its own [OcptScheduleTimetable], so a caller
   /// never has to pre-slice the day's blocks itself.
@@ -266,6 +305,12 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onCrewMemberRemoved,
     required this.onCastRoleAdded,
     required this.onCastRoleRemoved,
+    required this.onGuestAdded,
+    required this.onGuestRemoved,
+    required this.guestReasonValueOf,
+    required this.onGuestReasonChanged,
+    required this.guestNotesValueOf,
+    required this.onGuestNotesChanged,
     required this.blocks,
     required this.timeline,
     required this.shotOf,
@@ -285,10 +330,22 @@ class OcptScheduleSlotCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _OcptScheduleSlotGuestReveal(
+    builder: (context, {required isRevealed, required onRevealed}) =>
+        _buildCard(context, isGuestBandRevealed: isRevealed, onGuestSectionRevealed: onRevealed),
+  );
+
+  /// The card's own body, once [_OcptScheduleSlotGuestReveal] has resolved whether the guest band
+  /// shows even though [slot] holds nobody yet — see the class doc comment.
+  Widget _buildCard(
+    BuildContext context, {
+    required bool isGuestBandRevealed,
+    required VoidCallback onGuestSectionRevealed,
+  }) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final tint = ocptScheduleDayLocationTint(context, location);
+    final showGuestBand = slot.guests.isNotEmpty || isGuestBandRevealed;
 
     return Container(
       decoration: BoxDecoration(
@@ -319,17 +376,23 @@ class OcptScheduleSlotCard extends StatelessWidget {
                     context,
                     isCompact: constraints.maxWidth < _compactHeaderWidth,
                   ),
-                  if (onDeletionRequested != null)
+                  if (onDeletionRequested != null || onGuestAdded != null)
                     PopupMenuButton<VoidCallback>(
                       icon: const Icon(Icons.more_vert, size: 16),
                       tooltip: "",
                       padding: EdgeInsets.zero,
                       onSelected: (action) => action(),
                       itemBuilder: (context) => [
-                        PopupMenuItem<VoidCallback>(
-                          value: onDeletionRequested,
-                          child: Text(tr.scheduleDeleteSlotAction),
-                        ),
+                        if (onGuestAdded != null)
+                          PopupMenuItem<VoidCallback>(
+                            value: onGuestSectionRevealed,
+                            child: Text(tr.scheduleAddGuestMenuAction),
+                          ),
+                        if (onDeletionRequested != null)
+                          PopupMenuItem<VoidCallback>(
+                            value: onDeletionRequested,
+                            child: Text(tr.scheduleDeleteSlotAction),
+                          ),
                       ],
                     ),
                 ],
@@ -360,6 +423,11 @@ class OcptScheduleSlotCard extends StatelessWidget {
                   ),
             ),
           ),
+          if (showGuestBand)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(13, 0, 13, 11),
+              child: _buildGuestBand(context),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 0, 13, 11),
             child: _buildTimetable(context),
@@ -878,6 +946,89 @@ class OcptScheduleSlotCard extends StatelessWidget {
       ],
     );
   }
+
+  /// The guest band: [slot]'s own live guests wrapped at [_personCardWidth] over the card's **whole**
+  /// width (shrunk to fit when that is narrower — unlike the crew and cast halves, this band is never
+  /// split in two), then the `+ Guest` footer. Only ever built while [_buildCard]'s own
+  /// `showGuestBand` is true; see the class doc comment for that condition.
+  Widget _buildGuestBand(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr.scheduleSlotGuestsColumnTitle.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 7),
+        if (slot.guests.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              tr.scheduleSlotGuestsEmptyHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final guest in slot.guests)
+                    SizedBox(
+                      width: math.min(_personCardWidth, constraints.maxWidth),
+                      child: _OcptScheduleGuestRow(
+                        key: ValueKey(guest.id),
+                        guest: guest,
+                        person: guest.personId == null ? null : personById[guest.personId],
+                        reasonValue: guestReasonValueOf(guest.id),
+                        onReasonChanged: onGuestReasonChanged == null
+                            ? null
+                            : (value) => onGuestReasonChanged!(guest.id, value),
+                        notesValue: guestNotesValueOf(guest.id),
+                        onNotesChanged: onGuestNotesChanged == null
+                            ? null
+                            : (value) => onGuestNotesChanged!(guest.id, value),
+                        onRemoved: onGuestRemoved == null ? null : () => onGuestRemoved!(guest.id),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        if (onGuestAdded != null)
+          PopupMenuButton<String>(
+            tooltip: "",
+            onSelected: onGuestAdded,
+            itemBuilder: (context) => [
+              for (final person in people)
+                PopupMenuItem<String>(
+                  value: person.id,
+                  child: Text(
+                    person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName,
+                  ),
+                ),
+            ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add, size: 14),
+                const SizedBox(width: 4),
+                Text(tr.scheduleAddGuestAction, style: theme.textTheme.labelSmall),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 /// A people half's own title row, shared by [OcptScheduleSlotCard]'s cast half and
@@ -994,6 +1145,39 @@ class _OcptScheduleSlotPeopleState extends State<_OcptScheduleSlotPeople> {
         ],
       );
     },
+  );
+}
+
+/// How [OcptScheduleSlotCard.build] reveals its own guest band before [OcptShootingSlot.guests]
+/// holds anything — see that class' own doc comment. [builder] is handed `isRevealed` (whether the
+/// band should draw even though the slot holds no guest yet) and `onRevealed` (flips it to true;
+/// there is deliberately no way to flip it back, the band hiding itself again on its own the moment
+/// [OcptShootingSlot.guests] goes back to empty on a later build).
+///
+/// Local widget [State], exactly like [_OcptScheduleSlotPeopleState]'s own fold: losing this flag on
+/// a rebuild costs nothing, the band staying revealed on its own once it actually holds a guest.
+class _OcptScheduleSlotGuestReveal extends StatefulWidget {
+  /// Builds the card's own body from the current reveal state.
+  final Widget Function(BuildContext context, {required bool isRevealed, required VoidCallback onRevealed})
+  builder;
+
+  /// Class constructor
+  const _OcptScheduleSlotGuestReveal({required this.builder});
+
+  @override
+  State<_OcptScheduleSlotGuestReveal> createState() => _OcptScheduleSlotGuestRevealState();
+}
+
+/// The state of [_OcptScheduleSlotGuestReveal]: owns the reveal flag the class doc comment explains.
+class _OcptScheduleSlotGuestRevealState extends State<_OcptScheduleSlotGuestReveal> {
+  /// Whether the guest band draws even though the slot holds no guest yet.
+  bool _isRevealed = false;
+
+  @override
+  Widget build(BuildContext context) => widget.builder(
+    context,
+    isRevealed: _isRevealed,
+    onRevealed: () => setState(() => _isRevealed = true),
   );
 }
 
@@ -1403,6 +1587,132 @@ class _OcptScheduleCastRoleRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One guest card of [OcptScheduleSlotCard]'s own guest band, built in the same
+/// [_buildSlotPersonCard] shell as [_OcptScheduleCrewMemberRow] and [_OcptScheduleCastRoleRow]: the
+/// guest's own name and the remove control on the first line, then its reason, then its notes —
+/// **no clock at all**, like every other convocation card (the hours are read in the `Convocations`
+/// dock tab).
+///
+/// The name is a **read-out, never a picker**: a guest's identity is fixed the moment they are
+/// added, exactly as a crew row's person and a cast row's role are. A row whose [guest]'s own
+/// `personId` is null reads its `freeName` instead — defensively, since nothing in this app ever
+/// mints a free-named guest (only the address book picker adds one), but a stored row is read back
+/// as-is either way.
+class _OcptScheduleGuestRow extends StatelessWidget {
+  /// The guest attendance this row shows.
+  final OcptShootingSlotGuest guest;
+
+  /// The address-book person [guest] names, or null while [guest] is free-named instead (or not yet
+  /// loaded).
+  final OcptPerson? person;
+
+  /// The reason field's current authoritative value (a pending edit, or its stored value).
+  final String reasonValue;
+
+  /// Called with the reason field's raw text on every keystroke, or null while withheld.
+  final ValueChanged<String>? onReasonChanged;
+
+  /// The notes field's current authoritative value (a pending edit, or its stored value).
+  final String notesValue;
+
+  /// Called with the notes field's raw text on every keystroke, or null while withheld.
+  final ValueChanged<String>? onNotesChanged;
+
+  /// Called when this row's remove control is clicked, or null while withheld.
+  final VoidCallback? onRemoved;
+
+  /// Class constructor
+  const _OcptScheduleGuestRow({
+    super.key,
+    required this.guest,
+    required this.person,
+    required this.reasonValue,
+    required this.onReasonChanged,
+    required this.notesValue,
+    required this.onNotesChanged,
+    required this.onRemoved,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final name = guest.personId != null
+        ? (person?.displayName.isEmpty ?? true ? tr.resourcesUnnamedPerson : person!.displayName)
+        : (guest.freeName.isEmpty ? tr.resourcesUnnamedPerson : guest.freeName);
+
+    return _buildSlotPersonCard(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              if (onRemoved != null)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 14),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: tr.scheduleRemoveGuestTooltip,
+                  onPressed: onRemoved,
+                ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          _buildTextLine(
+            context,
+            value: reasonValue,
+            hintText: tr.scheduleSlotGuestReasonHint,
+            onChanged: onReasonChanged,
+            keySuffix: "reason",
+          ),
+          const SizedBox(height: 2),
+          _buildTextLine(
+            context,
+            value: notesValue,
+            hintText: tr.scheduleSlotGuestNotesHint,
+            onChanged: onNotesChanged,
+            keySuffix: "notes",
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One of this row's own two free-text lines (reason, notes): [_OcptScheduleSlotNoteField]'s own
+  /// controller-sync field while [onChanged] is non-null, or plain read-only text — drawing
+  /// **nothing at all** while empty, the same rule [OcptScheduleSlotCard._buildNoteField] already
+  /// follows for the slot's own note.
+  Widget _buildTextLine(
+    BuildContext context, {
+    required String value,
+    required String hintText,
+    required ValueChanged<String>? onChanged,
+    required String keySuffix,
+  }) {
+    if (onChanged == null) {
+      if (value.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Text(value, style: Theme.of(context).textTheme.bodySmall);
+    }
+
+    return _OcptScheduleSlotNoteField(
+      key: ValueKey("${guest.id}-$keySuffix"),
+      value: value,
+      hintText: hintText,
+      onChanged: onChanged,
     );
   }
 }

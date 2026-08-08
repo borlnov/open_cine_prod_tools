@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -50,6 +51,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The schedule production mode: planning the shoot day by day.
@@ -170,7 +172,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final hasAnyDay = state.days.isNotEmpty;
     final selectedDayId = state.selectedDayId;
     final hasNamedRecipients =
-        selectedDayId != null && state.convocationsOfDay(selectedDayId).isNotEmpty;
+        selectedDayId != null && _namedCallSheetRecipientsOf(state, selectedDayId).isNotEmpty;
 
     return [
       PopupMenuItem<void>(
@@ -196,6 +198,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
       ),
     ];
   }
+
+  /// [dayId]'s own convocations, **minus its guests** — what both the named call sheets `⋮` entry's
+  /// enabled check and the dialog it opens read, rather than [OcptScheduleState.convocationsOfDay]
+  /// directly: a guest is not yet a call sheet recipient (that is M6's own job, per the plan this
+  /// mode's own doc comment tracks), and every reader downstream of this list — the dialog's own
+  /// selection keys among them — assumes every entry names a person or a role, never a guest.
+  List<OcptDayConvocation> _namedCallSheetRecipientsOf(OcptScheduleState state, String dayId) => [
+    for (final convocation in state.convocationsOfDay(dayId))
+      if (!convocation.isGuest) convocation,
+  ];
 
   /// Shows the general call sheets export options dialog, then dispatches the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized string
@@ -241,7 +253,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       context,
       current: state.pageSetup,
       day: day,
-      convocations: state.convocationsOfDay(day.id),
+      convocations: _namedCallSheetRecipientsOf(state, day.id),
       personById: state.personById,
       roleById: state.roleById,
     );
@@ -622,6 +634,41 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotCastRoleRemoved: isReadOnly
           ? null
           : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
+      onSlotGuestAdded: isReadOnly
+          ? null
+          : (slotId, personId) =>
+                bloc.add(OcptScheduleSlotGuestAddedEvent(slotId: slotId, personId: personId)),
+      onSlotGuestRemoved: isReadOnly
+          ? null
+          : (guestId) => bloc.add(OcptScheduleSlotGuestRemovedEvent(guestId: guestId)),
+      slotGuestReasonValueOf: (guestId) => state.fieldValueOf(
+        guestId,
+        OcptScheduleField.guestReason,
+        _selectedDayGuestOf(state, guestId)?.reason ?? "",
+      ),
+      onSlotGuestReasonChanged: isReadOnly
+          ? null
+          : (guestId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: guestId,
+                field: OcptScheduleField.guestReason,
+                rawValue: rawValue,
+              ),
+            ),
+      slotGuestNotesValueOf: (guestId) => state.fieldValueOf(
+        guestId,
+        OcptScheduleField.guestNotes,
+        _selectedDayGuestOf(state, guestId)?.notes ?? "",
+      ),
+      onSlotGuestNotesChanged: isReadOnly
+          ? null
+          : (guestId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: guestId,
+                field: OcptScheduleField.guestNotes,
+                rawValue: rawValue,
+              ),
+            ),
       onBlockSelected: (blockId) =>
           bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
       onBlockReordered: isReadOnly
@@ -663,6 +710,21 @@ class _ScheduleViewState extends State<_ScheduleView> {
         const OcptScheduleRightDockTabSelectedEvent(tab: OcptScheduleRightDockTab.alerts),
       ),
     );
+  }
+
+  /// Resolves guest attendance [guestId] out of [state]'s own [OcptScheduleState.selectedDaySlots]'
+  /// own [OcptShootingSlot.guests] lists, or null while it names no live guest of the selected day —
+  /// what a slot card's own guest reason/notes fields read their stored value off, `_buildDayView`
+  /// having no per-guest map of its own to keep in step with a fresh snapshot.
+  OcptShootingSlotGuest? _selectedDayGuestOf(OcptScheduleState state, String guestId) {
+    for (final slot in state.selectedDaySlots) {
+      for (final guest in slot.guests) {
+        if (guest.id == guestId) {
+          return guest;
+        }
+      }
+    }
+    return null;
   }
 
   /// Opens `OcptScheduleShotPickerDialog` for slot [slotId] — the slot card's own `+ Block` menu's

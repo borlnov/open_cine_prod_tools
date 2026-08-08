@@ -6915,6 +6915,55 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleSlotGuestsColumnTitle": "Guests",
+  "@scheduleSlotGuestsColumnTitle": {
+    "description": "Title of a slot card's own guest band, shown only while it has one or has been revealed",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddGuestAction": "Guest",
+  "@scheduleAddGuestAction": {
+    "description": "Label of a slot card's own guest band footer control opening the address-book picker",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddGuestMenuAction": "Add a guest",
+  "@scheduleAddGuestMenuAction": {
+    "description": "Entry of a slot card's own ⋮ menu, revealing the guest band even while it holds nobody yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveGuestTooltip": "Remove this guest",
+  "@scheduleRemoveGuestTooltip": {
+    "description": "Tooltip of a guest row's own remove control",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestReasonHint": "Why they are here",
+  "@scheduleSlotGuestReasonHint": {
+    "description": "Hint of a guest row's own reason field",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestNotesHint": "Note",
+  "@scheduleSlotGuestNotesHint": {
+    "description": "Hint of a guest row's own notes field",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestsEmptyHint": "No guest yet.",
+  "@scheduleSlotGuestsEmptyHint": {
+    "description": "Shown in a slot card's own guest band while it has been revealed but holds nobody yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleTimetableEmptyHint": "Nothing placed on this slot yet.",
   "@scheduleTimetableEmptyHint": {
     "description": "Shown in the timetable while the slot holds no block at all",
@@ -7072,6 +7121,13 @@
         "type": "String"
       }
     }
+  },
+  "scheduleConvocationsGuestsSectionTitle": "Guests",
+  "@scheduleConvocationsGuestsSectionTitle": {
+    "description": "Heading of the convocations panel's own trailing group of guest cards",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
   },
   "scheduleExportCallSheetsMenuAction": "Export the call sheets…",
   "@scheduleExportCallSheetsMenuAction": {

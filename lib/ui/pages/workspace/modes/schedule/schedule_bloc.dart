@@ -173,6 +173,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
     on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
+    on<OcptScheduleSlotGuestAddedEvent>(_onSlotGuestAdded);
+    on<OcptScheduleSlotGuestRemovedEvent>(_onSlotGuestRemoved);
     on<OcptScheduleShotSelectedEvent>(_onShotSelected);
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
@@ -829,6 +831,38 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
+  /// Adds a guest to a slot, from the address book alone.
+  Future<void> _onSlotGuestAdded(
+    OcptScheduleSlotGuestAddedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.addSlotGuest(
+      database: project.database,
+      slotId: event.slotId,
+      personId: event.personId,
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Removes a guest attendance for good.
+  Future<void> _onSlotGuestRemoved(
+    OcptScheduleSlotGuestRemovedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.deleteSlotGuest(database: project.database, guestId: event.guestId);
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
   /// edits — then reloads the shot list read so every shot code, block chip and inspector line
   /// that shows it follows.
@@ -1155,6 +1189,18 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           await _scheduleService.updateSlotCastRole(
             database: project.database,
             castRoleId: targetId,
+            notes: Value(value),
+          );
+        case OcptScheduleField.guestReason:
+          await _scheduleService.updateSlotGuest(
+            database: project.database,
+            guestId: targetId,
+            reason: Value(value),
+          );
+        case OcptScheduleField.guestNotes:
+          await _scheduleService.updateSlotGuest(
+            database: project.database,
+            guestId: targetId,
             notes: Value(value),
           );
       }

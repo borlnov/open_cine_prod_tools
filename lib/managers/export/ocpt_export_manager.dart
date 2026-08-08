@@ -356,6 +356,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// null to print every convocation of the day, the common case when nobody has narrowed the
   /// selection down. See [exportGeneralCallSheets] for the folder-picking and partial-failure
   /// contract, identical here.
+  ///
+  /// **A guest is never printed here**, whatever [convocationKeys] says: `OcptDayConvocation.isGuest`
+  /// is filtered out before either the explicit selection or the "print every convocation" default
+  /// is applied — a guest is not yet a call sheet recipient, and every reader downstream of this list
+  /// assumes every entry names a person or a role.
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
@@ -374,7 +379,9 @@ class OcptExportManager extends AbsWithLifeCycle {
     final dayNumber = day?.dayNumber ?? 0;
     final convocations = [
       for (final convocation in plan.convocationsOfDay(dayId))
-        if (convocationKeys == null || convocationKeys.contains(convocation.personId ?? convocation.roleId))
+        if (!convocation.isGuest &&
+            (convocationKeys == null ||
+                convocationKeys.contains(convocation.personId ?? convocation.roleId)))
           convocation,
     ];
 

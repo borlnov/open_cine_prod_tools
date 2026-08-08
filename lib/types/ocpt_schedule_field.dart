@@ -7,8 +7,8 @@
 /// everything else the mode writes (a status, a time, a pick) is written the moment it changes.
 ///
 /// A single flat enum across every entity the mode edits text on (a day, a slot, a block, a crew
-/// assignment, a cast convocation) rather than one enum per entity (the `OcptElementField` idiom):
-/// the five entities share one pending-edit map and one flush handler in
+/// assignment, a cast convocation, a guest attendance) rather than one enum per entity (the
+/// `OcptElementField` idiom): the six entities share one pending-edit map and one flush handler in
 /// `OcptScheduleBloc`, and a field's own name already says which entity it belongs to.
 enum OcptScheduleField {
   /// `shooting_days.crewNote` — the call sheet's "NOTE À L'ÉQUIPE".
@@ -42,4 +42,10 @@ enum OcptScheduleField {
 
   /// `shooting_slot_cast.notes`.
   castMemberNotes,
+
+  /// `shooting_slot_guests.reason` — why this guest is on set.
+  guestReason,
+
+  /// `shooting_slot_guests.notes`.
+  guestNotes,
 }

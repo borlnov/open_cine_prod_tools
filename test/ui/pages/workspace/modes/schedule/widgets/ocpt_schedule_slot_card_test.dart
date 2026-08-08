@@ -142,6 +142,23 @@ OcptShootingDayBlock _buildBlock({required String id, required String slotId, St
 /// A neutral `shotOf` resolving nothing, for tests that never place a shot block.
 OcptShot? _noShot(String shotId) => null;
 
+/// Builds a guest attendance with the few fields these tests read, everything else neutral.
+OcptShootingSlotGuest _buildGuest({
+  required String id,
+  String slotId = "slot-1",
+  String? personId,
+  String freeName = "",
+  String reason = "",
+  String notes = "",
+}) => OcptShootingSlotGuest(
+  id: id,
+  slotId: slotId,
+  personId: personId,
+  freeName: freeName,
+  reason: reason,
+  notes: notes,
+);
+
 void main() {
   final person = _buildPerson(id: "person-1", firstName: "Léa");
   final role = _buildRole(id: "role-1", name: "Marie");
@@ -152,10 +169,17 @@ void main() {
     OcptPerson? crewPerson,
     List<OcptShootingSlotCrewMember> crew = const [],
     List<OcptShootingSlotCastMember> cast = const [],
+    List<OcptShootingSlotGuest> guests = const [],
     ValueChanged<String>? onCrewMemberAdded,
     void Function(String crewMemberId, OcptCrewPositionRef position)?
     onCrewMemberPositionChanged,
     ValueChanged<String>? onCastRoleAdded,
+    ValueChanged<String>? onGuestAdded,
+    ValueChanged<String>? onGuestRemoved,
+    String Function(String guestId)? guestReasonValueOf,
+    void Function(String guestId, String rawValue)? onGuestReasonChanged,
+    String Function(String guestId)? guestNotesValueOf,
+    void Function(String guestId, String rawValue)? onGuestNotesChanged,
     VoidCallback? onDeletionRequested,
     String notesValue = "",
     ValueChanged<String>? onNotesChanged,
@@ -179,6 +203,7 @@ void main() {
       id: slotId,
       crew: crew,
       cast: cast,
+      guests: guests,
       anchorEdge: anchorEdge,
       anchorMinute: anchorMinute,
       anchorSlotId: anchorSlotId,
@@ -205,6 +230,12 @@ void main() {
     onCrewMemberRemoved: isReadOnly ? null : (_) {},
     onCastRoleAdded: isReadOnly ? null : (onCastRoleAdded ?? (_) {}),
     onCastRoleRemoved: isReadOnly ? null : (_) {},
+    onGuestAdded: isReadOnly ? null : (onGuestAdded ?? (_) {}),
+    onGuestRemoved: isReadOnly ? null : (onGuestRemoved ?? (_) {}),
+    guestReasonValueOf: guestReasonValueOf ?? (_) => "",
+    onGuestReasonChanged: isReadOnly ? null : (onGuestReasonChanged ?? (_, _) {}),
+    guestNotesValueOf: guestNotesValueOf ?? (_) => "",
+    onGuestNotesChanged: isReadOnly ? null : (onGuestNotesChanged ?? (_, _) {}),
     blocks: blocks,
     timeline: timeline,
     shotOf: _noShot,
@@ -831,4 +862,63 @@ void main() {
     );
     expect(downButton.onPressed, isNotNull);
   });
+
+  testWidgets("a slot with no guest draws no guest band and no `+ Guest` footer", (tester) async {
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotGuestsColumnTitle.toUpperCase()), findsNothing);
+    expect(find.text(tr.scheduleAddGuestAction), findsNothing);
+  });
+
+  testWidgets("a slot with one guest draws its name, its reason and its remove control", (
+    tester,
+  ) async {
+    final guests = [
+      _buildGuest(id: "guest-1", personId: "person-1", reason: "Visite guidée"),
+    ];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          guests: guests,
+          guestReasonValueOf: (_) => "Visite guidée",
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(tr.scheduleSlotGuestsColumnTitle.toUpperCase()), findsOneWidget);
+    expect(find.text("Léa"), findsOneWidget);
+    expect(find.text("Visite guidée"), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsOneWidget);
+  });
+
+  testWidgets(
+    "with every callback null (a version preview) the remove control and the footer are gone",
+    (tester) async {
+      final guests = [
+        _buildGuest(id: "guest-1", personId: "person-1", reason: "Visite guidée"),
+      ];
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          buildCard(isReadOnly: true, guests: guests, guestReasonValueOf: (_) => "Visite guidée"),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+      // The band itself still reads — its title, the guest's own name and reason — since a stored
+      // guest is never hidden, only the affordances that would change something.
+      expect(find.text(tr.scheduleSlotGuestsColumnTitle.toUpperCase()), findsOneWidget);
+      expect(find.text("Léa"), findsOneWidget);
+      expect(find.text("Visite guidée"), findsOneWidget);
+      expect(find.text(tr.scheduleAddGuestAction), findsNothing);
+      expect(find.byIcon(Icons.close), findsNothing);
+    },
+  );
 }

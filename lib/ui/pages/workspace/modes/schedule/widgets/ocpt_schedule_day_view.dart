@@ -161,6 +161,30 @@ class OcptScheduleDayView extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onSlotCastRoleRemoved;
 
+  /// Called with a slot's id and the id of the person picked by its own guest band's `+ Guest`
+  /// footer, or null while withheld.
+  final void Function(String slotId, String personId)? onSlotGuestAdded;
+
+  /// Called with a guest attendance's id when its row's remove control is clicked, or null while
+  /// withheld.
+  final ValueChanged<String>? onSlotGuestRemoved;
+
+  /// Resolves a guest attendance's id to its own reason, as currently held (a pending edit, or its
+  /// stored value).
+  final String Function(String guestId) slotGuestReasonValueOf;
+
+  /// Called with a guest attendance's id and its raw reason text on every keystroke, or null while
+  /// withheld.
+  final void Function(String guestId, String rawValue)? onSlotGuestReasonChanged;
+
+  /// Resolves a guest attendance's id to its own notes, as currently held (a pending edit, or its
+  /// stored value).
+  final String Function(String guestId) slotGuestNotesValueOf;
+
+  /// Called with a guest attendance's id and its raw note text on every keystroke, or null while
+  /// withheld.
+  final void Function(String guestId, String rawValue)? onSlotGuestNotesChanged;
+
   /// Called with a block's id when its row is clicked.
   final ValueChanged<String> onBlockSelected;
 
@@ -238,6 +262,12 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onSlotCrewMemberRemoved,
     required this.onSlotCastRoleAdded,
     required this.onSlotCastRoleRemoved,
+    required this.onSlotGuestAdded,
+    required this.onSlotGuestRemoved,
+    required this.slotGuestReasonValueOf,
+    required this.onSlotGuestReasonChanged,
+    required this.slotGuestNotesValueOf,
+    required this.onSlotGuestNotesChanged,
     required this.onBlockSelected,
     required this.onBlockReordered,
     required this.onBlockDurationChanged,
@@ -307,6 +337,14 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
               onCastRoleRemoved: onSlotCastRoleRemoved,
+              onGuestAdded: onSlotGuestAdded == null
+                  ? null
+                  : (personId) => onSlotGuestAdded!(slot.id, personId),
+              onGuestRemoved: onSlotGuestRemoved,
+              guestReasonValueOf: slotGuestReasonValueOf,
+              onGuestReasonChanged: onSlotGuestReasonChanged,
+              guestNotesValueOf: slotGuestNotesValueOf,
+              onGuestNotesChanged: onSlotGuestNotesChanged,
               blocks: blocks,
               timeline: timeline?.bySlotId[slot.id],
               shotOf: shotOf,

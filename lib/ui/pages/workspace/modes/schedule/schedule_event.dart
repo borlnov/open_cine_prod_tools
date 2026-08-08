@@ -475,6 +475,37 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, castRoleId];
 }
 
+/// Adds [personId] to slot [slotId]'s own guests, dispatched by the guest band's own `+ Guest`
+/// footer — the address book alone, per Benoit's own decision: nobody is created from this mode, so
+/// there is no free-named counterpart of this event.
+class OcptScheduleSlotGuestAddedEvent extends OcptScheduleEvent {
+  /// The id of the slot the guest is added to.
+  final String slotId;
+
+  /// The id of the person added.
+  final String personId;
+
+  /// Class constructor
+  const OcptScheduleSlotGuestAddedEvent({required this.slotId, required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, slotId, personId];
+}
+
+/// Removes guest attendance [guestId] for good, dispatched by its own row's dismissal.
+class OcptScheduleSlotGuestRemovedEvent extends OcptScheduleEvent {
+  /// The id of the guest attendance to remove.
+  final String guestId;
+
+  /// Class constructor
+  const OcptScheduleSlotGuestRemovedEvent({required this.guestId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, guestId];
+}
+
 /// Selects shot [shotId] — a row of the left dock's own "shots still to place" list — showing its
 /// own read-out in the inspector, and opens the right dock on the `Inspector` tab. Clears the
 /// selected block: the two selections are mutually exclusive, so bringing a shot's own read-out up
