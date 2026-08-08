@@ -1025,7 +1025,7 @@
   "scheduleExportShootingPlanFileNameSuffix": "plan de travail",
   "scheduleExportShootingPlanDocumentTitle": "Plan de travail",
   "scheduleExportShootingPlanDayTitle": "Planning de la journée du {date}",
-  "scheduleExportTitlePageVersionLabel": "Version",
+  "scheduleExportVersionLabel": "Version",
   "scheduleExportLocationsGridTitle": "Résumé - Lieux",
   "scheduleExportSequencesGridTitle": "Résumé - Séquences",
   "scheduleExportPeopleGridTitle": "Résumé - Équipe technique et comédiens",

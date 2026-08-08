@@ -178,14 +178,23 @@ class OcptCallSheetPdfService {
 
   /// Renders the general call sheet of [dayId]: the whole day's own paperwork, following the
   /// reference `.docx` section by section (§A of the reference note this service was built against).
+  ///
+  /// [exportDate] is the moment the title block's own version line prints, through
+  /// [ocptScheduleGeneratedAtStamp] — the very stamp `OcptShootingPlanPdfService` prints, so two
+  /// documents of one shoot cannot name their issue differently. It defaults to the moment this
+  /// method runs and is exposed so a test can pin it rather than racing a minute rollover; a caller
+  /// writing a folder full of sheets in one run resolves it **once** and hands the same moment to
+  /// every one of them, a batch that stamped itself sheet by sheet reading as several issues.
   Future<Uint8List> generateGeneralCallSheet({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
     required OcptPageSetup pageSetup,
     required OcptCallSheetLabels labels,
     required String projectName,
+    DateTime? exportDate,
   }) async {
     final painter = await _painterFor(pageSetup);
+    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final day = plan.schedule.daysById[dayId];
     final pdfDocument = pw.Document();
 
@@ -228,6 +237,7 @@ class OcptCallSheetPdfService {
             painter: painter,
             labels: labels,
             projectName: projectName,
+            versionLine: versionLine,
             day: day,
             slots: slots,
             timelines: timelines,
@@ -281,6 +291,8 @@ class OcptCallSheetPdfService {
   /// the sun block, the key contacts — then the day's own cast table, crew list and cast-and-extras
   /// list, exactly as the general sheet prints them. Only the main table is narrowed to the
   /// recipient's slots; see the class doc comment for why the three closing tables are not.
+  ///
+  /// [exportDate] carries the same contract it does on [generateGeneralCallSheet] — see there.
   Future<Uint8List> generateNamedCallSheet({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
@@ -288,8 +300,10 @@ class OcptCallSheetPdfService {
     required OcptCallSheetLabels labels,
     required String projectName,
     required OcptDayConvocation convocation,
+    DateTime? exportDate,
   }) async {
     final painter = await _painterFor(pageSetup);
+    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final day = plan.schedule.daysById[dayId];
     final pdfDocument = pw.Document();
 
@@ -345,7 +359,7 @@ class OcptCallSheetPdfService {
             positionsOrRole: positionsOrRole,
           ),
           pw.SizedBox(height: 10),
-          _titleBlock(painter: painter, projectName: projectName, labels: labels),
+          _titleBlock(painter: painter, projectName: projectName, labels: labels, versionLine: versionLine),
           pw.SizedBox(height: 10),
           _dayHeadingSection(painter: painter, labels: labels, day: day),
           pw.SizedBox(height: 10),
@@ -409,6 +423,7 @@ class OcptCallSheetPdfService {
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
     required String projectName,
+    required String versionLine,
     required OcptShootingDay day,
     required List<OcptShootingSlot> slots,
     required OcptShootingDayTimelines? timelines,
@@ -420,7 +435,7 @@ class OcptCallSheetPdfService {
     required List<OcptLocation> locations,
     required OcptSchedulePlanSnapshot plan,
   }) => [
-    _titleBlock(painter: painter, projectName: projectName, labels: labels),
+    _titleBlock(painter: painter, projectName: projectName, labels: labels, versionLine: versionLine),
     pw.SizedBox(height: 10),
     _contactsBlock(painter: painter, labels: labels, crewContacts: crewContacts, departments: contactDepartments),
     pw.SizedBox(height: 10),
@@ -527,11 +542,18 @@ class OcptCallSheetPdfService {
     ],
   );
 
-  /// The project's own title, then the `Un film de <director>` line when there is one.
+  /// The project's own title, then the `Un film de <director>` line when there is one, then
+  /// [versionLine] — the moment this sheet was produced.
+  ///
+  /// The version line sits in the title block rather than in the running head, unlike the shooting
+  /// plan's own: a call sheet is one sheet about one day, handed over whole, and the block naming
+  /// the film is where somebody comparing two of them looks first. It is printed on the general and
+  /// the named sheet alike, both being reissued as a day is re-planned.
   pw.Widget _titleBlock({
     required OcptScriptPagePainter painter,
     required String projectName,
     required OcptCallSheetLabels labels,
+    required String versionLine,
   }) => pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
@@ -540,6 +562,11 @@ class OcptCallSheetPdfService {
         pw.SizedBox(height: 2),
         pw.Text(labels.directorLine, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
       ],
+      pw.SizedBox(height: 2),
+      pw.Text(
+        versionLine,
+        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+      ),
     ],
   );
 

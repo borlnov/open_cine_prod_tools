@@ -307,6 +307,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// A write failure is logged (this manager's usual soft-failure convention) and the file's own
   /// name lands in [OcptCallSheetExportResult.failedFileNames] instead of
   /// [OcptCallSheetExportResult.writtenFileNames].
+  ///
+  /// The moment every sheet of the run is stamped with is resolved **once**, here, and handed to
+  /// each of them: a folder of sheets produced by one gesture is one issue of that day's paperwork,
+  /// and a batch that read the clock per file would hand two people sheets a minute apart with no
+  /// way to tell they are the same one.
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -320,6 +325,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       return null;
     }
 
+    final exportDate = DateTime.now();
     final written = <String>[];
     final failed = <String>[];
 
@@ -336,6 +342,7 @@ class OcptExportManager extends AbsWithLifeCycle {
         pageSetup: pageSetup,
         labels: labels,
         projectName: projectName,
+        exportDate: exportDate,
       );
 
       if (await _writeBytesInFolder(folderPath: folderPath, fileName: fileName, bytes: bytes)) {
@@ -375,6 +382,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       return null;
     }
 
+    final exportDate = DateTime.now();
     final day = plan.schedule.daysById[dayId];
     final dayNumber = day?.dayNumber ?? 0;
     final convocations = [
@@ -409,6 +417,7 @@ class OcptExportManager extends AbsWithLifeCycle {
         labels: labels,
         projectName: projectName,
         convocation: convocation,
+        exportDate: exportDate,
       );
 
       if (await _writeBytesInFolder(folderPath: folderPath, fileName: fileName, bytes: bytes)) {

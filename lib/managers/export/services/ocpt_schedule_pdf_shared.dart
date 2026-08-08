@@ -19,6 +19,24 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// the app disagreeing with itself about the one thing this milestone exists to get right.
 const String ocptScheduleEmptyValue = "—";
 
+/// The moment [exportDate] was produced, as `yyyy-MM-dd HH:mm` — what tells two documents of the
+/// same day apart in the hand of somebody holding both.
+///
+/// It carries the **time** as well as the date on purpose: a call sheet is regularly reissued in the
+/// afternoon of the day it was first sent out, and a stamp that stopped at the date would leave its
+/// reader with two sheets and no way to tell which one is the one to follow.
+///
+/// It is deliberately **not** locale-formatted, unlike a day's own title, which the two services
+/// take from their caller already localized: this stamp is read as an identifier rather than as a
+/// sentence, and `2026-08-08 14:32` sorts, compares and is quoted over the phone in every language
+/// the app ships in. It lives here rather than in either service for the reason everything else in
+/// this file does — the two documents print the same shoot, and two of them stamped differently
+/// would be the app disagreeing with itself about which one is the later.
+String ocptScheduleGeneratedAtStamp(DateTime exportDate) =>
+    "${exportDate.year.toString().padLeft(4, '0')}-${exportDate.month.toString().padLeft(2, '0')}-"
+    "${exportDate.day.toString().padLeft(2, '0')} ${exportDate.hour.toString().padLeft(2, '0')}:"
+    "${exportDate.minute.toString().padLeft(2, '0')}";
+
 /// One slot's own block, already placed on the day's clock — the raw material every reader of a
 /// day's timetable is built from, whichever of the two schedule PDF exports is reading it.
 class OcptOrderedScheduleEntry {

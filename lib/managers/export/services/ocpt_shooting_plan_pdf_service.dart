@@ -118,8 +118,12 @@ class OcptShootingPlanPdfService {
   /// still produces a readable, one-note document (plus its title page, when [includeTitlePage]
   /// asks for one) rather than an empty file nobody can open.
   ///
-  /// [exportDate] is the date the title page's own version line prints; it defaults to the moment
-  /// this method runs, and is exposed so a test can pin it rather than racing a midnight rollover.
+  /// [exportDate] is the moment the title page's own version line and every page's running head
+  /// print (`Version 2026-08-08 14:32`, through [ocptScheduleGeneratedAtStamp], the stamp
+  /// `OcptCallSheetPdfService` prints too); it defaults to the moment this method runs, and is
+  /// exposed so a test can pin it rather than racing a midnight rollover. It is resolved **once**
+  /// per document, so a plan whose rendering straddles a minute boundary still names one issue of
+  /// itself on every one of its pages.
   Future<Uint8List> generate({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -134,19 +138,25 @@ class OcptShootingPlanPdfService {
   }) async {
     final painter = await _painterFor(pageSetup);
     final pdfDocument = pw.Document();
-    final resolvedExportDate = exportDate ?? DateTime.now();
+    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
     final resolvedDayIds = [for (final id in dayIds) if (plan.schedule.daysById.containsKey(id)) id];
 
     if (includeTitlePage) {
       pdfDocument.addPage(
-        _titlePage(painter: painter, labels: labels, projectName: projectName, exportDate: resolvedExportDate),
+        _titlePage(painter: painter, labels: labels, projectName: projectName, versionLine: versionLine),
       );
     }
 
     if (resolvedDayIds.isEmpty) {
       pdfDocument.addPage(
-        _notePage(painter: painter, labels: labels, projectName: projectName, text: labels.emptyPlanNote),
+        _notePage(
+          painter: painter,
+          labels: labels,
+          projectName: projectName,
+          versionLine: versionLine,
+          text: labels.emptyPlanNote,
+        ),
       );
       return pdfDocument.save();
     }
@@ -162,6 +172,7 @@ class OcptShootingPlanPdfService {
         painter: painter,
         labels: labels,
         projectName: projectName,
+        versionLine: versionLine,
         title: labels.locationsGridTitle,
         rowHeaderLabel: labels.locationsGridRowHeader,
         chunks: chunks,
@@ -174,6 +185,7 @@ class OcptShootingPlanPdfService {
         painter: painter,
         labels: labels,
         projectName: projectName,
+        versionLine: versionLine,
         title: labels.sequencesGridTitle,
         rowHeaderLabel: labels.sequencesGridRowHeader,
         chunks: chunks,
@@ -186,6 +198,7 @@ class OcptShootingPlanPdfService {
         painter: painter,
         labels: labels,
         projectName: projectName,
+        versionLine: versionLine,
         title: labels.peopleGridTitle,
         rowHeaderLabel: labels.peopleGridRowHeader,
         chunks: chunks,
@@ -199,6 +212,7 @@ class OcptShootingPlanPdfService {
           painter: painter,
           labels: labels,
           projectName: projectName,
+          versionLine: versionLine,
           plan: plan,
           dayId: dayId,
           headingBySceneId: headingBySceneId,
@@ -223,7 +237,7 @@ class OcptShootingPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String projectName,
-    required DateTime exportDate,
+    required String versionLine,
   }) => pw.Page(
     pageFormat: _portraitPageFormat(painter),
     build: (context) => pw.Center(
@@ -245,7 +259,7 @@ class OcptShootingPlanPdfService {
           ],
           pw.SizedBox(height: 32),
           pw.Text(
-            "${labels.titlePageVersionLabel} ${_isoDate(exportDate)}",
+            versionLine,
             style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
           ),
         ],
@@ -259,11 +273,17 @@ class OcptShootingPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String projectName,
+    required String versionLine,
     required String text,
   }) => pw.MultiPage(
     pageFormat: _portraitPageFormat(painter),
     build: (context) => [
-      _runningHead(painter: painter, projectName: projectName, documentTitle: labels.documentTitle),
+      _runningHead(
+          painter: painter,
+          projectName: projectName,
+          documentTitle: labels.documentTitle,
+          versionLine: versionLine,
+        ),
       pw.SizedBox(height: 6),
       _noteWidget(painter: painter, text: text),
     ],
@@ -281,6 +301,7 @@ class OcptShootingPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String projectName,
+    required String versionLine,
     required String title,
     required String rowHeaderLabel,
     required List<List<_GridColumnRef>> chunks,
@@ -288,7 +309,13 @@ class OcptShootingPlanPdfService {
   }) {
     if (chunks.isEmpty || rows.isEmpty) {
       pdfDocument.addPage(
-        _gridNotePage(painter: painter, labels: labels, projectName: projectName, title: title),
+        _gridNotePage(
+          painter: painter,
+          labels: labels,
+          projectName: projectName,
+          versionLine: versionLine,
+          title: title,
+        ),
       );
       return;
     }
@@ -299,6 +326,7 @@ class OcptShootingPlanPdfService {
           painter: painter,
           labels: labels,
           projectName: projectName,
+          versionLine: versionLine,
           pageTitle: chunks.length > 1 ? "$title (${chunkIndex + 1}/${chunks.length})" : title,
           rowHeaderLabel: rowHeaderLabel,
           columns: chunk,
@@ -313,11 +341,17 @@ class OcptShootingPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String projectName,
+    required String versionLine,
     required String title,
   }) => pw.MultiPage(
     pageFormat: _landscapePageFormat(painter),
     build: (context) => [
-      _runningHead(painter: painter, projectName: projectName, documentTitle: labels.documentTitle),
+      _runningHead(
+          painter: painter,
+          projectName: projectName,
+          documentTitle: labels.documentTitle,
+          versionLine: versionLine,
+        ),
       pw.SizedBox(height: 6),
       pw.Text(title, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
       pw.SizedBox(height: 8),
@@ -332,6 +366,7 @@ class OcptShootingPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String projectName,
+    required String versionLine,
     required String pageTitle,
     required String rowHeaderLabel,
     required List<_GridColumnRef> columns,
@@ -345,7 +380,12 @@ class OcptShootingPlanPdfService {
     return pw.MultiPage(
       pageFormat: _landscapePageFormat(painter),
       build: (context) => [
-        _runningHead(painter: painter, projectName: projectName, documentTitle: labels.documentTitle),
+        _runningHead(
+          painter: painter,
+          projectName: projectName,
+          documentTitle: labels.documentTitle,
+          versionLine: versionLine,
+        ),
         pw.SizedBox(height: 6),
         pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
         pw.SizedBox(height: 8),
@@ -659,6 +699,7 @@ class OcptShootingPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String projectName,
+    required String versionLine,
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
     required Map<String, String> headingBySceneId,
@@ -673,7 +714,12 @@ class OcptShootingPlanPdfService {
     return pw.MultiPage(
       pageFormat: _portraitPageFormat(painter),
       build: (context) => [
-        _runningHead(painter: painter, projectName: projectName, documentTitle: labels.documentTitle),
+        _runningHead(
+          painter: painter,
+          projectName: projectName,
+          documentTitle: labels.documentTitle,
+          versionLine: versionLine,
+        ),
         pw.SizedBox(height: 6),
         pw.Text(
           title.isEmpty ? "${labels.dayTagPrefix}${day.dayNumber}" : title,
@@ -957,19 +1003,34 @@ class OcptShootingPlanPdfService {
   // Small shared drawing helpers
   // ---------------------------------------------------------------------------------------------
 
-  /// The running head naming the project and the document, over a thin rule — the same shape
-  /// `OcptCallSheetPdfService._page` draws inline, factored out here since every page kind of this
-  /// service (title, grid, day agenda, note) opens with it.
+  /// The running head naming the project and the document on the left, [versionLine] on the right,
+  /// over a thin rule — the same shape `OcptCallSheetPdfService._page` draws inline, factored out
+  /// here since every page kind of this service (title, grid, day agenda, note) opens with it.
+  ///
+  /// The version line is repeated on **every** page rather than on the title page alone: a shooting
+  /// plan is read page by page, a day agenda torn out of it or a landscape grid pinned on a wall,
+  /// and a reader holding one sheet of it has nowhere else to find out which issue they are working
+  /// from.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
     required String projectName,
     required String documentTitle,
+    required String versionLine,
   }) => pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
-      pw.Text(
-        "$projectName — $documentTitle",
-        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+      pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            "$projectName — $documentTitle",
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          ),
+          pw.Text(
+            versionLine,
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          ),
+        ],
       ),
       pw.SizedBox(height: 2),
       pw.Divider(color: _ruleColor, thickness: 0.5, height: 6),
@@ -1015,13 +1076,6 @@ class OcptShootingPlanPdfService {
     marginRight: painter.marginRightPt,
     marginBottom: painter.marginRightPt,
   );
-
-  /// [date] as `yyyy-MM-dd`, mirroring `OcptShotListXlsxExportService._isoDate` — the title page's
-  /// own export-date line needs no locale-sensitive formatting, unlike a day's own title, which is
-  /// why it is the one date this service formats itself rather than asking the caller for it.
-  String _isoDate(DateTime date) =>
-      "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-"
-      "${date.day.toString().padLeft(2, '0')}";
 }
 
 // ===================================================================================================

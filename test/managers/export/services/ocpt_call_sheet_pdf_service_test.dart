@@ -33,6 +33,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
+/// The moment every sheet below is stamped with: pinned rather than left to default to
+/// `DateTime.now()`, so a test comparing two documents byte for byte cannot fail — nor pass — for
+/// having straddled a minute boundary between them.
+final _pinnedExportDate = DateTime(2026, 1, 15, 14, 32);
+
 /// Every localized string of the document, filled with recognisable placeholders: nothing here
 /// asserts on the printed text (Courier Prime is embedded as an Identity-H composite font, so a
 /// content stream holds glyph indices rather than readable characters), only on what changes when
@@ -42,6 +47,7 @@ const _labels = OcptCallSheetLabels(
   documentTitle: "Call sheet",
   dayTitles: {"day-1": "CALL SHEET OF THURSDAY 10 AUGUST 2023"},
   directorLine: "A film by Jane Doe",
+  versionLabel: "Version",
   dayTagPrefix: "D",
   dayNumberLabel: "DAY",
   recipientsSectionTitle: "Recipients",
@@ -441,6 +447,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(bytes, isNotEmpty);
@@ -454,6 +461,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       // Drop the evening slot and its crew entirely: the second unit's own time band, its
@@ -496,6 +504,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(_contentStreams(full), isNot(_contentStreams(single)));
@@ -553,6 +562,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
       final oneBytes = await service.generateGeneralCallSheet(
         plan: oneOnly,
@@ -560,6 +570,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       // A second cast row and a second cast-and-extras row, on a day whose slots convoke nobody at
@@ -600,6 +611,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
       final dayBytes = await service.generateGeneralCallSheet(
         plan: daySnapshot,
@@ -607,6 +619,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(ascii.decode(nightBytes.sublist(0, 4)), "%PDF");
@@ -653,6 +666,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
       final longBytes = await service.generateGeneralCallSheet(
         plan: longSnapshot,
@@ -660,6 +674,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(_contentStreams(shortBytes), isNot(_contentStreams(longBytes)));
@@ -674,6 +689,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
@@ -689,6 +705,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
@@ -702,6 +719,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
       final second = await service.generateGeneralCallSheet(
         plan: buildTwoSlotDaySnapshot(),
@@ -709,9 +727,26 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
 
       expect(_contentStreams(first), _contentStreams(second));
+    });
+
+    test("two sheets of one day, produced at two moments, do not draw the same pages", () async {
+      Future<Uint8List> generateAt(DateTime exportDate) => service.generateGeneralCallSheet(
+        plan: buildTwoSlotDaySnapshot(),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: exportDate,
+      );
+
+      final morning = await generateAt(DateTime(2026, 1, 15, 9, 15));
+      final afternoon = await generateAt(DateTime(2026, 1, 15, 17, 45));
+
+      expect(_contentStreams(morning), isNot(_contentStreams(afternoon)));
     });
   });
 
@@ -726,6 +761,7 @@ void main() {
         labels: _labels,
         projectName: "My Movie",
         convocation: convocation,
+        exportDate: _pinnedExportDate,
       );
 
       // A brand new crew member, on the *other* unit, in a department that never reaches the key
@@ -750,6 +786,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
       final generalBytesAfter = await service.generateGeneralCallSheet(
         plan: grownPlanWithPerson,
@@ -757,6 +794,7 @@ void main() {
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
+        exportDate: _pinnedExportDate,
       );
       final namedBytesAfter = await service.generateNamedCallSheet(
         plan: grownPlanWithPerson,
@@ -765,6 +803,7 @@ void main() {
         labels: _labels,
         projectName: "My Movie",
         convocation: grownConvocation,
+        exportDate: _pinnedExportDate,
       );
 
       // The general sheet's own crew list grew...
@@ -786,6 +825,7 @@ void main() {
         labels: _labels,
         projectName: "My Movie",
         convocation: morning,
+        exportDate: _pinnedExportDate,
       );
       final eveningBytes = await service.generateNamedCallSheet(
         plan: plan,
@@ -794,6 +834,7 @@ void main() {
         labels: _labels,
         projectName: "My Movie",
         convocation: evening,
+        exportDate: _pinnedExportDate,
       );
 
       // Every closing table is day-wide and therefore identical between the two; what still has to
@@ -886,6 +927,7 @@ void main() {
           labels: _labels,
           projectName: "My Movie",
           convocation: convocation,
+          exportDate: _pinnedExportDate,
         );
       }
 
@@ -926,9 +968,30 @@ void main() {
         labels: _labels,
         projectName: "My Movie",
         convocation: convocation,
+        exportDate: _pinnedExportDate,
       );
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
+    });
+
+    test("a named sheet is stamped too: two moments, two documents", () async {
+      final plan = buildTwoSlotDaySnapshot();
+      final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+
+      Future<Uint8List> generateAt(DateTime exportDate) => service.generateNamedCallSheet(
+        plan: plan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocation,
+        exportDate: exportDate,
+      );
+
+      final morning = await generateAt(DateTime(2026, 1, 15, 9, 15));
+      final afternoon = await generateAt(DateTime(2026, 1, 15, 17, 45));
+
+      expect(_contentStreams(morning), isNot(_contentStreams(afternoon)));
     });
   });
 

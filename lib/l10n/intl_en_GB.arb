@@ -7652,10 +7652,10 @@
       }
     }
   },
-  "scheduleExportTitlePageVersionLabel": "Version",
-  "@scheduleExportTitlePageVersionLabel": {
-    "description": "Label the shooting plan's own title page export-date line is printed under",
-    "context": "Printed on the shooting plan's own title page",
+  "scheduleExportVersionLabel": "Version",
+  "@scheduleExportVersionLabel": {
+    "description": "Label the moment a schedule document was produced is printed under",
+    "context": "Printed on the shooting plan and on every call sheet",
     "type": "text",
     "placeholders": {}
   },

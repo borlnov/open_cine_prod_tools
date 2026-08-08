@@ -84,6 +84,28 @@ void main() {
     "role-c": _buildRole(id: "role-c", number: 8),
   };
 
+  group("ocptScheduleGeneratedAtStamp", () {
+    test("prints the date and the time, zero-padded, as one sortable stamp", () {
+      expect(ocptScheduleGeneratedAtStamp(DateTime(2026, 8, 8, 14, 32)), "2026-08-08 14:32");
+    });
+
+    test("pads a single-digit month, day, hour and minute alike", () {
+      expect(ocptScheduleGeneratedAtStamp(DateTime(2026, 1, 2, 3, 4)), "2026-01-02 03:04");
+    });
+
+    test("two moments of one day differ by their time alone, which is the point of the stamp", () {
+      final morning = ocptScheduleGeneratedAtStamp(DateTime(2026, 8, 8, 9, 15));
+      final afternoon = ocptScheduleGeneratedAtStamp(DateTime(2026, 8, 8, 17, 45));
+
+      expect(morning, isNot(afternoon));
+      expect(morning.substring(0, 10), afternoon.substring(0, 10));
+    });
+
+    test("midnight prints as 00:00 rather than as 24:00 of the day before", () {
+      expect(ocptScheduleGeneratedAtStamp(DateTime(2026, 8, 9)), "2026-08-09 00:00");
+    });
+  });
+
   group("ocptScheduleSlotRoleNumbersOf", () {
     test("reads the slot's own cast, sorted ascending rather than in link order", () {
       final slot = _buildSlot(

@@ -41,7 +41,7 @@ const _labels = OcptShootingPlanLabels(
   documentTitle: "Shooting plan",
   dayTitles: {"day-1": "Shooting plan for Thursday 10 August 2023"},
   directorLine: '"My Movie" by Jane Doe',
-  titlePageVersionLabel: "Version",
+  versionLabel: "Version",
   dayTagPrefix: "D",
   locationsGridTitle: "Summary - Locations",
   sequencesGridTitle: "Summary - Sequences",
@@ -660,6 +660,35 @@ void main() {
       final second = await generateOnce();
 
       expect(_contentStreams(first), _contentStreams(second));
+    });
+
+    test("the same schedule exported at two moments of one day draws different pages", () async {
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480)],
+        },
+      );
+
+      // No title page: what tells these two apart can only be the running head's own stamp, which is
+      // the whole point of repeating it on every page rather than printing it on the cover alone.
+      Future<Uint8List> generateAt(DateTime exportDate) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        exportDate: exportDate,
+      );
+
+      final morning = await generateAt(DateTime(2026, 1, 15, 9, 15));
+      final afternoon = await generateAt(DateTime(2026, 1, 15, 17, 45));
+
+      expect(_contentStreams(morning), isNot(_contentStreams(afternoon)));
     });
   });
 

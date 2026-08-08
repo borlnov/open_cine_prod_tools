@@ -40,6 +40,11 @@ class OcptCallSheetLabels extends Equatable {
   /// caller.
   final String directorLine;
 
+  /// The label the moment this sheet was produced is printed under, in the title block
+  /// (`Version 2026-08-08 14:32`) — the same word `OcptShootingPlanLabels.versionLabel` carries, so
+  /// the two documents of one shoot name their own issue identically.
+  final String versionLabel;
+
   /// The day tag's own letter (`D`/`J`), printed beside a day's rank exactly as
   /// `OcptShotListXlsxLabels.dayTagPrefix` already is.
   final String dayTagPrefix;
@@ -170,6 +175,7 @@ class OcptCallSheetLabels extends Equatable {
     required this.documentTitle,
     required this.dayTitles,
     required this.directorLine,
+    required this.versionLabel,
     required this.dayTagPrefix,
     required this.dayNumberLabel,
     required this.recipientsSectionTitle,
@@ -232,6 +238,7 @@ class OcptCallSheetLabels extends Equatable {
     documentTitle,
     dayTitles,
     directorLine,
+    versionLabel,
     dayTagPrefix,
     dayNumberLabel,
     recipientsSectionTitle,

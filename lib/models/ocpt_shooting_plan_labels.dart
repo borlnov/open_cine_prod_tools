@@ -39,8 +39,10 @@ class OcptShootingPlanLabels extends Equatable {
   /// project names no director — see the class doc comment for why it is resolved by the caller.
   final String directorLine;
 
-  /// The label the title page's own export-date line is printed under (`Version`).
-  final String titlePageVersionLabel;
+  /// The label the moment this export was produced is printed under (`Version`), on the title page
+  /// and in every page's own running head alike — one word for one stamp, the running head being
+  /// where a reader of page six finds out which issue of the plan they are holding.
+  final String versionLabel;
 
   /// The day tag's own letter (`D`/`J`), printed beside a day's rank in every grid column and every
   /// agenda page, exactly as `OcptCallSheetLabels.dayTagPrefix` already is.
@@ -148,7 +150,7 @@ class OcptShootingPlanLabels extends Equatable {
     required this.documentTitle,
     required this.dayTitles,
     required this.directorLine,
-    required this.titlePageVersionLabel,
+    required this.versionLabel,
     required this.dayTagPrefix,
     required this.locationsGridTitle,
     required this.sequencesGridTitle,
@@ -200,7 +202,7 @@ class OcptShootingPlanLabels extends Equatable {
     documentTitle,
     dayTitles,
     directorLine,
-    titlePageVersionLabel,
+    versionLabel,
     dayTagPrefix,
     locationsGridTitle,
     sequencesGridTitle,
