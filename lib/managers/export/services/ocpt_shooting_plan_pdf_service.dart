@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
@@ -117,6 +118,17 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 /// document's own day-parts are exactly what a slot is in this app. When more columns exist than
 /// [_maxGridColumnsPerPage] holds, a grid's own rows repeat over as many chunked pages as it takes;
 /// the detailed day agendas that follow stay portrait, so one document mixes both orientations.
+///
+/// **Each day's own ten-minute grid** (`includeTenMinuteGrid` on [generate]) is an optional extra
+/// page, added right after that day's detailed agenda rather than replacing it: rows every
+/// [OcptShootingDayAgendaGrid.stepMinutes] from the day's earliest resolved start to its latest
+/// resolved end, one column per slot, a block drawn as a tile and an event as a full-width marker.
+/// It is drawn **portrait**, unlike the three summary grids — a whole shoot's own slots run wide
+/// across many days, while a single day's own slots are few, exactly the trade this class's own
+/// three-grids paragraph already argues the other way. The geometry is entirely
+/// [OcptShootingDayAgendaGrid.of]'s own; this service only draws it, and only the drawing choices
+/// specific to `pdf`'s own `Table` widget belong here — see [_tenMinuteGridPage]'s own doc comment
+/// for the one it has to work around (no cell can span more than one row of a `pw.Table`).
 class OcptShootingPlanPdfService {
   /// Creates an [OcptShootingPlanPdfService].
   ///
@@ -160,6 +172,7 @@ class OcptShootingPlanPdfService {
     required bool includeLocationsGrid,
     required bool includeSequencesGrid,
     required bool includePeopleGrid,
+    required bool includeTenMinuteGrid,
     DateTime? exportDate,
   }) async {
     final painter = await _painterFor(pageSetup);
@@ -244,6 +257,19 @@ class OcptShootingPlanPdfService {
           headingBySceneId: headingBySceneId,
         ),
       );
+      if (includeTenMinuteGrid) {
+        pdfDocument.addPage(
+          _tenMinuteGridPage(
+            painter: painter,
+            labels: labels,
+            projectName: projectName,
+            versionLine: versionLine,
+            plan: plan,
+            dayId: dayId,
+            headingBySceneId: headingBySceneId,
+          ),
+        );
+      }
     }
 
     return pdfDocument.save();
@@ -1182,6 +1208,269 @@ class OcptShootingPlanPdfService {
     final sorted = matched.toList()..sort();
     return sorted.join(", ");
   }
+
+  // ---------------------------------------------------------------------------------------------
+  // Ten-minute day grid
+  // ---------------------------------------------------------------------------------------------
+
+  /// [dayId]'s own [OcptShootingDayAgendaGrid], built from [plan]'s resolved timelines and events —
+  /// the one place this service turns those into the grid's own pure input types.
+  ///
+  /// A shot block's own tile caption is its shot's own code (`shot.code`), never its full row of
+  /// fields: the ten-minute grid's own columns are narrow, and the detailed agenda right before it
+  /// already prints every other field of the very same shot. Every other block kind reads its
+  /// caption the same way [_dayTimetableWidgets] does, through [ocptScheduleBlockCaptionOf].
+  OcptShootingDayAgendaGrid _tenMinuteGridOf({
+    required OcptShootingPlanLabels labels,
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+    required Map<String, String> headingBySceneId,
+  }) {
+    final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+    final timelines = plan.timelinesOfDay(dayId);
+    if (timelines == null) {
+      return const OcptShootingDayAgendaGrid.empty();
+    }
+
+    final blocksBySlotId = <String, List<OcptShootingDayBlock>>{};
+    for (final block in plan.schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[]) {
+      (blocksBySlotId[block.slotId] ??= <OcptShootingDayBlock>[]).add(block);
+    }
+
+    final columns = <OcptShootingDayAgendaColumnInput>[];
+    for (final slot in slots) {
+      final timeline = timelines.bySlotId[slot.id];
+      if (timeline == null) {
+        continue;
+      }
+      final captions = <String, String>{
+        for (final block in blocksBySlotId[slot.id] ?? const <OcptShootingDayBlock>[])
+          block.id: block.kind == OcptShootingBlockKind.shot
+              ? (block.shotId == null ? null : plan.shotById(block.shotId!))?.code ?? ocptScheduleEmptyValue
+              : ocptScheduleBlockCaptionOf(
+                  block: block,
+                  headingBySceneId: headingBySceneId,
+                  blockKindLabelOf: labels.blockKindLabelOf,
+                ),
+      };
+      columns.add(
+        OcptShootingDayAgendaColumnInput(
+          slotId: slot.id,
+          label: slot.label,
+          timeline: timeline,
+          captionByBlockId: captions,
+        ),
+      );
+    }
+
+    final events = [
+      for (final event in plan.schedule.eventsByDayId[dayId] ?? const <OcptShootingDayEvent>[])
+        OcptShootingDayAgendaEventInput(id: event.id, minute: event.minute, label: event.label),
+    ];
+
+    return OcptShootingDayAgendaGrid.of(columns: columns, events: events);
+  }
+
+  /// One day's own ten-minute grid page: the running head, the day's own title with
+  /// [OcptShootingPlanLabels.tenMinuteGridSectionTitle] appended, then the grid itself, or
+  /// [OcptShootingPlanLabels.emptyDayScheduleNote] on a day with no live slot at all.
+  ///
+  /// **`pw.Table` cannot span a cell across rows**, so a tile whose own
+  /// [OcptShootingDayAgendaTile.rowSpan] is more than 1 is drawn as one ordinary bordered cell per
+  /// row, its own top and bottom border switched off on every row but its first and its last
+  /// ([_tenMinuteGridTileCell]) — which reads as a single merged rectangle without the package ever
+  /// being asked to merge one. An event breaks the table at its own row into two chunks with its
+  /// own full-width band between them ([_tenMinuteGridEventWidget]), mirroring
+  /// [_dayTimetableWidgets]'s own milestone break: `pw.Table` cannot span a *column* any more than
+  /// a row, so there is no other way to print one line the whole width of the page. A tile whose
+  /// own band happens to cross that break is therefore drawn as two bordered rectangles rather than
+  /// one — a visual seam this reading aid accepts rather than a claim the grid cannot make.
+  pw.MultiPage _tenMinuteGridPage({
+    required OcptScriptPagePainter painter,
+    required OcptShootingPlanLabels labels,
+    required String projectName,
+    required String versionLine,
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+    required Map<String, String> headingBySceneId,
+  }) {
+    final day = plan.schedule.daysById[dayId]!;
+    final title = labels.titleOfDay(dayId);
+    final grid = _tenMinuteGridOf(labels: labels, plan: plan, dayId: dayId, headingBySceneId: headingBySceneId);
+
+    return pw.MultiPage(
+      pageFormat: _portraitPageFormat(painter),
+      build: (context) => [
+        _runningHead(
+          painter: painter,
+          projectName: projectName,
+          documentTitle: labels.documentTitle,
+          versionLine: versionLine,
+        ),
+        pw.SizedBox(height: 6),
+        pw.Text(
+          "${title.isEmpty ? "${labels.dayTagPrefix}${day.dayNumber}" : title} — "
+              "${labels.tenMinuteGridSectionTitle}",
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+        ),
+        pw.SizedBox(height: 10),
+        ..._tenMinuteGridWidgets(painter: painter, labels: labels, grid: grid),
+      ],
+    );
+  }
+
+  /// The grid's own body: one [pw.Table] per run of rows uninterrupted by an event, a header row
+  /// (the slot labels) leading every one of them so a page reached after a break still says which
+  /// column is which slot, or [OcptShootingPlanLabels.emptyDayScheduleNote] while [grid] is empty.
+  List<pw.Widget> _tenMinuteGridWidgets({
+    required OcptScriptPagePainter painter,
+    required OcptShootingPlanLabels labels,
+    required OcptShootingDayAgendaGrid grid,
+  }) {
+    if (grid.isEmpty) {
+      return [_noteWidget(painter: painter, text: labels.emptyDayScheduleNote)];
+    }
+
+    final tileAtRowByColumn = <String, List<OcptShootingDayAgendaTile?>>{
+      for (final column in grid.columns) column.slotId: List<OcptShootingDayAgendaTile?>.filled(grid.rowCount, null),
+    };
+    for (final tile in grid.tiles) {
+      final rows = tileAtRowByColumn[tile.slotId];
+      if (rows == null) {
+        continue;
+      }
+      for (var row = tile.startRow; row < tile.startRow + tile.rowSpan && row < grid.rowCount; row++) {
+        rows[row] = tile;
+      }
+    }
+
+    final eventsByRow = <int, List<OcptShootingDayAgendaEventMarker>>{};
+    for (final marker in grid.events) {
+      (eventsByRow[marker.row] ??= <OcptShootingDayAgendaEventMarker>[]).add(marker);
+    }
+
+    final columnWidths = <int, pw.TableColumnWidth>{0: const pw.FlexColumnWidth(0.8)};
+    for (var index = 0; index < grid.columns.length; index++) {
+      columnWidths[index + 1] = const pw.FlexColumnWidth();
+    }
+
+    final widgets = <pw.Widget>[];
+    var pendingRows = <pw.TableRow>[];
+
+    void flush() {
+      if (pendingRows.isEmpty) {
+        return;
+      }
+      widgets.add(
+        pw.Table(
+          columnWidths: columnWidths,
+          children: [
+            pw.TableRow(
+              decoration: const pw.BoxDecoration(color: _bandColor),
+              children: [
+                _gridCornerCell(painter: painter),
+                for (final column in grid.columns)
+                  _gridHeaderCell(
+                    painter: painter,
+                    text: column.label.trim().isEmpty ? ocptScheduleEmptyValue : column.label.trim(),
+                  ),
+              ],
+            ),
+            ...pendingRows,
+          ],
+        ),
+      );
+      pendingRows = <pw.TableRow>[];
+    }
+
+    for (var row = 0; row < grid.rowCount; row++) {
+      pendingRows.add(
+        pw.TableRow(
+          children: [
+            _tenMinuteGridHourCell(painter: painter, minute: grid.startMinute + row * OcptShootingDayAgendaGrid.stepMinutes),
+            for (final column in grid.columns)
+              _tenMinuteGridTileCell(painter: painter, tile: tileAtRowByColumn[column.slotId]![row], row: row),
+          ],
+        ),
+      );
+
+      final events = eventsByRow[row];
+      if (events == null) {
+        continue;
+      }
+      flush();
+      for (final marker in events) {
+        widgets.add(_tenMinuteGridEventWidget(painter: painter, marker: marker));
+      }
+    }
+    flush();
+
+    return widgets;
+  }
+
+  /// The grid's own leading column cell: [minute] formatted through `ocptFormatDayMinute`, printed
+  /// on every row — the same figure the tile cells inside that row's own band read their exact
+  /// clock from, but rounded to this row's own ten-minute mark rather than a block's own exact one.
+  pw.Widget _tenMinuteGridHourCell({required OcptScriptPagePainter painter, required int minute}) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      ocptFormatDayMinute(minute),
+      style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+    ),
+  );
+
+  /// One slot column's own cell for [row]: a blank, borderless space while [tile] is null (that
+  /// slot has nothing placed on this row — a gap between two blocks, or a row before the slot's own
+  /// call), otherwise a bordered rectangle carrying [tile]'s own caption and exact clock on its
+  /// first row alone, its top and bottom border switched on only where [row] is that tile's own
+  /// first or last row respectively — see [_tenMinuteGridPage]'s own doc comment for why.
+  pw.Widget _tenMinuteGridTileCell({
+    required OcptScriptPagePainter painter,
+    required OcptShootingDayAgendaTile? tile,
+    required int row,
+  }) {
+    if (tile == null) {
+      return pw.Padding(padding: const pw.EdgeInsets.all(_cellPaddingPt), child: pw.SizedBox());
+    }
+
+    final isFirstRow = row == tile.startRow;
+    final isLastRow = row == tile.startRow + tile.rowSpan - 1;
+
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border(
+          left: const pw.BorderSide(color: _ruleColor, width: 0.5),
+          right: const pw.BorderSide(color: _ruleColor, width: 0.5),
+          top: isFirstRow ? const pw.BorderSide(color: _ruleColor, width: 0.5) : pw.BorderSide.none,
+          bottom: isLastRow ? const pw.BorderSide(color: _ruleColor, width: 0.5) : pw.BorderSide.none,
+        ),
+      ),
+      padding: const pw.EdgeInsets.all(_cellPaddingPt),
+      child: isFirstRow
+          ? pw.Text(
+              "${tile.caption} · ${ocptFormatDayMinute(tile.startMinute)}–${ocptFormatDayMinute(tile.endMinute)}",
+              style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt),
+            )
+          : pw.SizedBox(),
+    );
+  }
+
+  /// The grid's own full-width event marker, breaking the table it interrupts into two — mirrors
+  /// [_crewNoteBandWidget]'s own `minWidth: double.infinity` trick, `pw.Table` having no column a
+  /// single widget could span instead.
+  pw.Widget _tenMinuteGridEventWidget({
+    required OcptScriptPagePainter painter,
+    required OcptShootingDayAgendaEventMarker marker,
+  }) => pw.Container(
+    constraints: const pw.BoxConstraints(minWidth: double.infinity),
+    margin: const pw.EdgeInsets.symmetric(vertical: 2),
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5), color: _bandColor),
+    child: pw.Text(
+      "${ocptFormatDayMinute(marker.minute)} — ${marker.label.trim().isEmpty ? ocptScheduleEmptyValue : marker.label.trim()}",
+      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+    ),
+  );
 
   // ---------------------------------------------------------------------------------------------
   // Small shared drawing helpers

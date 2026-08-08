@@ -461,6 +461,7 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
       for (final day in days)
         day.id: tr.scheduleExportShootingPlanDayTitle(DateFormat.MMMMEEEEd(locale).format(day.date)),
     },
+    tenMinuteGridSectionTitle: tr.scheduleExportTenMinuteGridSectionTitle,
     directorLine: ocptScheduleDirectorLineOf(tr, people),
     versionLabel: tr.scheduleExportVersionLabel,
     dayTagPrefix: tr.scheduleDayTagPrefix,

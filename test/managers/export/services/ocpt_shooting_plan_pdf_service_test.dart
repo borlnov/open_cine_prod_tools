@@ -40,6 +40,7 @@ const _labels = OcptShootingPlanLabels(
   fileNameSuffix: "shooting plan",
   documentTitle: "Shooting plan",
   dayTitles: {"day-1": "Shooting plan for Thursday 10 August 2023"},
+  tenMinuteGridSectionTitle: "Ten-minute grid",
   directorLine: '"My Movie" by Jane Doe',
   versionLabel: "Version",
   dayTagPrefix: "D",
@@ -399,6 +400,7 @@ void main() {
         includeLocationsGrid: true,
         includeSequencesGrid: true,
         includePeopleGrid: true,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -437,6 +439,7 @@ void main() {
         includeLocationsGrid: true,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -472,6 +475,7 @@ void main() {
         includeLocationsGrid: includeLocationsGrid,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -519,6 +523,7 @@ void main() {
         includeLocationsGrid: includeGrids,
         includeSequencesGrid: includeGrids,
         includePeopleGrid: includeGrids,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -561,6 +566,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -626,6 +632,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -683,6 +690,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -705,6 +713,7 @@ void main() {
         includeLocationsGrid: true,
         includeSequencesGrid: true,
         includePeopleGrid: true,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -725,6 +734,7 @@ void main() {
         includeLocationsGrid: true,
         includeSequencesGrid: true,
         includePeopleGrid: true,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -753,6 +763,7 @@ void main() {
         includeLocationsGrid: true,
         includeSequencesGrid: true,
         includePeopleGrid: true,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -782,6 +793,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: exportDate,
       );
 
@@ -844,6 +856,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -892,6 +905,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -936,6 +950,7 @@ void main() {
         includeLocationsGrid: false,
         includeSequencesGrid: false,
         includePeopleGrid: false,
+        includeTenMinuteGrid: false,
         exportDate: pinnedExportDate,
       );
 
@@ -943,6 +958,143 @@ void main() {
       final withNote = await generateFor(buildPlan("Bring the rain cover."));
 
       expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
+    });
+  });
+
+  group("ten-minute day grid", () {
+    test("toggled on grows the document, toggled off leaves it as it was", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+      );
+
+      Future<Uint8List> generateFor({required bool includeTenMinuteGrid}) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: includeTenMinuteGrid,
+        exportDate: pinnedExportDate,
+      );
+
+      final without = await generateFor(includeTenMinuteGrid: false);
+      final withGrid = await generateFor(includeTenMinuteGrid: true);
+      final withGridAgain = await generateFor(includeTenMinuteGrid: true);
+
+      expect(withGrid.length, greaterThan(without.length));
+      // Toggled off twice in a row, at the very same export date, draws exactly the same pages —
+      // nothing about the day agenda itself changed by the option existing at all.
+      final withoutAgain = await generateFor(includeTenMinuteGrid: false);
+      expect(_contentStreams(without), _contentStreams(withoutAgain));
+      expect(_contentStreams(withGrid), _contentStreams(withGridAgain));
+    });
+
+    test("a day whose blocks run past midnight still produces it", () async {
+      final nightSlot = _buildSlot(id: "slot-night", shootingDayId: "day-1", anchorMinute: 1140); // 19:00
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [nightSlot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-night",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 480, // ends at 1620, i.e. 03:00 the following morning
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+      );
+
+      final bytes = await service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: true,
+        exportDate: pinnedExportDate,
+      );
+
+      expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
+      expect(_pageCount(bytes), greaterThanOrEqualTo(2)); // the day agenda, then the grid page
+    });
+
+    test("an event pinned outside every block's own band still produces a readable document", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final withoutEvent = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", durationMinutes: 60)],
+        },
+      );
+      final withEvent = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", durationMinutes: 60)],
+        },
+        eventsByDayId: {
+          "day-1": [_buildEvent(id: "event-1", shootingDayId: "day-1", minute: 1020, label: "Village fireworks")],
+        },
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: true,
+        exportDate: pinnedExportDate,
+      );
+
+      final withBytes = await generateFor(withEvent);
+      final withoutBytes = await generateFor(withoutEvent);
+
+      expect(ascii.decode(withBytes.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
     });
   });
 

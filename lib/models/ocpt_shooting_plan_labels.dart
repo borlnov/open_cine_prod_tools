@@ -35,6 +35,11 @@ class OcptShootingPlanLabels extends Equatable {
   /// doc comment for why it is resolved by the caller.
   final Map<String, String> dayTitles;
 
+  /// The heading a day's own ten-minute grid page carries, appended after that day's own title
+  /// (`titleOfDay`) — the extra section `OcptShootingPlanPdfService` adds beside the detailed day
+  /// agenda rather than instead of it.
+  final String tenMinuteGridSectionTitle;
+
   /// The `"<title>" de <director>` line printed on the title page, or an empty string while the
   /// project names no director — see the class doc comment for why it is resolved by the caller.
   final String directorLine;
@@ -183,6 +188,7 @@ class OcptShootingPlanLabels extends Equatable {
     required this.fileNameSuffix,
     required this.documentTitle,
     required this.dayTitles,
+    required this.tenMinuteGridSectionTitle,
     required this.directorLine,
     required this.versionLabel,
     required this.dayTagPrefix,
@@ -242,6 +248,7 @@ class OcptShootingPlanLabels extends Equatable {
     fileNameSuffix,
     documentTitle,
     dayTitles,
+    tenMinuteGridSectionTitle,
     directorLine,
     versionLabel,
     dayTagPrefix,

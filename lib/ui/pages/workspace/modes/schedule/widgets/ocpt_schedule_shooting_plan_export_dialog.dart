@@ -72,6 +72,9 @@ class _OcptScheduleShootingPlanExportDialogState
   /// Whether the crew and cast summary grid will be included.
   bool _includePeopleGrid = true;
 
+  /// Whether each printed day's own ten-minute grid will be added after its detailed agenda.
+  bool _includeTenMinuteGrid = true;
+
   @override
   void initState() {
     super.initState();
@@ -129,6 +132,12 @@ class _OcptScheduleShootingPlanExportDialogState
               title: Text(tr.scheduleExportShootingPlanPeopleGridLabel),
               onChanged: (value) => setState(() => _includePeopleGrid = value ?? true),
             ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _includeTenMinuteGrid,
+              title: Text(tr.scheduleExportShootingPlanTenMinuteGridLabel),
+              onChanged: (value) => setState(() => _includeTenMinuteGrid = value ?? true),
+            ),
             const SizedBox(height: 8),
             OcptScheduleDaySelectionList(
               days: widget.days,
@@ -172,6 +181,7 @@ class _OcptScheduleShootingPlanExportDialogState
       includeLocationsGrid: _includeLocationsGrid,
       includeSequencesGrid: _includeSequencesGrid,
       includePeopleGrid: _includePeopleGrid,
+      includeTenMinuteGrid: _includeTenMinuteGrid,
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptShootingPlanExportOptions>(options);
   }

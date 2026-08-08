@@ -7339,6 +7339,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportShootingPlanTenMinuteGridLabel": "Include the ten-minute grid",
+  "@scheduleExportShootingPlanTenMinuteGridLabel": {
+    "description": "Label of the checkbox toggling the ten-minute day grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportFileSuccessMessage": "Exported to {path}",
   "@scheduleExportFileSuccessMessage": {
     "description": "Message shown when the shooting plan was successfully exported to a single PDF file",
@@ -7665,6 +7672,13 @@
         "type": "String"
       }
     }
+  },
+  "scheduleExportTenMinuteGridSectionTitle": "Ten-minute grid",
+  "@scheduleExportTenMinuteGridSectionTitle": {
+    "description": "Heading of a day's own ten-minute grid page in the exported shooting plan, appended after the day's own title",
+    "context": "Printed on the shooting plan's own ten-minute grid page, one per printed day",
+    "type": "text",
+    "placeholders": {}
   },
   "scheduleExportVersionLabel": "Version",
   "@scheduleExportVersionLabel": {

@@ -501,6 +501,7 @@ void main() {
       expect(options?.includeLocationsGrid, isTrue);
       expect(options?.includeSequencesGrid, isTrue);
       expect(options?.includePeopleGrid, isTrue);
+      expect(options?.includeTenMinuteGrid, isTrue);
     });
 
     testWidgets("unticking a grid carries that one choice out alone", (tester) async {
@@ -514,6 +515,22 @@ void main() {
       final options = routerManager.poppedValue as OcptShootingPlanExportOptions?;
       expect(options?.includeSequencesGrid, isFalse);
       expect(options?.includeLocationsGrid, isTrue);
+      expect(options?.includePeopleGrid, isTrue);
+      expect(options?.includeTenMinuteGrid, isTrue);
+    });
+
+    testWidgets("unticking the ten-minute grid carries that one choice out alone", (tester) async {
+      await pumpDialog(tester, days: [dayOne]);
+
+      await tester.tap(find.text(Tr.current.scheduleExportShootingPlanTenMinuteGridLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      final options = routerManager.poppedValue as OcptShootingPlanExportOptions?;
+      expect(options?.includeTenMinuteGrid, isFalse);
+      expect(options?.includeLocationsGrid, isTrue);
+      expect(options?.includeSequencesGrid, isTrue);
       expect(options?.includePeopleGrid, isTrue);
     });
 

@@ -1016,6 +1016,7 @@ void main() {
       fileNameSuffix: "shooting plan",
       documentTitle: "Shooting plan",
       dayTitles: {},
+      tenMinuteGridSectionTitle: "Ten-minute grid",
       directorLine: "",
       versionLabel: "Version",
       dayTagPrefix: "D",
@@ -1111,6 +1112,7 @@ void main() {
       includeLocationsGrid: true,
       includeSequencesGrid: true,
       includePeopleGrid: true,
+      includeTenMinuteGrid: true,
       fileTypeLabel: "PDF document",
     );
 

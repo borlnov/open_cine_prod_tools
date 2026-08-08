@@ -46,6 +46,12 @@ class OcptShootingPlanExportOptions extends Equatable {
   /// Whether the crew and cast summary grid is printed.
   final bool includePeopleGrid;
 
+  /// Whether each printed day's own ten-minute grid is added after its detailed agenda — rows
+  /// every `OcptShootingDayAgendaGrid.stepMinutes` from the day's earliest resolved start to its
+  /// latest resolved end, one column per slot, a block drawn as a tile and an event as a
+  /// full-width marker. It **adds to** the existing detailed agenda rather than replacing it.
+  final bool includeTenMinuteGrid;
+
   /// Class constructor
   const OcptShootingPlanExportOptions({
     required this.format,
@@ -55,6 +61,7 @@ class OcptShootingPlanExportOptions extends Equatable {
     required this.includeLocationsGrid,
     required this.includeSequencesGrid,
     required this.includePeopleGrid,
+    required this.includeTenMinuteGrid,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -62,7 +69,8 @@ class OcptShootingPlanExportOptions extends Equatable {
   String toString() =>
       "OcptShootingPlanExportOptions(format: $format, margins: $margins, dayIds: $dayIds, "
       "includeTitlePage: $includeTitlePage, includeLocationsGrid: $includeLocationsGrid, "
-      "includeSequencesGrid: $includeSequencesGrid, includePeopleGrid: $includePeopleGrid)";
+      "includeSequencesGrid: $includeSequencesGrid, includePeopleGrid: $includePeopleGrid, "
+      "includeTenMinuteGrid: $includeTenMinuteGrid)";
 
   /// Object properties
   @override
@@ -74,5 +82,6 @@ class OcptShootingPlanExportOptions extends Equatable {
     includeLocationsGrid,
     includeSequencesGrid,
     includePeopleGrid,
+    includeTenMinuteGrid,
   ];
 }
