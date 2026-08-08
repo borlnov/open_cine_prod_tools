@@ -111,6 +111,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28f | Schedule mode — a convoked person's position pre-filled from the address book: `ocptCrewPositionPrefillOf` (`lib/utils/`, pure) joining a person's declared `person_positions` with what they already hold on that slot, `OcptScheduleService.addSlotCrewMember` pre-filling a fresh crew row with it, the slot card's position picker promoting the declared ones and refusing the taken ones, and the person sheet's `Portée` column deleted | ✅ |
 | 28g | Schedule mode M3 — the paperwork a shoot runs on: `OcptSchedulePlanSnapshot` owning the day-level joins both the mode and the manager layer read, `OcptCallSheetPdfService` (the general sheet and the named ones from one composition), `OcptShootingPlanPdfService` (three landscape summary grids over slot columns, then a detailed agenda per day), `ocpt_schedule_pdf_shared.dart` between them, a directory picker on `OcptSaveLocationService`, and the mode's three `⋮` entries with their options dialogs and their three-outcome notice | ✅ |
 | 28h | Schedule mode M4 — seeing what the plan is about to break: schema v16 and payload format 11 adding `people.maxDailyPresenceMinutes`, `ocpt_schedule_alerts.dart` (pure, nine sealed alert kinds, the tenth deliberately absent) joined by `OcptSchedulePlanSnapshot.alerts`, the positions matrix and the presence grid as the third and fourth centre views (`shooting_presences` written at last, a click cycling an override back round to the computed value), the `Alerts` dock tab and the count in the status bar, and the agenda's `Colour by` control over `ocptSceneEffectOf`, shared with the call sheet's own `EFFET` column | ✅ |
+| 29 | Schedule review M1 — the whole data model of the review pass in one migration: schema v17 and payload format 12 adding `shooting_slot_guests` (a guest convoked by a slot, named by a person **or** a free name) and `shooting_day_events` (what the day does not control, at an absolute hour, outside every chain), then `shooting_day_blocks.crewNote` (the note that prints, beside the `notes` that never does), `assets.validFrom`/`validUntil` and `project_info.minimumRestMinutes`, and **dropping** `shooting_presences` with the click that wrote it — the presence grid reduced to its computed reading, `OcptPresenceCode` to `working`/`unavailable`, and format 12 doing all three kinds of payload upgrade at once | ✅ |
 
 ## Ways of working
 
@@ -303,10 +304,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
 - `FountainScriptStatistics` (`fountain_kit`): pure page/scene/speaking-character/word/sign
   counters over the printable body, page count via `FountainScriptComposer`, surfaced by the
   editor's status bar.
-- Persistence: drift schema v16 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
+- Persistence: drift schema v17 (`project_info`, `screenplays`, `screenplay_snapshots`, `scenes`,
   the three shot list tables, the fourteen resources tables (`role_elements` among them),
   `breakdown_tags`, `scene_breakdowns`,
-  the six schedule tables, `row_field_versions`,
+  the seven schedule tables, `row_field_versions`,
   `project_versions`), `storeDateTimeAsText:
   true`, scene reconciliation in 3 passes (explicit scene number → exact heading → relative order).
   `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
@@ -326,9 +327,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  twenty-six captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  twenty-seven captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included)
-  plus the page setup and the currency, in a JSON format versioned by `payloadFormat` —
+  plus the page setup, the currency and the minimum rest, in a JSON format versioned by
+  `payloadFormat` —
   independent of the schema
   version, upgraded on decode when older, refused when newer. It is **a hand-written mirror of the
   schema**, and a new synchronised table has to be added to all three of it, `contentDigest` and
@@ -380,7 +382,16 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   **null** rather than format 4's: the column is nullable by design, so a version captured before it
   existed truthfully recorded no maximum for anybody, and that null is written back onto the working
   copy like any other changed column — where the currency's null means "leave the live value alone",
-  a column that has never been nullable having always held one. Counters shown
+  a column that has never been nullable having always held one. Format 12 is the first entry to do
+  **all three kinds at once**, and it is the one to read before writing a fourth: `shooting_slot_guests`
+  and `shooting_day_events` materialise as empty lists (format 6's kind), `shooting_day_blocks.crewNote`
+  as the empty string and `assets.validFrom`/`validUntil` plus `project_info.minimumRestMinutes` as
+  null (format 11's kind, a truthful "nobody recorded one" written back like any other column), and
+  the `shooting_presences` list is **dropped** (format 8's kind, the second entry in the codec that
+  removes rather than materialises) — a version captured in format 11 genuinely did carry presence
+  overrides, the project being restored into has no concept for them any more, so they come back as
+  nothing at all and, as everywhere else, **nothing is reconstructed**: an override that said
+  `travelling` does not become a slot nobody asked for. Counters shown
   on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
@@ -858,16 +869,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   The **presence grid** is the fourth: people × days, a trailing count of each person's working
   days, and cells that are **computed** — `working` when that person is convoked that day,
   `unavailable` when they are not but a `person_unavailabilities` window covers the date, and
-  **blank** otherwise, blank being absence of information rather than a claim about it. A click
-  cycles that cell's **override** (`shooting_presences`, declared since schema v11 and written at
-  last): `working` → `available` → `travelling` → `unavailable` → **no override at all**, back to
-  the computed value — the way round is what lets a mis-click be undone, and the cycle steps the
-  override rather than the effective value, since a computed cell has nothing of its own to step.
-  A row's *absence* means "the computed value stands", so removing an override is a **tombstone**
-  like every other deletion in this app, and setting one again reuses the row rather than minting a
-  second for the same (day, person). The join lives in `OcptSchedulePlanSnapshot.presenceCellOf`,
+  **blank** otherwise, blank being absence of information rather than a claim about it. **All three
+  are computed and nothing there is clickable**: schema v11 declared a `shooting_presences` table
+  for a by-hand override of that reading, and schema v17 drops it again — its `available`/
+  `unavailable` restated, from a second source of truth, what `person_unavailabilities` already
+  records in the resources mode, and `OcptPresenceCode` keeps only the two values a computation can
+  actually give. `travelling` goes with it, and that is a **real loss** rather than an oversight: it
+  is the one presence fact nothing computes, and it comes back, if it ever does, as a typed fact with
+  a table of its own — not as a resurrected override on a computed grid. The reading lives in
+  `OcptSchedulePlanSnapshot.presenceCellOf` (a plain `OcptPresenceCode?`, null being the blank cell),
   and a cell whose person is convoked on a day they are unavailable is marked from
-  `OcptSchedulePersonUnavailableAlert`, not from a second reading of that rule.
+  `OcptSchedulePersonUnavailableAlert`, not from a second reading of that rule. Having nothing to
+  withhold, the grid joins `Convocations`, the positions matrix and the `Alerts` panel as a view that
+  carries no `isReadOnly` handling at all.
   **`lib/utils/ocpt_schedule_alerts.dart`** (pure, no Flutter, no drift, no `Tr`) is what the mode
   says about a plan before the plan breaks: a sealed `OcptScheduleAlert` per kind, each carrying
   **ids and figures alone** — resolving a name and writing the sentence is the panel's job — and a
@@ -889,7 +903,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   advancing a legal maximum nobody here validated — which is why the column exists at all instead of
   a constant. It is not restricted to minors (an adult under a medical restriction is the same fact)
   but sits beside `minorNotes` on the person sheet, where that constraint is thought about, and it is
-  blanked by **both** erasure paths alongside it.
+  blanked by **both** erasure paths alongside it. `project_info.minimumRestMinutes` (schema v17,
+  nullable) is that same argument at the project's own level — the rest a production says it owes
+  between two days — and it is **deliberately not defaulted to 660**: eleven hours is French law,
+  this app ships in more than one country, and a default would be the app advancing a legal figure
+  nobody here validated, which is the whole reason it is a column rather than a constant.
   The alerts live in the `Alerts` **dock tab** rather than above the agenda the mock puts them over:
   a plan is broken whichever view is being read, and the count in the status bar is what says so from
   the other three. Each entry names what it concerns and offers the day it concerns — a selection,
@@ -975,6 +993,18 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   its own already-localized `RÔLES` label), a location's address line. **Every
   hour on either page is the resolved one** and every convocation figure comes from
   `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
+  Schema v17 adds two things this mode holds but does not yet draw. A **guest**
+  (`shooting_slot_guests`) is somebody neither crew nor cast — a mayor lending a square, a
+  journalist, an owner's cousin — convoked **by a slot** exactly as everybody else is, named by
+  either a `people` row or a free name (the discriminator idiom, because forcing an address-book row
+  onto somebody invited for one afternoon would fill it with people nobody will ever call again);
+  `duplicateDay` copies guests with the crew and the cast, a location owner attending every day
+  being entered once. An **event** (`shooting_day_events`) is the opposite kind of fact: what the day
+  does **not** control, at an absolute hour — the village fireworks at 17:00 — belonging to the day
+  rather than to a unit, taking part in **no chain** (a block kind for it would let it push a shot
+  back) and deliberately **not** copied by `duplicateDay`, since an event happens on a date. A block
+  additionally carries a **crew note** beside its `notes`: `notes` is private and never prints,
+  `crewNote` is the one that does, and until v17 nothing said which was which.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
@@ -983,7 +1013,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   photos, and a restored version restores a reference that may now dangle. **`OcptAssetsService`
   is the one place a row of that table is minted or tombstoned** (`insertAsset`/`tombstoneAsset`,
   unguarded because their callers already refused the write and are already inside their own
-  transaction; `removeAsset`, guarded, is the user's own gesture): the four services that reference
+  transaction; `removeAsset` and `updateAssetValidity`, guarded, are the user's own gestures): from
+  schema v17 a row also carries `validFrom`/`validUntil`, the window a **document** is valid over —
+  a filming permit runs from a date to a date — never anything read off the file, which the app
+  never opens; **null means "nobody has recorded dates", never "valid forever"**, which is why the
+  crossing that will read them stays silent rather than advancing a claim nobody entered. The four
+  services that reference
   a file hold it rather than each writing the table their own way, so a photo, a scouting photo, a
   permit and a signed release are all created and dropped alike. What a reference **looks like** is
   decided once too, by `OcptReferencedImage` (the image draws, or the caller's fallback does, a
@@ -1155,12 +1190,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   cast and block control, the slot's own anchor menu (rendered as plain text, with no menu at
   all), the minute fields (which render as plain text with no callback), the inspector's own
   duration field,
-  the block anchor pin and the shot status, and the presence grid's own cell click — the grid still
-  drawing every code and every total, since reading a version's presence is exactly what a preview
-  is for. The `Convocations` panel is the exception that
+  and the block anchor pin and the shot status. The `Convocations` panel is the exception that
   needs no handling at all: it offers nothing to withhold, so it draws identically either way, and
-  the positions matrix and the `Alerts` panel are its two siblings in that — both only read, and
-  the day each of them opens is a selection.
+  the positions matrix, the `Alerts` panel and the presence grid are its three siblings in that —
+  all of them only read (the grid since schema v17 dropped the override its cell click used to
+  write), and the day each of them opens is a selection.
   What only reads stays: the exports,
   the scene/sequence panels, the statistics, the resources search, the breakdown's own two views,
   scene panel, legend filtering, header search and occurrence jumps — and a click on a tagged word
