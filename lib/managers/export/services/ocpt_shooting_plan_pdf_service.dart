@@ -361,13 +361,13 @@ class OcptShootingPlanPdfService {
     required String text,
   }) => pw.MultiPage(
     pageFormat: _portraitPageFormat(painter),
+    header: (context) => _runningHead(
+      painter: painter,
+      projectName: projectName,
+      documentTitle: labels.documentTitle,
+      versionLine: versionLine,
+    ),
     build: (context) => [
-      _runningHead(
-          painter: painter,
-          projectName: projectName,
-          documentTitle: labels.documentTitle,
-          versionLine: versionLine,
-        ),
       pw.SizedBox(height: 6),
       _noteWidget(painter: painter, text: text),
     ],
@@ -429,13 +429,13 @@ class OcptShootingPlanPdfService {
     required String title,
   }) => pw.MultiPage(
     pageFormat: _landscapePageFormat(painter),
+    header: (context) => _runningHead(
+      painter: painter,
+      projectName: projectName,
+      documentTitle: labels.documentTitle,
+      versionLine: versionLine,
+    ),
     build: (context) => [
-      _runningHead(
-          painter: painter,
-          projectName: projectName,
-          documentTitle: labels.documentTitle,
-          versionLine: versionLine,
-        ),
       pw.SizedBox(height: 6),
       pw.Text(title, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
       pw.SizedBox(height: 8),
@@ -463,13 +463,13 @@ class OcptShootingPlanPdfService {
 
     return pw.MultiPage(
       pageFormat: _landscapePageFormat(painter),
+      header: (context) => _runningHead(
+        painter: painter,
+        projectName: projectName,
+        documentTitle: labels.documentTitle,
+        versionLine: versionLine,
+      ),
       build: (context) => [
-        _runningHead(
-          painter: painter,
-          projectName: projectName,
-          documentTitle: labels.documentTitle,
-          versionLine: versionLine,
-        ),
         pw.SizedBox(height: 6),
         pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
         pw.SizedBox(height: 8),
@@ -841,13 +841,13 @@ class OcptShootingPlanPdfService {
 
     return pw.MultiPage(
       pageFormat: _landscapePageFormat(painter),
+      header: (context) => _runningHead(
+        painter: painter,
+        projectName: projectName,
+        documentTitle: labels.documentTitle,
+        versionLine: versionLine,
+      ),
       build: (context) => [
-        _runningHead(
-          painter: painter,
-          projectName: projectName,
-          documentTitle: labels.documentTitle,
-          versionLine: versionLine,
-        ),
         pw.SizedBox(height: 6),
         pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
         pw.SizedBox(height: 8),
@@ -966,13 +966,13 @@ class OcptShootingPlanPdfService {
 
     return pw.MultiPage(
       pageFormat: _portraitPageFormat(painter),
+      header: (context) => _runningHead(
+        painter: painter,
+        projectName: projectName,
+        documentTitle: labels.documentTitle,
+        versionLine: versionLine,
+      ),
       build: (context) => [
-        _runningHead(
-          painter: painter,
-          projectName: projectName,
-          documentTitle: labels.documentTitle,
-          versionLine: versionLine,
-        ),
         pw.SizedBox(height: 6),
         pw.Text(
           title.isEmpty ? "${labels.dayTagPrefix}${day.dayNumber}" : title,
@@ -1498,13 +1498,13 @@ class OcptShootingPlanPdfService {
 
     return pw.MultiPage(
       pageFormat: _portraitPageFormat(painter),
+      header: (context) => _runningHead(
+        painter: painter,
+        projectName: projectName,
+        documentTitle: labels.documentTitle,
+        versionLine: versionLine,
+      ),
       build: (context) => [
-        _runningHead(
-          painter: painter,
-          projectName: projectName,
-          documentTitle: labels.documentTitle,
-          versionLine: versionLine,
-        ),
         pw.SizedBox(height: 6),
         pw.Text(
           "${title.isEmpty ? "${labels.dayTagPrefix}${day.dayNumber}" : title} — "
@@ -1698,7 +1698,11 @@ class OcptShootingPlanPdfService {
   /// The version line is repeated on **every** page rather than on the title page alone: a shooting
   /// plan is read page by page, a day agenda torn out of it or a landscape grid pinned on a wall,
   /// and a reader holding one sheet of it has nowhere else to find out which issue they are working
-  /// from.
+  /// from. Every call site hands this to its own `pw.MultiPage`'s **`header:`** callback rather than
+  /// as the first entry of its `build:` list: `build:` only ever runs once, on the first physical
+  /// page a flow lands on, while `header:` runs on every one it overflows onto — a busy day agenda
+  /// or a wide grid chunked across several sheets would otherwise carry this on its first page alone
+  /// and nothing on the rest, which is exactly the failure this doc comment's own promise rules out.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
     required String projectName,
