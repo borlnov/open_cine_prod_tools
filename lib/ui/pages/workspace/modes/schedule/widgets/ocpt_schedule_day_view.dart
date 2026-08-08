@@ -199,6 +199,11 @@ class OcptScheduleDayView extends StatelessWidget {
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
   final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
 
+  /// Called when the summary band's own [OcptScheduleDayAlertBadge] is clicked, opening the
+  /// `Alerts` dock tab — the one surface of the mode where that badge takes a callback at all (see
+  /// its own doc comment). It writes nothing, so it is **not** withheld under a version preview.
+  final VoidCallback? onAlertsOpenRequested;
+
   /// Class constructor
   const OcptScheduleDayView({
     super.key,
@@ -243,6 +248,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onBlockAdded,
     required this.onShotBlockRequested,
     required this.onBlockMovedToSlot,
+    required this.onAlertsOpenRequested,
   });
 
   @override
@@ -366,8 +372,10 @@ class OcptScheduleDayView extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           // First of the band, ahead of the day's own hours: a plan that is about to break is the
-          // one thing worth reading before anything else about the day.
-          if (alerts.isNotEmpty) OcptScheduleDayAlertBadge(alerts: alerts),
+          // one thing worth reading before anything else about the day — and here, unlike on every
+          // other surface it sits on, the badge takes the user to where it is read in full.
+          if (alerts.isNotEmpty)
+            OcptScheduleDayAlertBadge(alerts: alerts, onTap: onAlertsOpenRequested),
           _buildSummaryField(
             context,
             tr.scheduleInspectorArrivalToEndLabel,

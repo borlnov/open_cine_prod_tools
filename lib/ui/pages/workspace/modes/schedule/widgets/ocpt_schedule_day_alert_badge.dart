@@ -24,12 +24,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 /// raising nothing draws nothing at all (a zero badge would be noise on every untroubled day of a
 /// forty-day shoot).
 ///
-/// It carries **no callback**, deliberately: every surface it sits on is already clickable — a day
-/// card selects its day, an agenda cell opens it — and a badge swallowing that tap to do something
-/// else would make the gesture depend on hitting a 16-pixel square. Its tooltip names the kinds
-/// instead, which is the question a user asks of a mark on a day ("what is wrong with it?") without
-/// leaving the surface they are reading. Being purely informative it needs no `isReadOnly` handling
-/// and draws identically under a version preview, exactly as the `Alerts` panel itself does.
+/// Its [onTap] is **nullable, and wired in exactly one place**: the day view's own summary band,
+/// where it opens the `Alerts` dock tab. Everywhere else it is left null on purpose — a day card
+/// selects its day, an agenda cell opens it, and a badge swallowing that tap would make the gesture
+/// depend on hitting a 16-pixel square. The summary band is the one surface that is not itself a
+/// selection target: the day it describes is already selected, so there is nothing there for the
+/// badge to steal. Its tooltip names the kinds either way, which is the question a user asks of a
+/// mark on a day ("what is wrong with it?") without leaving the surface they are reading. Opening a
+/// dock tab writes nothing, so the badge still needs no `isReadOnly` handling and draws identically
+/// under a version preview, exactly as the `Alerts` panel itself does.
 class OcptScheduleDayAlertBadge extends StatelessWidget {
   /// The alerts this day raises, in `ocptComputeScheduleAlerts`' own order (hard before soft) —
   /// empty for a day the plan raises nothing about, which draws nothing at all.
@@ -39,8 +42,17 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
   /// header, where a count would not fit beside a day tag. The tooltip is the same either way.
   final bool isCompact;
 
+  /// Called when the badge is clicked, or null — the default — for the informative form every
+  /// surface but the day view's own summary band draws (see the class doc comment).
+  final VoidCallback? onTap;
+
   /// Class constructor
-  const OcptScheduleDayAlertBadge({super.key, required this.alerts, this.isCompact = false});
+  const OcptScheduleDayAlertBadge({
+    super.key,
+    required this.alerts,
+    this.isCompact = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -58,28 +70,37 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
     final icon = hasHardAlert ? Icons.error_outline : Icons.warning_amber_rounded;
     final iconSize = isCompact ? 11.0 : 13.0;
 
+    final badge = Container(
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: _ocptScheduleDayAlertBadgeAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: iconSize, color: color),
+          if (!isCompact) ...[
+            const SizedBox(width: 3),
+            Text(
+              "${alerts.length}",
+              style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ],
+      ),
+    );
+
     return Tooltip(
       message: _tooltipOf(tr),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 5, vertical: 1),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: _ocptScheduleDayAlertBadgeAlpha),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: iconSize, color: color),
-            if (!isCompact) ...[
-              const SizedBox(width: 3),
-              Text(
-                "${alerts.length}",
-                style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ],
-        ),
-      ),
+      child: onTap == null
+          ? badge
+          : InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              mouseCursor: ocptClickableCursor,
+              child: badge,
+            ),
     );
   }
 

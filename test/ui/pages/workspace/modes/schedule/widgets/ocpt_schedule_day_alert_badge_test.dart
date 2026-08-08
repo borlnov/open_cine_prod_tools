@@ -72,6 +72,24 @@ void main() {
     expect(find.byType(Tooltip), findsOneWidget);
   });
 
+  testWidgets("the informative form offers no gesture of its own", (tester) async {
+    await tester.pumpWidget(_wrapInApp(const OcptScheduleDayAlertBadge(alerts: [_softAlert])));
+
+    expect(find.byType(InkWell), findsNothing);
+  });
+
+  testWidgets("the day view's own form reports its click", (tester) async {
+    var tapCount = 0;
+    await tester.pumpWidget(
+      _wrapInApp(OcptScheduleDayAlertBadge(alerts: const [_softAlert], onTap: () => tapCount++)),
+    );
+
+    await tester.tap(find.byType(Icon));
+    await tester.pump();
+
+    expect(tapCount, 1);
+  });
+
   testWidgets("the tooltip names each kind once, however often it was raised", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(const OcptScheduleDayAlertBadge(alerts: [_softAlert, _softAlert, _hardAlert])),

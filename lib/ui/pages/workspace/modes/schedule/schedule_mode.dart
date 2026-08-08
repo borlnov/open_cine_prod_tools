@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart'
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -656,6 +657,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (blockId, targetSlotId) =>
                 bloc.add(OcptScheduleBlockMovedToSlotEvent(blockId: blockId, targetSlotId: targetSlotId)),
+      // Never withheld under a version preview: selecting a dock tab writes nothing, and an alert
+      // is exactly what a reader of a previewed plan is looking for.
+      onAlertsOpenRequested: () => bloc.add(
+        const OcptScheduleRightDockTabSelectedEvent(tab: OcptScheduleRightDockTab.alerts),
+      ),
     );
   }
 
