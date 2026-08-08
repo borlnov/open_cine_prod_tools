@@ -234,10 +234,13 @@ void main() {
   });
 
   group("OcptScheduleNamedCallSheetsExportDialog", () {
-    /// Pumps the dialog directly over [convocations] of [dayOne].
+    /// Pumps the dialog directly over [days], [selectedDayId] ticked by default, reading each day's
+    /// own convocations out of [convocationsByDayId] (empty for a day not present in the map).
     Future<void> pumpDialog(
       WidgetTester tester, {
-      required List<OcptDayConvocation> convocations,
+      required List<OcptShootingDay> days,
+      required String? selectedDayId,
+      required Map<String, List<OcptDayConvocation>> convocationsByDayId,
       Map<String, OcptPerson> personById = const {},
       Map<String, OcptRole> roleById = const {},
     }) async {
@@ -245,8 +248,9 @@ void main() {
         _wrapWithLocalization(
           OcptScheduleNamedCallSheetsExportDialog(
             current: pageSetup,
-            day: dayOne,
-            convocations: convocations,
+            days: days,
+            selectedDayId: selectedDayId,
+            recipientsOfDay: (dayId) => convocationsByDayId[dayId] ?? const [],
             personById: personById,
             roleById: roleById,
           ),
@@ -255,13 +259,19 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets("ticks every convoked person by default and returns them all", (tester) async {
+    testWidgets("ticks every convoked person of the selected day by default and returns them all", (
+      tester,
+    ) async {
       await pumpDialog(
         tester,
-        convocations: [
-          _buildConvocation(personId: "person-1"),
-          _buildConvocation(personId: "person-2"),
-        ],
+        days: [dayOne, dayTwo],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [
+            _buildConvocation(personId: "person-1"),
+            _buildConvocation(personId: "person-2"),
+          ],
+        },
         personById: {
           "person-1": _buildPerson(id: "person-1", firstName: "Elisa", lastName: "Mabit"),
           "person-2": _buildPerson(id: "person-2", firstName: "Pascal", lastName: "Bonnelle"),
@@ -282,7 +292,11 @@ void main() {
     testWidgets("an uncast role is listed by its role and says it has no recipient", (tester) async {
       await pumpDialog(
         tester,
-        convocations: [_buildConvocation(roleId: "role-1")],
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(roleId: "role-1")],
+        },
         roleById: {"role-1": _buildRole(id: "role-1", name: "ARTHUR")},
       );
 
@@ -301,26 +315,166 @@ void main() {
     testWidgets("unticking everybody withholds the export button", (tester) async {
       await pumpDialog(
         tester,
-        convocations: [_buildConvocation(personId: "person-1")],
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(personId: "person-1")],
+        },
         personById: {
           "person-1": _buildPerson(id: "person-1", firstName: "Elisa", lastName: "Mabit"),
         },
       );
 
-      await tester.tap(find.text(Tr.current.scheduleExportSelectNoneAction));
+      // Two "Select none" buttons are on screen — the day list's own, then the recipients
+      // section's; the latter is the one this test means.
+      await tester.tap(find.text(Tr.current.scheduleExportSelectNoneAction).last);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+    });
+
+    testWidgets("somebody can be ticked back on after the whole list was cleared", (tester) async {
+      await pumpDialog(
+        tester,
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(personId: "person-1")],
+        },
+        personById: {
+          "person-1": _buildPerson(id: "person-1", firstName: "Elisa", lastName: "Mabit"),
+        },
+      );
+
+      // "Select none" used to leave a const set behind, which the very next tick threw on.
+      await tester.tap(find.text(Tr.current.scheduleExportSelectNoneAction).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Elisa Mabit"));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
+        {"person-1"},
+      );
+    });
+
+    testWidgets("unticking every day also withholds the export button", (tester) async {
+      await pumpDialog(
+        tester,
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(personId: "person-1")],
+        },
+        personById: {
+          "person-1": _buildPerson(id: "person-1", firstName: "Elisa", lastName: "Mabit"),
+        },
+      );
+
+      // The day checkbox is the first one in the dialog, the recipient's own being the second.
+      await tester.tap(find.byType(CheckboxListTile).first);
       await tester.pumpAndSettle();
 
       expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
     });
 
     testWidgets("cancelling pops without any options", (tester) async {
-      await pumpDialog(tester, convocations: [_buildConvocation(personId: "person-1")]);
+      await pumpDialog(
+        tester,
+        days: [dayOne],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(personId: "person-1")],
+        },
+      );
 
       await tester.tap(find.text(Tr.current.editorPageSetupCancelAction));
       await tester.pumpAndSettle();
 
       expect(routerManager.popped, isTrue);
       expect(routerManager.poppedValue, isNull);
+    });
+
+    testWidgets(
+      "ticking a second day extends the recipient list with the union, carrying tick state over",
+      (tester) async {
+        await pumpDialog(
+          tester,
+          days: [dayOne, dayTwo],
+          selectedDayId: "day-1",
+          convocationsByDayId: {
+            "day-1": [
+              _buildConvocation(personId: "person-1"),
+              _buildConvocation(personId: "person-2"),
+            ],
+            "day-2": [
+              _buildConvocation(personId: "person-1"),
+              _buildConvocation(personId: "person-3"),
+            ],
+          },
+          personById: {
+            "person-1": _buildPerson(id: "person-1", firstName: "Elisa", lastName: "Mabit"),
+            "person-2": _buildPerson(id: "person-2", firstName: "Pascal", lastName: "Bonnelle"),
+            "person-3": _buildPerson(id: "person-3", firstName: "Zoe", lastName: "Carret"),
+          },
+        );
+
+        // Untick person-2 (day-1 only) before day-2 is ticked, so the carry-over rule has something
+        // to preserve: person-2 stays unticked once it is still in the union, and the newly
+        // appearing person-3 is ticked by the dialog's own standing default.
+        await tester.tap(find.text("Pascal Bonnelle"));
+        await tester.pumpAndSettle();
+
+        // Tick day-2 (the second day checkbox).
+        await tester.tap(find.byType(CheckboxListTile).at(1));
+        await tester.pumpAndSettle();
+
+        expect(find.text("Elisa Mabit"), findsOneWidget);
+        expect(find.text("Pascal Bonnelle"), findsOneWidget);
+        expect(find.text("Zoe Carret"), findsOneWidget);
+
+        await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+        await tester.pumpAndSettle();
+
+        final options = routerManager.poppedValue as OcptCallSheetExportOptions?;
+        expect(options?.dayIds, ["day-1", "day-2"]);
+        // person-1 carries over ticked (present on both days), person-2 carries over unticked (still
+        // in the union, but the user had unticked it), person-3 is ticked as a newly appearing entry.
+        expect(options?.selectedConvocationKeys, {"person-1", "person-3"});
+      },
+    );
+
+    testWidgets("unticking the only day the union came from drops that day's own recipients", (
+      tester,
+    ) async {
+      await pumpDialog(
+        tester,
+        days: [dayOne, dayTwo],
+        selectedDayId: "day-1",
+        convocationsByDayId: {
+          "day-1": [_buildConvocation(personId: "person-1")],
+          "day-2": [_buildConvocation(personId: "person-2")],
+        },
+        personById: {
+          "person-1": _buildPerson(id: "person-1", firstName: "Elisa", lastName: "Mabit"),
+          "person-2": _buildPerson(id: "person-2", firstName: "Pascal", lastName: "Bonnelle"),
+        },
+      );
+
+      expect(find.text("Elisa Mabit"), findsOneWidget);
+
+      // Tick day-2, then untick day-1: person-1, who only ever appeared through day-1, must leave
+      // the recipient list along with it.
+      await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(CheckboxListTile).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text("Elisa Mabit"), findsNothing);
+      expect(find.text("Pascal Bonnelle"), findsOneWidget);
     });
   });
 

@@ -1401,9 +1401,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Exports the named call sheets of `event.options.dayIds`' single day, one PDF per selected
-  /// convocation, into a folder the user picks. See [_onCallSheetsExportRequested]'s own doc comment
-  /// for the flush, the cancellation and the partial-failure contract, identical here.
+  /// Exports the named call sheets of `event.options.dayIds`, one PDF per (selected convocation ×
+  /// day), into a folder the user picks. See [_onCallSheetsExportRequested]'s own doc comment for the
+  /// flush, the cancellation and the partial-failure contract, identical here.
   Future<void> _onNamedCallSheetsExportRequested(
     OcptScheduleNamedCallSheetsExportRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -1411,15 +1411,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _flushPendingFieldEdits(emitter);
 
     final plan = state.planSnapshot;
-    final dayId = event.options.dayIds.firstOrNull;
-    if (plan == null || dayId == null) {
+    if (plan == null || event.options.dayIds.isEmpty) {
       return;
     }
 
     try {
       final result = await _exportManager.exportNamedCallSheets(
         plan: plan,
-        dayId: dayId,
+        dayIds: event.options.dayIds,
         convocationKeys: event.options.selectedConvocationKeys,
         pageSetup: OcptPageSetup(format: event.options.format, margins: event.options.margins),
         labels: event.labels,

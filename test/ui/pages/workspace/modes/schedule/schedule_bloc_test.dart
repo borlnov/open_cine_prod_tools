@@ -171,8 +171,8 @@ class _FakeScheduleExportManager extends OcptExportManager {
   /// The confirm button text of the last [exportGeneralCallSheets] call.
   String? lastGeneralConfirmButtonText;
 
-  /// The day id of the last [exportNamedCallSheets] call.
-  String? lastNamedDayId;
+  /// The day ids of the last [exportNamedCallSheets] call.
+  List<String>? lastNamedDayIds;
 
   /// The convocation keys of the last [exportNamedCallSheets] call.
   Set<String>? lastNamedConvocationKeys;
@@ -202,14 +202,14 @@ class _FakeScheduleExportManager extends OcptExportManager {
   @override
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
-    required String dayId,
+    required List<String> dayIds,
     Set<String>? convocationKeys,
     required OcptPageSetup pageSetup,
     required OcptCallSheetLabels labels,
     required String projectName,
     required String confirmButtonText,
   }) async {
-    lastNamedDayId = dayId;
+    lastNamedDayIds = dayIds;
     lastNamedConvocationKeys = convocationKeys;
 
     if (namedCallSheetsFails) {
@@ -666,7 +666,7 @@ void main() {
       );
       final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-      expect(exportManager.lastNamedDayId, fixture.dayId);
+      expect(exportManager.lastNamedDayIds, [fixture.dayId]);
       expect(exportManager.lastNamedConvocationKeys, {personId});
       expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.folderExportSucceeded);
 

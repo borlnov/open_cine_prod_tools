@@ -355,22 +355,33 @@ class OcptExportManager extends AbsWithLifeCycle {
     return OcptCallSheetExportResult(folderPath: folderPath, writtenFileNames: written, failedFileNames: failed);
   }
 
-  /// Renders one named call sheet per convocation of [dayId] via [callSheetPdfService] and writes
-  /// every one of them into a folder the user picks.
+  /// Renders one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
+  /// writes every one of them into a folder the user picks — a call sheet being a document about a
+  /// day, so a recipient convoked on two of [dayIds] gets two files, one for each.
   ///
-  /// [convocationKeys] selects which of [dayId]'s own convocations are printed — a person's own id,
-  /// or an uncast role's, exactly as `OcptDayConvocation.personId`/`.roleId` discriminate one — or
-  /// null to print every convocation of the day, the common case when nobody has narrowed the
-  /// selection down. See [exportGeneralCallSheets] for the folder-picking and partial-failure
-  /// contract, identical here.
+  /// The loop is over each day's **own** convocations, filtered by [convocationKeys], never over the
+  /// product of the two: a key ticked in the dialog but convoked on none of a given day's slots
+  /// simply yields no file for that day rather than an empty one. [convocationKeys] selects which of
+  /// a day's own convocations are printed — a person's own id, or an uncast role's, exactly as
+  /// `OcptDayConvocation.personId`/`.roleId` discriminate one — or null to print every convocation of
+  /// every day, the common case when nobody has narrowed the selection down. See
+  /// [exportGeneralCallSheets] for the folder-picking, the once-per-run export moment (its own
+  /// argument holds for a run spanning several days exactly as it does for one: a folder of sheets
+  /// produced by one gesture is one issue of that paperwork) and the partial-failure contract,
+  /// identical here.
   ///
   /// **A guest is never printed here**, whatever [convocationKeys] says: `OcptDayConvocation.isGuest`
   /// is filtered out before either the explicit selection or the "print every convocation" default
   /// is applied — a guest is not yet a call sheet recipient, and every reader downstream of this list
   /// assumes every entry names a person or a role.
+  ///
+  /// [_uniqueFileName] accumulates across the **whole** run rather than being reset per day, so two
+  /// recipients whose names collide on one day still each get a file of their own (`-2`, `-3`) — the
+  /// file name already carries the day's own tag, so two different days' sheets never collide with
+  /// each other in the first place.
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
-    required String dayId,
+    required List<String> dayIds,
     Set<String>? convocationKeys,
     required OcptPageSetup pageSetup,
     required OcptCallSheetLabels labels,
@@ -383,47 +394,49 @@ class OcptExportManager extends AbsWithLifeCycle {
     }
 
     final exportDate = DateTime.now();
-    final day = plan.schedule.daysById[dayId];
-    final dayNumber = day?.dayNumber ?? 0;
-    final convocations = [
-      for (final convocation in plan.convocationsOfDay(dayId))
-        if (!convocation.isGuest &&
-            (convocationKeys == null ||
-                convocationKeys.contains(convocation.personId ?? convocation.roleId)))
-          convocation,
-    ];
-
     final written = <String>[];
     final failed = <String>[];
 
-    for (final convocation in convocations) {
-      final personName = convocation.personId != null
-          ? (plan.personById[convocation.personId]?.displayName ?? "")
-          : (plan.roleById[convocation.roleId]?.name ?? "");
-      final fileName = _uniqueFileName(
-        callSheetPdfService.namedCallSheetFileName(
+    for (final dayId in dayIds) {
+      final day = plan.schedule.daysById[dayId];
+      final dayNumber = day?.dayNumber ?? 0;
+      final convocations = [
+        for (final convocation in plan.convocationsOfDay(dayId))
+          if (!convocation.isGuest &&
+              (convocationKeys == null ||
+                  convocationKeys.contains(convocation.personId ?? convocation.roleId)))
+            convocation,
+      ];
+
+      for (final convocation in convocations) {
+        final personName = convocation.personId != null
+            ? (plan.personById[convocation.personId]?.displayName ?? "")
+            : (plan.roleById[convocation.roleId]?.name ?? "");
+        final fileName = _uniqueFileName(
+          callSheetPdfService.namedCallSheetFileName(
+            labels: labels,
+            dayNumber: dayNumber,
+            personName: personName,
+          ),
+          written,
+          failed,
+        );
+
+        final bytes = await callSheetPdfService.generateNamedCallSheet(
+          plan: plan,
+          dayId: dayId,
+          pageSetup: pageSetup,
           labels: labels,
-          dayNumber: dayNumber,
-          personName: personName,
-        ),
-        written,
-        failed,
-      );
+          projectName: projectName,
+          convocation: convocation,
+          exportDate: exportDate,
+        );
 
-      final bytes = await callSheetPdfService.generateNamedCallSheet(
-        plan: plan,
-        dayId: dayId,
-        pageSetup: pageSetup,
-        labels: labels,
-        projectName: projectName,
-        convocation: convocation,
-        exportDate: exportDate,
-      );
-
-      if (await _writeBytesInFolder(folderPath: folderPath, fileName: fileName, bytes: bytes)) {
-        written.add(fileName);
-      } else {
-        failed.add(fileName);
+        if (await _writeBytesInFolder(folderPath: folderPath, fileName: fileName, bytes: bytes)) {
+          written.add(fileName);
+        } else {
+          failed.add(fileName);
+        }
       }
     }
 

@@ -27,16 +27,19 @@ class OcptCallSheetExportOptions extends Equatable {
   /// page setup the export dialog was opened with.
   final FountainPageMargins margins;
 
-  /// The ids of the `OcptShootingDay`s to print, in the order they are printed. One general sheet is
-  /// written per entry; a named export prints exactly one day (§4 of `docs/plans/schedule-mode.md`),
-  /// so it holds a single id.
+  /// The ids of the `OcptShootingDay`s to print, in the order they are printed. Both exports carry
+  /// several days: a general export writes one sheet per entry, and a named export writes one sheet
+  /// per (recipient × entry) — a call sheet being a document about a day, so a recipient convoked on
+  /// two of the printed days gets two sheets, one for each.
   final List<String> dayIds;
 
-  /// For a named export alone: which of [dayIds]' single day's own convoked people or roles are
-  /// printed, one file each — keyed the same way `OcptDayConvocation` discriminates its own subject,
-  /// a person's `id` or an uncast role's, so a caller can select straight out of the one list
-  /// `OcptSchedulePlanSnapshot.convocationsOfDay` already returns. Empty (and unused) for a general
-  /// export, which always prints every day it names in full.
+  /// For a named export alone: which people or roles are printed, one file per day they are convoked
+  /// on — keyed the same way `OcptDayConvocation` discriminates its own subject, a person's `id` or
+  /// an uncast role's, so a caller can select straight out of the lists
+  /// `OcptSchedulePlanSnapshot.convocationsOfDay` returns. The keys are the **union** over every day
+  /// in [dayIds]: a key naming somebody convoked on only one of those days yields exactly one file,
+  /// not one per day named here. Empty (and unused) for a general export, which always prints every
+  /// day it names in full.
   final Set<String> selectedConvocationKeys;
 
   /// Class constructor

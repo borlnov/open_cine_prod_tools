@@ -742,7 +742,7 @@ void main() {
 
         final result = await manager.exportNamedCallSheets(
           plan: buildPlan(),
-          dayId: "day-1",
+          dayIds: const ["day-1"],
           pageSetup: pageSetup,
           labels: labels,
           projectName: "My Movie",
@@ -762,7 +762,7 @@ void main() {
 
         final result = await manager.exportNamedCallSheets(
           plan: buildPlan(),
-          dayId: "day-1",
+          dayIds: const ["day-1"],
           pageSetup: pageSetup,
           labels: labels,
           projectName: "My Movie",
@@ -793,7 +793,7 @@ void main() {
 
         final result = await manager.exportNamedCallSheets(
           plan: buildPlan(),
-          dayId: "day-1",
+          dayIds: const ["day-1"],
           convocationKeys: const {"nobody-selected"},
           pageSetup: pageSetup,
           labels: labels,
@@ -862,7 +862,7 @@ void main() {
 
         final result = await manager.exportNamedCallSheets(
           plan: collidingPlan,
-          dayId: "day-1",
+          dayIds: const ["day-1"],
           pageSetup: pageSetup,
           labels: labels,
           projectName: "My Movie",
@@ -874,6 +874,133 @@ void main() {
         expect(result.failedFileNames, isEmpty);
         expect(tempDir.listSync().length, 2);
       });
+
+      test(
+        'a two-day run writes one file per (recipient x day), a single-day recipient getting '
+        'exactly one and the two days never colliding',
+        () async {
+          final saveLocationService = _FakeSaveLocationService()..directoryResult = tempDir.path;
+          final manager = OcptExportManager(
+            fileSelectorManager: const FileSelectorManager(),
+            saveLocationService: saveLocationService,
+          );
+
+          // person-1 is convoked on both days and must therefore be printed twice, once per day; the
+          // day tag ("D2" vs "D3") already makes the two files distinct, so neither is suffixed even
+          // though every person here shares the very same blank display name. person-2 is convoked
+          // only on the second day and must therefore be printed exactly once.
+          final dayOne = OcptShootingDay(
+            id: "day-1",
+            screenplayId: "screenplay-1",
+            date: DateTime(2026, 1, 2),
+            dayNumber: 2,
+            status: OcptShootingDayStatus.planned,
+            crewNote: "",
+            weatherNote: "",
+            notes: "",
+          );
+          final dayTwo = OcptShootingDay(
+            id: "day-2",
+            screenplayId: "screenplay-1",
+            date: DateTime(2026, 1, 3),
+            dayNumber: 3,
+            status: OcptShootingDayStatus.planned,
+            crewNote: "",
+            weatherNote: "",
+            notes: "",
+          );
+          const slotOne = OcptShootingSlot(
+            id: "slot-1",
+            shootingDayId: "day-1",
+            label: "",
+            locationId: null,
+            setId: null,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
+            notes: "",
+            crew: [
+              OcptShootingSlotCrewMember(
+                id: "crew-1",
+                slotId: "slot-1",
+                personId: "person-1",
+                positionId: "director",
+                customLabel: "",
+                notes: "",
+              ),
+            ],
+            cast: [],
+            guests: [],
+          );
+          const slotTwo = OcptShootingSlot(
+            id: "slot-2",
+            shootingDayId: "day-2",
+            label: "",
+            locationId: null,
+            setId: null,
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorMinute: 480,
+            anchorSlotId: null,
+            notes: "",
+            crew: [
+              OcptShootingSlotCrewMember(
+                id: "crew-2",
+                slotId: "slot-2",
+                personId: "person-1",
+                positionId: "director",
+                customLabel: "",
+                notes: "",
+              ),
+              OcptShootingSlotCrewMember(
+                id: "crew-3",
+                slotId: "slot-2",
+                personId: "person-2",
+                positionId: "gaffer",
+                customLabel: "",
+                notes: "",
+              ),
+            ],
+            cast: [],
+            guests: [],
+          );
+
+          final twoDayPlan = OcptSchedulePlanSnapshot.build(
+            schedule: OcptScheduleSnapshot.build(
+              screenplayId: "screenplay-1",
+              days: [dayOne, dayTwo],
+              slotsByDayId: {
+                "day-1": [slotOne],
+                "day-2": [slotTwo],
+              },
+              blocksByDayId: const {},
+              eventsByDayId: const {},
+            ),
+            shotList: null,
+            locations: const [],
+            roles: const [],
+            people: const [],
+            minimumRestMinutes: null,
+          );
+
+          final result = await manager.exportNamedCallSheets(
+            plan: twoDayPlan,
+            dayIds: const ["day-1", "day-2"],
+            pageSetup: pageSetup,
+            labels: labels,
+            projectName: "My Movie",
+            confirmButtonText: "Choose",
+          );
+
+          expect(result, isNotNull);
+          expect(result!.writtenFileNames, [
+            "FDS-D2-No-name.pdf",
+            "FDS-D3-No-name.pdf",
+            "FDS-D3-No-name-2.pdf",
+          ]);
+          expect(result.failedFileNames, isEmpty);
+          expect(tempDir.listSync().length, 3);
+        },
+      );
     });
   });
 

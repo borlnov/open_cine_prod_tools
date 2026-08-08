@@ -805,13 +805,14 @@ class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, options, labels, confirmButtonText];
 }
 
-/// Requests exporting the named call sheets of [options]' own single day, one PDF per selected
-/// convocation, into a folder the user picks — dispatched once
+/// Requests exporting the named call sheets of [options]' own days, one PDF per (selected
+/// convocation × day), into a folder the user picks — dispatched once
 /// `OcptScheduleNamedCallSheetsExportDialog` returns its result.
 class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleEvent {
-  /// The one-off options the export runs with: the page format/margins, the single day to print
-  /// ([OcptCallSheetExportOptions.dayIds] holding exactly one entry) and which of its own
-  /// convocations are printed.
+  /// The one-off options the export runs with: the page format/margins, the days to print
+  /// ([OcptCallSheetExportOptions.dayIds]) and which of their own convocations are printed —
+  /// [OcptCallSheetExportOptions.selectedConvocationKeys] being the union over every day named here,
+  /// so a key convoked on only one of them yields one file, not one per day.
   final OcptCallSheetExportOptions options;
 
   /// Every localized string the exported documents carry.

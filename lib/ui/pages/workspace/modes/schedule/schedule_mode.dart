@@ -168,16 +168,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// Builds the mode's `⋮` overflow menu entries: the three PDF exports, then "reset panel layout".
   ///
-  /// The two call sheet entries and the shooting plan one are disabled together when the project
-  /// holds no live day at all — there would be nothing to print — and the named call sheets entry
-  /// is disabled further still when the selected day convokes nobody, a call sheet with no recipient
-  /// having nothing to send. All three stay offered under a version preview, exactly as the
-  /// breakdown mode's own export entry does: an export only ever reads.
+  /// All three exports are disabled together when the project holds no live day at all — there would
+  /// be nothing to print. The named call sheets entry needs no further check of its own: which
+  /// recipients (and, now, which days) it prints is a question answered **inside**
+  /// `OcptScheduleNamedCallSheetsExportDialog` itself, whose own `Export` button is already disabled
+  /// while no day or no recipient is ticked — walking every ticked day's own convocations here too,
+  /// on every rebuild of this shell, would repeat that same read for no reason. All three stay
+  /// offered under a version preview, exactly as the breakdown mode's own export entry does: an
+  /// export only ever reads.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptScheduleState state) {
     final hasAnyDay = state.days.isNotEmpty;
-    final selectedDayId = state.selectedDayId;
-    final hasNamedRecipients =
-        selectedDayId != null && _namedCallSheetRecipientsOf(state, selectedDayId).isNotEmpty;
 
     return [
       PopupMenuItem<void>(
@@ -188,7 +188,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         child: Text(Tr.of(context).scheduleExportCallSheetsMenuAction),
       ),
       PopupMenuItem<void>(
-        enabled: hasAnyDay && hasNamedRecipients,
+        enabled: hasAnyDay,
         onTap: () => unawaited(_requestNamedCallSheetsExport(context, state)),
         child: Text(Tr.of(context).scheduleExportNamedCallSheetsMenuAction),
       ),
@@ -204,11 +204,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
     ];
   }
 
-  /// [dayId]'s own convocations, **minus its guests** — what both the named call sheets `⋮` entry's
-  /// enabled check and the dialog it opens read, rather than [OcptScheduleState.convocationsOfDay]
-  /// directly: a guest is not yet a call sheet recipient (that is M6's own job, per the plan this
-  /// mode's own doc comment tracks), and every reader downstream of this list — the dialog's own
-  /// selection keys among them — assumes every entry names a person or a role, never a guest.
+  /// [dayId]'s own convocations, **minus its guests** — what the named call sheets dialog reads for
+  /// whichever days the user ticks there, rather than [OcptScheduleState.convocationsOfDay] directly:
+  /// a guest is not yet a call sheet recipient (that is a later milestone's own job), and every reader
+  /// downstream of this list — the dialog's own selection keys among them — assumes every entry names
+  /// a person or a role, never a guest.
   List<OcptDayConvocation> _namedCallSheetRecipientsOf(OcptScheduleState state, String dayId) => [
     for (final convocation in state.convocationsOfDay(dayId))
       if (!convocation.isGuest) convocation,
@@ -242,23 +242,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the named call sheets export options dialog for the selected day, then dispatches the
-  /// export request if the user applied it — mirrors [_requestCallSheetsExport].
-  ///
-  /// Does nothing when no day is selected: the `⋮` entry that opens this is disabled in that case
-  /// (see [_buildOverflowEntries]), so this only ever runs against a real day.
+  /// Shows the named call sheets export options dialog, then dispatches the export request if the
+  /// user applied it — mirrors [_requestCallSheetsExport]. The dialog picks its own days (the mode's
+  /// own selection ticked by default, as [_requestCallSheetsExport]'s general dialog does), so no
+  /// day needs to be selected for this to run.
   Future<void> _requestNamedCallSheetsExport(BuildContext context, OcptScheduleState state) async {
-    final day = state.selectedDay;
-    if (day == null) {
-      return;
-    }
-
     final bloc = context.read<OcptScheduleBloc>();
     final options = await OcptScheduleNamedCallSheetsExportDialog.show(
       context,
       current: state.pageSetup,
-      day: day,
-      convocations: _namedCallSheetRecipientsOf(state, day.id),
+      days: state.days,
+      selectedDayId: state.selectedDayId,
+      recipientsOfDay: (dayId) => _namedCallSheetRecipientsOf(state, dayId),
       personById: state.personById,
       roleById: state.roleById,
     );
