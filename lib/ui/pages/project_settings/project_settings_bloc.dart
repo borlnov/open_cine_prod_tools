@@ -36,6 +36,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsLoadRequestedEvent>(_onLoadRequested);
     on<OcptProjectSettingsCurrencyChangedEvent>(_onCurrencyChanged);
     on<OcptProjectSettingsPageFormatChangedEvent>(_onPageFormatChanged);
+    on<OcptProjectSettingsMinimumRestMinutesChangedEvent>(_onMinimumRestMinutesChanged);
   }
 
   /// Loads the current project's currency and page format.
@@ -49,12 +50,15 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   ) async {
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
+    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
 
     emitter(
       state.copyWith(
         isLoading: false,
         currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
+        minimumRestMinutes: minimumRestMinutes,
+        clearMinimumRestMinutes: minimumRestMinutes == null,
       ),
     );
   }
@@ -75,5 +79,24 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   ) async {
     await _projectsManager.saveCurrentProjectPageFormat(event.pageFormat);
     emitter(state.copyWith(pageFormat: event.pageFormat, hasChanged: true));
+  }
+
+  /// Writes the newly committed minimum rest to the project, then reflects it in the state.
+  ///
+  /// `hasChanged` is set here exactly as every other field of this page sets it: the schedule
+  /// mode's own re-read of this figure (`OcptScheduleProjectSettingsChangedEvent`, fired when this
+  /// page pops with it true) depends on that, not on a special case for this one field.
+  Future<void> _onMinimumRestMinutesChanged(
+    OcptProjectSettingsMinimumRestMinutesChangedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    await _projectsManager.saveCurrentProjectMinimumRestMinutes(event.minutes);
+    emitter(
+      state.copyWith(
+        minimumRestMinutes: event.minutes,
+        clearMinimumRestMinutes: event.minutes == null,
+        hasChanged: true,
+      ),
+    );
   }
 }

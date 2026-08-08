@@ -16,12 +16,20 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// The current project's page format.
   final OcptPageFormat pageFormat;
 
+  /// The current project's minimum rest between two shooting days, in minutes
+  /// (`project_info.minimumRestMinutes`), or null while nobody has recorded one.
+  final int? minimumRestMinutes;
+
   /// Whether at least one field was changed since the page opened.
   ///
   /// This is what the page hands back to whichever mode pushed it, through
   /// `OcptRouterManager.pop<bool>`, so that mode knows whether it is worth reloading anything of
   /// its own (the screenplay repaginating on a page-format change, say) — every field here writes
-  /// the moment it changes, so there is nothing left to flush on the way out.
+  /// the moment it changes, so there is nothing left to flush on the way out. **The schedule mode
+  /// depends on this flag for [minimumRestMinutes] specifically**: it re-reads the project's own
+  /// minimum on `OcptScheduleProjectSettingsChangedEvent`, which fires exactly when this page pops
+  /// with `hasChanged` true, so a rest-minimum edit that failed to set it would leave the rest-time
+  /// alert stale until the next full load.
   final bool hasChanged;
 
   /// Class constructor
@@ -29,6 +37,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.isLoading,
     required this.currencyCode,
     required this.pageFormat,
+    required this.minimumRestMinutes,
     required this.hasChanged,
   });
 
@@ -39,23 +48,40 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     : isLoading = true,
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
+      minimumRestMinutes = null,
       hasChanged = false;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
+  ///
+  /// [minimumRestMinutes] legitimately goes back to null while the page is open (the field is
+  /// cleared), so it has its own [clearMinimumRestMinutes] flag rather than a bare nullable
+  /// parameter, which could never tell "leave it alone" apart from "clear it".
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
     String? currencyCode,
     OcptPageFormat? pageFormat,
+    int? minimumRestMinutes,
+    bool clearMinimumRestMinutes = false,
     bool? hasChanged,
   }) => OcptProjectSettingsState(
     isLoading: isLoading ?? this.isLoading,
     currencyCode: currencyCode ?? this.currencyCode,
     pageFormat: pageFormat ?? this.pageFormat,
+    minimumRestMinutes: clearMinimumRestMinutes
+        ? null
+        : (minimumRestMinutes ?? this.minimumRestMinutes),
     hasChanged: hasChanged ?? this.hasChanged,
   );
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
-  List<Object?> get props => [...super.props, isLoading, currencyCode, pageFormat, hasChanged];
+  List<Object?> get props => [
+    ...super.props,
+    isLoading,
+    currencyCode,
+    pageFormat,
+    minimumRestMinutes,
+    hasChanged,
+  ];
 }

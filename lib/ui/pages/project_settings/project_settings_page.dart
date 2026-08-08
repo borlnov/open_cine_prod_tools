@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
 
 /// The maximum width of the project settings page's content, matching the app-wide settings page.
@@ -82,6 +83,12 @@ class OcptProjectSettingsView extends StatelessWidget {
                         pageFormat: state.pageFormat,
                         onPageFormatChanged: (format) => _onPageFormatChanged(context, format),
                       ),
+                      const SizedBox(height: 16),
+                      OcptProjectSettingsMinimumRestSection(
+                        minimumRestMinutes: state.minimumRestMinutes,
+                        onMinimumRestMinutesChanged: (minutes) =>
+                            _onMinimumRestMinutesChanged(context, minutes),
+                      ),
                     ],
                   ),
                 ),
@@ -107,6 +114,13 @@ class OcptProjectSettingsView extends StatelessWidget {
   void _onPageFormatChanged(BuildContext context, OcptPageFormat pageFormat) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsPageFormatChangedEvent(pageFormat: pageFormat),
+    );
+  }
+
+  /// Dispatches the event that writes the newly committed minimum rest to the project.
+  void _onMinimumRestMinutesChanged(BuildContext context, int? minutes) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsMinimumRestMinutesChangedEvent(minutes: minutes),
     );
   }
 }

@@ -5248,6 +5248,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsMinimumRestSectionTitle": "Minimum rest between two shooting days",
+  "@projectSettingsMinimumRestSectionTitle": {
+    "description": "Title of the project settings page's minimum rest section",
+    "context": "Displayed at the top of the minimum rest section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestLabel": "Minimum rest",
+  "@projectSettingsMinimumRestLabel": {
+    "description": "Label of the minimum rest field",
+    "context": "Displayed next to the minimum rest field in the minimum rest section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestHint": "Leave empty if no minimum has been recorded — that silences the schedule's rest-time alert, it does not mean no rest is owed. Deliberately not pre-filled with the legal eleven hours: this app ships in more than one country.",
+  "@projectSettingsMinimumRestHint": {
+    "description": "Explanation under the minimum rest field, read what an empty value means",
+    "context": "Displayed under the minimum rest field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "workspaceModeBreakdown": "Breakdown",
   "@workspaceModeBreakdown": {
     "description": "Short label of the breakdown production mode",

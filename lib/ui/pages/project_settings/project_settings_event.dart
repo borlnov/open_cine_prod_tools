@@ -44,3 +44,17 @@ class OcptProjectSettingsPageFormatChangedEvent extends OcptProjectSettingsEvent
   @override
   List<Object?> get props => [...super.props, pageFormat];
 }
+
+/// Reports that the user committed a new minimum rest, in minutes, or cleared it — [minutes] null
+/// meaning the field was submitted empty, a real gesture as much as typing a figure is.
+class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSettingsEvent {
+  /// The newly committed minimum, in minutes, or null to clear it.
+  final int? minutes;
+
+  /// Class constructor
+  const OcptProjectSettingsMinimumRestMinutesChangedEvent({required this.minutes});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, minutes];
+}
