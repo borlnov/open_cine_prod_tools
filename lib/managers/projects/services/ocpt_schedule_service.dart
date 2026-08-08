@@ -1482,6 +1482,9 @@ class OcptScheduleService {
   /// longer holding anything. A hold's scene is set to null the ordinary way, by passing
   /// `Value(null)`, which is how a production un-decides which sequence a reserved slot is for.
   ///
+  /// **[notes] and [crewNote] are not the same field wearing two names**: [notes] never prints,
+  /// [crewNote] does — see `OcptShootingDayBlocksTable`'s own doc comment on each.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateBlock({
     required OcptProjectDatabase database,
@@ -1492,6 +1495,7 @@ class OcptScheduleService {
     Value<int?> durationMinutes = const Value.absent(),
     Value<int?> anchorMinute = const Value.absent(),
     Value<String> notes = const Value.absent(),
+    Value<String> crewNote = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateBlock")) {
       return;
@@ -1531,6 +1535,7 @@ class OcptScheduleService {
           durationMinutes: durationMinutes,
           anchorMinute: anchorMinute,
           notes: notes,
+          crewNote: crewNote,
         ),
       );
     });

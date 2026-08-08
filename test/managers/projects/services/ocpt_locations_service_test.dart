@@ -770,6 +770,72 @@ void main() {
       expect(location.permitDocument?.path, "/permits/granted.pdf");
     });
 
+    test("insertAsset records a document's validity window, or leaves it unrecorded", () async {
+      const assetsService = OcptAssetsService();
+
+      final withDates = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        path: "/permits/granted.pdf",
+        validFrom: DateTime.utc(2026, 3, 10),
+        validUntil: DateTime.utc(2026, 3, 31),
+      );
+      final withNoDates = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        path: "/permits/undated.pdf",
+      );
+
+      final dated = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(withDates))).getSingle();
+      expect(dated.validFrom, DateTime.utc(2026, 3, 10));
+      expect(dated.validUntil, DateTime.utc(2026, 3, 31));
+
+      // Nobody has recorded a window for the second document — null, not "valid forever".
+      final undated = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(withNoDates))).getSingle();
+      expect(undated.validFrom, isNull);
+      expect(undated.validUntil, isNull);
+    });
+
+    test("updateAssetValidity writes and clears a document's validity window", () async {
+      const assetsService = OcptAssetsService();
+      final assetId = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        path: "/permits/granted.pdf",
+      );
+
+      await assetsService.updateAssetValidity(
+        database: database,
+        assetId: assetId,
+        validFrom: Value(DateTime.utc(2026, 3, 10)),
+        validUntil: Value(DateTime.utc(2026, 3, 31)),
+      );
+
+      final withDates = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(assetId))).getSingle();
+      expect(withDates.validFrom, DateTime.utc(2026, 3, 10));
+      expect(withDates.validUntil, DateTime.utc(2026, 3, 31));
+
+      // Clearing a date already recorded is as real a gesture as setting it.
+      await assetsService.updateAssetValidity(
+        database: database,
+        assetId: assetId,
+        validFrom: const Value(null),
+      );
+
+      final cleared = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(assetId))).getSingle();
+      expect(cleared.validFrom, isNull);
+      // The untouched field is passed as `Value.absent`, so it survives the partial write.
+      expect(cleared.validUntil, DateTime.utc(2026, 3, 31));
+    });
+
     test("clearPermitDocument drops both the reference and the row", () async {
       final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
       final documentId = (await locationsService.setPermitDocument(

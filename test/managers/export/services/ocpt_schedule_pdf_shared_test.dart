@@ -61,6 +61,7 @@ OcptShootingDayBlock _buildBlock({
   durationMinutes: 30,
   anchorMinute: null,
   notes: "",
+  crewNote: "",
 );
 
 /// Builds a role with the few fields these tests read, everything else neutral.

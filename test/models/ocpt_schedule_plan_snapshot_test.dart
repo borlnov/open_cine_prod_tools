@@ -86,6 +86,7 @@ OcptShootingDayBlock _buildBlock({
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
+  crewNote: "",
 );
 
 /// Builds a crew member with the few fields these tests read, everything else neutral.
@@ -596,6 +597,7 @@ void main() {
               durationMinutes: 60,
               anchorMinute: null,
               notes: "",
+              crewNote: "",
             ),
           ],
         },

@@ -32,6 +32,11 @@ class OcptAssetsService {
   /// Exactly one of [personId], [locationId] and [elementId] names the subject; the caller is what
   /// knows which, and passing none would produce a row nothing can ever list.
   ///
+  /// [validFrom] and [validUntil] are the document's own validity window — a filming permit runs
+  /// from a date to a date — and are null by default, exactly as `OcptAssetsTable.validFrom`'s own
+  /// doc comment reads null: "nobody has recorded one", never "valid forever". Meaningless for
+  /// anything but a document, and left null by every caller that references a photo.
+  ///
   /// **Unguarded on purpose**: every caller is a service method that has already refused the write
   /// on a previewed database and is running inside its own transaction, so a second guard here
   /// would answer a question already answered — and answer it too late to roll the rest back.
@@ -44,6 +49,8 @@ class OcptAssetsService {
     String? personId,
     String? locationId,
     String? elementId,
+    DateTime? validFrom,
+    DateTime? validUntil,
   }) async {
     final id = const Uuid().v4();
 
@@ -60,6 +67,8 @@ class OcptAssetsService {
             personId: Value(personId),
             locationId: Value(locationId),
             elementId: Value(elementId),
+            validFrom: Value(validFrom),
+            validUntil: Value(validUntil),
           ),
         );
 
@@ -95,6 +104,29 @@ class OcptAssetsService {
     }
 
     await tombstoneAsset(database: database, assetId: assetId);
+  }
+
+  /// Updates the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
+  /// on a document such as a filming permit — to the fields passed as something other than
+  /// [Value.absent]. Passing `Value(null)` clears a date already recorded: a production deciding it
+  /// no longer wants to track one is as real a gesture as setting it.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateAssetValidity({
+    required OcptProjectDatabase database,
+    required String assetId,
+    Value<DateTime?> validFrom = const Value.absent(),
+    Value<DateTime?> validUntil = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateAssetValidity")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptAssetsTable,
+    )..where((table) => table.id.equals(assetId) & table.isDeleted.not())).write(
+      OcptAssetsTableCompanion(validFrom: validFrom, validUntil: validUntil),
+    );
   }
 
   /// Tombstones every `assets` row belonging to person [personId] **and blanks its path and its

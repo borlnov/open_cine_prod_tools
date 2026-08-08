@@ -41,6 +41,13 @@ class OcptAssetRef extends Equatable {
   /// The element this asset belongs to, or null.
   final String? elementId;
 
+  /// The date this asset's document becomes valid, or null while nobody has recorded one — never
+  /// "valid from the start of time". See `OcptAssetsTable.validFrom`.
+  final DateTime? validFrom;
+
+  /// The date this asset's document stops being valid, or null. See [validFrom].
+  final DateTime? validUntil;
+
   /// Class constructor
   const OcptAssetRef({
     required this.id,
@@ -51,6 +58,8 @@ class OcptAssetRef extends Equatable {
     required this.personId,
     required this.locationId,
     required this.elementId,
+    required this.validFrom,
+    required this.validUntil,
   });
 
   /// Builds an [OcptAssetRef] from its stored [row].
@@ -63,6 +72,8 @@ class OcptAssetRef extends Equatable {
     personId: row.personId,
     locationId: row.locationId,
     elementId: row.elementId,
+    validFrom: row.validFrom,
+    validUntil: row.validUntil,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -71,5 +82,16 @@ class OcptAssetRef extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [id, kind, path, label, addedAt, personId, locationId, elementId];
+  List<Object?> get props => [
+    id,
+    kind,
+    path,
+    label,
+    addedAt,
+    personId,
+    locationId,
+    elementId,
+    validFrom,
+    validUntil,
+  ];
 }

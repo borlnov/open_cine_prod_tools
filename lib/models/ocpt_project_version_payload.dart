@@ -155,6 +155,16 @@ class OcptProjectVersionPayload extends Equatable {
   /// truthful "there were none").
   final String? currencyCode;
 
+  /// The `project_info.minimumRestMinutes` of the project, or null.
+  ///
+  /// **Unlike [currencyCode], a null here is a truthful "this project had none recorded"** — the
+  /// column is nullable by design, not something every payload from a certain format on always
+  /// carries a real value for, so there is no format boundary to read the null against.
+  /// `OcptProjectVersionsService.restoreVersion` writes it back onto the working copy like any
+  /// other changed column, including when it is null, rather than leaving the live value alone —
+  /// the reading `people.maxDailyPresenceMinutes` gets on restore, not the currency's.
+  final int? minimumRestMinutes;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -189,6 +199,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.pageSetup,
     required this.settingsJson,
     required this.currencyCode,
+    required this.minimumRestMinutes,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -211,7 +222,8 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
-      "pageSetup: $pageSetup, currencyCode: $currencyCode)";
+      "pageSetup: $pageSetup, currencyCode: $currencyCode, "
+      "minimumRestMinutes: $minimumRestMinutes)";
 
   /// Object properties
   @override
@@ -248,5 +260,6 @@ class OcptProjectVersionPayload extends Equatable {
     pageSetup,
     settingsJson,
     currencyCode,
+    minimumRestMinutes,
   ];
 }

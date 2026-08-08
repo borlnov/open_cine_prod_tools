@@ -111,8 +111,11 @@ part 'ocpt_project_database.g.dart';
 /// 0015, amended a second time). Schema version 15 adds [OcptRoleElementsTable], what a role wears,
 /// carries and is made up with. Schema version 17 adds two further schedule tables: who attends a
 /// slot without being crew or cast ([OcptShootingSlotGuestsTable]) and what a day does not control,
-/// at an absolute hour ([OcptShootingDayEventsTable]). `OcptProjectsManager` owns the
-/// single instance open at a time.
+/// at an absolute hour ([OcptShootingDayEventsTable]) — plus, in the same schema bump, a printed
+/// crew note on a block ([OcptShootingDayBlocksTable.crewNote]), a document's validity window on
+/// an asset ([OcptAssetsTable.validFrom]/[OcptAssetsTable.validUntil]) and the minimum rest a
+/// production says it owes ([OcptProjectInfoTable.minimumRestMinutes]). `OcptProjectsManager` owns
+/// the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -293,7 +296,19 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// [OcptShootingSlotGuestsTable] and [OcptShootingDayEventsTable] — both plain `createTable`s on a
   /// file coming from any version, since every table either one references (`shooting_slots` and
   /// `people` for the first, `shooting_days` for the second) exists by version 11 at the latest, and
-  /// is created above for a file older than that. Every step is additive, as
+  /// is created above for a file older than that — and, in the same step, three more columns: it
+  /// adds `project_info.minimumRestMinutes` unconditionally (`project_info` has existed, and been
+  /// alterable, since version 1), `assets.validFrom`/`assets.validUntil` guarded by `from >= 6` for
+  /// the reason `elements.status` is (a file older than that has just had the table created fresh
+  /// above, from the current declaration, so it already carries both columns), and
+  /// `shooting_day_blocks.crewNote` guarded by `from >= 12` rather than `from >= 11`: a file below
+  /// 11 has the same fresh-table reason, and one from exactly 11 has just been reshaped onto the
+  /// current declaration by [_alterScheduleTablesToV12] — `TableMigration`'s picture of a table
+  /// mid-migration is always the *current* Dart declaration (see that method's own doc comment), so
+  /// both already carry the column by this point. All three are
+  /// nullable or defaulted, so none needs a backfill: a project that predates them recorded nothing
+  /// for any of the three, which stays as true after the migration as it was before it — exactly the
+  /// reading version 16's own column carries. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -441,6 +456,24 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
         // by version 11 (or fresh, for a file older than that), `shooting_days` by version 11 too.
         await m.createTable(ocptShootingSlotGuestsTable);
         await m.createTable(ocptShootingDayEventsTable);
+
+        // `project_info` has existed, and been alterable, since version 1: no guard needed.
+        await m.addColumn(ocptProjectInfoTable, ocptProjectInfoTable.minimumRestMinutes);
+
+        // Guarded by `from >= 12`, not `from >= 11`: a file from below 11 has just had
+        // `shooting_day_blocks` created fresh above, from the current declaration, and one coming
+        // from version 11 has just been reshaped straight onto that same current declaration by
+        // [_alterScheduleTablesToV12] — `TableMigration`'s picture of a table mid-migration is
+        // always the *current* Dart declaration, so both already carry `crew_note` by this point.
+        // Only a file that genuinely reached version 12 still lacks the column for this to add.
+        if (from >= 12) {
+          await m.addColumn(ocptShootingDayBlocksTable, ocptShootingDayBlocksTable.crewNote);
+        }
+
+        if (from >= 6) {
+          await m.addColumn(ocptAssetsTable, ocptAssetsTable.validFrom);
+          await m.addColumn(ocptAssetsTable, ocptAssetsTable.validUntil);
+        }
       }
     },
     beforeOpen: (details) async {

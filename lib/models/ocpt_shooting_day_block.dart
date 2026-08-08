@@ -48,8 +48,14 @@ class OcptShootingDayBlock extends Equatable {
   /// while it simply follows the block before it. May exceed 1440.
   final int? anchorMinute;
 
-  /// Free-form notes about this block.
+  /// Free-form notes about this block. **Private, and never printed.** See [crewNote] for the
+  /// sibling that does.
   final String notes;
+
+  /// What this block's own row says to the crew when it prints. **Printed**, under the block's own
+  /// row on the call sheet and in the shooting plan's day agenda — the sibling of
+  /// `shooting_days.crewNote`, one block narrower.
+  final String crewNote;
 
   /// Class constructor
   const OcptShootingDayBlock({
@@ -63,6 +69,7 @@ class OcptShootingDayBlock extends Equatable {
     required this.durationMinutes,
     required this.anchorMinute,
     required this.notes,
+    required this.crewNote,
   });
 
   /// Builds an [OcptShootingDayBlock] from its stored [row].
@@ -77,6 +84,7 @@ class OcptShootingDayBlock extends Equatable {
     durationMinutes: row.durationMinutes,
     anchorMinute: row.anchorMinute,
     notes: row.notes,
+    crewNote: row.crewNote,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -97,5 +105,6 @@ class OcptShootingDayBlock extends Equatable {
     durationMinutes,
     anchorMinute,
     notes,
+    crewNote,
   ];
 }

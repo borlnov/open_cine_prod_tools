@@ -190,6 +190,40 @@ void main() {
     expect(await manager.loadCurrentProjectCurrencyCode(), isNull);
   });
 
+  test(
+    'saveCurrentProjectMinimumRestMinutes writes the minutes, '
+    'loadCurrentProjectMinimumRestMinutes reads them back',
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      // Nobody has recorded a minimum yet — not "no minimum required".
+      expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+
+      await manager.saveCurrentProjectMinimumRestMinutes(660);
+
+      expect(await manager.loadCurrentProjectMinimumRestMinutes(), 660);
+    },
+  );
+
+  test('saveCurrentProjectMinimumRestMinutes can clear a minimum already recorded', () async {
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    await manager.saveCurrentProjectMinimumRestMinutes(660);
+
+    await manager.saveCurrentProjectMinimumRestMinutes(null);
+
+    expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+  });
+
+  test('saveCurrentProjectMinimumRestMinutes is a no-op when no project is open', () async {
+    await expectLater(manager.saveCurrentProjectMinimumRestMinutes(660), completes);
+    expect(manager.currentProject, isNull);
+  });
+
+  test('loadCurrentProjectMinimumRestMinutes returns null when no project is open', () async {
+    expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+  });
+
   test('createProjectVersion captures the open project, listProjectVersions reads it back', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
 

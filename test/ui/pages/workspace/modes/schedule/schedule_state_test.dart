@@ -33,6 +33,7 @@ OcptShootingDayBlock _buildBlock({
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
+  crewNote: "",
 );
 
 void main() {
@@ -329,6 +330,7 @@ void main() {
       durationMinutes: null,
       anchorMinute: null,
       notes: "",
+      crewNote: "",
     );
 
     test("a shot placed twice on the same day reports that day's number once", () {

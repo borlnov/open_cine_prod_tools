@@ -107,6 +107,8 @@ OcptAssetRef _asset({
   personId: "p1",
   locationId: null,
   elementId: null,
+  validFrom: null,
+  validUntil: null,
 );
 
 /// [person]'s current value for [field], mirroring `OcptResourcesMode._fieldValueOf` with no

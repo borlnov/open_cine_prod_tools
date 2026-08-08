@@ -1105,6 +1105,32 @@ void main() {
       expect((await readBlock(blockId)).sceneId, isNull);
     });
 
+    test("updateBlock writes the crew note, independently of the private notes", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+
+      final blockId = (await scheduleService.createBlock(
+        database: database,
+        slotId: slotId,
+        kind: OcptShootingBlockKind.meal,
+        notes: "Not for the crew's eyes",
+      ))!;
+
+      await scheduleService.updateBlock(
+        database: database,
+        blockId: blockId,
+        crewNote: const Value("The generator arrives during this move"),
+      );
+
+      final block = await readBlock(blockId);
+      expect(block.crewNote, "The generator arrives during this move");
+      expect(block.notes, "Not for the crew's eyes");
+    });
+
     test("reorderBlock writes exactly one row within a slot's own timetable", () async {
       final dayId = (await scheduleService.createDay(
         database: database,

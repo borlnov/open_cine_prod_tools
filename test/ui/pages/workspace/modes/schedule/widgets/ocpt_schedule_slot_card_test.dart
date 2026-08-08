@@ -136,6 +136,7 @@ OcptShootingDayBlock _buildBlock({required String id, required String slotId, St
       durationMinutes: null,
       anchorMinute: null,
       notes: "",
+      crewNote: "",
     );
 
 /// A neutral `shotOf` resolving nothing, for tests that never place a shot block.

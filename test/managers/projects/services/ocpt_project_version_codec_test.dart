@@ -504,6 +504,8 @@ void main() {
         sortKey: "V",
         isDeleted: false,
         personId: "person-1",
+        validFrom: DateTime.utc(2026, 1, 10),
+        validUntil: DateTime.utc(2027, 1, 10),
       ),
       OcptAssetRow(
         id: "asset-2",
@@ -680,6 +682,7 @@ void main() {
         shotId: "shot-1",
         label: "",
         notes: "First shot of the day",
+        crewNote: "Silence, take in progress",
         isDeleted: false,
       ),
       OcptShootingDayBlockRow(
@@ -693,6 +696,7 @@ void main() {
         durationMinutes: 30,
         anchorMinute: 600,
         notes: "",
+        crewNote: "",
         isDeleted: true,
       ),
     ],
@@ -780,6 +784,7 @@ void main() {
     ),
     settingsJson: '{"someSetting":true}',
     currencyCode: "GBP",
+    minimumRestMinutes: 660,
   );
 
   /// [buildRichPayload] serialized and read back.
@@ -1130,6 +1135,23 @@ void main() {
       expect(roundTrip(buildRichPayload()).currencyCode, "GBP");
     });
 
+    test('the minimum rest comes back', () {
+      expect(roundTrip(buildRichPayload()).minimumRestMinutes, 660);
+    });
+
+    test("a block's crew note comes back", () {
+      final block = roundTrip(
+        buildRichPayload(),
+      ).shootingDayBlocks.firstWhere((row) => row.id == "block-1");
+      expect(block.crewNote, "Silence, take in progress");
+    });
+
+    test("an asset's validity window comes back", () {
+      final asset = roundTrip(buildRichPayload()).assets.firstWhere((row) => row.id == "asset-1");
+      expect(asset.validFrom, DateTime.utc(2026, 1, 10));
+      expect(asset.validUntil, DateTime.utc(2027, 1, 10));
+    });
+
     test('a project with no shot list at all round trips as an empty one', () {
       const payload = OcptProjectVersionPayload(
         screenplays: [],
@@ -1164,6 +1186,7 @@ void main() {
         pageSetup: OcptPageSetup.standard(),
         settingsJson: null,
         currencyCode: null,
+        minimumRestMinutes: null,
       );
 
       expect(roundTrip(payload), payload);
@@ -1216,6 +1239,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(reordered));
@@ -1264,6 +1288,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentStamps));
@@ -1312,6 +1337,7 @@ void main() {
         ),
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), codec.contentDigest(withDifferentMargins));
@@ -1355,6 +1381,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(edited)));
@@ -1395,6 +1422,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1435,6 +1463,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       // Without the resources tables in the digest, an afternoon of typing people, locations and
@@ -1477,6 +1506,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1530,6 +1560,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       // Without the breakdown tables in the digest, an afternoon of tagging the script would leave
@@ -1579,6 +1610,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reanchored)));
@@ -1622,6 +1654,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1665,6 +1698,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(marked)));
@@ -1708,6 +1742,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       // elements.status is new too, and it lives inside the digest exactly like every other
@@ -1763,6 +1798,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       // Without the seven schedule tables in the digest, planning a whole shooting day would leave
@@ -1808,6 +1844,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recalled)));
@@ -1851,6 +1888,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
@@ -1900,6 +1938,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewPresence)));
@@ -1951,6 +1990,7 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
@@ -1994,6 +2034,7 @@ void main() {
         ),
         settingsJson: payload.settingsJson,
         currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(reformatted)));
@@ -2034,9 +2075,96 @@ void main() {
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
         currencyCode: "USD",
+        minimumRestMinutes: payload.minimumRestMinutes,
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(recurrencied)));
+    });
+
+    test('changes when the minimum rest changes', () {
+      final payload = buildRichPayload();
+      final rerested = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: 720,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(rerested)));
+    });
+
+    test("changes when a block's crew note is typed", () {
+      final payload = buildRichPayload();
+      final blocks = [
+        for (final row in payload.shootingDayBlocks)
+          row.id == "block-1" ? row.copyWith(crewNote: "Generator arrives now") : row,
+      ];
+      final renoted = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: blocks,
+        shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+        minimumRestMinutes: payload.minimumRestMinutes,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(renoted)));
     });
   });
 
@@ -2852,23 +2980,41 @@ void main() {
     );
 
     test(
-      'a stored format-11 payload decodes with no guest and no event on any day',
+      'a stored format-11 payload decodes with no guest, no event, an empty crew note on '
+      'every block and no validity or rest recorded',
       () {
-        // Format 11 predates `shooting_slot_guests` and `shooting_day_events` entirely, so
-        // [_upgradeFormat11To12] materialises both as **empty lists** — the plain kind, not the
-        // currency's "leave the live value alone" null. The fixture is the current encoding with
-        // both keys taken back out and the format wound back, rather than a second hand-written
-        // literal.
+        // Format 11 predates `shooting_slot_guests`, `shooting_day_events`,
+        // `shooting_day_blocks.crewNote`, `assets.validFrom`/`validUntil` and
+        // `project_info.minimumRestMinutes` entirely. [_upgradeFormat11To12] materialises the first
+        // two as **empty lists** (the plain kind), and the crew note, the validity dates and the
+        // rest minimum as an **empty string**/**null**s — the same kind [_upgradeFormat10To11]
+        // writes for `maxDailyPresenceMinutes`, not the currency's "leave the live value alone"
+        // null. The fixture is the current encoding with every one of those keys taken back out and
+        // the format wound back, rather than a second hand-written literal.
         final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>
           ..remove("shootingSlotGuests")
-          ..remove("shootingDayEvents")
-          ..["payloadFormat"] = 11;
+          ..remove("shootingDayEvents");
+
+        for (final block in encoded["shootingDayBlocks"] as List) {
+          (block as Map<String, dynamic>).remove("crewNote");
+        }
+        for (final asset in encoded["assets"] as List) {
+          (asset as Map<String, dynamic>)
+            ..remove("validFrom")
+            ..remove("validUntil");
+        }
+        (encoded["projectSettings"] as Map<String, dynamic>).remove("minimumRestMinutes");
+        encoded["payloadFormat"] = 11;
 
         final result = codec.decode(jsonEncode(encoded));
 
         expect(result.status, OcptProjectVersionPayloadStatus.ok);
         expect(result.value!.shootingSlotGuests, isEmpty);
         expect(result.value!.shootingDayEvents, isEmpty);
+        expect(result.value!.shootingDayBlocks.map((row) => row.crewNote), everyElement(""));
+        expect(result.value!.assets.map((row) => row.validFrom), everyElement(isNull));
+        expect(result.value!.assets.map((row) => row.validUntil), everyElement(isNull));
+        expect(result.value!.minimumRestMinutes, isNull);
         // And nothing else was disturbed on the way through: the rest of the schedule came back.
         expect(result.value!.shootingSlots, buildRichPayload().shootingSlots);
         expect(result.value!.shootingDays, buildRichPayload().shootingDays);

@@ -1773,6 +1773,104 @@ void main() {
     await database.close();
   });
 
+  test(
+    'a v16 database migrates on, gaining a block crew note, asset validity dates and a '
+    'minimum rest',
+    () async {
+      final filePath = p.join(tempDir.path, 'legacy_v16_columns.ocpt');
+
+      final legacyDb = sqlite3.sqlite3.open(filePath);
+      legacyDb.execute(_v5Ddl);
+      legacyDb.execute(_v6ResourcesDdl);
+      legacyDb.execute(_v7LocationAvailabilitiesDdl);
+      legacyDb.execute(_v8CurrencyDdl);
+      legacyDb.execute(_v9BreakdownDdl);
+      legacyDb.execute(_v14ScheduleDdl);
+      legacyDb.execute(_v15RoleElementsDdl);
+      legacyDb.execute(_v16MaxDailyPresenceMinutesDdl);
+      legacyDb.execute('PRAGMA user_version = 16;');
+      seedCommonRows(legacyDb);
+
+      // A day, a slot and a block the file already held, so the new `crew_note` column can be read
+      // against a real row rather than merely existing.
+      legacyDb.execute(
+        "INSERT INTO shooting_days (id, screenplay_id, date) VALUES "
+        "('day1', 's1', '2026-03-10T00:00:00.000Z');",
+      );
+      legacyDb.execute(
+        "INSERT INTO shooting_slots (id, shooting_day_id, anchor_minute) VALUES "
+        "('slot1', 'day1', 480);",
+      );
+      legacyDb.execute(
+        "INSERT INTO shooting_day_blocks (id, shooting_day_id, slot_id) VALUES "
+        "('block1', 'day1', 'slot1');",
+      );
+
+      // An asset the file already held, so the new `valid_from`/`valid_until` columns can be read
+      // against a real row too.
+      legacyDb.execute(
+        "INSERT INTO assets (id, kind, path, added_at) VALUES "
+        "('asset1', 'document', '/permits/mairie.pdf', '2026-01-01T00:00:00.000Z');",
+      );
+      legacyDb.dispose();
+
+      final database = OcptProjectDatabase(File(filePath));
+
+      // (a) every row the file already held survived — the migration only adds columns.
+      await expectCommonRowsSurvived(database);
+      expect((await database.select(database.ocptShootingDayBlocksTable).getSingle()).id, "block1");
+      expect((await database.select(database.ocptAssetsTable).getSingle()).id, "asset1");
+
+      // (b) the three new columns default to what a project that predates them truthfully recorded:
+      // an empty crew note (a block's own default), and null for the rest — "nobody has said",
+      // never "always" or "never".
+      final block = await database.select(database.ocptShootingDayBlocksTable).getSingle();
+      expect(block.crewNote, "");
+      final asset = await database.select(database.ocptAssetsTable).getSingle();
+      expect(asset.validFrom, isNull);
+      expect(asset.validUntil, isNull);
+      final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(projectInfo.minimumRestMinutes, isNull);
+
+      // (c) and all three are writable.
+      await database
+          .update(database.ocptShootingDayBlocksTable)
+          .write(
+            const OcptShootingDayBlocksTableCompanion(
+              crewNote: Value("Le groupe électrogène arrive pendant ce déplacement"),
+            ),
+          );
+      expect(
+        (await database.select(database.ocptShootingDayBlocksTable).getSingle()).crewNote,
+        "Le groupe électrogène arrive pendant ce déplacement",
+      );
+
+      final validFrom = DateTime.utc(2026, 3, 10);
+      final validUntil = DateTime.utc(2026, 3, 31);
+      await database
+          .update(database.ocptAssetsTable)
+          .write(
+            OcptAssetsTableCompanion(validFrom: Value(validFrom), validUntil: Value(validUntil)),
+          );
+      final updatedAsset = await database.select(database.ocptAssetsTable).getSingle();
+      expect(updatedAsset.validFrom, validFrom);
+      expect(updatedAsset.validUntil, validUntil);
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(minimumRestMinutes: Value(660)));
+      expect(
+        (await database.select(database.ocptProjectInfoTable).getSingle()).minimumRestMinutes,
+        660,
+      );
+
+      // (d) the file now says the current schema version.
+      expect(await readSchemaVersion(database), 17);
+
+      await database.close();
+    },
+  );
+
   test('a project with no schedule opens unchanged at the current schema', () async {
     // A file written by the very build that adds the schedule mode: `onCreate` alone, no upgrade
     // path involved. Nobody has planned a day yet, and opening it must neither invent one nor

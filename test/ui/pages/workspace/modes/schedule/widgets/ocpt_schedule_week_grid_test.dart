@@ -59,6 +59,7 @@ OcptShootingDayBlock _buildBlock({required String id, String slotId = "slot-1", 
       durationMinutes: null,
       anchorMinute: null,
       notes: "",
+      crewNote: "",
     );
 
 /// Builds a shooting slot with the few fields these tests read, everything else neutral — no crew,

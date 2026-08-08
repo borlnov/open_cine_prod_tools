@@ -430,6 +430,46 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         .write(OcptProjectInfoTableCompanion(currencyCode: Value(code)));
   }
 
+  /// Loads the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
+  /// null.
+  ///
+  /// The two reasons for a null answer are indistinguishable here, exactly as
+  /// [loadCurrentProjectCurrencyCode]'s would be if that column were nullable: no project is open,
+  /// or one is and nobody has recorded a minimum for it — the column's own truthful "nobody has
+  /// said" (`OcptProjectInfoTable.minimumRestMinutes`).
+  Future<int?> loadCurrentProjectMinimumRestMinutes() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.minimumRestMinutes;
+  }
+
+  /// Updates the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table,
+  /// or clears it when [minutes] is null — a production that decides it no longer wants to record
+  /// one is as real a gesture as setting it. Does nothing if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectCurrencyCode], with one difference the column's own nullability
+  /// forces: [minutes] is written whichever it is, including null, rather than only ever holding a
+  /// value the way a page format or a currency always does.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectMinimumRestMinutes(int? minutes) async {
+    final project = currentProject;
+    if (project == null ||
+        project.database.refusesUserWrite("saveCurrentProjectMinimumRestMinutes")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(minimumRestMinutes: Value(minutes)));
+  }
+
   /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
   ///
   /// {@template open_cine_prod_tools.OcptProjectsManager.versionOperations}

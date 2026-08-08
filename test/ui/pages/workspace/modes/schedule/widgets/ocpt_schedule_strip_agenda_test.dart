@@ -88,6 +88,7 @@ OcptShootingDayBlock _buildShotBlock({
   durationMinutes: null,
   anchorMinute: null,
   notes: "",
+  crewNote: "",
 );
 
 void main() {

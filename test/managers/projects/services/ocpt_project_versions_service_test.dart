@@ -856,6 +856,7 @@ void main() {
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
                   currencyCode: payload.currencyCode,
+                  minimumRestMinutes: payload.minimumRestMinutes,
                 ),
               ),
               summaryJson: "{}",
@@ -1424,6 +1425,43 @@ void main() {
       final info = await database.select(database.ocptProjectInfoTable).getSingle();
       expect(info.currencyCode, "GBP");
     });
+
+    test("restores the minimum rest the version was captured with", () async {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(minimumRestMinutes: Value(660)));
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(minimumRestMinutes: Value(720)));
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.minimumRestMinutes, 660);
+    });
+
+    test(
+      "restoring a payload with no minimum rest clears one recorded since — unlike the currency",
+      () async {
+        // Unlike currencyCode, which is never null on a live capture, minimumRestMinutes is null
+        // right here because nobody has recorded one yet — a truthful value of its own, not a
+        // format predating the column.
+        final version = await createVersion();
+
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(const OcptProjectInfoTableCompanion(minimumRestMinutes: Value(600)));
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+        final info = await database.select(database.ocptProjectInfoTable).getSingle();
+        expect(info.minimumRestMinutes, isNull);
+      },
+    );
 
     test(
       "restoring a version captured before an erasure does not resurrect the erased person",

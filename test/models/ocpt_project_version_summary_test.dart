@@ -55,6 +55,7 @@ void main() {
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,
     currencyCode: null,
+    minimumRestMinutes: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].

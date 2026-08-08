@@ -331,6 +331,10 @@ class OcptProjectVersionsService {
             // to preview: the schema's own default reads as truthfully as anything else can for a
             // moment currencies didn't exist yet.
             currencyCode: Value(payload.currencyCode ?? ocptDefaultCurrencyCode),
+            // Unlike the currency, a null here is never "this payload predates the column" — it is
+            // exactly as truthful on a live capture as on an old one — so it previews verbatim,
+            // null included.
+            minimumRestMinutes: Value(payload.minimumRestMinutes),
           ),
         );
 
@@ -442,7 +446,10 @@ class OcptProjectVersionsService {
   ///
   /// The currency is written here too, **except when the payload doesn't carry one** — a version
   /// captured before currencies existed — in which case the project's own currency is left exactly
-  /// as it stood: see `OcptProjectVersionPayload.currencyCode`.
+  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest is written
+  /// **unconditionally**, null included: unlike the currency, a null here is never "this payload
+  /// predates the column" — the column is nullable by design and null is one of its truthful
+  /// values on a live capture too — so there is no live value to leave alone.
   ///
   /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
   /// **A restore is an edit, not a reset**, and that distinction is what the whole of
@@ -524,6 +531,7 @@ class OcptProjectVersionsService {
                   final code? => Value(code),
                   null => const Value.absent(),
                 },
+                minimumRestMinutes: Value(payload.minimumRestMinutes),
                 currentVersionId: Value(id),
               ),
             );
@@ -612,6 +620,7 @@ class OcptProjectVersionsService {
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
       currencyCode: info.currencyCode,
+      minimumRestMinutes: info.minimumRestMinutes,
     );
   }
 
@@ -1066,6 +1075,7 @@ class OcptProjectVersionsService {
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
       currencyCode: payload.currencyCode,
+      minimumRestMinutes: payload.minimumRestMinutes,
     );
   }
 

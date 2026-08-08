@@ -93,8 +93,18 @@ class OcptShootingDayBlocksTable extends Table {
   /// `ocpt_shooting_slots_table.dart`.
   IntColumn get anchorMinute => integer().nullable()();
 
-  /// Free-form notes about this block.
+  /// Free-form notes about this block. **Private, and never printed** — the call sheet and the
+  /// shooting plan say nothing about it. See [crewNote] for the sibling that does.
   TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// What this block's own row says to the crew when it prints: the sibling of
+  /// `shooting_days.crewNote`, one block narrower — that one is the whole day's note, this one
+  /// belongs to a single block ("the neighbours have asked for silence before 9:00", "the
+  /// generator arrives during this move"). **Printed**, under the block's own row on the call
+  /// sheet and in the shooting plan's day agenda, which is the whole reason it exists apart from
+  /// [notes]: a field nobody had ever said would or wouldn't print was really two fields wearing
+  /// one name.
+  TextColumn get crewNote => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();

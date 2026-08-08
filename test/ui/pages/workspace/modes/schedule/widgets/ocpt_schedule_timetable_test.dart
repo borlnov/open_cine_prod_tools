@@ -48,6 +48,7 @@ OcptShootingDayBlock _buildBlock({
   durationMinutes: null,
   anchorMinute: anchorMinute,
   notes: "",
+  crewNote: "",
 );
 
 /// Builds a scene sequence with the few fields these tests read, everything else neutral.

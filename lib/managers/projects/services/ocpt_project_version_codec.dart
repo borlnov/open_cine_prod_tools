@@ -600,6 +600,12 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse an asset's `addedAt` column from a JSON object
   static const _addedAtKey = "addedAt";
 
+  /// This is the key used to stringify or parse an asset's `validFrom` column from a JSON object
+  static const _validFromKey = "validFrom";
+
+  /// This is the key used to stringify or parse an asset's `validUntil` column from a JSON object
+  static const _validUntilKey = "validUntil";
+
   /// This is the key used to stringify or parse a scene-relative `startOffset` column
   /// (`shot_coverages.startOffset` or `breakdown_tags.startOffset`) from a JSON object
   static const _startOffsetKey = "startOffset";
@@ -634,8 +640,9 @@ class OcptProjectVersionCodec {
   /// object — the hour it happens at, an offset from the day's own midnight.
   static const _minuteKey = "minute";
 
-  /// This is the key used to stringify or parse a shooting day's `crewNote` column from a JSON
-  /// object
+  /// This is the key used to stringify or parse a `crewNote` column (`shooting_days.crewNote`, the
+  /// note for the whole day, or `shooting_day_blocks.crewNote`, one block narrower) from a JSON
+  /// object — both printed, unlike [_notesKey], which never is.
   static const _crewNoteKey = "crewNote";
 
   /// This is the key used to stringify or parse a shooting day's `weatherNote` column from a JSON
@@ -706,6 +713,10 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the project's `settingsJson` from a JSON object
   static const _settingsJsonKey = "settingsJson";
+
+  /// This is the key used to stringify or parse the project's `minimumRestMinutes` from a JSON
+  /// object
+  static const _minimumRestMinutesKey = "minimumRestMinutes";
 
   /// This is the key used to stringify or parse the left page margin from a JSON object
   static const _marginLeftKey = "leftInches";
@@ -1011,24 +1022,53 @@ class OcptProjectVersionCodec {
     ],
   };
 
-  /// Turns a format-**11** JSON object into a format-**12** one: `shooting_slot_guests` and
-  /// `shooting_day_events` didn't exist yet, so this materialises both as **empty lists**.
+  /// Turns a format-**11** JSON object into a format-**12** one, doing two of the three kinds of
+  /// change at once:
   ///
-  /// Back to the plainest of the three kinds, [_upgradeFormat5To6]'s and [_upgradeFormat9To10]'s: a
-  /// version written in format 11 was captured when nothing in the app could say a day had a guest
-  /// or an event of its own — a slot convoked crew and cast alone, and a day's timetable was the
-  /// only thing it could say happened on it — so "this day had neither" is a truthful statement
-  /// about that moment, unlike [_upgradeFormat3To4]'s null (which means "leave the live value
-  /// alone") and unlike [_upgradeFormat7To8]'s removal (which makes no claim about the capture at
-  /// all). `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
-  /// doesn't hold, so restoring a format-11 version correctly drops every guest and every event
-  /// recorded since — the reading, not a bug, exactly as restoring a pre-schedule version drops the
-  /// days planned since.
-  static Map<String, dynamic> _upgradeFormat11To12(Map<String, dynamic> json) => {
-    ...json,
-    _shootingSlotGuestsKey: const <dynamic>[],
-    _shootingDayEventsKey: const <dynamic>[],
-  };
+  /// - `shooting_slot_guests` and `shooting_day_events` didn't exist yet, so this materialises both
+  ///   as **empty lists** — the plainest of the three kinds, [_upgradeFormat5To6]'s and
+  ///   [_upgradeFormat9To10]'s: a version written in format 11 was captured when nothing in the app
+  ///   could say a day had a guest or an event of its own — a slot convoked crew and cast alone, and
+  ///   a day's timetable was the only thing it could say happened on it — so "this day had neither"
+  ///   is a truthful statement about that moment. `OcptProjectVersionsService._restoreTable`
+  ///   tombstones, on restore, every row the payload doesn't hold, so restoring a format-11 version
+  ///   correctly drops every guest and every event recorded since — the reading, not a bug, exactly
+  ///   as restoring a pre-schedule version drops the days planned since.
+  /// - Each `shootingDayBlocks` row gains an **empty string** [_crewNoteKey], and each `assets` row
+  ///   a **null** [_validFromKey]/[_validUntilKey], and [_projectSettingsKey] a **null**
+  ///   [_minimumRestMinutesKey] — [_upgradeFormat10To11]'s kind, not [_upgradeFormat3To4]'s: every
+  ///   one of the three columns is nullable or defaulted by design, so a version captured in format
+  ///   11 truthfully recorded nothing for any of them, and that nothing is written back onto the
+  ///   working copy on restore like any other changed column, rather than being skipped the way the
+  ///   currency's null is.
+  ///
+  /// Neither bullet is the third kind: [_upgradeFormat3To4]'s null means "leave the live value
+  /// alone", which nothing here does, and [_upgradeFormat7To8]'s removal makes no claim about the
+  /// moment of capture at all, where both of these state one.
+  static Map<String, dynamic> _upgradeFormat11To12(Map<String, dynamic> json) {
+    final blocks = [
+      for (final row in _rows(json, _shootingDayBlocksKey)) {...row, _crewNoteKey: ""},
+    ];
+
+    final assets = [
+      for (final row in _rows(json, _assetsKey))
+        {...row, _validFromKey: null, _validUntilKey: null},
+    ];
+
+    final projectSettings = {
+      ..._object(json, _projectSettingsKey),
+      _minimumRestMinutesKey: null,
+    };
+
+    return {
+      ...json,
+      _shootingDayBlocksKey: blocks,
+      _assetsKey: assets,
+      _projectSettingsKey: projectSettings,
+      _shootingSlotGuestsKey: const <dynamic>[],
+      _shootingDayEventsKey: const <dynamic>[],
+    };
+  }
 
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
@@ -1120,6 +1160,7 @@ class OcptProjectVersionCodec {
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
+      _minimumRestMinutesKey: payload.minimumRestMinutes,
     },
     _pageMarginsKey: {
       _marginLeftKey: payload.pageSetup.margins.leftInches,
@@ -1202,7 +1243,10 @@ class OcptProjectVersionCodec {
   ///   null on a payload decoded
   ///   from a format predating it (never on one freshly captured from a live database, which always
   ///   reads a real value), so this never makes an old and a current capture of the very same
-  ///   project disagree;
+  ///   project disagree; `minimumRestMinutes` is different — it is null exactly as often on a live
+  ///   capture as on an old one, since the column is nullable by design — but it stays **in**, not
+  ///   out alongside the margins: two projects agreeing on every shooting day but disagreeing on the
+  ///   rest they owe between them are not the same project, and leaving it out would hide that;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -1348,6 +1392,7 @@ class OcptProjectVersionCodec {
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
+      _minimumRestMinutesKey: payload.minimumRestMinutes,
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
@@ -1458,6 +1503,7 @@ class OcptProjectVersionCodec {
       ),
       settingsJson: _nullableString(projectSettings, _settingsJsonKey),
       currencyCode: _nullableString(projectSettings, _currencyCodeKey),
+      minimumRestMinutes: _nullableInt(projectSettings, _minimumRestMinutesKey),
     );
   }
 
@@ -2003,6 +2049,8 @@ class OcptProjectVersionCodec {
     _personIdKey: row.personId,
     _locationIdKey: row.locationId,
     _elementIdKey: row.elementId,
+    _validFromKey: row.validFrom?.toIso8601String(),
+    _validUntilKey: row.validUntil?.toIso8601String(),
   };
 
   /// Parses one `assets` row.
@@ -2017,6 +2065,8 @@ class OcptProjectVersionCodec {
     personId: _nullableString(json, _personIdKey),
     locationId: _nullableString(json, _locationIdKey),
     elementId: _nullableString(json, _elementIdKey),
+    validFrom: _nullableDateTime(json, _validFromKey),
+    validUntil: _nullableDateTime(json, _validUntilKey),
   );
 
   /// Serializes one `breakdown_tags` row.
@@ -2185,6 +2235,7 @@ class OcptProjectVersionCodec {
     _durationMinutesKey: row.durationMinutes,
     _anchorMinuteKey: row.anchorMinute,
     _notesKey: row.notes,
+    _crewNoteKey: row.crewNote,
     _isDeletedKey: row.isDeleted,
   };
 
@@ -2202,6 +2253,7 @@ class OcptProjectVersionCodec {
         durationMinutes: _nullableInt(json, _durationMinutesKey),
         anchorMinute: _nullableInt(json, _anchorMinuteKey),
         notes: _string(json, _notesKey),
+        crewNote: _string(json, _crewNoteKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
 

@@ -120,6 +120,8 @@ OcptAssetRef _asset({
   personId: null,
   locationId: "l1",
   elementId: null,
+  validFrom: null,
+  validUntil: null,
 );
 
 /// Builds a minimal [OcptSet] for these tests.
