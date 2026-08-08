@@ -135,6 +135,12 @@ const _shootingPlanLabels = OcptShootingPlanLabels(
   commentHeader: "Comment",
   emptyPlanNote: "Nothing to print.",
   emptyDayScheduleNote: "Nothing planned.",
+  eventsSectionTitle: "Events",
+  guestsSectionTitle: "Guests",
+  guestReasonHeader: "Reason",
+  nameHeader: "Name",
+  hoursLinePrefix: "Hours",
+  unnamedPersonLabel: "Unnamed",
 );
 
 /// An export manager whose three schedule PDF entry points are stubbed and whose calls are

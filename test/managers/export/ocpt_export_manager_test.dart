@@ -1047,6 +1047,12 @@ void main() {
       commentHeader: "Comment",
       emptyPlanNote: "Nothing planned yet.",
       emptyDayScheduleNote: "Nothing planned for this day yet.",
+      eventsSectionTitle: "Events",
+      guestsSectionTitle: "Guests",
+      guestReasonHeader: "Reason",
+      nameHeader: "NAME",
+      hoursLinePrefix: "HOURS",
+      unnamedPersonLabel: "Unnamed",
     );
 
     /// A one-day, one-slot schedule plan — enough for one shooting plan document.

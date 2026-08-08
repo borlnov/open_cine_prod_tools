@@ -149,6 +149,35 @@ class OcptShootingPlanLabels extends Equatable {
   /// block on any of them.
   final String emptyDayScheduleNote;
 
+  /// The heading of a day agenda's own events section — what the day does not control, at an
+  /// absolute hour, printed next to the day's own hours section and skipped entirely on a day with
+  /// none. The same word `OcptCallSheetLabels.eventsSectionTitle` already carries, itself the same
+  /// word the day view's own bordered band and the day inspector's own section carry on screen — a
+  /// printed document must not name a thing differently from the screen it was planned on.
+  final String eventsSectionTitle;
+
+  /// The heading of a day agenda's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the same
+  /// word `OcptCallSheetLabels.guestsSectionTitle` already carries, for the same reason.
+  final String guestsSectionTitle;
+
+  /// The guest table's own `MOTIF` column header — the same word `OcptCallSheetLabels
+  /// .guestReasonHeader` already carries.
+  final String guestReasonHeader;
+
+  /// The guest table's own `NOM` column header — the same word `OcptCallSheetLabels.nameHeader`
+  /// already carries.
+  final String nameHeader;
+
+  /// The guest table's own `HORAIRES` column header, printing a guest's own arrival – departure
+  /// band — the same word `OcptCallSheetLabels.hoursLinePrefix` already carries for the very same
+  /// column of its own trailing guest table.
+  final String hoursLinePrefix;
+
+  /// The label a guest prints under when neither their address-book entry nor their own free name
+  /// names anybody printable — the same word `OcptCallSheetLabels.unnamedPersonLabel` already
+  /// carries.
+  final String unnamedPersonLabel;
+
   /// Class constructor
   const OcptShootingPlanLabels({
     required this.fileNameSuffix,
@@ -185,6 +214,12 @@ class OcptShootingPlanLabels extends Equatable {
     required this.commentHeader,
     required this.emptyPlanNote,
     required this.emptyDayScheduleNote,
+    required this.eventsSectionTitle,
+    required this.guestsSectionTitle,
+    required this.guestReasonHeader,
+    required this.nameHeader,
+    required this.hoursLinePrefix,
+    required this.unnamedPersonLabel,
   });
 
   /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
@@ -238,5 +273,11 @@ class OcptShootingPlanLabels extends Equatable {
     commentHeader,
     emptyPlanNote,
     emptyDayScheduleNote,
+    eventsSectionTitle,
+    guestsSectionTitle,
+    guestReasonHeader,
+    nameHeader,
+    hoursLinePrefix,
+    unnamedPersonLabel,
   ];
 }

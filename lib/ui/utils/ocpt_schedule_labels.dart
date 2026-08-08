@@ -496,6 +496,12 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     commentHeader: tr.scheduleExportCommentHeader,
     emptyPlanNote: tr.scheduleExportEmptyPlanNote,
     emptyDayScheduleNote: tr.scheduleExportEmptyDayNote,
+    eventsSectionTitle: tr.scheduleDayEventsSectionTitle,
+    guestsSectionTitle: tr.scheduleConvocationsGuestsSectionTitle,
+    guestReasonHeader: tr.scheduleExportGuestReasonHeader,
+    nameHeader: tr.scheduleExportNameHeader,
+    hoursLinePrefix: tr.scheduleExportHoursLinePrefix,
+    unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
   );
 }
 

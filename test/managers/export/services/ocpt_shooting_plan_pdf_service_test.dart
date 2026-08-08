@@ -83,6 +83,12 @@ const _labels = OcptShootingPlanLabels(
   commentHeader: "Comment",
   emptyPlanNote: "Nothing planned yet.",
   emptyDayScheduleNote: "Nothing planned for this day yet.",
+  eventsSectionTitle: "Events",
+  guestsSectionTitle: "Guests",
+  guestReasonHeader: "Reason",
+  nameHeader: "NAME",
+  hoursLinePrefix: "HOURS",
+  unnamedPersonLabel: "Unnamed",
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -133,6 +139,7 @@ OcptShootingDayBlock _buildBlock({
   String? shotId,
   String label = "",
   int? durationMinutes = 30,
+  String crewNote = "",
 }) => OcptShootingDayBlock(
   id: id,
   shootingDayId: shootingDayId,
@@ -144,7 +151,33 @@ OcptShootingDayBlock _buildBlock({
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
-  crewNote: "",
+  crewNote: crewNote,
+);
+
+/// Builds a day event with the few fields these tests read, everything else neutral.
+OcptShootingDayEvent _buildEvent({
+  required String id,
+  required String shootingDayId,
+  required int minute,
+  String label = "",
+  String notes = "",
+}) => OcptShootingDayEvent(id: id, shootingDayId: shootingDayId, minute: minute, label: label, notes: notes);
+
+/// Builds a slot guest with the few fields these tests read, everything else neutral.
+OcptShootingSlotGuest _buildGuest({
+  required String id,
+  required String slotId,
+  String? personId,
+  String freeName = "",
+  String reason = "",
+  String notes = "",
+}) => OcptShootingSlotGuest(
+  id: id,
+  slotId: slotId,
+  personId: personId,
+  freeName: freeName,
+  reason: reason,
+  notes: notes,
 );
 
 /// Builds a crew member with the few fields these tests read, everything else neutral.
@@ -756,6 +789,160 @@ void main() {
       final afternoon = await generateAt(DateTime(2026, 1, 15, 17, 45));
 
       expect(_contentStreams(morning), isNot(_contentStreams(afternoon)));
+    });
+  });
+
+  group("events, guests and crew notes", () {
+    test("a day's own events, guests and a block's own crew note enlarge the document", () async {
+      final bareSlot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final withoutExtras = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [bareSlot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", kind: OcptShootingBlockKind.meal),
+          ],
+        },
+      );
+
+      final busySlot = _buildSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        anchorMinute: 480,
+        guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Mayor Dupont", reason: "Lends the square")],
+      );
+      final withExtras = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [busySlot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.meal,
+              crewNote: "Catering arrives at noon.",
+            ),
+          ],
+        },
+        eventsByDayId: {
+          "day-1": [_buildEvent(id: "event-1", shootingDayId: "day-1", minute: 1020, label: "Village fireworks")],
+        },
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        exportDate: pinnedExportDate,
+      );
+
+      // A guest's own convocation is computed like any other, and it never carries a PAT band
+      // (ADR 0018) — generating a document over one must not throw.
+      final guestConvocation = withExtras.convocationsOfDay("day-1").firstWhere((c) => c.isGuest);
+      expect(guestConvocation.patStartMinute, isNull);
+      expect(guestConvocation.patEndMinute, isNull);
+
+      final withBytes = await generateFor(withExtras);
+      final withoutBytes = await generateFor(withoutExtras);
+
+      expect(ascii.decode(withBytes.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
+      expect(withBytes.length, greaterThan(withoutBytes.length));
+    });
+
+    test("a milestone block's own crew note changes the document even with no shot on the day", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+
+      OcptSchedulePlanSnapshot buildPlan(String crewNote) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.meal,
+              crewNote: crewNote,
+            ),
+          ],
+        },
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        exportDate: pinnedExportDate,
+      );
+
+      final withoutNote = await generateFor(buildPlan(""));
+      final withNote = await generateFor(buildPlan("Keep noise down before 9am."));
+
+      expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
+    });
+
+    test("a shot block's own crew note closes its table chunk and changes the document", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+
+      OcptSchedulePlanSnapshot buildPlan(String crewNote) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+              crewNote: crewNote,
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        exportDate: pinnedExportDate,
+      );
+
+      final withoutNote = await generateFor(buildPlan(""));
+      final withNote = await generateFor(buildPlan("Bring the rain cover."));
+
+      expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
     });
   });
 

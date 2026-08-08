@@ -14,12 +14,16 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -67,6 +71,15 @@ const Map<int, pw.TableColumnWidth> _shotColumnWidths = {
   6: pw.FlexColumnWidth(1.6),
 };
 
+/// A day agenda's own trailing guest table's `NOM / MOTIF / HORAIRES` columns — the same shape
+/// `OcptCallSheetPdfService`'s own `_guestColumnWidths` already gives a day's guests, wider on the
+/// reason column than the name and hours ones since a guest's own reason is prose.
+const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
+  0: pw.FlexColumnWidth(1.6),
+  1: pw.FlexColumnWidth(2.4),
+  2: pw.FlexColumnWidth(1.2),
+};
+
 /// Renders the whole shoot's own shooting plan: an optional title page, the three summary grids —
 /// locations, sequences, crew and cast, each crossing every printed day's own slots — and then one
 /// detailed agenda per day, hour by hour.
@@ -88,6 +101,16 @@ const Map<int, pw.TableColumnWidth> _shotColumnWidths = {
 /// day agenda's own shot table leads with an **hours column**, the one column the reference
 /// document's own table carries no equivalent of, reading the same resolved clock a shot's block was
 /// placed on.
+///
+/// **The day's own events, guests and a block's own crew note** — schema v17's three additions —
+/// are printed here too, following `OcptCallSheetPdfService`'s own reading of them rather than a
+/// second one invented for this document: the events section sits beside the day's own hours
+/// section (an event is a fact about the day, taking part in no chain), the guest table trails the
+/// timetable exactly as it trails the call sheet's own cast-and-extras list, and a block's own
+/// [OcptShootingDayBlock.crewNote] prints under its own row — inline on a milestone's already
+/// full-width line, and as its own band under a shot run, since a `pw.Table` row cannot itself span
+/// the page width the note deserves. All three are skipped entirely on a day that carries none,
+/// rather than drawn over an em dash.
 ///
 /// **The three summary grids are landscape** (page width and height swapped from the painter's own
 /// geometry): a shoot is wide, and a grid silently cropped to whatever a portrait page holds would
@@ -698,8 +721,10 @@ class OcptShootingPlanPdfService {
   // Detailed day agenda
   // ---------------------------------------------------------------------------------------------
 
-  /// One day's own detailed agenda: its title, its location(s), its per-slot hours, the sets used,
-  /// then the interleaved timetable — the milestones as prose and the shot runs as tables.
+  /// One day's own detailed agenda: its title, its location(s), its per-slot hours, its own events
+  /// next to them, the sets used, then the interleaved timetable — the milestones as prose and the
+  /// shot runs as tables, a block's own [OcptShootingDayBlock.crewNote] printed under its row — and,
+  /// trailing it, the day's own guest table.
   pw.MultiPage _dayAgendaPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -714,6 +739,8 @@ class OcptShootingPlanPdfService {
     final timelines = plan.timelinesOfDay(dayId);
     final orderedEntries = ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId);
     final locations = ocptScheduleLocationsOfSlots(plan, slots);
+    final events = plan.schedule.eventsByDayId[dayId] ?? const <OcptShootingDayEvent>[];
+    final guestRows = _guestRowsOfDay(plan: plan, dayId: dayId, labels: labels);
     final title = labels.titleOfDay(dayId);
 
     return pw.MultiPage(
@@ -738,6 +765,10 @@ class OcptShootingPlanPdfService {
         _daySectionTitle(painter: painter, text: labels.dayHoursLabel),
         pw.SizedBox(height: 2),
         ..._hoursLines(painter: painter, labels: labels, slots: slots, timelines: timelines),
+        if (events.isNotEmpty) ...[
+          pw.SizedBox(height: 10),
+          _eventsSection(painter: painter, labels: labels, events: events),
+        ],
         pw.SizedBox(height: 10),
         _daySectionTitle(painter: painter, text: labels.daySetsLabel),
         pw.SizedBox(height: 2),
@@ -752,6 +783,10 @@ class OcptShootingPlanPdfService {
           plan: plan,
           headingBySceneId: headingBySceneId,
         ),
+        if (guestRows.isNotEmpty) ...[
+          pw.SizedBox(height: 10),
+          _guestsSection(painter: painter, labels: labels, rows: guestRows),
+        ],
       ],
     );
   }
@@ -850,10 +885,128 @@ class OcptShootingPlanPdfService {
     return sorted.join(", ");
   }
 
+  /// The day's own events section: [OcptShootingPlanLabels.eventsSectionTitle] then one bold
+  /// `HH:mm — <label>` line per event, its own free-form note beneath in a muted second line when it
+  /// carries one.
+  ///
+  /// Mirrors `OcptCallSheetPdfService._eventsSection`, placed here beside the day's own hours
+  /// section for the same reason it sits beside that document's own time bands: an event is a fact
+  /// about the day rather than about any one slot's chain, so it takes part in no chain and is never
+  /// interleaved into the timetable [_dayTimetableWidgets] builds. Never called on a day with no
+  /// event at all — see [_dayAgendaPage]'s own composition for why an empty section is skipped
+  /// entirely rather than drawn over an em dash.
+  pw.Widget _eventsSection({
+    required OcptScriptPagePainter painter,
+    required OcptShootingPlanLabels labels,
+    required List<OcptShootingDayEvent> events,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _daySectionTitle(painter: painter, text: labels.eventsSectionTitle),
+      pw.SizedBox(height: 2),
+      for (final event in events) ...[
+        pw.Text(
+          "${ocptFormatDayMinute(event.minute)} — "
+              "${event.label.trim().isEmpty ? ocptScheduleEmptyValue : event.label.trim()}",
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+        ),
+        if (event.notes.trim().isNotEmpty) ...[
+          pw.SizedBox(height: 1),
+          pw.Text(
+            event.notes.trim(),
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          ),
+        ],
+        pw.SizedBox(height: 4),
+      ],
+    ],
+  );
+
+  /// The day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the shape
+  /// `OcptCallSheetPdfService._guestsSection` already gives a day's guests, and for the same reason:
+  /// a guest is owed an arrival and a departure and never a PAT band (ADR 0018), so there is no
+  /// fourth column here to leave blank for one. Never called on a day with no guest at all — see
+  /// [_dayAgendaPage]'s own composition.
+  pw.Widget _guestsSection({
+    required OcptScriptPagePainter painter,
+    required OcptShootingPlanLabels labels,
+    required List<_GuestRow> rows,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _daySectionTitle(painter: painter, text: labels.guestsSectionTitle),
+      pw.SizedBox(height: 4),
+      pw.Table(
+        border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
+        columnWidths: _guestColumnWidths,
+        children: [
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: _bandColor),
+            children: [
+              for (final header in [labels.nameHeader, labels.guestReasonHeader, labels.hoursLinePrefix])
+                _textCell(painter: painter, text: header, isBold: true),
+            ],
+          ),
+          for (final row in rows)
+            pw.TableRow(
+              children: [
+                _textCell(painter: painter, text: row.name),
+                _guestReasonCell(painter: painter, row: row),
+                _textCell(painter: painter, text: row.hours),
+              ],
+            ),
+        ],
+      ),
+    ],
+  );
+
+  /// One [_guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own note(s)
+  /// on a muted second line when they carry any — mirrors
+  /// `OcptCallSheetPdfService._guestReasonCell`.
+  pw.Widget _guestReasonCell({required OcptScriptPagePainter painter, required _GuestRow row}) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          row.reason.isEmpty ? ocptScheduleEmptyValue : row.reason,
+          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+        ),
+        if (row.notes.isNotEmpty) ...[
+          pw.SizedBox(height: 1),
+          pw.Text(
+            row.notes,
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          ),
+        ],
+      ],
+    ),
+  );
+
+  /// A full-width band naming a shot run's own crew note — printed the moment a run is interrupted
+  /// by a block that carries one, since a `pw.Table` row cannot itself span the page width a note
+  /// deserves. Mirrors `OcptCallSheetPdfService._crewNoteBandWidget`, minus its own list of several
+  /// notes: here it is always exactly the one block's own, [_dayTimetableWidgets] calling this the
+  /// instant it sees one rather than accumulating several across a run.
+  pw.Widget _crewNoteBandWidget({required OcptScriptPagePainter painter, required String crewNote}) =>
+      pw.Container(
+        constraints: const pw.BoxConstraints(minWidth: double.infinity),
+        decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5)),
+        padding: const pw.EdgeInsets.all(_cellPaddingPt),
+        child: pw.Text(crewNote, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+      );
+
   /// The day's own interleaved timetable: a run of consecutive [OcptShootingBlockKind.shot] blocks
   /// becomes one shot table, every other block becomes its own prose milestone line — or
   /// [OcptShootingPlanLabels.emptyDayScheduleNote] when [orderedEntries] is empty (no slot, or no
   /// block on any of them).
+  ///
+  /// **A block's own [OcptShootingDayBlock.crewNote] prints under its own row**: `notes` is the
+  /// private one that never prints, `crewNote` is the one that does. A shot run's own note closes
+  /// the pending table chunk the moment it is seen — mirroring
+  /// `OcptCallSheetPdfService._mainTableSection`'s own `flushShotRows` — since a `pw.Table` row
+  /// cannot itself span the page width the note deserves; a milestone's own note has no such
+  /// problem, [_milestoneProseLine] already being a full-width line that prints it inline.
   List<pw.Widget> _dayTimetableWidgets({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -880,6 +1033,11 @@ class OcptShootingPlanPdfService {
           continue;
         }
         pendingShots.add((shot, ordered));
+        final crewNote = block.crewNote.trim();
+        if (crewNote.isNotEmpty) {
+          flush();
+          widgets.add(_crewNoteBandWidget(painter: painter, crewNote: crewNote));
+        }
         continue;
       }
 
@@ -904,6 +1062,7 @@ class OcptShootingPlanPdfService {
           ),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
+          crewNote: block.crewNote.trim(),
         ),
       );
     }
@@ -918,7 +1077,10 @@ class OcptShootingPlanPdfService {
   /// A non-shot block's own prose line (`De 16h45 à 17h15 : …`), or `<from> <start> : <caption>`
   /// when [endMinute] is null — a milestone whose block resolves to zero duration, or a slot with
   /// nothing placed on it yet — then [rolesLine] beneath it when the band expects anybody
-  /// ([ocptScheduleBlockRoleNumbersLine], null for every band that doesn't).
+  /// ([ocptScheduleBlockRoleNumbersLine], null for every band that doesn't), then [crewNote] on its
+  /// own line when the block carries one — printed inline, unlike a shot run's own
+  /// ([_crewNoteBandWidget]): this line is already full-width, so it has nothing to close and
+  /// reopen the way a `pw.Table` row does.
   pw.Widget _milestoneProseLine({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -926,6 +1088,7 @@ class OcptShootingPlanPdfService {
     required String? rolesLine,
     required int startMinute,
     required int? endMinute,
+    required String crewNote,
   }) {
     final start = ocptFormatDayMinute(startMinute);
     final text = endMinute == null
@@ -941,6 +1104,8 @@ class OcptShootingPlanPdfService {
           pw.Text(text, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
           if (rolesLine != null)
             pw.Text(rolesLine, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
+          if (crewNote.isNotEmpty)
+            pw.Text(crewNote, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
         ],
       ),
     );
@@ -1187,4 +1352,115 @@ List<List<_GridColumnRef>> _chunkColumns(List<_GridColumnRef> columns, int chunk
     chunks.add(columns.sublist(start, end));
   }
   return chunks;
+}
+
+/// One row of a day agenda's own trailing guest table: a guest convocation's own display name, the
+/// reason(s) their own `shooting_slot_guests` rows carry, and their own arrival – departure band.
+/// **Never a PAT band** — a guest is not there to shoot (ADR 0018), so there is no field here to
+/// carry one at all — mirroring `OcptCallSheetPdfService._GuestRow`, which this type is a plain copy
+/// of: the two documents read the same schedule and must not disagree about what a guest's row is.
+class _GuestRow {
+  const _GuestRow({required this.name, required this.reason, required this.notes, required this.hours});
+
+  /// The guest's own display name — the address-book person's, the free name, or
+  /// [OcptShootingPlanLabels.unnamedPersonLabel] while neither names anybody printable.
+  final String name;
+
+  /// The distinct, non-empty reasons every `shooting_slot_guests` row naming this guest on one of
+  /// their own slots carries, comma-joined — never picked down to one, since somebody attending two
+  /// slots for two different reasons is telling the truth about both.
+  final String reason;
+
+  /// The same join over those rows' own free-form notes, printed under [reason] on a muted second
+  /// line — empty when none of them carries any.
+  final String notes;
+
+  /// This guest's own arrival – departure band.
+  final String hours;
+}
+
+/// Whether [guest]'s own discriminator half — [OcptShootingSlotGuest.personId] or
+/// [OcptShootingSlotGuest.freeName] — matches [convocation]'s, the join `_guestRowsOfDay` makes
+/// between a `shooting_slot_guests` row and the computed convocation it feeds. A plain copy of
+/// `OcptCallSheetPdfService._guestMatchesConvocation`.
+bool _guestMatchesConvocation(OcptShootingSlotGuest guest, OcptDayConvocation convocation) =>
+    convocation.guestPersonId != null
+        ? guest.personId == convocation.guestPersonId
+        : guest.freeName == convocation.guestFreeName;
+
+/// [convocation]'s own display name for the trailing guest table: the address-book display name
+/// when it carries a [OcptDayConvocation.guestPersonId], its own [OcptDayConvocation.guestFreeName]
+/// otherwise, or [OcptShootingPlanLabels.unnamedPersonLabel] while neither names anybody printable —
+/// a plain copy of `OcptCallSheetPdfService._guestDisplayNameOf`.
+String _guestDisplayNameOf(
+  OcptDayConvocation convocation,
+  OcptSchedulePlanSnapshot plan,
+  OcptShootingPlanLabels labels,
+) {
+  final guestPersonId = convocation.guestPersonId;
+  if (guestPersonId != null) {
+    final name = plan.personById[guestPersonId]?.displayName.trim() ?? "";
+    if (name.isNotEmpty) {
+      return name;
+    }
+  }
+
+  final freeName = convocation.guestFreeName?.trim() ?? "";
+  if (freeName.isNotEmpty) {
+    return freeName;
+  }
+
+  return labels.unnamedPersonLabel;
+}
+
+/// The day's own trailing guest table rows: one per [OcptDayConvocation.isGuest] convocation of
+/// [dayId], sorted the way [OcptSchedulePlanSnapshot.convocationsOfDay] already sorts every
+/// convocation (by arrival, then by identity) — a plain copy of
+/// `OcptCallSheetPdfService._guestRowsOfDay`; see that function's own doc comment for why the reason
+/// and the notes are joined off the slot-level rows rather than read from the convocation itself,
+/// which carries neither.
+List<_GuestRow> _guestRowsOfDay({
+  required OcptSchedulePlanSnapshot plan,
+  required String dayId,
+  required OcptShootingPlanLabels labels,
+}) {
+  final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+  final guestConvocations = plan.convocationsOfDay(dayId).where((convocation) => convocation.isGuest);
+
+  final rows = <_GuestRow>[];
+  for (final convocation in guestConvocations) {
+    final ownSlotIds = convocation.slotIds.toSet();
+    final reasons = <String>[];
+    final notes = <String>[];
+
+    for (final slot in slots) {
+      if (!ownSlotIds.contains(slot.id)) {
+        continue;
+      }
+      for (final guest in slot.guests) {
+        if (!_guestMatchesConvocation(guest, convocation)) {
+          continue;
+        }
+        final reason = guest.reason.trim();
+        if (reason.isNotEmpty && !reasons.contains(reason)) {
+          reasons.add(reason);
+        }
+        final note = guest.notes.trim();
+        if (note.isNotEmpty && !notes.contains(note)) {
+          notes.add(note);
+        }
+      }
+    }
+
+    rows.add(
+      _GuestRow(
+        name: _guestDisplayNameOf(convocation, plan, labels),
+        reason: reasons.join(", "),
+        notes: notes.join(", "),
+        hours: "${ocptFormatDayMinute(convocation.arrivalMinute)} – ${ocptFormatDayMinute(convocation.departureMinute)}",
+      ),
+    );
+  }
+
+  return rows;
 }
