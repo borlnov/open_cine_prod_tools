@@ -986,7 +986,7 @@
   "scheduleExportShootingPlanSequencesGridLabel": "Inclure le tableau récapitulatif des séquences",
   "scheduleExportShootingPlanPeopleGridLabel": "Inclure le tableau récapitulatif de l'équipe et des comédiens",
   "scheduleExportShootingPlanTenMinuteGridLabel": "Inclure la grille de 10 minutes",
-  "scheduleExportShootingPlanElementsGridLabel": "Inclure le résumé des éléments",
+  "scheduleExportShootingPlanElementsGridLabel": "Inclure le tableau récapitulatif des éléments",
   "scheduleExportFileSuccessMessage": "Exporté vers {path}",
   "scheduleExportFolderSuccessMessage": "{writtenCount, plural, one{{writtenCount} fichier écrit} other{{writtenCount} fichiers écrits}} dans {folder}",
   "scheduleExportFolderPartialMessage": "{writtenCount, plural, one{{writtenCount} fichier écrit} other{{writtenCount} fichiers écrits}} dans {folder} — {failedCount, plural, one{{failedCount} n'a pas pu l'être} other{{failedCount} n'ont pas pu l'être}}",
