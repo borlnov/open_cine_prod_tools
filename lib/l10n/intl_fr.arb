@@ -1080,7 +1080,7 @@
   "scheduleAlertTimelineOverrunSentence": "{blockLabel} est fixé·e à {anchorTime}, mais les blocs précédents ne se terminent qu'à {reachedTime}.",
   "scheduleAlertFixedEndMissedSentence": "{slotLabel} est fixé pour se terminer à {fixedEndTime}, mais ses blocs se terminent en réalité à {actualEndTime}.",
   "scheduleAlertPresenceExceededSentence": "La présence de {personName} ce jour-là ({presenceDuration}) dépasse le maximum enregistré de {maxDuration}.",
-  "scheduleAlertRestTimeSentence": "{personName} n'a que {restDuration} de repos depuis la veille, en dessous du minimum enregistré de {minimumDuration}.",
+  "scheduleAlertRestTimeSentence": "{personName} n'a que {restDuration} de repos depuis sa journée de tournage précédente, en dessous du minimum enregistré de {minimumDuration}.",
   "scheduleAlertPermitNotValidSentence": "{slotLabel} est prévu à {locationName}, mais le permis enregistré ne couvre pas cette date.",
   "scheduleAgendaColorByLabel": "Couleur par",
   "scheduleAgendaColorModeLocation": "Lieu",

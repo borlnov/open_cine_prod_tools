@@ -8130,7 +8130,7 @@
       }
     }
   },
-  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since the day before, short of the recorded minimum of {minimumDuration}.",
+  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since their previous shooting day, short of the recorded minimum of {minimumDuration}.",
   "@scheduleAlertRestTimeSentence": {
     "description": "Body sentence of a rest-time alert card (rule 10)",
     "context": "Displayed in the schedule mode's Alerts dock tab",
