@@ -276,6 +276,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     );
     final people = await _peopleService.loadPeople(database: project.database);
     final pageSetup = await _loadPageSetup(project);
+    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
 
     final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
@@ -291,6 +292,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         roles: roles,
         people: people,
         pageSetup: pageSetup,
+        minimumRestMinutes: minimumRestMinutes,
+        clearMinimumRestMinutes: minimumRestMinutes == null,
         agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
         selectedDayId: defaultDay?.id,
         clearSelectedDayId: defaultDay == null,
@@ -1320,8 +1323,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Re-reads the page setup after the project settings page changed something, so the three export
-  /// dialogs pre-fill from the page format actually in effect.
+  /// Re-reads the page setup and the project's own minimum rest after the project settings page
+  /// changed something, so the three export dialogs pre-fill from the page format actually in
+  /// effect and the rest-time alert reads the figure the user just typed rather than the one it
+  /// loaded on entry — that page is exactly where either is changed.
   Future<void> _onProjectSettingsChanged(
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -1331,7 +1336,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    emitter(state.copyWith(pageSetup: await _loadPageSetup(project)));
+    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    emitter(
+      state.copyWith(
+        pageSetup: await _loadPageSetup(project),
+        minimumRestMinutes: minimumRestMinutes,
+        clearMinimumRestMinutes: minimumRestMinutes == null,
+      ),
+    );
   }
 
   /// Exports the general call sheets of `event.options.dayIds`, one PDF per day, into a folder the

@@ -489,7 +489,7 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
 }
 
 /// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
-/// comment for exactly what each of the nine rules claims.
+/// comment for exactly what each of the eleven rules claims.
 String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (kind) {
   OcptScheduleAlertKind.personUnavailable => tr.scheduleAlertKindPersonUnavailable,
   OcptScheduleAlertKind.personDoubleBooked => tr.scheduleAlertKindPersonDoubleBooked,
@@ -500,6 +500,8 @@ String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (
   OcptScheduleAlertKind.timelineOverrun => tr.scheduleAlertKindTimelineOverrun,
   OcptScheduleAlertKind.slotFixedEndMissed => tr.scheduleAlertKindFixedEndMissed,
   OcptScheduleAlertKind.presenceExceeded => tr.scheduleAlertKindPresenceExceeded,
+  OcptScheduleAlertKind.restTime => tr.scheduleAlertKindRestTime,
+  OcptScheduleAlertKind.permitNotValid => tr.scheduleAlertKindPermitNotValid,
 };
 
 /// The alerts panel's own body sentence for [alert] — the one place an id or a raw minute figure
@@ -574,6 +576,17 @@ String ocptScheduleAlertSentence(
       _ocptScheduleAlertPersonNameOf(tr, personById, personId),
       ocptFormatMinuteDuration(presenceMinutes),
       ocptFormatMinuteDuration(maxDailyPresenceMinutes),
+    ),
+  OcptScheduleRestTimeAlert(:final personId, :final restMinutes, :final minimumRestMinutes) =>
+    tr.scheduleAlertRestTimeSentence(
+      _ocptScheduleAlertPersonNameOf(tr, personById, personId),
+      ocptFormatMinuteDuration(restMinutes),
+      ocptFormatMinuteDuration(minimumRestMinutes),
+    ),
+  OcptSchedulePermitNotValidAlert(:final slotId, :final locationId) =>
+    tr.scheduleAlertPermitNotValidSentence(
+      _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
+      _ocptScheduleAlertLocationNameOf(tr, locationById, locationId),
     ),
 };
 

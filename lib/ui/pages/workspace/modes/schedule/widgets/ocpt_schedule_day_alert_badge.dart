@@ -19,8 +19,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 ///
 /// **It only ever reads its own [alerts] list** (`OcptScheduleState.alertsOfDay`, off
 /// `OcptSchedulePlanSnapshot.alertsByDayId`): the severity it paints and the kinds it names in its
-/// tooltip are the alerts' own, never a second reading of the nine rules — a badge that decided for
-/// itself what "blocking" means is exactly how it and the panel would come to disagree. A day
+/// tooltip are the alerts' own, never a second reading of the eleven rules — a badge that decided
+/// for itself what "blocking" means is exactly how it and the panel would come to disagree. A day
 /// raising nothing draws nothing at all (a zero badge would be noise on every untroubled day of a
 /// forty-day shoot).
 ///

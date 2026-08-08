@@ -19,7 +19,7 @@ enum OcptScheduleRightDockTab {
   /// itself cannot give once a person may sit on several slots of the same day (ADR 0018).
   convocations,
 
-  /// Every `OcptScheduleAlert` the nine rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
+  /// Every `OcptScheduleAlert` the eleven rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
   /// the **whole shoot**, not just the selected day — the mock's own placement, above the agenda,
   /// would hide them from every other view, so Benoit chose a dock tab instead.
   alerts,

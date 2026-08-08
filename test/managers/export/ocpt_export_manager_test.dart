@@ -657,6 +657,7 @@ void main() {
         locations: const [],
         roles: const [],
         people: const [],
+        minimumRestMinutes: null,
       );
     }
 
@@ -855,6 +856,7 @@ void main() {
           locations: const [],
           roles: const [],
           people: const [],
+          minimumRestMinutes: null,
         );
 
         final result = await manager.exportNamedCallSheets(
@@ -952,6 +954,7 @@ void main() {
         locations: const [],
         roles: const [],
         people: const [],
+        minimumRestMinutes: null,
       );
     }
 

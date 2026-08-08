@@ -7978,6 +7978,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleAlertKindRestTime": "Insufficient rest",
+  "@scheduleAlertKindRestTime": {
+    "description": "Title of an alert card reporting a person's rest between two convoked days falling short of the project's own recorded minimum (rule 10)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPermitNotValid": "Permit not valid",
+  "@scheduleAlertKindPermitNotValid": {
+    "description": "Title of an alert card reporting a slot booked at a location whose recorded permit windows do not cover that day's date (rule 11)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleAlertPersonUnavailableSentence": "{personName} is convoked on {slots} despite being recorded unavailable that day.",
   "@scheduleAlertPersonUnavailableSentence": {
     "description": "Body sentence of a person-unavailable alert card (rule 1)",
@@ -8112,6 +8126,37 @@
         "type": "String"
       },
       "maxDuration": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since the day before, short of the recorded minimum of {minimumDuration}.",
+  "@scheduleAlertRestTimeSentence": {
+    "description": "Body sentence of a rest-time alert card (rule 10)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "restDuration": {
+        "type": "String"
+      },
+      "minimumDuration": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPermitNotValidSentence": "{slotLabel} is booked at {locationName}, but the permit recorded for it does not cover this day's date.",
+  "@scheduleAlertPermitNotValidSentence": {
+    "description": "Body sentence of a permit-not-valid alert card (rule 11)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "slotLabel": {
+        "type": "String"
+      },
+      "locationName": {
         "type": "String"
       }
     }

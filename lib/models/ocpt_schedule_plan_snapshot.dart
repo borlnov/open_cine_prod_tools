@@ -65,6 +65,12 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// The project's whole address book, as passed to [OcptSchedulePlanSnapshot.build].
   final List<OcptPerson> people;
 
+  /// `project_info.minimumRestMinutes` verbatim, as passed to [OcptSchedulePlanSnapshot.build] —
+  /// null while nobody has recorded one, which [alerts]' own rest-time rule never fires on. Every
+  /// call site states it explicitly (a required parameter, not a default) so a forgotten one can
+  /// never silently disable that rule.
+  final int? minimumRestMinutes;
+
   /// The whole location catalogue, keyed by id.
   final Map<String, OcptLocation> locationById;
 
@@ -89,26 +95,30 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.locations,
     required this.roles,
     required this.people,
+    required this.minimumRestMinutes,
     required this.locationById,
     required this.setById,
     required this.roleById,
     required this.personById,
   });
 
-  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], [shotList] and the three catalogues,
-  /// deriving [locationById]/[setById]/[roleById]/[personById] from them once.
+  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], [shotList], the three catalogues and
+  /// [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/[personById] from them
+  /// once.
   factory OcptSchedulePlanSnapshot.build({
     required OcptScheduleSnapshot schedule,
     required OcptShotListSnapshot? shotList,
     required List<OcptLocation> locations,
     required List<OcptRole> roles,
     required List<OcptPerson> people,
+    required int? minimumRestMinutes,
   }) => OcptSchedulePlanSnapshot(
     schedule: schedule,
     shotList: shotList,
     locations: locations,
     roles: roles,
     people: people,
+    minimumRestMinutes: minimumRestMinutes,
     locationById: Map.unmodifiable({for (final location in locations) location.id: location}),
     setById: Map.unmodifiable({
       for (final location in locations)
@@ -388,7 +398,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// Whether any of [person]'s own recorded unavailabilities covers calendar [date] — comparing
   /// dates alone, own time-of-day component dropped, mirroring
   /// `lib/utils/ocpt_schedule_alerts.dart`'s own private `_dateRangeContains` (duplicated rather
-  /// than shared: that file's own doc comment keeps it free of anything beyond the nine alert
+  /// than shared: that file's own doc comment keeps it free of anything beyond the eleven alert
   /// rules, and this one-line check creates no risk of disagreement — see [presenceCellOf]'s own
   /// doc comment for why the two never fire on the same case).
   bool _unavailabilityCoversDate(OcptPerson person, DateTime date) {
@@ -413,15 +423,32 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return false;
   }
 
-  /// Every [OcptScheduleAlert] the nine rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
+  /// [locations]' own permit windows, at most one entry per location — this model holds one permit
+  /// document per location today ([OcptLocation.permitDocument]), while the pure rule reads a
+  /// **list** per location so the day a location can file several permits, this join is the only
+  /// thing that needs to change. A location with no permit document at all, or one recording
+  /// neither `OcptAssetRef.validFrom` nor `OcptAssetRef.validUntil`, contributes an **empty**
+  /// list — the caller's own reading of "no permit on file", which
+  /// `lib/utils/ocpt_schedule_alerts.dart`'s own permit rule treats identically to a location that
+  /// never declared one at all (that file's own doc comment).
+  late final Map<String, List<OcptSchedulePermitWindow>> _permitWindowsByLocationId = {
+    for (final location in locations)
+      location.id: [
+        if (location.permitDocument case final permit?)
+          if (permit.validFrom != null || permit.validUntil != null)
+            OcptSchedulePermitWindow(validFrom: permit.validFrom, validUntil: permit.validUntil),
+      ],
+  };
+
+  /// Every [OcptScheduleAlert] the eleven rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
   /// the whole schedule, computed **once**, on first read, rather than per read — see the class doc
   /// comment and [OcptSchedulePlanSnapshot]'s own constructor doc comment for why this is a
   /// `late final` field rather than a getter.
   ///
   /// Every join that function needs onto `shots`, `roles`, `people` and `locations` happens here —
-  /// [_alertDayOf], [_roleIdByNormalizedName] and the location/people mappings below — exactly as
-  /// [_convocationSlotOf] joins onto `roles` for [convocationsOfDay]. `ocpt_schedule_alerts.dart`
-  /// itself knows none of those tables.
+  /// [_alertDayOf], [_roleIdByNormalizedName], [_permitWindowsByLocationId] and the location/people
+  /// mappings below — exactly as [_convocationSlotOf] joins onto `roles` for [convocationsOfDay].
+  /// `ocpt_schedule_alerts.dart` itself knows none of those tables.
   late final List<OcptScheduleAlert> alerts = ocptComputeScheduleAlerts(
     days: [for (final day in schedule.days) _alertDayOf(day)],
     people: [
@@ -459,6 +486,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
             ),
         ],
     },
+    minimumRestMinutes: minimumRestMinutes,
+    permitWindowsByLocationId: _permitWindowsByLocationId,
   );
 
   /// [alerts] grouped by the day each of them concerns (`ocptGroupScheduleAlertsByDay`) — what
@@ -571,6 +600,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     locations,
     roles,
     people,
+    minimumRestMinutes,
     locationById,
     setById,
     roleById,

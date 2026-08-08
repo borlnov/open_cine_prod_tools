@@ -359,6 +359,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   locations: locations,
   roles: roles,
   people: people,
+  minimumRestMinutes: null,
 );
 
 void main() {
@@ -976,6 +977,7 @@ OcptSchedulePlanSnapshot _addPerson(OcptSchedulePlanSnapshot plan, OcptPerson pe
       locations: plan.locations,
       roles: plan.roles,
       people: [...plan.people, person],
+      minimumRestMinutes: plan.minimumRestMinutes,
     );
 
 /// Counts a PDF's pages by counting its `/Type /Page` object markers (excluding `/Type /Pages`, the

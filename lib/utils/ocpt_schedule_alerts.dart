@@ -25,18 +25,18 @@ enum OcptScheduleAlertSeverity {
 
 /// What went wrong, one entry per rule [ocptComputeScheduleAlerts] implements.
 ///
-/// **Ten rules were on the table; nine are here.** The tenth — a key position left unfilled in a
-/// slot — is deliberately not implemented: nothing in this app says which position on a film is
-/// "key" (a first assistant camera matters as much as a director of photography on the day their
-/// own department is the bottleneck), and a list invented for the occasion would read as the app's
-/// own opinion rather than the production's. No alert is better than a wrong one here.
+/// **Eleven rules are here.** A twelfth — a key position left unfilled in a slot — is deliberately
+/// not implemented: nothing in this app says which position on a film is "key" (a first assistant
+/// camera matters as much as a director of photography on the day their own department is the
+/// bottleneck), and a list invented for the occasion would read as the app's own opinion rather
+/// than the production's. No alert is better than a wrong one here.
 ///
 /// [OcptTimelineAnchorCycle] (`ocpt_shooting_day_timeline.dart`) is likewise **not** one of the
-/// nine, and deliberately so: the anchor picker already refuses to offer an entry that would close
-/// a cycle (`ocptSlotAnchorWouldCycle`) and `OcptScheduleService.setSlotAnchor` refuses to write
-/// one. A cycle is defence against a hand-edited file, not a state this app's own UI can put a
-/// user in, and an alert for a state nobody can reach would only ever fire on data this app didn't
-/// write.
+/// eleven, and deliberately so: the anchor picker already refuses to offer an entry that would
+/// close a cycle (`ocptSlotAnchorWouldCycle`) and `OcptScheduleService.setSlotAnchor` refuses to
+/// write one. A cycle is defence against a hand-edited file, not a state this app's own UI can put
+/// a user in, and an alert for a state nobody can reach would only ever fire on data this app
+/// didn't write.
 ///
 /// Declaration order here is also the tie-break order [ocptComputeScheduleAlerts] sorts by once
 /// severity and day agree — see that function's own doc comment.
@@ -66,7 +66,13 @@ enum OcptScheduleAlertKind {
   slotFixedEndMissed(OcptScheduleAlertSeverity.soft),
 
   /// [OcptSchedulePresenceExceededAlert].
-  presenceExceeded(OcptScheduleAlertSeverity.soft);
+  presenceExceeded(OcptScheduleAlertSeverity.soft),
+
+  /// [OcptScheduleRestTimeAlert].
+  restTime(OcptScheduleAlertSeverity.soft),
+
+  /// [OcptSchedulePermitNotValidAlert].
+  permitNotValid(OcptScheduleAlertSeverity.soft);
 
   /// Class constructor
   const OcptScheduleAlertKind(this.severity);
@@ -90,7 +96,7 @@ sealed class OcptScheduleAlert {
   /// casting is not a fact about any one day.
   final String? dayId;
 
-  /// Which of the nine rules raised this alert.
+  /// Which of the eleven rules raised this alert.
   OcptScheduleAlertKind get kind;
 
   /// [kind]'s own [OcptScheduleAlertKind.severity].
@@ -351,6 +357,77 @@ final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.presenceExceeded;
 }
 
+/// **Soft, rule 10**: [personId]'s own departure on [previousDayId] and their arrival on
+/// [OcptScheduleAlert.dayId] — the **next day they are actually convoked on**, not necessarily the
+/// next calendar date — are closer together than [minimumRestMinutes]
+/// (`project_info.minimumRestMinutes`).
+///
+/// Grouped onto the **second** of the two days: the call that comes too soon is the one a
+/// production would move, not the wrap that came before it. [restMinutes] is the actual gap,
+/// crossing midnight honestly (ADR 0015): a night day ending at 03:00 (stored 1620) followed by a
+/// 07:00 call the next date is a 240-minute gap, never a negative figure and never wrapped modulo a
+/// day.
+///
+/// **Silent when [minimumRestMinutes] is null** — nobody has recorded one for the project, never
+/// "no minimum applies" — the exact reading `people.maxDailyPresenceMinutes` already has for
+/// [OcptSchedulePresenceExceededAlert].
+final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
+  /// Class constructor
+  const OcptScheduleRestTimeAlert({
+    required super.dayId,
+    required this.personId,
+    required this.previousDayId,
+    required this.restMinutes,
+    required this.minimumRestMinutes,
+  });
+
+  /// The person whose rest between two convoked days fell short.
+  final String personId;
+
+  /// The earlier of the two days — the one [personId] wrapped on.
+  final String previousDayId;
+
+  /// The actual gap between [previousDayId]'s own departure and [OcptScheduleAlert.dayId]'s own
+  /// arrival, in minutes — always less than [minimumRestMinutes].
+  final int restMinutes;
+
+  /// The minimum recorded for the project (`project_info.minimumRestMinutes`), in minutes — the
+  /// figure [restMinutes] fell short of.
+  final int minimumRestMinutes;
+
+  /// This alert's own kind.
+  @override
+  OcptScheduleAlertKind get kind => OcptScheduleAlertKind.restTime;
+}
+
+/// **Soft, rule 11**: [slotId]'s own location ([locationId]) declares at least one dated
+/// [OcptSchedulePermitWindow], and none of them covers [OcptScheduleAlert.dayId]'s own calendar
+/// date.
+///
+/// Named for what it actually claims rather than for the shape of the data behind it: a location
+/// that files **no** permit at all raises nothing — see [ocptComputeScheduleAlerts]'s own reading
+/// of [OcptSchedulePermitWindow] for why "no permit on file" and "a permit that doesn't cover this
+/// date" must never be read as the same thing, the way rule 3 already keeps "no availability
+/// window" apart from "a window that doesn't cover this slot".
+final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
+  /// Class constructor
+  const OcptSchedulePermitNotValidAlert({
+    required super.dayId,
+    required this.slotId,
+    required this.locationId,
+  });
+
+  /// The slot whose booking no dated permit window covers.
+  final String slotId;
+
+  /// The location [slotId] is booked at.
+  final String locationId;
+
+  /// This alert's own kind.
+  @override
+  OcptScheduleAlertKind get kind => OcptScheduleAlertKind.permitNotValid;
+}
+
 /// One crew row of a slot, reduced to what [OcptSchedulePositionLostAlert] compares slot to slot:
 /// who, and which position — the same identity `lib/utils/ocpt_crew_position_prefill.dart` already
 /// models a position with.
@@ -532,7 +609,28 @@ class OcptScheduleAlertLocationWindow {
   final int? endMinute;
 }
 
-/// One day, joined by the caller into everything the nine rules read about it.
+/// One permit window a location declares, reduced to what [OcptSchedulePermitNotValidAlert] needs
+/// — the mirror of `OcptAssetRef.validFrom`/`validUntil`, a document's own validity dates rather
+/// than a whole asset row, mirroring how [OcptScheduleAlertLocationWindow] strips
+/// `OcptLocationAvailability` down to what rule 3 reads.
+///
+/// **A window with both dates null records nothing and is not a window at all** — the caller must
+/// not hand one in, and [ocptComputeScheduleAlerts] filters one out defensively (belt and braces)
+/// rather than trusting every caller to have done so: a location whose every recorded permit is
+/// dateless reads exactly as one that filed none, the same "absence of data is not a refusal"
+/// argument rule 3 already makes for a location declaring no availability window at all.
+class OcptSchedulePermitWindow {
+  /// Builds a permit window to feed to [ocptComputeScheduleAlerts].
+  const OcptSchedulePermitWindow({required this.validFrom, required this.validUntil});
+
+  /// The date this permit becomes valid, or null while unbounded on that side.
+  final DateTime? validFrom;
+
+  /// The date this permit stops being valid, or null while unbounded on that side.
+  final DateTime? validUntil;
+}
+
+/// One day, joined by the caller into everything the eleven rules read about it.
 class OcptScheduleAlertDay {
   /// Builds a day to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertDay({
@@ -571,9 +669,9 @@ class OcptScheduleAlertDay {
 /// 13:00, the same split the schedule mode's day-part pickers already offer.
 const int _dayPartSplitMinute = 13 * 60;
 
-/// Computes every [OcptScheduleAlert] the nine rules raise over [days], [people], [roles] and
-/// [locationWindowsByLocationId] — the schedule mode's alert computation, implemented exactly once,
-/// here.
+/// Computes every [OcptScheduleAlert] the eleven rules raise over [days], [people], [roles],
+/// [locationWindowsByLocationId], [minimumRestMinutes] and [permitWindowsByLocationId] — the
+/// schedule mode's alert computation, implemented exactly once, here.
 ///
 /// Every join a rule needs onto `shots`, `roles`, `people` or `locations` is the caller's job
 /// (`OcptSchedulePlanSnapshot`, never this file): this function reads only the already-resolved
@@ -589,6 +687,11 @@ const int _dayPartSplitMinute = 13 * 60;
 /// window's date range is always resolved against [OcptScheduleAlertDay.date] alone — never against
 /// a second, later calendar date a night slot's tail technically falls on.
 ///
+/// [minimumRestMinutes] is `project_info.minimumRestMinutes` verbatim: **null means nobody has
+/// recorded one**, and rule 10 raises nothing at all rather than assuming a legal minimum this app
+/// never validated — the same reading a person's own `maxDailyPresenceMinutes` already has for
+/// rule 9.
+///
 /// The result is sorted **hard alerts before soft**, then by the day order [days] was given (an
 /// alert with no day — [OcptScheduleRoleUncastAlert] alone — sorts after every real day of the same
 /// severity), then by [OcptScheduleAlertKind]'s own declaration order, then by the alert's own ids
@@ -598,6 +701,8 @@ List<OcptScheduleAlert> ocptComputeScheduleAlerts({
   required List<OcptScheduleAlertPerson> people,
   required List<OcptScheduleAlertRole> roles,
   required Map<String, List<OcptScheduleAlertLocationWindow>> locationWindowsByLocationId,
+  required int? minimumRestMinutes,
+  required Map<String, List<OcptSchedulePermitWindow>> permitWindowsByLocationId,
 }) {
   final alerts = <OcptScheduleAlert>[];
 
@@ -609,6 +714,8 @@ List<OcptScheduleAlert> ocptComputeScheduleAlerts({
   _addRoleUncastAlerts(alerts, days, roles);
   _addTimelineAlerts(alerts, days);
   _addPresenceExceededAlerts(alerts, days, people);
+  _addRestTimeAlerts(alerts, days, people, minimumRestMinutes);
+  _addPermitNotValidAlerts(alerts, days, permitWindowsByLocationId);
 
   final dayIndexById = {for (var index = 0; index < days.length; index++) days[index].id: index};
   int dayIndexOf(String? dayId) =>
@@ -658,7 +765,8 @@ Map<String, List<OcptScheduleAlert>> ocptGroupScheduleAlertsByDay(List<OcptSched
 }
 
 /// The string the final sort ties two same-day, same-kind alerts on — an exhaustive switch, so a
-/// tenth [OcptScheduleAlert] subclass cannot be added without this file being told how to order it.
+/// twelfth [OcptScheduleAlert] subclass cannot be added without this file being told how to order
+/// it.
 String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {
   OcptSchedulePersonUnavailableAlert(:final personId, :final unavailabilityId) =>
     "$personId|$unavailabilityId",
@@ -672,6 +780,8 @@ String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {
   OcptScheduleTimelineOverrunAlert(:final blockId) => blockId,
   OcptScheduleFixedEndMissedAlert(:final slotId) => slotId,
   OcptSchedulePresenceExceededAlert(:final personId) => personId,
+  OcptScheduleRestTimeAlert(:final personId, :final previousDayId) => "$personId|$previousDayId",
+  OcptSchedulePermitNotValidAlert(:final slotId, :final locationId) => "$slotId|$locationId",
 };
 
 /// Rule 1: a person convoked on a day they recorded an unavailability for, honouring the window's
@@ -924,6 +1034,37 @@ void _addTimelineAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDa
   }
 }
 
+/// Every person's own arrival and departure on [day] — the earliest resolved slot start and the
+/// latest resolved slot end over the slots of [day] they are linked to (`slot.personIds`), keyed
+/// by person id; a person linked to no slot of [day] has no entry.
+///
+/// Shared by rules 9 and 10, which is the whole point of pulling it out: both ask "what is this
+/// person's day", and a second, slightly different implementation of that question is exactly how
+/// the two could come to disagree about it.
+Map<String, ({int arrival, int departure})> _personDayBandsOf(OcptScheduleAlertDay day) {
+  final arrivalByPersonId = <String, int>{};
+  final departureByPersonId = <String, int>{};
+
+  for (final slot in day.slots) {
+    final slotEndMinute = slot.endMinute ?? slot.startMinute;
+    for (final personId in slot.personIds) {
+      final arrival = arrivalByPersonId[personId];
+      if (arrival == null || slot.startMinute < arrival) {
+        arrivalByPersonId[personId] = slot.startMinute;
+      }
+      final departure = departureByPersonId[personId];
+      if (departure == null || slotEndMinute > departure) {
+        departureByPersonId[personId] = slotEndMinute;
+      }
+    }
+  }
+
+  return {
+    for (final personId in arrivalByPersonId.keys)
+      personId: (arrival: arrivalByPersonId[personId]!, departure: departureByPersonId[personId]!),
+  };
+}
+
 /// Rule 9: a person whose computed presence on a day — the latest slot end they are linked to minus
 /// the earliest slot start — exceeds their own recorded maximum, when one was recorded at all.
 void _addPresenceExceededAlerts(
@@ -940,31 +1081,15 @@ void _addPresenceExceededAlerts(
   }
 
   for (final day in days) {
-    final arrivalByPersonId = <String, int>{};
-    final departureByPersonId = <String, int>{};
-
-    for (final slot in day.slots) {
-      final slotEndMinute = slot.endMinute ?? slot.startMinute;
-      for (final personId in slot.personIds) {
-        final arrival = arrivalByPersonId[personId];
-        if (arrival == null || slot.startMinute < arrival) {
-          arrivalByPersonId[personId] = slot.startMinute;
-        }
-        final departure = departureByPersonId[personId];
-        if (departure == null || slotEndMinute > departure) {
-          departureByPersonId[personId] = slotEndMinute;
-        }
-      }
-    }
+    final bandsByPersonId = _personDayBandsOf(day);
 
     for (final entry in maxMinutesByPersonId.entries) {
-      final arrival = arrivalByPersonId[entry.key];
-      final departure = departureByPersonId[entry.key];
-      if (arrival == null || departure == null) {
+      final band = bandsByPersonId[entry.key];
+      if (band == null) {
         continue; // Not convoked on this day at all.
       }
 
-      final presenceMinutes = departure - arrival;
+      final presenceMinutes = band.departure - band.arrival;
       if (presenceMinutes > entry.value) {
         alerts.add(
           OcptSchedulePresenceExceededAlert(
@@ -977,6 +1102,128 @@ void _addPresenceExceededAlerts(
       }
     }
   }
+}
+
+/// Rule 10: a person's own departure on one day and their arrival on the **next day they are
+/// actually convoked on** (never merely the next calendar date) are closer together than
+/// [minimumRestMinutes] — silent outright when nobody has recorded one (this function's own doc
+/// comment, and [OcptScheduleRestTimeAlert]'s).
+///
+/// [days] is walked in **date order**, not in the order it arrived in: unlike rule 4, which reads
+/// adjacency out of the caller's own slot order on purpose, this rule is about calendar dates, so
+/// it sorts them itself. The sort is a **stable** one over `(date, original index)` rather than a
+/// bare `List.sort` (not guaranteed stable by the language), so two days sharing one date are still
+/// compared in the caller's own order, both anchored on the same midnight, exactly as the class doc
+/// comment promises.
+void _addRestTimeAlerts(
+  List<OcptScheduleAlert> alerts,
+  List<OcptScheduleAlertDay> days,
+  List<OcptScheduleAlertPerson> people,
+  int? minimumRestMinutes,
+) {
+  if (minimumRestMinutes == null) {
+    return;
+  }
+
+  final indexedDays =
+      [for (var index = 0; index < days.length; index++) (index: index, day: days[index])]
+        ..sort((left, right) {
+          final byDate = left.day.date.compareTo(right.day.date);
+          return byDate != 0 ? byDate : left.index.compareTo(right.index);
+        });
+  final sortedDays = [for (final entry in indexedDays) entry.day];
+
+  final bandsByDayId = {for (final day in sortedDays) day.id: _personDayBandsOf(day)};
+
+  for (final person in people) {
+    OcptScheduleAlertDay? previousDay;
+    int? previousDeparture;
+
+    for (final day in sortedDays) {
+      final band = bandsByDayId[day.id]![person.id];
+      if (band == null) {
+        continue; // Not convoked this day — the walk skips straight to the next one they are.
+      }
+
+      if (previousDay != null && previousDeparture != null) {
+        final restMinutes =
+            _wholeDayDifference(previousDay.date, day.date) * 1440 +
+            band.arrival -
+            previousDeparture;
+        if (restMinutes < minimumRestMinutes) {
+          alerts.add(
+            OcptScheduleRestTimeAlert(
+              dayId: day.id,
+              personId: person.id,
+              previousDayId: previousDay.id,
+              restMinutes: restMinutes,
+              minimumRestMinutes: minimumRestMinutes,
+            ),
+          );
+        }
+      }
+
+      previousDay = day;
+      previousDeparture = band.departure;
+    }
+  }
+}
+
+/// The whole number of calendar days between [start] and [end] (positive when [end] is the later
+/// date), computed on [DateTime.utc]-anchored dates rather than local-time ones: a local `DateTime`
+/// difference taken across a daylight-saving change can read as 23 or 25 hours for what is
+/// genuinely a one-day gap, while a UTC one never observes a change that never happened to it.
+int _wholeDayDifference(DateTime start, DateTime end) {
+  final startUtc = DateTime.utc(start.year, start.month, start.day);
+  final endUtc = DateTime.utc(end.year, end.month, end.day);
+  return endUtc.difference(startUtc).inDays;
+}
+
+/// Rule 11: a slot booked at a location that declares at least one dated permit window, none of
+/// which covers the day's own date. A location with no window at all — the empty list, or a list
+/// whose every entry carries neither date — raises nothing: the identical argument rule 3 already
+/// makes for a location declaring no availability window.
+void _addPermitNotValidAlerts(
+  List<OcptScheduleAlert> alerts,
+  List<OcptScheduleAlertDay> days,
+  Map<String, List<OcptSchedulePermitWindow>> permitWindowsByLocationId,
+) {
+  for (final day in days) {
+    for (final slot in day.slots) {
+      final locationId = slot.locationId;
+      if (locationId == null) {
+        continue;
+      }
+
+      final windows = [
+        for (final window
+            in permitWindowsByLocationId[locationId] ?? const <OcptSchedulePermitWindow>[])
+          if (window.validFrom != null || window.validUntil != null) window,
+      ];
+      if (windows.isEmpty) {
+        continue;
+      }
+
+      final isCovered = windows.any((window) => _permitWindowCoversDate(window, day.date));
+      if (!isCovered) {
+        alerts.add(
+          OcptSchedulePermitNotValidAlert(dayId: day.id, slotId: slot.id, locationId: locationId),
+        );
+      }
+    }
+  }
+}
+
+/// Whether [window] covers calendar [date] — a one-sided window (only [OcptSchedulePermitWindow
+/// .validFrom] or only [OcptSchedulePermitWindow.validUntil] recorded) is open on the missing side,
+/// a different statement from a window recording neither, which [_addPermitNotValidAlerts] already
+/// filters out before this is ever called.
+bool _permitWindowCoversDate(OcptSchedulePermitWindow window, DateTime date) {
+  final day = _dateOnly(date);
+  final validFrom = window.validFrom;
+  final validUntil = window.validUntil;
+  return (validFrom == null || !day.isBefore(_dateOnly(validFrom))) &&
+      (validUntil == null || !day.isAfter(_dateOnly(validUntil)));
 }
 
 /// Whether [date] falls within [startDate]–[endDate], inclusive, comparing calendar dates alone —

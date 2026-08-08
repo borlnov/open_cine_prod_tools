@@ -165,6 +165,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// once built.
   final List<OcptPerson> people;
 
+  /// `project_info.minimumRestMinutes`, as last loaded — null while nobody has recorded one, which
+  /// the rest-time alert never fires on. Read by the bloc's own load handler beside the page setup,
+  /// and re-read by `OcptScheduleProjectSettingsChangedEvent` for the same reason that handler
+  /// re-reads the page format: the project settings page is exactly where it is changed.
+  final int? minimumRestMinutes;
+
   /// The id of the currently selected day, or null while none is — which, past a load, only
   /// happens in a project holding no day at all: the mode opens on the day view, so a load picks a
   /// day to show rather than landing the user on an empty surface.
@@ -278,6 +284,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       locations: locations,
       roles: roles,
       people: people,
+      minimumRestMinutes: minimumRestMinutes,
     ),
   };
 
@@ -500,6 +507,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.locations,
     required this.roles,
     required this.people,
+    required this.minimumRestMinutes,
     required this.selectedDayId,
     required this.selectedBlockId,
     required this.centreView,
@@ -534,6 +542,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       locations = const [],
       roles = const [],
       people = const [],
+      minimumRestMinutes = null,
       selectedDayId = null,
       selectedBlockId = null,
       centreView = OcptScheduleCentreView.day,
@@ -561,10 +570,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] and [shotListSnapshot] are only replaced when a new one is given, exactly as
-  /// `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab] and
-  /// [selectedShotId] all legitimately go back to null while the mode is alive, so each has its own
-  /// clear flag. [pendingFieldEdits] is always replaced wholesale — the caller (the bloc's own
-  /// field-edit handler) always computes the full next map.
+  /// `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab],
+  /// [selectedShotId] and [minimumRestMinutes] all legitimately go back to null while the mode is
+  /// alive, so each has its own clear flag. [pendingFieldEdits] is always replaced wholesale — the
+  /// caller (the bloc's own field-edit handler) always computes the full next map.
   @override
   OcptScheduleState copyWith({
     bool? isLoading,
@@ -574,6 +583,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     List<OcptLocation>? locations,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
+    int? minimumRestMinutes,
+    bool clearMinimumRestMinutes = false,
     String? selectedDayId,
     bool clearSelectedDayId = false,
     String? selectedBlockId,
@@ -616,6 +627,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations: locations ?? this.locations,
     roles: roles ?? this.roles,
     people: people ?? this.people,
+    minimumRestMinutes: clearMinimumRestMinutes
+        ? null
+        : (minimumRestMinutes ?? this.minimumRestMinutes),
     selectedDayId: clearSelectedDayId ? null : (selectedDayId ?? this.selectedDayId),
     selectedBlockId: clearSelectedBlockId ? null : (selectedBlockId ?? this.selectedBlockId),
     centreView: centreView ?? this.centreView,
@@ -692,6 +706,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations,
     roles,
     people,
+    minimumRestMinutes,
     selectedDayId,
     selectedBlockId,
     centreView,

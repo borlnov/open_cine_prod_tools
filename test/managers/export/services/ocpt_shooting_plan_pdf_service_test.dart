@@ -330,6 +330,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   locations: locations,
   roles: roles,
   people: people,
+  minimumRestMinutes: null,
 );
 
 void main() {

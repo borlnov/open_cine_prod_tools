@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -18,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -139,35 +141,59 @@ OcptRole _buildRole({required String id, required String name, String? personId}
 );
 
 /// Builds a location with the few fields these tests read, everything else neutral.
-OcptLocation _buildLocation({required String id, double? latitude, double? longitude}) =>
-    OcptLocation(
-      id: id,
-      name: "",
-      colorIndex: 0,
-      addressLine1: "",
-      addressLine2: "",
-      postalCode: "",
-      city: "",
-      region: "",
-      country: "",
-      latitude: latitude,
-      longitude: longitude,
-      contactPersonId: null,
-      contactNotes: "",
-      permitStatus: OcptPermitStatus.notNeeded,
-      permitLabel: "",
-      permitDate: null,
-      permitAssetId: null,
-      parkingNotes: "",
-      powerNotes: "",
-      facilitiesNotes: "",
-      constraintsNotes: "",
-      notes: "",
-      sets: const [],
-      photos: const [],
-      permitDocument: null,
-      availabilities: const [],
-    );
+OcptLocation _buildLocation({
+  required String id,
+  double? latitude,
+  double? longitude,
+  OcptAssetRef? permitDocument,
+}) => OcptLocation(
+  id: id,
+  name: "",
+  colorIndex: 0,
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  latitude: latitude,
+  longitude: longitude,
+  contactPersonId: null,
+  contactNotes: "",
+  permitStatus: OcptPermitStatus.notNeeded,
+  permitLabel: "",
+  permitDate: null,
+  permitAssetId: null,
+  parkingNotes: "",
+  powerNotes: "",
+  facilitiesNotes: "",
+  constraintsNotes: "",
+  notes: "",
+  sets: const [],
+  photos: const [],
+  permitDocument: permitDocument,
+  availabilities: const [],
+);
+
+/// Builds a permit document (an `assets` row of kind [OcptAssetKind.document]) with the few fields
+/// these tests read, everything else neutral.
+OcptAssetRef _buildPermitDocument({
+  required String id,
+  required String locationId,
+  DateTime? validFrom,
+  DateTime? validUntil,
+}) => OcptAssetRef(
+  id: id,
+  kind: OcptAssetKind.document,
+  path: "",
+  label: "",
+  addedAt: DateTime(2026),
+  personId: null,
+  locationId: locationId,
+  elementId: null,
+  validFrom: validFrom,
+  validUntil: validUntil,
+);
 
 /// Builds a person with the few fields these tests read, everything else neutral.
 OcptPerson _buildPerson({
@@ -325,6 +351,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
+  int? minimumRestMinutes,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     screenplayId: "screenplay-1",
@@ -337,6 +364,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   locations: locations,
   roles: roles,
   people: people,
+  minimumRestMinutes: minimumRestMinutes,
 );
 
 void main() {
@@ -718,6 +746,51 @@ void main() {
       expect(alert.dayId, "day-1");
       expect(alert.roleId, "role-1");
       expect(alert.shotId, "shot-1");
+    });
+
+    test("a location's dated permit document not covering the day surfaces the permit alert", () {
+      final location = _buildLocation(
+        id: "location-1",
+        permitDocument: _buildPermitDocument(
+          id: "permit-1",
+          locationId: "location-1",
+          validFrom: DateTime(2026, 2),
+          validUntil: DateTime(2026, 2, 28),
+        ),
+      );
+      final slot = _buildSlot(id: "slot-1", locationId: "location-1", anchorMinute: 480);
+      final day = _buildDay(id: "day-1", dayNumber: 1); // date: 2026-01-01, per _buildDay
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        locations: [location],
+      );
+
+      final alert = snapshot.alerts.whereType<OcptSchedulePermitNotValidAlert>().single;
+      expect(alert.dayId, "day-1");
+      expect(alert.slotId, "slot-1");
+      expect(alert.locationId, "location-1");
+    });
+
+    test("a permit document recording neither date raises nothing — the same reading as no permit "
+        "at all", () {
+      final location = _buildLocation(
+        id: "location-1",
+        permitDocument: _buildPermitDocument(id: "permit-1", locationId: "location-1"),
+      );
+      final slot = _buildSlot(id: "slot-1", locationId: "location-1", anchorMinute: 480);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        locations: [location],
+      );
+
+      expect(snapshot.alerts.whereType<OcptSchedulePermitNotValidAlert>(), isEmpty);
     });
 
     test("is computed once, not once per read", () {
