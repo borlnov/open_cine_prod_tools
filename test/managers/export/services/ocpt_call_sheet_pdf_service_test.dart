@@ -495,6 +495,71 @@ void main() {
       expect(full.length, greaterThan(single.length));
     });
 
+    test("a role a placed shot plays is printed even when no slot convokes it", () async {
+      // One slot convoking nobody, one shot on it played by two roles: the main table's own ROLES
+      // column names both numbers, so the cast table must be able to answer for both — the second
+      // role having no convocation of its own, and therefore no arrival and no PAT band.
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final roles = [
+        _buildRole(id: "role-1", name: "Alice"),
+        _buildRole(id: "role-2", name: "Bob", number: 2),
+      ];
+      final blocks = {
+        "day-1": [
+          _buildBlock(
+            id: "block-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.shot,
+            shotId: "shot-1",
+            durationMinutes: 60,
+          ),
+        ],
+      };
+
+      final bothPlaying = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: blocks,
+        roles: roles,
+        shotList: _buildShotList(
+          shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE", "BOB"])],
+        ),
+      );
+      final oneOnly = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: blocks,
+        roles: roles,
+        shotList: _buildShotList(
+          shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"])],
+        ),
+      );
+
+      final bothBytes = await service.generateGeneralCallSheet(
+        plan: bothPlaying,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+      );
+      final oneBytes = await service.generateGeneralCallSheet(
+        plan: oneOnly,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+      );
+
+      // A second cast row and a second cast-and-extras row, on a day whose slots convoke nobody at
+      // all: the two documents can only differ if a role nobody convoked is printed.
+      expect(_contentStreams(bothBytes), isNot(_contentStreams(oneBytes)));
+      expect(bothBytes.length, greaterThan(oneBytes.length));
+    });
+
     test("a night slot crossing midnight prints the resolved hours, never modulo 1440", () async {
       final nightSlot = _buildSlot(id: "slot-night", anchorMinute: 1140); // 19:00
       final nightSnapshot = _buildSnapshot(

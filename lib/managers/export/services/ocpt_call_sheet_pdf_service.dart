@@ -133,6 +133,9 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// cast table and the two directories are day-wide on both sheets, because they answer "who else is
 /// on this day and how do I reach them", which is a question about the day rather than about the
 /// reader — and a crew that cannot phone each other on the morning of a shoot is a crew that stops.
+/// The cast table is day-wide in a second sense too: it lists every role the day **calls for**,
+/// including the ones a placed shot plays that nobody convoked, so a role number printed in the main
+/// table's own `RÔLES` column can always be looked up on the same sheet ([_castRowsOfDay]).
 ///
 /// **Every hour printed comes off [OcptSchedulePlanSnapshot.timelinesOfDay]'s resolved clocks and
 /// [OcptSchedulePlanSnapshot.convocationsOfDay]'s computed figures** — never off a stored anchor,
@@ -428,7 +431,6 @@ class OcptCallSheetPdfService {
       timelines: timelines,
       convocations: convocations,
       orderedEntries: orderedEntries,
-      roleById: plan.roleById,
     ),
     pw.SizedBox(height: 10),
     _dayHeadingSection(painter: painter, labels: labels, day: day),
@@ -747,7 +749,6 @@ class OcptCallSheetPdfService {
     required OcptShootingDayTimelines? timelines,
     required List<OcptDayConvocation> convocations,
     required List<OcptOrderedScheduleEntry> orderedEntries,
-    required Map<String, OcptRole> roleById,
   }) {
     final lines = <String>[];
 
@@ -788,13 +789,7 @@ class OcptCallSheetPdfService {
       }
       lines.add(
         _timeBandLine(
-          label: _captionOf(
-            block: ordered.block,
-            slot: ordered.slot,
-            roleById: roleById,
-            labels: labels,
-            headingBySceneId: const {},
-          ),
+          label: _captionOf(block: ordered.block, labels: labels, headingBySceneId: const {}),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
         ),
@@ -844,7 +839,7 @@ class OcptCallSheetPdfService {
     for (final row in rows) {
       if (row.isMilestone) {
         flushShotRows();
-        children.add(_milestoneRowWidget(painter: painter, row: row));
+        children.add(_milestoneRowWidget(painter: painter, labels: labels, row: row));
       } else {
         pendingShotRows.add(row);
       }
@@ -899,16 +894,39 @@ class OcptCallSheetPdfService {
     ],
   );
 
-  /// A full-width band naming a non-shot block and its own time band.
-  pw.Widget _milestoneRowWidget({required OcptScriptPagePainter painter, required _DayRow row}) => pw.Container(
-    constraints: const pw.BoxConstraints(minWidth: double.infinity),
-    decoration: pw.BoxDecoration(color: _bandColor, border: pw.Border.all(color: _ruleColor, width: 0.5)),
-    padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(
-      _timeBandLine(label: row.milestoneCaption ?? "", startMinute: row.startMinute, endMinute: row.endMinute),
-      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
-    ),
-  );
+  /// A full-width band naming a non-shot block and its own time band — and, under it, the roles that
+  /// band expects, on a line of their own behind the `RÔLES` label the main table already heads its
+  /// own column with ([ocptScheduleBlockRoleNumbersLine]). A band expecting nobody prints the one
+  /// line alone.
+  pw.Widget _milestoneRowWidget({
+    required OcptScriptPagePainter painter,
+    required OcptCallSheetLabels labels,
+    required _DayRow row,
+  }) {
+    final rolesLine = ocptScheduleBlockRoleNumbersLine(
+      roleNumbers: row.milestoneRoleNumbers,
+      rolesLabel: labels.rolesHeader,
+    );
+
+    return pw.Container(
+      constraints: const pw.BoxConstraints(minWidth: double.infinity),
+      decoration: pw.BoxDecoration(color: _bandColor, border: pw.Border.all(color: _ruleColor, width: 0.5)),
+      padding: const pw.EdgeInsets.all(_cellPaddingPt),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            _timeBandLine(label: row.milestoneCaption ?? "", startMinute: row.startMinute, endMinute: row.endMinute),
+            style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+          ),
+          if (rolesLine != null) ...[
+            pw.SizedBox(height: 2),
+            pw.Text(rolesLine, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+          ],
+        ],
+      ),
+    );
+  }
 
   // ---------------------------------------------------------------------------------------------
   // Cast table, crew list, cast-and-extras list — day-wide, on both sheets
@@ -1053,6 +1071,7 @@ class _DayRow {
     required this.decors,
     required this.shots,
     required this.milestoneCaption,
+    required this.milestoneRoleNumbers,
     required this.startMinute,
     required this.endMinute,
   });
@@ -1073,22 +1092,29 @@ class _DayRow {
     decors: decors,
     shots: [shot],
     milestoneCaption: null,
+    milestoneRoleNumbers: const [],
     startMinute: startMinute,
     endMinute: endMinute,
   );
 
-  /// Builds a full-width milestone row.
-  factory _DayRow.milestone({required String caption, required int startMinute, required int? endMinute}) =>
-      _DayRow._(
-        slotId: null,
-        sceneId: null,
-        heading: null,
-        decors: null,
-        shots: const [],
-        milestoneCaption: caption,
-        startMinute: startMinute,
-        endMinute: endMinute,
-      );
+  /// Builds a full-width milestone row, carrying the numbers of the roles its own band expects
+  /// ([ocptScheduleBlockRoleNumbersOf]) — empty for every kind but a hair-and-make-up band.
+  factory _DayRow.milestone({
+    required String caption,
+    required List<int> roleNumbers,
+    required int startMinute,
+    required int? endMinute,
+  }) => _DayRow._(
+    slotId: null,
+    sceneId: null,
+    heading: null,
+    decors: null,
+    shots: const [],
+    milestoneCaption: caption,
+    milestoneRoleNumbers: roleNumbers,
+    startMinute: startMinute,
+    endMinute: endMinute,
+  );
 
   /// The slot this row's [shots] were placed on, or null for a milestone.
   final String? slotId;
@@ -1108,6 +1134,10 @@ class _DayRow {
 
   /// This row's own caption, non-null exactly for a milestone.
   final String? milestoneCaption;
+
+  /// The numbers of the roles this milestone's own band expects, sorted — always empty but for a
+  /// hair-and-make-up band, and empty there too while its slot convokes nobody.
+  final List<int> milestoneRoleNumbers;
 
   /// Where this row starts, resolved.
   final int startMinute;
@@ -1231,12 +1261,11 @@ List<_DayRow> _buildDayRows({
 
     rows.add(
       _DayRow.milestone(
-        caption: _captionOf(
+        caption: _captionOf(block: block, labels: labels, headingBySceneId: headingBySceneId),
+        roleNumbers: ocptScheduleBlockRoleNumbersOf(
           block: block,
           slot: slot,
           roleById: plan.roleById,
-          labels: labels,
-          headingBySceneId: headingBySceneId,
         ),
         startMinute: entry.startMinute,
         endMinute: entry.endMinute,
@@ -1249,30 +1278,37 @@ List<_DayRow> _buildDayRows({
 
 /// The caption a non-shot [block] prints: its own free-text label when it has one, a
 /// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
-/// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback — then, for a
-/// [OcptShootingBlockKind.hairMakeUp] block, the numbers of the roles [slot] convokes.
+/// label, or [OcptCallSheetLabels.blockKindLabelOf] as the final fallback.
 ///
 /// A thin alias over [ocptScheduleBlockCaptionOf] (`ocpt_schedule_pdf_shared.dart`), shared with
-/// `OcptShootingPlanPdfService` — see that function's own doc comment for why.
+/// `OcptShootingPlanPdfService` — see that function's own doc comment for why. The roles a
+/// hair-and-make-up band expects are **not** part of it: they are
+/// [ocptScheduleBlockRoleNumbersOf]'s own answer, printed on the band's own second line.
 String _captionOf({
   required OcptShootingDayBlock block,
-  required OcptShootingSlot slot,
-  required Map<String, OcptRole> roleById,
   required OcptCallSheetLabels labels,
   required Map<String, String> headingBySceneId,
 }) => ocptScheduleBlockCaptionOf(
   block: block,
-  slot: slot,
-  roleById: roleById,
   headingBySceneId: headingBySceneId,
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 
-/// The day's own cast table rows: one per cast role convoked on any live slot of the day, the
-/// scenes it actually shoots today read off [orderedEntries]' own shot blocks.
+/// The day's own cast table rows: one per role the day **calls for** — every role convoked on one of
+/// its live slots, and every role a shot placed on it plays — the scenes each of them shoots today
+/// read off [orderedEntries]' own shot blocks.
 ///
-/// Both generators pass the **whole day's** entries, a named sheet included: this table says who is
-/// cast on the day, and a `SEQ` cell counting only the sequences its reader happens to share a slot
+/// **A role the day's shots name is listed even when nobody convoked it**, and that is the whole
+/// point of the table: the main table's own `RÔLES` column prints role *numbers*, and a reader
+/// looking `3` up has nowhere else on the sheet to find out who that is. Such a row carries no
+/// convocation, so its `ARRIVÉE` and `PAT` cells read as em dashes — which is the truthful reading
+/// of "this role plays today and nobody has called them", the very thing
+/// `OcptScheduleRoleNotConvokedAlert` raises in the app. It is never guessed at from the shot's own
+/// hours: a convocation is the slot you are linked to (ADR 0018), and a role linked to none has no
+/// times at all.
+///
+/// Both generators pass the **whole day's** entries, a named sheet included: this table says who the
+/// day calls for, and a `SEQ` cell counting only the sequences its reader happens to share a slot
 /// with would understate every other actor's day.
 List<_CastRow> _castRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
@@ -1283,38 +1319,62 @@ List<_CastRow> _castRowsOfDay({
   final convocations = plan.convocationsOfDay(dayId);
   final convocationByPersonId = {for (final c in convocations) if (c.personId != null) c.personId!: c};
   final convocationByRoleId = {for (final c in convocations) if (c.roleId != null) c.roleId!: c};
+  final roleByNormalizedName = {
+    for (final role in plan.roles) normalizeCharacterName(role.name): role,
+  };
 
   final seenRoleIds = <String>{};
   final rows = <_CastRow>[];
 
+  void addRow(OcptRole role) {
+    if (!seenRoleIds.add(role.id)) {
+      return;
+    }
+
+    final actor = role.personId == null ? null : plan.personById[role.personId];
+    final convocation = actor != null ? convocationByPersonId[actor.id] : convocationByRoleId[role.id];
+
+    final normalizedName = normalizeCharacterName(role.name);
+    final sceneNumbers = <String>{};
+    for (final ordered in orderedEntries) {
+      if (ordered.block.kind != OcptShootingBlockKind.shot || ordered.block.shotId == null) {
+        continue;
+      }
+      final shot = plan.shotById(ordered.block.shotId!);
+      if (shot != null && shot.characters.contains(normalizedName)) {
+        sceneNumbers.add(ocptShotSceneNumberOf(shot));
+      }
+    }
+
+    rows.add(
+      _CastRow(role: role, actor: actor, sceneNumbers: sceneNumbers.toList()..sort(), convocation: convocation),
+    );
+  }
+
   for (final slot in slots) {
     for (final member in slot.cast) {
-      if (!seenRoleIds.add(member.roleId)) {
-        continue;
+      if (plan.roleById[member.roleId] case final role?) {
+        addRow(role);
       }
-      final role = plan.roleById[member.roleId];
-      if (role == null) {
-        continue;
+    }
+  }
+
+  // The roles the day's own shots play, convoked or not — the same `shot.characters` join the main
+  // table's own `RÔLES` column reads, so the two can never name a role the other cannot resolve. A
+  // character name matching no role of the project resolves to nothing and is skipped, exactly as
+  // that column skips it.
+  for (final ordered in orderedEntries) {
+    if (ordered.block.kind != OcptShootingBlockKind.shot || ordered.block.shotId == null) {
+      continue;
+    }
+    final shot = plan.shotById(ordered.block.shotId!);
+    if (shot == null) {
+      continue;
+    }
+    for (final characterName in shot.characters) {
+      if (roleByNormalizedName[characterName] case final role?) {
+        addRow(role);
       }
-
-      final actor = role.personId == null ? null : plan.personById[role.personId];
-      final convocation = actor != null ? convocationByPersonId[actor.id] : convocationByRoleId[role.id];
-
-      final normalizedName = normalizeCharacterName(role.name);
-      final sceneNumbers = <String>{};
-      for (final ordered in orderedEntries) {
-        if (ordered.block.kind != OcptShootingBlockKind.shot || ordered.block.shotId == null) {
-          continue;
-        }
-        final shot = plan.shotById(ordered.block.shotId!);
-        if (shot != null && shot.characters.contains(normalizedName)) {
-          sceneNumbers.add(ocptShotSceneNumberOf(shot));
-        }
-      }
-
-      rows.add(
-        _CastRow(role: role, actor: actor, sceneNumbers: sceneNumbers.toList()..sort(), convocation: convocation),
-      );
     }
   }
 
@@ -1386,6 +1446,11 @@ List<_PeopleListEntry> _crewListEntries({
 /// The cast-and-extras list's own rows: one per [castRows] entry, the actor's own name (or
 /// [OcptCallSheetLabels.unnamedPersonLabel] for an uncast role) and the role's own number and name
 /// as its position column.
+///
+/// It follows the cast table row for row, a role the day's shots play but nobody convoked included:
+/// this list answers "how do I reach the people this day is about", and the one person an assistant
+/// director needs to phone on the morning of a shoot is precisely the actor nobody called. Their
+/// `HORAIRES` cell reads as an em dash, as their cast row's own times do.
 List<_PeopleListEntry> _castListEntries({required List<_CastRow> castRows, required OcptCallSheetLabels labels}) {
   final entries = [
     for (final row in castRows)
