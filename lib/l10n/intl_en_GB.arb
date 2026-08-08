@@ -7813,6 +7813,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportShotHoursHeader": "Hours",
+  "@scheduleExportShotHoursHeader": {
+    "description": "Header of a shooting plan shot table's own hours column, printing the block's resolved start over its resolved end",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportEmptyPlanNote": "Nothing to print.",
   "@scheduleExportEmptyPlanNote": {
     "description": "Note printed in place of the whole shooting plan, or in place of a grid, when the printed range holds nothing to show",

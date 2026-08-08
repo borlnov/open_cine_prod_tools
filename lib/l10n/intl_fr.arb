@@ -1048,6 +1048,7 @@
   "scheduleExportMoveHeader": "Mouv.",
   "scheduleExportFramingHeader": "Cadre",
   "scheduleExportCommentHeader": "Commentaire",
+  "scheduleExportShotHoursHeader": "Horaire",
   "scheduleExportEmptyPlanNote": "Rien à imprimer.",
   "scheduleHeaderPositionsSegmentLabel": "Postes",
   "schedulePositionsMatrixEmptyHint": "Aucun poste n'a encore été tenu sur un créneau.",

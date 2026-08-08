@@ -1039,6 +1039,7 @@ void main() {
       milestoneToLabel: "to",
       blockKindLabels: {},
       rolesLabel: "CAST",
+      hoursHeader: "Hours",
       planHeader: "Plan",
       shotSizeHeader: "Shot size",
       moveHeader: "Move.",

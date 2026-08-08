@@ -53,16 +53,18 @@ const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 /// the next one — a grid silently printing only its first few days is worse than one that runs on.
 const int _maxGridColumnsPerPage = 6;
 
-/// A shot table's `Plan / Valeur de plan / Move. / Cadre / Commentaire / Perso.` columns — see
-/// [OcptShootingPlanLabels.framingHeader]'s own doc comment for why the reference document's own
-/// `Description` column has no counterpart here.
+/// A shot table's `Hours / Plan / Valeur de plan / Move. / Cadre / Commentaire / Perso.` columns —
+/// see [OcptShootingPlanLabels.framingHeader]'s own doc comment for why the reference document's
+/// own `Description` column has no counterpart here, and [OcptShootingPlanLabels.hoursHeader]'s own
+/// for why the reference document's `Hours` column, absent there, leads this one.
 const Map<int, pw.TableColumnWidth> _shotColumnWidths = {
-  0: pw.FlexColumnWidth(),
-  1: pw.FlexColumnWidth(1.6),
-  2: pw.FlexColumnWidth(1.4),
-  3: pw.FlexColumnWidth(1.8),
-  4: pw.FlexColumnWidth(2.4),
-  5: pw.FlexColumnWidth(1.6),
+  0: pw.FlexColumnWidth(1.6),
+  1: pw.FlexColumnWidth(),
+  2: pw.FlexColumnWidth(1.6),
+  3: pw.FlexColumnWidth(1.4),
+  4: pw.FlexColumnWidth(1.8),
+  5: pw.FlexColumnWidth(2.4),
+  6: pw.FlexColumnWidth(1.6),
 };
 
 /// Renders the whole shoot's own shooting plan: an optional title page, the three summary grids —
@@ -82,7 +84,10 @@ const Map<int, pw.TableColumnWidth> _shotColumnWidths = {
 /// never off a stored anchor, never re-derived. A minute may exceed 1440 for a night shoot's small
 /// hours, and every figure is printed through `ocptFormatDayMinute`, the one place that ever wraps
 /// one back onto a clock face — the same rule `OcptCallSheetPdfService` follows, and the reason the
-/// two share `ocpt_schedule_pdf_shared.dart` rather than each reading the schedule its own way.
+/// two share `ocpt_schedule_pdf_shared.dart` rather than each reading the schedule its own way. A
+/// day agenda's own shot table leads with an **hours column**, the one column the reference
+/// document's own table carries no equivalent of, reading the same resolved clock a shot's block was
+/// placed on.
 ///
 /// **The three summary grids are landscape** (page width and height swapped from the painter's own
 /// geometry): a shoot is wide, and a grid silently cropped to whatever a portrait page holds would
@@ -941,8 +946,11 @@ class OcptShootingPlanPdfService {
     );
   }
 
-  /// One run of consecutive shot blocks, as a `Plan / Valeur de plan / Move. / Cadre / Commentaire /
-  /// Perso.` table.
+  /// One run of consecutive shot blocks, as an `Hours / Plan / Valeur de plan / Move. / Cadre /
+  /// Commentaire / Perso.` table — the hours column reading each row's own resolved start over its
+  /// resolved end, off the very [OcptOrderedScheduleEntry] the row was placed from, never a stored
+  /// anchor and never taken modulo anything (a night run crossing midnight prints past `23:59`
+  /// through [ocptFormatDayMinute] exactly as every other hour in this document does).
   pw.Widget _shotTable({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -956,6 +964,7 @@ class OcptShootingPlanPdfService {
         decoration: const pw.BoxDecoration(color: _bandColor),
         children: [
           for (final header in [
+            labels.hoursHeader,
             labels.planHeader,
             labels.shotSizeHeader,
             labels.moveHeader,
@@ -966,9 +975,14 @@ class OcptShootingPlanPdfService {
             _textCell(painter: painter, text: header, isBold: true),
         ],
       ),
-      for (final (shot, _) in rows)
+      for (final (shot, ordered) in rows)
         pw.TableRow(
           children: [
+            _textCell(
+              painter: painter,
+              text: "${ocptFormatDayMinute(ordered.entry.startMinute)} – "
+                  "${ocptFormatDayMinute(ordered.entry.endMinute)}",
+            ),
             _textCell(painter: painter, text: shot.code),
             _textCell(painter: painter, text: shot.shotSize),
             _textCell(painter: painter, text: shot.cameraMove),

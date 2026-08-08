@@ -75,6 +75,7 @@ const _labels = OcptShootingPlanLabels(
     OcptShootingBlockKind.hold: "Reserved",
   },
   rolesLabel: "CAST",
+  hoursHeader: "Hours",
   planHeader: "Plan",
   shotSizeHeader: "Shot size",
   moveHeader: "Move.",
@@ -515,6 +516,71 @@ void main() {
         blocksByDayId: {
           "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-day", durationMinutes: 480)],
         },
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: false,
+        includePeopleGrid: false,
+        exportDate: pinnedExportDate,
+      );
+
+      final nightBytes = await generateFor(nightSnapshot);
+      final dayBytes = await generateFor(daySnapshot);
+
+      expect(ascii.decode(nightBytes.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(nightBytes), isNot(_contentStreams(dayBytes)));
+    });
+
+    test("a shot table's own hours column prints the resolved hours, never modulo 1440", () async {
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+
+      final nightSlot = _buildSlot(id: "slot-night", shootingDayId: "day-1", anchorMinute: 1140); // 19:00
+      final nightSnapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [nightSlot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-night",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 480, // ends at 1620, i.e. 03:00 the following morning
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+      );
+
+      final daySlot = _buildSlot(id: "slot-day", shootingDayId: "day-1", anchorMinute: 480);
+      final daySnapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [daySlot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-day",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 480,
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(

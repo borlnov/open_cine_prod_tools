@@ -117,6 +117,11 @@ class OcptShootingPlanLabels extends Equatable {
   /// carries, so the two documents label that line identically.
   final String rolesLabel;
 
+  /// A shot table's own `Hours` column header, printing the block's resolved start over its
+  /// resolved end — the one column the reference document's own shot table carries no equivalent
+  /// of, printed first so a reader can tell at a glance when each plan happens.
+  final String hoursHeader;
+
   /// A shot table's own `Plan` column header.
   final String planHeader;
 
@@ -172,6 +177,7 @@ class OcptShootingPlanLabels extends Equatable {
     required this.milestoneToLabel,
     required this.blockKindLabels,
     required this.rolesLabel,
+    required this.hoursHeader,
     required this.planHeader,
     required this.shotSizeHeader,
     required this.moveHeader,
@@ -224,6 +230,7 @@ class OcptShootingPlanLabels extends Equatable {
     milestoneToLabel,
     blockKindLabels,
     rolesLabel,
+    hoursHeader,
     planHeader,
     shotSizeHeader,
     moveHeader,
