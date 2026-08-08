@@ -1115,7 +1115,9 @@ void main() {
       );
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
-      expect(_pageCount(bytes), greaterThanOrEqualTo(2)); // the day agenda, then the grid page
+      // The day agenda, then the ten-minute grid itself spilling onto a second physical page
+      // (48 rows for an eight-hour night block) — exactly the case whose own header must repeat.
+      expect(_pageCount(bytes), greaterThanOrEqualTo(3));
     });
 
     test("an event pinned outside every block's own band still produces a readable document", () async {

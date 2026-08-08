@@ -478,6 +478,7 @@ class OcptShootingPlanPdfService {
           columnWidths: columnWidths,
           children: [
             pw.TableRow(
+              repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 _gridCornerCell(painter: painter),
@@ -491,6 +492,7 @@ class OcptShootingPlanPdfService {
               ],
             ),
             pw.TableRow(
+              repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 _gridRowLabelCell(painter: painter, text: rowHeaderLabel, isBold: true),
@@ -825,6 +827,17 @@ class OcptShootingPlanPdfService {
   /// grid's own columns are days, not slots**, so there is no second, slot-label row to draw), then
   /// [rows] — an [_ElementsGridCategoryBand] painted as its own full band row and an
   /// [_ElementsGridElementRow] as an ordinary data row.
+  ///
+  /// **Only the day header repeats across a page break, not a category band.** `pw.TableRow.repeat`
+  /// redraws *every* row it marks at the top of *every* page the table spans — right for a fixed
+  /// header meant once, wrong for a band that recurs once per category: a table several categories
+  /// deep would stack every category seen so far atop a continuation page rather than only the one a
+  /// reader is actually looking at, which is a worse lie than the one being fixed. Making only the
+  /// *current* band follow the break would need this table built row by row like
+  /// [_dayTimetableWidgets] rather than handed whole to `pw.Table`, for a document that already names
+  /// every row's own element (`<code> · <name>`, [_ElementsGridElementRow.label]) whether or not its
+  /// category is still in view — a reader who has lost the band can still read the row, which is not
+  /// true of a column with no header at all.
   pw.MultiPage _elementsGridPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -856,6 +869,7 @@ class OcptShootingPlanPdfService {
           columnWidths: columnWidths,
           children: [
             pw.TableRow(
+              repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 _gridRowLabelCell(painter: painter, text: labels.elementsGridRowHeader, isBold: true),
@@ -1162,6 +1176,7 @@ class OcptShootingPlanPdfService {
         columnWidths: _guestColumnWidths,
         children: [
           pw.TableRow(
+            repeat: true,
             decoration: const pw.BoxDecoration(color: _bandColor),
             children: [
               for (final header in [labels.nameHeader, labels.guestReasonHeader, labels.hoursLinePrefix])
@@ -1350,6 +1365,7 @@ class OcptShootingPlanPdfService {
     columnWidths: _shotColumnWidths,
     children: [
       pw.TableRow(
+        repeat: true,
         decoration: const pw.BoxDecoration(color: _bandColor),
         children: [
           for (final header in [
@@ -1577,6 +1593,7 @@ class OcptShootingPlanPdfService {
           columnWidths: columnWidths,
           children: [
             pw.TableRow(
+              repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 _gridCornerCell(painter: painter),
