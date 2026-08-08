@@ -220,6 +220,106 @@ void main() {
       expect(grid.startMinute, 480);
       expect(grid.events.single.row, 0);
     });
+
+    test(
+      "an event exactly on the grid's own exclusive end boundary lands on the last row, "
+      "not one past it",
+      () {
+        // The block's own band ends at 550; the event, at 600 — already an exact multiple of ten —
+        // is the single latest bound, so the grid's own snapped end lands exactly on the event's
+        // minute with nothing to round up. That is precisely the case the row's own `.clamp` in
+        // `OcptShootingDayAgendaGrid.of` exists for.
+        final grid = OcptShootingDayAgendaGrid.of(
+          columns: [
+            OcptShootingDayAgendaColumnInput(
+              slotId: "s1",
+              label: "Unit A",
+              timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 10),
+              captionByBlockId: const {"b1": "Shot 1"},
+            ),
+          ],
+          events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 600, label: "Wrap party")],
+        );
+
+        expect(grid.startMinute, 540);
+        expect(grid.endMinute, 600); // already an exact multiple of ten: nothing left to round up
+        expect(grid.rowCount, 6);
+        expect(grid.events.single.row, 5); // the last real row, never 6
+      },
+    );
+  });
+
+  group("bounds below the day's own midnight", () {
+    test("an end-anchored slot walking back past midnight resolves to a negative start", () {
+      // Anchored to end at 02:00 (minute 120) with four hours (240 minutes) of blocks: the slot's
+      // own resolved start is minute -120, before the day's own midnight (ADR 0015, amended a
+      // second time) — `ocptComputeShootingDayTimelines`'s own `startMinuteFor` clamps nothing.
+      final grid = OcptShootingDayAgendaGrid.of(
+        columns: [
+          OcptShootingDayAgendaColumnInput(
+            slotId: "s1",
+            label: "Night unit",
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: -120, duration: 240),
+            captionByBlockId: const {"b1": "Night shoot"},
+          ),
+        ],
+        events: const [],
+      );
+
+      expect(grid.startMinute, -120); // already an exact multiple of ten
+      expect(grid.endMinute, 120);
+      expect(grid.rowCount, 24);
+      final tile = grid.tiles.single;
+      expect(tile.startRow, 0);
+      expect(tile.rowSpan, 24);
+    });
+
+    test("a block starting at a negative minute that is not a multiple of ten floors correctly", () {
+      // -125 must floor to -130, not the -120 a truncating `~/` would give (Dart's `~/` truncates
+      // toward zero, which rounds a negative value *up*, one step too late).
+      final grid = OcptShootingDayAgendaGrid.of(
+        columns: [
+          OcptShootingDayAgendaColumnInput(
+            slotId: "s1",
+            label: "Night unit",
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: -125, duration: 12),
+            captionByBlockId: const {"b1": "Night shoot"},
+          ),
+        ],
+        events: const [],
+      );
+
+      expect(grid.startMinute, -130);
+      expect(grid.endMinute, -110); // -113 ceiled up to the next ten
+      expect(grid.rowCount, 2);
+      final tile = grid.tiles.single;
+      expect(tile.startMinute, -125);
+      expect(tile.endMinute, -113);
+      expect(tile.startRow, 0); // -125 falls inside the very first row, [-130, -120)
+      expect(tile.rowSpan, 2); // -113 spills into the second row, [-120, -110)
+    });
+
+    test("an event pinned at a negative minute stretches the bounds below midnight", () {
+      // -15 must floor to -20, not the -10 a truncating `~/` would give.
+      final grid = OcptShootingDayAgendaGrid.of(
+        columns: [
+          OcptShootingDayAgendaColumnInput(
+            slotId: "s1",
+            label: "Unit A",
+            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 0, duration: 60),
+            captionByBlockId: const {"b1": "Shot 1"},
+          ),
+        ],
+        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: -15, label: "Early crew arrival")],
+      );
+
+      expect(grid.startMinute, -20);
+      expect(grid.endMinute, 60);
+      expect(grid.rowCount, 8);
+      final marker = grid.events.single;
+      expect(marker.minute, -15);
+      expect(marker.row, 0); // -15 falls inside the very first row, [-20, -10)
+    });
   });
 
   test("a block whose caller supplies no caption is skipped rather than drawn blank", () {

@@ -308,7 +308,7 @@ class OcptShootingDayAgendaGrid extends Equatable {
         if (caption == null) {
           continue;
         }
-        final startRow = (entry.startMinute - snappedStart) ~/ stepMinutes;
+        final startRow = _floorDiv(entry.startMinute - snappedStart, stepMinutes);
         final endRowExclusive = _ceilDiv(entry.endMinute - snappedStart, stepMinutes);
         final rowSpan = endRowExclusive - startRow < 1 ? 1 : endRowExclusive - startRow;
         tiles.add(
@@ -332,7 +332,15 @@ class OcptShootingDayAgendaGrid extends Equatable {
           eventId: event.id,
           label: event.label,
           minute: event.minute,
-          row: ((event.minute - snappedStart) ~/ stepMinutes).clamp(0, rowCount - 1),
+          // The lower bound is unreachable by construction (`snappedStart` is floored from the very
+          // minimum this loop folded every event's own minute into, so the difference is always
+          // >= 0) and is only here because `clamp` takes both ends together. The **upper** bound is
+          // not dead: when the single latest event is itself the grid's own latest bound and already
+          // an exact multiple of `stepMinutes`, `snappedEnd` lands exactly on that minute — the
+          // half-open row convention `[row start, row start + stepMinutes)` has no row that *starts*
+          // there, so the unclamped index would be `rowCount`, one past the last real row, rather
+          // than land inside it.
+          row: _floorDiv(event.minute - snappedStart, stepMinutes).clamp(0, rowCount - 1),
         ),
     ];
 
@@ -346,15 +354,37 @@ class OcptShootingDayAgendaGrid extends Equatable {
     );
   }
 
-  /// [minute] rounded down to the nearest [stepMinutes].
-  static int _floorToStep(int minute) => (minute ~/ stepMinutes) * stepMinutes;
+  /// [minute] rounded down to the nearest [stepMinutes] — including below the day's own midnight,
+  /// see [_floorDiv]'s own doc comment for why this cannot be `(minute ~/ stepMinutes) *
+  /// stepMinutes`.
+  static int _floorToStep(int minute) => _floorDiv(minute, stepMinutes) * stepMinutes;
 
-  /// [minute] rounded up to the nearest [stepMinutes].
+  /// [minute] rounded up to the nearest [stepMinutes], mirroring [_floorToStep].
   static int _ceilToStep(int minute) => _ceilDiv(minute, stepMinutes) * stepMinutes;
 
-  /// Integer division of [value] by [divisor], rounded up rather than truncated — what turns an
-  /// end minute into the row index one past the last row it touches.
-  static int _ceilDiv(int value, int divisor) => (value + divisor - 1) ~/ divisor;
+  /// Integer division of [value] by [divisor] (always [stepMinutes], always positive), rounded
+  /// **down** — floor, not truncation. Dart's `~/` truncates toward zero, which already is the
+  /// floor for a non-negative [value] but rounds the *wrong* way for a negative one (`-5 ~/ 10`
+  /// gives `0`, one row too late, where the floor is `-1`). An end-anchored slot resolves its own
+  /// start as `anchor − Σ durations` with no floor of its own (ADR 0015, amended a second time), so
+  /// a slot pinned to end at 02:00 with four hours of blocks starts at minute `-120`, before the
+  /// day's own midnight — reachable, not a defensive corner case. Deliberately integer-only (no
+  /// `double`/`.floor()`, which would need a precision argument this file has no business making):
+  /// Dart's `%` is Euclidean (non-negative whenever [divisor] is positive, unlike `.remainder()`),
+  /// so a negative, inexact [value] truncates *up* one step too many and is walked back down by one.
+  static int _floorDiv(int value, int divisor) {
+    final quotient = value ~/ divisor;
+    return (value < 0 && value % divisor != 0) ? quotient - 1 : quotient;
+  }
+
+  /// Integer division of [value] by [divisor], rounded **up** — what turns an end minute into the
+  /// row index one past the last row it touches. The mirror of [_floorDiv]: Dart's truncation
+  /// already rounds a negative, inexact [value] up (toward zero), so only a **positive** inexact one
+  /// needs the extra step — `_floorDiv`'s minus becomes this function's plus.
+  static int _ceilDiv(int value, int divisor) {
+    final quotient = value ~/ divisor;
+    return (value > 0 && value % divisor != 0) ? quotient + 1 : quotient;
+  }
 
   /// Object string representation, useful for debugging and logging.
   @override
