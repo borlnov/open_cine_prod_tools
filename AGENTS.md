@@ -113,6 +113,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28h | Schedule mode M4 — seeing what the plan is about to break: schema v16 and payload format 11 adding `people.maxDailyPresenceMinutes`, `ocpt_schedule_alerts.dart` (pure, nine sealed alert kinds, the tenth deliberately absent) joined by `OcptSchedulePlanSnapshot.alerts`, the positions matrix and the presence grid as the third and fourth centre views (`shooting_presences` written at last, a click cycling an override back round to the computed value), the `Alerts` dock tab and the count in the status bar, and the agenda's `Colour by` control over `ocptSceneEffectOf`, shared with the call sheet's own `EFFET` column | ✅ |
 | 29 | Schedule review M1 — the whole data model of the review pass in one migration: schema v17 and payload format 12 adding `shooting_slot_guests` (a guest convoked by a slot, named by a person **or** a free name) and `shooting_day_events` (what the day does not control, at an absolute hour, outside every chain), then `shooting_day_blocks.crewNote` (the note that prints, beside the `notes` that never does), `assets.validFrom`/`validUntil` and `project_info.minimumRestMinutes`, and **dropping** `shooting_presences` with the click that wrote it — the presence grid reduced to its computed reading, `OcptPresenceCode` to `working`/`unavailable`, and format 12 doing all three kinds of payload upgrade at once | ✅ |
 | 29b | Schedule review M2-M3 — the reading fixes, then what v17 held but nothing drew: the presence grid reduced to its computed reading, the positions matrix grouped under a day band with each column's resolved hours, the day view's alert badge opening the `Alerts` tab, a slot's and a block's `notes` named `Private notes`; then guests as a third kind of convocation link (an arrival and a departure, never a PAT band), the slot card's guest band picking from the address book alone under one foldable `Assigner des personnes` section holding the crew, the cast and the guests, the `Convocations` panel's trailing guest group, a day's events in one widget shown by the day view and the day inspector alike with a full-width marker in the week grid, and a block's own `crewNote` typed in the inspector | ✅ |
+| 29c | Schedule review M4 — the two crossings v17 made possible: `OcptScheduleRestTimeAlert` (a person's departure against their arrival on the next day they are actually convoked on, raised on the second of the two) and `OcptSchedulePermitNotValidAlert` (the plan's `…Missing` renamed for what it says, a location filing no permit raising nothing), both soft and both silent while the figure they measure against was never recorded, `ocptComputeScheduleAlerts` taking the project's minimum and a location's permit windows, `OcptSchedulePlanSnapshot.minimumRestMinutes` joining them, the two sentences in the `Alerts` panel, the permit's `validFrom`/`validUntil` typed under the location sheet's document line, and the project's minimum rest typed on `OcptProjectSettingsPage` | ✅ |
 
 ## Ways of working
 
@@ -932,15 +933,27 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   **`lib/utils/ocpt_schedule_alerts.dart`** (pure, no Flutter, no drift, no `Tr`) is what the mode
   says about a plan before the plan breaks: a sealed `OcptScheduleAlert` per kind, each carrying
   **ids and figures alone** — resolving a name and writing the sentence is the panel's job — and a
-  severity that is a property of the *kind* rather than of an occurrence. Nine kinds: a person
+  severity that is a property of the *kind* rather than of an occurrence. Eleven kinds: a person
   convoked on a day they are unavailable (honouring the day-part window), a person on two slots of
   one day whose bands overlap, and a slot outside every window its location declares are **hard**;
   a position lost between two consecutive slots, a role in a placed shot convoked on no slot that
   day, a role with no actor (only among the roles the schedule actually uses), a timeline over-run
-  against a pinned anchor, a slot whose fixed end its own blocks over-run, and a person's day past
-  the maximum recorded for them are **soft**. Three absences are deliberate and each is argued in
+  against a pinned anchor, a slot whose fixed end its own blocks over-run, a person's day past
+  the maximum recorded for them, a person's rest short of the project's own minimum, and a slot
+  booked at a location whose recorded permit does not cover that date are **soft**.
+  `OcptScheduleRestTimeAlert` compares a person's departure with their arrival on the **next day
+  they are actually convoked on** — never merely the next calendar date, which is why the rule sorts
+  the days by date itself where the position-lost one reads the caller's own order — and the gap
+  crosses midnights honestly, a night ending at 1620 followed by a 07:00 call the next date reading
+  as four hours. It is raised on the **second** of the two days, the one whose call is too early and
+  the day a production would move. `OcptSchedulePermitNotValidAlert` is named for what it says: it
+  never fires on a **missing** permit, only on a recorded window that fails to cover the date, which
+  is why the plan's own `…PermitMissingAlert` was not the name kept. Three absences are deliberate
+  and each is argued in
   the file's own doc comment: **a location declaring no window at all raises nothing** (absence of
-  data is not a refusal, and a project that never entered availabilities must not be drowned), an
+  data is not a refusal, and a project that never entered availabilities must not be drowned — the
+  same argument silences the permit crossing on a location that files none, and on a permit whose
+  two dates were never recorded), an
   **anchor cycle** is not an alert (the anchor menu already refuses to close one, so it is defence
   against a hand-edited file rather than a state a user can reach), and there is **no "key position
   unfilled" alert** — nothing in this app says which position on a film is key, and a list invented
@@ -954,7 +967,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   nullable) is that same argument at the project's own level — the rest a production says it owes
   between two days — and it is **deliberately not defaulted to 660**: eleven hours is French law,
   this app ships in more than one country, and a default would be the app advancing a legal figure
-  nobody here validated, which is the whole reason it is a column rather than a constant.
+  nobody here validated, which is the whole reason it is a column rather than a constant. It is
+  typed on `OcptProjectSettingsPage`, in minutes, read back as a formatted duration and **left empty
+  by default**, an empty field writing null rather than a figure nobody chose.
   The alerts live in the `Alerts` **dock tab** rather than above the agenda the mock puts them over:
   a plan is broken whichever view is being read, and the count in the status bar is what says so from
   the other three. Each entry names what it concerns and offers the day it concerns — a selection,
@@ -1074,9 +1089,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   transaction; `removeAsset` and `updateAssetValidity`, guarded, are the user's own gestures): from
   schema v17 a row also carries `validFrom`/`validUntil`, the window a **document** is valid over —
   a filming permit runs from a date to a date — never anything read off the file, which the app
-  never opens; **null means "nobody has recorded dates", never "valid forever"**, which is why the
-  crossing that will read them stays silent rather than advancing a claim nobody entered. The four
-  services that reference
+  never opens; **null means "nobody has recorded dates", never "valid forever"**, which is why
+  `OcptSchedulePermitNotValidAlert` stays silent rather than advancing a claim nobody entered. The
+  pair is typed on the location sheet's own permit card, under the referenced document and **only
+  once one is referenced** — there being nothing to date otherwise — through the same date field the
+  permit date itself uses, and withheld under a version preview like every other field there. The
+  four services that reference
   a file hold it rather than each writing the table their own way, so a photo, a scouting photo, a
   permit and a signed release are all created and dropped alike. What a reference **looks like** is
   decided once too, by `OcptReferencedImage` (the image draws, or the caller's fallback does, a
