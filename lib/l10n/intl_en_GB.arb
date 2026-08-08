@@ -6834,6 +6834,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleSlotPeopleSectionTitle": "Assign people",
+  "@scheduleSlotPeopleSectionTitle": {
+    "description": "Title of the foldable slot card section holding its crew, its cast and its guests",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleSlotCrewColumnTitle": "Technical crew",
   "@scheduleSlotCrewColumnTitle": {
     "description": "Title of a slot card's own crew column, grouped by department",
@@ -6843,7 +6850,7 @@
   },
   "scheduleSlotPeopleCount": "{count, plural, one{{count} person} other{{count} people}}",
   "@scheduleSlotPeopleCount": {
-    "description": "How many people a slot card's crew or cast half holds, shown beside its own title",
+    "description": "How many people a slot card's own people section, or one of its three kinds, holds",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {
@@ -6924,7 +6931,7 @@
   },
   "scheduleSlotGuestsColumnTitle": "Guests",
   "@scheduleSlotGuestsColumnTitle": {
-    "description": "Title of a slot card's own guest band, shown only while it has one or has been revealed",
+    "description": "Title of a slot card's own guest band, under its crew and cast halves",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {}
@@ -6932,13 +6939,6 @@
   "scheduleAddGuestAction": "Guest",
   "@scheduleAddGuestAction": {
     "description": "Label of a slot card's own guest band footer control opening the address-book picker",
-    "context": "Displayed on a day view slot card",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleAddGuestMenuAction": "Add a guest",
-  "@scheduleAddGuestMenuAction": {
-    "description": "Entry of a slot card's own ⋮ menu, revealing the guest band even while it holds nobody yet",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {}

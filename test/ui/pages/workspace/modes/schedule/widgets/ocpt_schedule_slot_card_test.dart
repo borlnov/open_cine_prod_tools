@@ -747,7 +747,7 @@ void main() {
   });
 
   testWidgets(
-    "both people halves show by default and fold together on either title",
+    "the three kinds of person show by default and fold together on the section's own title",
     (tester) async {
       final crew = [
         const OcptShootingSlotCrewMember(
@@ -771,38 +771,57 @@ void main() {
       await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, crew: crew, cast: cast)));
       await tester.pumpAndSettle();
       final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-      final crewTitle = find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase());
-      final castTitle = find.text(tr.scheduleSlotCastColumnTitle.toUpperCase());
+      final sectionTitle = find.text(tr.scheduleSlotPeopleSectionTitle.toUpperCase());
 
-      // Expanded by default: both halves show their cards and their own footer, and each title
-      // already says how many people it holds.
+      // Expanded by default: the three kinds show their cards and their own footer, each kind's own
+      // title says how many it holds, and the section's own title counts the three together.
       expect(find.text("Léa"), findsOneWidget);
       expect(find.text("Marie"), findsOneWidget);
       expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
       expect(find.text(tr.scheduleAddCastAction), findsOneWidget);
+      expect(find.text(tr.scheduleAddGuestAction), findsOneWidget);
       expect(find.text(tr.scheduleSlotPeopleCount(1)), findsNWidgets(2));
+      expect(find.text(tr.scheduleSlotPeopleCount(2)), findsOneWidget);
 
-      // A tap on the **cast** title folds the crew half away with it: the two halves share one
-      // fold, so either title answers for both.
-      await tester.tap(castTitle);
+      // A tap on the section's own title folds the three of them away at once.
+      await tester.tap(sectionTitle);
       await tester.pumpAndSettle();
 
       expect(find.text("Léa"), findsNothing);
       expect(find.text("Marie"), findsNothing);
       expect(find.text(tr.scheduleAddCrewMemberAction), findsNothing);
       expect(find.text(tr.scheduleAddCastAction), findsNothing);
-      expect(find.text(tr.scheduleSlotPeopleCount(1)), findsNWidgets(2));
+      expect(find.text(tr.scheduleAddGuestAction), findsNothing);
+      expect(find.text(tr.scheduleSlotPeopleCount(2)), findsOneWidget);
 
-      // And a tap on the **crew** title brings both back.
-      await tester.tap(crewTitle);
+      // And a second tap brings the three back.
+      await tester.tap(sectionTitle);
       await tester.pumpAndSettle();
 
       expect(find.text("Léa"), findsOneWidget);
       expect(find.text("Marie"), findsOneWidget);
       expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
       expect(find.text(tr.scheduleAddCastAction), findsOneWidget);
+      expect(find.text(tr.scheduleAddGuestAction), findsOneWidget);
     },
   );
+
+  testWidgets("neither the crew nor the cast title folds its own half", (tester) async {
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+
+    // The one fold on the card is the section's own: the three kinds' titles are plain read-outs,
+    // so tapping one changes nothing at all.
+    await tester.tap(find.text(tr.scheduleSlotCrewColumnTitle.toUpperCase()));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.scheduleAddCrewMemberAction), findsOneWidget);
+
+    await tester.tap(find.text(tr.scheduleSlotCastColumnTitle.toUpperCase()));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.scheduleAddCastAction), findsOneWidget);
+  });
 
   testWidgets("the note field reports what is typed into it, below the location line", (
     tester,
@@ -863,13 +882,16 @@ void main() {
     expect(downButton.onPressed, isNotNull);
   });
 
-  testWidgets("a slot with no guest draws no guest band and no `+ Guest` footer", (tester) async {
+  testWidgets("a slot with no guest still draws its guest band, its hint and its footer", (
+    tester,
+  ) async {
     await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false)));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-    expect(find.text(tr.scheduleSlotGuestsColumnTitle.toUpperCase()), findsNothing);
-    expect(find.text(tr.scheduleAddGuestAction), findsNothing);
+    expect(find.text(tr.scheduleSlotGuestsColumnTitle.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.scheduleSlotGuestsEmptyHint), findsOneWidget);
+    expect(find.text(tr.scheduleAddGuestAction), findsOneWidget);
   });
 
   testWidgets("a slot with one guest draws its name, its reason and its remove control", (

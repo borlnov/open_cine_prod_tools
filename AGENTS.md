@@ -112,7 +112,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 28g | Schedule mode M3 — the paperwork a shoot runs on: `OcptSchedulePlanSnapshot` owning the day-level joins both the mode and the manager layer read, `OcptCallSheetPdfService` (the general sheet and the named ones from one composition), `OcptShootingPlanPdfService` (three landscape summary grids over slot columns, then a detailed agenda per day), `ocpt_schedule_pdf_shared.dart` between them, a directory picker on `OcptSaveLocationService`, and the mode's three `⋮` entries with their options dialogs and their three-outcome notice | ✅ |
 | 28h | Schedule mode M4 — seeing what the plan is about to break: schema v16 and payload format 11 adding `people.maxDailyPresenceMinutes`, `ocpt_schedule_alerts.dart` (pure, nine sealed alert kinds, the tenth deliberately absent) joined by `OcptSchedulePlanSnapshot.alerts`, the positions matrix and the presence grid as the third and fourth centre views (`shooting_presences` written at last, a click cycling an override back round to the computed value), the `Alerts` dock tab and the count in the status bar, and the agenda's `Colour by` control over `ocptSceneEffectOf`, shared with the call sheet's own `EFFET` column | ✅ |
 | 29 | Schedule review M1 — the whole data model of the review pass in one migration: schema v17 and payload format 12 adding `shooting_slot_guests` (a guest convoked by a slot, named by a person **or** a free name) and `shooting_day_events` (what the day does not control, at an absolute hour, outside every chain), then `shooting_day_blocks.crewNote` (the note that prints, beside the `notes` that never does), `assets.validFrom`/`validUntil` and `project_info.minimumRestMinutes`, and **dropping** `shooting_presences` with the click that wrote it — the presence grid reduced to its computed reading, `OcptPresenceCode` to `working`/`unavailable`, and format 12 doing all three kinds of payload upgrade at once | ✅ |
-| 29b | Schedule review M2-M3 — the reading fixes, then what v17 held but nothing drew: the presence grid reduced to its computed reading, the positions matrix grouped under a day band with each column's resolved hours, the day view's alert badge opening the `Alerts` tab, a slot's and a block's `notes` named `Private notes`; then guests as a third kind of convocation link (an arrival and a departure, never a PAT band), the slot card's guest band revealed from its own `⋮` and picking from the address book alone, the `Convocations` panel's trailing guest group, a day's events in one widget shown by the day view and the day inspector alike with a full-width marker in the week grid, and a block's own `crewNote` typed in the inspector | ✅ |
+| 29b | Schedule review M2-M3 — the reading fixes, then what v17 held but nothing drew: the presence grid reduced to its computed reading, the positions matrix grouped under a day band with each column's resolved hours, the day view's alert badge opening the `Alerts` tab, a slot's and a block's `notes` named `Private notes`; then guests as a third kind of convocation link (an arrival and a departure, never a PAT band), the slot card's guest band picking from the address book alone under one foldable `Assigner des personnes` section holding the crew, the cast and the guests, the `Convocations` panel's trailing guest group, a day's events in one widget shown by the day view and the day inspector alike with a full-width marker in the week grid, and a block's own `crewNote` typed in the inspector | ✅ |
 
 ## Ways of working
 
@@ -812,17 +812,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   The two kinds share one shell rather than each
   drawing its own; the two lists sit side by side, **at most half the card's width each**, and their
   cards **wrap** into as many columns as that half affords rather than stacking in a single file.
-  The two halves **fold together**, on either title, expanded by default, each title saying how many
-  people it holds: a settled crew and cast are entered once and then read past for the rest of the
-  shoot, and the point of the fold is to get to the timetable — so one gesture answers for both
-  rather than each half needing its own. That
+  A **guest** gets a third band, full width **under** those two halves, and it is **always drawn**,
+  empty hint and all, exactly as they are: a slot's guests are one of the three answers to "who is on
+  this unit", and a band that had to be revealed from the `⋮` menu before it could be filled hid the
+  very affordance somebody looking for it was after.
+  The three of them sit under **one foldable section**, `Assigner des personnes`, and **only that
+  section's own title folds** — expanded by default, its count being the three kinds together while
+  each kind's own title is a plain read-out saying how many it holds: a settled crew, cast and guest
+  list are entered once and then read past for the rest of the shoot, and the point of the fold is to
+  get to the timetable — so one gesture answers for the three rather than each needing its own, and
+  a title that also folded its own kind would be a second, narrower question asked in the same place
+  as the first. That
   fold is local widget state — a reading preference costs nothing to lose.
-  A **guest** gets a third band, full width **under** those two halves, and it is **entirely absent
-  while the slot has no guest** — not a collapsed band, nothing at all: guests are rare, and a slot
-  holding none must read exactly as it did before the band existed. Reaching its `+ Guest` footer
-  therefore starts from the card's own `⋮` menu, whose `Add a guest` entry flips a **local reveal
-  flag** drawing the band with nobody in it yet (the same local-state argument the fold makes: the
-  band stays drawn on its own the moment a guest is actually added). A guest card carries the
+  A guest card carries the
   person's name, a reason, a note and **no clock at all**, like every other convocation card. Its
   picker offers **the address book and nothing else**: nobody is created from the schedule mode, so
   the `freeName` half of `shooting_slot_guests`' own discriminator has **no writer in the app** —
@@ -1243,9 +1245,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   sets row's picker and chip dismissals, every
   notes field, the suggestion acceptances and the tag removal; and — in the schedule mode — the day
   creation and its card's `⋮`, the `+ Block` menu and the shot picker it opens, every slot, crew,
-  cast, guest and block control — the guest band losing its `+ Guest` footer, its remove controls
-  and its reason/notes fields, and the slot's `⋮` losing the `Add a guest` entry that reveals it, so
-  a previewed slot with no guest draws no band at all — the day's own events band and its inspector
+  cast, guest and block control — the guest band keeping its title and its cards while losing its
+  `+ Guest` footer, its remove controls and its reason/notes fields, so a previewed slot with no
+  guest reads as the empty band it is — the day's own events band and its inspector
   section, which withhold their `+ Event` footer, their remove controls and all three of a row's
   fields (a previewed day with no event drawing nothing), the slot's own anchor menu (rendered as
   plain text, with no menu at
