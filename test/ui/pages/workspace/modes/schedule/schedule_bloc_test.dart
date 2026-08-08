@@ -90,6 +90,9 @@ const _callSheetLabels = OcptCallSheetLabels(
   castAndExtrasListSectionTitle: "Cast and extras",
   emptyDayNote: "Nothing planned.",
   unnamedPersonLabel: "Unnamed",
+  eventsSectionTitle: "Events",
+  guestsSectionTitle: "Guests",
+  guestReasonHeader: "Reason",
 );
 
 /// A minimal, arbitrary set of localized strings for the shooting plan export — mirrors

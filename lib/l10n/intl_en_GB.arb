@@ -7627,6 +7627,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportGuestReasonHeader": "Reason",
+  "@scheduleExportGuestReasonHeader": {
+    "description": "Header of a call sheet's own trailing guest table reason column, joined from that guest's own shooting_slot_guests rows",
+    "context": "Printed on every exported call sheet that carries a guest",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportShootingPlanFileNameSuffix": "shooting plan",
   "@scheduleExportShootingPlanFileNameSuffix": {
     "description": "Suffix appended to the project name to build the exported shooting plan's own file name",

@@ -104,6 +104,9 @@ const _labels = OcptCallSheetLabels(
   castAndExtrasListSectionTitle: "Cast and extras",
   emptyDayNote: "Nothing planned for this day yet.",
   unnamedPersonLabel: "No name",
+  eventsSectionTitle: "Events",
+  guestsSectionTitle: "Guests",
+  guestReasonHeader: "Reason",
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -153,6 +156,7 @@ OcptShootingDayBlock _buildBlock({
   String? shotId,
   String label = "",
   int? durationMinutes = 30,
+  String crewNote = "",
 }) => OcptShootingDayBlock(
   id: id,
   shootingDayId: "day-1",
@@ -164,7 +168,28 @@ OcptShootingDayBlock _buildBlock({
   durationMinutes: durationMinutes,
   anchorMinute: null,
   notes: "",
-  crewNote: "",
+  crewNote: crewNote,
+);
+
+/// Builds a day event with the few fields these tests read, everything else neutral.
+OcptShootingDayEvent _buildEvent({required String id, required int minute, String label = "", String notes = ""}) =>
+    OcptShootingDayEvent(id: id, shootingDayId: "day-1", minute: minute, label: label, notes: notes);
+
+/// Builds a slot guest with the few fields these tests read, everything else neutral.
+OcptShootingSlotGuest _buildGuest({
+  required String id,
+  required String slotId,
+  String? personId,
+  String freeName = "",
+  String reason = "",
+  String notes = "",
+}) => OcptShootingSlotGuest(
+  id: id,
+  slotId: slotId,
+  personId: personId,
+  freeName: freeName,
+  reason: reason,
+  notes: notes,
 );
 
 /// Builds a crew member with the few fields these tests read, everything else neutral.
@@ -380,6 +405,8 @@ void main() {
   /// crews" tests are measured against, and every location/role/shot the other tests reuse.
   OcptSchedulePlanSnapshot buildTwoSlotDaySnapshot({
     List<OcptShootingSlotCrewMember> extraEveningCrew = const [],
+    List<OcptShootingDayEvent> events = const [],
+    List<OcptShootingSlotGuest> morningGuests = const [],
   }) {
     final locationA = _buildLocation(id: "loc-a", name: "Studio A", latitude: 48.85, longitude: 2.35);
     final locationB = _buildLocation(id: "loc-b", name: "Location B");
@@ -391,6 +418,7 @@ void main() {
       anchorMinute: 480, // 08:00
       crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1", positionId: "director")],
       cast: [_buildCastMember(id: "cast-1", slotId: "slot-morning", roleId: "role-1")],
+      guests: morningGuests,
     );
     final evening = _buildSlot(
       id: "slot-evening",
@@ -429,6 +457,7 @@ void main() {
           ),
         ],
       },
+      eventsByDayId: events.isEmpty ? const {} : {"day-1": events},
       locations: [locationA, locationB],
       roles: [_buildRole(id: "role-1", name: "Alice")],
       people: [
@@ -992,6 +1021,297 @@ void main() {
       final afternoon = await generateAt(DateTime(2026, 1, 15, 17, 45));
 
       expect(_contentStreams(morning), isNot(_contentStreams(afternoon)));
+    });
+  });
+
+  group("events, guests and crew notes", () {
+    test("a day's own events change what both sheets print", () async {
+      final withoutEvents = buildTwoSlotDaySnapshot();
+      final withEvents = buildTwoSlotDaySnapshot(
+        events: [_buildEvent(id: "event-1", minute: 1020, label: "Village fireworks")],
+      );
+
+      final generalWithout = await service.generateGeneralCallSheet(
+        plan: withoutEvents,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final generalWith = await service.generateGeneralCallSheet(
+        plan: withEvents,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
+
+      final convocationWithout = withoutEvents.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final convocationWith = withEvents.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final namedWithout = await service.generateNamedCallSheet(
+        plan: withoutEvents,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocationWithout,
+        exportDate: _pinnedExportDate,
+      );
+      final namedWith = await service.generateNamedCallSheet(
+        plan: withEvents,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocationWith,
+        exportDate: _pinnedExportDate,
+      );
+      expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
+    });
+
+    test("a day's own guests change what both sheets print, and a guest with no PAT band does not crash", () async {
+      final withoutGuest = buildTwoSlotDaySnapshot();
+      final withGuest = buildTwoSlotDaySnapshot(
+        morningGuests: [
+          _buildGuest(id: "guest-1", slotId: "slot-morning", freeName: "Mayor Dupont", reason: "Lends the square"),
+        ],
+      );
+
+      // A guest's own convocation is computed like any other, and it never carries a PAT band
+      // (ADR 0018) — generating a sheet over one must not throw.
+      final guestConvocation = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.isGuest);
+      expect(guestConvocation.patStartMinute, isNull);
+      expect(guestConvocation.patEndMinute, isNull);
+
+      final generalWithout = await service.generateGeneralCallSheet(
+        plan: withoutGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final generalWith = await service.generateGeneralCallSheet(
+        plan: withGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      expect(ascii.decode(generalWith.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
+
+      // The guest table is day-wide (like the cast table and the two directories), so it shows up
+      // on a named sheet too, even one addressed to the morning unit's own director rather than to
+      // the guest.
+      final convocationWithout = withoutGuest.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final convocationWith = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final namedWithout = await service.generateNamedCallSheet(
+        plan: withoutGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocationWithout,
+        exportDate: _pinnedExportDate,
+      );
+      final namedWith = await service.generateNamedCallSheet(
+        plan: withGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocationWith,
+        exportDate: _pinnedExportDate,
+      );
+      expect(ascii.decode(namedWith.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
+    });
+
+    test("a shot block's own crew note changes the sheet", () async {
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+
+      OcptSchedulePlanSnapshot buildPlan(String crewNote) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+              crewNote: crewNote,
+            ),
+          ],
+        },
+        shotList: _buildShotList(shots: [shot]),
+      );
+
+      final withoutNote = await service.generateGeneralCallSheet(
+        plan: buildPlan(""),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final withNote = await service.generateGeneralCallSheet(
+        plan: buildPlan("Bring the rain cover."),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
+    });
+
+    test("a milestone block's own crew note changes the sheet", () async {
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+
+      OcptSchedulePlanSnapshot buildPlan(String crewNote) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.meal, crewNote: crewNote)],
+        },
+      );
+
+      final withoutNote = await service.generateGeneralCallSheet(
+        plan: buildPlan(""),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final withNote = await service.generateGeneralCallSheet(
+        plan: buildPlan("Catering arrives at noon."),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
+    });
+
+    test("a named sheet prints only its own slots' blocks' crew notes", () async {
+      final morning = _buildSlot(
+        id: "slot-morning",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1")],
+      );
+      final evening = _buildSlot(
+        id: "slot-evening",
+        anchorMinute: 1080,
+        crew: [_buildCrewMember(id: "crew-2", slotId: "slot-evening", personId: "person-2")],
+      );
+      final shot1 = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+      final shot2 = _buildShot(id: "shot-2", sceneId: "scene-1", code: "1/2");
+
+      OcptSchedulePlanSnapshot buildPlan({required String eveningCrewNote}) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [morning, evening],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-morning",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+              crewNote: "Morning note.",
+            ),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-evening",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-2",
+              durationMinutes: 60,
+              crewNote: eveningCrewNote,
+            ),
+          ],
+        },
+        people: [
+          _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard"),
+          _buildPerson(id: "person-2", firstName: "Marc", lastName: "Petit"),
+        ],
+        shotList: _buildShotList(shots: [shot1, shot2]),
+      );
+
+      final withoutEveningNote = buildPlan(eveningCrewNote: "");
+      final withEveningNote = buildPlan(eveningCrewNote: "Evening note.");
+
+      // The morning recipient's own sheet only ever draws their own slot's blocks: changing the
+      // evening slot's own crew note must not move a single byte of it.
+      final morningConvocationWithout = withoutEveningNote
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
+      final morningConvocationWith = withEveningNote
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
+      final morningBytesWithout = await service.generateNamedCallSheet(
+        plan: withoutEveningNote,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: morningConvocationWithout,
+        exportDate: _pinnedExportDate,
+      );
+      final morningBytesWith = await service.generateNamedCallSheet(
+        plan: withEveningNote,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: morningConvocationWith,
+        exportDate: _pinnedExportDate,
+      );
+      expect(_contentStreams(morningBytesWith), _contentStreams(morningBytesWithout));
+
+      // But the evening recipient's own sheet does draw the new note.
+      final eveningConvocationWithout = withoutEveningNote
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-2");
+      final eveningConvocationWith = withEveningNote
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-2");
+      final eveningBytesWithout = await service.generateNamedCallSheet(
+        plan: withoutEveningNote,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: eveningConvocationWithout,
+        exportDate: _pinnedExportDate,
+      );
+      final eveningBytesWith = await service.generateNamedCallSheet(
+        plan: withEveningNote,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: eveningConvocationWith,
+        exportDate: _pinnedExportDate,
+      );
+      expect(_contentStreams(eveningBytesWith), isNot(_contentStreams(eveningBytesWithout)));
     });
   });
 

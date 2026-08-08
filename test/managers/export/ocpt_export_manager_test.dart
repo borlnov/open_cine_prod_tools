@@ -605,6 +605,9 @@ void main() {
       castAndExtrasListSectionTitle: "Cast and extras",
       emptyDayNote: "Nothing planned.",
       unnamedPersonLabel: "No name",
+      eventsSectionTitle: "Events",
+      guestsSectionTitle: "Guests",
+      guestReasonHeader: "Reason",
     );
 
     /// A one-day, one-slot, one-person schedule plan — enough for one general and one named call

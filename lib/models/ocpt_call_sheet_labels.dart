@@ -169,6 +169,20 @@ class OcptCallSheetLabels extends Equatable {
   /// file name falls back to as well, so the two never disagree.
   final String unnamedPersonLabel;
 
+  /// The heading of the day's own events section — what the day does not control, at an absolute
+  /// hour, printed on both sheets alike. The same word the day view's own bordered band and the day
+  /// inspector's own section already carry on screen, so a printed sheet cannot name it differently.
+  final String eventsSectionTitle;
+
+  /// The heading of the day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the same word
+  /// the `Convocations` dock panel's own trailing guest group already carries, a guest being on the
+  /// day and owed an hour without being part of the call an assistant director reads down.
+  final String guestsSectionTitle;
+
+  /// The guest table's own `MOTIF` column header — why a guest is on set, joined from that guest's
+  /// own `shooting_slot_guests` rows rather than read off the convocation, which carries none.
+  final String guestReasonHeader;
+
   /// Class constructor
   const OcptCallSheetLabels({
     required this.fileNamePrefix,
@@ -212,6 +226,9 @@ class OcptCallSheetLabels extends Equatable {
     required this.castAndExtrasListSectionTitle,
     required this.emptyDayNote,
     required this.unnamedPersonLabel,
+    required this.eventsSectionTitle,
+    required this.guestsSectionTitle,
+    required this.guestReasonHeader,
   });
 
   /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
@@ -275,5 +292,8 @@ class OcptCallSheetLabels extends Equatable {
     castAndExtrasListSectionTitle,
     emptyDayNote,
     unnamedPersonLabel,
+    eventsSectionTitle,
+    guestsSectionTitle,
+    guestReasonHeader,
   ];
 }

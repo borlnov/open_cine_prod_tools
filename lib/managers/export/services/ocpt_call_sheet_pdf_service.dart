@@ -17,7 +17,9 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -85,6 +87,15 @@ const Map<int, pw.TableColumnWidth> _peopleColumnWidths = {
   4: pw.FlexColumnWidth(1.4),
 };
 
+/// The trailing guest table's `NOM / MOTIF / HORAIRES` columns — wider on the reason column than
+/// [_peopleColumnWidths]' own `POSTE(S)` since a guest's own reason is prose rather than a job
+/// title, and with no phone/email pair to make room for.
+const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
+  0: pw.FlexColumnWidth(1.6),
+  1: pw.FlexColumnWidth(2.4),
+  2: pw.FlexColumnWidth(1.2),
+};
+
 /// Every accented letter (upper- and lower-case) this app's own two UI languages can put in a
 /// person's name, folded to the plain Latin letter a file name can safely hold.
 ///
@@ -121,21 +132,28 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// Prime variants all four of them print in.
 ///
 /// **One composition, two audiences**: every section a general and a named sheet share
-/// (the title block, the day heading, the crew note, the location(s), the sun block, the key
-/// contacts, the main table, the cast table and the two closing directories) is built by one shared
-/// private widget builder, called from both [generateGeneralCallSheet] and [generateNamedCallSheet]
-/// rather than duplicated between them. Only two sections belong to one sheet alone: a named
-/// sheet's own recipient line and its own arrival/PAT/departure band, which have no counterpart to
-/// share with.
+/// (the title block, the day heading, the crew note, the day's own events, the location(s), the sun
+/// block, the key contacts, the main table, the cast table, the two closing directories and the
+/// trailing guest table) is built by one shared private widget builder, called from both
+/// [generateGeneralCallSheet] and [generateNamedCallSheet] rather than duplicated between them. Only
+/// two sections belong to one sheet alone: a named sheet's own recipient line and its own
+/// arrival/PAT/departure band, which have no counterpart to share with.
 ///
 /// **What a named sheet narrows is the timetable, and only the timetable.** Its main table holds the
 /// blocks of its recipient's own slots, since that is what they are being told to turn up for; the
-/// cast table and the two directories are day-wide on both sheets, because they answer "who else is
-/// on this day and how do I reach them", which is a question about the day rather than about the
-/// reader — and a crew that cannot phone each other on the morning of a shoot is a crew that stops.
-/// The cast table is day-wide in a second sense too: it lists every role the day **calls for**,
-/// including the ones a placed shot plays that nobody convoked, so a role number printed in the main
-/// table's own `RÔLES` column can always be looked up on the same sheet ([_castRowsOfDay]).
+/// cast table and the two closing directories are day-wide on both sheets, because they answer "who
+/// else is on this day and how do I reach them", which is a question about the day rather than about
+/// the reader — and a crew that cannot phone each other on the morning of a shoot is a crew that
+/// stops. The cast table is day-wide in a second sense too: it lists every role the day **calls
+/// for**, including the ones a placed shot plays that nobody convoked, so a role number printed in
+/// the main table's own `RÔLES` column can always be looked up on the same sheet
+/// ([_castRowsOfDay]). The day's own events and its guests are day-wide for the same reason: an
+/// event is a fact about the day rather than about a unit, and a guest is owed an hour whichever
+/// slot happens to convoke the sheet's own recipient.
+///
+/// **A block's own [OcptShootingDayBlock.crewNote] prints under its own row**, unlike its private
+/// `notes`, which never leaves the office — see [_mainTableSection] for how a `pw.Table` row, which
+/// cannot itself span the page, still ends up with a full-width note directly beneath it.
 ///
 /// **Every hour printed comes off [OcptSchedulePlanSnapshot.timelinesOfDay]'s resolved clocks and
 /// [OcptSchedulePlanSnapshot.convocationsOfDay]'s computed figures** — never off a stored anchor,
@@ -224,6 +242,8 @@ class OcptCallSheetPdfService {
     final castRows = _castRowsOfDay(plan: plan, dayId: dayId, orderedEntries: orderedEntries);
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
     final locations = ocptScheduleLocationsOfSlots(plan, slots);
+    final events = plan.schedule.eventsByDayId[dayId] ?? const <OcptShootingDayEvent>[];
+    final guestRows = _guestRowsOfDay(plan: plan, dayId: dayId, labels: labels);
 
     pdfDocument.addPage(
       _page(
@@ -247,6 +267,7 @@ class OcptCallSheetPdfService {
             crewContacts: crewContacts,
             contactDepartments: const {OcptCrewDepartment.production, OcptCrewDepartment.direction},
             locations: locations,
+            events: events,
             plan: plan,
           ),
           pw.SizedBox(height: 10),
@@ -279,6 +300,10 @@ class OcptCallSheetPdfService {
             title: labels.castAndExtrasListSectionTitle,
             entries: _castListEntries(castRows: castRows, labels: labels),
           ),
+          if (guestRows.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            _guestsSection(painter: painter, labels: labels, rows: guestRows),
+          ],
         ],
       ),
     );
@@ -287,10 +312,11 @@ class OcptCallSheetPdfService {
   }
 
   /// Renders the named call sheet of [convocation] on [dayId]: the same day header, their own
-  /// arrival/PAT/departure band, the crew note, the location(s) and blocks of their own slots alone,
-  /// the sun block, the key contacts — then the day's own cast table, crew list and cast-and-extras
-  /// list, exactly as the general sheet prints them. Only the main table is narrowed to the
-  /// recipient's slots; see the class doc comment for why the three closing tables are not.
+  /// arrival/PAT/departure band, the crew note, the day's own events, the location(s) and blocks of
+  /// their own slots alone, the sun block, the key contacts — then the day's own cast table, crew
+  /// list, cast-and-extras list and trailing guest table, exactly as the general sheet prints them.
+  /// Only the main table is narrowed to the recipient's slots; see the class doc comment for why the
+  /// other day-wide sections are not.
   ///
   /// [exportDate] carries the same contract it does on [generateGeneralCallSheet] — see there.
   Future<Uint8List> generateNamedCallSheet({
@@ -338,6 +364,8 @@ class OcptCallSheetPdfService {
     final castRows = _castRowsOfDay(plan: plan, dayId: dayId, orderedEntries: dayEntries);
     final crewContacts = _crewContactsOfDay(plan: plan, dayId: dayId, labels: labels);
     final locations = ocptScheduleLocationsOfSlots(plan, ownSlots);
+    final events = plan.schedule.eventsByDayId[dayId] ?? const <OcptShootingDayEvent>[];
+    final guestRows = _guestRowsOfDay(plan: plan, dayId: dayId, labels: labels);
     final displayName = _convocationDisplayNameOf(convocation, plan, labels);
     final positionsOrRole = _convocationPositionsLabel(
       convocation: convocation,
@@ -365,6 +393,10 @@ class OcptCallSheetPdfService {
           pw.SizedBox(height: 10),
           _ownBandSection(painter: painter, labels: labels, convocation: convocation),
           pw.SizedBox(height: 10),
+          if (events.isNotEmpty) ...[
+            _eventsSection(painter: painter, labels: labels, events: events),
+            pw.SizedBox(height: 10),
+          ],
           if (day.crewNote.trim().isNotEmpty) ...[
             _crewNoteSection(painter: painter, labels: labels, note: day.crewNote),
             pw.SizedBox(height: 10),
@@ -397,6 +429,10 @@ class OcptCallSheetPdfService {
             title: labels.castAndExtrasListSectionTitle,
             entries: _castListEntries(castRows: castRows, labels: labels),
           ),
+          if (guestRows.isNotEmpty) ...[
+            pw.SizedBox(height: 10),
+            _guestsSection(painter: painter, labels: labels, rows: guestRows),
+          ],
         ],
       ),
     );
@@ -406,15 +442,16 @@ class OcptCallSheetPdfService {
 
   /// The sections [generateGeneralCallSheet] builds in this exact order, up to and including the sun
   /// block, over widget builders every one of which is shared with [generateNamedCallSheet] too (the
-  /// title block, the day heading, the crew note, the location(s) and the sun block): only the
-  /// *composition* differs between the two generators, called out inline at each call site, never
-  /// the section builders themselves — that is what "one composition, two audiences" means in the
-  /// class doc comment. The department contacts, the main table, the cast table and the two closing
-  /// lists all print **after** what this method returns, since the reference call sheet's own
-  /// contacts-by-department table sits between the sun block and the main table; they are added by
-  /// [generateGeneralCallSheet] itself rather than folded in here, over the very same
-  /// [_contactsBlock]/[_mainTableSection]/[_castTableSection]/[_peopleListSection] builders
-  /// [generateNamedCallSheet] also calls directly.
+  /// title block, the day heading, the crew note, the day's own events, the location(s) and the sun
+  /// block): only the *composition* differs between the two generators, called out inline at each
+  /// call site, never the section builders themselves — that is what "one composition, two
+  /// audiences" means in the class doc comment. The department contacts, the main table, the cast
+  /// table, the two closing lists and the trailing guest table all print **after** what this method
+  /// returns, since the reference call sheet's own contacts-by-department table sits between the sun
+  /// block and the main table; they are added by [generateGeneralCallSheet] itself rather than
+  /// folded in here, over the very same
+  /// [_contactsBlock]/[_mainTableSection]/[_castTableSection]/[_peopleListSection]/[_guestsSection]
+  /// builders [generateNamedCallSheet] also calls directly.
   /// [generateNamedCallSheet] does not call this method at all: its own recipient line and its own
   /// single band ([_ownBandSection], replacing the day-wide time bands this method prints) make its
   /// ordering different enough that composing it from this list would need more conditionals than
@@ -433,6 +470,7 @@ class OcptCallSheetPdfService {
     required List<_CrewContact> crewContacts,
     required Set<OcptCrewDepartment> contactDepartments,
     required List<OcptLocation> locations,
+    required List<OcptShootingDayEvent> events,
     required OcptSchedulePlanSnapshot plan,
   }) => [
     _titleBlock(painter: painter, projectName: projectName, labels: labels, versionLine: versionLine),
@@ -448,6 +486,10 @@ class OcptCallSheetPdfService {
       orderedEntries: orderedEntries,
     ),
     pw.SizedBox(height: 10),
+    if (events.isNotEmpty) ...[
+      _eventsSection(painter: painter, labels: labels, events: events),
+      pw.SizedBox(height: 10),
+    ],
     _dayHeadingSection(painter: painter, labels: labels, day: day),
     pw.SizedBox(height: 10),
     if (day.crewNote.trim().isNotEmpty) ...[
@@ -627,6 +669,38 @@ class OcptCallSheetPdfService {
       _sectionTitle(painter: painter, title: labels.crewNoteSectionTitle),
       pw.SizedBox(height: 2),
       _noteWidget(painter: painter, text: note.trim()),
+    ],
+  );
+
+  /// The day's own events, one timed line each — what the day does not control, at an absolute
+  /// hour, taking part in no chain and therefore never interleaved into the main table's own
+  /// milestone rows. Both generators skip this widget rather than calling it on an empty list, for
+  /// a different reason than [_crewNoteSection]'s own: the cast table prints an em dash on a role
+  /// nobody convoked because it is a **standing** section of the reference document, while an
+  /// events section only belongs on a sheet the day actually has something it does not control on.
+  pw.Widget _eventsSection({
+    required OcptScriptPagePainter painter,
+    required OcptCallSheetLabels labels,
+    required List<OcptShootingDayEvent> events,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _sectionTitle(painter: painter, title: labels.eventsSectionTitle),
+      pw.SizedBox(height: 2),
+      for (final event in events) ...[
+        pw.Text(
+          "${ocptFormatDayMinute(event.minute)} — ${event.label.trim().isEmpty ? ocptScheduleEmptyValue : event.label.trim()}",
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+        ),
+        if (event.notes.trim().isNotEmpty) ...[
+          pw.SizedBox(height: 1),
+          pw.Text(
+            event.notes.trim(),
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          ),
+        ],
+        pw.SizedBox(height: 4),
+      ],
     ],
   );
 
@@ -840,8 +914,18 @@ class OcptCallSheetPdfService {
   // Main table
   // ---------------------------------------------------------------------------------------------
 
-  /// The day's main table, interleaved with full-width milestone rows — or [OcptCallSheetLabels
-  /// .emptyDayNote] when [rows] is empty (no slot, or no block on any of them).
+  /// The day's main table, interleaved with full-width milestone rows and, under a row that carries
+  /// one, a full-width crew-note band — or [OcptCallSheetLabels.emptyDayNote] when [rows] is empty
+  /// (no slot, or no block on any of them).
+  ///
+  /// **A shot run's own crew note prints directly under its row**, and getting that requires closing
+  /// the `pw.Table` chunk the row belongs to the moment the row is seen: a `pw.TableRow` cannot span
+  /// the page width the way [_milestoneRowWidget] itself can, so the only way to put a full-width
+  /// note right under a run of otherwise ordinary rows is to end the table there and draw the note as
+  /// a widget of its own — `flushShotRows` is called the instant a pending row carries a crew note,
+  /// even mid-run, splitting what would otherwise have been one continuous table into two around the
+  /// note. A milestone's own crew note has no such problem, since [_milestoneRowWidget] is already a
+  /// full-width band and prints it inline.
   pw.Widget _mainTableSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -869,6 +953,10 @@ class OcptCallSheetPdfService {
         children.add(_milestoneRowWidget(painter: painter, labels: labels, row: row));
       } else {
         pendingShotRows.add(row);
+        if (row.crewNotes.isNotEmpty) {
+          flushShotRows();
+          children.add(_crewNoteBandWidget(painter: painter, crewNotes: row.crewNotes));
+        }
       }
     }
     flushShotRows();
@@ -880,6 +968,27 @@ class OcptCallSheetPdfService {
       ],
     );
   }
+
+  /// A full-width band naming a shot run's own crew note(s) — printed the moment
+  /// [_mainTableSection]'s own composition closes a table chunk on a row that carries one, since the
+  /// `pw.Table` row itself cannot span the page width a note deserves. Drawn like
+  /// [_milestoneRowWidget]'s own container but **without** its [_bandColor] fill, so a note reads as
+  /// a note rather than as another milestone.
+  pw.Widget _crewNoteBandWidget({required OcptScriptPagePainter painter, required List<String> crewNotes}) =>
+      pw.Container(
+        constraints: const pw.BoxConstraints(minWidth: double.infinity),
+        decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5)),
+        padding: const pw.EdgeInsets.all(_cellPaddingPt),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            for (final (index, note) in crewNotes.indexed) ...[
+              if (index > 0) pw.SizedBox(height: 2),
+              pw.Text(note, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+            ],
+          ],
+        ),
+      );
 
   /// One run of consecutive [_DayRow.shotRun] rows, as a `SEQ / PLANS / EFFET / DÉCORS / RÔLES`
   /// table — see [_mainColumnWidths] for why the reference's own `RÉSUMÉ` column is not among them.
@@ -921,10 +1030,12 @@ class OcptCallSheetPdfService {
     ],
   );
 
-  /// A full-width band naming a non-shot block and its own time band — and, under it, the roles that
-  /// band expects, on a line of their own behind the `RÔLES` label the main table already heads its
-  /// own column with ([ocptScheduleBlockRoleNumbersLine]). A band expecting nobody prints the one
-  /// line alone.
+  /// A full-width band naming a non-shot block and its own time band — under it, the roles that band
+  /// expects, on a line of their own behind the `RÔLES` label the main table already heads its own
+  /// column with ([ocptScheduleBlockRoleNumbersLine]), then the block's own crew note, if it has one.
+  /// A band expecting nobody and carrying no note prints the one time-band line alone. The note
+  /// prints inline, unlike a shot run's own ([_crewNoteBandWidget]): this band is already full-width,
+  /// so it has nothing to close and reopen the way a `pw.Table` row does.
   pw.Widget _milestoneRowWidget({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -949,6 +1060,10 @@ class OcptCallSheetPdfService {
           if (rolesLine != null) ...[
             pw.SizedBox(height: 2),
             pw.Text(rolesLine, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+          ],
+          for (final note in row.crewNotes) ...[
+            pw.SizedBox(height: 2),
+            pw.Text(note, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
           ],
         ],
       ),
@@ -1057,6 +1172,68 @@ class OcptCallSheetPdfService {
     ],
   );
 
+  /// The day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — a guest never carries a PAT
+  /// band (ADR 0018), so unlike [_peopleListSection] this table has no `PAT` column to leave blank
+  /// for one at all. Printed after the cast-and-extras list on both sheets, the shape the
+  /// `Convocations` dock panel's own trailing guest group already gives guests, and for the same
+  /// reason: they are on the day and are owed an hour, but they are not the call an assistant
+  /// director reads down.
+  pw.Widget _guestsSection({
+    required OcptScriptPagePainter painter,
+    required OcptCallSheetLabels labels,
+    required List<_GuestRow> rows,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _sectionTitle(painter: painter, title: labels.guestsSectionTitle),
+      pw.SizedBox(height: 4),
+      pw.Table(
+        border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
+        columnWidths: _guestColumnWidths,
+        children: [
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: _bandColor),
+            children: [
+              for (final header in [labels.nameHeader, labels.guestReasonHeader, labels.hoursLinePrefix])
+                _textCell(painter: painter, text: header, isBold: true),
+            ],
+          ),
+          for (final row in rows)
+            pw.TableRow(
+              children: [
+                _textCell(painter: painter, text: row.name),
+                _guestReasonCell(painter: painter, row: row),
+                _textCell(painter: painter, text: row.hours),
+              ],
+            ),
+        ],
+      ),
+    ],
+  );
+
+  /// One [_guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own note(s)
+  /// on a muted second line when they carry any — the same shape [_contactsBlock]'s own contact
+  /// entries print a phone number under a position in.
+  pw.Widget _guestReasonCell({required OcptScriptPagePainter painter, required _GuestRow row}) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          row.reason.isEmpty ? ocptScheduleEmptyValue : row.reason,
+          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+        ),
+        if (row.notes.isNotEmpty) ...[
+          pw.SizedBox(height: 1),
+          pw.Text(
+            row.notes,
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          ),
+        ],
+      ],
+    ),
+  );
+
   // ---------------------------------------------------------------------------------------------
   // Small shared drawing helpers
   // ---------------------------------------------------------------------------------------------
@@ -1101,9 +1278,11 @@ class _DayRow {
     required this.milestoneRoleNumbers,
     required this.startMinute,
     required this.endMinute,
+    required this.crewNotes,
   });
 
-  /// Builds a row starting a new run of shot blocks.
+  /// Builds a row starting a new run of shot blocks, seeded with [crewNote]'s own printable crew
+  /// note, if it has one.
   factory _DayRow.shotRun({
     required String slotId,
     required String? sceneId,
@@ -1112,6 +1291,7 @@ class _DayRow {
     required OcptShot shot,
     required int startMinute,
     required int endMinute,
+    required String crewNote,
   }) => _DayRow._(
     slotId: slotId,
     sceneId: sceneId,
@@ -1122,15 +1302,18 @@ class _DayRow {
     milestoneRoleNumbers: const [],
     startMinute: startMinute,
     endMinute: endMinute,
+    crewNotes: crewNote.trim().isEmpty ? [] : [crewNote.trim()],
   );
 
   /// Builds a full-width milestone row, carrying the numbers of the roles its own band expects
-  /// ([ocptScheduleBlockRoleNumbersOf]) — empty for every kind but a hair-and-make-up band.
+  /// ([ocptScheduleBlockRoleNumbersOf]) — empty for every kind but a hair-and-make-up band — and its
+  /// own block's printable crew note, if it has one.
   factory _DayRow.milestone({
     required String caption,
     required List<int> roleNumbers,
     required int startMinute,
     required int? endMinute,
+    required String crewNote,
   }) => _DayRow._(
     slotId: null,
     sceneId: null,
@@ -1141,6 +1324,7 @@ class _DayRow {
     milestoneRoleNumbers: roleNumbers,
     startMinute: startMinute,
     endMinute: endMinute,
+    crewNotes: crewNote.trim().isEmpty ? [] : [crewNote.trim()],
   );
 
   /// The slot this row's [shots] were placed on, or null for a milestone.
@@ -1171,6 +1355,12 @@ class _DayRow {
 
   /// Where this row ends, resolved — mutable so a following collapsed shot can extend it.
   int? endMinute;
+
+  /// The trimmed, non-empty [OcptShootingDayBlock.crewNote]s of the blocks collapsed into this row,
+  /// in the blocks' own order — always at most one entry for a milestone row (one block), and
+  /// possibly several for a shot run once a following collapsed shot's own note is appended to it.
+  /// **Never** the block's own private `notes`, which this document never prints at all.
+  final List<String> crewNotes;
 
   /// Whether this is a milestone row rather than a run of shot blocks.
   bool get isMilestone => milestoneCaption != null;
@@ -1239,6 +1429,30 @@ class _PeopleListEntry {
   final String scheduleLabel;
 }
 
+/// One row of the day's own trailing guest table: a guest convocation's own display name, the
+/// reason(s) their own `shooting_slot_guests` rows carry, and their own arrival – departure band.
+/// **Never a PAT band** — a guest is not there to shoot (ADR 0018), so there is no field here to
+/// carry one at all, unlike [_CastRow]'s and [_PeopleListEntry]'s own.
+class _GuestRow {
+  const _GuestRow({required this.name, required this.reason, required this.notes, required this.hours});
+
+  /// The guest's own display name — the address-book person's, the free name, or
+  /// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable.
+  final String name;
+
+  /// The distinct, non-empty reasons every `shooting_slot_guests` row naming this guest on one of
+  /// their own slots carries, comma-joined — never picked down to one, since somebody attending two
+  /// slots for two different reasons is telling the truth about both.
+  final String reason;
+
+  /// The same join over those rows' own free-form notes, printed under [reason] on a muted second
+  /// line — empty when none of them carries any.
+  final String notes;
+
+  /// This guest's own arrival – departure band ([_scheduleLabelOf]).
+  final String hours;
+}
+
 /// Turns [orderedEntries] into the printed rows of the main table: a run of consecutive
 /// [OcptShootingBlockKind.shot] blocks on the same slot and the same scene collapses into one
 /// [_DayRow], every other kind prints its own [_DayRow.milestone].
@@ -1269,6 +1483,10 @@ List<_DayRow> _buildDayRows({
           last.sceneId == shot.sceneId) {
         last.shots.add(shot);
         last.endMinute = entry.endMinute;
+        final note = block.crewNote.trim();
+        if (note.isNotEmpty) {
+          last.crewNotes.add(note);
+        }
         continue;
       }
 
@@ -1281,6 +1499,7 @@ List<_DayRow> _buildDayRows({
           shot: shot,
           startMinute: entry.startMinute,
           endMinute: entry.endMinute,
+          crewNote: block.crewNote,
         ),
       );
       continue;
@@ -1296,6 +1515,7 @@ List<_DayRow> _buildDayRows({
         ),
         startMinute: entry.startMinute,
         endMinute: entry.endMinute,
+        crewNote: block.crewNote,
       ),
     );
   }
@@ -1438,6 +1658,97 @@ List<_CrewContact> _crewContactsOfDay({
   }
 
   return contacts;
+}
+
+/// Whether [guest]'s own discriminator half — [OcptShootingSlotGuest.personId] or
+/// [OcptShootingSlotGuest.freeName] — matches [convocation]'s, the join `_guestRowsOfDay` makes
+/// between a `shooting_slot_guests` row and the computed convocation it feeds.
+bool _guestMatchesConvocation(OcptShootingSlotGuest guest, OcptDayConvocation convocation) =>
+    convocation.guestPersonId != null
+        ? guest.personId == convocation.guestPersonId
+        : guest.freeName == convocation.guestFreeName;
+
+/// The day's own trailing guest table rows: one per [OcptDayConvocation.isGuest] convocation of
+/// [dayId], sorted the way [OcptSchedulePlanSnapshot.convocationsOfDay] already sorts every
+/// convocation (by arrival, then by identity).
+///
+/// A convocation carries no reason and no notes of its own — those live on the
+/// `shooting_slot_guests` rows themselves, one per slot a guest is linked to — so this function
+/// joins [OcptDayConvocation.slotIds] back onto [OcptShootingSlot.guests], keeping only the rows
+/// [_guestMatchesConvocation] matches to this convocation, and folds their distinct non-empty
+/// `reason`s and `notes` into the two comma-joined strings [_GuestRow] prints. Both are day-wide,
+/// exactly like the section they feed: a guest attending two of the day's slots for two different
+/// reasons has both printed, never one picked over the other.
+List<_GuestRow> _guestRowsOfDay({
+  required OcptSchedulePlanSnapshot plan,
+  required String dayId,
+  required OcptCallSheetLabels labels,
+}) {
+  final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+  final guestConvocations = plan.convocationsOfDay(dayId).where((convocation) => convocation.isGuest);
+
+  final rows = <_GuestRow>[];
+  for (final convocation in guestConvocations) {
+    final ownSlotIds = convocation.slotIds.toSet();
+    final reasons = <String>[];
+    final notes = <String>[];
+
+    for (final slot in slots) {
+      if (!ownSlotIds.contains(slot.id)) {
+        continue;
+      }
+      for (final guest in slot.guests) {
+        if (!_guestMatchesConvocation(guest, convocation)) {
+          continue;
+        }
+        final reason = guest.reason.trim();
+        if (reason.isNotEmpty && !reasons.contains(reason)) {
+          reasons.add(reason);
+        }
+        final note = guest.notes.trim();
+        if (note.isNotEmpty && !notes.contains(note)) {
+          notes.add(note);
+        }
+      }
+    }
+
+    rows.add(
+      _GuestRow(
+        name: _guestDisplayNameOf(convocation, plan, labels),
+        reason: reasons.join(", "),
+        notes: notes.join(", "),
+        hours: _scheduleLabelOf(convocation),
+      ),
+    );
+  }
+
+  return rows;
+}
+
+/// [convocation]'s own display name for the trailing guest table: the address-book display name
+/// when it carries a [OcptDayConvocation.guestPersonId], its own [OcptDayConvocation.guestFreeName]
+/// otherwise — the same discriminator `OcptShootingSlotGuest` itself uses — or
+/// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable, exactly as
+/// [_convocationDisplayNameOf] falls back for a crew or cast convocation.
+String _guestDisplayNameOf(
+  OcptDayConvocation convocation,
+  OcptSchedulePlanSnapshot plan,
+  OcptCallSheetLabels labels,
+) {
+  final guestPersonId = convocation.guestPersonId;
+  if (guestPersonId != null) {
+    final name = plan.personById[guestPersonId]?.displayName.trim() ?? "";
+    if (name.isNotEmpty) {
+      return name;
+    }
+  }
+
+  final freeName = convocation.guestFreeName?.trim() ?? "";
+  if (freeName.isNotEmpty) {
+    return freeName;
+  }
+
+  return labels.unnamedPersonLabel;
 }
 
 /// The crew list's own rows: one per distinct person of [crewContacts], their own positions

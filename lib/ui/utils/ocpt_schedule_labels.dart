@@ -366,6 +366,11 @@ String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
 /// (`FEUILLE DE SERVICE DU JEUDI 10 AOÛT 2023`) — the one section of this document whose whole
 /// point is to be read at a glance pinned to a wall. [people] is read for
 /// [ocptScheduleDirectorLineOf] alone.
+///
+/// [OcptCallSheetLabels.eventsSectionTitle] and [OcptCallSheetLabels.guestsSectionTitle] reuse the
+/// very `Tr` keys the day view and the `Convocations` dock panel already print those two words
+/// under (`scheduleDayEventsSectionTitle`, `scheduleConvocationsGuestsSectionTitle`): a printed
+/// sheet must not name a thing differently from the screen it was planned on.
 OcptCallSheetLabels ocptCallSheetLabelsOf(
   BuildContext context, {
   required List<OcptShootingDay> days,
@@ -427,6 +432,9 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     castAndExtrasListSectionTitle: tr.scheduleExportCastAndExtrasListSectionTitle,
     emptyDayNote: tr.scheduleExportEmptyDayNote,
     unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
+    eventsSectionTitle: tr.scheduleDayEventsSectionTitle,
+    guestsSectionTitle: tr.scheduleConvocationsGuestsSectionTitle,
+    guestReasonHeader: tr.scheduleExportGuestReasonHeader,
   );
 }
 
