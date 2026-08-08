@@ -87,7 +87,7 @@ OcptShot _buildShot({
 );
 
 /// Builds a `hold` block, distinguishable from the shot read-out by carrying a label and no shot.
-OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Prep"}) =>
+OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Prep", String crewNote = ""}) =>
     OcptShootingDayBlock(
       id: id,
       shootingDayId: "day-1",
@@ -99,7 +99,7 @@ OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Pre
       durationMinutes: null,
       anchorMinute: null,
       notes: "",
-      crewNote: "",
+      crewNote: crewNote,
     );
 
 /// Pumps [OcptScheduleInspector] with [day]/[shot]/[block] selected as given — mirrors the widget's
@@ -122,6 +122,8 @@ Future<void> _pumpInspector(
   OcptShootingTimelineEntry? blockEntry,
   ValueChanged<OcptShotStatus>? onShotStatusChanged,
   ValueChanged<int>? onBlockDurationChanged,
+  String blockCrewNoteValue = "",
+  ValueChanged<String>? onBlockCrewNoteChanged,
 }) async {
   await tester.pumpWidget(
     _wrapInApp(
@@ -155,6 +157,8 @@ Future<void> _pumpInspector(
         blockEntry: blockEntry,
         onShotStatusChanged: onShotStatusChanged,
         onBlockDurationChanged: onBlockDurationChanged,
+        blockCrewNoteValue: blockCrewNoteValue,
+        onBlockCrewNoteChanged: onBlockCrewNoteChanged,
         blockNotesValue: "",
         onBlockNotesChanged: null,
         isReadOnly: onDayStatusChanged == null,
@@ -429,6 +433,29 @@ void main() {
 
       expect(find.byType(TextField), findsNothing);
       expect(find.text(ocptFormatMinuteDuration(30)), findsOneWidget);
+    });
+  });
+
+  group("the block read-out's own crew note field — the one that prints", () {
+    testWidgets("draws its own section, distinct from the private notes one", (tester) async {
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(crewNote: "Silence before 9am"),
+        blockCrewNoteValue: "Silence before 9am",
+        onBlockCrewNoteChanged: (_) {},
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
+      expect(find.text(tr.scheduleInspectorBlockCrewNoteLabel.toUpperCase()), findsOneWidget);
+      expect(find.text(tr.scheduleInspectorNotesLabel.toUpperCase()), findsOneWidget);
+      expect(find.text("Silence before 9am"), findsOneWidget);
+    });
+
+    testWidgets("reads as plain text with no field when the callback is withheld", (tester) async {
+      await _pumpInspector(tester, block: _buildHoldBlock(), blockCrewNoteValue: "Silence before 9am");
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text("Silence before 9am"), findsOneWidget);
     });
   });
 

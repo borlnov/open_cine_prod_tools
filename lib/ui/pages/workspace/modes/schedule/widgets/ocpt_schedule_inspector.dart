@@ -30,8 +30,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 ///
 /// Every writing affordance ([onDayStatusChanged], [onCrewNoteChanged], [onWeatherNoteChanged],
 /// [onEventAdded] and the rest of the events section's own callbacks, [onShotStatusChanged],
-/// [onBlockDurationChanged], [onBlockNotesChanged]) is a nullable callback, withheld while a
-/// project version is being previewed. Reading — every other line — stays.
+/// [onBlockDurationChanged], [onBlockCrewNoteChanged], [onBlockNotesChanged]) is a nullable
+/// callback, withheld while a project version is being previewed. Reading — every other line —
+/// stays.
 ///
 /// The day inspector's own events section is [OcptScheduleDayEventsList] under an
 /// `_OcptScheduleInspectorSection`, after the sun times and before the weather note — the very same
@@ -137,7 +138,15 @@ class OcptScheduleInspector extends StatelessWidget {
   /// commits, or null while withheld.
   final ValueChanged<int>? onBlockDurationChanged;
 
-  /// The selected block's own notes, as currently held (a pending edit, or its stored value).
+  /// The selected block's own crew note — the one that **prints**, unlike [blockNotesValue] — as
+  /// currently held (a pending edit, or its stored value).
+  final String blockCrewNoteValue;
+
+  /// Called with the crew note's raw text on every keystroke, or null while withheld.
+  final ValueChanged<String>? onBlockCrewNoteChanged;
+
+  /// The selected block's own private notes, as currently held (a pending edit, or its stored
+  /// value).
   final String blockNotesValue;
 
   /// Called with the notes' raw text on every keystroke, or null while withheld.
@@ -180,6 +189,8 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.blockEntry,
     required this.onShotStatusChanged,
     required this.onBlockDurationChanged,
+    required this.blockCrewNoteValue,
+    required this.onBlockCrewNoteChanged,
     required this.blockNotesValue,
     required this.onBlockNotesChanged,
     required this.isReadOnly,
@@ -353,7 +364,8 @@ class OcptScheduleInspector extends StatelessWidget {
   }
 
   /// The block inspector: kind, (for a shot) its own code/size/characters and status control, the
-  /// computed start/end/duration, its own slot and notes.
+  /// computed start/end/duration, its own slot, its crew note (the one that prints) and its
+  /// private notes (the one that never does).
   Widget _buildBlockInspector(BuildContext context, OcptShootingDayBlock block) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -408,6 +420,14 @@ class OcptScheduleInspector extends StatelessWidget {
                   durationMinutes: entry.durationMinutes,
                   onChanged: onBlockDurationChanged,
                 ),
+        ),
+        _OcptScheduleInspectorSection(
+          label: tr.scheduleInspectorBlockCrewNoteLabel,
+          child: _OcptScheduleNoteField(
+            ownerId: block.id,
+            value: blockCrewNoteValue,
+            onChanged: onBlockCrewNoteChanged,
+          ),
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorNotesLabel,

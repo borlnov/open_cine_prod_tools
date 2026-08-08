@@ -1226,6 +1226,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
             blockId: targetId,
             notes: Value(value),
           );
+        case OcptScheduleField.blockCrewNote:
+          await _scheduleService.updateBlock(
+            database: project.database,
+            blockId: targetId,
+            crewNote: Value(value),
+          );
         case OcptScheduleField.crewMemberCustomLabel:
           await _scheduleService.updateSlotCrewMember(
             database: project.database,

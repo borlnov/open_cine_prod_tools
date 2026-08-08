@@ -31,8 +31,13 @@ enum OcptScheduleField {
   /// `hold` reserves: that is `shooting_day_blocks.sceneId`'s own job.
   blockLabel,
 
-  /// `shooting_day_blocks.notes`.
+  /// `shooting_day_blocks.notes` — private, never prints. See [blockCrewNote] for the one that
+  /// does.
   blockNotes,
+
+  /// `shooting_day_blocks.crewNote` — the note about this block that **does** print, on the call
+  /// sheet under its own row and in the shooting plan's day agenda, unlike [blockNotes].
+  blockCrewNote,
 
   /// `shooting_slot_crew.customLabel` — a free-text position label, used when the catalogue has
   /// nothing that fits.

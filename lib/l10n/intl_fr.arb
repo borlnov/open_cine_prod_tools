@@ -886,6 +886,7 @@
   "scheduleInspectorSlotLabel": "Créneau",
   "scheduleInspectorTimeLabel": "Horaire",
   "scheduleInspectorDurationLabel": "Durée",
+  "scheduleInspectorBlockCrewNoteLabel": "Notes à l'équipe",
   "scheduleInspectorNotesLabel": "Notes privées",
   "scheduleStatsDays": "{count, plural, one{{count} jour} other{{count} jours}}",
   "scheduleStatsShotsPlaced": "{count, plural, one{{count} plan placé} other{{count} plans placés}}",

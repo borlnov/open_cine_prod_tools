@@ -6603,6 +6603,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleInspectorBlockCrewNoteLabel": "Crew notes",
+  "@scheduleInspectorBlockCrewNoteLabel": {
+    "description": "Label of the block inspector's own crew note field, the one that prints, unlike its private notes",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleInspectorNotesLabel": "Private notes",
   "@scheduleInspectorNotesLabel": {
     "description": "Label of the block inspector's own private notes field, the one that never prints",

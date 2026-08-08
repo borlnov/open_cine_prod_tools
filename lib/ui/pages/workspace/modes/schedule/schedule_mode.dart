@@ -1090,6 +1090,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (durationMinutes) => bloc.add(
               OcptScheduleBlockDurationChangedEvent(blockId: block.id, durationMinutes: durationMinutes),
             ),
+      blockCrewNoteValue: block == null
+          ? ""
+          : state.fieldValueOf(block.id, OcptScheduleField.blockCrewNote, block.crewNote),
+      onBlockCrewNoteChanged: isReadOnly || block == null
+          ? null
+          : (rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: block.id,
+                field: OcptScheduleField.blockCrewNote,
+                rawValue: rawValue,
+              ),
+            ),
       blockNotesValue: block == null
           ? ""
           : state.fieldValueOf(block.id, OcptScheduleField.blockNotes, block.notes),
