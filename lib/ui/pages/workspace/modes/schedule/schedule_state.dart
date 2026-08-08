@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
@@ -368,6 +369,15 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return selectedDayId == null
         ? const []
         : (snapshot?.blocksByDayId[selectedDayId] ?? const []);
+  }
+
+  /// [selectedDayId]'s own live events, ordered by [OcptShootingDayEvent.minute] then by
+  /// `sortKey` — see `OcptScheduleSnapshot.eventsByDayId`.
+  List<OcptShootingDayEvent> get selectedDayEvents {
+    final selectedDayId = this.selectedDayId;
+    return selectedDayId == null
+        ? const []
+        : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
   }
 
   /// Every real scene of [shotListSnapshot], as an [OcptSceneShotSequence] — what a hold block's own

@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -18,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
@@ -32,7 +34,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// its own `+ Slot` footer. A day used to draw one shared [OcptScheduleTimetable] of its own beneath
 /// every card; it no longer does (M2') — each card now draws its own, over that slot's own blocks
 /// alone, so [blocks] and [timeline] here only ever feed the summary band's own totals and each
-/// card's own slice of them.
+/// card's own slice of them. Below the slot cards sits [day]'s own events band, built exactly like
+/// the summary band's own container over `OcptScheduleDayEventsList` — see that widget's own doc
+/// comment for why this band is the day view's only representation of an event.
 ///
 /// Every writing affordance every one of its children exposes is threaded through as a nullable
 /// callback, withheld while a project version is being previewed — this widget itself withholds
@@ -228,6 +232,35 @@ class OcptScheduleDayView extends StatelessWidget {
   /// its own doc comment). It writes nothing, so it is **not** withheld under a version preview.
   final VoidCallback? onAlertsOpenRequested;
 
+  /// [day]'s own live events, already ordered by hour — what the events band, under the slot cards
+  /// and their `+ Slot` footer, hands to [OcptScheduleDayEventsList].
+  final List<OcptShootingDayEvent> events;
+
+  /// Resolves an event's id to its own label, as currently held (a pending edit, or its stored
+  /// value).
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its own notes, as currently held (a pending edit, or its stored
+  /// value).
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called when the events band's own `+ Event` footer is clicked, or null while withheld.
+  final VoidCallback? onEventAdded;
+
+  /// Called with an event's id and its own new minute once its hour field commits, or null while
+  /// withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text on every keystroke, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text on every keystroke, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its own remove control is clicked, or null while withheld —
+  /// only ever asks, the mode owning the confirmation.
+  final ValueChanged<String>? onEventDeletionRequested;
+
   /// Class constructor
   const OcptScheduleDayView({
     super.key,
@@ -279,6 +312,14 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onShotBlockRequested,
     required this.onBlockMovedToSlot,
     required this.onAlertsOpenRequested,
+    required this.events,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventAdded,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
   });
 
   @override
@@ -377,6 +418,10 @@ class OcptScheduleDayView extends StatelessWidget {
               label: Text(tr.scheduleAddSlotAction),
             ),
           ),
+        if (events.isNotEmpty || onEventAdded != null) ...[
+          _buildEventsBand(context),
+          const SizedBox(height: 16),
+        ],
         if (day.crewNote.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(day.crewNote, style: Theme.of(context).textTheme.bodySmall),
@@ -426,6 +471,46 @@ class OcptScheduleDayView extends StatelessWidget {
             day.weatherNote.isEmpty ? "—" : day.weatherNote,
           ),
           _buildSummaryField(context, tr.scheduleDaySummaryTotalLabel, totalLabel),
+        ],
+      ),
+    );
+  }
+
+  /// The day's own events band, under the slot cards and their `+ Slot` footer, above the day's
+  /// own crew note — built exactly like the summary band's own container, and drawn only while
+  /// [day] has at least one event or this view may be written to (see `build`'s own guard): a
+  /// previewed day with none draws nothing at all. `OcptScheduleDayEventsList`'s own doc comment
+  /// explains why this band is the day view's only representation of an event, with no marker of
+  /// its own.
+  Widget _buildEventsBand(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr.scheduleDayEventsSectionTitle.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 7),
+          OcptScheduleDayEventsList(
+            events: events,
+            eventLabelValueOf: eventLabelValueOf,
+            eventNotesValueOf: eventNotesValueOf,
+            onEventAdded: onEventAdded,
+            onEventMinuteChanged: onEventMinuteChanged,
+            onEventLabelChanged: onEventLabelChanged,
+            onEventNotesChanged: onEventNotesChanged,
+            onEventDeletionRequested: onEventDeletionRequested,
+          ),
         ],
       ),
     );

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -110,6 +111,7 @@ Future<void> _pumpInspector(
   OcptShootingDayTimelines? timeline,
   int? dayArrivalMinute,
   OcptSunTimes? sunTimes,
+  List<OcptShootingDayEvent> events = const [],
   ValueChanged<OcptShootingDayStatus>? onDayStatusChanged,
   ValueChanged<String>? onCrewNoteChanged,
   ValueChanged<String>? onWeatherNoteChanged,
@@ -133,6 +135,14 @@ Future<void> _pumpInspector(
         sunTimes: sunTimes,
         crewNoteValue: day?.crewNote ?? "",
         weatherNoteValue: day?.weatherNote ?? "",
+        events: events,
+        eventLabelValueOf: (_) => "",
+        eventNotesValueOf: (_) => "",
+        onEventAdded: onDayStatusChanged == null ? null : () {},
+        onEventMinuteChanged: onDayStatusChanged == null ? null : (_, _) {},
+        onEventLabelChanged: onDayStatusChanged == null ? null : (_, _) {},
+        onEventNotesChanged: onDayStatusChanged == null ? null : (_, _) {},
+        onEventDeletionRequested: onDayStatusChanged == null ? null : (_) {},
         onDayStatusChanged: onDayStatusChanged,
         onCrewNoteChanged: onCrewNoteChanged,
         onWeatherNoteChanged: onWeatherNoteChanged,

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -61,6 +62,14 @@ OcptShootingDayBlock _buildBlock({required String id, String slotId = "slot-1", 
       notes: "",
       crewNote: "",
     );
+
+/// Builds a day event with the few fields these tests read, everything else neutral.
+OcptShootingDayEvent _buildEvent({
+  required String id,
+  String shootingDayId = "day-1",
+  required int minute,
+  String label = "",
+}) => OcptShootingDayEvent(id: id, shootingDayId: shootingDayId, minute: minute, label: label, notes: "");
 
 /// Builds a shooting slot with the few fields these tests read, everything else neutral — no crew,
 /// no cast, since the grid never reads either.
@@ -137,6 +146,7 @@ void main() {
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
           blocksByDayId: {"day-1": [block]},
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
           sunTimesOf: (_) => null,
@@ -178,6 +188,7 @@ void main() {
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
           blocksByDayId: {"day-1": [block]},
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
           // No coordinates pinned on the day's own location: `sunTimesOf` answers null.
@@ -228,6 +239,7 @@ void main() {
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
           blocksByDayId: {"day-1": [block]},
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
           sunTimesOf: (dayId) => dayId == "day-1" ? sunTimes : null,
@@ -254,6 +266,7 @@ void main() {
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: const {},
           blocksByDayId: const {},
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (_) => null,
           sunTimesOf: (_) => null,
@@ -294,6 +307,7 @@ void main() {
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: const {},
           blocksByDayId: const {},
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (_) => null,
           sunTimesOf: (_) => null,
@@ -337,6 +351,7 @@ void main() {
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
           blocksByDayId: {"day-1": [block]},
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
           sunTimesOf: (_) => null,
@@ -391,6 +406,7 @@ void main() {
           blocksByDayId: {
             "day-1": [morningBlock, eveningBlock],
           },
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
           sunTimesOf: (_) => null,
@@ -463,6 +479,7 @@ void main() {
           blocksByDayId: {
             "day-1": [dayBlock, nightBlock],
           },
+          eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
           sunTimesOf: (_) => null,
@@ -478,4 +495,89 @@ void main() {
     expect(find.text("Day unit"), findsOneWidget);
     expect(find.text("Night unit"), findsOneWidget);
   });
+
+  testWidgets("an event draws its marker on its own day's column, none on another day's", (
+    tester,
+  ) async {
+    final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
+    final otherDay = _buildDay(id: "day-2", dayNumber: 2, date: monday.add(const Duration(days: 1)));
+    final event = _buildEvent(id: "event-1", minute: 720, label: "Fireworks");
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleWeekGrid(
+          anchorDate: monday,
+          firstWeekday: OcptFirstWeekday.monday,
+          days: [day, otherDay],
+          dayTintOf: (_) => Colors.transparent,
+          slotsByDayId: const {},
+          blocksByDayId: const {},
+          eventsByDayId: {
+            "day-1": [event],
+          },
+          shotOf: (_) => null,
+          timelineOf: (_) => null,
+          sunTimesOf: (_) => null,
+          selectedDayId: null,
+          alertsOfDay: (dayId) => const [],
+          onDayOpenRequested: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The marker's own tooltip names the hour and the label — one such tooltip, on `day-1`'s
+    // column alone, none on `day-2`'s.
+    expect(find.byTooltip("12:00 · Fireworks"), findsOneWidget);
+  });
+
+  testWidgets(
+    "an event pinned outside every block's own span still stretches the grid's own range",
+    (tester) async {
+      final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
+      final block = _buildBlock(id: "block-1");
+      // The block sits well within the default 06:00-24:00 span; only the event, at 02:00 the
+      // following morning (minute 1560), should push the grid's own range past midnight.
+      const timeline = OcptShootingDayTimelines(
+        bySlotId: {},
+        entries: [
+          OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        ],
+        overruns: [],
+        fixedEndMisses: [],
+        anchorCycles: [],
+        dayStartMinute: null,
+        dayEndMinute: 510,
+      );
+      final event = _buildEvent(id: "event-1", minute: 1560, label: "Fireworks");
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptScheduleWeekGrid(
+            anchorDate: monday,
+            firstWeekday: OcptFirstWeekday.monday,
+            days: [day],
+            dayTintOf: (_) => Colors.transparent,
+            slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
+            blocksByDayId: {"day-1": [block]},
+            eventsByDayId: {
+              "day-1": [event],
+            },
+            shotOf: (_) => null,
+            timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
+            sunTimesOf: (_) => null,
+            selectedDayId: null,
+            alertsOfDay: (dayId) => const [],
+            onDayOpenRequested: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Under the default 06:00-24:00 span alone, the gutter would never print an early-morning
+      // label — nor would the event's own tooltip draw at all, being clipped outside the grid.
+      expect(find.text("02:00"), findsOneWidget);
+      expect(find.byTooltip("02:00 · Fireworks"), findsOneWidget);
+    },
+  );
 }

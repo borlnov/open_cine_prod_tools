@@ -7048,6 +7048,62 @@
       }
     }
   },
+  "scheduleDayEventsSectionTitle": "Events",
+  "@scheduleDayEventsSectionTitle": {
+    "description": "Title of the day's own events section, shared by the day view's bordered band and the day inspector's own section",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddDayEventAction": "Event",
+  "@scheduleAddDayEventAction": {
+    "description": "Label of the events section's own footer control adding a new event",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEventLabelHint": "What happens",
+  "@scheduleDayEventLabelHint": {
+    "description": "Hint of an event row's own label field",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEventNotesHint": "Note",
+  "@scheduleDayEventNotesHint": {
+    "description": "Hint of an event row's own notes field",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEventUnnamedLabel": "Untitled event",
+  "@scheduleDayEventUnnamedLabel": {
+    "description": "Shown in place of an event's own label when it has none, in its read-only row and in the week grid's own marker tooltip",
+    "context": "Displayed in the day view, the schedule mode's right dock and the week agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveDayEventTooltip": "Remove this event",
+  "@scheduleRemoveDayEventTooltip": {
+    "description": "Tooltip of an event row's own remove control",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayEventConfirmTitle": "Delete this event?",
+  "@scheduleDeleteDayEventConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a day event",
+    "context": "Displayed in a confirmation dialog opened from the day view or the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayEventConfirmMessage": "This cannot be undone.",
+  "@scheduleDeleteDayEventConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a day event",
+    "context": "Displayed in a confirmation dialog opened from the day view or the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleShotPickerDialogTitle": "Place a shot",
   "@scheduleShotPickerDialogTitle": {
     "description": "Title of the dialog opened by a slot card's own `+ Block` menu's `Shot` entry",

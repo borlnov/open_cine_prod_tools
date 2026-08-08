@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
@@ -71,6 +72,14 @@ const double _ocptWeekGridBlockHorizontalMargin = 2;
 /// belongs to which slot is read from a block band's own tooltip, naming that slot's label; a lane
 /// divider marks where one slot's column ends and the next begins.
 ///
+/// **A day's own events draw as a full-width marker**, across every lane rather than inside one of
+/// them — an event belongs to the day, not to a unit, and is never dragged or chained: moving one
+/// is typing another hour in the day view's own events band, never a gesture on this grid. Its
+/// `[startMinute, endMinute)` range stretches to cover an event exactly as it stretches to cover a
+/// night block (see [_ocptWeekGridRange]), so an event pinned outside every block's own span still
+/// draws rather than being clipped. The strip and month agendas draw no such marker — out of scope
+/// for this milestone.
+///
 /// Purely presentational: selecting a day only ever reads, so it needs no `isReadOnly` flag.
 class OcptScheduleWeekGrid extends StatelessWidget {
   /// The date the week shown is the one containing.
@@ -94,6 +103,10 @@ class OcptScheduleWeekGrid extends StatelessWidget {
 
   /// Each day's own live blocks, keyed by day id.
   final Map<String, List<OcptShootingDayBlock>> blocksByDayId;
+
+  /// Each day's own live events, keyed by day id, already ordered by hour — what a day's own
+  /// full-width marker is drawn from.
+  final Map<String, List<OcptShootingDayEvent>> eventsByDayId;
 
   /// Resolves a shot id to the shot it names.
   final OcptShot? Function(String shotId) shotOf;
@@ -126,6 +139,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     required this.dayTintOf,
     required this.slotsByDayId,
     required this.blocksByDayId,
+    required this.eventsByDayId,
     required this.shotOf,
     required this.timelineOf,
     required this.sunTimesOf,
@@ -142,7 +156,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     final dayByDate = {for (final day in days) _dateOnly(day.date): day};
     final weekDays = [for (final date in weekDates) dayByDate[date]];
 
-    final (startMinute, endMinute) = _ocptWeekGridRange(weekDays, timelineOf);
+    final (startMinute, endMinute) = _ocptWeekGridRange(weekDays, timelineOf, eventsByDayId);
     final gridHeight = (endMinute - startMinute) * _ocptWeekGridPixelsPerMinute;
     final hourLabels = <Widget>[
       for (var minute = startMinute; minute < endMinute; minute += 60)
@@ -214,6 +228,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                             : dayTintOf(dayByDate[date]!.id),
                         slots: dayByDate[date] == null ? const [] : slotsByDayId[dayByDate[date]!.id] ?? const [],
                         blocks: dayByDate[date] == null ? const [] : blocksByDayId[dayByDate[date]!.id] ?? const [],
+                        events: dayByDate[date] == null ? const [] : eventsByDayId[dayByDate[date]!.id] ?? const [],
                         shotOf: shotOf,
                         timeline: dayByDate[date] == null ? null : timelineOf(dayByDate[date]!.id),
                         sunTimes: dayByDate[date] == null ? null : sunTimesOf(dayByDate[date]!.id),
@@ -236,12 +251,14 @@ class OcptScheduleWeekGrid extends StatelessWidget {
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 /// The `[startMinute, endMinute)` the grid draws, covering the default 06:00-24:00 span **and**
-/// whatever every one of [weekDays]' own computed timeline actually returns — the rule that lets a
-/// night shoot's blocks (ending past minute 1440) draw correctly rather than being clipped to a
-/// bare 24 hours.
+/// whatever every one of [weekDays]' own computed timeline or own events actually returns — the
+/// rule that lets a night shoot's blocks (ending past minute 1440) draw correctly rather than being
+/// clipped to a bare 24 hours, and that lets an event pinned outside every block's own span still
+/// stretch the grid to show it.
 (int, int) _ocptWeekGridRange(
   List<OcptShootingDay?> weekDays,
   OcptShootingDayTimelines? Function(String dayId) timelineOf,
+  Map<String, List<OcptShootingDayEvent>> eventsByDayId,
 ) {
   var startMinute = _ocptWeekGridDefaultStartHour * 60;
   var endMinute = _ocptWeekGridDefaultEndHour * 60;
@@ -257,6 +274,14 @@ DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
       }
       if (entry.endMinute > endMinute) {
         endMinute = ((entry.endMinute + 59) ~/ 60) * 60;
+      }
+    }
+    for (final event in eventsByDayId[day.id] ?? const <OcptShootingDayEvent>[]) {
+      if (event.minute < startMinute) {
+        startMinute = (event.minute ~/ 60) * 60;
+      }
+      if (event.minute >= endMinute) {
+        endMinute = ((event.minute + 60) ~/ 60) * 60;
       }
     }
   }
@@ -355,8 +380,8 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
   }
 }
 
-/// One day's own column body: its sun shading and its placed blocks, positioned against the
-/// grid's own `[startMinute, endMinute)` range, with its blocks split into one lane per live slot.
+/// One day's own column body: its sun shading, its placed blocks (split into one lane per live
+/// slot) and its own events, positioned against the grid's own `[startMinute, endMinute)` range.
 class _OcptScheduleWeekColumnBody extends StatelessWidget {
   /// This column's own resolved tint (`OcptScheduleWeekGrid.dayTintOf`, already applied) — the
   /// grid's own `outlineVariant` fallback when the date carries no shooting day at all.
@@ -369,6 +394,9 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
 
   /// This column's own live blocks.
   final List<OcptShootingDayBlock> blocks;
+
+  /// This column's own live events, already ordered by hour.
+  final List<OcptShootingDayEvent> events;
 
   /// Resolves a shot id to the shot it names.
   final OcptShot? Function(String shotId) shotOf;
@@ -395,6 +423,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     required this.tint,
     required this.slots,
     required this.blocks,
+    required this.events,
     required this.shotOf,
     required this.timeline,
     required this.sunTimes,
@@ -423,6 +452,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
               ..._buildSunBands(context),
               ..._buildLaneDividers(context, constraints.maxWidth),
               ..._buildBlocks(context, constraints.maxWidth),
+              ..._buildEvents(context),
             ],
           ),
         ),
@@ -604,5 +634,33 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     }
 
     return widgets;
+  }
+
+  /// This column's own events, one full-width marker per event, positioned at its own
+  /// `OcptShootingDayEvent.minute` — across every lane rather than inside one of them, an event
+  /// belonging to the day rather than to a unit (see the class doc comment). Drawn discreetly, off
+  /// the ambient theme's own `outline` rather than a bespoke colour, so the blocks stay the thing
+  /// being looked at; a [Tooltip] names the hour and the label (falling back to `Untitled event`
+  /// when it has none).
+  List<Widget> _buildEvents(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final color = theme.colorScheme.outline;
+
+    return [
+      for (final event in events)
+        Positioned(
+          top: (event.minute - startMinute) * _ocptWeekGridPixelsPerMinute - 3,
+          left: 0,
+          right: 0,
+          height: 6,
+          child: Tooltip(
+            message:
+                "${ocptFormatDayMinute(event.minute)} · "
+                "${event.label.isEmpty ? tr.scheduleDayEventUnnamedLabel : event.label}",
+            child: Center(child: Container(height: 2, color: color)),
+          ),
+        ),
+    ];
   }
 }

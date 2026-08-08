@@ -9,11 +9,13 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
@@ -27,8 +29,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// left dock, so it wins over a day it says nothing about.
 ///
 /// Every writing affordance ([onDayStatusChanged], [onCrewNoteChanged], [onWeatherNoteChanged],
-/// [onShotStatusChanged], [onBlockDurationChanged], [onBlockNotesChanged]) is a nullable callback,
-/// withheld while a project version is being previewed. Reading — every other line — stays.
+/// [onEventAdded] and the rest of the events section's own callbacks, [onShotStatusChanged],
+/// [onBlockDurationChanged], [onBlockNotesChanged]) is a nullable callback, withheld while a
+/// project version is being previewed. Reading — every other line — stays.
+///
+/// The day inspector's own events section is [OcptScheduleDayEventsList] under an
+/// `_OcptScheduleInspectorSection`, after the sun times and before the weather note — the very same
+/// widget the day view's own bordered band builds, so the two surfaces can never read a day's
+/// events apart. It is drawn under the same condition as that band: [events] non-empty, or
+/// [onEventAdded] non-null (the inspector may be written to).
 class OcptScheduleInspector extends StatelessWidget {
   /// The selected day, or null while none is selected.
   final OcptShootingDay? day;
@@ -58,6 +67,35 @@ class OcptScheduleInspector extends StatelessWidget {
 
   /// The selected day's own weather note, as currently held.
   final String weatherNoteValue;
+
+  /// The selected day's own live events, already ordered by hour — handed to
+  /// [OcptScheduleDayEventsList], the day view's own section built from the very same widget.
+  final List<OcptShootingDayEvent> events;
+
+  /// Resolves an event's id to its own label, as currently held (a pending edit, or its stored
+  /// value).
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its own notes, as currently held (a pending edit, or its stored
+  /// value).
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called when the events section's own `+ Event` footer is clicked, or null while withheld.
+  final VoidCallback? onEventAdded;
+
+  /// Called with an event's id and its own new minute once its hour field commits, or null while
+  /// withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text on every keystroke, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text on every keystroke, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its own remove control is clicked, or null while withheld —
+  /// only ever asks, the mode owning the confirmation.
+  final ValueChanged<String>? onEventDeletionRequested;
 
   /// Called with the status just picked, or null while withheld.
   final ValueChanged<OcptShootingDayStatus>? onDayStatusChanged;
@@ -122,6 +160,14 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.sunTimes,
     required this.crewNoteValue,
     required this.weatherNoteValue,
+    required this.events,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventAdded,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
     required this.onDayStatusChanged,
     required this.onCrewNoteChanged,
     required this.onWeatherNoteChanged,
@@ -171,7 +217,8 @@ class OcptScheduleInspector extends StatelessWidget {
   }
 
   /// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
-  /// the sun times and the UTC offset they were computed with, weather note, crew note.
+  /// the sun times and the UTC offset they were computed with, its own events, weather note, crew
+  /// note.
   Widget _buildDayInspector(BuildContext context, OcptShootingDay day) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -271,6 +318,20 @@ class OcptScheduleInspector extends StatelessWidget {
           label: tr.scheduleInspectorSunLabel,
           child: Text(ocptScheduleSunTimesLine(tr, sunTimes), style: theme.textTheme.bodySmall),
         ),
+        if (events.isNotEmpty || onEventAdded != null)
+          _OcptScheduleInspectorSection(
+            label: tr.scheduleDayEventsSectionTitle,
+            child: OcptScheduleDayEventsList(
+              events: events,
+              eventLabelValueOf: eventLabelValueOf,
+              eventNotesValueOf: eventNotesValueOf,
+              onEventAdded: onEventAdded,
+              onEventMinuteChanged: onEventMinuteChanged,
+              onEventLabelChanged: onEventLabelChanged,
+              onEventNotesChanged: onEventNotesChanged,
+              onEventDeletionRequested: onEventDeletionRequested,
+            ),
+          ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorWeatherLabel,
           child: _OcptScheduleNoteField(

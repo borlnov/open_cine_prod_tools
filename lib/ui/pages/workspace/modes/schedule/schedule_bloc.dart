@@ -175,6 +175,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
     on<OcptScheduleSlotGuestAddedEvent>(_onSlotGuestAdded);
     on<OcptScheduleSlotGuestRemovedEvent>(_onSlotGuestRemoved);
+    on<OcptScheduleDayEventCreatedEvent>(_onDayEventCreated);
+    on<OcptScheduleDayEventMinuteChangedEvent>(_onDayEventMinuteChanged);
+    on<OcptScheduleDayEventDeletionConfirmedEvent>(_onDayEventDeletionConfirmed);
     on<OcptScheduleShotSelectedEvent>(_onShotSelected);
     on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
     on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
@@ -863,6 +866,56 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter, project);
   }
 
+  /// Creates a new event on a day, at the hour the mode's own default-hour helper computed.
+  Future<void> _onDayEventCreated(
+    OcptScheduleDayEventCreatedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.createDayEvent(
+      database: project.database,
+      dayId: event.dayId,
+      minute: event.minute,
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Writes a new hour onto an event, the moment its own minute field commits.
+  Future<void> _onDayEventMinuteChanged(
+    OcptScheduleDayEventMinuteChangedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.updateDayEvent(
+      database: project.database,
+      eventId: event.eventId,
+      minute: Value(event.minute),
+    );
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
+  /// Removes an event for good.
+  Future<void> _onDayEventDeletionConfirmed(
+    OcptScheduleDayEventDeletionConfirmedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    await _scheduleService.deleteDayEvent(database: project.database, eventId: event.eventId);
+    await _applyScheduleSnapshot(emitter, project);
+  }
+
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
   /// edits — then reloads the shot list read so every shot code, block chip and inspector line
   /// that shows it follows.
@@ -1201,6 +1254,18 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           await _scheduleService.updateSlotGuest(
             database: project.database,
             guestId: targetId,
+            notes: Value(value),
+          );
+        case OcptScheduleField.dayEventLabel:
+          await _scheduleService.updateDayEvent(
+            database: project.database,
+            eventId: targetId,
+            label: Value(value),
+          );
+        case OcptScheduleField.dayEventNotes:
+          await _scheduleService.updateDayEvent(
+            database: project.database,
+            eventId: targetId,
             notes: Value(value),
           );
       }

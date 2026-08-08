@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -99,6 +100,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
     leftFraction: OcptWorkspaceDock.leftDefaultFraction,
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
+
+  /// The hour a freshly created day event falls back to when its day has no live slot yet to read
+  /// an arrival off — see [_defaultEventMinuteOf].
+  static const int _defaultDayEventFallbackMinute = 9 * 60;
 
   @override
   void deactivate() {
@@ -430,6 +435,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final blocksByDayId =
         state.snapshot?.blocksByDayId ?? const <String, List<OcptShootingDayBlock>>{};
     final slotsByDayId = state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{};
+    final eventsByDayId =
+        state.snapshot?.eventsByDayId ?? const <String, List<OcptShootingDayEvent>>{};
 
     return switch (state.agendaMode) {
       OcptScheduleAgendaMode.strip => OcptScheduleStripAgenda(
@@ -453,6 +460,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         dayTintOf: dayTintOf,
         slotsByDayId: slotsByDayId,
         blocksByDayId: blocksByDayId,
+        eventsByDayId: eventsByDayId,
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
@@ -669,6 +677,50 @@ class _ScheduleViewState extends State<_ScheduleView> {
                 rawValue: rawValue,
               ),
             ),
+      events: state.selectedDayEvents,
+      eventLabelValueOf: (eventId) => state.fieldValueOf(
+        eventId,
+        OcptScheduleField.dayEventLabel,
+        _selectedDayEventOf(state, eventId)?.label ?? "",
+      ),
+      eventNotesValueOf: (eventId) => state.fieldValueOf(
+        eventId,
+        OcptScheduleField.dayEventNotes,
+        _selectedDayEventOf(state, eventId)?.notes ?? "",
+      ),
+      onEventAdded: isReadOnly
+          ? null
+          : () => bloc.add(
+              OcptScheduleDayEventCreatedEvent(
+                dayId: day.id,
+                minute: _defaultEventMinuteOf(state, day.id),
+              ),
+            ),
+      onEventMinuteChanged: isReadOnly
+          ? null
+          : (eventId, minute) =>
+                bloc.add(OcptScheduleDayEventMinuteChangedEvent(eventId: eventId, minute: minute)),
+      onEventLabelChanged: isReadOnly
+          ? null
+          : (eventId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: eventId,
+                field: OcptScheduleField.dayEventLabel,
+                rawValue: rawValue,
+              ),
+            ),
+      onEventNotesChanged: isReadOnly
+          ? null
+          : (eventId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: eventId,
+                field: OcptScheduleField.dayEventNotes,
+                rawValue: rawValue,
+              ),
+            ),
+      onEventDeletionRequested: isReadOnly
+          ? null
+          : (eventId) => unawaited(_handleDayEventDeletionRequested(context, eventId)),
       onBlockSelected: (blockId) =>
           bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
       onBlockReordered: isReadOnly
@@ -722,6 +774,26 @@ class _ScheduleViewState extends State<_ScheduleView> {
         if (guest.id == guestId) {
           return guest;
         }
+      }
+    }
+    return null;
+  }
+
+  /// The hour a freshly created event of day [dayId] is first given — that day's own earliest
+  /// resolved slot start ([OcptScheduleState.dayArrivalMinute]) when it has one, or
+  /// [_defaultDayEventFallbackMinute] otherwise. Only ever a **starting point**: the row's own
+  /// minute field immediately lets the user correct it, so this is never a claim about when
+  /// anything actually happens on the day.
+  int _defaultEventMinuteOf(OcptScheduleState state, String dayId) =>
+      state.dayArrivalMinute(dayId) ?? _defaultDayEventFallbackMinute;
+
+  /// Resolves event [eventId] out of [state]'s own [OcptScheduleState.selectedDayEvents], or null
+  /// while it names none of them — what the day view's and the day inspector's own event
+  /// label/notes fields read their stored value off, mirroring [_selectedDayGuestOf].
+  OcptShootingDayEvent? _selectedDayEventOf(OcptScheduleState state, String eventId) {
+    for (final event in state.selectedDayEvents) {
+      if (event.id == eventId) {
+        return event;
       }
     }
     return null;
@@ -793,6 +865,29 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     bloc.add(OcptScheduleBlockDeletionConfirmedEvent(blockId: blockId));
+  }
+
+  /// Asks `OcptConfirmDialog` whether event [eventId] really is to be deleted, then dispatches the
+  /// deletion if the user answered `Delete`.
+  Future<void> _handleDayEventDeletionRequested(BuildContext context, String eventId) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.scheduleDeleteDayEventConfirmTitle,
+      message: tr.scheduleDeleteDayEventConfirmMessage,
+      cancelLabel: tr.scheduleDeleteDayCancelAction,
+      confirmLabel: tr.scheduleDeleteDayConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptScheduleDayEventDeletionConfirmedEvent(eventId: eventId));
   }
 
   /// Builds the right dock, or null while it's closed.
@@ -914,6 +1009,50 @@ class _ScheduleViewState extends State<_ScheduleView> {
       weatherNoteValue: day == null
           ? ""
           : state.fieldValueOf(day.id, OcptScheduleField.dayWeatherNote, day.weatherNote),
+      events: state.selectedDayEvents,
+      eventLabelValueOf: (eventId) => state.fieldValueOf(
+        eventId,
+        OcptScheduleField.dayEventLabel,
+        _selectedDayEventOf(state, eventId)?.label ?? "",
+      ),
+      eventNotesValueOf: (eventId) => state.fieldValueOf(
+        eventId,
+        OcptScheduleField.dayEventNotes,
+        _selectedDayEventOf(state, eventId)?.notes ?? "",
+      ),
+      onEventAdded: isReadOnly || day == null
+          ? null
+          : () => bloc.add(
+              OcptScheduleDayEventCreatedEvent(
+                dayId: day.id,
+                minute: _defaultEventMinuteOf(state, day.id),
+              ),
+            ),
+      onEventMinuteChanged: isReadOnly
+          ? null
+          : (eventId, minute) =>
+                bloc.add(OcptScheduleDayEventMinuteChangedEvent(eventId: eventId, minute: minute)),
+      onEventLabelChanged: isReadOnly
+          ? null
+          : (eventId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: eventId,
+                field: OcptScheduleField.dayEventLabel,
+                rawValue: rawValue,
+              ),
+            ),
+      onEventNotesChanged: isReadOnly
+          ? null
+          : (eventId, rawValue) => bloc.add(
+              OcptScheduleFieldChangedEvent(
+                targetId: eventId,
+                field: OcptScheduleField.dayEventNotes,
+                rawValue: rawValue,
+              ),
+            ),
+      onEventDeletionRequested: isReadOnly
+          ? null
+          : (eventId) => unawaited(_handleDayEventDeletionRequested(context, eventId)),
       onDayStatusChanged: isReadOnly || day == null
           ? null
           : (status) => bloc.add(OcptScheduleDayStatusChangedEvent(dayId: day.id, status: status)),

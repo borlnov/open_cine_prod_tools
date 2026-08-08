@@ -506,6 +506,57 @@ class OcptScheduleSlotGuestRemovedEvent extends OcptScheduleEvent {
   List<Object?> get props => [...super.props, guestId];
 }
 
+/// Creates a new event on day [dayId] at [minute], dispatched by the day view's or the day
+/// inspector's own `+ Event` footer (`OcptScheduleDayEventsList.onEventAdded`). [minute] is a
+/// starting point the row's own minute field immediately corrects, never a claim about when
+/// anything happens — see `OcptScheduleMode`'s own default-hour helper.
+class OcptScheduleDayEventCreatedEvent extends OcptScheduleEvent {
+  /// The id of the day the event is added to.
+  final String dayId;
+
+  /// The hour the event is first given.
+  final int minute;
+
+  /// Class constructor
+  const OcptScheduleDayEventCreatedEvent({required this.dayId, required this.minute});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, dayId, minute];
+}
+
+/// Writes a new hour onto event [eventId], dispatched the moment its own minute field commits —
+/// unlike every other event field, an event's hour is never typed into the field-edit debounce
+/// (`OcptScheduleField` carries no minute entry), mirroring a slot's or a block's own anchor.
+class OcptScheduleDayEventMinuteChangedEvent extends OcptScheduleEvent {
+  /// The id of the event whose hour changed.
+  final String eventId;
+
+  /// The event's own new hour.
+  final int minute;
+
+  /// Class constructor
+  const OcptScheduleDayEventMinuteChangedEvent({required this.eventId, required this.minute});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, eventId, minute];
+}
+
+/// Removes event [eventId] for good, dispatched once `OcptConfirmDialog` has confirmed it — named
+/// for the confirmation it comes after, exactly as [OcptScheduleBlockDeletionConfirmedEvent] is.
+class OcptScheduleDayEventDeletionConfirmedEvent extends OcptScheduleEvent {
+  /// The id of the event to remove.
+  final String eventId;
+
+  /// Class constructor
+  const OcptScheduleDayEventDeletionConfirmedEvent({required this.eventId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, eventId];
+}
+
 /// Selects shot [shotId] — a row of the left dock's own "shots still to place" list — showing its
 /// own read-out in the inspector, and opens the right dock on the `Inspector` tab. Clears the
 /// selected block: the two selections are mutually exclusive, so bringing a shot's own read-out up
