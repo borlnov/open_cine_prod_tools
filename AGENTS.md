@@ -114,6 +114,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29 | Schedule review M1 — the whole data model of the review pass in one migration: schema v17 and payload format 12 adding `shooting_slot_guests` (a guest convoked by a slot, named by a person **or** a free name) and `shooting_day_events` (what the day does not control, at an absolute hour, outside every chain), then `shooting_day_blocks.crewNote` (the note that prints, beside the `notes` that never does), `assets.validFrom`/`validUntil` and `project_info.minimumRestMinutes`, and **dropping** `shooting_presences` with the click that wrote it — the presence grid reduced to its computed reading, `OcptPresenceCode` to `working`/`unavailable`, and format 12 doing all three kinds of payload upgrade at once | ✅ |
 | 29b | Schedule review M2-M3 — the reading fixes, then what v17 held but nothing drew: the presence grid reduced to its computed reading, the positions matrix grouped under a day band with each column's resolved hours, the day view's alert badge opening the `Alerts` tab, a slot's and a block's `notes` named `Private notes`; then guests as a third kind of convocation link (an arrival and a departure, never a PAT band), the slot card's guest band picking from the address book alone under one foldable `Assigner des personnes` section holding the crew, the cast and the guests, the `Convocations` panel's trailing guest group, a day's events in one widget shown by the day view and the day inspector alike with a full-width marker in the week grid, and a block's own `crewNote` typed in the inspector | ✅ |
 | 29c | Schedule review M4 — the two crossings v17 made possible: `OcptScheduleRestTimeAlert` (a person's departure against their arrival on the next day they are actually convoked on, raised on the second of the two) and `OcptSchedulePermitNotValidAlert` (the plan's `…Missing` renamed for what it says, a location filing no permit raising nothing), both soft and both silent while the figure they measure against was never recorded, `ocptComputeScheduleAlerts` taking the project's minimum and a location's permit windows, `OcptSchedulePlanSnapshot.minimumRestMinutes` joining them, the two sentences in the `Alerts` panel, the permit's `validFrom`/`validUntil` typed under the location sheet's document line, and the project's minimum rest typed on `OcptProjectSettingsPage` | ✅ |
+| 29d | Schedule review M5 — the stamp that tells two issues of one document apart: `ocptScheduleGeneratedAtStamp` in `ocpt_schedule_pdf_shared.dart` (date **and** time, deliberately not locale-formatted), an `exportDate` on both call sheet generators beside the shooting plan's own — resolved once per document, and once per run by `OcptExportManager` for the two exports that write a folder — the shooting plan's version line repeated in every page's running head, and the call sheets' own in the title block | ✅ |
 
 ## Ways of working
 
@@ -1056,7 +1057,20 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `ocpt_schedule_pdf_shared.dart` holds what the two documents must not read differently: the walk
   that puts a day's parallel slot chains back into a single clock order, a block's caption, the HMC
   role numbers and the line they print as (so both documents say them identically, each handing in
-  its own already-localized `RÔLES` label), a location's address line. **Every
+  its own already-localized `RÔLES` label), a location's address line, and
+  `ocptScheduleGeneratedAtStamp` — **the moment a document was produced**, `yyyy-MM-dd HH:mm`,
+  deliberately carrying the **time** (a call sheet is regularly reissued the afternoon of the day it
+  first went out, and two sheets stamped with the date alone cannot be told apart in the hand of
+  somebody holding both) and deliberately **not** locale-formatted, that stamp being read as an
+  identifier rather than as a sentence. Both services take a nullable `exportDate` defaulting to
+  `DateTime.now()`, resolved **once per document** — so a plan whose rendering straddles a minute
+  boundary still names one issue of itself on every page — and `OcptExportManager` resolves it once
+  per **run** for the two exports that write a folder of files, a batch that read the clock per file
+  reading as several issues of one day's paperwork. The shooting plan prints it on its title page and
+  in the running head of **every** page (a day agenda torn out of it, or a grid pinned on a
+  wall, has nowhere else to say which issue it is); the call sheets print it in the **title block**,
+  general and named alike, a call sheet being one sheet handed over whole. Both read the same
+  `versionLabel` word out of their own labels object. **Every
   hour on either page is the resolved one** and every convocation figure comes from
   `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
   Neither document prints a guest, an event or a block's crew note yet, and the named call sheets
