@@ -130,7 +130,9 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 /// Builds a role named [name].
@@ -166,6 +168,7 @@ OcptPerson _buildPerson({
   colorIndex: 0,
   birthDate: null,
   minorNotes: "",
+  maxDailyPresenceMinutes: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",
@@ -182,7 +185,9 @@ OcptPerson _buildPerson({
   imageRightsStatus: OcptImageRightsStatus.notApplicable,
   imageRightsDate: null,
   imageRightsAssetId: null,
+  imageRightsDocument: null,
   photoAssetId: null,
+  photo: null,
   notes: "",
   positions: const [],
   skills: const [],

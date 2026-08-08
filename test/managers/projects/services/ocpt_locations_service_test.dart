@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
@@ -723,7 +724,7 @@ void main() {
         path: "/photos/first.jpg",
       ))!;
 
-      await locationsService.removeAsset(database: database, assetId: photoId);
+      await const OcptAssetsService().removeAsset(database: database, assetId: photoId);
 
       final locations = await locationsService.loadLocations(database: database);
       expect(locations.single.photos, isEmpty);

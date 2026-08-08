@@ -6,9 +6,12 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
 /// Parses [source] with the real Fountain parser, so reconciliation is exercised against a
@@ -237,6 +240,39 @@ Hi.
 
       final roles = await roleIndexService.loadRoles(database: database, screenplayId: screenplayId);
       expect(roles.map((role) => role.id), [secondId]);
+    });
+
+    test("deleteRole carries the role's things off with it, the elements untouched", () async {
+      final roleId = (await roleIndexService.addRole(
+        database: database,
+        screenplayId: screenplayId,
+        name: "CLARA",
+        kind: OcptRoleKind.extra,
+      ))!;
+      const elementsService = OcptElementsService();
+      final elementId = (await elementsService.createElement(
+        database: database,
+        name: "Manteau rouge",
+        category: OcptElementCategory.costume,
+        sourceKind: OcptElementSourceKind.owned,
+      ))!;
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: roleId,
+        elementId: elementId,
+      );
+
+      await roleIndexService.deleteRole(database: database, roleId: roleId);
+
+      // The link is gone…
+      final links = await database.select(database.ocptRoleElementsTable).get();
+      expect(links.single.isDeleted, isTrue);
+
+      // …and the coat is still in the catalogue, which is the whole point: it outlives the
+      // character who wore it.
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.name, "Manteau rouge");
+      expect(element.roleLinks, isEmpty);
     });
 
     test("reorderRole moves a role by writing exactly one row", () async {

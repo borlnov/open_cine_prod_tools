@@ -120,6 +120,20 @@ class OcptPeopleTable extends Table {
   /// set, the reference to a DDETS authorisation. Free text.
   TextColumn get minorNotes => text().withDefault(const Constant(''))();
 
+  /// The longest presence this person may have on one shooting day, in minutes.
+  ///
+  /// A duration rather than an instant — the same reason `person_unavailabilities.startMinute` is —
+  /// so it survives being compared against the span a day's own slots and blocks resolve to, itself
+  /// never taken modulo anything.
+  ///
+  /// **Nullable, and deliberately so: null means "nobody has recorded one", never "no limit is
+  /// imposed".** This is not restricted to minors — an adult under a medical restriction is the same
+  /// fact — but it lives beside [minorNotes] because that is where the constraint is thought about
+  /// on the sheet. The schedule mode's alert that reads it (a coming milestone) fires only when this
+  /// column is filled *and* exceeded, and stays silent otherwise: the app must never advance a
+  /// figure — a legal maximum, say — that nobody here validated.
+  IntColumn get maxDailyPresenceMinutes => integer().nullable()();
+
   /// Whether this person can travel to set on their own.
   ///
   /// **Tri-state on purpose**: null means "not asked yet", which is the reference address book's

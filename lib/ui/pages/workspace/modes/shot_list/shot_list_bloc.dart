@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -40,9 +41,11 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 /// It loads the current project's whole shot list from [OcptShotListService] on entry — sequences
 /// are built in memory by joining the scene index with the shots referencing it, so the mode
 /// always shows the screenplay as it stands rather than a duplicated copy of it — together with
-/// the screenplay's speaking characters (for the inspector's character chips) and every free-text
-/// field's project-wide suggestion list, and holds the selection, the dock geometry and the
-/// visible table columns on top of it.
+/// the screenplay's speaking characters (for the inspector's character chips), every free-text
+/// field's project-wide suggestion list, and where each shot sits in the schedule
+/// (`OcptScheduleService.loadShotPlacements`, joined onto the snapshot by [_loadSnapshot]: the
+/// schedule mode is the only writer of a shot's placement, this mode only ever reads it), and holds
+/// the selection, the dock geometry and the visible table columns on top of it.
 ///
 /// Most of a shot's fields are authored one discrete action at a time (picking a status, clicking
 /// a difficulty dot, toggling a character chip) and each of those is written to the project
@@ -109,6 +112,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The service used to read and write a shot's scenario coverage ranges.
   final OcptShotCoverageService _shotCoverageService;
 
+  /// The service used to read a shot's placement in the schedule — its `Jour de tournage` read-out,
+  /// see [_loadSnapshot].
+  final OcptScheduleService _scheduleService;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -127,6 +134,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptExportManager? exportManager,
     OcptShotListService? shotListService,
     OcptShotCoverageService? shotCoverageService,
+    OcptScheduleService? scheduleService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -138,6 +146,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _shotCoverageService =
            shotCoverageService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotCoverageService,
+       _scheduleService =
+           scheduleService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
     add(const OcptShotListLoadRequestedEvent());
@@ -267,12 +278,26 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Reads the whole shot list of [project]'s primary screenplay.
-  Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) =>
-      _shotListService.loadShotList(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+  /// Reads the whole shot list of [project]'s primary screenplay, joined with where each of its
+  /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id —
+  /// what the table's and the metadata panel's own `Jour de tournage` read-out is built from. A
+  /// project with no schedule at all simply joins an empty map, so every shot reads as unplaced.
+  ///
+  /// Read again on every call, alongside every other write this bloc performs: the schedule is
+  /// edited from its own mode, never from here, but this mode's own snapshot must still show
+  /// whatever it currently says.
+  Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
+    final snapshot = await _shotListService.loadShotList(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    final placements = await _scheduleService.loadShotPlacements(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+
+    return snapshot.copyWithPlacements(placements);
+  }
 
   /// Reads [project]'s current Fountain source text, kept in `OcptShotListState.screenplayText`
   /// for [_screenplayCharactersOf] and every scenario coverage read/write that needs the whole

@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_elements_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
 
 /// The separator joining the names of the other roles a cast member holds.
@@ -21,13 +23,17 @@ const String _otherRolesSeparator = ", ";
 
 /// The resources mode's centre, once a role is selected: the whole role sheet, a single scrolling
 /// column edited in place — the header (avatar, name, cast member, kind, rank), the removed-role
-/// alert when this very role is the orphaned one, the casting card, the casting notes card, and
-/// `Delete this role` at the very bottom.
+/// alert when this very role is the orphaned one, the casting card, the things card naming what the
+/// role wears, carries and is made up with, the casting notes card, and `Delete this role` at the
+/// very bottom.
 ///
 /// It is `OcptPersonSheet`'s sibling and follows the same grammar deliberately: the two tabs of the
 /// resources mode answer the same gesture — pick a record on the left, edit it in the centre — so
 /// they share the header-then-cards shape and the same card and field chrome
 /// (`OcptResourcesSheetCard`, `OcptResourcesSheetField`).
+///
+/// The things card sits between the casting and the notes because that is the order the questions
+/// are asked in: who plays them, what they wear, then everything still to say about the casting.
 ///
 /// The removed-role alert is shown **inside the sheet of the role it names**, not stacked above
 /// whichever sheet happens to be open: the cast list of the left dock is what points at it, so the
@@ -52,6 +58,10 @@ class OcptRoleSheet extends StatelessWidget {
 
   /// The whole address book, offered by the cast member picker.
   final List<OcptPerson> people;
+
+  /// The whole elements catalogue: what the things card reads this role's links out of, and what
+  /// its picker offers.
+  final List<OcptElement> elements;
 
   /// The alert to report inside this sheet, or null while [role] is not orphaned.
   final OcptRemovedRoleAlert? removedRoleAlert;
@@ -83,6 +93,15 @@ class OcptRoleSheet extends StatelessWidget {
   /// Called with a person's id when the header's cast member line is clicked.
   final ValueChanged<String> onPersonSheetOpenRequested;
 
+  /// Called with an element's id when the things card's picker links it to this role.
+  final ValueChanged<String> onElementLinked;
+
+  /// Called with a link's id and its note once a things row's local edit is ready to be written.
+  final void Function(String id, String notes) onRoleElementUpdated;
+
+  /// Called with a link's id when a things row's remove control is clicked.
+  final ValueChanged<String> onRoleElementRemoved;
+
   /// Class constructor
   const OcptRoleSheet({
     super.key,
@@ -90,6 +109,7 @@ class OcptRoleSheet extends StatelessWidget {
     required this.castMember,
     required this.otherRoles,
     required this.people,
+    required this.elements,
     required this.removedRoleAlert,
     this.isReadOnly = false,
     required this.fieldValueOf,
@@ -99,6 +119,9 @@ class OcptRoleSheet extends StatelessWidget {
     required this.onDeleteRequested,
     required this.onOrphanedRoleKept,
     required this.onPersonSheetOpenRequested,
+    required this.onElementLinked,
+    required this.onRoleElementUpdated,
+    required this.onRoleElementRemoved,
   });
 
   /// Whether deleting this role would actually remove it, which is what decides that the delete
@@ -149,6 +172,14 @@ class OcptRoleSheet extends StatelessWidget {
           ],
           const SizedBox(height: 16),
           _buildCastingCard(context, tr),
+          const SizedBox(height: 12),
+          OcptRoleSheetElementsCard(
+            roleId: role.id,
+            elements: elements,
+            onElementLinked: isReadOnly ? null : onElementLinked,
+            onLinkUpdated: isReadOnly ? null : onRoleElementUpdated,
+            onLinkRemoved: isReadOnly ? null : onRoleElementRemoved,
+          ),
           const SizedBox(height: 12),
           OcptResourcesSheetCard(
             title: tr.resourcesRoleCastingNotesLabel,

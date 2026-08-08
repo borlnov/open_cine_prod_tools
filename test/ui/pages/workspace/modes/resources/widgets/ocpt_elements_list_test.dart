@@ -57,7 +57,9 @@ OcptElement _element({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 void main() {

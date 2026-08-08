@@ -12,7 +12,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_email_format.dart';
 
-/// The person sheet's header: the photo slot on the left, and on the right the display name (as
+/// The person sheet's header: the photo slot on the left (see [OcptPersonSheetAvatar], which is
+/// where referencing a photo and picking the fallback colour both live), and on the right the
+/// display name (as
 /// two adjoining, title-styled fields — `person.displayName` is derived from `firstName` and
 /// `lastName`, so there is no single stored field a mock-up's own single name field could bind
 /// to), the minor badge, and the two-column contact grid.
@@ -33,9 +35,15 @@ class OcptPersonSheetHeader extends StatelessWidget {
   /// written to.
   final void Function(OcptPersonField field, String rawValue)? onFieldChanged;
 
-  /// Called with the palette index picked from the avatar's colour popover, or null while it may
+  /// Called with the palette index picked from the photo slot's colour grid, or null while it may
   /// not be changed.
   final ValueChanged<int>? onColorChanged;
+
+  /// Called when the photo slot's reference entry is picked, or null while it may not be used.
+  final VoidCallback? onPhotoPickRequested;
+
+  /// Called when the photo slot's remove entry is picked, or null while it may not be used.
+  final VoidCallback? onPhotoCleared;
 
   /// Called with the newly picked date of birth (or null to clear it), or null while it may not be
   /// changed.
@@ -48,6 +56,8 @@ class OcptPersonSheetHeader extends StatelessWidget {
     required this.fieldValueOf,
     required this.onFieldChanged,
     required this.onColorChanged,
+    required this.onPhotoPickRequested,
+    required this.onPhotoCleared,
     required this.onBirthDateChanged,
   });
 
@@ -60,7 +70,12 @@ class OcptPersonSheetHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OcptPersonSheetAvatar(person: person, onColorChanged: onColorChanged),
+        OcptPersonSheetAvatar(
+          person: person,
+          onColorChanged: onColorChanged,
+          onPhotoPickRequested: onPhotoPickRequested,
+          onPhotoCleared: onPhotoCleared,
+        ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(

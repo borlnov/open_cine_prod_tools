@@ -374,6 +374,7 @@ class _ShotListViewState extends State<_ShotListView> {
               },
               visibleColumns: state.visibleColumns,
               selectedShotId: state.selectedShotId,
+              placementsByShotId: state.snapshot?.placementsByShotId ?? const {},
               onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
                 OcptShotListShotSelectedEvent(shotId: shotId),
               ),
@@ -447,6 +448,9 @@ class _ShotListViewState extends State<_ShotListView> {
         shot: selectedShot,
         sequenceDisplayNumber: sequenceDisplayNumber,
         sequenceHeading: sequenceHeading,
+        placements: selectedShot == null
+            ? const []
+            : state.snapshot?.placementsByShotId[selectedShot.id] ?? const [],
       ),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptShotListBloc>().add(

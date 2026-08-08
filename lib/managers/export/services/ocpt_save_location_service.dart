@@ -46,4 +46,23 @@ class OcptSaveLocationService {
       return null;
     }
   }
+
+  /// Shows the native "choose a folder" dialog and resolves the path the user picked.
+  ///
+  /// The named call sheets are the one export of this app that does not write a single file: there
+  /// is no one path to save, so what it needs is a directory picker rather than [pickSaveLocation]'s
+  /// file one. [confirmButtonText] is the localized label of the dialog's own confirm button — this
+  /// service has no `Tr` of its own, exactly as [pickSaveLocation]'s own `fileTypeLabel` is resolved
+  /// by its caller.
+  ///
+  /// Returns the chosen directory's path, or null if the user cancelled the dialog or a problem
+  /// occurred (logged, exactly like [pickSaveLocation]'s own soft failure).
+  Future<String?> pickDirectory({required String confirmButtonText}) async {
+    try {
+      return await getDirectoryPath(confirmButtonText: confirmButtonText);
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to pick a directory, error: $error");
+      return null;
+    }
+  }
 }

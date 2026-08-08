@@ -7,12 +7,14 @@ import 'dart:ui' show Brightness, Locale;
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_intl_ui/act_intl_ui.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 
 /// The state of the settings page bloc.
 ///
 /// Carries the current/wanted locale and the current theme/brightness (both applied live,
-/// app-wide, through [MixinSetWantedLocaleState] and [MixinActThemesState]), plus the injected app
-/// version shown in the about section.
+/// app-wide, through [MixinSetWantedLocaleState] and [MixinActThemesState]), the calendar
+/// preferences this app persists itself, plus the injected app version shown in the about
+/// section.
 class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     with MixinSetWantedLocaleState<OcptSettingsState>, MixinActThemesState<OcptSettingsState> {
   /// {@macro act_intl_ui.MixinSetWantedLocaleState.currentLocale}
@@ -34,6 +36,10 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
   /// The application version shown in the about section, injected at bloc creation.
   final String appVersion;
 
+  /// The app-wide day a week starts on, as last read from `OcptPropertiesManager.firstWeekday`.
+  /// Starts at [OcptFirstWeekday.monday] until that asynchronous read lands.
+  final OcptFirstWeekday firstWeekday;
+
   /// Class constructor
   const OcptSettingsState({
     required this.currentLocale,
@@ -41,6 +47,7 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     required this.currentTheme,
     required this.brightness,
     required this.appVersion,
+    this.firstWeekday = OcptFirstWeekday.monday,
   });
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -53,12 +60,14 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     Brightness? brightness,
     bool forceBrightnessValue = false,
     String? appVersion,
+    OcptFirstWeekday? firstWeekday,
   }) => OcptSettingsState(
     currentLocale: currentLocale ?? this.currentLocale,
     wantedLocale: wantedLocale ?? (forceWantedLocaleValue ? null : this.wantedLocale),
     currentTheme: currentTheme ?? this.currentTheme,
     brightness: brightness ?? (forceBrightnessValue ? null : this.brightness),
     appVersion: appVersion ?? this.appVersion,
+    firstWeekday: firstWeekday ?? this.firstWeekday,
   );
 
   /// {@macro act_intl_ui.MixinSetWantedLocaleState.copySetWantedLocaleState}
@@ -87,5 +96,5 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
-  List<Object?> get props => [...super.props, appVersion];
+  List<Object?> get props => [...super.props, appVersion, firstWeekday];
 }

@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -40,8 +41,11 @@ void main() {
       expect(ocptParseShotDuration("00:05"), 5000);
     });
 
-    test("a bare non-negative integer is read as a number of seconds", () {
-      expect(ocptParseShotDuration("90"), 90000);
+    test("a bare non-negative integer is read as a number of minutes", () {
+      // The unit the field prints first is the unit it reads: `12` is `12:00`, not twelve seconds.
+      expect(ocptParseShotDuration("12"), 720000);
+      expect(ocptFormatShotDuration(ocptParseShotDuration("12")), "12:00");
+      expect(ocptParseShotDuration("90"), 5400000);
       expect(ocptParseShotDuration("0"), 0);
     });
 
@@ -109,6 +113,145 @@ void main() {
       expect(ocptShotFieldOrDash(null), ocptShotListEmptyValue);
       expect(ocptShotFieldOrDash("   "), ocptShotListEmptyValue);
       expect(ocptShotFieldOrDash("Wide shot"), "Wide shot");
+    });
+  });
+
+  group("ocptShotPlacementLabel", () {
+    testWidgets("dashes a shot with no placement at all", (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              label = ocptShotPlacementLabel(context, const []);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(label, ocptShotListEmptyValue);
+    });
+
+    testWidgets("reads a single placement's day tag and date", (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              label = ocptShotPlacementLabel(context, [
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+              ]);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tuesday 4 August 2026, in the app's own en_GB locale.
+      expect(label, "D3 · Tue 4 Aug");
+    });
+
+    testWidgets("two blocks on the same day still read as that single day", (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              // A shot interrupted by the meal break and resumed after it: two blocks, one day.
+              label = ocptShotPlacementLabel(context, [
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+              ]);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(label, "D3 · Tue 4 Aug");
+    });
+
+    testWidgets("placements on several distinct days read as their tags alone, joined",
+        (tester) async {
+      late String label;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              // Handed in descending day order, to prove the label sorts them ascending itself.
+              label = ocptShotPlacementLabel(context, [
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-5",
+                  dayNumber: 5,
+                  date: DateTime(2026, 8, 6),
+                ),
+                OcptShotPlacement(
+                  shotId: "shot-1",
+                  dayId: "day-3",
+                  dayNumber: 3,
+                  date: DateTime(2026, 8, 4),
+                ),
+              ]);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(label, "D3, D5");
     });
   });
 

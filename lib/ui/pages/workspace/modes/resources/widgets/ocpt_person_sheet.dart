@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_hmc_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_image_rights_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_logistics_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_max_presence_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_meals_health_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_minor_callout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_positions_card.dart';
@@ -21,7 +22,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 
 /// The resources mode's centre, once a person is selected: the whole person sheet, a single
 /// scrolling column edited in place — the header (photo slot, name, minor badge, contact grid),
-/// the crew positions card, the legal-hours callout (only while the person is a minor), a
+/// the crew positions card, the legal-hours callout (only while the person is a minor) beside the
+/// maximum daily presence card (always shown — the constraint isn't restricted to minors, only
+/// thought about beside them), a
 /// two-column grid of cards (meals/health/skills; logistics; image rights; hair, make-up and
 /// costume), the
 /// full-width unavailabilities card, the notes card, and `Delete this person` at the very bottom.
@@ -51,8 +54,22 @@ class OcptPersonSheet extends StatelessWidget {
   /// Called with a field's raw text on every keystroke.
   final void Function(OcptPersonField field, String rawValue) onFieldChanged;
 
-  /// Called with the palette index picked from the avatar's colour popover.
+  /// Called with the palette index picked from the photo slot's colour grid.
   final ValueChanged<int> onColorChanged;
+
+  /// Called when the photo slot's reference entry is picked, the native dialog being the caller's
+  /// to open.
+  final VoidCallback onPhotoPickRequested;
+
+  /// Called when the photo slot's remove entry is picked.
+  final VoidCallback onPhotoCleared;
+
+  /// Called when the image rights card's reference entry is picked, the native dialog being the
+  /// caller's to open.
+  final VoidCallback onImageRightsDocumentPickRequested;
+
+  /// Called when the image rights card's remove control is clicked.
+  final VoidCallback onImageRightsDocumentCleared;
 
   /// Called with the newly picked date of birth, or null to clear it.
   final ValueChanged<DateTime?> onBirthDateChanged;
@@ -122,6 +139,10 @@ class OcptPersonSheet extends StatelessWidget {
     required this.fieldValueOf,
     required this.onFieldChanged,
     required this.onColorChanged,
+    required this.onPhotoPickRequested,
+    required this.onPhotoCleared,
+    required this.onImageRightsDocumentPickRequested,
+    required this.onImageRightsDocumentCleared,
     required this.onBirthDateChanged,
     required this.onTransportAutonomyChanged,
     required this.onImageRightsStatusChanged,
@@ -152,6 +173,8 @@ class OcptPersonSheet extends StatelessWidget {
             fieldValueOf: fieldValueOf,
             onFieldChanged: isReadOnly ? null : onFieldChanged,
             onColorChanged: isReadOnly ? null : onColorChanged,
+            onPhotoPickRequested: isReadOnly ? null : onPhotoPickRequested,
+            onPhotoCleared: isReadOnly ? null : onPhotoCleared,
             onBirthDateChanged: isReadOnly ? null : onBirthDateChanged,
           ),
           const SizedBox(height: 16),
@@ -162,16 +185,31 @@ class OcptPersonSheet extends StatelessWidget {
             onRemoved: isReadOnly ? null : onPositionRemoved,
             onAdded: isReadOnly ? null : onPositionAdded,
           ),
-          if (isMinor) ...[
-            const SizedBox(height: 12),
-            OcptPersonSheetMinorCallout(
-              personId: person.id,
-              value: fieldValueOf(OcptPersonField.minorNotes),
-              onChanged: isReadOnly
-                  ? null
-                  : (value) => onFieldChanged(OcptPersonField.minorNotes, value),
-            ),
-          ],
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isMinor) ...[
+                Expanded(
+                  child: OcptPersonSheetMinorCallout(
+                    personId: person.id,
+                    value: fieldValueOf(OcptPersonField.minorNotes),
+                    onChanged: isReadOnly
+                        ? null
+                        : (value) => onFieldChanged(OcptPersonField.minorNotes, value),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: OcptPersonSheetMaxPresenceCard(
+                  personId: person.id,
+                  fieldValueOf: fieldValueOf,
+                  onFieldChanged: isReadOnly ? null : onFieldChanged,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           _buildCardGrid(context),
           const SizedBox(height: 12),
@@ -240,6 +278,9 @@ class OcptPersonSheet extends StatelessWidget {
               date: person.imageRightsDate,
               onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
               onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
+              document: person.imageRightsDocument,
+              onDocumentPickRequested: isReadOnly ? null : onImageRightsDocumentPickRequested,
+              onDocumentCleared: isReadOnly ? null : onImageRightsDocumentCleared,
             ),
           ),
           const SizedBox(width: 12),

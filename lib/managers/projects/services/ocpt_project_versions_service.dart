@@ -58,9 +58,16 @@ class OcptProjectVersionsService {
     'scene_sets',
     'elements',
     'scene_elements',
+    'role_elements',
     'assets',
     'breakdown_tags',
     'scene_breakdowns',
+    'shooting_days',
+    'shooting_slots',
+    'shooting_slot_crew',
+    'shooting_slot_cast',
+    'shooting_day_blocks',
+    'shooting_presences',
   ];
 
   /// The name, as the Dart side of the schema spells it, of the tombstone column every
@@ -343,12 +350,25 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptSceneSetsTable, payload.sceneSets)
         ..insertAll(database.ocptElementsTable, payload.elements)
         ..insertAll(database.ocptSceneElementsTable, payload.sceneElements)
+        ..insertAll(database.ocptRoleElementsTable, payload.roleElements)
         ..insertAll(database.ocptAssetsTable, payload.assets)
         // Both breakdown tables follow every table they may reference (scenes, roles, sets and
         // elements are all written above), so this is not a forward reference — unlike the
         // asset-referencing trio above it, `breakdown_tags` closes no foreign-key cycle of its own.
         ..insertAll(database.ocptBreakdownTagsTable, payload.breakdownTags)
         ..insertAll(database.ocptSceneBreakdownsTable, payload.sceneBreakdowns)
+        // The six schedule tables follow every table they may reference too — screenplays, shots,
+        // people, roles, locations and sets are all written above — so none of these is a forward
+        // reference either: shootingDays before shootingSlots (which may name a location or a set),
+        // before shootingSlotCrew/shootingSlotCast (which each point at a slot) and
+        // shootingDayBlocks (which points at a slot, and a block may also point at a shot), and
+        // shootingPresences last, referencing only a day and a person.
+        ..insertAll(database.ocptShootingDaysTable, payload.shootingDays)
+        ..insertAll(database.ocptShootingSlotsTable, payload.shootingSlots)
+        ..insertAll(database.ocptShootingSlotCrewTable, payload.shootingSlotCrew)
+        ..insertAll(database.ocptShootingSlotCastTable, payload.shootingSlotCast)
+        ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
+        ..insertAll(database.ocptShootingPresencesTable, payload.shootingPresences)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
@@ -570,9 +590,16 @@ class OcptProjectVersionsService {
       sceneSets: await database.select(database.ocptSceneSetsTable).get(),
       elements: await database.select(database.ocptElementsTable).get(),
       sceneElements: await database.select(database.ocptSceneElementsTable).get(),
+      roleElements: await database.select(database.ocptRoleElementsTable).get(),
       assets: await database.select(database.ocptAssetsTable).get(),
       breakdownTags: await database.select(database.ocptBreakdownTagsTable).get(),
       sceneBreakdowns: await database.select(database.ocptSceneBreakdownsTable).get(),
+      shootingDays: await database.select(database.ocptShootingDaysTable).get(),
+      shootingSlots: await database.select(database.ocptShootingSlotsTable).get(),
+      shootingSlotCrew: await database.select(database.ocptShootingSlotCrewTable).get(),
+      shootingSlotCast: await database.select(database.ocptShootingSlotCastTable).get(),
+      shootingDayBlocks: await database.select(database.ocptShootingDayBlocksTable).get(),
+      shootingPresences: await database.select(database.ocptShootingPresencesTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
       pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
       settingsJson: info.settingsJson,
@@ -610,7 +637,8 @@ class OcptProjectVersionsService {
   /// `person_unavailabilities` siblings, each pointing at it) before `roles` (which may cast one),
   /// before `locations` (whose contact may be one) before the `sets` inside them, before
   /// `scene_sets` linking a scene to one, before `elements` (whose owner and bringer may be a
-  /// person) before `scene_elements` linking a scene to one, and `assets` last, since a person, a
+  /// person) before `scene_elements` linking a scene to one and `role_elements` linking a role to
+  /// one, and `assets` last, since a person, a
   /// location or an element may name one as its photo or document before that row itself exists.
   /// That last point is also where the ordering stops being fully satisfiable: `people`,
   /// `locations` and `elements` each reference `assets` (a photo, a permit, a document) while
@@ -626,8 +654,20 @@ class OcptProjectVersionsService {
   /// this point, so — unlike `assets` — neither closes a foreign-key cycle of its own; the deferred
   /// pragma above is what the asset trio needs, not these two.
   ///
+  /// The six schedule tables follow last, in the same dependency order the schema's own v11
+  /// migration creates them in: `shooting_days` (which may reference a screenplay already restored
+  /// above) before `shooting_slots` (which may name a location or a set), before
+  /// `shooting_slot_crew`/`shooting_slot_cast` (which each point at a slot, and at a person or a
+  /// role respectively) and `shooting_day_blocks` (which points at a slot and, for a shot block, at
+  /// a shot), and `shooting_presences` last, referencing only a day and a person. Every table it
+  /// could possibly reference is restored by this point, so this is not a forward reference and
+  /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
+  /// needs, not this group.
+  ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
-  /// for every reader of a payload alike — see [_scrubErasedPeople].
+  /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the six schedule
+  /// tables holds a person's own data (a phone number, an address, an allergy) — only ids pointing
+  /// at `people` and `roles` — so there is nothing in them for that scrub to touch.
   Future<void> _applyPayload({
     required OcptProjectDatabase database,
     required OcptProjectVersionPayload payload,
@@ -787,6 +827,15 @@ class OcptProjectVersionsService {
 
     await _restoreTable(
       database: database,
+      table: database.ocptRoleElementsTable,
+      payloadRows: payload.roleElements,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
       table: database.ocptAssetsTable,
       payloadRows: payload.assets,
       rowIdOf: (row) => row.id,
@@ -812,12 +861,66 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingDaysTable,
+      payloadRows: payload.shootingDays,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingSlotsTable,
+      payloadRows: payload.shootingSlots,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingSlotCrewTable,
+      payloadRows: payload.shootingSlotCrew,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingSlotCastTable,
+      payloadRows: payload.shootingSlotCast,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingDayBlocksTable,
+      payloadRows: payload.shootingDayBlocks,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
+    await _restoreTable(
+      database: database,
+      table: database.ocptShootingPresencesTable,
+      payloadRows: payload.shootingPresences,
+      rowIdOf: (row) => row.id,
+      tombstonedOf: (row) => row.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+
     await stamps.flush(database);
   }
 
   /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
-  /// `person_unavailabilities` rows hanging off them — for every person `local_erasures` names in
-  /// [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
+  /// `person_unavailabilities`/`assets` rows hanging off them — for every person `local_erasures`
+  /// names in [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
   /// writing one back into the working copy, nor [hydratePreview] putting one on screen. [loadPayload]
   /// is the single door both come through, which is why the scrub lives there.
   ///
@@ -892,12 +995,37 @@ class OcptProjectVersionsService {
       sceneSets: payload.sceneSets,
       elements: payload.elements,
       sceneElements: payload.sceneElements,
-      assets: payload.assets,
+      // A `role_elements` row names a role and an element, never a person: an actor is reached
+      // through `roles.personId`, which the `roles` list above already answers for. Nothing here
+      // to scrub.
+      roleElements: payload.roleElements,
+      // An asset's `path` is personal data in its own right: an absolute path routinely names the
+      // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
+      // sits on this machine. So a row belonging to an erased person is tombstoned **and blanked**,
+      // exactly as `OcptAssetsService.erasePersonAssets` does it live — the mirror this comment's
+      // method doc warns must be kept in step. A row belonging to a location or an element is
+      // nobody's personal data and travels through untouched.
+      assets: [
+        for (final row in payload.assets)
+          row.personId != null && erasedPersonIds.contains(row.personId)
+              ? row.copyWith(isDeleted: true, path: '', label: '')
+              : row,
+      ],
       // A breakdown tag never names a person — only an element, a role or a set — and a scene
       // breakdown carries nothing about anyone either, so neither list has anything for this method
       // to scrub: both travel through unchanged.
       breakdownTags: payload.breakdownTags,
       sceneBreakdowns: payload.sceneBreakdowns,
+      // None of the six schedule tables holds a person's own data either — only ids pointing at
+      // `people` or `roles`, which stay valid (an erased person's row is blanked and tombstoned,
+      // never dropped, so a `shooting_slot_crew.personId` or `shooting_presences.personId`
+      // referencing it still resolves) — so all six travel through unchanged too.
+      shootingDays: payload.shootingDays,
+      shootingSlots: payload.shootingSlots,
+      shootingSlotCrew: payload.shootingSlotCrew,
+      shootingSlotCast: payload.shootingSlotCast,
+      shootingDayBlocks: payload.shootingDayBlocks,
+      shootingPresences: payload.shootingPresences,
       rowFieldVersions: payload.rowFieldVersions,
       pageSetup: payload.pageSetup,
       settingsJson: payload.settingsJson,
@@ -907,8 +1035,9 @@ class OcptProjectVersionsService {
 
   /// [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live row:
   /// every column held something about the person except `id`, `sortKey`, `isDeleted` (set to true
-  /// here rather than left alone) and `colorIndex`. See [_scrubErasedPeople] for why the two must
-  /// stay in step by hand.
+  /// here rather than left alone) and `colorIndex`. `maxDailyPresenceMinutes` is blanked with the
+  /// rest, being personal data of the same nature as `minorNotes`. See [_scrubErasedPeople] for why
+  /// the two must stay in step by hand.
   static OcptPersonRow _erasedPersonRow(OcptPersonRow row) => row.copyWith(
     isDeleted: true,
     firstName: '',
@@ -923,6 +1052,7 @@ class OcptProjectVersionsService {
     country: '',
     birthDate: const Value(null),
     minorNotes: '',
+    maxDailyPresenceMinutes: const Value(null),
     isTransportAutonomous: const Value(null),
     accommodationNotes: '',
     travelNotes: '',

@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -28,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -41,6 +43,7 @@ void main() {
 
   const codec = OcptProjectVersionCodec();
   const peopleService = OcptPeopleService();
+  const scheduleService = OcptScheduleService();
   const roleIndexService = OcptRoleIndexService();
   const elementsService = OcptElementsService();
   const locationsService = OcptLocationsService();
@@ -133,6 +136,43 @@ void main() {
           sortKey: const Value("V"),
           framing: const Value("Low angle"),
           status: const Value(OcptShotStatus.shot),
+          isDeleted: Value(isDeleted),
+        ),
+      );
+
+  /// Inserts the shooting day [id] of the project's screenplay, tombstoned when [isDeleted].
+  Future<void> insertShootingDay({
+    required String id,
+    DateTime? date,
+    String sortKey = "V",
+    bool isDeleted = false,
+  }) => database
+      .into(database.ocptShootingDaysTable)
+      .insert(
+        OcptShootingDaysTableCompanion.insert(
+          id: id,
+          screenplayId: screenplayId,
+          date: date ?? DateTime.utc(2026, 3, 10),
+          sortKey: Value(sortKey),
+          isDeleted: Value(isDeleted),
+        ),
+      );
+
+  /// Inserts the shooting slot [id] of shooting day [shootingDayId], tombstoned when [isDeleted].
+  Future<void> insertShootingSlot({
+    required String id,
+    required String shootingDayId,
+    String sortKey = "V",
+    int anchorMinute = 420,
+    bool isDeleted = false,
+  }) => database
+      .into(database.ocptShootingSlotsTable)
+      .insert(
+        OcptShootingSlotsTableCompanion.insert(
+          id: id,
+          shootingDayId: shootingDayId,
+          sortKey: Value(sortKey),
+          anchorMinute: Value(anchorMinute),
           isDeleted: Value(isDeleted),
         ),
       );
@@ -800,9 +840,16 @@ void main() {
                   sceneSets: payload.sceneSets,
                   elements: payload.elements,
                   sceneElements: payload.sceneElements,
+                  roleElements: payload.roleElements,
                   assets: payload.assets,
                   breakdownTags: payload.breakdownTags,
                   sceneBreakdowns: payload.sceneBreakdowns,
+                  shootingDays: payload.shootingDays,
+                  shootingSlots: payload.shootingSlots,
+                  shootingSlotCrew: payload.shootingSlotCrew,
+                  shootingSlotCast: payload.shootingSlotCast,
+                  shootingDayBlocks: payload.shootingDayBlocks,
+                  shootingPresences: payload.shootingPresences,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -898,6 +945,73 @@ void main() {
       expect(restoredPerson2.isDeleted, isTrue);
     });
 
+    test("a role's things come back, and a link made since is tombstoned", () async {
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-1",
+              screenplayId: screenplayId,
+              name: "CLARA",
+              kind: OcptRoleKind.speaking,
+            ),
+          );
+      await database
+          .into(database.ocptElementsTable)
+          .insert(
+            OcptElementsTableCompanion.insert(
+              id: "element-1",
+              name: "Manteau rouge",
+              category: OcptElementCategory.costume,
+              sourceKind: OcptElementSourceKind.owned,
+            ),
+          );
+      await database
+          .into(database.ocptRoleElementsTable)
+          .insert(
+            OcptRoleElementsTableCompanion.insert(
+              id: "link-1",
+              roleId: "role-1",
+              elementId: "element-1",
+              notes: const Value("Taché"),
+            ),
+          );
+
+      final version = await createVersion();
+
+      // Diverge: the captured link's note is edited, and a second link is made since.
+      await (database.update(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals("link-1"))).write(
+        const OcptRoleElementsTableCompanion(notes: Value("Edited")),
+      );
+      await database
+          .into(database.ocptRoleElementsTable)
+          .insert(
+            OcptRoleElementsTableCompanion.insert(
+              id: "link-2",
+              roleId: "role-1",
+              elementId: "element-1",
+            ),
+          );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final restored = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals("link-1"))).getSingle();
+      expect(restored.notes, "Taché");
+      expect(restored.isDeleted, isFalse);
+
+      // The link the version never held is tombstoned, not deleted, like every other row.
+      final later = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.id.equals("link-2"))).getSingle();
+      expect(later.isDeleted, isTrue);
+    });
+
     test("stamps a resources column it changed, above what it already held", () async {
       await database
           .into(database.ocptPeopleTable)
@@ -977,6 +1091,212 @@ void main() {
       expect(person.isDeleted, isTrue);
     });
 
+    test(
+      "restoring a format-5 payload tombstones the schedule the working copy has planned since",
+      () async {
+        // A literal fixture of a version captured before milestone M1: none of the six schedule
+        // tables are present at all, matching exactly what a real payload written in that format
+        // looked like on disk.
+        await database
+            .into(database.ocptProjectVersionsTable)
+            .insert(
+              OcptProjectVersionsTableCompanion.insert(
+                id: "version-format5",
+                name: "v0 — Before the schedule",
+                createdAt: DateTime.utc(2026),
+                appVersion: "0.1.0",
+                payloadFormat: 5,
+                payload:
+                    '{"payloadFormat":5,"screenplays":[{"id":"$screenplayId","title":"Draft",'
+                    '"fountainText":"${capturedText.replaceAll('\n', r'\n')}",'
+                    '"updatedAt":"2026-01-05T00:00:00.000Z",'
+                    '"isDeleted":false}],"scenes":[],"shots":[],"shotCharacters":[],'
+                    '"shotCoverages":[],"people":[],"personPositions":[],"personSkills":[],'
+                    '"personUnavailabilities":[],"roles":[],"locations":[],'
+                    '"locationAvailabilities":[],"sets":[],"sceneSets":[],"elements":[],'
+                    '"sceneElements":[],"assets":[],"breakdownTags":[],"sceneBreakdowns":[],'
+                    '"rowFieldVersions":[],'
+                    '"projectSettings":{"pageFormat":"a4","settingsJson":null,'
+                    '"currencyCode":"EUR"},'
+                    '"pageMargins":{"leftInches":1.5,"rightInches":1,"topInches":0.75,'
+                    '"bottomInches":1.25}}',
+                summaryJson: "{}",
+                createdByDeviceId: deviceId,
+              ),
+            );
+
+        await insertShootingDay(id: "day-1");
+
+        final result = await restore("version-format5");
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        // The format-5 payload says "this project had not been scheduled yet" — a truthful
+        // statement about that moment — so the restore tombstones what the working copy planned
+        // since, exactly as a format-1 payload does for the resources tables above. Note this is
+        // the plan's own §12 wording ("a version captured before M1 restores without touching the
+        // schedule") read loosely: the schedule *is* touched here, tombstoned rather than left —
+        // which is the empty-list upgrade's own, deliberately truthful, behaviour.
+        final day = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-1"))).getSingle();
+        expect(day.isDeleted, isTrue);
+      },
+    );
+
+    test(
+      "restores a schedule captured after M1 exactly, tombstones and sort keys included",
+      () async {
+        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
+        await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
+        await database
+            .into(database.ocptShootingSlotCrewTable)
+            .insert(
+              OcptShootingSlotCrewTableCompanion.insert(
+                id: "crew-1",
+                slotId: "slot-1",
+                personId: "person-1",
+              ),
+            );
+
+        final version = await createVersion(name: "v1 — Day planned");
+
+        // Diverge: the slot's anchored hour is edited, its position renamed by the shooting day it
+        // belongs to, a second day is added, and the crew row is tombstoned.
+        await (database.update(
+          database.ocptShootingSlotsTable,
+        )..where((table) => table.id.equals("slot-1"))).write(
+          const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)),
+        );
+        await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
+        await scheduleService.removeSlotCrewMember(database: database, crewMemberId: "crew-1");
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        final restoredSlot = await (database.select(
+          database.ocptShootingSlotsTable,
+        )..where((table) => table.id.equals("slot-1"))).getSingle();
+        expect(restoredSlot.anchorMinute, 420);
+        expect(restoredSlot.sortKey, "V");
+
+        final restoredDay = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-1"))).getSingle();
+        expect(restoredDay.isDeleted, isFalse);
+        expect(restoredDay.sortKey, "V");
+
+        // The day the version never held is tombstoned, not deleted, exactly like a shot.
+        final droppedDay = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-2"))).getSingle();
+        expect(droppedDay.isDeleted, isTrue);
+
+        // The crew row is restored live again.
+        final restoredCrew = await (database.select(
+          database.ocptShootingSlotCrewTable,
+        )..where((table) => table.id.equals("crew-1"))).getSingle();
+        expect(restoredCrew.isDeleted, isFalse);
+        expect(restoredCrew.personId, "person-1");
+      },
+    );
+
+    test(
+      "a presence-grid override survives a capture and a restore, tombstone and revival included",
+      () async {
+        await insertShootingDay(id: "day-1");
+        await database
+            .into(database.ocptPeopleTable)
+            .insert(
+              OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
+            );
+        await scheduleService.setPresenceOverride(
+          database: database,
+          dayId: "day-1",
+          personId: "person-1",
+          code: OcptPresenceCode.travelling,
+        );
+
+        final version = await createVersion(name: "v1 — Presence set");
+
+        // Diverge: the override is changed, then cleared (tombstoned) in the working copy.
+        await scheduleService.setPresenceOverride(
+          database: database,
+          dayId: "day-1",
+          personId: "person-1",
+          code: OcptPresenceCode.unavailable,
+        );
+        await scheduleService.setPresenceOverride(
+          database: database,
+          dayId: "day-1",
+          personId: "person-1",
+          code: null,
+        );
+        final clearedRow = await (database.select(
+          database.ocptShootingPresencesTable,
+        )..where((table) => table.shootingDayId.equals("day-1"))).getSingle();
+        expect(clearedRow.isDeleted, isTrue);
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        // The row is revived — live again, and back to the code the version was captured with —
+        // rather than a second row being minted for the same (day, person) pair.
+        final restoredRow = await (database.select(
+          database.ocptShootingPresencesTable,
+        )..where((table) => table.shootingDayId.equals("day-1"))).getSingle();
+        expect(restoredRow.id, clearedRow.id);
+        expect(restoredRow.isDeleted, isFalse);
+        expect(restoredRow.code, OcptPresenceCode.travelling);
+
+        // And the schedule mode reads that override back exactly the way it wrote it.
+        final restoredSnapshot = await scheduleService.loadSchedule(
+          database: database,
+          screenplayId: screenplayId,
+        );
+        expect(
+          restoredSnapshot.presenceOverrideByDayAndPerson[("day-1", "person-1")],
+          OcptPresenceCode.travelling,
+        );
+      },
+    );
+
+    test("stamps a schedule column it changed, above what it already held", () async {
+      await insertShootingDay(id: "day-1");
+      await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+      final version = await createVersion();
+
+      await (database.update(
+        database.ocptShootingSlotsTable,
+      )..where((table) => table.id.equals("slot-1"))).write(
+        const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)),
+      );
+
+      // As if the edit had already been stamped by the changeset engine.
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "shooting_slots",
+              rowId: "slot-1",
+              columnName: "anchorMinute",
+              version: 4,
+              deviceId: "device-0",
+            ),
+          );
+
+      await restore(version.id);
+
+      final stamps = await readStamps();
+      expect(stamps["shooting_slots/slot-1/anchorMinute"]?.version, 5);
+      expect(stamps["shooting_slots/slot-1/anchorMinute"]?.deviceId, deviceId);
+    });
+
     test("restores the currency the version was captured with", () async {
       final version = await createVersion();
 
@@ -1040,6 +1360,7 @@ void main() {
                 lastName: const Value("Martin"),
                 email: const Value("clara@example.com"),
                 phone: const Value("0102030405"),
+                maxDailyPresenceMinutes: const Value(480),
               ),
             );
         await database
@@ -1070,6 +1391,7 @@ void main() {
         expect(person.lastName, isEmpty);
         expect(person.email, isEmpty);
         expect(person.phone, isEmpty);
+        expect(person.maxDailyPresenceMinutes, isNull);
 
         final skill = await (database.select(
           database.ocptPersonSkillsTable,
@@ -1082,6 +1404,67 @@ void main() {
         expect(erasures.map((row) => row.personId), contains("person-1"));
       },
     );
+
+    test("restoring a version does not put back an erased person's referenced files", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(
+              id: "person-1",
+              firstName: const Value("Clara"),
+              lastName: const Value("Martin"),
+            ),
+          );
+      final photoId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: "person-1",
+        path: "/photos/clara-martin.jpg",
+      ))!;
+
+      final version = await createVersion();
+
+      await peopleService.deletePerson(database: database, personId: "person-1");
+
+      final result = await restore(version.id);
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      // An asset's path is personal data in its own right — it names the person and says where a
+      // photograph of them sits — so the payload's copy is scrubbed exactly as the person's own
+      // row is, or a restore would write the leak straight back.
+      final asset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(photoId))).getSingle();
+      expect(asset.isDeleted, isTrue);
+      expect(asset.path, isEmpty);
+    });
+
+    test("restoring keeps a location's own referenced files, which are nobody's data", () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
+      await database
+          .into(database.ocptLocationsTable)
+          .insert(
+            OcptLocationsTableCompanion.insert(id: "location-1", name: "Le hangar"),
+          );
+      final photoId = (await locationsService.addLocationPhoto(
+        database: database,
+        locationId: "location-1",
+        path: "/photos/repérage.jpg",
+      ))!;
+
+      final version = await createVersion();
+      await peopleService.deletePerson(database: database, personId: "person-1");
+
+      final result = await restore(version.id);
+      expect(result.status, OcptProjectRestoreStatus.ok);
+
+      final asset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(photoId))).getSingle();
+      expect(asset.isDeleted, isFalse);
+      expect(asset.path, "/photos/repérage.jpg");
+    });
 
     test("previewing a version captured before an erasure shows nothing of the person", () async {
       await database

@@ -11,9 +11,14 @@ import 'package:act_intl_ui/act_intl_ui.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_state.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 /// A locales manager whose current/wanted locale are held in plain fields instead of being
 /// backed by real config/properties managers: this test only exercises
@@ -121,9 +126,18 @@ class _FakeActThemesManager extends ActThemesManager {
 }
 
 void main() {
-  setUpAll(() {
+  late OcptPropertiesManager propertiesManager;
+
+  setUpAll(() async {
     // Makes appLogger() (used by the bloc's mixins) resolvable, like the home bloc test does.
     OcptGlobalManager.instance;
+
+    // The bloc reads the preferences this app persists itself through a real properties manager
+    // over in-memory shared preferences — there is nothing to fake in it, unlike the two ACT
+    // managers above, whose real ones would reach for config files.
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    propertiesManager = OcptPropertiesManager();
+    await propertiesManager.initLifeCycle();
   });
 
   /// Registers fresh fake managers, replacing any already registered, with [brightness] and
@@ -148,6 +162,11 @@ void main() {
 
     managers.registerSingleton<LocalesManager>(locales);
     managers.registerSingleton<ActThemesManager>(themes);
+
+    if (managers.isRegistered<OcptPropertiesManager>()) {
+      await managers.unregister<OcptPropertiesManager>(disposingFunction: (_) async {});
+    }
+    managers.registerSingleton<OcptPropertiesManager>(propertiesManager);
   }
 
   setUp(registerFakeManagers);
@@ -219,5 +238,48 @@ void main() {
     expect(state.wantedLocale, const Locale("fr"));
 
     await bloc.close();
+  });
+
+  test("the week starts on Monday until the user says otherwise", () async {
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+    await pumpEventQueue();
+
+    expect(bloc.state.firstWeekday, OcptFirstWeekday.monday);
+
+    await bloc.close();
+  });
+
+  test("picking a first weekday stores it and shows it", () async {
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+
+    bloc.add(
+      const OcptSettingsFirstWeekdayChangedEvent(firstWeekday: OcptFirstWeekday.sunday),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.firstWeekday == OcptFirstWeekday.sunday,
+    );
+
+    expect(state.firstWeekday, OcptFirstWeekday.sunday);
+    expect(await propertiesManager.firstWeekday.load(), OcptFirstWeekday.sunday);
+
+    await bloc.close();
+  });
+
+  test("a stored first weekday is read back into the state on open", () async {
+    // The preference outlives the page, so a bloc built afterwards must show what was stored
+    // rather than the default — the whole point of the asynchronous load the constructor asks for.
+    await propertiesManager.firstWeekday.store(OcptFirstWeekday.sunday);
+
+    final bloc = OcptSettingsBloc(appVersion: "1.0.0");
+    final state = await waitForState(
+      bloc,
+      (state) => state.firstWeekday == OcptFirstWeekday.sunday,
+    );
+
+    expect(state.firstWeekday, OcptFirstWeekday.sunday);
+
+    await bloc.close();
+    await propertiesManager.firstWeekday.store(OcptFirstWeekday.monday);
   });
 }

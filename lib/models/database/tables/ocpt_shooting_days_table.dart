@@ -1,0 +1,76 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+
+/// Converts a [OcptShootingDayStatus] to and from the text stored in the `shooting_days.status`
+/// column.
+class OcptShootingDayStatusConverter extends TypeConverter<OcptShootingDayStatus, String> {
+  /// Class constructor
+  const OcptShootingDayStatusConverter();
+
+  /// {@macro drift.TypeConverter.fromSql}
+  @override
+  OcptShootingDayStatus fromSql(String fromDb) => OcptShootingDayStatus.values.byName(fromDb);
+
+  /// {@macro drift.TypeConverter.toSql}
+  @override
+  String toSql(OcptShootingDayStatus value) => value.name;
+}
+
+/// One day of the shooting schedule.
+///
+/// A day is placed in the calendar by [date], never by a free-text label: the week and month
+/// agenda views, the sun and twilight block and every crossing against a person's or a location's
+/// availability all depend on it being real and never null. The *day number* printed on a call
+/// sheet (`J3`) is, like `OcptShot.position`, never stored: it is a read-time rank over [sortKey].
+///
+/// Sunrise, sunset and the three twilights are **not columns here**: they are computed offline,
+/// for the date this row carries, from the coordinates of the day's first slot's location — see
+/// `lib/utils/ocpt_sun_times.dart` (a sibling table, `shooting_slots`, is what actually names a
+/// location).
+@DataClassName('OcptShootingDayRow')
+class OcptShootingDaysTable extends Table {
+  /// {@macro open_cine_prod_tools.OcptShootingDaysTable}
+  @override
+  String get tableName => 'shooting_days';
+
+  /// The stable, unique id of this day (a UUID).
+  TextColumn get id => text()();
+
+  /// The screenplay this day belongs to: the schedule is per screenplay, like the shot list and the
+  /// role index.
+  TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
+
+  /// The calendar date of this day. **Never null**: see the class doc comment.
+  DateTimeColumn get date => dateTime()();
+
+  /// {@macro open_cine_prod_tools.sortKey}
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
+
+  /// Where this day stands.
+  // The stored literal below must match `OcptShootingDayStatus.planned.name` exactly, for the same
+  // reason `shots.status`'s default does: an enum's `.name` getter isn't a compile-time constant
+  // expression, so it can't be written as `Constant(OcptShootingDayStatus.planned)`.
+  TextColumn get status =>
+      text().map(const OcptShootingDayStatusConverter()).withDefault(const Constant('planned'))();
+
+  /// The call sheet's "NOTE À L'ÉQUIPE": free multi-line text printed for the whole crew.
+  TextColumn get crewNote => text().withDefault(const Constant(''))();
+
+  /// The weather forecast for this day, typed by hand — the app never reaches the network.
+  TextColumn get weatherNote => text().withDefault(const Constant(''))();
+
+  /// Internal notes about this day, never printed on a call sheet.
+  TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// {@macro open_cine_prod_tools.isDeleted}
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
+  /// {@macro drift.Table.primaryKey}
+  @override
+  Set<Column> get primaryKey => {id};
+}

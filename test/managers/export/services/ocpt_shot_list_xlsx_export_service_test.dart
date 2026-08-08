@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xls
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -87,6 +88,7 @@ OcptSceneShotSequence _buildSceneSequence({
 OcptShotListXlsxLabels _buildLabels({
   Map<String, String> sequenceTitles = const {},
   String sheetName = _sheetName,
+  String dayTagPrefix = "D",
 }) => OcptShotListXlsxLabels(
   sheetName: sheetName,
   columnHeaders: {
@@ -98,6 +100,7 @@ OcptShotListXlsxLabels _buildLabels({
     OcptShotStatus.retake: "Retake",
   },
   sequenceTitles: sequenceTitles,
+  dayTagPrefix: dayTagPrefix,
 );
 
 /// Decodes [bytes] and returns the rows of its [_sheetName] sheet, as plain Dart values.
@@ -201,7 +204,6 @@ void main() {
                 lens: "35mm",
                 recordingFormat: "4K · 25 fps",
                 estimatedDurationMs: 90000,
-                shootingDay: "Day 3",
                 plannedTakes: 4,
                 sound: "Direct sound",
                 status: OcptShotStatus.retake,
@@ -212,6 +214,16 @@ void main() {
             ],
           ),
         ],
+        placementsByShotId: {
+          "shot-1": [
+            OcptShotPlacement(
+              shotId: "shot-1",
+              dayId: "day-3",
+              dayNumber: 3,
+              date: DateTime(2026, 8, 4),
+            ),
+          ],
+        },
       );
 
       final rows = _rowsOf(
@@ -235,10 +247,40 @@ void main() {
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.takes), 4);
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.sound), "Direct sound");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.difficulty), 2.75);
-      expect(_cellOf(shotRow, OcptShotListXlsxColumn.shootingDay), "Day 3");
+      expect(_cellOf(shotRow, OcptShotListXlsxColumn.shootingDay), "D3 · 2026-08-04");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.status), "Retake");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.notes), "Keep the door in frame.");
       expect(_cellOf(shotRow, OcptShotListXlsxColumn.locationNotes), "Flat visited on the 12th.");
+    });
+
+    test('the placement cell reads its day tag letter off labels, never a hard-coded one', () {
+      final snapshot = OcptShotListSnapshot.build(
+        screenplayId: "screenplay",
+        sequences: [
+          _buildSceneSequence(
+            sceneId: "scene-1",
+            heading: "INT. FLAT - NIGHT",
+            shots: [_buildShot(id: "shot-1", code: "1/1")],
+          ),
+        ],
+        placementsByShotId: {
+          "shot-1": [
+            OcptShotPlacement(
+              shotId: "shot-1",
+              dayId: "day-3",
+              dayNumber: 3,
+              date: DateTime(2026, 8, 4),
+            ),
+          ],
+        },
+      );
+
+      final rows = _rowsOf(
+        service.generate(snapshot: snapshot, labels: _buildLabels(dayTagPrefix: "J")),
+      );
+      final shotRow = rows[2];
+
+      expect(_cellOf(shotRow, OcptShotListXlsxColumn.shootingDay), "J3 · 2026-08-04");
     });
 
     test('leaves a field the user never filled in as an empty cell, never as a dash', () {

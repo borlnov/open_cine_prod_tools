@@ -49,6 +49,7 @@ OcptPerson _person({required String id, required String firstName, required Stri
       colorIndex: 0,
       birthDate: null,
       minorNotes: "",
+      maxDailyPresenceMinutes: null,
       isTransportAutonomous: null,
       accommodationNotes: "",
       travelNotes: "",
@@ -65,7 +66,9 @@ OcptPerson _person({required String id, required String firstName, required Stri
       imageRightsStatus: OcptImageRightsStatus.notApplicable,
       imageRightsDate: null,
       imageRightsAssetId: null,
+      imageRightsDocument: null,
       photoAssetId: null,
+      photo: null,
       notes: "",
       positions: const [],
       skills: const [],
@@ -140,7 +143,9 @@ OcptElement _element({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 void main() {

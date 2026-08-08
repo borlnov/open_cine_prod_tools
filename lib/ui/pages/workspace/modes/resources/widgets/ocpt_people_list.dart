@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
@@ -125,7 +125,7 @@ class _OcptPersonEntry extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
-              _OcptPersonAvatar(person: person),
+              OcptPersonAvatar(person: person, radius: 13),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -171,29 +171,4 @@ class _OcptPersonEntry extends StatelessWidget {
       )
       .where((label) => label.isNotEmpty)
       .join(" · ");
-}
-
-/// A person's 26 px circular avatar: their colour, carrying their initials.
-class _OcptPersonAvatar extends StatelessWidget {
-  /// The person this avatar represents.
-  final OcptPerson person;
-
-  /// Class constructor
-  const _OcptPersonAvatar({required this.person});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Color(ocptCoverageColorAt(person.colorIndex));
-
-    return CircleAvatar(
-      radius: 13,
-      backgroundColor: color,
-      child: Text(
-        person.initials,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
 }

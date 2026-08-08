@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
@@ -345,6 +346,22 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onColorChanged: (colorIndex) => bloc.add(
         OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
       ),
+      onPhotoPickRequested: () => bloc.add(
+        OcptResourcesPersonPhotoPickRequestedEvent(
+          personId: selectedPerson.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoCleared: () =>
+          bloc.add(OcptResourcesPersonPhotoClearedEvent(personId: selectedPerson.id)),
+      onImageRightsDocumentPickRequested: () => bloc.add(
+        OcptResourcesImageRightsDocumentPickRequestedEvent(
+          personId: selectedPerson.id,
+          fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
+        ),
+      ),
+      onImageRightsDocumentCleared: () =>
+          bloc.add(OcptResourcesImageRightsDocumentClearedEvent(personId: selectedPerson.id)),
       onBirthDateChanged: (date) => bloc.add(
         OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
       ),
@@ -443,6 +460,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptPersonField.region => person.region,
       OcptPersonField.country => person.country,
       OcptPersonField.minorNotes => person.minorNotes,
+      OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
+        person.maxDailyPresenceMinutes,
+      ),
       OcptPersonField.accommodationNotes => person.accommodationNotes,
       OcptPersonField.travelNotes => person.travelNotes,
       OcptPersonField.dietaryNotes => person.dietaryNotes,
@@ -514,6 +534,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       castMember: castMember,
       otherRoles: _otherRolesOf(state, selectedRole, castMember),
       people: state.people,
+      elements: state.elements,
       removedRoleAlert: state.selectedRoleAlert,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
@@ -539,6 +560,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
           bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      onElementLinked: (elementId) => bloc.add(
+        OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
+      ),
+      onRoleElementUpdated: (id, notes) =>
+          bloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
+      onRoleElementRemoved: (id) => bloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
     );
   }
 
@@ -708,10 +735,19 @@ class _ResourcesViewState extends State<_ResourcesView> {
       owner: _personOf(state, selectedElement.ownerPersonId),
       bringer: _personOf(state, selectedElement.broughtByPersonId),
       people: state.people,
+      roles: state.roles,
       scenes: state.scenes,
       currencyCode: state.currencyCode,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _elementFieldValueOf(state, selectedElement, field),
+      onPhotoPickRequested: () => bloc.add(
+        OcptResourcesElementPhotoPickRequestedEvent(
+          elementId: selectedElement.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoCleared: () =>
+          bloc.add(OcptResourcesElementPhotoClearedEvent(elementId: selectedElement.id)),
       onFieldChanged: (field, rawValue) => bloc.add(
         OcptResourcesElementFieldChangedEvent(
           elementId: selectedElement.id,
@@ -768,6 +804,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      onRoleSheetOpenRequested: (roleId) =>
+          bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId)),
     );
   }
 

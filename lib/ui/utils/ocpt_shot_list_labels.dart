@@ -8,11 +8,13 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart' show ocptScheduleDayTagLabel;
 
 /// The placeholder shown in place of a shot field that has no value yet.
 ///
@@ -87,6 +89,7 @@ OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> se
         for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
       },
       sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+      dayTagPrefix: tr.scheduleDayTagPrefix,
     );
 
 /// Builds every localized string the exported scenario coverage document carries, for the
@@ -185,13 +188,58 @@ String ocptFormatShotDuration(int? milliseconds) {
 String ocptShotFieldOrDash(String? value) =>
     value == null || value.trim().isEmpty ? ocptShotListEmptyValue : value;
 
+/// The shot list's own read-out of a shot's placement(s) in the schedule, [placements] being every
+/// live block that places it (`OcptShotListSnapshot.placementsByShotId`, empty for a shot the
+/// schedule carries no entry for at all):
+///
+/// - no placement at all: [ocptShotListEmptyValue] — "not yet planned"
+///   (`OcptScheduleService.loadShotPlacements`'s own doc comment);
+/// - every placement landing on the **same** day (a shot interrupted by the meal break and resumed
+///   after it is two blocks on that one day): `J3 · Tue 4 Aug`, exactly as a single placement reads
+///   — the day tag then its date;
+/// - placements spread across **several** days: the day tags alone, joined with `, ` (`J3, J5`) —
+///   there is no room left for dates once there is more than one, and the tags are what a crew
+///   actually says.
+///
+/// Days are deduplicated by [OcptShotPlacement.dayId] and kept in ascending
+/// [OcptShotPlacement.dayNumber] order. The day tag is [ocptScheduleDayTagLabel], the schedule
+/// mode's own — reused rather than reimplemented, so the two modes can never print a shooting
+/// day's rank differently, letter included. The date, in the single-day case, is formatted for the
+/// locale [context] resolves to, without a year: the column has no room for one and a shoot rarely
+/// spans two.
+String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> placements) {
+  if (placements.isEmpty) {
+    return ocptShotListEmptyValue;
+  }
+
+  final tr = Tr.of(context);
+  final distinctDays = <String, OcptShotPlacement>{};
+  for (final placement in placements) {
+    distinctDays[placement.dayId] = placement;
+  }
+  final orderedDays = distinctDays.values.toList()
+    ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+
+  if (orderedDays.length == 1) {
+    final placement = orderedDays.single;
+    final dateLabel = DateFormat.MMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(placement.date);
+
+    return "${ocptScheduleDayTagLabel(tr, placement.dayNumber)} · $dateLabel";
+  }
+
+  return orderedDays.map((placement) => ocptScheduleDayTagLabel(tr, placement.dayNumber)).join(", ");
+}
+
 /// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].
 ///
 /// A blank [input], or exactly [ocptShotListEmptyValue] (what [ocptFormatShotDuration] itself
 /// renders for a null duration, so the two stay round-trippable), means "no estimate" and parses
 /// to null. `mm:ss` parses to milliseconds, leading zeroes optional on either half (`1:30` and
-/// `01:30` are the same duration). A bare non-negative integer is read as a number of seconds, so
-/// a duration under a minute can be typed as `45` alone. Anything else throws a
+/// `01:30` are the same duration). A bare non-negative integer is read as a number of **minutes**,
+/// so `12` is `12:00` — the field's own unit is the one it prints first, and a shot is estimated in
+/// minutes far more often than in seconds. Anything else throws a
 /// [FormatException]: the shot inspector's own choice, on catching it, is to leave the shot's
 /// stored duration untouched rather than write anything, and to mark the field in error.
 int? ocptParseShotDuration(String input) {
@@ -202,11 +250,11 @@ int? ocptParseShotDuration(String input) {
 
   final colonIndex = trimmed.indexOf(":");
   if (colonIndex == -1) {
-    final seconds = int.tryParse(trimmed);
-    if (seconds == null || seconds < 0) {
+    final minutes = int.tryParse(trimmed);
+    if (minutes == null || minutes < 0) {
       throw FormatException("Not a valid shot duration", input);
     }
-    return seconds * Duration.millisecondsPerSecond;
+    return minutes * Duration.secondsPerMinute * Duration.millisecondsPerSecond;
   }
 
   final minutes = int.tryParse(trimmed.substring(0, colonIndex));

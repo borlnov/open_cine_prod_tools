@@ -5,8 +5,10 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
@@ -22,10 +24,16 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// and nothing has happened *yet* for [OcptImageRightsStatus.toGenerate] — while a date already
 /// stored survives untouched, so flipping the status back shows it again.
 ///
-/// Deliberately holds no upload button and no "Generate the document" action: the asset picker and
-/// document generation are both out of scope this milestone, and a control that would do nothing
-/// is not rendered — the status and the date are the whole of what a production tracks by hand
-/// until a generator exists.
+/// Under the two, the **signed release itself**: an `OcptAssetFileLine` naming the referenced file
+/// while there is one, and the control referencing another otherwise — the location sheet's permit
+/// card, for the other document this mode files.
+///
+/// **Referencing a document never touches [status].** A production files a draft as readily as a
+/// signature, so deducing "signed" from the presence of a file would put a claim in the project
+/// nobody made; the badge above stays the only thing that says where the release stands.
+///
+/// It still holds no "Generate the document" action: generating one is out of scope, and a control
+/// that would do nothing is not rendered.
 class OcptPersonSheetImageRightsCard extends StatelessWidget {
   /// The person's current image rights status.
   final OcptImageRightsStatus status;
@@ -40,6 +48,17 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
   /// Called with the newly picked date (or null to clear it), or null while it may not be changed.
   final ValueChanged<DateTime?>? onDateChanged;
 
+  /// The signed release this person references, or null while they reference none.
+  final OcptAssetRef? document;
+
+  /// Called when the reference action is clicked, or null while the sheet may not be written to —
+  /// the action is then not rendered at all.
+  final VoidCallback? onDocumentPickRequested;
+
+  /// Called when the referenced document's remove control is clicked, or null while it may not be
+  /// used.
+  final VoidCallback? onDocumentCleared;
+
   /// Class constructor
   const OcptPersonSheetImageRightsCard({
     super.key,
@@ -47,12 +66,17 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
     required this.date,
     required this.onStatusChanged,
     required this.onDateChanged,
+    required this.document,
+    required this.onDocumentPickRequested,
+    required this.onDocumentCleared,
   });
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final dateLabel = _dateLabelOf(tr, status);
+    final document = this.document;
+    final onDocumentPickRequested = this.onDocumentPickRequested;
 
     return OcptResourcesSheetCard(
       title: tr.resourcesImageRightsTitle,
@@ -64,6 +88,18 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
             const SizedBox(height: 10),
             OcptPersonSheetDateField(label: dateLabel, value: date, onChanged: onDateChanged),
           ],
+          const SizedBox(height: 10),
+          if (document != null)
+            OcptAssetFileLine(asset: document, onRemoved: onDocumentCleared)
+          else if (onDocumentPickRequested != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.attach_file, size: 14),
+                label: Text(tr.resourcesReferenceDocumentAction),
+                onPressed: onDocumentPickRequested,
+              ),
+            ),
         ],
       ),
     );
