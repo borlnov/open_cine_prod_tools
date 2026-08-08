@@ -112,6 +112,11 @@ class OcptCallSheetLabels extends Equatable {
   /// The label of a person's departure figure on a named sheet's own band line.
   final String departureLabel;
 
+  /// The heading of a named sheet's own "to bring" section — the elements its recipient is due to
+  /// bring to the scenes the day plays. Never printed on the general sheet, which is the day's own
+  /// paperwork rather than any one recipient's: see the class doc comment.
+  final String toBringSectionTitle;
+
   /// The default caption of every non-shooting block kind but [OcptShootingBlockKind.shot], printed
   /// on a milestone row that carries no free-text label of its own. A [OcptShootingBlockKind.hold]
   /// block prints its own sequence's heading instead when it has one (`sceneId`), and only falls
@@ -209,6 +214,7 @@ class OcptCallSheetLabels extends Equatable {
     required this.patLabel,
     required this.arrivalHeader,
     required this.departureLabel,
+    required this.toBringSectionTitle,
     required this.blockKindLabels,
     required this.seqHeader,
     required this.plansHeader,
@@ -275,6 +281,7 @@ class OcptCallSheetLabels extends Equatable {
     patLabel,
     arrivalHeader,
     departureLabel,
+    toBringSectionTitle,
     blockKindLabels,
     seqHeader,
     plansHeader,

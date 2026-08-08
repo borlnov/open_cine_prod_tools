@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -65,6 +66,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// The project's whole address book, as passed to [OcptSchedulePlanSnapshot.build].
   final List<OcptPerson> people;
 
+  /// The project's whole elements catalogue, as passed to [OcptSchedulePlanSnapshot.build] — what a
+  /// named call sheet's own "to bring" section ([elementsToBringOnDay]) is read off.
+  final List<OcptElement> elements;
+
   /// `project_info.minimumRestMinutes` verbatim, as passed to [OcptSchedulePlanSnapshot.build] —
   /// null while nobody has recorded one, which [alerts]' own rest-time rule never fires on. Every
   /// call site states it explicitly (a required parameter, not a default) so a forgotten one can
@@ -95,6 +100,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.locations,
     required this.roles,
     required this.people,
+    required this.elements,
     required this.minimumRestMinutes,
     required this.locationById,
     required this.setById,
@@ -102,7 +108,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.personById,
   });
 
-  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], [shotList], the three catalogues and
+  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], [shotList], the four catalogues and
   /// [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/[personById] from them
   /// once.
   factory OcptSchedulePlanSnapshot.build({
@@ -111,6 +117,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required List<OcptLocation> locations,
     required List<OcptRole> roles,
     required List<OcptPerson> people,
+    required List<OcptElement> elements,
     required int? minimumRestMinutes,
   }) => OcptSchedulePlanSnapshot(
     schedule: schedule,
@@ -118,6 +125,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     locations: locations,
     roles: roles,
     people: people,
+    elements: elements,
     minimumRestMinutes: minimumRestMinutes,
     locationById: Map.unmodifiable({for (final location in locations) location.id: location}),
     setById: Map.unmodifiable({
@@ -317,6 +325,49 @@ class OcptSchedulePlanSnapshot extends Equatable {
   OcptLocation? firstLocationOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     return slots.isEmpty ? null : locationById[slots.first.locationId];
+  }
+
+  /// The scene ids of every [OcptShootingBlockKind.shot] block placed on [dayId], deduplicated — the
+  /// scenes the day actually plays, which is what [elementsToBringOnDay] joins an element's own
+  /// [OcptElement.sceneLinks] against. A block naming no shot, or a shot with no scene (an orphaned
+  /// heading), contributes nothing: there is no scene id to test an element's own link against.
+  ///
+  /// Computed on every read rather than memoised: unlike [timelinesOfDay] or [headingBySceneId],
+  /// which the three agendas call once per day cell across a whole month grid, this is read at most
+  /// once per named call sheet [elementsToBringOnDay] renders — a walk over one day's own blocks,
+  /// no costlier than [firstLocationOfDay]'s own per-read scan just above.
+  Set<String> sceneIdsOfDay(String dayId) => {
+    for (final block in schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
+      if (block.kind == OcptShootingBlockKind.shot && block.shotId != null)
+        if (shotById(block.shotId!)?.sceneId case final sceneId?) sceneId,
+  };
+
+  /// The live elements [personId] is due to bring to [dayId]: every [elements] row whose
+  /// [OcptElement.broughtByPersonId] is [personId] **and** at least one of whose
+  /// [OcptElement.sceneLinks] names a scene [sceneIdsOfDay] says the day actually plays — the join a
+  /// named call sheet's own "to bring" section reads. Sorted by [OcptElement.category] (the enum's
+  /// own declaration order, `prop` before `costume` before `other`) then by [OcptElement.name], the
+  /// grouping a printed list reads the way the resources mode's own elements board already groups.
+  ///
+  /// Both conditions are deliberate, and neither alone is enough: an element [personId] brings but
+  /// that no scene of [dayId] needs is left off — a call sheet says what to bring **today**, not
+  /// everything that production ever assigned them — and an element a scene of [dayId] needs but
+  /// somebody else brings is exactly as absent, being nobody's own instruction to pack it. Nothing
+  /// here is guessed at: the two columns already say who brings what and where it is needed, and
+  /// this is their join, not a new fact invented for the call sheet.
+  List<OcptElement> elementsToBringOnDay({required String dayId, required String personId}) {
+    final sceneIds = sceneIdsOfDay(dayId);
+    final toBring = [
+      for (final element in elements)
+        if (element.broughtByPersonId == personId)
+          if (element.sceneLinks.any((link) => sceneIds.contains(link.sceneId))) element,
+    ];
+
+    toBring.sort((a, b) {
+      final categoryComparison = a.category.index.compareTo(b.category.index);
+      return categoryComparison != 0 ? categoryComparison : a.name.compareTo(b.name);
+    });
+    return toBring;
   }
 
   /// A map from every real scene's id to its own heading, built once — read by the two schedule PDF
@@ -600,6 +651,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     locations,
     roles,
     people,
+    elements,
     minimumRestMinutes,
     locationById,
     setById,

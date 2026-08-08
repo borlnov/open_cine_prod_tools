@@ -4,9 +4,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -21,6 +23,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
@@ -294,6 +299,42 @@ OcptShot _buildShot({
   averageDifficulty: 0,
 );
 
+/// Builds an element with the few fields these tests read, everything else neutral.
+OcptElement _buildElement({
+  required String id,
+  String name = "",
+  OcptElementCategory category = OcptElementCategory.prop,
+  String? broughtByPersonId,
+  List<OcptSceneElementLink> sceneLinks = const [],
+}) => OcptElement(
+  id: id,
+  category: category,
+  subCategory: "",
+  name: name,
+  code: "",
+  quantity: "1",
+  sourceKind: OcptElementSourceKind.owned,
+  status: OcptElementStatus.toFind,
+  ownerPersonId: null,
+  ownerNotes: "",
+  broughtByPersonId: broughtByPersonId,
+  storageNotes: "",
+  isSecured: false,
+  isReadyForShoot: false,
+  isReturned: false,
+  cost: null,
+  purposeNotes: "",
+  notes: "",
+  photoAssetId: null,
+  photo: null,
+  sceneLinks: sceneLinks,
+  roleLinks: const [],
+);
+
+/// Builds a *dépouillement* link with the few fields these tests read, everything else neutral.
+OcptSceneElementLink _buildSceneElementLink({required String id, required String sceneId}) =>
+    OcptSceneElementLink(id: id, sceneId: sceneId, quantity: "1", notes: "");
+
 /// Builds a one-shot shot list, its single scene sequence holding [shots].
 OcptShotListSnapshot _buildShotList({required List<OcptShot> shots}) => OcptShotListSnapshot.build(
   screenplayId: "screenplay-1",
@@ -351,6 +392,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
+  List<OcptElement> elements = const [],
   int? minimumRestMinutes,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
@@ -364,6 +406,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   locations: locations,
   roles: roles,
   people: people,
+  elements: elements,
   minimumRestMinutes: minimumRestMinutes,
 );
 
@@ -872,6 +915,152 @@ void main() {
       final code = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
 
       expect(code, isNull);
+    });
+  });
+
+  group("sceneIdsOfDay", () {
+    test("the scene ids of the day's own shot blocks, deduplicated", () {
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final shotOne = _buildShot(id: "shot-1");
+      final shotTwo = _buildShot(id: "shot-2");
+      final shotThree = _buildShot(id: "shot-3", sceneId: "scene-2");
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1"),
+            _buildBlock(id: "block-2", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-2"),
+            _buildBlock(id: "block-3", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-3"),
+            // A milestone block names no shot and contributes nothing.
+            _buildBlock(id: "block-4", slotId: "slot-1", kind: OcptShootingBlockKind.meal),
+          ],
+        },
+        shotList: _buildShotList(shots: [shotOne, shotTwo, shotThree]),
+      );
+
+      expect(snapshot.sceneIdsOfDay("day-1"), {"scene-1", "scene-2"});
+    });
+
+    test("empty for a day with no shot block at all", () {
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {});
+
+      expect(snapshot.sceneIdsOfDay("day-1"), isEmpty);
+    });
+  });
+
+  group("elementsToBringOnDay", () {
+    /// A day playing `scene-1` alone, through one placed shot — the fixture every test below places
+    /// its element against.
+    OcptSchedulePlanSnapshot buildDayPlayingSceneOne({required List<OcptElement> elements}) {
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final shot = _buildShot(id: "shot-1");
+      return _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1")],
+        },
+        shotList: _buildShotList(shots: [shot]),
+        elements: elements,
+      );
+    }
+
+    test("an element brought by the right person but needed in no scene the day plays is absent", () {
+      final element = _buildElement(
+        id: "element-1",
+        name: "Umbrella",
+        broughtByPersonId: "person-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-2")],
+      );
+      final snapshot = buildDayPlayingSceneOne(elements: [element]);
+
+      final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-1");
+
+      expect(
+        toBring,
+        isEmpty,
+        reason: "a call sheet says what to bring today, not everything this person was ever assigned",
+      );
+    });
+
+    test("an element needed in a scene the day plays but brought by somebody else is absent", () {
+      final element = _buildElement(
+        id: "element-1",
+        name: "Umbrella",
+        broughtByPersonId: "person-2",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+      );
+      final snapshot = buildDayPlayingSceneOne(elements: [element]);
+
+      final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-1");
+
+      expect(toBring, isEmpty);
+    });
+
+    test("an element brought by this person and needed in a scene the day plays is present", () {
+      final element = _buildElement(
+        id: "element-1",
+        name: "Umbrella",
+        broughtByPersonId: "person-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+      );
+      final snapshot = buildDayPlayingSceneOne(elements: [element]);
+
+      final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-1");
+
+      expect(toBring, [element]);
+    });
+
+    test("empty for a person id nobody brings anything for", () {
+      final element = _buildElement(
+        id: "element-1",
+        name: "Umbrella",
+        broughtByPersonId: "person-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+      );
+      final snapshot = buildDayPlayingSceneOne(elements: [element]);
+
+      final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-404");
+
+      expect(toBring, isEmpty);
+    });
+
+    test("sorted by category then by name", () {
+      final costume = _buildElement(
+        id: "element-costume",
+        name: "Coat",
+        category: OcptElementCategory.costume,
+        broughtByPersonId: "person-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-costume", sceneId: "scene-1")],
+      );
+      final propB = _buildElement(
+        id: "element-prop-b",
+        name: "Umbrella",
+        broughtByPersonId: "person-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-prop-b", sceneId: "scene-1")],
+      );
+      final propA = _buildElement(
+        id: "element-prop-a",
+        name: "Cane",
+        broughtByPersonId: "person-1",
+        sceneLinks: [_buildSceneElementLink(id: "link-prop-a", sceneId: "scene-1")],
+      );
+      final snapshot = buildDayPlayingSceneOne(elements: [costume, propB, propA]);
+
+      final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-1");
+
+      // OcptElementCategory.prop comes before OcptElementCategory.costume in the enum's own
+      // declaration order, and within `prop` the two elements sort by name ("Cane" before
+      // "Umbrella").
+      expect(toBring, [propA, propB, costume]);
     });
   });
 }

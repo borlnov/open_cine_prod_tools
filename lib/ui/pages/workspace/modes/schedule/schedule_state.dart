@@ -4,6 +4,7 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -165,6 +166,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// once built.
   final List<OcptPerson> people;
 
+  /// The project's whole elements catalogue, as last loaded — what a named call sheet's own "to
+  /// bring" section reads through [planSnapshot].
+  final List<OcptElement> elements;
+
   /// `project_info.minimumRestMinutes`, as last loaded — null while nobody has recorded one, which
   /// the rest-time alert never fires on. Read by the bloc's own load handler beside the page setup,
   /// and re-read by `OcptScheduleProjectSettingsChangedEvent` for the same reason that handler
@@ -284,6 +289,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       locations: locations,
       roles: roles,
       people: people,
+      elements: elements,
       minimumRestMinutes: minimumRestMinutes,
     ),
   };
@@ -507,6 +513,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.locations,
     required this.roles,
     required this.people,
+    required this.elements,
     required this.minimumRestMinutes,
     required this.selectedDayId,
     required this.selectedBlockId,
@@ -542,6 +549,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       locations = const [],
       roles = const [],
       people = const [],
+      elements = const [],
       minimumRestMinutes = null,
       selectedDayId = null,
       selectedBlockId = null,
@@ -583,6 +591,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     List<OcptLocation>? locations,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
+    List<OcptElement>? elements,
     int? minimumRestMinutes,
     bool clearMinimumRestMinutes = false,
     String? selectedDayId,
@@ -627,6 +636,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations: locations ?? this.locations,
     roles: roles ?? this.roles,
     people: people ?? this.people,
+    elements: elements ?? this.elements,
     minimumRestMinutes: clearMinimumRestMinutes
         ? null
         : (minimumRestMinutes ?? this.minimumRestMinutes),
@@ -706,6 +716,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     locations,
     roles,
     people,
+    elements,
     minimumRestMinutes,
     selectedDayId,
     selectedBlockId,

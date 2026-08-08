@@ -413,6 +413,7 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     patLabel: tr.scheduleExportPatLabel,
     arrivalHeader: tr.scheduleExportArrivalHeader,
     departureLabel: tr.scheduleExportDepartureLabel,
+    toBringSectionTitle: tr.scheduleExportToBringSectionTitle,
     blockKindLabels: {
       for (final kind in OcptShootingBlockKind.values) kind: ocptShootingBlockKindLabel(tr, kind),
     },

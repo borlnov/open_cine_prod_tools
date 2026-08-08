@@ -7634,6 +7634,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportToBringSectionTitle": "To bring",
+  "@scheduleExportToBringSectionTitle": {
+    "description": "Heading of a named call sheet's own \"to bring\" section, listing the elements its recipient is due to bring to the scenes the day plays",
+    "context": "Printed on an exported named call sheet whose recipient is due to bring something",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportShootingPlanFileNameSuffix": "shooting plan",
   "@scheduleExportShootingPlanFileNameSuffix": {
     "description": "Suffix appended to the project name to build the exported shooting plan's own file name",

@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -96,6 +97,14 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
   2: pw.FlexColumnWidth(1.2),
 };
 
+/// A named sheet's own "to bring" table's `NOM / SEQ` columns — the same two headers the main table
+/// and the cast table already carry, wider on the name column since `<code> · <name>` runs longer
+/// than a shot's own `SEQ` figure.
+const Map<int, pw.TableColumnWidth> _toBringColumnWidths = {
+  0: pw.FlexColumnWidth(2.4),
+  1: pw.FlexColumnWidth(1.2),
+};
+
 /// Every accented letter (upper- and lower-case) this app's own two UI languages can put in a
 /// person's name, folded to the plain Latin letter a file name can safely hold.
 ///
@@ -136,8 +145,13 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// block, the key contacts, the main table, the cast table, the two closing directories and the
 /// trailing guest table) is built by one shared private widget builder, called from both
 /// [generateGeneralCallSheet] and [generateNamedCallSheet] rather than duplicated between them. Only
-/// two sections belong to one sheet alone: a named sheet's own recipient line and its own
-/// arrival/PAT/departure band, which have no counterpart to share with.
+/// **three** sections belong to one sheet alone, none of them with a counterpart to share: a named
+/// sheet's own recipient line, its own arrival/PAT/departure band, and its own "to bring" section
+/// ([_toBringSection]) — the elements [OcptSchedulePlanSnapshot.elementsToBringOnDay] joins onto
+/// that one recipient. The general sheet has no reading for it at all, deliberately: what to bring
+/// is a fact about **one** recipient, while the general sheet is the day's own paperwork, addressed
+/// to nobody in particular — printing it there would mean printing every recipient's own list on
+/// everybody else's sheet, or guessing which one the reader is.
 ///
 /// **What a named sheet narrows is the timetable, and only the timetable.** Its main table holds the
 /// blocks of its recipient's own slots, since that is what they are being told to turn up for; the
@@ -312,11 +326,18 @@ class OcptCallSheetPdfService {
   }
 
   /// Renders the named call sheet of [convocation] on [dayId]: the same day header, their own
-  /// arrival/PAT/departure band, the crew note, the day's own events, the location(s) and blocks of
-  /// their own slots alone, the sun block, the key contacts — then the day's own cast table, crew
-  /// list, cast-and-extras list and trailing guest table, exactly as the general sheet prints them.
-  /// Only the main table is narrowed to the recipient's slots; see the class doc comment for why the
-  /// other day-wide sections are not.
+  /// arrival/PAT/departure band, their own "to bring" section, the crew note, the day's own events,
+  /// the location(s) and blocks of their own slots alone, the sun block, the key contacts — then the
+  /// day's own cast table, crew list, cast-and-extras list and trailing guest table, exactly as the
+  /// general sheet prints them. Only the main table is narrowed to the recipient's slots; see the
+  /// class doc comment for why the other day-wide sections are not.
+  ///
+  /// The "to bring" section is printed only for a recipient this app can name a person for
+  /// ([OcptDayConvocation.personId]) — an uncast role has nobody to bring anything, so the section is
+  /// absent altogether rather than a heading over an em dash — and only when
+  /// [OcptSchedulePlanSnapshot.elementsToBringOnDay] actually joins something, exactly as
+  /// [_crewNoteSection] and [_eventsSection] are already skipped rather than drawn empty (their own
+  /// doc comments).
   ///
   /// [exportDate] carries the same contract it does on [generateGeneralCallSheet] — see there.
   Future<Uint8List> generateNamedCallSheet({
@@ -373,6 +394,10 @@ class OcptCallSheetPdfService {
       plan: plan,
       labels: labels,
     );
+    final recipientPersonId = convocation.personId;
+    final toBringRows = recipientPersonId == null
+        ? const <_ToBringRow>[]
+        : _toBringRowsOfDay(plan: plan, dayId: dayId, personId: recipientPersonId, dayEntries: dayEntries);
 
     pdfDocument.addPage(
       _page(
@@ -393,6 +418,10 @@ class OcptCallSheetPdfService {
           pw.SizedBox(height: 10),
           _ownBandSection(painter: painter, labels: labels, convocation: convocation),
           pw.SizedBox(height: 10),
+          if (toBringRows.isNotEmpty) ...[
+            _toBringSection(painter: painter, labels: labels, rows: toBringRows),
+            pw.SizedBox(height: 10),
+          ],
           if (events.isNotEmpty) ...[
             _eventsSection(painter: painter, labels: labels, events: events),
             pw.SizedBox(height: 10),
@@ -656,6 +685,45 @@ class OcptCallSheetPdfService {
       ],
     );
   }
+
+  /// A named sheet's own "to bring" table: one `<code> · <name>` / `SEQ` row per [rows] entry, the
+  /// join [OcptSchedulePlanSnapshot.elementsToBringOnDay] makes between this recipient's own
+  /// [OcptElement.broughtByPersonId] and the scenes the day actually plays. [generateNamedCallSheet]
+  /// never calls this on an empty [rows] — see its own doc comment.
+  pw.Widget _toBringSection({
+    required OcptScriptPagePainter painter,
+    required OcptCallSheetLabels labels,
+    required List<_ToBringRow> rows,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      _sectionTitle(painter: painter, title: labels.toBringSectionTitle),
+      pw.SizedBox(height: 4),
+      pw.Table(
+        border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
+        columnWidths: _toBringColumnWidths,
+        children: [
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: _bandColor),
+            children: [
+              for (final header in [labels.nameHeader, labels.seqHeader])
+                _textCell(painter: painter, text: header, isBold: true),
+            ],
+          ),
+          for (final row in rows)
+            pw.TableRow(
+              children: [
+                _textCell(painter: painter, text: "${row.element.code} · ${row.element.name}"),
+                _textCell(
+                  painter: painter,
+                  text: row.sceneNumbers.isEmpty ? ocptScheduleEmptyValue : row.sceneNumbers.join(", "),
+                ),
+              ],
+            ),
+        ],
+      ),
+    ],
+  );
 
   /// The crew note, verbatim — never printed at all when the day carries none (both generators skip
   /// this widget rather than calling it on a blank note).
@@ -1453,6 +1521,22 @@ class _GuestRow {
   final String hours;
 }
 
+/// One row of a named sheet's own "to bring" table: an element
+/// [OcptSchedulePlanSnapshot.elementsToBringOnDay] joined onto that sheet's own recipient, and the
+/// scene numbers of the day's own shots that play a scene it is linked to.
+class _ToBringRow {
+  const _ToBringRow({required this.element, required this.sceneNumbers});
+
+  /// The element the recipient is due to bring.
+  final OcptElement element;
+
+  /// The scene numbers of the day's own shots that play a scene [element] is linked to, sorted —
+  /// empty when [element] is linked to a scene the day plays through no numbered shot at all, which
+  /// still prints ([ocptScheduleEmptyValue]) rather than being left out: the join already established
+  /// the element belongs on this list, and a bare scene id would explain nothing on a printed page.
+  final List<String> sceneNumbers;
+}
+
 /// Turns [orderedEntries] into the printed rows of the main table: a run of consecutive
 /// [OcptShootingBlockKind.shot] blocks on the same slot and the same scene collapses into one
 /// [_DayRow], every other kind prints its own [_DayRow.milestone].
@@ -1627,6 +1711,56 @@ List<_CastRow> _castRowsOfDay({
 
   rows.sort((a, b) => a.role.number.compareTo(b.role.number));
   return rows;
+}
+
+/// A named sheet's own "to bring" rows: [OcptSchedulePlanSnapshot.elementsToBringOnDay] for
+/// [personId] — already sorted by category then by name — paired with the scene numbers of
+/// [dayEntries]' own shot blocks that play a scene each element is linked to, mirroring how
+/// [_castRowsOfDay]'s own `sceneNumbers` is built off the very same [dayEntries]. Both this function
+/// and [_castRowsOfDay] are handed the **day's** own entries rather than the recipient's restricted
+/// `orderedEntries`, for the comment there's own reason: what an element is needed for today is a
+/// fact about the day, not about which of its slots happens to convoke this reader.
+List<_ToBringRow> _toBringRowsOfDay({
+  required OcptSchedulePlanSnapshot plan,
+  required String dayId,
+  required String personId,
+  required List<OcptOrderedScheduleEntry> dayEntries,
+}) {
+  final elements = plan.elementsToBringOnDay(dayId: dayId, personId: personId);
+  if (elements.isEmpty) {
+    return const [];
+  }
+
+  return [
+    for (final element in elements)
+      _ToBringRow(
+        element: element,
+        sceneNumbers: _sceneNumbersForElement(element: element, plan: plan, dayEntries: dayEntries),
+      ),
+  ];
+}
+
+/// The scene numbers of [dayEntries]' own shot blocks whose scene is one of [element]'s own
+/// [OcptElement.sceneLinks], sorted — the join [_toBringRowsOfDay] prints on each of its rows.
+List<String> _sceneNumbersForElement({
+  required OcptElement element,
+  required OcptSchedulePlanSnapshot plan,
+  required List<OcptOrderedScheduleEntry> dayEntries,
+}) {
+  final sceneIds = {for (final link in element.sceneLinks) link.sceneId};
+  final sceneNumbers = <String>{};
+
+  for (final ordered in dayEntries) {
+    if (ordered.block.kind != OcptShootingBlockKind.shot || ordered.block.shotId == null) {
+      continue;
+    }
+    final shot = plan.shotById(ordered.block.shotId!);
+    if (shot != null && shot.sceneId != null && sceneIds.contains(shot.sceneId)) {
+      sceneNumbers.add(ocptShotSceneNumberOf(shot));
+    }
+  }
+
+  return sceneNumbers.toList()..sort();
 }
 
 /// Every crew contact of [dayId], across every live slot, deduplicated by (person, position label)

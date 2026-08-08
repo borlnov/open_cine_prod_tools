@@ -588,6 +588,7 @@ void main() {
       patLabel: "PAT",
       arrivalHeader: "ARRIVAL",
       departureLabel: "Departure",
+      toBringSectionTitle: "To bring",
       blockKindLabels: {},
       seqHeader: "SEQ",
       plansHeader: "SHOTS",
@@ -661,6 +662,7 @@ void main() {
         locations: const [],
         roles: const [],
         people: const [],
+        elements: const [],
         minimumRestMinutes: null,
       );
     }
@@ -860,6 +862,7 @@ void main() {
           locations: const [],
           roles: const [],
           people: const [],
+          elements: const [],
           minimumRestMinutes: null,
         );
 
@@ -982,6 +985,7 @@ void main() {
             locations: const [],
             roles: const [],
             people: const [],
+            elements: const [],
             minimumRestMinutes: null,
           );
 
@@ -1085,6 +1089,7 @@ void main() {
         locations: const [],
         roles: const [],
         people: const [],
+        elements: const [],
         minimumRestMinutes: null,
       );
     }

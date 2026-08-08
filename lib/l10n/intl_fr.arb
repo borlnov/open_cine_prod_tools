@@ -1023,6 +1023,7 @@
   "scheduleExportEmptyDayNote": "Rien de prévu ce jour-là.",
   "scheduleExportUnnamedPersonLabel": "Sans nom",
   "scheduleExportGuestReasonHeader": "Motif",
+  "scheduleExportToBringSectionTitle": "À apporter",
   "scheduleExportShootingPlanFileNameSuffix": "plan de travail",
   "scheduleExportShootingPlanDocumentTitle": "Plan de travail",
   "scheduleExportShootingPlanDayTitle": "Planning de la journée du {date}",

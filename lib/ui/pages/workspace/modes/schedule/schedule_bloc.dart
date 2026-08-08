@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -39,8 +40,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the schedule
 /// itself ([_scheduleService]), the shot list ([_shotListService] — every placed or unplaced
-/// shot's own code, size, duration and characters), and the three resources catalogues the slot
-/// cards read from ([_locationsService], [_roleIndexService], [_peopleService]).
+/// shot's own code, size, duration and characters), and the four resources catalogues the slot
+/// cards and the call sheet exports read from ([_locationsService], [_roleIndexService],
+/// [_peopleService], [_elementsService] — the last of them read for a named call sheet's own "to
+/// bring" section alone, nothing here shows an element on screen).
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
 /// [_flushPendingFieldEdits] and [_onLoadRequested].
 ///
@@ -89,6 +92,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// The service used to read the address book.
   final OcptPeopleService _peopleService;
 
+  /// The service used to read the elements catalogue — what a named call sheet's own "to bring"
+  /// section is joined from.
+  final OcptElementsService _elementsService;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -115,6 +122,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptLocationsService? locationsService,
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
+    OcptElementsService? elementsService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -135,6 +143,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _peopleService =
            peopleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
+       _elementsService =
+           elementsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptScheduleState.init()) {
     add(const OcptScheduleLoadRequestedEvent());
@@ -275,6 +286,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       screenplayId: project.primaryScreenplayId,
     );
     final people = await _peopleService.loadPeople(database: project.database);
+    final elements = await _elementsService.loadElements(database: project.database);
     final pageSetup = await _loadPageSetup(project);
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
 
@@ -291,6 +303,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         locations: locations,
         roles: roles,
         people: people,
+        elements: elements,
         pageSetup: pageSetup,
         minimumRestMinutes: minimumRestMinutes,
         clearMinimumRestMinutes: minimumRestMinutes == null,

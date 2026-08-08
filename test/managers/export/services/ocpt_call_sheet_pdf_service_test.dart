@@ -8,10 +8,12 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -25,6 +27,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -79,6 +84,7 @@ const _labels = OcptCallSheetLabels(
   patLabel: "PAT",
   arrivalHeader: "ARRIVAL",
   departureLabel: "Departure",
+  toBringSectionTitle: "To bring",
   blockKindLabels: {
     OcptShootingBlockKind.preparation: "Preparation",
     OcptShootingBlockKind.hairMakeUp: "Hair and make-up",
@@ -349,6 +355,42 @@ OcptShot _buildShot({
   averageDifficulty: 0,
 );
 
+/// Builds an element with the few fields these tests read, everything else neutral.
+OcptElement _buildElement({
+  required String id,
+  String name = "",
+  OcptElementCategory category = OcptElementCategory.prop,
+  String? broughtByPersonId,
+  List<OcptSceneElementLink> sceneLinks = const [],
+}) => OcptElement(
+  id: id,
+  category: category,
+  subCategory: "",
+  name: name,
+  code: "",
+  quantity: "1",
+  sourceKind: OcptElementSourceKind.owned,
+  status: OcptElementStatus.toFind,
+  ownerPersonId: null,
+  ownerNotes: "",
+  broughtByPersonId: broughtByPersonId,
+  storageNotes: "",
+  isSecured: false,
+  isReadyForShoot: false,
+  isReturned: false,
+  cost: null,
+  purposeNotes: "",
+  notes: "",
+  photoAssetId: null,
+  photo: null,
+  sceneLinks: sceneLinks,
+  roleLinks: const [],
+);
+
+/// Builds a *dépouillement* link with the few fields these tests read, everything else neutral.
+OcptSceneElementLink _buildSceneElementLink({required String id, required String sceneId}) =>
+    OcptSceneElementLink(id: id, sceneId: sceneId, quantity: "1", notes: "");
+
 /// Builds a one-scene shot list snapshot over [shots], all belonging to one synthetic scene.
 OcptShotListSnapshot _buildShotList({required List<OcptShot> shots, String heading = "INT. HOUSE - DAY"}) =>
     OcptShotListSnapshot.build(
@@ -377,6 +419,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
+  List<OcptElement> elements = const [],
   OcptShotListSnapshot? shotList,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
@@ -390,6 +433,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   locations: locations,
   roles: roles,
   people: people,
+  elements: elements,
   minimumRestMinutes: null,
 );
 
@@ -1315,6 +1359,168 @@ void main() {
     });
   });
 
+  group("the named sheet's own 'to bring' section", () {
+    /// A day with one crew member (`person-1`) and one uncast role (`role-1`) convoked on the same
+    /// slot, shooting `scene-1` — enough to test the section's own presence, absence and the general
+    /// sheet's own indifference to it.
+    OcptSchedulePlanSnapshot buildPlan({required List<OcptElement> elements}) {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
+        cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+      );
+      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
+
+      return _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "Alice")], // personId null: an uncast role.
+        people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
+        shotList: _buildShotList(shots: [shot]),
+        elements: elements,
+      );
+    }
+
+    test("a named sheet differs once its recipient's own element is linked to a scene the day plays", () async {
+      final linkedPlan = buildPlan(
+        elements: [
+          _buildElement(
+            id: "element-1",
+            name: "Umbrella",
+            broughtByPersonId: "person-1",
+            sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+          ),
+        ],
+      );
+      final unlinkedPlan = buildPlan(
+        elements: [
+          _buildElement(id: "element-1", name: "Umbrella", broughtByPersonId: "person-1"),
+        ],
+      );
+
+      final linkedConvocation = linkedPlan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final unlinkedConvocation = unlinkedPlan
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
+
+      final linkedBytes = await service.generateNamedCallSheet(
+        plan: linkedPlan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: linkedConvocation,
+        exportDate: _pinnedExportDate,
+      );
+      final unlinkedBytes = await service.generateNamedCallSheet(
+        plan: unlinkedPlan,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: unlinkedConvocation,
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(_contentStreams(linkedBytes), isNot(_contentStreams(unlinkedBytes)));
+    });
+
+    test("a named sheet for an uncast role is unchanged by any element at all", () async {
+      final withElement = buildPlan(
+        elements: [
+          _buildElement(
+            id: "element-1",
+            name: "Umbrella",
+            broughtByPersonId: "person-1",
+            sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+          ),
+        ],
+      );
+      final withoutElement = buildPlan(elements: const []);
+
+      final withElementConvocation = withElement.convocationsOfDay("day-1").firstWhere((c) => c.roleId == "role-1");
+      final withoutElementConvocation = withoutElement
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.roleId == "role-1");
+
+      final withElementBytes = await service.generateNamedCallSheet(
+        plan: withElement,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: withElementConvocation,
+        exportDate: _pinnedExportDate,
+      );
+      final withoutElementBytes = await service.generateNamedCallSheet(
+        plan: withoutElement,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: withoutElementConvocation,
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(
+        _contentStreams(withElementBytes),
+        _contentStreams(withoutElementBytes),
+        reason: "an uncast role has nobody to bring anything, so the section never opens for it",
+      );
+    });
+
+    test("the general sheet is unchanged by the same element", () async {
+      final withElement = buildPlan(
+        elements: [
+          _buildElement(
+            id: "element-1",
+            name: "Umbrella",
+            broughtByPersonId: "person-1",
+            sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+          ),
+        ],
+      );
+      final withoutElement = buildPlan(elements: const []);
+
+      final withElementBytes = await service.generateGeneralCallSheet(
+        plan: withElement,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final withoutElementBytes = await service.generateGeneralCallSheet(
+        plan: withoutElement,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(
+        _contentStreams(withElementBytes),
+        _contentStreams(withoutElementBytes),
+        reason: "what to bring is a fact about one recipient; the general sheet never reads it at all",
+      );
+    });
+  });
+
   group("callSheetFileName", () {
     test("joins the file name prefix and the day tag", () {
       expect(service.callSheetFileName(labels: _labels, dayNumber: 2), "FDS-D2.pdf");
@@ -1360,6 +1566,7 @@ OcptSchedulePlanSnapshot _addPerson(OcptSchedulePlanSnapshot plan, OcptPerson pe
       locations: plan.locations,
       roles: plan.roles,
       people: [...plan.people, person],
+      elements: plan.elements,
       minimumRestMinutes: plan.minimumRestMinutes,
     );
 

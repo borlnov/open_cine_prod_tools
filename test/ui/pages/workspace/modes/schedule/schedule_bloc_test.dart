@@ -20,6 +20,8 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
@@ -73,6 +75,7 @@ const _callSheetLabels = OcptCallSheetLabels(
   patLabel: "PAT",
   arrivalHeader: "Arrival",
   departureLabel: "Departure",
+  toBringSectionTitle: "To bring",
   blockKindLabels: {},
   seqHeader: "Seq",
   plansHeader: "Shots",
@@ -352,6 +355,33 @@ void main() {
         .firstWhere(predicate)
         .timeout(const Duration(seconds: 5));
   }
+
+  group("loading the schedule", () {
+    test("reads the project's whole elements catalogue into the state", () async {
+      final project = projectsManager.currentProject!;
+      final elementId = await projectsManager.elementsService.createElement(
+        database: project.database,
+        name: "Umbrella",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.owned,
+      );
+      expect(elementId, isNotNull);
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.elements.map((element) => element.id), contains(elementId));
+      final loadedElement = state.elements.firstWhere((element) => element.id == elementId);
+      expect(
+        loadedElement.name,
+        "Umbrella",
+        reason: "the sixth read the bloc now performs alongside the schedule, the shot list and the "
+            "other three catalogues",
+      );
+
+      await bloc.close();
+    });
+  });
 
   group("selecting a shot", () {
     test("selects it and clears the selected block", () async {
