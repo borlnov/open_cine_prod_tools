@@ -115,6 +115,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29b | Schedule review M2-M3 — the reading fixes, then what v17 held but nothing drew: the presence grid reduced to its computed reading, the positions matrix grouped under a day band with each column's resolved hours, the day view's alert badge opening the `Alerts` tab, a slot's and a block's `notes` named `Private notes`; then guests as a third kind of convocation link (an arrival and a departure, never a PAT band), the slot card's guest band picking from the address book alone under one foldable `Assigner des personnes` section holding the crew, the cast and the guests, the `Convocations` panel's trailing guest group, a day's events in one widget shown by the day view and the day inspector alike with a full-width marker in the week grid, and a block's own `crewNote` typed in the inspector | ✅ |
 | 29c | Schedule review M4 — the two crossings v17 made possible: `OcptScheduleRestTimeAlert` (a person's departure against their arrival on the next day they are actually convoked on, raised on the second of the two) and `OcptSchedulePermitNotValidAlert` (the plan's `…Missing` renamed for what it says, a location filing no permit raising nothing), both soft and both silent while the figure they measure against was never recorded, `ocptComputeScheduleAlerts` taking the project's minimum and a location's permit windows, `OcptSchedulePlanSnapshot.minimumRestMinutes` joining them, the two sentences in the `Alerts` panel, the permit's `validFrom`/`validUntil` typed under the location sheet's document line, and the project's minimum rest typed on `OcptProjectSettingsPage` | ✅ |
 | 29d | Schedule review M5 — the stamp that tells two issues of one document apart: `ocptScheduleGeneratedAtStamp` in `ocpt_schedule_pdf_shared.dart` (date **and** time, deliberately not locale-formatted), an `exportDate` on both call sheet generators beside the shooting plan's own — resolved once per document, and once per run by `OcptExportManager` for the two exports that write a folder — the shooting plan's version line repeated in every page's running head, and the call sheets' own in the title block | ✅ |
+| 29e | Schedule review M6 — the call sheets: the named export picking its own days (the recipient list the **union** of the ticked days' convocations, one file per **recipient × day**, the collision suffixes and the three-outcome reporting unchanged), the day's guests as a trailing `NOM / MOTIF / HORAIRES` table and its events as their own timed section on both sheets, a block's `crewNote` printed under its own row (a shot run closing its `pw.Table` chunk so the note can span), and the named sheet's own `À apporter` table over `OcptSchedulePlanSnapshot.elementsToBringOnDay`/`sceneIdsOfDay` — the schedule mode's sixth read | ✅ |
 
 ## Ways of working
 
@@ -1003,10 +1004,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   dominance nobody computed, while a day with nothing placed or nothing classifiable keeps the
   theme's neutral: information and its absence never wear the same colour. The choice is state beside
   `agendaMode`, not persisted between sessions.
-  **`OcptSchedulePlanSnapshot`** (`lib/models/`) is where the mode's five reads — the schedule, the
-  shot list, the locations, the cast and the address book — are joined into the day-level facts
+  **`OcptSchedulePlanSnapshot`** (`lib/models/`) is where the mode's six reads — the schedule, the
+  shot list, the locations, the cast, the address book and the elements catalogue — are joined into
+  the day-level facts
   everything else asks for: `timelinesOfDay`, `convocationsOfDay`, `sunTimesOfDay`,
-  `dayArrivalMinute`, `firstLocationOfDay`, `presenceCellOf`, and `alerts` — the whole-shoot walk,
+  `dayArrivalMinute`, `firstLocationOfDay`, `presenceCellOf`, `sceneIdsOfDay`,
+  `elementsToBringOnDay`, and `alerts` — the whole-shoot walk,
   computed **once** per snapshot rather than per read, which is what made this class stop being
   `const` exactly as `OcptScheduleState` did before it. It exists because those joins have **two**
   callers now,
@@ -1041,14 +1044,45 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   caption itself turned out to be — a production's own free text for that band says what it is, not
   who is expected in it — and come off `slot.cast` alone: a chair is a fact about the **unit**, not
   about whichever shot happens to be running. Every other block kind is left alone, and a slot
-  convoking nobody prints no line at all. What a **named** sheet narrows is the **timetable, and only
+  convoking nobody prints no line at all. Beside those sections both sheets carry the three facts
+  schema v17 added: the day's **events** as their own timed section next to its time bands (a fact
+  about the day, taking part in no chain, so never interleaved into the main table), its **guests**
+  as a trailing `NOM / MOTIF / HORAIRES` table after the cast-and-extras list — the shape the
+  `Convocations` panel already gives them, an arrival and a departure and **no PAT band** — and a
+  block's **`crewNote` under its own row**, a milestone band holding it inline while a shot run
+  closes its `pw.Table` chunk so the note can span the page under the row it belongs to. All three
+  sections are **skipped entirely** on a day that has none rather than drawn over an em dash: the
+  cast table's own em dash belongs to a standing section of the reference document, and these are
+  only there when there is something to say.
+  What a **named** sheet narrows is the **timetable, and only
   the timetable**: it keeps the
   day's header, prints the rows its recipient's own slots carry — and then the day's own cast table
   and both directories, exactly as the general sheet does, those answering "who else is on this day
-  and how do I reach them", which is a question about the day rather than about the reader. Both
+  and how do I reach them", which is a question about the day rather than about the reader. **Three**
+  sections belong to a named sheet alone: its recipient line, its own arrival/PAT/departure band, and
+  its **`À apporter`** table — `OcptSchedulePlanSnapshot.elementsToBringOnDay`'s join of the elements
+  whose `broughtByPersonId` is that recipient with the scenes `sceneIdsOfDay` says the day actually
+  plays, printed as `<code> · <name>` against the scene numbers it is needed in, right under the
+  recipient's own hours. **Both conditions matter and neither alone is enough**: an element somebody
+  brings that no scene of the day needs is left off (a call sheet says what to bring *today*), and one
+  a scene needs but somebody else brings is exactly as absent, being nobody's own instruction to pack
+  it. It is the one section the **general** sheet has no reading for at all — what to bring is a fact
+  about one recipient — and it is skipped for an **uncast role**, which has nobody to bring anything.
+  It is also why the schedule mode reads the elements catalogue as its sixth read while showing an
+  element nowhere on screen. Both sheets
   write **one PDF per file into a
-  folder the user picks**, and two recipients whose names collide each keep a file of their own
-  (`-2`, `-3`), an overwrite being somebody never told to turn up.
+  folder the user picks**, and the **named** export picks its own days exactly as the general one
+  does: its recipient list is the **union** of the ticked days' convocations, deduplicated by the
+  person's or the uncast role's own id, and it writes one file per **(recipient × day)** — a call
+  sheet being a document about a day, so somebody convoked on two of them gets two sheets, while a
+  recipient ticked but convoked on none of a given day's slots simply gets no file for that day.
+  Ticking a day in that dialog carries the tick state over rather than resetting it (a recipient still
+  in the union keeps what the user set, a new one arrives ticked, one that has left is dropped), and
+  the `⋮` entry no longer checks for recipients itself: the dialog's own `Export` button answers that,
+  where checking here would walk the whole shoot's convocations on every rebuild of the shell. Two
+  recipients whose names collide each keep a file of their own
+  (`-2`, `-3`), an overwrite being somebody never told to turn up, and two days never collide at all,
+  the file name already carrying the day's tag.
   `OcptShootingPlanPdfService` prints the whole shoot: three **landscape** summary grids (locations,
   sequences, crew and cast) whose columns are **one per slot grouped under its day** — the
   reference's day-parts being exactly what a slot is here — chunked across pages when a shoot runs
@@ -1073,10 +1107,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `versionLabel` word out of their own labels object. **Every
   hour on either page is the resolved one** and every convocation figure comes from
   `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
-  Neither document prints a guest, an event or a block's crew note yet, and the named call sheets
-  therefore **filter guest convocations out** of their recipient list — the dialog's own selection
-  keys and every reader behind them assume a convocation names a person or a role. A guest becomes a
-  recipient the day the call sheet prints one, not before.
+  The **shooting plan** prints no guest, no event and no block crew note yet — the call sheets do,
+  above — and the named call sheets **filter guest convocations out** of their *recipient* list even
+  though they print a guest table: the dialog's own selection keys and every reader behind them
+  assume a convocation names a person or a role. A guest is somebody the sheet tells you about, not
+  yet somebody a sheet is addressed to.
   Schema v17's own two tables are drawn by the mode as of M3. A **guest**
   (`shooting_slot_guests`) is somebody neither crew nor cast — a mayor lending a square, a
   journalist, an owner's cousin — convoked **by a slot** exactly as everybody else is, named by
