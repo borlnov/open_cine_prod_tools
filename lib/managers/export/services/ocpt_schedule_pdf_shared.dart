@@ -97,7 +97,7 @@ Map<String, String> ocptScheduleHeadingBySceneId(OcptSchedulePlanSnapshot plan) 
     plan.headingBySceneId;
 
 /// The numbers of the roles [slot] convokes, sorted ascending — what a
-/// [OcptShootingBlockKind.hairMakeUp] block prints beside its own caption.
+/// [OcptShootingBlockKind.hairMakeUp] block prints on its own roles line.
 ///
 /// Read off `slot.cast` and nothing else: a make-up chair is a fact about the **unit**, not about
 /// which shot happens to be running while somebody sits in it, so every role linked to the slot is
@@ -109,44 +109,39 @@ List<int> ocptScheduleSlotRoleNumbersOf({
 }) =>
     [for (final member in slot.cast) if (roleById[member.roleId] case final role?) role.number]..sort();
 
+/// The role numbers [block] prints under its own caption: [ocptScheduleSlotRoleNumbersOf]'s answer
+/// for a [OcptShootingBlockKind.hairMakeUp] block, and nothing at all for every other kind.
+///
+/// They are the one thing a person reads a make-up band for: `RÔLES : 3, 5` tells the make-up
+/// artist which two actors to plan for, where the caption alone leaves them counting heads off the
+/// cast table. They are printed **whatever the caption turned out to be**, a production's own free
+/// text for that band ("HMC Loge 2") saying what the band is rather than who is expected in it —
+/// and they sit on a **line of their own, behind a label**, rather than in brackets after the
+/// caption: a slot convoking forty roles is exactly the sheet whose make-up department needs them
+/// most, and a bracketed run of forty numbers is unreadable where a labelled line still scans.
+///
+/// A slot convoking no role at all answers with an empty list, and the caller prints no line rather
+/// than an empty one.
+List<int> ocptScheduleBlockRoleNumbersOf({
+  required OcptShootingDayBlock block,
+  required OcptShootingSlot slot,
+  required Map<String, OcptRole> roleById,
+}) => block.kind != OcptShootingBlockKind.hairMakeUp
+    ? const []
+    : ocptScheduleSlotRoleNumbersOf(slot: slot, roleById: roleById);
+
 /// The caption a non-shot [block] prints: its own free-text label when it has one, a
 /// [OcptShootingBlockKind.hold]'s own sequence heading when it names one and carries no free-text
-/// label, or [blockKindLabelOf] as the final fallback — then, for a
-/// [OcptShootingBlockKind.hairMakeUp] block alone, the numbers of the roles [slot] convokes, in
-/// brackets.
+/// label, or [blockKindLabelOf] as the final fallback.
 ///
-/// Those numbers are appended **whatever the caption turned out to be**, a production's own free
-/// text for its make-up band ("HMC Loge 2") saying what the band is rather than who is expected in
-/// it. They are the one thing a person reads that line for: `HMC (3, 5)` tells the make-up artist
-/// which two actors to plan for, where `HMC` alone leaves them counting heads off the cast table.
-/// A slot convoking no role at all prints the caption alone rather than an empty pair of brackets.
+/// The role numbers a [OcptShootingBlockKind.hairMakeUp] band carries are deliberately **not** part
+/// of this string: they are [ocptScheduleBlockRoleNumbersOf]'s own answer, printed on a line of
+/// their own by whichever document is drawing the band — see that function for why.
 ///
 /// [blockKindLabelOf] is a resolver rather than a labels object: the two schedule PDF exports each
 /// carry their own labels class (`OcptCallSheetLabels`, `OcptShootingPlanLabels`), and this
 /// function has no reason to know about either — its caller hands in the one accessor it needs.
 String ocptScheduleBlockCaptionOf({
-  required OcptShootingDayBlock block,
-  required OcptShootingSlot slot,
-  required Map<String, OcptRole> roleById,
-  required Map<String, String> headingBySceneId,
-  required String Function(OcptShootingBlockKind kind) blockKindLabelOf,
-}) {
-  final caption = _blockOwnCaptionOf(
-    block: block,
-    headingBySceneId: headingBySceneId,
-    blockKindLabelOf: blockKindLabelOf,
-  );
-
-  if (block.kind != OcptShootingBlockKind.hairMakeUp) {
-    return caption;
-  }
-
-  final roleNumbers = ocptScheduleSlotRoleNumbersOf(slot: slot, roleById: roleById);
-  return roleNumbers.isEmpty ? caption : "$caption (${roleNumbers.join(", ")})";
-}
-
-/// [block]'s own caption, before [ocptScheduleBlockCaptionOf] appends anything to it.
-String _blockOwnCaptionOf({
   required OcptShootingDayBlock block,
   required Map<String, String> headingBySceneId,
   required String Function(OcptShootingBlockKind kind) blockKindLabelOf,
@@ -165,6 +160,18 @@ String _blockOwnCaptionOf({
 
   return blockKindLabelOf(block.kind);
 }
+
+/// The line [ocptScheduleBlockRoleNumbersOf]'s own answer is printed as, under the band's caption:
+/// `<label> : 3, 5`, or null while [roleNumbers] is empty — a band expecting nobody prints no line
+/// at all rather than a label followed by nothing.
+///
+/// [rolesLabel] is the calling document's own already-localized `RÔLES` heading (the call sheet's
+/// own main-table column header, the shooting plan's own equivalent), so neither service formats
+/// that line its own way.
+String? ocptScheduleBlockRoleNumbersLine({
+  required List<int> roleNumbers,
+  required String rolesLabel,
+}) => roleNumbers.isEmpty ? null : "$rolesLabel : ${roleNumbers.join(", ")}";
 
 /// Every distinct location of [slots], in the order they are first met — a general document's own
 /// locations (every slot of the day) or a named one's own (only the slots its recipient is linked

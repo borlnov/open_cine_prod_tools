@@ -835,8 +835,6 @@ class OcptShootingPlanPdfService {
       flush();
       final caption = ocptScheduleBlockCaptionOf(
         block: block,
-        slot: ordered.slot,
-        roleById: plan.roleById,
         headingBySceneId: headingBySceneId,
         blockKindLabelOf: labels.blockKindLabelOf,
       );
@@ -845,6 +843,14 @@ class OcptShootingPlanPdfService {
           painter: painter,
           labels: labels,
           caption: caption,
+          rolesLine: ocptScheduleBlockRoleNumbersLine(
+            roleNumbers: ocptScheduleBlockRoleNumbersOf(
+              block: block,
+              slot: ordered.slot,
+              roleById: plan.roleById,
+            ),
+            rolesLabel: labels.rolesLabel,
+          ),
           startMinute: ordered.entry.startMinute,
           endMinute: ordered.entry.endMinute,
         ),
@@ -860,11 +866,13 @@ class OcptShootingPlanPdfService {
 
   /// A non-shot block's own prose line (`De 16h45 à 17h15 : …`), or `<from> <start> : <caption>`
   /// when [endMinute] is null — a milestone whose block resolves to zero duration, or a slot with
-  /// nothing placed on it yet.
+  /// nothing placed on it yet — then [rolesLine] beneath it when the band expects anybody
+  /// ([ocptScheduleBlockRoleNumbersLine], null for every band that doesn't).
   pw.Widget _milestoneProseLine({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
     required String caption,
+    required String? rolesLine,
     required int startMinute,
     required int? endMinute,
   }) {
@@ -876,7 +884,14 @@ class OcptShootingPlanPdfService {
 
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 2),
-      child: pw.Text(text, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(text, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
+          if (rolesLine != null)
+            pw.Text(rolesLine, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
+        ],
+      ),
     );
   }
 

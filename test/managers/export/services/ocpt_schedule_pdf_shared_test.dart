@@ -102,44 +102,28 @@ void main() {
     });
   });
 
-  group("ocptScheduleBlockCaptionOf", () {
-    test("an HMC block names the numbers of the roles its slot convokes", () {
-      final caption = ocptScheduleBlockCaptionOf(
+  group("ocptScheduleBlockRoleNumbersOf", () {
+    test("an HMC block answers with the numbers of the roles its slot convokes", () {
+      final numbers = ocptScheduleBlockRoleNumbersOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp),
         slot: _buildSlot(cast: [_buildCastMember("role-a"), _buildCastMember("role-b")]),
         roleById: roleById,
-        headingBySceneId: const {},
-        blockKindLabelOf: _blockKindLabelOf,
       );
 
-      expect(caption, "HMC (3, 5)");
+      expect(numbers, [3, 5]);
     });
 
-    test("an HMC block's own free text keeps the role numbers beside it", () {
-      final caption = ocptScheduleBlockCaptionOf(
-        block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp, label: "HMC dressing room 2"),
-        slot: _buildSlot(cast: [_buildCastMember("role-c")]),
-        roleById: roleById,
-        headingBySceneId: const {},
-        blockKindLabelOf: _blockKindLabelOf,
-      );
-
-      expect(caption, "HMC dressing room 2 (8)");
-    });
-
-    test("an HMC block on a slot convoking nobody prints no empty brackets", () {
-      final caption = ocptScheduleBlockCaptionOf(
+    test("an HMC block on a slot convoking nobody answers with no number at all", () {
+      final numbers = ocptScheduleBlockRoleNumbersOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp),
         slot: _buildSlot(),
         roleById: roleById,
-        headingBySceneId: const {},
-        blockKindLabelOf: _blockKindLabelOf,
       );
 
-      expect(caption, "HMC");
+      expect(numbers, isEmpty);
     });
 
-    test("every other kind is left alone, however much cast its slot carries", () {
+    test("every other kind carries none, however much cast its slot convokes", () {
       final slot = _buildSlot(cast: [_buildCastMember("role-a"), _buildCastMember("role-b")]);
 
       for (final kind in OcptShootingBlockKind.values) {
@@ -147,15 +131,57 @@ void main() {
           continue;
         }
         expect(
+          ocptScheduleBlockRoleNumbersOf(block: _buildBlock(kind: kind), slot: slot, roleById: roleById),
+          isEmpty,
+          reason: "a $kind block must not carry its slot's role numbers",
+        );
+      }
+    });
+  });
+
+  group("ocptScheduleBlockRoleNumbersLine", () {
+    test("names the numbers behind the calling document's own label", () {
+      expect(
+        ocptScheduleBlockRoleNumbersLine(roleNumbers: const [3, 5], rolesLabel: "CAST"),
+        "CAST : 3, 5",
+      );
+    });
+
+    test("a band expecting nobody prints no line at all", () {
+      expect(ocptScheduleBlockRoleNumbersLine(roleNumbers: const [], rolesLabel: "CAST"), isNull);
+    });
+  });
+
+  group("ocptScheduleBlockCaptionOf", () {
+    test("an HMC block's own caption carries no role number of its own", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp),
+        headingBySceneId: const {},
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "HMC");
+    });
+
+    test("an HMC block's own free text is printed as it stands", () {
+      final caption = ocptScheduleBlockCaptionOf(
+        block: _buildBlock(kind: OcptShootingBlockKind.hairMakeUp, label: "HMC dressing room 2"),
+        headingBySceneId: const {},
+        blockKindLabelOf: _blockKindLabelOf,
+      );
+
+      expect(caption, "HMC dressing room 2");
+    });
+
+    test("every kind with no caption of its own falls back to its kind label", () {
+      for (final kind in OcptShootingBlockKind.values) {
+        expect(
           ocptScheduleBlockCaptionOf(
             block: _buildBlock(kind: kind),
-            slot: slot,
-            roleById: roleById,
             headingBySceneId: const {},
             blockKindLabelOf: _blockKindLabelOf,
           ),
           _blockKindLabelOf(kind),
-          reason: "a $kind block must not carry its slot's role numbers",
         );
       }
     });
@@ -163,8 +189,6 @@ void main() {
     test("a hold block names its own sequence's heading over the kind label", () {
       final caption = ocptScheduleBlockCaptionOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-1"),
-        slot: _buildSlot(),
-        roleById: roleById,
         headingBySceneId: const {"scene-1": "INT. HOUSE - DAY"},
         blockKindLabelOf: _blockKindLabelOf,
       );
@@ -175,8 +199,6 @@ void main() {
     test("a block's own free text wins over both its sequence heading and its kind label", () {
       final caption = ocptScheduleBlockCaptionOf(
         block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-1", label: "Reserved for the storm"),
-        slot: _buildSlot(),
-        roleById: roleById,
         headingBySceneId: const {"scene-1": "INT. HOUSE - DAY"},
         blockKindLabelOf: _blockKindLabelOf,
       );

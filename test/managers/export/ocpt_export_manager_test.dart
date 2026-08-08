@@ -897,6 +897,7 @@ void main() {
       milestoneFromLabel: "From",
       milestoneToLabel: "to",
       blockKindLabels: {},
+      rolesLabel: "CAST",
       planHeader: "Plan",
       shotSizeHeader: "Shot size",
       moveHeader: "Move.",

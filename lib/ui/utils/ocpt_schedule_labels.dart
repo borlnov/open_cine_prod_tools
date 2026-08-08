@@ -470,6 +470,7 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     blockKindLabels: {
       for (final kind in OcptShootingBlockKind.values) kind: ocptShootingBlockKindLabel(tr, kind),
     },
+    rolesLabel: tr.scheduleExportRolesHeader,
     planHeader: tr.shotListColumnShot,
     shotSizeHeader: tr.shotListColumnShotSize,
     moveHeader: tr.scheduleExportMoveHeader,

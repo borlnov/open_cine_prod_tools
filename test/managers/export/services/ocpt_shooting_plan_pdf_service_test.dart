@@ -72,6 +72,7 @@ const _labels = OcptShootingPlanLabels(
     OcptShootingBlockKind.wrap: "Wrap",
     OcptShootingBlockKind.hold: "Reserved",
   },
+  rolesLabel: "CAST",
   planHeader: "Plan",
   shotSizeHeader: "Shot size",
   moveHeader: "Move.",

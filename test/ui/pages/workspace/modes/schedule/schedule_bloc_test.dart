@@ -119,6 +119,7 @@ const _shootingPlanLabels = OcptShootingPlanLabels(
   milestoneFromLabel: "From",
   milestoneToLabel: "to",
   blockKindLabels: {},
+  rolesLabel: "Cast",
   planHeader: "Shot",
   shotSizeHeader: "Shot size",
   moveHeader: "Move.",

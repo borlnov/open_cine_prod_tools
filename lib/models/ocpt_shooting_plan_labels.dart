@@ -110,6 +110,11 @@ class OcptShootingPlanLabels extends Equatable {
   /// block's own sequence heading is read the same way it is there too.
   final Map<OcptShootingBlockKind, String> blockKindLabels;
 
+  /// The label a [OcptShootingBlockKind.hairMakeUp] milestone's own second line names its expected
+  /// role numbers behind (`RÔLES : 3, 5`) — the same heading `OcptCallSheetLabels.rolesHeader`
+  /// carries, so the two documents label that line identically.
+  final String rolesLabel;
+
   /// A shot table's own `Plan` column header.
   final String planHeader;
 
@@ -164,6 +169,7 @@ class OcptShootingPlanLabels extends Equatable {
     required this.milestoneFromLabel,
     required this.milestoneToLabel,
     required this.blockKindLabels,
+    required this.rolesLabel,
     required this.planHeader,
     required this.shotSizeHeader,
     required this.moveHeader,
@@ -215,6 +221,7 @@ class OcptShootingPlanLabels extends Equatable {
     milestoneFromLabel,
     milestoneToLabel,
     blockKindLabels,
+    rolesLabel,
     planHeader,
     shotSizeHeader,
     moveHeader,
