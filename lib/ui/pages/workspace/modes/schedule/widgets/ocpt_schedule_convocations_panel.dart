@@ -13,10 +13,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 /// The right dock's own `Convocations` tab: the selected day's whole call, one card per **person**
 /// (crew and cast folded together — an actor is read through `roles.personId`, so the question this
 /// panel answers is "when does this human arrive" rather than "who plays what") or per **uncast
-/// role** — a convocation nobody has cast yet, still owed to the production. This is the reading
-/// nobody could get from a single slot card any more, once a person may sit on several of a day's
-/// slots at once (ADR 0018): a slot card only ever draws its own `startMinute`, and every other
-/// clock about a person moved here.
+/// role** — a convocation nobody has cast yet, still owed to the production — then, in their own
+/// **trailing group** under its own heading, one card per **guest** (address-book or free-named).
+/// This is the reading nobody could get from a single slot card any more, once a person may sit on
+/// several of a day's slots at once (ADR 0018): a slot card only ever draws its own `startMinute`,
+/// and every other clock about a person moved here.
+///
+/// A guest's own card is drawn by the very same [_OcptScheduleConvocationCard] — its band always
+/// reading as an em dash, [OcptDayConvocation.isGuest] never carrying a PAT band at all — kept in
+/// its own group rather than interleaved with the crew and cast by arrival, so a reader can tell "who
+/// is here to work" from "who is here to watch" at a glance.
 ///
 /// Entirely **read-only**: every figure on a card is computed by `ocptComputeDayConvocations`
 /// (through `OcptScheduleState.convocationsOfDay`), and the only way to change any of them is to
@@ -62,32 +68,54 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
       return _buildHint(context, tr.scheduleConvocationsEmptyHint);
     }
 
-    final rows = _sortedRows(tr);
-    if (rows.isEmpty) {
+    final mainRows = _sortedRows(tr, convocations.where((convocation) => !convocation.isGuest));
+    final guestRows = _sortedRows(tr, convocations.where((convocation) => convocation.isGuest));
+    if (mainRows.isEmpty && guestRows.isEmpty) {
       return _buildHint(context, tr.scheduleConvocationsNoConvocationHint);
     }
 
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: rows.length,
-      itemBuilder: (context, index) {
-        final (convocation, title) = rows[index];
-        return _OcptScheduleConvocationCard(
-          title: title,
-          bandLabel: ocptScheduleConvocationBandLabel(convocation),
-          slotsLabel: ocptScheduleConvocationSlotsLabel(tr, convocation, slotById),
-        );
-      },
+      children: [
+        for (final (convocation, title) in mainRows) _buildCard(context, convocation, title),
+        if (guestRows.isNotEmpty) ...[
+          if (mainRows.isNotEmpty) const SizedBox(height: 8),
+          _buildSectionHeading(context, tr.scheduleConvocationsGuestsSectionTitle),
+          const SizedBox(height: 8),
+          for (final (convocation, title) in guestRows) _buildCard(context, convocation, title),
+        ],
+      ],
     );
   }
 
-  /// Every entry of [convocations] paired with its resolved display title, sorted by arrival then
-  /// by that title — the order people actually walk in, which `ocptComputeDayConvocations` itself
-  /// cannot produce: it ties on id for want of a name, and resolving one is this state's own job,
-  /// not that pure function's (see [OcptDayConvocation]'s own doc comment).
-  List<(OcptDayConvocation, String)> _sortedRows(Tr tr) {
+  /// One card of either group, its band always reading as an em dash for a guest ([OcptDayConvocation
+  /// .isGuest] never carrying a PAT band) — see [ocptScheduleConvocationBandLabel]'s own doc comment.
+  Widget _buildCard(BuildContext context, OcptDayConvocation convocation, String title) =>
+      _OcptScheduleConvocationCard(
+        title: title,
+        bandLabel: ocptScheduleConvocationBandLabel(convocation),
+        slotsLabel: ocptScheduleConvocationSlotsLabel(Tr.of(context), convocation, slotById),
+      );
+
+  /// The guest group's own heading — muted, uppercased, the same idiom the slot card's own people
+  /// section titles use.
+  Widget _buildSectionHeading(BuildContext context, String title) {
+    final theme = Theme.of(context);
+
+    return Text(
+      title.toUpperCase(),
+      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+    );
+  }
+
+  /// [source] paired with its resolved display title, sorted by arrival then by that title — the
+  /// order people actually walk in, which `ocptComputeDayConvocations` itself cannot produce: it
+  /// ties on id for want of a name, and resolving one is this state's own job, not that pure
+  /// function's (see [OcptDayConvocation]'s own doc comment). Used once per group ([build]), so a
+  /// guest is never sorted against a crew or cast row it doesn't share a heading with.
+  List<(OcptDayConvocation, String)> _sortedRows(Tr tr, Iterable<OcptDayConvocation> source) {
     final rows = [
-      for (final convocation in convocations!)
+      for (final convocation in source)
         (convocation, ocptScheduleConvocationTitle(tr, convocation, personById, roleById)),
     ];
 

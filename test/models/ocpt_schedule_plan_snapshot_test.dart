@@ -110,6 +110,21 @@ OcptShootingSlotCastMember _buildCastMember({
   required String roleId,
 }) => OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
 
+/// Builds a guest attendance with the few fields these tests read, everything else neutral.
+OcptShootingSlotGuest _buildGuest({
+  required String id,
+  required String slotId,
+  String? personId,
+  String freeName = "",
+}) => OcptShootingSlotGuest(
+  id: id,
+  slotId: slotId,
+  personId: personId,
+  freeName: freeName,
+  reason: "",
+  notes: "",
+);
+
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, String? personId}) => OcptRole(
   id: id,
@@ -479,6 +494,42 @@ void main() {
       final uncastConvocation = convocations.firstWhere((c) => c.roleId == "role-uncast");
       expect(uncastConvocation.personId, isNull);
     });
+
+    test("a guest reads as its own convocation, with an arrival and a departure but no PAT band", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 480,
+        guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-guest")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+      );
+
+      final convocation = snapshot.convocationsOfDay("day-1").single;
+
+      expect(convocation.isGuest, isTrue);
+      expect(convocation.guestPersonId, "person-guest");
+      expect(convocation.personId, isNull);
+      expect(convocation.arrivalMinute, 480);
+      expect(convocation.departureMinute, 540);
+      expect(convocation.patStartMinute, isNull);
+      expect(convocation.patEndMinute, isNull);
+    });
   });
 
   group("sunTimesOfDay", () {
@@ -697,6 +748,27 @@ void main() {
       final code = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
 
       expect(code, OcptPresenceCode.working);
+    });
+
+    test("a guest is never working — attending is not being convoked to work", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 480,
+        guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final person = _buildPerson(id: "person-1");
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        people: [person],
+      );
+
+      final code = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+
+      expect(code, isNot(OcptPresenceCode.working));
     });
 
     test("reads unavailable when not convoked but a window covers the day's date", () {

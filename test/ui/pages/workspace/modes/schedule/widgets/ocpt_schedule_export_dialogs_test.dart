@@ -125,6 +125,8 @@ OcptRole _buildRole({required String id, required String name, String? personId}
 OcptDayConvocation _buildConvocation({String? personId, String? roleId}) => OcptDayConvocation(
   personId: personId,
   roleId: roleId,
+  guestPersonId: null,
+  guestFreeName: null,
   arrivalMinute: 480,
   patStartMinute: 540,
   patEndMinute: 1020,

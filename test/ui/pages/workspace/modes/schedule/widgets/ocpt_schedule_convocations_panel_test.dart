@@ -135,6 +135,8 @@ void main() {
         OcptDayConvocation(
           personId: "person-1",
           roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 390,
           patStartMinute: 480,
           patEndMinute: 1155,
@@ -163,6 +165,8 @@ void main() {
         OcptDayConvocation(
           personId: "person-1",
           roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 420,
           patStartMinute: null,
           patEndMinute: null,
@@ -187,6 +191,8 @@ void main() {
         OcptDayConvocation(
           personId: null,
           roleId: "role-1",
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 420,
           patStartMinute: null,
           patEndMinute: null,
@@ -212,6 +218,8 @@ void main() {
         OcptDayConvocation(
           personId: "person-1",
           roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 480,
           patStartMinute: 540,
           patEndMinute: 1200,
@@ -241,6 +249,8 @@ void main() {
         OcptDayConvocation(
           personId: tiedOne.id,
           roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 480,
           patStartMinute: null,
           patEndMinute: null,
@@ -250,6 +260,8 @@ void main() {
         OcptDayConvocation(
           personId: early.id,
           roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 420,
           patStartMinute: null,
           patEndMinute: null,
@@ -259,6 +271,8 @@ void main() {
         OcptDayConvocation(
           personId: tiedTwo.id,
           roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
           arrivalMinute: 480,
           patStartMinute: null,
           patEndMinute: null,
@@ -277,5 +291,56 @@ void main() {
     // Zoé arrives first (420), then the 480 tie breaks alphabetically: Alice before Bruno.
     expect(earlyOffset, lessThan(aliceOffset));
     expect(aliceOffset, lessThan(brunoOffset));
+  });
+
+  testWidgets("guests form their own trailing group, after crew and cast, under their own heading", (
+    tester,
+  ) async {
+    final crewPerson = _buildPerson(id: "person-crew", firstName: "Alice");
+    final guestPerson = _buildPerson(id: "person-guest", firstName: "Zoé");
+    final slot = _buildSlot(id: "slot-1", label: "Plateau");
+
+    await _pumpPanel(
+      tester,
+      convocations: [
+        // The guest arrives before the crew member on purpose: even so, it must draw after — the
+        // grouping is not a plain re-sort by arrival across the whole list.
+        OcptDayConvocation(
+          personId: null,
+          roleId: null,
+          guestPersonId: guestPerson.id,
+          guestFreeName: null,
+          arrivalMinute: 300,
+          patStartMinute: null,
+          patEndMinute: null,
+          departureMinute: 360,
+          slotIds: const ["slot-1"],
+        ),
+        OcptDayConvocation(
+          personId: crewPerson.id,
+          roleId: null,
+          guestPersonId: null,
+          guestFreeName: null,
+          arrivalMinute: 480,
+          patStartMinute: null,
+          patEndMinute: null,
+          departureMinute: 600,
+          slotIds: const ["slot-1"],
+        ),
+      ],
+      personById: {crewPerson.id: crewPerson, guestPerson.id: guestPerson},
+      slotById: {"slot-1": slot},
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleConvocationsPanel)));
+    final heading = tr.scheduleConvocationsGuestsSectionTitle.toUpperCase();
+    expect(find.text(heading), findsOneWidget);
+
+    final crewOffset = tester.getTopLeft(find.text(crewPerson.displayName)).dy;
+    final headingOffset = tester.getTopLeft(find.text(heading)).dy;
+    final guestOffset = tester.getTopLeft(find.text(guestPerson.displayName)).dy;
+
+    expect(crewOffset, lessThan(headingOffset));
+    expect(headingOffset, lessThan(guestOffset));
   });
 }

@@ -201,9 +201,12 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
   /// [timeline]'s own entries whose [blocksById] row is a [OcptShootingBlockKind.shot] or a
   /// [OcptShootingBlockKind.hold] — a minimum and a maximum rather than "the first and last entry",
-  /// since a pinned anchor can put a block earlier than the one before it in chain order — and
+  /// since a pinned anchor can put a block earlier than the one before it in chain order —
   /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
-  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`.
+  /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`, and
+  /// [OcptConvocationSlot.guestPersonIds]/[OcptConvocationSlot.guestFreeNames] come straight off
+  /// [slot]'s own live [OcptShootingSlot.guests] — a guest's `personId`/`freeName` already being the
+  /// discriminator [ocptComputeDayConvocations] itself groups on, there is no join left to do here.
   ///
   /// [OcptConvocationSlot.startMinute] is [timeline]'s own **resolved** start, never a stored
   /// column: a slot pinned by its end starts wherever its blocks put it, and a convocation is what
@@ -239,6 +242,17 @@ class OcptSchedulePlanSnapshot extends Equatable {
       }
     }
 
+    final guestPersonIds = <String>{};
+    final guestFreeNames = <String>{};
+    for (final guest in slot.guests) {
+      final guestPersonId = guest.personId;
+      if (guestPersonId != null) {
+        guestPersonIds.add(guestPersonId);
+      } else if (guest.freeName.isNotEmpty) {
+        guestFreeNames.add(guest.freeName);
+      }
+    }
+
     return OcptConvocationSlot(
       id: slot.id,
       startMinute: timeline.startMinute,
@@ -247,6 +261,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
       shootingEndMinute: shootingEndMinute,
       personIds: personIds,
       uncastRoleIds: uncastRoleIds,
+      guestPersonIds: guestPersonIds,
+      guestFreeNames: guestFreeNames,
     );
   }
 
@@ -328,6 +344,11 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// own computed `working` reading ([presenceCellOf]) must agree with the `Convocations` panel
   /// about who is convoked, so it reads off that very computation rather than a second join over
   /// `shooting_slot_crew`/`shooting_slot_cast`.
+  ///
+  /// Reads [OcptDayConvocation.personId] alone, never [OcptDayConvocation.guestPersonId]: a guest is
+  /// never `working` here, being on set to watch a shoot is not being convoked to work, and
+  /// [OcptDayConvocation.personId] is already null on every guest convocation
+  /// ([OcptDayConvocation.isGuest]) by construction — there is nothing to filter out on purpose.
   late final Map<String, Set<String>> _workingPersonIdsByDayId = {
     for (final day in schedule.days)
       day.id: {

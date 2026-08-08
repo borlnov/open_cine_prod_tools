@@ -267,10 +267,13 @@ String ocptScheduleConvocationBandLabel(OcptDayConvocation convocation) {
 }
 
 /// The convocations panel's own card title for [convocation]: [personById]'s own display name for
-/// a person, or [roleById]'s own name read through [Tr.scheduleConvocationsUncastRoleLabel] for an
-/// uncast role — exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId] is ever
-/// non-null (the same discriminator `breakdown_tags` uses, ADR 0014), so there is never a choice
-/// to make between the two readings, only which one applies.
+/// a person, [roleById]'s own name read through [Tr.scheduleConvocationsUncastRoleLabel] for an
+/// uncast role, [personById]'s own display name again for an address-book guest, or the guest's own
+/// verbatim free name — exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId]/
+/// [OcptDayConvocation.guestPersonId]/[OcptDayConvocation.guestFreeName] is ever non-null (the same
+/// discriminator `breakdown_tags` uses, ADR 0014), so there is never a choice to make between the
+/// four readings, only which one applies. No suffix marks a guest's title: the panel groups guests
+/// under their own trailing heading instead of decorating each row.
 ///
 /// An uncast role's own suffix is what keeps a role's row from reading as a person's: the question
 /// this panel answers is "when does this human arrive", and a role nobody is cast in is still a
@@ -287,6 +290,17 @@ String ocptScheduleConvocationTitle(
     return person == null || person.displayName.isEmpty
         ? tr.resourcesUnnamedPerson
         : person.displayName;
+  }
+
+  final guestPersonId = convocation.guestPersonId;
+  if (guestPersonId != null) {
+    final guest = personById[guestPersonId];
+    return guest == null || guest.displayName.isEmpty ? tr.resourcesUnnamedPerson : guest.displayName;
+  }
+
+  final guestFreeName = convocation.guestFreeName;
+  if (guestFreeName != null) {
+    return guestFreeName.isEmpty ? tr.resourcesUnnamedPerson : guestFreeName;
   }
 
   return tr.scheduleConvocationsUncastRoleLabel(roleById[convocation.roleId]?.name ?? "");
