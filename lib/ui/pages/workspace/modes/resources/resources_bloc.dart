@@ -245,6 +245,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
     on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
     on<OcptResourcesPermitDocumentClearedEvent>(_onPermitDocumentCleared);
+    on<OcptResourcesAssetValidFromChangedEvent>(_onAssetValidFromChanged);
+    on<OcptResourcesAssetValidUntilChangedEvent>(_onAssetValidUntilChanged);
     on<OcptResourcesAssetRemovedEvent>(_onAssetRemoved);
     on<OcptResourcesLocationAvailabilityAddedEvent>(_onLocationAvailabilityAdded);
     on<OcptResourcesLocationAvailabilityUpdatedEvent>(_onLocationAvailabilityUpdated);
@@ -2110,6 +2112,34 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     action: (project) => _locationsService.clearPermitDocument(
       database: project.database,
       locationId: event.locationId,
+    ),
+  );
+
+  /// Sets asset `event.assetId`'s "valid from" date, written immediately.
+  Future<void> _onAssetValidFromChanged(
+    OcptResourcesAssetValidFromChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the valid-from date of asset ${event.assetId}",
+    action: (project) => _assetsService.updateAssetValidity(
+      database: project.database,
+      assetId: event.assetId,
+      validFrom: Value(event.date),
+    ),
+  );
+
+  /// Sets asset `event.assetId`'s "valid until" date, written immediately.
+  Future<void> _onAssetValidUntilChanged(
+    OcptResourcesAssetValidUntilChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the valid-until date of asset ${event.assetId}",
+    action: (project) => _assetsService.updateAssetValidity(
+      database: project.database,
+      assetId: event.assetId,
+      validUntil: Value(event.date),
     ),
   );
 

@@ -847,6 +847,52 @@ void main() {
     await bloc.close();
   });
 
+  test("the permit document's validity dates land in the database", () async {
+    final bloc = buildBloc(
+      fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/permits/autorisation.pdf"),
+    );
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptResourcesLocationCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.locationCount == 1);
+    final locationId = created.selectedLocationId!;
+
+    bloc.add(
+      OcptResourcesPermitDocumentPickRequestedEvent(
+        locationId: locationId,
+        fileTypeLabel: "Documents",
+      ),
+    );
+    var state = await waitForState(bloc, (state) => state.selectedLocation!.permitDocument != null);
+    final assetId = state.selectedLocation!.permitDocument!.id;
+
+    bloc.add(
+      OcptResourcesAssetValidFromChangedEvent(assetId: assetId, date: DateTime(2026, 3, 5)),
+    );
+    state = await waitForState(
+      bloc,
+      (state) => state.selectedLocation!.permitDocument!.validFrom != null,
+    );
+    expect(state.selectedLocation!.permitDocument!.validFrom, DateTime(2026, 3, 5));
+
+    bloc.add(
+      OcptResourcesAssetValidUntilChangedEvent(assetId: assetId, date: DateTime(2026, 9, 30)),
+    );
+    state = await waitForState(
+      bloc,
+      (state) => state.selectedLocation!.permitDocument!.validUntil != null,
+    );
+    expect(state.selectedLocation!.permitDocument!.validUntil, DateTime(2026, 9, 30));
+
+    // Clearing is as real a gesture as setting: the date goes back to null.
+    bloc.add(OcptResourcesAssetValidFromChangedEvent(assetId: assetId, date: null));
+    state = await waitForState(
+      bloc,
+      (state) => state.selectedLocation!.permitDocument!.validFrom == null,
+    );
+
+    await bloc.close();
+  });
+
   test("a cancelled picker references nothing at all", () async {
     final bloc = buildBloc(
       fileSelectorManager: const _StubFileSelectorManager(pickedPath: null),

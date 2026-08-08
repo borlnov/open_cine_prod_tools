@@ -22,6 +22,14 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 /// The document is **referenced, never stored** (`docs/adr/0013-binary-assets-referenced-by-path.md`):
 /// referencing another one replaces the reference, and neither file is ever read, copied or
 /// deleted by this app.
+///
+/// Once a document is referenced, this card also shows its own **validity window** —
+/// `OcptAssetRef.validFrom`/`validUntil` — right under its file line: a permit is a document with
+/// dates, not a location field, so the dates belong to the document block rather than floating
+/// beside it. **Either date left empty means nobody has recorded one, never "valid forever"** — the
+/// same reading `OcptAssetsTable.validFrom`'s own doc comment gives, and the reading
+/// `OcptSchedulePermitNotValidAlert` depends on to stay silent rather than advancing a claim
+/// nobody entered; the card says so under the two fields rather than leaving the user to guess.
 class OcptLocationSheetPermitCard extends StatelessWidget {
   /// The id of the location this card belongs to.
   final String locationId;
@@ -48,6 +56,15 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
   /// Called when the document reference is to be dropped, or null while it may not be.
   final VoidCallback? onPermitDocumentCleared;
 
+  /// Called with the document's newly picked "valid from" date (or null to clear it), or null while
+  /// it may not be changed. Only ever offered while [permitDocument] is not null — there is nothing
+  /// to date otherwise.
+  final ValueChanged<DateTime?>? onPermitDocumentValidFromChanged;
+
+  /// Called with the document's newly picked "valid until" date (or null to clear it), or null
+  /// while it may not be changed. See [onPermitDocumentValidFromChanged].
+  final ValueChanged<DateTime?>? onPermitDocumentValidUntilChanged;
+
   /// Class constructor
   const OcptLocationSheetPermitCard({
     super.key,
@@ -59,6 +76,8 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
     required this.onPermitDateChanged,
     required this.onPermitDocumentPickRequested,
     required this.onPermitDocumentCleared,
+    required this.onPermitDocumentValidFromChanged,
+    required this.onPermitDocumentValidUntilChanged,
   });
 
   @override
@@ -93,9 +112,9 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
     );
   }
 
-  /// The permit document: its own line once one is referenced, and the action referencing (or
-  /// replacing) it. A read-only sheet with no document at all shows neither — there is nothing to
-  /// say and nothing to do.
+  /// The permit document: its own line once one is referenced, its validity window right under it,
+  /// and the action referencing (or replacing) it. A read-only sheet with no document at all shows
+  /// neither — there is nothing to say and nothing to do.
   Widget _buildDocument(BuildContext context, Tr tr) {
     final theme = Theme.of(context);
     final permitDocument = this.permitDocument;
@@ -116,6 +135,25 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
             ocptResourcesEmptyValue,
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
+        if (permitDocument != null) ...[
+          const SizedBox(height: 10),
+          OcptPersonSheetDateField(
+            label: tr.resourcesLocationPermitValidFromLabel,
+            value: permitDocument.validFrom,
+            onChanged: onPermitDocumentValidFromChanged,
+          ),
+          const SizedBox(height: 10),
+          OcptPersonSheetDateField(
+            label: tr.resourcesLocationPermitValidUntilLabel,
+            value: permitDocument.validUntil,
+            onChanged: onPermitDocumentValidUntilChanged,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr.resourcesLocationPermitValidityHint,
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
         if (onPermitDocumentPickRequested != null) ...[
           const SizedBox(height: 6),
           SizedBox(

@@ -655,6 +655,18 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onPermitDocumentCleared: () => bloc.add(
         OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
       ),
+      onPermitDocumentValidFromChanged: (date) => bloc.add(
+        OcptResourcesAssetValidFromChangedEvent(
+          assetId: selectedLocation.permitDocument!.id,
+          date: date,
+        ),
+      ),
+      onPermitDocumentValidUntilChanged: (date) => bloc.add(
+        OcptResourcesAssetValidUntilChangedEvent(
+          assetId: selectedLocation.permitDocument!.id,
+          date: date,
+        ),
+      ),
       onAvailabilityUpdated:
           (
             id, {

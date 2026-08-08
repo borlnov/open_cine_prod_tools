@@ -919,6 +919,48 @@ class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, locationId];
 }
 
+/// Sets the date asset [assetId]'s document — a filming permit, so far the only document this
+/// dates — becomes valid to [date] (or clears it, when null), written immediately: picking a date
+/// is a single discrete action, not typing.
+///
+/// One event per date, mirroring [OcptResourcesLocationPermitDateChangedEvent] and
+/// [OcptResourcesPersonImageRightsDateChangedEvent] rather than one event naming which of the two
+/// changed: every other date field of this mode already reads this way, and a discriminated event
+/// would be a second shape for what is, from every neighbouring event's own point of view, one
+/// more single-date field.
+class OcptResourcesAssetValidFromChangedEvent extends OcptResourcesEvent {
+  /// The id of the asset whose validity window changed.
+  final String assetId;
+
+  /// The new date, or null to clear it.
+  final DateTime? date;
+
+  /// Class constructor
+  const OcptResourcesAssetValidFromChangedEvent({required this.assetId, required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, assetId, date];
+}
+
+/// Sets the date asset [assetId]'s document stops being valid to [date] (or clears it, when null),
+/// written immediately. See [OcptResourcesAssetValidFromChangedEvent] for why this is its own
+/// event rather than a shared, discriminated one.
+class OcptResourcesAssetValidUntilChangedEvent extends OcptResourcesEvent {
+  /// The id of the asset whose validity window changed.
+  final String assetId;
+
+  /// The new date, or null to clear it.
+  final DateTime? date;
+
+  /// Class constructor
+  const OcptResourcesAssetValidUntilChangedEvent({required this.assetId, required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, assetId, date];
+}
+
 /// Requests referencing person [personId]'s photo, replacing whichever one they referenced before.
 /// See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
 class OcptResourcesPersonPhotoPickRequestedEvent extends OcptResourcesEvent {

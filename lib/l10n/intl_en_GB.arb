@@ -4081,6 +4081,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesLocationPermitValidFromLabel": "Valid from",
+  "@resourcesLocationPermitValidFromLabel": {
+    "description": "Label of the date the referenced permit document becomes valid",
+    "context": "Displayed in the resources mode's location sheet, under the permit document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitValidUntilLabel": "Valid until",
+  "@resourcesLocationPermitValidUntilLabel": {
+    "description": "Label of the date the referenced permit document stops being valid",
+    "context": "Displayed in the resources mode's location sheet, under the permit document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitValidityHint": "Leave both empty if the dates are unknown — that silences the schedule's permit alert, it does not claim the permit is valid forever.",
+  "@resourcesLocationPermitValidityHint": {
+    "description": "Explanation under the permit document's validity dates, read what an empty date means",
+    "context": "Displayed in the resources mode's location sheet, under the permit document",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesLocationPhotosCardTitle": "Scouting photos",
   "@resourcesLocationPhotosCardTitle": {
     "description": "Title of the card holding a location's referenced scouting photos",

@@ -139,6 +139,12 @@ class OcptLocationSheet extends StatelessWidget {
   /// Called when the permit document's reference is to be dropped.
   final VoidCallback onPermitDocumentCleared;
 
+  /// Called with the permit document's newly picked "valid from" date, or null to clear it.
+  final ValueChanged<DateTime?> onPermitDocumentValidFromChanged;
+
+  /// Called with the permit document's newly picked "valid until" date, or null to clear it.
+  final ValueChanged<DateTime?> onPermitDocumentValidUntilChanged;
+
   /// Called with an availability window's id and its fields once one of them changed.
   final void Function(
     String id, {
@@ -200,6 +206,8 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onPhotoRemoved,
     required this.onPermitDocumentPickRequested,
     required this.onPermitDocumentCleared,
+    required this.onPermitDocumentValidFromChanged,
+    required this.onPermitDocumentValidUntilChanged,
     required this.onAvailabilityUpdated,
     required this.onAvailabilityAdded,
     required this.onAvailabilityRemoved,
@@ -250,6 +258,12 @@ class OcptLocationSheet extends StatelessWidget {
                   onPermitDateChanged: isReadOnly ? null : onPermitDateChanged,
                   onPermitDocumentPickRequested: isReadOnly ? null : onPermitDocumentPickRequested,
                   onPermitDocumentCleared: isReadOnly ? null : onPermitDocumentCleared,
+                  onPermitDocumentValidFromChanged: isReadOnly
+                      ? null
+                      : onPermitDocumentValidFromChanged,
+                  onPermitDocumentValidUntilChanged: isReadOnly
+                      ? null
+                      : onPermitDocumentValidUntilChanged,
                 ),
               ),
             ],
