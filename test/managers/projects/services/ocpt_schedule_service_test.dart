@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -128,11 +127,6 @@ void main() {
   Future<OcptShootingDayBlockRow> readBlock(String id) => (database.select(
     database.ocptShootingDayBlocksTable,
   )..where((row) => row.id.equals(id))).getSingle();
-
-  /// Every `shooting_presences` row of day [dayId], tombstoned or not.
-  Future<List<OcptShootingPresenceRow>> readAllPresences(String dayId) => (database.select(
-    database.ocptShootingPresencesTable,
-  )..where((row) => row.shootingDayId.equals(dayId))).get();
 
   /// Every guest row of slot [slotId], tombstoned or not, in `sortKey` order.
   Future<List<OcptShootingSlotGuestRow>> readAllGuests(String slotId) =>
@@ -1157,133 +1151,6 @@ void main() {
     });
   });
 
-  group("presence overrides", () {
-    setUp(insertScreenplay);
-
-    test("setPresenceOverride mints a row, reloaded by loadSchedule", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        screenplayId: screenplayId,
-        date: DateTime(2026, 8, 10),
-      ))!;
-      final personId = (await peopleService.createPerson(database: database))!;
-
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: OcptPresenceCode.travelling,
-      );
-
-      final snapshot = await scheduleService.loadSchedule(
-        database: database,
-        screenplayId: screenplayId,
-      );
-      expect(
-        snapshot.presenceOverrideByDayAndPerson[(dayId, personId)],
-        OcptPresenceCode.travelling,
-      );
-    });
-
-    test("setting an override twice reuses the same row rather than minting a second", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        screenplayId: screenplayId,
-        date: DateTime(2026, 8, 10),
-      ))!;
-      final personId = (await peopleService.createPerson(database: database))!;
-
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: OcptPresenceCode.working,
-      );
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: OcptPresenceCode.unavailable,
-      );
-
-      final rows = await readAllPresences(dayId);
-      expect(rows, hasLength(1));
-      expect(rows.single.code, OcptPresenceCode.unavailable);
-    });
-
-    test("clearing an override tombstones the row rather than deleting it, and re-setting revives "
-        "it", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        screenplayId: screenplayId,
-        date: DateTime(2026, 8, 10),
-      ))!;
-      final personId = (await peopleService.createPerson(database: database))!;
-
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: OcptPresenceCode.available,
-      );
-      final mintedId = (await readAllPresences(dayId)).single.id;
-
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: null,
-      );
-
-      final afterClear = await readAllPresences(dayId);
-      expect(afterClear, hasLength(1));
-      expect(afterClear.single.id, mintedId);
-      expect(afterClear.single.isDeleted, isTrue);
-
-      var snapshot = await scheduleService.loadSchedule(
-        database: database,
-        screenplayId: screenplayId,
-      );
-      expect(snapshot.presenceOverrideByDayAndPerson.containsKey((dayId, personId)), isFalse);
-
-      // Re-setting reuses the tombstoned row rather than minting a second one.
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: OcptPresenceCode.working,
-      );
-      final afterRevive = await readAllPresences(dayId);
-      expect(afterRevive, hasLength(1));
-      expect(afterRevive.single.id, mintedId);
-      expect(afterRevive.single.isDeleted, isFalse);
-
-      snapshot = await scheduleService.loadSchedule(database: database, screenplayId: screenplayId);
-      expect(
-        snapshot.presenceOverrideByDayAndPerson[(dayId, personId)],
-        OcptPresenceCode.working,
-      );
-    });
-
-    test("clearing an override that was never set writes nothing", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        screenplayId: screenplayId,
-        date: DateTime(2026, 8, 10),
-      ))!;
-      final personId = (await peopleService.createPerson(database: database))!;
-
-      await scheduleService.setPresenceOverride(
-        database: database,
-        dayId: dayId,
-        personId: personId,
-        code: null,
-      );
-
-      expect(await readAllPresences(dayId), isEmpty);
-    });
-  });
-
   group("guests and events", () {
     setUp(insertScreenplay);
 
@@ -1643,12 +1510,6 @@ void main() {
         blockId: "missing-block",
         targetSlotId: "missing-slot",
         newPosition: 0,
-      );
-      await scheduleService.setPresenceOverride(
-        database: preview,
-        dayId: "missing-day",
-        personId: "missing-person",
-        code: OcptPresenceCode.working,
       );
 
       expect(

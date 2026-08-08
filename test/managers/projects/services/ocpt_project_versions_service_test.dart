@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:convert';
+
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -29,7 +31,6 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -849,7 +850,6 @@ void main() {
                   shootingSlotCrew: payload.shootingSlotCrew,
                   shootingSlotCast: payload.shootingSlotCast,
                   shootingDayBlocks: payload.shootingDayBlocks,
-                  shootingPresences: payload.shootingPresences,
                   shootingSlotGuests: payload.shootingSlotGuests,
                   shootingDayEvents: payload.shootingDayEvents,
                   rowFieldVersions: payload.rowFieldVersions,
@@ -1284,63 +1284,70 @@ void main() {
     );
 
     test(
-      "a presence-grid override survives a capture and a restore, tombstone and revival included",
+      "restoring a format-11 payload succeeds, dropping the presence overrides it held with "
+      "nothing reconstructed",
       () async {
-        await insertShootingDay(id: "day-1");
+        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
         await database
             .into(database.ocptPeopleTable)
             .insert(
               OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
             );
-        await scheduleService.setPresenceOverride(
-          database: database,
-          dayId: "day-1",
-          personId: "person-1",
-          code: OcptPresenceCode.travelling,
-        );
 
         final version = await createVersion(name: "v1 — Presence set");
 
-        // Diverge: the override is changed, then cleared (tombstoned) in the working copy.
-        await scheduleService.setPresenceOverride(
-          database: database,
-          dayId: "day-1",
-          personId: "person-1",
-          code: OcptPresenceCode.unavailable,
-        );
-        await scheduleService.setPresenceOverride(
-          database: database,
-          dayId: "day-1",
-          personId: "person-1",
-          code: null,
-        );
-        final clearedRow = await (database.select(
-          database.ocptShootingPresencesTable,
-        )..where((table) => table.shootingDayId.equals("day-1"))).getSingle();
-        expect(clearedRow.isDeleted, isTrue);
+        // A literal fixture of what that very capture would have looked like at payload format 11:
+        // `shooting_presences` genuinely existed from format 6 through format 11 (it shipped with
+        // the rest of the schedule mode's six tables), so this is a real row a user's own click
+        // minted, not merely an absent key.
+        final storedRow = await (database.select(
+          database.ocptProjectVersionsTable,
+        )..where((table) => table.id.equals(version.id))).getSingle();
+        final oldFormatJson = jsonDecode(storedRow.payload) as Map<String, dynamic>
+          ..["payloadFormat"] = 11
+          ..["shootingPresences"] = [
+            {
+              "id": "presence-1",
+              "shootingDayId": "day-1",
+              "personId": "person-1",
+              "code": "travelling",
+              "isDeleted": false,
+            },
+          ];
+        await database
+            .into(database.ocptProjectVersionsTable)
+            .insert(
+              OcptProjectVersionsTableCompanion.insert(
+                id: "version-format11",
+                name: "v0 — Presence set (format 11)",
+                createdAt: DateTime.utc(2026),
+                appVersion: "0.1.0",
+                payloadFormat: 11,
+                payload: jsonEncode(oldFormatJson),
+                summaryJson: "{}",
+                createdByDeviceId: deviceId,
+              ),
+            );
 
-        final result = await restore(version.id);
+        // Diverge: the day is tombstoned in the working copy.
+        await (database.update(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-1"))).write(
+          const OcptShootingDaysTableCompanion(isDeleted: Value(true)),
+        );
+
+        final result = await restore("version-format11");
 
         expect(result.status, OcptProjectRestoreStatus.ok);
 
-        // The row is revived — live again, and back to the code the version was captured with —
-        // rather than a second row being minted for the same (day, person) pair.
-        final restoredRow = await (database.select(
-          database.ocptShootingPresencesTable,
-        )..where((table) => table.shootingDayId.equals("day-1"))).getSingle();
-        expect(restoredRow.id, clearedRow.id);
-        expect(restoredRow.isDeleted, isFalse);
-        expect(restoredRow.code, OcptPresenceCode.travelling);
-
-        // And the schedule mode reads that override back exactly the way it wrote it.
-        final restoredSnapshot = await scheduleService.loadSchedule(
-          database: database,
-          screenplayId: screenplayId,
-        );
-        expect(
-          restoredSnapshot.presenceOverrideByDayAndPerson[("day-1", "person-1")],
-          OcptPresenceCode.travelling,
-        );
+        // The rest of the schedule the version genuinely held restores exactly. The presence
+        // override dropped alongside it is a decode-time fact with nowhere left in the schema to
+        // land — there is no table this restore could have written it back into, and nothing here
+        // stands in for one.
+        final restoredDay = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals("day-1"))).getSingle();
+        expect(restoredDay.isDeleted, isFalse);
       },
     );
 

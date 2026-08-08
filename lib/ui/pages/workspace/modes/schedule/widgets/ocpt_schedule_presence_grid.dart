@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_schedule_presence_cell.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
@@ -55,9 +54,9 @@ class _OcptPresenceGridDayColumn {
   const _OcptPresenceGridDayColumn({required this.day, required this.dayTag, required this.dateLabel});
 }
 
-/// The schedule mode's presence view: who is working, available, travelling or unavailable, day by
-/// day, across the whole shoot — the fourth and last centre view, after the day, the agenda and the
-/// positions matrix (`OcptScheduleCentreView.presence`).
+/// The schedule mode's presence view: who is working or unavailable, day by day, across the whole
+/// shoot — the fourth and last centre view, after the day, the agenda and the positions matrix
+/// (`OcptScheduleCentreView.presence`).
 ///
 /// **Rows** are the **whole address book**, [people], in the order it is loaded — every person the
 /// project knows about, whether or not they are convoked anywhere yet: a project's crew and cast are
@@ -73,24 +72,19 @@ class _OcptPresenceGridDayColumn {
 /// [OcptPresenceCode.working].
 ///
 /// **A cell** is [presenceCellOf]'s own answer for that (day, person) pair — see
-/// `OcptSchedulePlanSnapshot.presenceCellOf` for the computed/overridden join this widget never
-/// repeats: a live override always wins, a computed `working`/`unavailable` follows, and a cell with
-/// neither is drawn **blank**, no pill at all — absence of information, never a claim. A cell named
-/// by one of [unavailableAlerts] (`OcptSchedulePersonUnavailableAlert`, rule 1 of
-/// `lib/utils/ocpt_schedule_alerts.dart`, **read here, never recomputed**) is painted in the error
-/// colour whatever its own code, mirroring how `OcptSchedulePositionsMatrix` reads rule 4 through
-/// `lostPositionAlerts` rather than re-deriving "lost" on its own — two implementations of one rule
-/// is exactly how this grid and the alerts panel would come to disagree.
+/// `OcptSchedulePlanSnapshot.presenceCellOf`, entirely computed: [OcptPresenceCode.working] or
+/// [OcptPresenceCode.unavailable], or null, drawn **blank**, no pill at all — absence of
+/// information, never a claim. A cell named by one of [unavailableAlerts]
+/// (`OcptSchedulePersonUnavailableAlert`, rule 1 of `lib/utils/ocpt_schedule_alerts.dart`, **read
+/// here, never recomputed**) is painted in the error colour whatever its own code, mirroring how
+/// `OcptSchedulePositionsMatrix` reads rule 4 through `lostPositionAlerts` rather than re-deriving
+/// "lost" on its own — two implementations of one rule is exactly how this grid and the alerts
+/// panel would come to disagree.
 ///
-/// **The click** cycles that cell's own **override**, never its effective value —
-/// `ocptNextPresenceOverride` (`lib/utils/`), stepping `null → working → available → travelling →
-/// unavailable → null → …` — so a computed cell's first click always claims
-/// [OcptPresenceCode.working], regardless of what it happened to be showing. Unlike
-/// `OcptSchedulePositionsMatrix`, this view **writes**: [onCellTapped] is nullable, the app's own
-/// "no callback, no affordance" idiom for a version preview, withheld by the caller
-/// (`OcptScheduleMode`) exactly as every other write of this mode is — every code and every total
-/// still draw under a preview, since reading a version's presence grid is exactly what a preview is
-/// for.
+/// **It offers nothing to withhold.** Schema v17 drops `shooting_presences`, the by-hand override a
+/// cell's click used to cycle: every code this grid draws is computed, so it joins `Convocations`,
+/// the positions matrix and the `Alerts` panel as a view that needs no `isReadOnly` handling at all
+/// — it draws identically whether the project is being edited or a version is being previewed.
 class OcptSchedulePresenceGrid extends StatelessWidget {
   /// Every live day, in `dayNumber` order — one column per entry.
   final List<OcptShootingDay> days;
@@ -101,9 +95,9 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
   /// The whole cast — what a row's own subtitle reads a person's roles off (`roles.personId`).
   final List<OcptRole> roles;
 
-  /// Resolves the effective cell of `personId` on `dayId` — delegates to
+  /// Resolves the effective code of `personId` on `dayId`, or null for a blank cell — delegates to
   /// `OcptSchedulePlanSnapshot.presenceCellOf`.
-  final OcptSchedulePresenceCell Function(String dayId, String personId) presenceCellOf;
+  final OcptPresenceCode? Function(String dayId, String personId) presenceCellOf;
 
   /// Every [OcptSchedulePersonUnavailableAlert] `OcptSchedulePlanSnapshot.alerts` raised over the
   /// whole schedule — already filtered to that one kind by the caller, since this widget has no
@@ -115,10 +109,6 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
   /// positions matrix already answer.
   final ValueChanged<String> onDayOpenRequested;
 
-  /// Called with a cell's own day id and person id when it is clicked, cycling its override one
-  /// step. Null under a version preview, withholding the click entirely.
-  final void Function(String dayId, String personId)? onCellTapped;
-
   /// Class constructor
   const OcptSchedulePresenceGrid({
     super.key,
@@ -128,7 +118,6 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
     required this.presenceCellOf,
     required this.unavailableAlerts,
     required this.onDayOpenRequested,
-    required this.onCellTapped,
   });
 
   @override
@@ -392,8 +381,8 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
   }
 
   /// One cell: [column]'s own day crossed with [person] — a pill reading [presenceCellOf]'s own
-  /// code (see the class doc comment), or nothing at all for a blank cell. Still tappable while
-  /// blank, when [onCellTapped] is given: a blank cell is where the very first override is set.
+  /// code (see the class doc comment), or nothing at all for a blank cell. Plain, unclickable: this
+  /// view has nothing left to write.
   Widget _buildCell(
     BuildContext context,
     Tr tr,
@@ -402,12 +391,10 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
     Set<(String, String)> conflictCells,
   ) {
     final theme = Theme.of(context);
-    final cell = presenceCellOf(column.day.id, person.id);
+    final code = presenceCellOf(column.day.id, person.id);
     final hasConflict = conflictCells.contains((column.day.id, person.id));
-    final onTapped = onCellTapped;
 
     Widget content = const SizedBox.shrink();
-    final code = cell.code;
     if (code != null) {
       final color = hasConflict ? theme.colorScheme.error : ocptPresenceCodeColor(context, code);
       final label = ocptPresenceCodeLabel(tr, code);
@@ -441,11 +428,7 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
             left: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
           ),
         ),
-        child: InkWell(
-          onTap: onTapped == null ? null : () => onTapped(column.day.id, person.id),
-          mouseCursor: ocptClickableCursor,
-          child: Center(child: content),
-        ),
+        child: Center(child: content),
       ),
     );
   }
@@ -455,7 +438,7 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
   Widget _buildTotalCell(BuildContext context, OcptPerson person) {
     final theme = Theme.of(context);
     final workingDayCount = days
-        .where((day) => presenceCellOf(day.id, person.id).code == OcptPresenceCode.working)
+        .where((day) => presenceCellOf(day.id, person.id) == OcptPresenceCode.working)
         .length;
 
     return Container(

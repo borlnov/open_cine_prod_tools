@@ -7719,9 +7719,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "schedulePresenceGridLegend": "Click a cell to set whether that person is working, available, travelling or unavailable; the red border marks someone convoked despite being recorded unavailable that day.",
+  "schedulePresenceGridLegend": "Each cell shows whether that person is working or unavailable that day, computed from the schedule and the address book; the red border marks someone convoked despite being recorded unavailable that day.",
   "@schedulePresenceGridLegend": {
-    "description": "Caption explaining the presence grid's own click gesture and its warning cell",
+    "description": "Caption explaining what the presence grid's own cells read and its warning cell",
     "context": "Displayed above the schedule mode's presence view",
     "type": "text",
     "placeholders": {}
@@ -7740,20 +7740,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "presenceCodeLabelAvailable": "Available",
-  "@presenceCodeLabelAvailable": {
-    "description": "Full label of the presence code meaning this person is available but not convoked that day",
-    "context": "Displayed in the schedule mode's presence view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "presenceCodeLabelTravelling": "Travelling",
-  "@presenceCodeLabelTravelling": {
-    "description": "Full label of the presence code meaning this person is travelling to or from set that day",
-    "context": "Displayed in the schedule mode's presence view",
-    "type": "text",
-    "placeholders": {}
-  },
   "presenceCodeLabelUnavailable": "Unavailable",
   "@presenceCodeLabelUnavailable": {
     "description": "Full label of the presence code meaning this person is unavailable that day",
@@ -7764,20 +7750,6 @@
   "presenceCodeLetterWorking": "W",
   "@presenceCodeLetterWorking": {
     "description": "Single-letter pill label of the working presence code, printed in a narrow grid cell",
-    "context": "Displayed in the schedule mode's presence view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "presenceCodeLetterAvailable": "A",
-  "@presenceCodeLetterAvailable": {
-    "description": "Single-letter pill label of the available presence code, printed in a narrow grid cell",
-    "context": "Displayed in the schedule mode's presence view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "presenceCodeLetterTravelling": "T",
-  "@presenceCodeLetterTravelling": {
-    "description": "Single-letter pill label of the travelling presence code, printed in a narrow grid cell",
     "context": "Displayed in the schedule mode's presence view",
     "type": "text",
     "placeholders": {}

@@ -33,7 +33,6 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_events_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_presences_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_cast_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_crew_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_guests_table.dart';
@@ -48,7 +47,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 // OcptElementStatusConverter, OcptAssetKindConverter, OcptDayPartSlotConverter,
 // OcptBreakdownTargetKindConverter, OcptBreakdownSceneStatusConverter,
 // OcptShootingDayStatusConverter, OcptShootingBlockKindConverter,
-// OcptShootingSlotAnchorEdgeConverter, OcptPresenceCodeConverter), but
+// OcptShootingSlotAnchorEdgeConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -63,7 +62,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -99,23 +97,28 @@ part 'ocpt_project_database.g.dart';
 /// schedule mode's own tables: the shooting days ([OcptShootingDaysTable]), the convocation windows
 /// inside them ([OcptShootingSlotsTable]) and who is convoked during one, crew
 /// ([OcptShootingSlotCrewTable]) and cast ([OcptShootingSlotCastTable]), each day's timetable
-/// ([OcptShootingDayBlocksTable]) and the by-hand overrides of the presence grid
-/// ([OcptShootingPresencesTable]). Schema version 12 briefly added the named lead times a day
-/// carried (`shooting_day_groups`), that a `shooting_slot_crew`/`shooting_slot_cast` row could
-/// point at; schema version 13 drops that table again, and the `groupId`/`leadMinutes` columns of
-/// those two convocation tables with it — a convocation is read off the slots a person or a role is
-/// linked to from here on, never offset by a typed figure (see
-/// `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). Schema version 14 replaces
-/// `shooting_slots.startMinute` with the three columns an anchored edge needs, so a slot can be
-/// pinned by its end as well as its start, or read its hour off another slot of the same day (ADR
-/// 0015, amended a second time). Schema version 15 adds [OcptRoleElementsTable], what a role wears,
-/// carries and is made up with. Schema version 17 adds two further schedule tables: who attends a
-/// slot without being crew or cast ([OcptShootingSlotGuestsTable]) and what a day does not control,
-/// at an absolute hour ([OcptShootingDayEventsTable]) — plus, in the same schema bump, a printed
-/// crew note on a block ([OcptShootingDayBlocksTable.crewNote]), a document's validity window on
-/// an asset ([OcptAssetsTable.validFrom]/[OcptAssetsTable.validUntil]) and the minimum rest a
-/// production says it owes ([OcptProjectInfoTable.minimumRestMinutes]). `OcptProjectsManager` owns
-/// the single instance open at a time.
+/// ([OcptShootingDayBlocksTable]) and, briefly, the by-hand overrides of the presence grid
+/// (`shooting_presences`, dropped again at schema version 17 below). Schema version 12 briefly
+/// added the named lead times a day carried (`shooting_day_groups`), that a
+/// `shooting_slot_crew`/`shooting_slot_cast` row could point at; schema version 13 drops that table
+/// again, and the `groupId`/`leadMinutes` columns of those two convocation tables with it — a
+/// convocation is read off the slots a person or a role is linked to from here on, never offset by
+/// a typed figure (see `docs/adr/0018-a-convocation-is-the-slot-you-are-linked-to.md`). Schema
+/// version 14 replaces `shooting_slots.startMinute` with the three columns an anchored edge needs,
+/// so a slot can be pinned by its end as well as its start, or read its hour off another slot of the
+/// same day (ADR 0015, amended a second time). Schema version 15 adds [OcptRoleElementsTable], what
+/// a role wears, carries and is made up with. Schema version 17 adds two further schedule tables:
+/// who attends a slot without being crew or cast ([OcptShootingSlotGuestsTable]) and what a day does
+/// not control, at an absolute hour ([OcptShootingDayEventsTable]) — plus, in the same schema bump,
+/// a printed crew note on a block ([OcptShootingDayBlocksTable.crewNote]), a document's validity
+/// window on an asset ([OcptAssetsTable.validFrom]/[OcptAssetsTable.validUntil]) and the minimum
+/// rest a production says it owes ([OcptProjectInfoTable.minimumRestMinutes]) — and it **drops**
+/// `shooting_presences` outright: the grid mixed a computed reading (who is convoked, from the
+/// schedule) with a click-through override whose `available`/`unavailable` values only ever
+/// restated, from a second source of truth, what `person_unavailabilities` already says in the
+/// resources mode. As with every other column and table this app has migrated away from, nothing is
+/// reconstructed — an override that said `travelling` does not become anything on the other side of
+/// the migration. `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
   tables: [
     OcptProjectInfoTable,
@@ -148,7 +151,6 @@ part 'ocpt_project_database.g.dart';
     OcptShootingSlotCrewTable,
     OcptShootingSlotCastTable,
     OcptShootingDayBlocksTable,
-    OcptShootingPresencesTable,
     OcptShootingSlotGuestsTable,
     OcptShootingDayEventsTable,
   ],
@@ -255,12 +257,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// suggest anything better. From 8 to 9 it creates [OcptBreakdownTagsTable] and
   /// [OcptSceneBreakdownsTable], the breakdown pass's own tables, and adds `elements.status`. From
   /// 9 to 10 it adds **no column at all**: it fills the `sets.code` a set now carries from the
-  /// moment it is created (see [_backfillSetCodes]). From 10 to 11 it creates the six tables of the
-  /// schedule mode — the shooting days ([OcptShootingDaysTable]), their convocation windows
-  /// ([OcptShootingSlotsTable]) and who is convoked, crew ([OcptShootingSlotCrewTable]) and cast
-  /// ([OcptShootingSlotCastTable]), each day's timetable ([OcptShootingDayBlocksTable]) and the
-  /// presence grid's overrides ([OcptShootingPresencesTable]) — and, on a file that already had
-  /// `shots` (see [_eraseLegacyShootingDays]), blanks every `shots.shootingDay` value: the schedule's
+  /// moment it is created (see [_backfillSetCodes]). From 10 to 11 it creates the five tables of the
+  /// schedule mode this build still carries — the shooting days ([OcptShootingDaysTable]), their
+  /// convocation windows ([OcptShootingSlotsTable]) and who is convoked, crew
+  /// ([OcptShootingSlotCrewTable]) and cast ([OcptShootingSlotCastTable]), and each day's timetable
+  /// ([OcptShootingDayBlocksTable]) — a real file reaching version 11 in an older build also gained
+  /// a sixth, `shooting_presences`, the presence grid's by-hand override; schema version 17 drops it
+  /// again (below), so a file this old is never given it in the first place any more — and, on a
+  /// file that already had `shots` (see [_eraseLegacyShootingDays]), blanks every
+  /// `shots.shootingDay` value: the schedule's
   /// placement is the only truth from here on, a shooting day is always dated, and a free-text `J3`
   /// carries no date to migrate from, so a blank column is the only honest reading. It needs no
   /// `row_field_versions` stamp — every replica performs the same erasure, deterministically, as
@@ -308,12 +313,17 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// both already carry the column by this point. All three are
   /// nullable or defaulted, so none needs a backfill: a project that predates them recorded nothing
   /// for any of the three, which stays as true after the migration as it was before it — exactly the
-  /// reading version 16's own column carries. Every step is additive, as
+  /// reading version 16's own column carries. The same step also **drops** `shooting_presences`
+  /// outright ([Migrator.deleteTable], harmless whether or not the file ever held the table): the
+  /// presence grid's click-through override restated, from a second source of truth, what
+  /// `person_unavailabilities` already says in the resources mode, and nothing is reconstructed from
+  /// it — an override that said `travelling` does not become anything on the other side of this
+  /// migration. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
-  /// and table drops, and version 14's rename, none of which a plain `addColumn` can express, which
-  /// is why all three reshape existing tables through
+  /// and table drops, version 14's rename, and version 17's own table drop, none of which a plain
+  /// `addColumn` can express, which is why all four reshape existing tables through
   /// [Migrator.alterTable]/[Migrator.deleteTable] instead.
   ///
   /// The v3 and v4 columns are only *added* to the shot list tables when the file already had
@@ -411,13 +421,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       if (from < 11) {
         // Each `createTable` follows every table it references: `screenplays`, `locations`,
         // `sets`, `people`, `roles` and `shots` all exist by this point, whichever version the file
-        // came from.
+        // came from. `shooting_presences` is deliberately not among these any more: a file coming
+        // from below version 11 never held it, and creating it here only to drop it again at
+        // version 17 below would be work with no reader. That drop still runs unconditionally, for
+        // the file that genuinely did hold it — one written by a build that had this table.
         await m.createTable(ocptShootingDaysTable);
         await m.createTable(ocptShootingSlotsTable);
         await m.createTable(ocptShootingSlotCrewTable);
         await m.createTable(ocptShootingSlotCastTable);
         await m.createTable(ocptShootingDayBlocksTable);
-        await m.createTable(ocptShootingPresencesTable);
 
         if (from >= 2) {
           await _eraseLegacyShootingDays();
@@ -474,6 +486,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
           await m.addColumn(ocptAssetsTable, ocptAssetsTable.validFrom);
           await m.addColumn(ocptAssetsTable, ocptAssetsTable.validUntil);
         }
+
+        // `shooting_presences` is dropped outright ([Migrator.deleteTable], harmless whether or
+        // not the file ever held the table — the same idiom version 13 already uses for
+        // `shooting_day_groups`): the presence grid's click-through override restated, from a
+        // second source of truth, what `person_unavailabilities` already says in the resources
+        // mode, and nothing here is reconstructed from it — an override that said `travelling`
+        // does not become anything on the other side of this migration.
+        await m.deleteTable('shooting_presences');
       }
     },
     beforeOpen: (details) async {
@@ -658,10 +678,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       // from here on, and the free-text `label` those rows carry is not a scene id to read one out
       // of — nothing is guessed, exactly as no lead time is guessed out of the dropped clocks.
       // ignore: experimental_member_use
-      TableMigration(
-        ocptShootingDayBlocksTable,
-        newColumns: [ocptShootingDayBlocksTable.sceneId],
-      ),
+      TableMigration(ocptShootingDayBlocksTable, newColumns: [ocptShootingDayBlocksTable.sceneId]),
     );
 
     await m.alterTable(

@@ -310,7 +310,6 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
-  Map<(String, String), OcptPresenceCode> presenceOverrideByDayAndPerson = const {},
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     screenplayId: "screenplay-1",
@@ -318,7 +317,6 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,
     eventsByDayId: eventsByDayId,
-    presenceOverrideByDayAndPerson: presenceOverrideByDayAndPerson,
   ),
   shotList: shotList,
   locations: locations,
@@ -696,10 +694,9 @@ void main() {
         people: [person],
       );
 
-      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+      final code = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
 
-      expect(cell.code, OcptPresenceCode.working);
-      expect(cell.isOverridden, isFalse);
+      expect(code, OcptPresenceCode.working);
     });
 
     test("reads unavailable when not convoked but a window covers the day's date", () {
@@ -717,10 +714,9 @@ void main() {
       );
       final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {}, people: [person]);
 
-      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+      final code = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
 
-      expect(cell.code, OcptPresenceCode.unavailable);
-      expect(cell.isOverridden, isFalse);
+      expect(code, OcptPresenceCode.unavailable);
     });
 
     test("reads blank — neither convoked nor covered by a window", () {
@@ -728,34 +724,9 @@ void main() {
       final person = _buildPerson(id: "person-1");
       final snapshot = _buildSnapshot(days: [day], slotsByDayId: const {}, people: [person]);
 
-      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
+      final code = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
 
-      expect(cell.code, isNull);
-      expect(cell.isOverridden, isFalse);
-    });
-
-    test("a live override always wins over the computed reading", () {
-      final slot = _buildSlot(
-        id: "slot-1",
-        anchorMinute: 480,
-        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
-      );
-      final day = _buildDay(id: "day-1", dayNumber: 1);
-      final person = _buildPerson(id: "person-1");
-      final snapshot = _buildSnapshot(
-        days: [day],
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        people: [person],
-        // Computed would read `working` — the override says otherwise, and wins.
-        presenceOverrideByDayAndPerson: {("day-1", "person-1"): OcptPresenceCode.unavailable},
-      );
-
-      final cell = snapshot.presenceCellOf(dayId: "day-1", personId: "person-1");
-
-      expect(cell.code, OcptPresenceCode.unavailable);
-      expect(cell.isOverridden, isTrue);
+      expect(code, isNull);
     });
   });
 }

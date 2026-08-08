@@ -113,10 +113,6 @@ class OcptProjectVersionPayload extends Equatable {
   /// schedule mode.
   final List<OcptShootingDayBlockRow> shootingDayBlocks;
 
-  /// The `shooting_presences` rows of the project: the by-hand overrides of the presence grid,
-  /// filled only from milestone M3 onward.
-  final List<OcptShootingPresenceRow> shootingPresences;
-
   /// The `shooting_slot_guests` rows of the project: who attends a slot without being crew or cast.
   final List<OcptShootingSlotGuestRow> shootingSlotGuests;
 
@@ -192,7 +188,6 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingSlotCrew,
     required this.shootingSlotCast,
     required this.shootingDayBlocks,
-    required this.shootingPresences,
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
     required this.rowFieldVersions,
@@ -218,7 +213,6 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
       "shootingSlotCast: ${shootingSlotCast.length}, "
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
-      "shootingPresences: ${shootingPresences.length}, "
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
@@ -253,7 +247,6 @@ class OcptProjectVersionPayload extends Equatable {
     shootingSlotCrew,
     shootingSlotCast,
     shootingDayBlocks,
-    shootingPresences,
     shootingSlotGuests,
     shootingDayEvents,
     rowFieldVersions,

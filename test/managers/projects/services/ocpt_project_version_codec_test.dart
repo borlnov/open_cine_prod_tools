@@ -23,7 +23,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -700,22 +699,6 @@ void main() {
         isDeleted: true,
       ),
     ],
-    shootingPresences: const [
-      OcptShootingPresenceRow(
-        id: "presence-1",
-        shootingDayId: "day-1",
-        personId: "person-1",
-        code: OcptPresenceCode.working,
-        isDeleted: false,
-      ),
-      OcptShootingPresenceRow(
-        id: "presence-2",
-        shootingDayId: "day-1",
-        personId: "person-1",
-        code: OcptPresenceCode.unavailable,
-        isDeleted: true,
-      ),
-    ],
     shootingSlotGuests: const [
       OcptShootingSlotGuestRow(
         id: "guest-1",
@@ -1058,17 +1041,6 @@ void main() {
       expect(holdBlock.anchorMinute, 600);
       expect(holdBlock.isDeleted, isTrue);
 
-      final presence = roundTripped.shootingPresences.firstWhere((row) => row.id == "presence-1");
-      expect(presence.shootingDayId, "day-1");
-      expect(presence.personId, "person-1");
-      expect(presence.code, OcptPresenceCode.working);
-      expect(presence.isDeleted, isFalse);
-      final overriddenPresence = roundTripped.shootingPresences.firstWhere(
-        (row) => row.id == "presence-2",
-      );
-      expect(overriddenPresence.code, OcptPresenceCode.unavailable);
-      expect(overriddenPresence.isDeleted, isTrue);
-
       final guest = roundTripped.shootingSlotGuests.firstWhere((row) => row.id == "guest-1");
       expect(guest.slotId, "slot-1");
       expect(guest.personId, "person-1");
@@ -1179,7 +1151,6 @@ void main() {
         shootingSlotCrew: [],
         shootingSlotCast: [],
         shootingDayBlocks: [],
-        shootingPresences: [],
         shootingSlotGuests: [],
         shootingDayEvents: [],
         rowFieldVersions: [],
@@ -1232,7 +1203,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew.reversed.toList(),
         shootingSlotCast: payload.shootingSlotCast.reversed.toList(),
         shootingDayBlocks: payload.shootingDayBlocks.reversed.toList(),
-        shootingPresences: payload.shootingPresences.reversed.toList(),
         shootingSlotGuests: payload.shootingSlotGuests.reversed.toList(),
         shootingDayEvents: payload.shootingDayEvents.reversed.toList(),
         rowFieldVersions: payload.rowFieldVersions,
@@ -1273,7 +1243,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: const [
@@ -1322,7 +1291,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1374,7 +1342,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1415,7 +1382,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1456,7 +1422,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1499,7 +1464,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1553,7 +1517,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1603,7 +1566,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1647,7 +1609,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1691,7 +1652,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1735,7 +1695,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1791,7 +1750,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1837,7 +1795,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1881,7 +1838,6 @@ void main() {
           payload.shootingDayBlocks.first.copyWith(isDeleted: true),
           ...payload.shootingDayBlocks.skip(1),
         ],
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -1892,56 +1848,6 @@ void main() {
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(tombstoned)));
-    });
-
-    test('changes when a presence override is added', () {
-      final payload = buildRichPayload();
-      final withNewPresence = OcptProjectVersionPayload(
-        screenplays: payload.screenplays,
-        scenes: payload.scenes,
-        shots: payload.shots,
-        shotCharacters: payload.shotCharacters,
-        shotCoverages: payload.shotCoverages,
-        people: payload.people,
-        personPositions: payload.personPositions,
-        personSkills: payload.personSkills,
-        personUnavailabilities: payload.personUnavailabilities,
-        roles: payload.roles,
-        locations: payload.locations,
-        locationAvailabilities: payload.locationAvailabilities,
-        sets: payload.sets,
-        sceneSets: payload.sceneSets,
-        elements: payload.elements,
-        sceneElements: payload.sceneElements,
-        roleElements: payload.roleElements,
-        assets: payload.assets,
-        breakdownTags: payload.breakdownTags,
-        sceneBreakdowns: payload.sceneBreakdowns,
-        shootingDays: payload.shootingDays,
-        shootingSlots: payload.shootingSlots,
-        shootingSlotCrew: payload.shootingSlotCrew,
-        shootingSlotCast: payload.shootingSlotCast,
-        shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: [
-          ...payload.shootingPresences,
-          const OcptShootingPresenceRow(
-            id: "presence-3",
-            shootingDayId: "day-1",
-            personId: "person-2",
-            code: OcptPresenceCode.travelling,
-            isDeleted: false,
-          ),
-        ],
-        shootingSlotGuests: payload.shootingSlotGuests,
-        shootingDayEvents: payload.shootingDayEvents,
-        rowFieldVersions: payload.rowFieldVersions,
-        pageSetup: payload.pageSetup,
-        settingsJson: payload.settingsJson,
-        currencyCode: payload.currencyCode,
-        minimumRestMinutes: payload.minimumRestMinutes,
-      );
-
-      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewPresence)));
     });
 
     test('changes when a guest is added', () {
@@ -1972,7 +1878,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: [
           ...payload.shootingSlotGuests,
           const OcptShootingSlotGuestRow(
@@ -2024,7 +1929,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -2068,7 +1972,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -2109,7 +2012,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -2154,7 +2056,6 @@ void main() {
         shootingSlotCrew: payload.shootingSlotCrew,
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: blocks,
-        shootingPresences: payload.shootingPresences,
         shootingSlotGuests: payload.shootingSlotGuests,
         shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
@@ -2453,10 +2354,10 @@ void main() {
       expect(payload.elements.single.status, OcptElementStatus.toFind);
     });
 
-    test('a stored format-5 payload decodes with the six schedule tables empty', () {
+    test('a stored format-5 payload decodes with the five schedule tables empty', () {
       // The retired format the breakdown pass shipped in: every table up to and including
-      // `sceneBreakdowns` is there, and none of the six schedule tables — `shootingDays` down to
-      // `shootingPresences` — are present at all, since payload format 5 predates the schedule mode
+      // `sceneBreakdowns` is there, and none of the five schedule tables — `shootingDays` down to
+      // `shootingDayBlocks` — are present at all, since payload format 5 predates the schedule mode
       // entirely.
       const format5Payload = '''
 {
@@ -2503,7 +2404,6 @@ void main() {
       expect(payload.shootingSlotCrew, isEmpty);
       expect(payload.shootingSlotCast, isEmpty);
       expect(payload.shootingDayBlocks, isEmpty);
-      expect(payload.shootingPresences, isEmpty);
     });
 
     test(
@@ -2981,7 +2881,7 @@ void main() {
 
     test(
       'a stored format-11 payload decodes with no guest, no event, an empty crew note on '
-      'every block and no validity or rest recorded',
+      'every block, no validity or rest recorded, and its presence overrides dropped',
       () {
         // Format 11 predates `shooting_slot_guests`, `shooting_day_events`,
         // `shooting_day_blocks.crewNote`, `assets.validFrom`/`validUntil` and
@@ -3004,6 +2904,21 @@ void main() {
             ..remove("validUntil");
         }
         (encoded["projectSettings"] as Map<String, dynamic>).remove("minimumRestMinutes");
+
+        // `shooting_presences` genuinely existed at format 11, since format 6 first shipped it
+        // alongside the rest of the schedule mode — this is a real row, typed by a user, not merely
+        // an absent key: [_upgradeFormat11To12]'s third kind of change must drop it rather than
+        // leave it materialised as an empty list, the way a table that never existed at format 11
+        // would be.
+        encoded["shootingPresences"] = [
+          {
+            "id": "presence-1",
+            "shootingDayId": "day-1",
+            "personId": "person-1",
+            "code": "travelling",
+            "isDeleted": false,
+          },
+        ];
         encoded["payloadFormat"] = 11;
 
         final result = codec.decode(jsonEncode(encoded));
@@ -3018,6 +2933,12 @@ void main() {
         // And nothing else was disturbed on the way through: the rest of the schedule came back.
         expect(result.value!.shootingSlots, buildRichPayload().shootingSlots);
         expect(result.value!.shootingDays, buildRichPayload().shootingDays);
+
+        // The dropped override is gone for good, not merely unread: re-encoding what came out of
+        // the decode never mentions it again, exactly as a format-7 payload's dropped lead times
+        // never resurface either.
+        final reEncoded = jsonDecode(codec.encode(result.value!)) as Map<String, dynamic>;
+        expect(reEncoded.containsKey("shootingPresences"), isFalse);
       },
     );
   });

@@ -18,7 +18,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -413,7 +412,6 @@ void main() {
       'shooting_slot_crew',
       'shooting_slot_cast',
       'shooting_day_blocks',
-      'shooting_presences',
       'shooting_slot_guests',
       'shooting_day_events',
     });
@@ -1197,14 +1195,13 @@ void main() {
       // migration could have kept.
       expect(shot.shootingDay, isNull);
 
-      // (c) the six schedule tables exist, empty: this project has never been scheduled, and the
+      // (c) the five schedule tables exist, empty: this project has never been scheduled, and the
       // migration invents nothing — a blank column and an empty schedule say the same true thing.
       expect(await database.select(database.ocptShootingDaysTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingSlotsTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingSlotCrewTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingSlotCastTable).get(), isEmpty);
       expect(await database.select(database.ocptShootingDayBlocksTable).get(), isEmpty);
-      expect(await database.select(database.ocptShootingPresencesTable).get(), isEmpty);
 
       // (d) and every one of them is usable, referencing the rows the file already held (and each
       // other).
@@ -1292,19 +1289,6 @@ void main() {
       expect(block.slotId, "slot1");
       expect(block.shotId, "shot-a");
 
-      await database
-          .into(database.ocptShootingPresencesTable)
-          .insert(
-            OcptShootingPresencesTableCompanion.insert(
-              id: "presence1",
-              shootingDayId: "day1",
-              personId: "person1",
-              code: OcptPresenceCode.working,
-            ),
-          );
-      final presence = await database.select(database.ocptShootingPresencesTable).getSingle();
-      expect(presence.code, OcptPresenceCode.working);
-
       // (e) the file now says the current schema version.
       expect(await readSchemaVersion(database), 17);
 
@@ -1384,6 +1368,13 @@ void main() {
         "cast_call_minute, cast_wrap_minute) VALUES "
         "('cast1', 'slotA1', 'role1', 420, 480, 1000);",
       );
+      // A real presence-grid override, typed by a user of that build — not merely an absent table:
+      // schema version 17 drops `shooting_presences` outright, and this is what proves a file that
+      // genuinely held one loses it just as cleanly as one that never did.
+      legacyDb.execute(
+        "INSERT INTO shooting_presences (id, shooting_day_id, person_id, code) VALUES "
+        "('presence1', 'day1', 'person1', 'travelling');",
+      );
       legacyDb.dispose();
 
       final database = OcptProjectDatabase(File(filePath));
@@ -1439,6 +1430,13 @@ void main() {
 
       final cast = await database.select(database.ocptShootingSlotCastTable).getSingle();
       expect(cast.roleId, "role1");
+
+      // (e bis) `shooting_presences` is gone outright — `DROP TABLE IF EXISTS`, unconditionally, so
+      // the real override this file held is lost exactly as cleanly as if the table had never
+      // existed. Nothing is reconstructed from it anywhere: the schema simply has no table left to
+      // read one back from.
+      final shape = await readSchemaShape(database);
+      expect(shape.containsKey('shooting_presences'), isFalse);
 
       // (f) the file now says the current schema version.
       expect(await readSchemaVersion(database), 17);
@@ -1899,7 +1897,6 @@ void main() {
     expect(await database.select(database.ocptShootingSlotCrewTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingSlotCastTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingDayBlocksTable).get(), isEmpty);
-    expect(await database.select(database.ocptShootingPresencesTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingSlotGuestsTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingDayEventsTable).get(), isEmpty);
 

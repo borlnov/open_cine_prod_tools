@@ -4,21 +4,15 @@
 
 /// Where one person stands on one shooting day, for the presence grid.
 ///
-/// A cell of the grid is normally **computed** from that day's convocations and from
-/// `person_unavailabilities`; this code is only what a `shooting_presences` row overrides it with
-/// by hand. Declared in schema v11 alongside the rest of the schedule mode's tables, and read and
-/// written from `OcptSchedulePresenceGrid` on. **Declared in the order the grid's own click cycle
-/// steps through them** (`ocptNextPresenceOverride`, `lib/utils/`): reordering these values
-/// reorders that cycle too.
+/// Both values are **computed**, by `OcptSchedulePlanSnapshot.presenceCellOf`, from that day's
+/// convocations and from `person_unavailabilities` — there is no third source: schema v11 declared
+/// a `shooting_presences` table for a by-hand override of this reading, and schema v17 drops it
+/// again (see `OcptProjectDatabase`'s own doc comment), the grid having never needed to say
+/// anything a click could contradict what the resources mode already recorded. A cell naming
+/// neither of these two reads as blank instead — absence of information, never a third code.
 enum OcptPresenceCode {
   /// This person is working on this day.
   working,
-
-  /// This person is available on this day but not convoked.
-  available,
-
-  /// This person is travelling (to or from set) on this day.
-  travelling,
 
   /// This person is unavailable on this day.
   unavailable,

@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_schedule_presence_cell.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -493,13 +492,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
     onDayOpenRequested: (dayId) => _openDay(context, dayId),
   );
 
-  /// Builds the presence grid: who is working, available, travelling or unavailable, day by day,
-  /// across the whole shoot. [OcptSchedulePersonUnavailableAlert] is read straight out of
-  /// `state.planSnapshot`'s own alerts (rule 1 of `lib/utils/ocpt_schedule_alerts.dart`) rather than
-  /// recomputed here, exactly as [_buildPositionsMatrix] reads rule 4 for its own "lost" marker.
+  /// Builds the presence grid: who is working or unavailable, day by day, across the whole shoot.
+  /// [OcptSchedulePersonUnavailableAlert] is read straight out of `state.planSnapshot`'s own alerts
+  /// (rule 1 of `lib/utils/ocpt_schedule_alerts.dart`) rather than recomputed here, exactly as
+  /// [_buildPositionsMatrix] reads rule 4 for its own "lost" marker.
   Widget _buildPresenceGrid(BuildContext context, OcptScheduleState state) {
-    final bloc = context.read<OcptScheduleBloc>();
-    final isReadOnly = state.isPreviewingVersion;
     final planSnapshot = state.planSnapshot;
 
     return OcptSchedulePresenceGrid(
@@ -507,18 +504,12 @@ class _ScheduleViewState extends State<_ScheduleView> {
       people: state.people,
       roles: state.roles,
       presenceCellOf: (dayId, personId) =>
-          planSnapshot?.presenceCellOf(dayId: dayId, personId: personId) ??
-          const OcptSchedulePresenceCell(code: null, isOverridden: false),
+          planSnapshot?.presenceCellOf(dayId: dayId, personId: personId),
       unavailableAlerts: [
         for (final alert in planSnapshot?.alerts ?? const <OcptScheduleAlert>[])
           if (alert is OcptSchedulePersonUnavailableAlert) alert,
       ],
       onDayOpenRequested: (dayId) => _openDay(context, dayId),
-      onCellTapped: isReadOnly
-          ? null
-          : (dayId, personId) => bloc.add(
-              OcptSchedulePresenceCellClickedEvent(dayId: dayId, personId: personId),
-            ),
     );
   }
 

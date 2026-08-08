@@ -13,7 +13,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -110,14 +109,10 @@ import 'package:uuid/uuid.dart';
 /// the day at an absolute hour, ordered by that hour alone, so there is no reorder method for it —
 /// moving one is typing another [OcptShootingDayEvent.minute].
 ///
-/// **The presence grid's overrides are `shooting_presences`.** [loadSchedule] loads every live row
-/// alongside the rest of the schedule, keyed by (day, person) so `OcptSchedulePlanSnapshot` can
-/// resolve one cell with a single map read; [setPresenceOverride] is the sole writer, upserting
-/// (never duplicating) the one row a (day, person) pair may hold and tombstoning it — never
-/// deleting it — the moment a cell goes back to "let the app compute it". A cell with no override is
-/// computed instead, from that day's convocations and from `person_unavailabilities` — see
-/// `OcptSchedulePlanSnapshot.presenceCellOf` — so this service only ever holds the by-hand
-/// exceptions to that computation, never the whole grid.
+/// **The presence grid has nothing of its own to write.** `shooting_presences`, the by-hand
+/// override schema v11 declared for it, is dropped again at schema v17: every cell it drew is
+/// **computed**, from that day's convocations and from `person_unavailabilities` — see
+/// `OcptSchedulePlanSnapshot.presenceCellOf` — so this service holds no writer for it at all.
 class OcptScheduleService {
   /// The minute a day's first slot is given by [createDay]: 08:00.
   static const _defaultStartMinute = 480;
@@ -174,12 +169,6 @@ class OcptScheduleService {
                 ..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())
                 ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
-
-    final presenceRows = dayIds.isEmpty
-        ? const <OcptShootingPresenceRow>[]
-        : await (database.select(
-            database.ocptShootingPresencesTable,
-          )..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())).get();
 
     final eventRows = dayIds.isEmpty
         ? const <OcptShootingDayEventRow>[]
@@ -243,17 +232,12 @@ class OcptScheduleService {
         OcptShootingDay.fromRow(row: dayRows[i], dayNumber: i + 1),
     ];
 
-    final presenceOverrideByDayAndPerson = <(String, String), OcptPresenceCode>{
-      for (final row in presenceRows) (row.shootingDayId, row.personId): row.code,
-    };
-
     return OcptScheduleSnapshot.build(
       screenplayId: screenplayId,
       days: days,
       slotsByDayId: slotsByDayId,
       blocksByDayId: blocksByDayId,
       eventsByDayId: eventsByDayId,
-      presenceOverrideByDayAndPerson: presenceOverrideByDayAndPerson,
     );
   }
 
@@ -1624,72 +1608,6 @@ class OcptScheduleService {
           sortKey: Value(sortKey),
         ),
       );
-    });
-  }
-
-  /// Writes [code] as the presence-grid override of [personId] on [dayId], reusing the row already
-  /// there for that pair when one exists — reviving a tombstoned one rather than duplicating it, and
-  /// updating a live one's own [OcptPresenceCode] in place otherwise — and minting a fresh one only
-  /// when neither exists yet.
-  ///
-  /// **A null [code] removes the override**, and this writes that removal as a tombstone rather
-  /// than a `delete()`:
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// A tombstoned (or altogether missing) row is exactly what `OcptShootingPresencesTable`'s own doc
-  /// comment already means by a row's *absence* — "the computed value stands" — and null is the
-  /// presence grid's own click cycle's last step (`ocptNextPresenceOverride`), so this is where that
-  /// step lands. Nothing is written at all when [code] is null and no live row exists to tombstone.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> setPresenceOverride({
-    required OcptProjectDatabase database,
-    required String dayId,
-    required String personId,
-    required OcptPresenceCode? code,
-  }) async {
-    if (database.refusesUserWrite("setPresenceOverride")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final existing =
-          await (database.select(database.ocptShootingPresencesTable)..where(
-                (table) => table.shootingDayId.equals(dayId) & table.personId.equals(personId),
-              ))
-              .getSingleOrNull();
-
-      if (code == null) {
-        if (existing != null && !existing.isDeleted) {
-          await (database.update(
-            database.ocptShootingPresencesTable,
-          )..where((table) => table.id.equals(existing.id))).write(
-            const OcptShootingPresencesTableCompanion(isDeleted: Value(true)),
-          );
-        }
-        return;
-      }
-
-      if (existing != null) {
-        await (database.update(
-          database.ocptShootingPresencesTable,
-        )..where((table) => table.id.equals(existing.id))).write(
-          OcptShootingPresencesTableCompanion(code: Value(code), isDeleted: const Value(false)),
-        );
-        return;
-      }
-
-      await database
-          .into(database.ocptShootingPresencesTable)
-          .insert(
-            OcptShootingPresencesTableCompanion.insert(
-              id: const Uuid().v4(),
-              shootingDayId: dayId,
-              personId: personId,
-              code: code,
-            ),
-          );
     });
   }
 

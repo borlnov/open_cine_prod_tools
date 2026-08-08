@@ -48,7 +48,6 @@ void main() {
     shootingSlotCrew: const [],
     shootingSlotCast: const [],
     shootingDayBlocks: const [],
-    shootingPresences: const [],
     shootingSlotGuests: const [],
     shootingDayEvents: const [],
     rowFieldVersions: const [],

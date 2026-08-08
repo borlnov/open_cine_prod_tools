@@ -10,8 +10,8 @@
 /// actually built — while every other view only ever reads it back. A mode opens on the view its
 /// user came to act in. [positions] follows [agenda] for the same reason: a cross-shoot read-out
 /// belongs after the read-outs of a narrower scope, not before them. [presence] follows [positions]
-/// in turn, for the same reason again, and comes last because it is the one cross-shoot view that
-/// still **writes** — the by-hand overrides a positions matrix has no equivalent of.
+/// in turn, for the same reason again, and comes last as the widest of the three: a whole shoot's
+/// presence, over every day at once, rather than one slot's position or one day's agenda.
 enum OcptScheduleCentreView {
   /// The selected day's own timetable: its slots and their convocations, then the chained blocks
   /// with their computed times — the mode's default view.
@@ -26,8 +26,8 @@ enum OcptScheduleCentreView {
   /// position rather than by date.
   positions,
 
-  /// The presence grid (`OcptSchedulePresenceGrid`): who is working, available, travelling or
-  /// unavailable, day by day, across the whole shoot — organised by person, like [positions] is by
-  /// crew position, but the one cross-shoot view a user can click into rather than only read.
+  /// The presence grid (`OcptSchedulePresenceGrid`): who is working or unavailable, day by day,
+  /// across the whole shoot — organised by person, like [positions] is by crew position, and
+  /// entirely computed like it too.
   presence,
 }

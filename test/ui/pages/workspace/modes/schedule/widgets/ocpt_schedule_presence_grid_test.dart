@@ -7,7 +7,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/models/ocpt_schedule_presence_cell.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
@@ -91,50 +90,14 @@ void main() {
           days: const [],
           people: const [],
           roles: const [],
-          presenceCellOf: (dayId, personId) =>
-              const OcptSchedulePresenceCell(code: null, isOverridden: false),
+          presenceCellOf: (dayId, personId) => null,
           unavailableAlerts: const [],
           onDayOpenRequested: (dayId) {},
-          onCellTapped: (dayId, personId) {},
         ),
       ),
     );
 
     expect(find.text("Add people to the address book to see them here."), findsOneWidget);
-  });
-
-  testWidgets("clicking a cell reports its day and person id, to cycle its override", (tester) async {
-    final person = _buildPerson(id: "person-1", firstName: "Léa");
-    final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
-
-    String? clickedDayId;
-    String? clickedPersonId;
-
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptSchedulePresenceGrid(
-          days: [day],
-          people: [person],
-          roles: const [],
-          presenceCellOf: (dayId, personId) =>
-              const OcptSchedulePresenceCell(code: null, isOverridden: false),
-          unavailableAlerts: const [],
-          onDayOpenRequested: (dayId) {},
-          onCellTapped: (dayId, personId) {
-            clickedDayId = dayId;
-            clickedPersonId = personId;
-          },
-        ),
-      ),
-    );
-
-    // The lone cell of the grid: the label column carries no `InkWell` of its own, and the total
-    // column draws plain text, so this is unambiguous.
-    await tester.tap(find.byType(InkWell).last);
-    await tester.pump();
-
-    expect(clickedDayId, "day-1");
-    expect(clickedPersonId, "person-1");
   });
 
   testWidgets("a computed working cell reads its own letter and full-word tooltip", (tester) async {
@@ -147,11 +110,9 @@ void main() {
           days: [day],
           people: [person],
           roles: const [],
-          presenceCellOf: (dayId, personId) =>
-              const OcptSchedulePresenceCell(code: OcptPresenceCode.working, isOverridden: false),
+          presenceCellOf: (dayId, personId) => OcptPresenceCode.working,
           unavailableAlerts: const [],
           onDayOpenRequested: (dayId) {},
-          onCellTapped: (dayId, personId) {},
         ),
       ),
     );
@@ -160,7 +121,7 @@ void main() {
     expect(find.byTooltip("Working"), findsOneWidget);
   });
 
-  testWidgets("the click is withheld under read-only, the null callback disabling the cell",
+  testWidgets("a computed unavailable cell reads its own letter and full-word tooltip",
       (tester) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
     final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
@@ -171,17 +132,15 @@ void main() {
           days: [day],
           people: [person],
           roles: const [],
-          presenceCellOf: (dayId, personId) =>
-              const OcptSchedulePresenceCell(code: OcptPresenceCode.working, isOverridden: false),
+          presenceCellOf: (dayId, personId) => OcptPresenceCode.unavailable,
           unavailableAlerts: const [],
           onDayOpenRequested: (dayId) {},
-          onCellTapped: null,
         ),
       ),
     );
 
-    final cellInkWell = tester.widget<InkWell>(find.byType(InkWell).last);
-    expect(cellInkWell.onTap, isNull);
+    expect(find.text("U"), findsOneWidget);
+    expect(find.byTooltip("Unavailable"), findsOneWidget);
   });
 
   testWidgets("a cell named by a person-unavailable alert reads in the error colour", (tester) async {
@@ -194,8 +153,7 @@ void main() {
           days: [day],
           people: [person],
           roles: const [],
-          presenceCellOf: (dayId, personId) =>
-              const OcptSchedulePresenceCell(code: OcptPresenceCode.working, isOverridden: false),
+          presenceCellOf: (dayId, personId) => OcptPresenceCode.working,
           unavailableAlerts: const [
             OcptSchedulePersonUnavailableAlert(
               dayId: "day-1",
@@ -205,7 +163,6 @@ void main() {
             ),
           ],
           onDayOpenRequested: (dayId) {},
-          onCellTapped: (dayId, personId) {},
         ),
       ),
     );
@@ -226,11 +183,9 @@ void main() {
           days: [day],
           people: [person],
           roles: const [],
-          presenceCellOf: (dayId, personId) =>
-              const OcptSchedulePresenceCell(code: null, isOverridden: false),
+          presenceCellOf: (dayId, personId) => null,
           unavailableAlerts: const [],
           onDayOpenRequested: (dayId) => openedDayId = dayId,
-          onCellTapped: (dayId, personId) {},
         ),
       ),
     );

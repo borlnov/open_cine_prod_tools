@@ -7,7 +7,6 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_schedule_presence_cell.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -337,13 +336,13 @@ class OcptSchedulePlanSnapshot extends Equatable {
       },
   };
 
-  /// The presence grid's own effective cell for [personId] on [dayId]: the live override
-  /// (`OcptScheduleSnapshot.presenceOverrideByDayAndPerson`) when there is one — which always wins,
-  /// whatever it says — otherwise the computed reading, in order: [OcptPresenceCode.working] when
-  /// [personId] is convoked on [dayId] ([_workingPersonIdsByDayId]), [OcptPresenceCode.unavailable]
-  /// when they are not convoked but one of their own [OcptPerson.unavailabilities] covers [dayId]'s
-  /// own calendar date, or a blank cell ([OcptSchedulePresenceCell.code] null) when neither applies
-  /// — absence of information, never a claim.
+  /// The presence grid's own effective cell for [personId] on [dayId] — entirely computed, in
+  /// order: [OcptPresenceCode.working] when [personId] is convoked on [dayId]
+  /// ([_workingPersonIdsByDayId]), [OcptPresenceCode.unavailable] when they are not convoked but one
+  /// of their own [OcptPerson.unavailabilities] covers [dayId]'s own calendar date, or null when
+  /// neither applies — absence of information, never a claim. There is no override left to consult
+  /// first any more: schema v17 drops `shooting_presences` (`OcptProjectDatabase`'s own doc
+  /// comment), the grid having never needed to restate what the resources mode already recorded.
   ///
   /// The unavailability check here compares calendar dates alone, not the day-part overlap rule 1 of
   /// `lib/utils/ocpt_schedule_alerts.dart` refines against a slot's own band: a person read as
@@ -351,23 +350,18 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// all (the `working` branch above already claimed that case), so there is no band left to refine
   /// against — the two checks never fire on the same person on the same day, and can therefore never
   /// disagree.
-  OcptSchedulePresenceCell presenceCellOf({required String dayId, required String personId}) {
-    final override = schedule.presenceOverrideByDayAndPerson[(dayId, personId)];
-    if (override != null) {
-      return OcptSchedulePresenceCell(code: override, isOverridden: true);
-    }
-
+  OcptPresenceCode? presenceCellOf({required String dayId, required String personId}) {
     if (_workingPersonIdsByDayId[dayId]?.contains(personId) ?? false) {
-      return const OcptSchedulePresenceCell(code: OcptPresenceCode.working, isOverridden: false);
+      return OcptPresenceCode.working;
     }
 
     final day = schedule.daysById[dayId];
     final person = personById[personId];
     if (day != null && person != null && _unavailabilityCoversDate(person, day.date)) {
-      return const OcptSchedulePresenceCell(code: OcptPresenceCode.unavailable, isOverridden: false);
+      return OcptPresenceCode.unavailable;
     }
 
-    return const OcptSchedulePresenceCell(code: null, isOverridden: false);
+    return null;
   }
 
   /// Whether any of [person]'s own recorded unavailabilities covers calendar [date] — comparing

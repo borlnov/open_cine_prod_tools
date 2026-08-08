@@ -72,34 +72,27 @@ String ocptShootingBlockKindLabel(Tr tr, OcptShootingBlockKind kind) => switch (
 /// The full display label of presence code [code], read by the presence grid's own cell tooltip.
 String ocptPresenceCodeLabel(Tr tr, OcptPresenceCode code) => switch (code) {
   OcptPresenceCode.working => tr.presenceCodeLabelWorking,
-  OcptPresenceCode.available => tr.presenceCodeLabelAvailable,
-  OcptPresenceCode.travelling => tr.presenceCodeLabelTravelling,
   OcptPresenceCode.unavailable => tr.presenceCodeLabelUnavailable,
 };
 
 /// The single-letter pill label of presence code [code] — **not** the enum's own name, and not the
 /// same letter in every language: the presence grid's own cell is too narrow for a word, so it
-/// prints the initial the reference paperwork's own language uses (`T`/`D`/`V`/`X` in French, for
-/// `travail`/`disponible`/`voyage`/`indisponible`; English gets its own initials rather than a
-/// translation of those).
+/// prints the initial the reference paperwork's own language uses (`T`/`X` in French, for
+/// `travail`/`indisponible`; English gets its own initials rather than a translation of those).
 String ocptPresenceCodeLetterLabel(Tr tr, OcptPresenceCode code) => switch (code) {
   OcptPresenceCode.working => tr.presenceCodeLetterWorking,
-  OcptPresenceCode.available => tr.presenceCodeLetterAvailable,
-  OcptPresenceCode.travelling => tr.presenceCodeLetterTravelling,
   OcptPresenceCode.unavailable => tr.presenceCodeLetterUnavailable,
 };
 
-/// The colour presence code [code] is painted with in the grid — four colours pulled off the
-/// ambient theme rather than a bespoke palette, since a code is a state of one person on one day,
-/// not a category with its own identity to keep stable across exports the way a coverage colour or
-/// a breakdown category colour is.
+/// The colour presence code [code] is painted with in the grid — two colours pulled off the ambient
+/// theme rather than a bespoke palette, since a code is a state of one person on one day, not a
+/// category with its own identity to keep stable across exports the way a coverage colour or a
+/// breakdown category colour is.
 Color ocptPresenceCodeColor(BuildContext context, OcptPresenceCode code) {
   final theme = Theme.of(context);
 
   return switch (code) {
     OcptPresenceCode.working => theme.colorScheme.primary,
-    OcptPresenceCode.available => theme.colorScheme.tertiary,
-    OcptPresenceCode.travelling => theme.colorScheme.secondary,
     OcptPresenceCode.unavailable => ocptWarningColor(context),
   };
 }

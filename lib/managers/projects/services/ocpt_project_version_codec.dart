@@ -23,7 +23,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -145,7 +144,9 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse the `shooting_day_blocks` rows from a JSON object
   static const _shootingDayBlocksKey = "shootingDayBlocks";
 
-  /// This is the key used to stringify or parse the `shooting_presences` rows from a JSON object
+  /// The key a payload of format 11 (or earlier) stored the `shooting_presences` rows under — read
+  /// only by [_upgradeFormat11To12], which drops it: the table itself is gone from format 12 on,
+  /// exactly as [_shootingDayGroupsKey] is for [_upgradeFormat7To8].
   static const _shootingPresencesKey = "shootingPresences";
 
   /// This is the key used to stringify or parse the `shooting_slot_guests` rows from a JSON object
@@ -1022,8 +1023,8 @@ class OcptProjectVersionCodec {
     ],
   };
 
-  /// Turns a format-**11** JSON object into a format-**12** one, doing two of the three kinds of
-  /// change at once:
+  /// Turns a format-**11** JSON object into a format-**12** one, doing all three kinds of change at
+  /// once:
   ///
   /// - `shooting_slot_guests` and `shooting_day_events` didn't exist yet, so this materialises both
   ///   as **empty lists** — the plainest of the three kinds, [_upgradeFormat5To6]'s and
@@ -1041,10 +1042,15 @@ class OcptProjectVersionCodec {
   ///   11 truthfully recorded nothing for any of them, and that nothing is written back onto the
   ///   working copy on restore like any other changed column, rather than being skipped the way the
   ///   currency's null is.
-  ///
-  /// Neither bullet is the third kind: [_upgradeFormat3To4]'s null means "leave the live value
-  /// alone", which nothing here does, and [_upgradeFormat7To8]'s removal makes no claim about the
-  /// moment of capture at all, where both of these state one.
+  /// - [_shootingPresencesKey] is **dropped**, [_upgradeFormat7To8]'s kind — the second entry in
+  ///   this codec that removes rather than materialises. Read that step's own doc comment first: a
+  ///   format-11 version genuinely *did* carry presence overrides, typed by a user who is owed an
+  ///   honest account of what became of them, so this is not the empty-list bullet above wearing a
+  ///   different name. The project being restored into has no concept for them any more — schema
+  ///   version 17 drops `shooting_presences` outright — so they come back as nothing at all, and, as
+  ///   everywhere else, **nothing is reconstructed**: an override that said `travelling` does not
+  ///   become a slot nobody asked for, exactly as a format-7 payload's dropped lead times do not
+  ///   become one either.
   static Map<String, dynamic> _upgradeFormat11To12(Map<String, dynamic> json) {
     final blocks = [
       for (final row in _rows(json, _shootingDayBlocksKey)) {...row, _crewNoteKey: ""},
@@ -1060,8 +1066,10 @@ class OcptProjectVersionCodec {
       _minimumRestMinutesKey: null,
     };
 
+    final upgraded = {...json}..remove(_shootingPresencesKey);
+
     return {
-      ...json,
+      ...upgraded,
       _shootingDayBlocksKey: blocks,
       _assetsKey: assets,
       _projectSettingsKey: projectSettings,
@@ -1146,9 +1154,6 @@ class OcptProjectVersionCodec {
     _shootingDayBlocksKey: [
       for (final row in payload.shootingDayBlocks) _shootingDayBlockToJson(row),
     ],
-    _shootingPresencesKey: [
-      for (final row in payload.shootingPresences) _shootingPresenceToJson(row),
-    ],
     _shootingSlotGuestsKey: [
       for (final row in payload.shootingSlotGuests) _shootingSlotGuestToJson(row),
     ],
@@ -1224,7 +1229,7 @@ class OcptProjectVersionCodec {
   ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `assets`, `breakdownTags`,
   ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
-  ///   `shootingDayBlocks`, `shootingPresences`, `shootingSlotGuests`, `shootingDayEvents` — every
+  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingDayEvents` — every
   ///   column of each — plus `pageSetup.format`,
   ///   `settingsJson` and `currencyCode`. This is
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
@@ -1374,11 +1379,6 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _shootingDayBlockToJson,
       ),
-      _shootingPresencesKey: _canonicalRows(
-        payload.shootingPresences,
-        primaryKeyOf: (row) => row.id,
-        toJson: _shootingPresenceToJson,
-      ),
       _shootingSlotGuestsKey: _canonicalRows(
         payload.shootingSlotGuests,
         primaryKeyOf: (row) => row.id,
@@ -1479,9 +1479,6 @@ class OcptProjectVersionCodec {
       ],
       shootingDayBlocks: [
         for (final row in _rows(json, _shootingDayBlocksKey)) _shootingDayBlockFromJson(row),
-      ],
-      shootingPresences: [
-        for (final row in _rows(json, _shootingPresencesKey)) _shootingPresenceFromJson(row),
       ],
       shootingSlotGuests: [
         for (final row in _rows(json, _shootingSlotGuestsKey)) _shootingSlotGuestFromJson(row),
@@ -2254,25 +2251,6 @@ class OcptProjectVersionCodec {
         anchorMinute: _nullableInt(json, _anchorMinuteKey),
         notes: _string(json, _notesKey),
         crewNote: _string(json, _crewNoteKey),
-        isDeleted: _bool(json, _isDeletedKey),
-      );
-
-  /// Serializes one `shooting_presences` row.
-  static Map<String, dynamic> _shootingPresenceToJson(OcptShootingPresenceRow row) => {
-    _idKey: row.id,
-    _shootingDayIdKey: row.shootingDayId,
-    _personIdKey: row.personId,
-    _codeKey: row.code.name,
-    _isDeletedKey: row.isDeleted,
-  };
-
-  /// Parses one `shooting_presences` row.
-  static OcptShootingPresenceRow _shootingPresenceFromJson(Map<String, dynamic> json) =>
-      OcptShootingPresenceRow(
-        id: _string(json, _idKey),
-        shootingDayId: _string(json, _shootingDayIdKey),
-        personId: _string(json, _personIdKey),
-        code: _enum(json, _codeKey, OcptPresenceCode.values.asNameMap()),
         isDeleted: _bool(json, _isDeletedKey),
       );
 
