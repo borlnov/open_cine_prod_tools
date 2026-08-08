@@ -6603,9 +6603,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleInspectorNotesLabel": "Notes",
+  "scheduleInspectorNotesLabel": "Private notes",
   "@scheduleInspectorNotesLabel": {
-    "description": "Label of the block inspector's own notes field",
+    "description": "Label of the block inspector's own private notes field, the one that never prints",
     "context": "Displayed in the schedule mode's right dock",
     "type": "text",
     "placeholders": {}
@@ -6745,9 +6745,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleSlotNotesHint": "Note",
+  "scheduleSlotNotesHint": "Private note",
   "@scheduleSlotNotesHint": {
-    "description": "Hint of a slot card's own note field, below its location and set",
+    "description": "Hint of a slot card's own private note field, below its location and set — the one that never prints",
     "context": "Displayed on a day view slot card",
     "type": "text",
     "placeholders": {}
