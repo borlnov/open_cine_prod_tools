@@ -7666,30 +7666,12 @@
     "type": "text",
     "placeholders": {}
   },
-  "schedulePositionsMatrixLegend": "An orange cell marks a position held on the slot just before and dropped on this one.",
+  "schedulePositionsMatrixLegend": "One column per slot, grouped by shooting day, with its computed hours. A position dropped mid-day is read in the Alerts panel.",
   "@schedulePositionsMatrixLegend": {
-    "description": "Caption explaining the positions matrix's own warning cell",
+    "description": "Caption explaining how the positions matrix is read, and where a lost position is reported",
     "context": "Displayed above the schedule mode's positions view",
     "type": "text",
     "placeholders": {}
-  },
-  "schedulePositionsMatrixLostCellLabel": "Lost",
-  "@schedulePositionsMatrixLostCellLabel": {
-    "description": "Short marker printed on a positions matrix cell where the position was dropped mid-day",
-    "context": "Displayed in the schedule mode's positions view",
-    "type": "text",
-    "placeholders": {}
-  },
-  "schedulePositionsMatrixLostCellTooltip": "Held by {name} on the previous slot",
-  "@schedulePositionsMatrixLostCellTooltip": {
-    "description": "Tooltip of a positions matrix cell where the position was dropped mid-day, naming who held it on the previous slot",
-    "context": "Displayed in the schedule mode's positions view",
-    "type": "text",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
   },
   "scheduleHeaderPresenceSegmentLabel": "Presence",
   "@scheduleHeaderPresenceSegmentLabel": {

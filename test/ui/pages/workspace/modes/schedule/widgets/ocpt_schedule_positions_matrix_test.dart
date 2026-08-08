@@ -14,8 +14,6 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_positions_matrix.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
@@ -123,26 +121,27 @@ OcptShootingSlotCrewMember _buildCrewMember({
   notes: "",
 );
 
-/// Builds a minimal [OcptShootingDayTimelines] resolving each slot id of [startMinuteBySlotId] to
-/// its own given start, and nothing else — enough for a column header to print a real hour instead
-/// of falling back to the very em dash the empty-cell test means to count on its own.
-OcptShootingDayTimelines _buildTimelines(Map<String, int> startMinuteBySlotId) => OcptShootingDayTimelines(
+/// Builds a minimal [OcptShootingDayTimelines] resolving each slot id of [hoursBySlotId] to its own
+/// given resolved start and end (a null end standing for a slot carrying no block at all), and
+/// nothing else — enough for a column header to print real hours instead of falling back to the
+/// very em dash the empty-cell test means to count on its own.
+OcptShootingDayTimelines _buildTimelines(Map<String, (int, int?)> hoursBySlotId) => OcptShootingDayTimelines(
   bySlotId: {
-    for (final entry in startMinuteBySlotId.entries)
+    for (final entry in hoursBySlotId.entries)
       entry.key: OcptShootingSlotTimeline(
         entries: const [],
         overruns: const [],
-        startMinute: entry.value,
-        endMinute: null,
+        startMinute: entry.value.$1,
+        endMinute: entry.value.$2,
       ),
   },
   entries: const [],
   overruns: const [],
   fixedEndMisses: const [],
   anchorCycles: const [],
-  dayStartMinute: startMinuteBySlotId.values.isEmpty
+  dayStartMinute: hoursBySlotId.values.isEmpty
       ? null
-      : startMinuteBySlotId.values.reduce((a, b) => a < b ? a : b),
+      : hoursBySlotId.values.map((hours) => hours.$1).reduce((a, b) => a < b ? a : b),
   dayEndMinute: null,
 );
 
@@ -153,7 +152,6 @@ Future<void> _pumpMatrix(
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   Map<String, OcptPerson> personById = const {},
-  List<OcptSchedulePositionLostAlert> lostPositionAlerts = const [],
   OcptShootingDayTimelines? Function(String dayId) timelinesOfDay = _noTimelines,
 }) => tester.pumpWidget(
   _wrapInApp(
@@ -162,7 +160,6 @@ Future<void> _pumpMatrix(
       slotsByDayId: slotsByDayId,
       personById: personById,
       timelinesOfDay: timelinesOfDay,
-      lostPositionAlerts: lostPositionAlerts,
       onDayOpenRequested: (dayId) {},
     ),
   ),
@@ -186,9 +183,6 @@ void main() {
       id: "slot-1",
       crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: person.id)],
     );
-    // A different day, deliberately: two slots of the *same* day would raise a lost-position
-    // alert of their own (rule 4) the moment one holds a position the next one doesn't, which is
-    // not what this test means to exercise — see the next test for that case.
     final emptySlot = _buildSlot(id: "slot-2");
 
     await _pumpMatrix(
@@ -202,45 +196,97 @@ void main() {
       // Real resolved starts on both headers, so the sole em dash left on screen is the empty
       // cell itself — see [_buildTimelines]'s own doc comment.
       timelinesOfDay: (dayId) => dayId == "day-1"
-          ? _buildTimelines({"slot-1": 480})
-          : _buildTimelines({"slot-2": 480}),
+          ? _buildTimelines({"slot-1": (480, 1140)})
+          : _buildTimelines({"slot-2": (480, 1140)}),
     );
 
     expect(find.text("Director"), findsOneWidget);
     expect(find.text("—"), findsOneWidget);
   });
 
-  testWidgets("a lost position renders its warning cell", (tester) async {
+  testWidgets("a day band names its day once, however many slots that day holds", (tester) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
-    final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
-    final heldSlot = _buildSlot(
+    final day1 = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
+    final day2 = _buildDay(id: "day-2", dayNumber: 2, date: DateTime(2026, 8, 4));
+    final morning = _buildSlot(
       id: "slot-1",
       label: "Matin",
       crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: person.id)],
     );
-    final droppedSlot = _buildSlot(id: "slot-2", label: "Soir");
+    final evening = _buildSlot(
+      id: "slot-2",
+      label: "Soir",
+      crew: [_buildCrewMember(id: "crew-2", slotId: "slot-2", personId: person.id)],
+    );
+    final nextDay = _buildSlot(
+      id: "slot-3",
+      label: "Nuit",
+      crew: [_buildCrewMember(id: "crew-3", slotId: "slot-3", personId: person.id)],
+    );
+
+    await _pumpMatrix(
+      tester,
+      days: [day1, day2],
+      slotsByDayId: {
+        "day-1": [morning, evening],
+        "day-2": [nextDay],
+      },
+      personById: {person.id: person},
+    );
+
+    // Two slots on the first day, and its tag drawn once above both of them rather than on each
+    // column — which is the whole point of the band.
+    expect(find.text("D1"), findsOneWidget);
+    expect(find.text("D2"), findsOneWidget);
+    expect(find.text("Matin"), findsOneWidget);
+    expect(find.text("Soir"), findsOneWidget);
+  });
+
+  testWidgets("a column header prints its slot's own resolved start and end", (tester) async {
+    final person = _buildPerson(id: "person-1", firstName: "Léa");
+    final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
+    final slot = _buildSlot(
+      id: "slot-1",
+      label: "Matin",
+      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: person.id)],
+    );
 
     await _pumpMatrix(
       tester,
       days: [day],
       slotsByDayId: {
-        "day-1": [heldSlot, droppedSlot],
+        "day-1": [slot],
       },
       personById: {person.id: person},
-      lostPositionAlerts: const [
-        OcptSchedulePositionLostAlert(
-          dayId: "day-1",
-          personId: "person-1",
-          slotId: "slot-2",
-          position: OcptCrewPositionRef(positionId: "director", customLabel: ""),
-        ),
-      ],
+      timelinesOfDay: (dayId) => _buildTimelines({"slot-1": (480, 1140)}),
     );
 
-    expect(find.text("Lost"), findsOneWidget);
+    expect(find.text("08:00 – 19:00"), findsOneWidget);
   });
 
-  testWidgets("clicking a column header opens its own day", (tester) async {
+  testWidgets("a slot carrying no block prints its resolved start alone", (tester) async {
+    final person = _buildPerson(id: "person-1", firstName: "Léa");
+    final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
+    final slot = _buildSlot(
+      id: "slot-1",
+      label: "Matin",
+      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: person.id)],
+    );
+
+    await _pumpMatrix(
+      tester,
+      days: [day],
+      slotsByDayId: {
+        "day-1": [slot],
+      },
+      personById: {person.id: person},
+      timelinesOfDay: (dayId) => _buildTimelines({"slot-1": (480, null)}),
+    );
+
+    expect(find.text("08:00"), findsOneWidget);
+  });
+
+  testWidgets("clicking a day band opens its own day", (tester) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
     final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
     final slot = _buildSlot(
@@ -258,13 +304,42 @@ void main() {
           },
           personById: {person.id: person},
           timelinesOfDay: (dayId) => null,
-          lostPositionAlerts: const [],
           onDayOpenRequested: (dayId) => openedDayId = dayId,
         ),
       ),
     );
 
     await tester.tap(find.text("D1"));
+    await tester.pump();
+
+    expect(openedDayId, "day-1");
+  });
+
+  testWidgets("clicking a column header opens its own day", (tester) async {
+    final person = _buildPerson(id: "person-1", firstName: "Léa");
+    final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
+    final slot = _buildSlot(
+      id: "slot-1",
+      label: "Matin",
+      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: person.id)],
+    );
+
+    String? openedDayId;
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptSchedulePositionsMatrix(
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          personById: {person.id: person},
+          timelinesOfDay: (dayId) => null,
+          onDayOpenRequested: (dayId) => openedDayId = dayId,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text("Matin"));
     await tester.pump();
 
     expect(openedDayId, "day-1");

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -16,7 +17,6 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The width of the matrix's own frozen first column — wide enough for the longest crew position
@@ -24,12 +24,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 const double _ocptPositionsMatrixLabelColumnWidth = 168;
 
 /// The width every slot column claims — narrow, since a cell only ever carries a pair of initials
-/// or the short "lost" marker, never a name.
+/// or an em dash, never a name.
 const double _ocptPositionsMatrixSlotColumnWidth = 84;
 
-/// The header row's own height — tall enough for its three stacked lines (the day tag, the slot's
-/// own label, its resolved start).
-const double _ocptPositionsMatrixHeaderRowHeight = 48;
+/// The day band's own height — one line, the day tag and its date side by side.
+const double _ocptPositionsMatrixDayBandHeight = 24;
+
+/// The header row's own height — tall enough for its two stacked lines (the slot's own label, its
+/// resolved hours), the day tag having moved up into the band above it.
+const double _ocptPositionsMatrixHeaderRowHeight = 40;
 
 /// A department heading band's own height.
 const double _ocptPositionsMatrixGroupHeaderHeight = 26;
@@ -40,33 +43,48 @@ const double _ocptPositionsMatrixRowHeight = 38;
 /// The radius of the circle a held cell draws its holder's initials in.
 const double _ocptPositionsMatrixCellAvatarRadius = 11;
 
-/// The opacity a lost cell's own error-coloured fill is drawn at.
-const double _ocptPositionsMatrixLostCellFillAlpha = 0.18;
-
 /// One column of [OcptSchedulePositionsMatrix]: one live slot, wherever it falls in the shoot —
-/// [dayId] and [slot] together are what a cell is resolved against, [dayTag] and [startMinute]
-/// are what the column's own header prints.
+/// [dayId] and [slot] together are what a cell is resolved against, [slot] and [timeline] are what
+/// the column's own header prints (its day tag having moved up into the band grouping it with the
+/// other columns of its day).
 class _OcptPositionsMatrixColumn {
   /// The day this column's own slot belongs to.
   final String dayId;
 
-  /// [dayId]'s own printed rank (`D3`/`J3`), already localized.
-  final String dayTag;
-
   /// The slot this column stands for, its live crew nested — what every cell of this column reads.
   final OcptShootingSlot slot;
 
-  /// [slot]'s own **resolved** start minute (ADR 0015, amended a second time), or null while it has
+  /// [slot]'s own computed timeline (ADR 0015, amended a second time), or null while its day has
   /// nothing placed in it yet — never a stored column, read off the caller's own
-  /// `OcptShootingDayTimelines`.
-  final int? startMinute;
+  /// `OcptShootingDayTimelines`, and what the header's own resolved hours are printed from.
+  final OcptShootingSlotTimeline? timeline;
 
   /// Class constructor
-  const _OcptPositionsMatrixColumn({
-    required this.dayId,
+  const _OcptPositionsMatrixColumn({required this.dayId, required this.slot, required this.timeline});
+}
+
+/// One day band of [OcptSchedulePositionsMatrix]: the header cell grouping the columns of one day,
+/// drawn once above the first of them and spanning all of them.
+class _OcptPositionsMatrixDayBand {
+  /// The day this band stands for.
+  final OcptShootingDay day;
+
+  /// [day]'s own printed rank (`D3`/`J3`), already localized.
+  final String dayTag;
+
+  /// [day]'s own date, formatted short.
+  final String dateLabel;
+
+  /// How many columns this band spans — its day's own live slot count, never zero (a day with no
+  /// slot names no column and therefore no band either).
+  final int columnCount;
+
+  /// Class constructor
+  const _OcptPositionsMatrixDayBand({
+    required this.day,
     required this.dayTag,
-    required this.slot,
-    required this.startMinute,
+    required this.dateLabel,
+    required this.columnCount,
   });
 }
 
@@ -112,19 +130,21 @@ class _OcptPositionsMatrixGroup {
 /// its own label for a deterministic reading, there being no natural order left to fall back on.
 ///
 /// **Columns** are one per live slot, in day order (`days` is already `dayNumber` order) then the
-/// day's own slot order (`sortKey` order) — a column's own header prints the day tag, the slot's
-/// own label and its **resolved** start (never a stored column, ADR 0015 as amended a second time).
-/// Clicking a header selects that day and opens the day view, exactly as a week or a month cell
-/// already does.
+/// day's own slot order (`sortKey` order), grouped under a **day band**: one header cell per day,
+/// spanning that day's own columns and printing its day tag and its date — the shape
+/// `OcptShootingPlanPdfService`'s own landscape grids already use. A column's own header therefore
+/// prints the slot's label and its **resolved** hours alone, start over end (never a stored
+/// column, ADR 0015 as amended a second time): a day tag repeated on every column of a day says
+/// nothing about which columns belong together, and a slot's end is exactly what a reader of this
+/// matrix is after when they ask whether a position is covered until the wrap. Clicking a band or
+/// a header selects that day and opens the day view, exactly as a week or a month cell already
+/// does.
 ///
 /// **A cell** is that position's holder on that slot — their initials in their own avatar colour,
-/// their full name in a tooltip — or, where [OcptSchedulePositionLostAlert] already says the
-/// position was held on the slot immediately before and dropped on this one, an error-coloured
-/// marker naming who held it before. **That rule is read from [lostPositionAlerts], never
-/// recomputed here**: `OcptSchedulePlanSnapshot.alerts` is the one place rule 4 is implemented, and
-/// a second implementation is exactly how this matrix and the alerts panel would come to disagree
-/// about what "lost" means. A position held by nobody and never lost on that slot prints a plain
-/// em dash.
+/// their full name in a tooltip — or a plain em dash where nobody holds it. A position **lost**
+/// between two consecutive slots is deliberately **not** marked here: it is
+/// `OcptSchedulePositionLostAlert`'s own sentence, read in the `Alerts` panel, and a marked cell
+/// only ever restated it in a place with no room to say why.
 ///
 /// Entirely **read-only**, like `OcptScheduleConvocationsPanel`: every figure here is joined or
 /// computed by the caller, and the only callback this widget takes ([onDayOpenRequested]) is a
@@ -143,17 +163,12 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
   final Map<String, OcptPerson> personById;
 
   /// Resolves a day id to its own computed timelines (ADR 0015, as amended), or null while it has
-  /// nothing placed — what a column's own header reads its resolved start off.
+  /// nothing placed — what a column's own header reads its resolved hours off.
   final OcptShootingDayTimelines? Function(String dayId) timelinesOfDay;
 
-  /// Every [OcptSchedulePositionLostAlert] `OcptSchedulePlanSnapshot.alerts` raised over the whole
-  /// schedule — already filtered to that one kind by the caller, since this widget has no business
-  /// reading the other eight rules.
-  final List<OcptSchedulePositionLostAlert> lostPositionAlerts;
-
-  /// Called with a column's own day id when its header is clicked, selecting that day and opening
-  /// the day view — the same "open this day" gesture the strip, the week and the month agendas
-  /// already answer.
+  /// Called with a column's own day id when its header, or its day's own band, is clicked —
+  /// selecting that day and opening the day view, the same "open this day" gesture the strip, the
+  /// week and the month agendas already answer.
   final ValueChanged<String> onDayOpenRequested;
 
   /// Class constructor
@@ -163,7 +178,6 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     required this.slotsByDayId,
     required this.personById,
     required this.timelinesOfDay,
-    required this.lostPositionAlerts,
     required this.onDayOpenRequested,
   });
 
@@ -171,7 +185,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final columns = _buildColumns(tr);
+    final columns = _buildColumns();
     final groups = _buildGroups(tr, columns);
 
     if (groups.isEmpty) {
@@ -181,13 +195,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
       );
     }
 
-    // `OcptScheduleAlert.dayId` is nullable on the base class (null only ever means
-    // `OcptScheduleRoleUncastAlert`), but rule 4 always sets one — the `!` is that guarantee, not
-    // an assumption.
-    final lostPersonIdByCell = {
-      for (final alert in lostPositionAlerts)
-        (alert.dayId!, alert.slotId, alert.position): alert.personId,
-    };
+    final bands = _buildDayBands(context, tr);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +222,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: _buildCellsColumn(context, tr, columns, groups, lostPersonIdByCell),
+                      child: _buildCellsColumn(context, tr, bands, columns, groups),
                     ),
                   ),
                 ],
@@ -228,16 +236,32 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
 
   /// One column per live slot, in day order then the day's own slot order — see the class doc
   /// comment.
-  List<_OcptPositionsMatrixColumn> _buildColumns(Tr tr) => [
+  List<_OcptPositionsMatrixColumn> _buildColumns() => [
     for (final day in days)
       for (final slot in slotsByDayId[day.id] ?? const <OcptShootingSlot>[])
         _OcptPositionsMatrixColumn(
           dayId: day.id,
-          dayTag: ocptScheduleDayTagLabel(tr, day.dayNumber),
           slot: slot,
-          startMinute: timelinesOfDay(day.id)?.bySlotId[slot.id]?.startMinute,
+          timeline: timelinesOfDay(day.id)?.bySlotId[slot.id],
         ),
   ];
+
+  /// One band per day holding at least one live slot, in the same order [_buildColumns] walks —
+  /// the two are read side by side, a band spanning exactly the columns its own day contributed.
+  List<_OcptPositionsMatrixDayBand> _buildDayBands(BuildContext context, Tr tr) {
+    final dateFormat = DateFormat.Md(Localizations.localeOf(context).toString());
+
+    return [
+      for (final day in days)
+        if ((slotsByDayId[day.id] ?? const <OcptShootingSlot>[]).isNotEmpty)
+          _OcptPositionsMatrixDayBand(
+            day: day,
+            dayTag: ocptScheduleDayTagLabel(tr, day.dayNumber),
+            dateLabel: dateFormat.format(day.date),
+            columnCount: slotsByDayId[day.id]!.length,
+          ),
+    ];
+  }
 
   /// Every department group holding at least one row, in [OcptCrewDepartment.values] order, then
   /// the free-label/unrecognised group last — see the class doc comment for the whole rule.
@@ -288,8 +312,9 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     return groups;
   }
 
-  /// The frozen first column: the `Position` header, then every group's own heading and row
-  /// labels — never scrolled horizontally, so it stays readable however wide the shoot runs.
+  /// The frozen first column: the day band's own blank corner, the `Position` header, then every
+  /// group's own heading and row labels — never scrolled horizontally, so it stays readable
+  /// however wide the shoot runs.
   Widget _buildLabelColumn(BuildContext context, Tr tr, List<_OcptPositionsMatrixGroup> groups) {
     final theme = Theme.of(context);
 
@@ -299,6 +324,11 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            height: _ocptPositionsMatrixDayBandHeight,
+            width: double.infinity,
+            color: theme.colorScheme.surfaceContainerHigh,
+          ),
           Container(
             height: _ocptPositionsMatrixHeaderRowHeight,
             alignment: Alignment.centerLeft,
@@ -350,16 +380,16 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     );
   }
 
-  /// The scrollable right-hand side: one header cell per column, then, mirroring
+  /// The scrollable right-hand side: the day band, one header cell per column, then, mirroring
   /// [_buildLabelColumn] row for row, each group's own blank heading band and each row's own cells
   /// — the two sides sharing the exact same row heights is what keeps them aligned with no
   /// `IntrinsicHeight` needed.
   Widget _buildCellsColumn(
     BuildContext context,
     Tr tr,
+    List<_OcptPositionsMatrixDayBand> bands,
     List<_OcptPositionsMatrixColumn> columns,
     List<_OcptPositionsMatrixGroup> groups,
-    Map<(String, String, OcptCrewPositionRef), String> lostPersonIdByCell,
   ) {
     final theme = Theme.of(context);
     final totalWidth = columns.length * _ocptPositionsMatrixSlotColumnWidth;
@@ -369,6 +399,10 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
+          children: [for (final band in bands) _buildDayBand(context, band)],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [for (final column in columns) _buildColumnHeader(context, tr, column)],
         ),
         for (final group in groups) ...[
@@ -376,22 +410,66 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
           for (final row in group.rows)
             Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final column in columns)
-                  _buildCell(context, tr, column, row, lostPersonIdByCell),
-              ],
+              children: [for (final column in columns) _buildCell(context, tr, column, row)],
             ),
         ],
       ],
     );
   }
 
-  /// One column's own header: its day tag, its slot's own label and its resolved start, stacked —
-  /// clicking it opens that day.
+  /// One day's own band, spanning every column its day contributed: its day tag and its date —
+  /// clicking it opens that day, exactly as one of its own column headers does.
+  Widget _buildDayBand(BuildContext context, _OcptPositionsMatrixDayBand band) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: band.columnCount * _ocptPositionsMatrixSlotColumnWidth,
+      height: _ocptPositionsMatrixDayBandHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh,
+          border: Border(left: BorderSide(color: theme.colorScheme.outlineVariant)),
+        ),
+        child: InkWell(
+          onTap: () => onDayOpenRequested(band.day.id),
+          mouseCursor: ocptClickableCursor,
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    band.dayTag,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    band.dateLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One column's own header: its slot's own label over its resolved hours, its day tag being read
+  /// off the band above it — clicking it opens that day.
   Widget _buildColumnHeader(BuildContext context, Tr tr, _OcptPositionsMatrixColumn column) {
     final theme = Theme.of(context);
     final slotLabel = column.slot.label.isEmpty ? tr.scheduleInspectorUnnamedSlot : column.slot.label;
-    final startLabel = column.startMinute == null ? "—" : ocptFormatDayMinute(column.startMinute!);
 
     return SizedBox(
       width: _ocptPositionsMatrixSlotColumnWidth,
@@ -413,24 +491,15 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  column.dayTag,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                Text(
                   slotLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
                 ),
                 Text(
-                  startLabel,
+                  _hoursLabelOf(column),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 9,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -444,14 +513,28 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     );
   }
 
-  /// One cell: [row]'s own position, read off [column]'s own slot — the holder's avatar, the
-  /// error-coloured "lost" marker, or a plain em dash, in that order (see the class doc comment).
+  /// [column]'s own resolved hours, start over end — the em dash while its day has computed no
+  /// timeline at all, and the start alone while the slot carries no block to end on (an empty slot
+  /// ends where it starts, which is a convocation with no content yet rather than a range).
+  String _hoursLabelOf(_OcptPositionsMatrixColumn column) {
+    final timeline = column.timeline;
+    if (timeline == null) {
+      return "—";
+    }
+
+    final endMinute = timeline.endMinute;
+    return endMinute == null
+        ? ocptFormatDayMinute(timeline.startMinute)
+        : ocptScheduleDayMinuteRangeLabel(timeline.startMinute, endMinute);
+  }
+
+  /// One cell: [row]'s own position, read off [column]'s own slot — the holder's avatar, or a plain
+  /// em dash where nobody holds it (see the class doc comment).
   Widget _buildCell(
     BuildContext context,
     Tr tr,
     _OcptPositionsMatrixColumn column,
     _OcptPositionsMatrixRow row,
-    Map<(String, String, OcptCrewPositionRef), String> lostPersonIdByCell,
   ) {
     final theme = Theme.of(context);
 
@@ -473,41 +556,12 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
         ),
       );
     } else {
-      final lostPersonId = lostPersonIdByCell[(column.dayId, column.slot.id, row.position)];
-      if (lostPersonId != null) {
-        final previousHolder = personById[lostPersonId];
-        final previousHolderName = previousHolder == null || previousHolder.displayName.isEmpty
-            ? tr.resourcesUnnamedPerson
-            : previousHolder.displayName;
-        content = Tooltip(
-          message: tr.schedulePositionsMatrixLostCellTooltip(previousHolderName),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.error.withValues(alpha: _ocptPositionsMatrixLostCellFillAlpha),
-                border: Border.all(color: theme.colorScheme.error),
-                borderRadius: BorderRadius.circular(ocptRadiusLarge),
-              ),
-              child: Text(
-                tr.schedulePositionsMatrixLostCellLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ),
-          ),
-        );
-      } else {
-        content = Center(
-          child: Text(
-            "—",
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-        );
-      }
+      content = Center(
+        child: Text(
+          "—",
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      );
     }
 
     return SizedBox(

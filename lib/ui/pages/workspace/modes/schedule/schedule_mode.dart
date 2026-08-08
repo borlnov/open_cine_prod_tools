@@ -477,25 +477,20 @@ class _ScheduleViewState extends State<_ScheduleView> {
       };
 
   /// Builds the positions matrix: who holds which crew position, slot by slot, across the whole
-  /// shoot — [OcptSchedulePositionLostAlert] is read straight out of `state.planSnapshot`'s own
-  /// alerts (rule 4 of `lib/utils/ocpt_schedule_alerts.dart`) rather than recomputed here, so this
-  /// view can never disagree with the alerts panel about what "lost" means.
+  /// shoot. A position lost mid-day is [OcptSchedulePositionLostAlert]'s own sentence, read in the
+  /// `Alerts` panel — this view marks no cell for it, so the two can never disagree about what
+  /// "lost" means.
   Widget _buildPositionsMatrix(BuildContext context, OcptScheduleState state) => OcptSchedulePositionsMatrix(
     days: state.days,
     slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
     personById: state.personById,
     timelinesOfDay: state.timelinesOfDay,
-    lostPositionAlerts: [
-      for (final alert in state.planSnapshot?.alerts ?? const <OcptScheduleAlert>[])
-        if (alert is OcptSchedulePositionLostAlert) alert,
-    ],
     onDayOpenRequested: (dayId) => _openDay(context, dayId),
   );
 
   /// Builds the presence grid: who is working or unavailable, day by day, across the whole shoot.
   /// [OcptSchedulePersonUnavailableAlert] is read straight out of `state.planSnapshot`'s own alerts
-  /// (rule 1 of `lib/utils/ocpt_schedule_alerts.dart`) rather than recomputed here, exactly as
-  /// [_buildPositionsMatrix] reads rule 4 for its own "lost" marker.
+  /// (rule 1 of `lib/utils/ocpt_schedule_alerts.dart`) rather than recomputed here.
   Widget _buildPresenceGrid(BuildContext context, OcptScheduleState state) {
     final planSnapshot = state.planSnapshot;
 
