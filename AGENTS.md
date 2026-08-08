@@ -775,7 +775,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   column-wide because they are facts about the day rather than about a unit) or month (a cell reading
   the **earliest** of its slots' starts, the first in `sortKey` order not being the earliest once
   slots run in parallel, and saying how many units the day carries) — or the **day view**, the
-  working surface: the slot cards, each carrying its own **note** under its
+  working surface: the slot cards, each carrying its own **private note** under its
   location and set (what that unit alone needs saying — the parking, the key holder —, the day's
   own note to the crew being a different thing) and a `▲`/`▼` pair moving it in the day's list (the
   pair is drawn as soon as one of the two leads anywhere, the other reading as disabled rather than
@@ -861,11 +861,16 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   The **positions matrix** is the third view: positions × slots, one column per slot grouped under
   its day and one row per position **somebody actually holds somewhere** (a position's identity being
   the pair `positionId`/`customLabel` `ocptCrewPositionPrefillOf` already models one with, free
-  labels grouped last, having no department). Its one coloured cell is a position **lost mid-day**,
-  and it is read straight off `OcptSchedulePositionLostAlert` rather than recomputed — two readings
-  of one rule is how the matrix and the alerts panel would come to disagree about what a lost
-  position is. It writes nothing, so like the `Convocations` panel it carries no `isReadOnly` flag
-  at all.
+  labels grouped last, having no department). The grouping is drawn as a **day band** over the slot
+  headers — the day tag and the date once, spanning that day's own columns, the shape
+  `OcptShootingPlanPdfService`'s landscape grids already use — so a column header carries the slot's
+  label and its **resolved hours, start over end** alone: a day tag repeated on every column said
+  nothing about which columns belonged together, and a slot's end is what a reader of this matrix is
+  after when they ask whether a position is covered until the wrap. A position **lost mid-day** is
+  marked **nowhere here**: it is `OcptSchedulePositionLostAlert`'s own sentence, read in the `Alerts`
+  panel, and a coloured cell only ever restated it in a place with no room to say why. Every cell is
+  therefore a holder or an em dash, the matrix writes nothing, and like the `Convocations` panel it
+  carries no `isReadOnly` flag at all.
   The **presence grid** is the fourth: people × days, a trailing count of each person's working
   days, and cells that are **computed** — `working` when that person is convoked that day,
   `unavailable` when they are not but a `person_unavailabilities` window covers the date, and
@@ -919,11 +924,15 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   .alertsByDayId` and `OcptScheduleState.alertsOfDay`. A day raising nothing draws **nothing at all**
   rather than a zero, the mark is the graver of the two severities among that day's own alerts (one
   hard alert makes the day read as blocked), and it is **read off the alerts, never a second reading
-  of the nine rules** — the rule the positions matrix and the presence grid already follow. Its
-  tooltip names how many and of which kinds, each kind once however often it was raised. It carries
-  **no callback** on purpose: every surface it sits on is already clickable, and a badge swallowing
-  that tap would make selecting a day depend on missing a 16-pixel square — so, like the panel
-  itself, it withholds nothing under a version preview. `OcptScheduleRoleUncastAlert` marks no day,
+  of the nine rules** — the rule the presence grid already follows. Its
+  tooltip names how many and of which kinds, each kind once however often it was raised. Its `onTap`
+  is **nullable and wired in exactly one place**, the day view's own summary band, where it opens the
+  `Alerts` dock tab: everywhere else it is left null, every one of those surfaces being clickable
+  already — a day card selects its day, an agenda cell opens it — and a badge swallowing that tap
+  would make selecting a day depend on hitting a 16-pixel square. The summary band is the one surface
+  that is not a selection target, the day it describes being selected already, so there is nothing
+  there for the badge to steal. Opening a dock tab writes nothing, so — like the panel itself — it
+  withholds nothing under a version preview. `OcptScheduleRoleUncastAlert` marks no day,
   carrying none: a role's casting is not a fact about any one day of the shoot.
   The agenda's own **`Colour by`** control tints its three presentations by **location** (the tint
   they already painted) or by **effect**, INT/EXT crossed with day/night read off the headings of the
@@ -1004,7 +1013,10 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   rather than to a unit, taking part in **no chain** (a block kind for it would let it push a shot
   back) and deliberately **not** copied by `duplicateDay`, since an event happens on a date. A block
   additionally carries a **crew note** beside its `notes`: `notes` is private and never prints,
-  `crewNote` is the one that does, and until v17 nothing said which was which.
+  `crewNote` is the one that does, and until v17 nothing said which was which. The UI says it now:
+  a slot's and a block's `notes` are labelled **`Private notes`** (`Notes privées`) — an ARB change
+  alone, the columns keeping their names — so a note that never leaves the office cannot be mistaken
+  for one the crew will read.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
   megabytes never reach a changeset sync designed around small per-column edits. A missing file is
