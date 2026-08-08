@@ -11,7 +11,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the `OcptWorkspaceDock` the panel fills in the app.
@@ -93,6 +95,7 @@ void main() {
           selectedDayId: null,
           blockCountByDayId: const {},
           firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
           onDaySelected: (_) {},
           onDayCreated: (_) {},
           onDayDateChangeRequested: (_, _) {},
@@ -111,6 +114,42 @@ void main() {
     expect(find.text("D3"), findsOneWidget);
   });
 
+  testWidgets("only the days the plan raises something about wear the alert mark", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleLeftDock(
+          days: [dayOne, dayThree],
+          selectedDayId: null,
+          blockCountByDayId: const {},
+          firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => dayId == dayThree.id
+              ? const [
+                  OcptScheduleTimelineOverrunAlert(
+                    dayId: "day-3",
+                    blockId: "block-1",
+                    reachedMinute: 600,
+                    anchorMinute: 550,
+                  ),
+                ]
+              : const [],
+          onDaySelected: (_) {},
+          onDayCreated: (_) {},
+          onDayDateChangeRequested: (_, _) {},
+          onDayDuplicationRequested: (_, _) {},
+          onDayDeletionRequested: (_) {},
+          unplacedGroups: const [],
+          selectedShotId: null,
+          onShotSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptScheduleDayAlertBadge), findsNWidgets(2));
+    // Both cards carry the widget; only the day raising something draws a mark at all.
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+  });
+
   testWidgets("clicking an unplaced shot reports its own selection", (tester) async {
     final selected = <String>[];
 
@@ -121,6 +160,7 @@ void main() {
           selectedDayId: null,
           blockCountByDayId: const {},
           firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
           onDaySelected: (_) {},
           onDayCreated: (_) {},
           onDayDateChangeRequested: (_, _) {},
@@ -152,6 +192,7 @@ void main() {
           selectedDayId: null,
           blockCountByDayId: const {},
           firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
           onDaySelected: (_) {},
           onDayCreated: (_) {},
           onDayDateChangeRequested: (_, _) {},
@@ -191,6 +232,7 @@ void main() {
           selectedDayId: null,
           blockCountByDayId: const {},
           firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
           onDaySelected: (_) {},
           onDayCreated: (_) {},
           onDayDateChangeRequested: (dayId, date) => dateChangeRequests.add((dayId, date)),
@@ -240,6 +282,7 @@ void main() {
           selectedDayId: null,
           blockCountByDayId: const {},
           firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
           onDaySelected: (_) {},
           onDayCreated: (_) {},
           onDayDateChangeRequested: null,
@@ -276,6 +319,7 @@ void main() {
             selectedDayId: null,
             blockCountByDayId: const {},
             firstLocationByDayId: const {},
+            alertsOfDay: (dayId) => const [],
             onDaySelected: (_) {},
             onDayCreated: null,
             onDayDateChangeRequested: null,

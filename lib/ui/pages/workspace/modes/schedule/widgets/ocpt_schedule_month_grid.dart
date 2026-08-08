@@ -9,8 +9,10 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
@@ -68,6 +70,10 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   /// The id of the currently selected day, or null while none is.
   final String? selectedDayId;
 
+  /// Resolves a day id to the alerts the plan raises about it (`OcptScheduleState.alertsOfDay`) —
+  /// what each cell's own [OcptScheduleDayAlertBadge] is drawn from, empty for a day raising none.
+  final List<OcptScheduleAlert> Function(String dayId) alertsOfDay;
+
   /// Called with a day's id when its own cell is clicked, selecting it and opening the day view.
   final ValueChanged<String> onDayOpenRequested;
 
@@ -83,6 +89,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     required this.timelineOf,
     required this.sunTimesOf,
     required this.selectedDayId,
+    required this.alertsOfDay,
     required this.onDayOpenRequested,
   });
 
@@ -122,6 +129,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
                             timeline: day == null ? null : timelineOf(day.id),
                             sunTimes: day == null ? null : sunTimesOf(day.id),
                             isSelected: day != null && day.id == selectedDayId,
+                            alerts: day == null ? const [] : alertsOfDay(day.id),
                             onOpenRequested: day == null ? null : () => onDayOpenRequested(day.id),
                           );
                         },
@@ -172,6 +180,9 @@ class _OcptScheduleMonthCell extends StatelessWidget {
   /// Whether [day] is the currently selected one.
   final bool isSelected;
 
+  /// The alerts the plan raises about [day], empty while it raises none (or while [day] is null).
+  final List<OcptScheduleAlert> alerts;
+
   /// Called when this cell is clicked, or null while [day] is null (nothing to open).
   final VoidCallback? onOpenRequested;
 
@@ -186,6 +197,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     required this.timeline,
     required this.sunTimes,
     required this.isSelected,
+    required this.alerts,
     required this.onOpenRequested,
   });
 
@@ -238,6 +250,10 @@ class _OcptScheduleMonthCell extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (alerts.isNotEmpty) ...[
+                  OcptScheduleDayAlertBadge(alerts: alerts, isCompact: true),
+                  const SizedBox(width: 3),
+                ],
                 if (day != null)
                   Text(
                     ocptScheduleDayTagLabel(tr, day.dayNumber),

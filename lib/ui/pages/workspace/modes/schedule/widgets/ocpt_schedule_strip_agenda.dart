@@ -11,8 +11,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The strip agenda: one card per shooting day, in order, each carrying its own placed shots as
@@ -54,6 +56,10 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   /// card's own arrival-to-end range starts from.
   final int? Function(String dayId) arrivalMinuteOf;
 
+  /// Resolves a day id to the alerts the plan raises about it (`OcptScheduleState.alertsOfDay`) —
+  /// what each card's own [OcptScheduleDayAlertBadge] is drawn from, empty for a day raising none.
+  final List<OcptScheduleAlert> Function(String dayId) alertsOfDay;
+
   /// Called with a day's id when its own header is clicked, selecting it and opening the day view.
   final ValueChanged<String> onDayOpenRequested;
 
@@ -71,6 +77,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.shotOf,
     required this.timelineOf,
     required this.arrivalMinuteOf,
+    required this.alertsOfDay,
     required this.onDayOpenRequested,
     required this.onBlockSelected,
   });
@@ -102,6 +109,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
           shotOf: shotOf,
           timeline: timelineOf(day.id),
           arrivalMinute: arrivalMinuteOf(day.id),
+          alerts: alertsOfDay(day.id),
           onSelected: () => onDayOpenRequested(day.id),
           onBlockSelected: (blockId) => onBlockSelected(blockId, day.id),
         );
@@ -138,6 +146,9 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   /// `OcptScheduleState.dayArrivalMinute`.
   final int? arrivalMinute;
 
+  /// The alerts the plan raises about this day, empty while it raises none.
+  final List<OcptScheduleAlert> alerts;
+
   /// Called when the card's own header is clicked.
   final VoidCallback onSelected;
 
@@ -154,6 +165,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.shotOf,
     required this.timeline,
     required this.arrivalMinute,
+    required this.alerts,
     required this.onSelected,
     required this.onBlockSelected,
   });
@@ -201,12 +213,20 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          ocptScheduleDayTagLabel(tr, day.dayNumber),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              ocptScheduleDayTagLabel(tr, day.dayNumber),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (alerts.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              OcptScheduleDayAlertBadge(alerts: alerts),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(dateLabel, style: theme.textTheme.labelSmall),

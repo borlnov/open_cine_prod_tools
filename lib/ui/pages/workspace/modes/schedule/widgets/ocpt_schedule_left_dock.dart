@@ -9,8 +9,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// The schedule mode's left dock: the list of shooting days over the list of shots still to
 /// place, grouped by sequence — mirroring
@@ -33,6 +35,10 @@ class OcptScheduleLeftDock extends StatelessWidget {
 
   /// Each day's own first slot's location, keyed by day id, or null while it has none.
   final Map<String, OcptLocation?> firstLocationByDayId;
+
+  /// Resolves a day id to the alerts the plan raises about it (`OcptScheduleState.alertsOfDay`) —
+  /// what each card's own [OcptScheduleDayAlertBadge] is drawn from, empty for a day raising none.
+  final List<OcptScheduleAlert> Function(String dayId) alertsOfDay;
 
   /// Called with a day's id when its row (or, once selected, its own card) is clicked.
   final ValueChanged<String> onDaySelected;
@@ -72,6 +78,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.selectedDayId,
     required this.blockCountByDayId,
     required this.firstLocationByDayId,
+    required this.alertsOfDay,
     required this.onDaySelected,
     required this.onDayCreated,
     required this.onDayDateChangeRequested,
@@ -129,6 +136,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
                       isSelected: day.id == selectedDayId,
                       blockCount: blockCountByDayId[day.id] ?? 0,
                       location: firstLocationByDayId[day.id],
+                      alerts: alertsOfDay(day.id),
                       onSelected: () => onDaySelected(day.id),
                       onDateChangeRequested: onDayDateChangeRequested == null
                           ? null
@@ -234,6 +242,9 @@ class _OcptScheduleDayCard extends StatelessWidget {
   /// This day's own first slot's location, or null while it has none.
   final OcptLocation? location;
 
+  /// The alerts the plan raises about this day, empty while it raises none.
+  final List<OcptScheduleAlert> alerts;
+
   /// Called when this card is clicked.
   final VoidCallback onSelected;
 
@@ -252,6 +263,7 @@ class _OcptScheduleDayCard extends StatelessWidget {
     required this.isSelected,
     required this.blockCount,
     required this.location,
+    required this.alerts,
     required this.onSelected,
     required this.onDateChangeRequested,
     required this.onDuplicationRequested,
@@ -315,6 +327,7 @@ class _OcptScheduleDayCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        OcptScheduleDayAlertBadge(alerts: alerts),
                       ],
                     ),
                     const SizedBox(height: 3),

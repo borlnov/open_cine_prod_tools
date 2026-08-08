@@ -12,8 +12,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
@@ -106,6 +108,11 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   /// The id of the currently selected day, or null while none is.
   final String? selectedDayId;
 
+  /// Resolves a day id to the alerts the plan raises about it (`OcptScheduleState.alertsOfDay`) —
+  /// what each column header's own [OcptScheduleDayAlertBadge] is drawn from, empty for a day
+  /// raising none.
+  final List<OcptScheduleAlert> Function(String dayId) alertsOfDay;
+
   /// Called with a day's id when its own column header is clicked, selecting it and opening the
   /// day view.
   final ValueChanged<String> onDayOpenRequested;
@@ -123,6 +130,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     required this.timelineOf,
     required this.sunTimesOf,
     required this.selectedDayId,
+    required this.alertsOfDay,
     required this.onDayOpenRequested,
   });
 
@@ -180,6 +188,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                         date: date,
                         day: dayByDate[date],
                         isSelected: dayByDate[date] != null && dayByDate[date]!.id == selectedDayId,
+                        alerts: dayByDate[date] == null ? const [] : alertsOfDay(dayByDate[date]!.id),
                         onOpenRequested: dayByDate[date] == null
                             ? null
                             : () => onDayOpenRequested(dayByDate[date]!.id),
@@ -267,6 +276,9 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
   /// Whether [day] is the currently selected one.
   final bool isSelected;
 
+  /// The alerts the plan raises about [day], empty while it raises none (or while [day] is null).
+  final List<OcptScheduleAlert> alerts;
+
   /// Called when this header is clicked, or null while [day] is null (nothing to open).
   final VoidCallback? onOpenRequested;
 
@@ -275,6 +287,7 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
     required this.date,
     required this.day,
     required this.isSelected,
+    required this.alerts,
     required this.onOpenRequested,
   });
 
@@ -317,13 +330,22 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
               ),
               Text("${date.day}", style: theme.textTheme.titleSmall),
               if (day != null)
-                Text(
-                  ocptScheduleDayTagLabel(tr, day.dayNumber),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      ocptScheduleDayTagLabel(tr, day.dayNumber),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    if (alerts.isNotEmpty) ...[
+                      const SizedBox(width: 3),
+                      OcptScheduleDayAlertBadge(alerts: alerts, isCompact: true),
+                    ],
+                  ],
                 ),
             ],
           ),

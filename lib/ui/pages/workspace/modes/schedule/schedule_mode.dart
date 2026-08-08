@@ -300,6 +300,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         for (final day in state.days) day.id: state.snapshot?.blocksByDayId[day.id]?.length ?? 0,
       },
       firstLocationByDayId: {for (final day in state.days) day.id: state.firstLocationOfDay(day.id)},
+      alertsOfDay: state.alertsOfDay,
       onDaySelected: (dayId) => bloc.add(OcptScheduleDaySelectedEvent(dayId: dayId)),
       onDayCreated: isReadOnly
           ? null
@@ -428,6 +429,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         shotOf: state.shotById,
         timelineOf: state.timelinesOfDay,
         arrivalMinuteOf: state.dayArrivalMinute,
+        alertsOfDay: state.alertsOfDay,
         onDayOpenRequested: (dayId) => _openDay(context, dayId),
         onBlockSelected: (blockId, dayId) =>
             bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: dayId)),
@@ -443,6 +445,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
         selectedDayId: state.selectedDayId,
+        alertsOfDay: state.alertsOfDay,
         onDayOpenRequested: (dayId) => _openDay(context, dayId),
       ),
       OcptScheduleAgendaMode.month => OcptScheduleMonthGrid(
@@ -455,6 +458,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         timelineOf: state.timelinesOfDay,
         sunTimesOf: state.sunTimesOfDay,
         selectedDayId: state.selectedDayId,
+        alertsOfDay: state.alertsOfDay,
         onDayOpenRequested: (dayId) => _openDay(context, dayId),
       ),
     };
@@ -543,6 +547,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       timeline: state.timelinesOfDay(day.id),
       dayArrivalMinute: state.dayArrivalMinute(day.id),
       sunTimes: state.sunTimesOfDay(day.id),
+      alerts: state.alertsOfDay(day.id),
       locationById: state.locationById,
       setById: state.setById,
       locations: state.locations,

@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
@@ -460,6 +461,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
   /// has no location, or that location has no coordinates pinned yet. Delegates to [planSnapshot].
   OcptSunTimes? sunTimesOfDay(String dayId) => planSnapshot?.sunTimesOfDay(dayId);
+
+  /// Every alert day [dayId] itself raises, in the order `ocptComputeScheduleAlerts` returned them
+  /// (hard before soft), empty while it raises none — what every day-level alert indicator of the
+  /// mode reads. Delegates to [planSnapshot].
+  List<OcptScheduleAlert> alertsOfDay(String dayId) =>
+      planSnapshot?.alertsByDayId[dayId] ?? const [];
 
   /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
   /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.

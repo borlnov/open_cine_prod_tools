@@ -7828,6 +7828,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleDayAlertsBadgeTooltip": "{count, plural, one{1 alert on this day} other{{count} alerts on this day}}: {kinds}",
+  "@scheduleDayAlertsBadgeTooltip": {
+    "description": "Tooltip of the mark a day wears when the plan raises alerts about it, naming how many and of which kinds",
+    "context": "Displayed on the schedule mode's day cards, agendas and day view",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "kinds": {
+        "type": "String"
+      }
+    }
+  },
   "scheduleAlertKindPersonUnavailable": "Unavailable",
   "@scheduleAlertKindPersonUnavailable": {
     "description": "Title of an alert card reporting a person convoked despite a recorded unavailability (rule 1)",

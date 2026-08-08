@@ -894,6 +894,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   a plan is broken whichever view is being read, and the count in the status bar is what says so from
   the other three. Each entry names what it concerns and offers the day it concerns — a selection,
   so the panel writes nothing and needs no `isReadOnly` handling either.
+  **Which day is broken is said on the day itself**, by `OcptScheduleDayAlertBadge`: the left dock's
+  day cards, the three agenda presentations (compact — the mark alone — in the week header and the
+  month cell) and the day view's own summary band all wear it, over
+  `ocptGroupScheduleAlertsByDay` (pure, in the alerts file) as `OcptSchedulePlanSnapshot
+  .alertsByDayId` and `OcptScheduleState.alertsOfDay`. A day raising nothing draws **nothing at all**
+  rather than a zero, the mark is the graver of the two severities among that day's own alerts (one
+  hard alert makes the day read as blocked), and it is **read off the alerts, never a second reading
+  of the nine rules** — the rule the positions matrix and the presence grid already follow. Its
+  tooltip names how many and of which kinds, each kind once however often it was raised. It carries
+  **no callback** on purpose: every surface it sits on is already clickable, and a badge swallowing
+  that tap would make selecting a day depend on missing a 16-pixel square — so, like the panel
+  itself, it withholds nothing under a version preview. `OcptScheduleRoleUncastAlert` marks no day,
+  carrying none: a role's casting is not a fact about any one day of the shoot.
   The agenda's own **`Colour by`** control tints its three presentations by **location** (the tint
   they already painted) or by **effect**, INT/EXT crossed with day/night read off the headings of the
   shots placed on that day through `ocptSceneEffectOf` (`lib/utils/ocpt_scene_effect.dart`, pure and
@@ -927,13 +940,24 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   milestone rows, then the cast table and the two directories. That table carries **five columns, not
   the reference's six**: no field of this app says what happens in a sequence, so `RÉSUMÉ` could only
   ever have printed an em dash on every row, and a heading that promises what it never delivers is
-  worse than one column fewer. A **hair-and-make-up block additionally names the numbers of the roles
-  its slot convokes** (`HMC (3, 5)`, `ocptScheduleSlotRoleNumbersOf`), appended whatever the caption
-  itself turned out to be — a production's own free text for that band says what it is, not who is
-  expected in it, and the numbers are the one thing the make-up department reads the line for. They
-  come off `slot.cast` alone: a chair is a fact about the **unit**, not about whichever shot happens
-  to be running. Every other block kind is left alone, and a slot convoking nobody prints no empty
-  brackets. What a **named** sheet narrows is the **timetable, and only the timetable**: it keeps the
+  worse than one column fewer. The **cast table lists every role the day calls for**, not only the
+  convoked ones (`_castRowsOfDay`): a role a placed shot plays but nobody linked to a slot is printed
+  too, with em dashes for its arrival and its PAT band — the `RÔLES` column prints role *numbers*,
+  and a reader looking `3` up has nowhere else on the sheet to find out who that is. Nothing is
+  guessed from the shot's own hours (a convocation is the slot you are linked to, ADR 0018), so those
+  em dashes say exactly what `OcptScheduleRoleNotConvokedAlert` raises in the app; the cast-and-extras
+  directory follows the table row for row, the actor nobody called being precisely the one an
+  assistant director has to phone. A **hair-and-make-up block additionally names the numbers of the
+  roles its slot convokes** (`ocptScheduleBlockRoleNumbersOf` for the figures,
+  `ocptScheduleBlockRoleNumbersLine` for the line both documents print them as), on a **line of its
+  own under the caption, behind the `RÔLES` label** rather than in brackets after it — a slot
+  convoking forty roles is exactly the band whose make-up department needs them most, and forty
+  bracketed numbers are unreadable where a labelled line still scans. They are printed whatever the
+  caption itself turned out to be — a production's own free text for that band says what it is, not
+  who is expected in it — and come off `slot.cast` alone: a chair is a fact about the **unit**, not
+  about whichever shot happens to be running. Every other block kind is left alone, and a slot
+  convoking nobody prints no line at all. What a **named** sheet narrows is the **timetable, and only
+  the timetable**: it keeps the
   day's header, prints the rows its recipient's own slots carry — and then the day's own cast table
   and both directories, exactly as the general sheet does, those answering "who else is on this day
   and how do I reach them", which is a question about the day rather than about the reader. Both
@@ -946,8 +970,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   wide, then one portrait agenda per day with its hours, its sets and its shot tables. Its
   `Description` column is dropped for the same reason `RÉSUMÉ` is.
   `ocpt_schedule_pdf_shared.dart` holds what the two documents must not read differently: the walk
-  that puts a day's parallel slot chains back into a single clock order, a block's caption (the HMC
-  role numbers among it, so both documents gain them at once), a location's address line. **Every
+  that puts a day's parallel slot chains back into a single clock order, a block's caption, the HMC
+  role numbers and the line they print as (so both documents say them identically, each handing in
+  its own already-localized `RÔLES` label), a location's address line. **Every
   hour on either page is the resolved one** and every convocation figure comes from
   `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The

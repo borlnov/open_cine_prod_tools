@@ -17,11 +17,13 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
@@ -60,6 +62,11 @@ class OcptScheduleDayView extends StatelessWidget {
   /// [day]'s own computed sun times, or null while its first slot has no location with
   /// coordinates.
   final OcptSunTimes? sunTimes;
+
+  /// The alerts the plan raises about [day] (`OcptScheduleState.alertsOfDay`), empty while it
+  /// raises none — read out by the summary band's own [OcptScheduleDayAlertBadge], so the working
+  /// surface says what the day cards and the agendas already say.
+  final List<OcptScheduleAlert> alerts;
 
   /// The whole location catalogue, keyed by id.
   final Map<String, OcptLocation> locationById;
@@ -201,6 +208,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.timeline,
     required this.dayArrivalMinute,
     required this.sunTimes,
+    required this.alerts,
     required this.locationById,
     required this.setById,
     required this.locations,
@@ -355,7 +363,11 @@ class OcptScheduleDayView extends StatelessWidget {
       child: Wrap(
         spacing: 26,
         runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          // First of the band, ahead of the day's own hours: a plan that is about to break is the
+          // one thing worth reading before anything else about the day.
+          if (alerts.isNotEmpty) OcptScheduleDayAlertBadge(alerts: alerts),
           _buildSummaryField(
             context,
             tr.scheduleInspectorArrivalToEndLabel,

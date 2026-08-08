@@ -648,4 +648,64 @@ void main() {
       );
     });
   });
+
+  group("ocptGroupScheduleAlertsByDay", () {
+    test("groups every alert under the day it concerns, keeping the order it was given", () {
+      final hardDay = _buildDay(
+        id: "day-1",
+        slots: [
+          _buildSlot(id: "slot-a", startMinute: 480, endMinute: 600, personIds: {"p1"}),
+          _buildSlot(id: "slot-b", startMinute: 550, endMinute: 650, personIds: {"p1"}),
+        ],
+      );
+      final softDay = _buildDay(
+        id: "day-2",
+        overruns: [
+          const OcptTimelineOverrun(blockId: "block-1", reachedMinute: 600, anchorMinute: 550),
+        ],
+      );
+
+      final alerts = ocptComputeScheduleAlerts(
+        days: [hardDay, softDay],
+        people: const [],
+        roles: const [],
+        locationWindowsByLocationId: const {},
+      );
+      final grouped = ocptGroupScheduleAlertsByDay(alerts);
+
+      expect(grouped.keys, unorderedEquals(["day-1", "day-2"]));
+      expect(grouped["day-1"]!.single, isA<OcptSchedulePersonDoubleBookedAlert>());
+      expect(grouped["day-2"]!.single, isA<OcptScheduleTimelineOverrunAlert>());
+    });
+
+    test("a day raising nothing has no entry at all", () {
+      final grouped = ocptGroupScheduleAlertsByDay(
+        ocptComputeScheduleAlerts(
+          days: [_buildDay(id: "day-1", slots: [_buildSlot(id: "slot-1", startMinute: 480)])],
+          people: const [],
+          roles: const [],
+          locationWindowsByLocationId: const {},
+        ),
+      );
+
+      expect(grouped, isEmpty);
+    });
+
+    test("a role-uncast alert marks no day, its casting being nobody's day in particular", () {
+      final alerts = ocptComputeScheduleAlerts(
+        days: [
+          _buildDay(
+            id: "day-1",
+            slots: [_buildSlot(id: "slot-1", startMinute: 480, convokedRoleIds: {"role-1"})],
+          ),
+        ],
+        people: const [],
+        roles: [const OcptScheduleAlertRole(id: "role-1", personId: null)],
+        locationWindowsByLocationId: const {},
+      );
+
+      expect(alerts.single, isA<OcptScheduleRoleUncastAlert>());
+      expect(ocptGroupScheduleAlertsByDay(alerts), isEmpty);
+    });
+  });
 }

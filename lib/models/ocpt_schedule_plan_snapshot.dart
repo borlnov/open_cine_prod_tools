@@ -446,6 +446,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
     },
   );
 
+  /// [alerts] grouped by the day each of them concerns (`ocptGroupScheduleAlertsByDay`) — what
+  /// every day-level indicator of the mode reads, so the day cards, the three agendas and the day
+  /// view's own summary band all mark exactly the days the `Alerts` panel lists.
+  ///
+  /// Derived from [alerts] rather than computed a second time, and `late final` for the same reason
+  /// it is: the whole-shoot walk runs once per snapshot, and this grouping rides on it. A day
+  /// raising nothing has no entry at all, and [OcptScheduleRoleUncastAlert] marks no day — see
+  /// `ocptGroupScheduleAlertsByDay` for why.
+  late final Map<String, List<OcptScheduleAlert>> alertsByDayId = ocptGroupScheduleAlertsByDay(alerts);
+
   /// Every [OcptRole.name] of [roles], normalised through `fountain_kit`'s `normalizeCharacterName`
   /// and keyed onto its own id — the same join `OcptCallSheetPdfService` and
   /// `OcptShootingPlanPdfService` already read a shot's characters through. Built once, alongside

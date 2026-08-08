@@ -633,6 +633,30 @@ List<OcptScheduleAlert> ocptComputeScheduleAlerts({
   return alerts;
 }
 
+/// [alerts] grouped by the day each of them concerns, every group keeping the order it was given —
+/// what a day-level indicator (a day card, an agenda cell, the day view's own summary band) reads
+/// to say, without leaving the surface it is on, that this day has something wrong with it.
+///
+/// An alert carrying no day — [OcptScheduleRoleUncastAlert] alone — belongs to **no** group: a
+/// role's own casting is a fact about the role rather than about any one day, so pinning it onto
+/// every day the role plays would make a project-wide gap read as a dozen separate day problems.
+/// It is counted by the status bar and listed in the alerts panel, exactly as before, and simply
+/// marks no day.
+///
+/// A day raising nothing at all has **no entry**, rather than an empty list: absence and emptiness
+/// read the same here, and a caller reaching for a day's own alerts is looking up a map by id.
+Map<String, List<OcptScheduleAlert>> ocptGroupScheduleAlertsByDay(List<OcptScheduleAlert> alerts) {
+  final grouped = <String, List<OcptScheduleAlert>>{};
+  for (final alert in alerts) {
+    final dayId = alert.dayId;
+    if (dayId == null) {
+      continue;
+    }
+    (grouped[dayId] ??= <OcptScheduleAlert>[]).add(alert);
+  }
+  return grouped;
+}
+
 /// The string the final sort ties two same-day, same-kind alerts on — an exhaustive switch, so a
 /// tenth [OcptScheduleAlert] subclass cannot be added without this file being told how to order it.
 String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {

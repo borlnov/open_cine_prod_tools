@@ -1048,6 +1048,7 @@
   "scheduleStatsAlerts": "{count, plural, =0{Aucune alerte} one{1 alerte} other{{count} alertes}}",
   "scheduleAlertsSummary": "{total, plural, one{1 problème} other{{total} problèmes}} · {hard, plural, =0{aucun bloquant} one{1 bloquant} other{{hard} bloquants}}",
   "scheduleAlertsEmptyHint": "Le plan ne signale rien à vérifier.",
+  "scheduleDayAlertsBadgeTooltip": "{count, plural, one{1 alerte sur cette journée} other{{count} alertes sur cette journée}} : {kinds}",
   "scheduleAlertKindPersonUnavailable": "Indisponible",
   "scheduleAlertKindPersonDoubleBooked": "Double réservation",
   "scheduleAlertKindLocationUncovered": "Lieu non couvert",
