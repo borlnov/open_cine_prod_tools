@@ -6,10 +6,11 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// A convocation window inside a `OcptShootingDay` — the *créneau* the reference call sheets print
-/// — joined with its live [crew] and [cast], both in `sortKey` order, exactly as
+/// — joined with its live [crew], [cast] and [guests], all three in `sortKey` order, exactly as
 /// `OcptLocation.sets` nests a location's live sets.
 ///
 /// **[anchorEdge] plus exactly one of [anchorMinute]/[anchorSlotId] is the whole of what this slot
@@ -55,6 +56,9 @@ class OcptShootingSlot extends Equatable {
   /// The live roles convoked during this slot, in `sortKey` order.
   final List<OcptShootingSlotCastMember> cast;
 
+  /// The live guests attending this slot, in `sortKey` order.
+  final List<OcptShootingSlotGuest> guests;
+
   /// Class constructor
   const OcptShootingSlot({
     required this.id,
@@ -68,13 +72,16 @@ class OcptShootingSlot extends Equatable {
     required this.notes,
     required this.crew,
     required this.cast,
+    required this.guests,
   });
 
-  /// Builds an [OcptShootingSlot] from its stored [row] and its already-ordered [crew] and [cast].
+  /// Builds an [OcptShootingSlot] from its stored [row] and its already-ordered [crew], [cast] and
+  /// [guests].
   factory OcptShootingSlot.fromRow({
     required OcptShootingSlotRow row,
     required List<OcptShootingSlotCrewMember> crew,
     required List<OcptShootingSlotCastMember> cast,
+    required List<OcptShootingSlotGuest> guests,
   }) => OcptShootingSlot(
     id: row.id,
     shootingDayId: row.shootingDayId,
@@ -87,6 +94,7 @@ class OcptShootingSlot extends Equatable {
     notes: row.notes,
     crew: crew,
     cast: cast,
+    guests: guests,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -107,5 +115,6 @@ class OcptShootingSlot extends Equatable {
     notes,
     crew,
     cast,
+    guests,
   ];
 }

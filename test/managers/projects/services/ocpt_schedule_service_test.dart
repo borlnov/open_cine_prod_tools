@@ -134,6 +134,20 @@ void main() {
     database.ocptShootingPresencesTable,
   )..where((row) => row.shootingDayId.equals(dayId))).get();
 
+  /// Every guest row of slot [slotId], tombstoned or not, in `sortKey` order.
+  Future<List<OcptShootingSlotGuestRow>> readAllGuests(String slotId) =>
+      (database.select(database.ocptShootingSlotGuestsTable)
+            ..where((row) => row.slotId.equals(slotId))
+            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
+          .get();
+
+  /// Every event row of day [dayId], tombstoned or not, in `sortKey` order.
+  Future<List<OcptShootingDayEventRow>> readAllEvents(String dayId) =>
+      (database.select(database.ocptShootingDayEventsTable)
+            ..where((row) => row.shootingDayId.equals(dayId))
+            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
+          .get();
+
   group("days", () {
     setUp(insertScreenplay);
 
@@ -206,6 +220,13 @@ void main() {
       await scheduleService.addSlotCrewMember(database: database, slotId: slotId, personId: personId);
       await scheduleService.addSlotCastRole(database: database, slotId: slotId, roleId: roleId);
       await scheduleService.placeShot(database: database, slotId: slotId, shotId: shotId);
+      await scheduleService.addSlotGuest(database: database, slotId: slotId, freeName: "Le maire");
+      await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 1020,
+        label: "Feu d'artifice du village",
+      );
 
       await scheduleService.deleteDay(database: database, dayId: dayId);
 
@@ -216,6 +237,8 @@ void main() {
       expect((await readAllCrew(slotId)).every((row) => row.isDeleted), isTrue);
       expect((await readAllCast(slotId)).every((row) => row.isDeleted), isTrue);
       expect((await readAllBlocks(dayId)).every((row) => row.isDeleted), isTrue);
+      expect((await readAllGuests(slotId)).every((row) => row.isDeleted), isTrue);
+      expect((await readAllEvents(dayId)).every((row) => row.isDeleted), isTrue);
 
       final snapshot = await scheduleService.loadSchedule(
         database: database,
@@ -225,8 +248,8 @@ void main() {
     });
 
     test(
-      "duplicateDay copies the slots, crew and cast with fresh ids, and neither the shots nor "
-      "the crew note",
+      "duplicateDay copies the slots, crew, cast and guests with fresh ids, and neither the "
+      "shots, the crew note, nor the source day's events",
       () async {
         final sourceDayId = (await scheduleService.createDay(
           database: database,
@@ -269,7 +292,20 @@ void main() {
           roleId: roleId,
         ))!;
 
+        final sourceGuestId = (await scheduleService.addSlotGuest(
+          database: database,
+          slotId: sourceSlotId,
+          freeName: "Le maire",
+          reason: "Prête la place",
+        ))!;
+
         await scheduleService.placeShot(database: database, slotId: sourceSlotId, shotId: shotId);
+        await scheduleService.createDayEvent(
+          database: database,
+          dayId: sourceDayId,
+          minute: 1020,
+          label: "Feu d'artifice du village",
+        );
 
         final newDayId = (await scheduleService.duplicateDay(
           database: database,
@@ -301,8 +337,16 @@ void main() {
         expect(newCast.single.id, isNot(sourceCastId));
         expect(newCast.single.roleId, roleId);
 
-        // Neither the placed shot nor its block travelled to the new day.
+        final newGuests = await readAllGuests(newSlot.id);
+        expect(newGuests, hasLength(1));
+        expect(newGuests.single.id, isNot(sourceGuestId));
+        expect(newGuests.single.freeName, "Le maire");
+        expect(newGuests.single.reason, "Prête la place");
+
+        // Neither the placed shot, its block, nor the source day's own event travelled to the new
+        // day.
         expect(await readAllBlocks(newDayId), isEmpty);
+        expect(await readAllEvents(newDayId), isEmpty);
       },
     );
 
@@ -634,6 +678,25 @@ void main() {
       final blocks = await readAllBlocks(dayId);
       expect(blocks.map((row) => row.id).toSet(), {y1, y2});
       expect(blocks.every((row) => row.isDeleted), isTrue);
+    });
+
+    test("deleteSlot tombstones its own guests, a guest being convoked by the slot", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final guestId = (await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        freeName: "Le maire",
+      ))!;
+
+      await scheduleService.deleteSlot(database: database, slotId: slotId);
+
+      final guest = (await readAllGuests(slotId)).firstWhere((row) => row.id == guestId);
+      expect(guest.isDeleted, isTrue);
     });
 
     test("addSlotCastRole refuses convoking the same role twice in one slot", () async {
@@ -1195,6 +1258,270 @@ void main() {
     });
   });
 
+  group("guests and events", () {
+    setUp(insertScreenplay);
+
+    test("addSlotGuest mints a row naming a person, reloaded by loadSchedule", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+
+      final guestId = await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+        reason: "Ancien propriétaire",
+      );
+
+      expect(guestId, isNotNull);
+      final snapshot = await scheduleService.loadSchedule(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      final guest = snapshot.slotsByDayId[dayId]!.single.guests.single;
+      expect(guest.id, guestId);
+      expect(guest.personId, personId);
+      expect(guest.freeName, "");
+      expect(guest.reason, "Ancien propriétaire");
+    });
+
+    test("addSlotGuest mints a row naming a free-text name", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+
+      final guestId = await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        freeName: "Une journaliste",
+      );
+
+      final guests = await readAllGuests(slotId);
+      expect(guests.single.id, guestId);
+      expect(guests.single.personId, isNull);
+      expect(guests.single.freeName, "Une journaliste");
+    });
+
+    test("addSlotGuest refuses naming both a person and a free name", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+
+      final guestId = await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+        freeName: "Une journaliste",
+      );
+
+      expect(guestId, isNull);
+      expect(await readAllGuests(slotId), isEmpty);
+    });
+
+    test("addSlotGuest refuses naming neither a person nor a free name", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+
+      final guestId = await scheduleService.addSlotGuest(database: database, slotId: slotId);
+
+      expect(guestId, isNull);
+      expect(await readAllGuests(slotId), isEmpty);
+    });
+
+    test("updateSlotGuest may move a guest from a person to a free name, and back", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final personId = (await peopleService.createPerson(database: database))!;
+      final guestId = (await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        personId: personId,
+      ))!;
+
+      await scheduleService.updateSlotGuest(
+        database: database,
+        guestId: guestId,
+        personId: const Value(null),
+        freeName: const Value("Une journaliste"),
+      );
+      var guest = (await readAllGuests(slotId)).single;
+      expect(guest.personId, isNull);
+      expect(guest.freeName, "Une journaliste");
+
+      await scheduleService.updateSlotGuest(
+        database: database,
+        guestId: guestId,
+        personId: Value(personId),
+        freeName: const Value(""),
+      );
+      guest = (await readAllGuests(slotId)).single;
+      expect(guest.personId, personId);
+      expect(guest.freeName, "");
+    });
+
+    test(
+      "updateSlotGuest refuses a write that would leave both halves of the discriminator set",
+      () async {
+        final dayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final slotId = (await readLiveSlots(dayId)).single.id;
+        final personId = (await peopleService.createPerson(database: database))!;
+        final guestId = (await scheduleService.addSlotGuest(
+          database: database,
+          slotId: slotId,
+          personId: personId,
+        ))!;
+
+        await scheduleService.updateSlotGuest(
+          database: database,
+          guestId: guestId,
+          freeName: const Value("Une journaliste"),
+        );
+
+        final guest = (await readAllGuests(slotId)).single;
+        expect(guest.personId, personId);
+        expect(guest.freeName, "");
+      },
+    );
+
+    test(
+      "updateSlotGuest refuses a write that would leave both halves of the discriminator empty",
+      () async {
+        final dayId = (await scheduleService.createDay(
+          database: database,
+          screenplayId: screenplayId,
+          date: DateTime(2026, 8, 10),
+        ))!;
+        final slotId = (await readLiveSlots(dayId)).single.id;
+        final guestId = (await scheduleService.addSlotGuest(
+          database: database,
+          slotId: slotId,
+          freeName: "Une journaliste",
+        ))!;
+
+        await scheduleService.updateSlotGuest(
+          database: database,
+          guestId: guestId,
+          freeName: const Value(""),
+        );
+
+        final guest = (await readAllGuests(slotId)).single;
+        expect(guest.freeName, "Une journaliste");
+      },
+    );
+
+    test("deleteSlotGuest tombstones the row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final slotId = (await readLiveSlots(dayId)).single.id;
+      final guestId = (await scheduleService.addSlotGuest(
+        database: database,
+        slotId: slotId,
+        freeName: "Le maire",
+      ))!;
+
+      await scheduleService.deleteSlotGuest(database: database, guestId: guestId);
+
+      expect((await readAllGuests(slotId)).single.isDeleted, isTrue);
+    });
+
+    test("createDayEvent mints a row, reloaded by loadSchedule ordered by minute", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+
+      await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 1020,
+        label: "Feu d'artifice du village",
+      );
+      await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 300,
+        label: "Passage du cortège",
+      );
+
+      final snapshot = await scheduleService.loadSchedule(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      expect(snapshot.eventsByDayId[dayId]!.map((event) => event.label), [
+        "Passage du cortège",
+        "Feu d'artifice du village",
+      ]);
+    });
+
+    test("updateDayEvent updates the fields passed, leaving the rest alone", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final eventId = (await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 1020,
+        label: "Feu d'artifice du village",
+      ))!;
+
+      await scheduleService.updateDayEvent(
+        database: database,
+        eventId: eventId,
+        minute: const Value(1080),
+      );
+
+      final event = (await readAllEvents(dayId)).single;
+      expect(event.minute, 1080);
+      expect(event.label, "Feu d'artifice du village");
+    });
+
+    test("deleteDayEvent tombstones the row", () async {
+      final dayId = (await scheduleService.createDay(
+        database: database,
+        screenplayId: screenplayId,
+        date: DateTime(2026, 8, 10),
+      ))!;
+      final eventId = (await scheduleService.createDayEvent(
+        database: database,
+        dayId: dayId,
+        minute: 1020,
+      ))!;
+
+      await scheduleService.deleteDayEvent(database: database, eventId: eventId);
+
+      expect((await readAllEvents(dayId)).single.isDeleted, isTrue);
+    });
+  });
+
   group("read-only preview", () {
     test("every write is refused on a preview database", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
@@ -1297,6 +1624,24 @@ void main() {
         personId: "missing-person",
         code: OcptPresenceCode.working,
       );
+
+      expect(
+        await scheduleService.addSlotGuest(
+          database: preview,
+          slotId: "missing-slot",
+          freeName: "Le maire",
+        ),
+        isNull,
+      );
+      await scheduleService.updateSlotGuest(database: preview, guestId: "missing-guest");
+      await scheduleService.deleteSlotGuest(database: preview, guestId: "missing-guest");
+
+      expect(
+        await scheduleService.createDayEvent(database: preview, dayId: "missing-day", minute: 1020),
+        isNull,
+      );
+      await scheduleService.updateDayEvent(database: preview, eventId: "missing-event");
+      await scheduleService.deleteDayEvent(database: preview, eventId: "missing-event");
 
       final snapshot = await scheduleService.loadSchedule(
         database: preview,

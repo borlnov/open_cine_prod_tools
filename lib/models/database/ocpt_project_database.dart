@@ -31,10 +31,12 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplay_snap
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_blocks_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_events_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_days_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_presences_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_cast_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_crew_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slot_guests_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_characters_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_coverages_table.dart';
@@ -107,7 +109,9 @@ part 'ocpt_project_database.g.dart';
 /// `shooting_slots.startMinute` with the three columns an anchored edge needs, so a slot can be
 /// pinned by its end as well as its start, or read its hour off another slot of the same day (ADR
 /// 0015, amended a second time). Schema version 15 adds [OcptRoleElementsTable], what a role wears,
-/// carries and is made up with. `OcptProjectsManager` owns the
+/// carries and is made up with. Schema version 17 adds two further schedule tables: who attends a
+/// slot without being crew or cast ([OcptShootingSlotGuestsTable]) and what a day does not control,
+/// at an absolute hour ([OcptShootingDayEventsTable]). `OcptProjectsManager` owns the
 /// single instance open at a time.
 @DriftDatabase(
   tables: [
@@ -142,6 +146,8 @@ part 'ocpt_project_database.g.dart';
     OcptShootingSlotCastTable,
     OcptShootingDayBlocksTable,
     OcptShootingPresencesTable,
+    OcptShootingSlotGuestsTable,
+    OcptShootingDayEventsTable,
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
@@ -212,7 +218,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   /// The database options used by this database.
   ///
@@ -283,7 +289,11 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// coming from below version 6 has just had `people` created fresh above, from the current
   /// declaration, so it already carries the column. It gets no backfill, staying null on every row a
   /// project already had — null is not "no maximum", it is "nobody has recorded one", exactly as
-  /// true the moment after the migration as it was the moment before it. Every step is additive, as
+  /// true the moment after the migration as it was the moment before it. From 16 to 17 it creates
+  /// [OcptShootingSlotGuestsTable] and [OcptShootingDayEventsTable] — both plain `createTable`s on a
+  /// file coming from any version, since every table either one references (`shooting_slots` and
+  /// `people` for the first, `shooting_days` for the second) exists by version 11 at the latest, and
+  /// is created above for a file older than that. Every step is additive, as
   /// ADR 0007 requires: every new column carries a default (or is nullable), so the rows a project
   /// already had stay valid without being rewritten — the exceptions being version 12's column
   /// drops and the `NOT NULL` it adds to `shooting_day_blocks.slotId`, version 13's own column
@@ -424,6 +434,13 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
       if (from < 16 && from >= 6) {
         await m.addColumn(ocptPeopleTable, ocptPeopleTable.maxDailyPresenceMinutes);
+      }
+
+      if (from < 17) {
+        // Each `createTable` follows every table it references: `shooting_slots` and `people` exist
+        // by version 11 (or fresh, for a file older than that), `shooting_days` by version 11 too.
+        await m.createTable(ocptShootingSlotGuestsTable);
+        await m.createTable(ocptShootingDayEventsTable);
       }
     },
     beforeOpen: (details) async {

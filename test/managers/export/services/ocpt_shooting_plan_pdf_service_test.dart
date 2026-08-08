@@ -15,10 +15,12 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -105,6 +107,7 @@ OcptShootingSlot _buildSlot({
   String? anchorSlotId,
   List<OcptShootingSlotCrewMember> crew = const [],
   List<OcptShootingSlotCastMember> cast = const [],
+  List<OcptShootingSlotGuest> guests = const [],
 }) => OcptShootingSlot(
   id: id,
   shootingDayId: shootingDayId,
@@ -117,6 +120,7 @@ OcptShootingSlot _buildSlot({
   notes: "",
   crew: crew,
   cast: cast,
+  guests: guests,
 );
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
@@ -308,6 +312,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   Map<String, List<OcptShootingDayBlock>> blocksByDayId = const {},
+  Map<String, List<OcptShootingDayEvent>> eventsByDayId = const {},
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
@@ -318,6 +323,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,
+    eventsByDayId: eventsByDayId,
   ),
   shotList: shotList,
   locations: locations,

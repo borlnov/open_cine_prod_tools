@@ -712,6 +712,47 @@ void main() {
         isDeleted: true,
       ),
     ],
+    shootingSlotGuests: const [
+      OcptShootingSlotGuestRow(
+        id: "guest-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        freeName: "",
+        reason: "Maire, prête la place",
+        notes: "",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      OcptShootingSlotGuestRow(
+        id: "guest-2",
+        slotId: "slot-1",
+        freeName: "Le maire",
+        reason: "",
+        notes: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
+    shootingDayEvents: const [
+      OcptShootingDayEventRow(
+        id: "event-1",
+        shootingDayId: "day-1",
+        minute: 1020,
+        label: "Feu d'artifice du village",
+        notes: "",
+        sortKey: "V",
+        isDeleted: false,
+      ),
+      OcptShootingDayEventRow(
+        id: "event-2",
+        shootingDayId: "day-1",
+        minute: 300,
+        label: "",
+        notes: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -938,7 +979,7 @@ void main() {
       expect(doneScene.isDeleted, isTrue);
     });
 
-    test('every column of the six schedule tables round trips, enums and nulls included', () {
+    test('every column of the schedule tables round trips, enums and nulls included', () {
       final roundTripped = roundTrip(buildRichPayload());
 
       final day = roundTripped.shootingDays.firstWhere((row) => row.id == "day-1");
@@ -1022,6 +1063,31 @@ void main() {
       );
       expect(overriddenPresence.code, OcptPresenceCode.unavailable);
       expect(overriddenPresence.isDeleted, isTrue);
+
+      final guest = roundTripped.shootingSlotGuests.firstWhere((row) => row.id == "guest-1");
+      expect(guest.slotId, "slot-1");
+      expect(guest.personId, "person-1");
+      expect(guest.freeName, "");
+      expect(guest.reason, "Maire, prête la place");
+      expect(guest.isDeleted, isFalse);
+      final freeNamedGuest = roundTripped.shootingSlotGuests.firstWhere(
+        (row) => row.id == "guest-2",
+      );
+      expect(freeNamedGuest.personId, isNull);
+      expect(freeNamedGuest.freeName, "Le maire");
+      expect(freeNamedGuest.isDeleted, isTrue);
+
+      final event = roundTripped.shootingDayEvents.firstWhere((row) => row.id == "event-1");
+      expect(event.shootingDayId, "day-1");
+      // Past 1440, exactly as a night slot's own anchored minute is — see
+      // ocpt_shooting_day_events_table.dart.
+      expect(event.minute, 1020);
+      expect(event.label, "Feu d'artifice du village");
+      expect(event.isDeleted, isFalse);
+      final tombstonedEvent = roundTripped.shootingDayEvents.firstWhere(
+        (row) => row.id == "event-2",
+      );
+      expect(tombstonedEvent.isDeleted, isTrue);
     });
 
     test("a shot's abbreviation survives, so a restore keeps the coverage bar labels", () {
@@ -1092,6 +1158,8 @@ void main() {
         shootingSlotCast: [],
         shootingDayBlocks: [],
         shootingPresences: [],
+        shootingSlotGuests: [],
+        shootingDayEvents: [],
         rowFieldVersions: [],
         pageSetup: OcptPageSetup.standard(),
         settingsJson: null,
@@ -1142,6 +1210,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast.reversed.toList(),
         shootingDayBlocks: payload.shootingDayBlocks.reversed.toList(),
         shootingPresences: payload.shootingPresences.reversed.toList(),
+        shootingSlotGuests: payload.shootingSlotGuests.reversed.toList(),
+        shootingDayEvents: payload.shootingDayEvents.reversed.toList(),
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1180,6 +1250,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: const [
           OcptRowFieldVersionRow(
             targetTableName: "shots",
@@ -1226,6 +1298,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: payload.pageSetup.format,
@@ -1275,6 +1349,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1313,6 +1389,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1351,6 +1429,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1391,6 +1471,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1442,6 +1524,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1489,6 +1573,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1530,6 +1616,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1571,6 +1659,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1612,6 +1702,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1665,6 +1757,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1708,6 +1802,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1749,6 +1845,8 @@ void main() {
           ...payload.shootingDayBlocks.skip(1),
         ],
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1796,6 +1894,8 @@ void main() {
             isDeleted: false,
           ),
         ],
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -1803,6 +1903,57 @@ void main() {
       );
 
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewPresence)));
+    });
+
+    test('changes when a guest is added', () {
+      final payload = buildRichPayload();
+      final withNewGuest = OcptProjectVersionPayload(
+        screenplays: payload.screenplays,
+        scenes: payload.scenes,
+        shots: payload.shots,
+        shotCharacters: payload.shotCharacters,
+        shotCoverages: payload.shotCoverages,
+        people: payload.people,
+        personPositions: payload.personPositions,
+        personSkills: payload.personSkills,
+        personUnavailabilities: payload.personUnavailabilities,
+        roles: payload.roles,
+        locations: payload.locations,
+        locationAvailabilities: payload.locationAvailabilities,
+        sets: payload.sets,
+        sceneSets: payload.sceneSets,
+        elements: payload.elements,
+        sceneElements: payload.sceneElements,
+        roleElements: payload.roleElements,
+        assets: payload.assets,
+        breakdownTags: payload.breakdownTags,
+        sceneBreakdowns: payload.sceneBreakdowns,
+        shootingDays: payload.shootingDays,
+        shootingSlots: payload.shootingSlots,
+        shootingSlotCrew: payload.shootingSlotCrew,
+        shootingSlotCast: payload.shootingSlotCast,
+        shootingDayBlocks: payload.shootingDayBlocks,
+        shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: [
+          ...payload.shootingSlotGuests,
+          const OcptShootingSlotGuestRow(
+            id: "guest-3",
+            slotId: "slot-1",
+            freeName: "Une journaliste",
+            reason: "Ouest-France",
+            notes: "",
+            sortKey: "p",
+            isDeleted: false,
+          ),
+        ],
+        shootingDayEvents: payload.shootingDayEvents,
+        rowFieldVersions: payload.rowFieldVersions,
+        pageSetup: payload.pageSetup,
+        settingsJson: payload.settingsJson,
+        currencyCode: payload.currencyCode,
+      );
+
+      expect(codec.contentDigest(payload), isNot(codec.contentDigest(withNewGuest)));
     });
 
     test('changes when the page format changes', () {
@@ -1834,6 +1985,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: OcptPageSetup(
           format: OcptPageFormat.usLetter,
@@ -1875,6 +2028,8 @@ void main() {
         shootingSlotCast: payload.shootingSlotCast,
         shootingDayBlocks: payload.shootingDayBlocks,
         shootingPresences: payload.shootingPresences,
+        shootingSlotGuests: payload.shootingSlotGuests,
+        shootingDayEvents: payload.shootingDayEvents,
         rowFieldVersions: payload.rowFieldVersions,
         pageSetup: payload.pageSetup,
         settingsJson: payload.settingsJson,
@@ -2693,6 +2848,30 @@ void main() {
           result.value!.people.map((row) => row.firstName),
           buildRichPayload().people.map((row) => row.firstName),
         );
+      },
+    );
+
+    test(
+      'a stored format-11 payload decodes with no guest and no event on any day',
+      () {
+        // Format 11 predates `shooting_slot_guests` and `shooting_day_events` entirely, so
+        // [_upgradeFormat11To12] materialises both as **empty lists** — the plain kind, not the
+        // currency's "leave the live value alone" null. The fixture is the current encoding with
+        // both keys taken back out and the format wound back, rather than a second hand-written
+        // literal.
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>
+          ..remove("shootingSlotGuests")
+          ..remove("shootingDayEvents")
+          ..["payloadFormat"] = 11;
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shootingSlotGuests, isEmpty);
+        expect(result.value!.shootingDayEvents, isEmpty);
+        // And nothing else was disturbed on the way through: the rest of the schedule came back.
+        expect(result.value!.shootingSlots, buildRichPayload().shootingSlots);
+        expect(result.value!.shootingDays, buildRichPayload().shootingDays);
       },
     );
   });

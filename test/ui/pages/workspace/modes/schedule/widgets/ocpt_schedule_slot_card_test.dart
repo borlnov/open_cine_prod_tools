@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -44,6 +45,7 @@ OcptShootingSlot _buildSlot({
   String id = "slot-1",
   List<OcptShootingSlotCrewMember> crew = const [],
   List<OcptShootingSlotCastMember> cast = const [],
+  List<OcptShootingSlotGuest> guests = const [],
   OcptShootingSlotAnchorEdge anchorEdge = OcptShootingSlotAnchorEdge.start,
   int? anchorMinute = 480,
   String? anchorSlotId,
@@ -59,6 +61,7 @@ OcptShootingSlot _buildSlot({
   notes: "",
   crew: crew,
   cast: cast,
+  guests: guests,
 );
 
 /// Builds a person with the few fields these tests read, everything else neutral.

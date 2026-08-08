@@ -59,7 +59,7 @@ class OcptProjectVersionCodec {
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
   /// reasons and a payload is read long after the file it lives in has been migrated.
-  static const currentPayloadFormat = 11;
+  static const currentPayloadFormat = 12;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -147,6 +147,12 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse the `shooting_presences` rows from a JSON object
   static const _shootingPresencesKey = "shootingPresences";
+
+  /// This is the key used to stringify or parse the `shooting_slot_guests` rows from a JSON object
+  static const _shootingSlotGuestsKey = "shootingSlotGuests";
+
+  /// This is the key used to stringify or parse the `shooting_day_events` rows from a JSON object
+  static const _shootingDayEventsKey = "shootingDayEvents";
 
   /// This is the key used to stringify or parse the `row_field_versions` rows from a JSON object
   static const _rowFieldVersionsKey = "rowFieldVersions";
@@ -259,7 +265,8 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a free-form `notes` column (`shots.notes`,
   /// `people.notes`, `locations.notes`, `sets.notes`, `elements.notes`, `scene_elements.notes`,
   /// `role_elements.notes`, `scene_breakdowns.notes`, `shooting_days.notes`, `shooting_slots.notes`,
-  /// `shooting_slot_crew.notes` or `shooting_slot_cast.notes`) from a JSON object
+  /// `shooting_slot_crew.notes`, `shooting_slot_cast.notes`, `shooting_slot_guests.notes` or
+  /// `shooting_day_events.notes`) from a JSON object
   static const _notesKey = "notes";
 
   /// This is the key used to stringify or parse a shot's `locationNotes` column from a JSON object
@@ -390,7 +397,8 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a `personId` column (`person_positions`,
   /// `person_skills`, `person_unavailabilities`, `roles.personId`, `locations.contactPersonId`'s
   /// sibling name aside, `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`,
-  /// `shooting_slot_crew.personId` or `shooting_presences.personId`) from a JSON object
+  /// `shooting_slot_crew.personId`, `shooting_presences.personId` or, nullable there,
+  /// `shooting_slot_guests.personId`) from a JSON object
   static const _personIdKey = "personId";
 
   /// This is the key used to stringify or parse a `positionId` column (`person_positions` or
@@ -402,7 +410,8 @@ class OcptProjectVersionCodec {
   static const _customLabelKey = "customLabel";
 
   /// This is the key used to stringify or parse a `label` column (`person_skills.label`,
-  /// `assets.label`, `shooting_slots.label` or `shooting_day_blocks.label`) from a JSON object
+  /// `assets.label`, `shooting_slots.label`, `shooting_day_blocks.label` or
+  /// `shooting_day_events.label`) from a JSON object
   static const _labelKey = "label";
 
   /// This is the key used to stringify or parse an unavailability's `startDate` column from a
@@ -430,9 +439,13 @@ class OcptProjectVersionCodec {
   /// object
   static const _endMinuteKey = "endMinute";
 
-  /// This is the key used to stringify or parse an unavailability's `reason` column from a JSON
-  /// object
+  /// This is the key used to stringify or parse a `reason` column (an unavailability's or a
+  /// `shooting_slot_guests.reason`) from a JSON object
   static const _reasonKey = "reason";
+
+  /// This is the key used to stringify or parse a `shooting_slot_guests.freeName` column from a
+  /// JSON object
+  static const _freeNameKey = "freeName";
 
   /// This is the key used to stringify or parse a weekday mask from a JSON object
   static const _weekdaysKey = "weekdays";
@@ -605,17 +618,21 @@ class OcptProjectVersionCodec {
   static const _coveredTextDigestKey = "coveredTextDigest";
 
   /// This is the key used to stringify or parse a `shootingDayId` column (`shooting_slots`,
-  /// `shooting_day_blocks` or `shooting_presences`) from a JSON object
+  /// `shooting_day_blocks`, `shooting_presences` or `shooting_day_events`) from a JSON object
   static const _shootingDayIdKey = "shootingDayId";
 
   /// This is the key used to stringify or parse a `slotId` column (`shooting_slot_crew`,
-  /// `shooting_slot_cast` or `shooting_day_blocks`) from a JSON object — the foreign key onto a
-  /// `shooting_slots` row, not to be confused with [_slotKey], the day-part enum
-  /// `person_unavailabilities`/`location_availabilities` carry.
+  /// `shooting_slot_cast`, `shooting_day_blocks` or `shooting_slot_guests`) from a JSON object —
+  /// the foreign key onto a `shooting_slots` row, not to be confused with [_slotKey], the day-part
+  /// enum `person_unavailabilities`/`location_availabilities` carry.
   static const _slotIdKey = "slotId";
 
   /// This is the key used to stringify or parse a `shooting_days.date` column from a JSON object
   static const _dateKey = "date";
+
+  /// This is the key used to stringify or parse a `shooting_day_events.minute` column from a JSON
+  /// object — the hour it happens at, an offset from the day's own midnight.
+  static const _minuteKey = "minute";
 
   /// This is the key used to stringify or parse a shooting day's `crewNote` column from a JSON
   /// object
@@ -719,6 +736,7 @@ class OcptProjectVersionCodec {
     8: _upgradeFormat8To9,
     9: _upgradeFormat9To10,
     10: _upgradeFormat10To11,
+    11: _upgradeFormat11To12,
   };
 
   /// Turns a format-**1** JSON object into a format-**2** one: the resources mode's eleven tables
@@ -993,6 +1011,25 @@ class OcptProjectVersionCodec {
     ],
   };
 
+  /// Turns a format-**11** JSON object into a format-**12** one: `shooting_slot_guests` and
+  /// `shooting_day_events` didn't exist yet, so this materialises both as **empty lists**.
+  ///
+  /// Back to the plainest of the three kinds, [_upgradeFormat5To6]'s and [_upgradeFormat9To10]'s: a
+  /// version written in format 11 was captured when nothing in the app could say a day had a guest
+  /// or an event of its own — a slot convoked crew and cast alone, and a day's timetable was the
+  /// only thing it could say happened on it — so "this day had neither" is a truthful statement
+  /// about that moment, unlike [_upgradeFormat3To4]'s null (which means "leave the live value
+  /// alone") and unlike [_upgradeFormat7To8]'s removal (which makes no claim about the capture at
+  /// all). `OcptProjectVersionsService._restoreTable` tombstones, on restore, every row the payload
+  /// doesn't hold, so restoring a format-11 version correctly drops every guest and every event
+  /// recorded since — the reading, not a bug, exactly as restoring a pre-schedule version drops the
+  /// days planned since.
+  static Map<String, dynamic> _upgradeFormat11To12(Map<String, dynamic> json) => {
+    ...json,
+    _shootingSlotGuestsKey: const <dynamic>[],
+    _shootingDayEventsKey: const <dynamic>[],
+  };
+
   /// Turns a format-**7** JSON object into a format-**8** one: `shooting_day_groups` and the
   /// `groupId`/`leadMinutes` pair `shooting_slot_crew`/`shooting_slot_cast` briefly carried are
   /// dropped, the payload's own half of ADR 0018 — a convocation is read off the slots a person or
@@ -1072,6 +1109,12 @@ class OcptProjectVersionCodec {
     _shootingPresencesKey: [
       for (final row in payload.shootingPresences) _shootingPresenceToJson(row),
     ],
+    _shootingSlotGuestsKey: [
+      for (final row in payload.shootingSlotGuests) _shootingSlotGuestToJson(row),
+    ],
+    _shootingDayEventsKey: [
+      for (final row in payload.shootingDayEvents) _shootingDayEventToJson(row),
+    ],
     _rowFieldVersionsKey: [for (final row in payload.rowFieldVersions) _rowFieldVersionToJson(row)],
     _projectSettingsKey: {
       _pageFormatKey: payload.pageSetup.format.name,
@@ -1140,7 +1183,8 @@ class OcptProjectVersionCodec {
   ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `assets`, `breakdownTags`,
   ///   `sceneBreakdowns`,
   ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
-  ///   `shootingDayBlocks`, `shootingPresences` — every column of each — plus `pageSetup.format`,
+  ///   `shootingDayBlocks`, `shootingPresences`, `shootingSlotGuests`, `shootingDayEvents` — every
+  ///   column of each — plus `pageSetup.format`,
   ///   `settingsJson` and `currencyCode`. This is
   ///   "the project", as a user would describe it, and the resources tables are not optional here:
   ///   leave them out and two states differing only in their people, locations or elements would
@@ -1152,7 +1196,10 @@ class OcptProjectVersionCodec {
   ///   milestone later: leave them out and planning a whole shoot — a day added, a slot crewed, a
   ///   shot placed onto a block — would hash identically to a project nobody has ever scheduled, so
   ///   the working-copy card would claim no drift and a restore over that afternoon's work would skip
-  ///   the safety version it owes. `currencyCode` is only ever null on a payload decoded
+  ///   the safety version it owes. `shootingSlotGuests` and `shootingDayEvents` are the same case a
+  ///   step later still: leave them out and entering the mayor lending a square, or the fireworks
+  ///   nobody controls, would hash identically to a day carrying neither. `currencyCode` is only ever
+  ///   null on a payload decoded
   ///   from a format predating it (never on one freshly captured from a live database, which always
   ///   reads a real value), so this never makes an old and a current capture of the very same
   ///   project disagree;
@@ -1288,6 +1335,16 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _shootingPresenceToJson,
       ),
+      _shootingSlotGuestsKey: _canonicalRows(
+        payload.shootingSlotGuests,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingSlotGuestToJson,
+      ),
+      _shootingDayEventsKey: _canonicalRows(
+        payload.shootingDayEvents,
+        primaryKeyOf: (row) => row.id,
+        toJson: _shootingDayEventToJson,
+      ),
       _pageFormatKey: payload.pageSetup.format.name,
       _settingsJsonKey: payload.settingsJson,
       _currencyCodeKey: payload.currencyCode,
@@ -1380,6 +1437,12 @@ class OcptProjectVersionCodec {
       ],
       shootingPresences: [
         for (final row in _rows(json, _shootingPresencesKey)) _shootingPresenceFromJson(row),
+      ],
+      shootingSlotGuests: [
+        for (final row in _rows(json, _shootingSlotGuestsKey)) _shootingSlotGuestFromJson(row),
+      ],
+      shootingDayEvents: [
+        for (final row in _rows(json, _shootingDayEventsKey)) _shootingDayEventFromJson(row),
       ],
       rowFieldVersions: [
         for (final row in _rows(json, _rowFieldVersionsKey)) _rowFieldVersionFromJson(row),
@@ -2158,6 +2221,54 @@ class OcptProjectVersionCodec {
         shootingDayId: _string(json, _shootingDayIdKey),
         personId: _string(json, _personIdKey),
         code: _enum(json, _codeKey, OcptPresenceCode.values.asNameMap()),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_slot_guests` row.
+  static Map<String, dynamic> _shootingSlotGuestToJson(OcptShootingSlotGuestRow row) => {
+    _idKey: row.id,
+    _slotIdKey: row.slotId,
+    _personIdKey: row.personId,
+    _freeNameKey: row.freeName,
+    _reasonKey: row.reason,
+    _notesKey: row.notes,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_slot_guests` row.
+  static OcptShootingSlotGuestRow _shootingSlotGuestFromJson(Map<String, dynamic> json) =>
+      OcptShootingSlotGuestRow(
+        id: _string(json, _idKey),
+        slotId: _string(json, _slotIdKey),
+        personId: _nullableString(json, _personIdKey),
+        freeName: _string(json, _freeNameKey),
+        reason: _string(json, _reasonKey),
+        notes: _string(json, _notesKey),
+        sortKey: _string(json, _sortKeyKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
+
+  /// Serializes one `shooting_day_events` row.
+  static Map<String, dynamic> _shootingDayEventToJson(OcptShootingDayEventRow row) => {
+    _idKey: row.id,
+    _shootingDayIdKey: row.shootingDayId,
+    _minuteKey: row.minute,
+    _labelKey: row.label,
+    _notesKey: row.notes,
+    _sortKeyKey: row.sortKey,
+    _isDeletedKey: row.isDeleted,
+  };
+
+  /// Parses one `shooting_day_events` row.
+  static OcptShootingDayEventRow _shootingDayEventFromJson(Map<String, dynamic> json) =>
+      OcptShootingDayEventRow(
+        id: _string(json, _idKey),
+        shootingDayId: _string(json, _shootingDayIdKey),
+        minute: _int(json, _minuteKey),
+        label: _string(json, _labelKey),
+        notes: _string(json, _notesKey),
+        sortKey: _string(json, _sortKeyKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
 

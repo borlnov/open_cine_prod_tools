@@ -88,6 +88,7 @@ void main() {
               notes: "",
             ),
           ],
+          guests: [],
         );
         final hold = _buildBlock(
           id: "block-hold",
@@ -121,6 +122,7 @@ void main() {
           blocksByDayId: {
             "day-1": [hold, meal],
           },
+          eventsByDayId: const {},
         );
 
         final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
@@ -156,6 +158,7 @@ void main() {
             notes: "",
           ),
         ],
+        guests: [],
       );
       final preparation = _buildBlock(id: "block-1", slotId: "slot-1");
       final day = OcptShootingDay(
@@ -177,6 +180,7 @@ void main() {
         blocksByDayId: {
           "day-1": [preparation],
         },
+        eventsByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
@@ -208,6 +212,7 @@ void main() {
         notes: "",
         crew: [],
         cast: [],
+        guests: [],
       );
       const laterSlot = OcptShootingSlot(
         id: "slot-2",
@@ -221,6 +226,7 @@ void main() {
         notes: "",
         crew: [],
         cast: [],
+        guests: [],
       );
       final day = OcptShootingDay(
         id: "day-1",
@@ -239,6 +245,7 @@ void main() {
           "day-1": [laterSlot, earlySlot],
         },
         blocksByDayId: const {},
+        eventsByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
@@ -261,6 +268,7 @@ void main() {
         notes: "",
         crew: [],
         cast: [],
+        guests: [],
       );
       final day = OcptShootingDay(
         id: "day-1",
@@ -281,6 +289,7 @@ void main() {
         blocksByDayId: {
           "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", durationMinutes: 60)],
         },
+        eventsByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
@@ -334,6 +343,7 @@ void main() {
             buildShotBlock(id: "block-2", slotId: "slot-1", shotId: "shot-1"),
           ],
         },
+        eventsByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
@@ -352,6 +362,7 @@ void main() {
           "day-2": [buildShotBlock(id: "block-2", slotId: "slot-2", shotId: "shot-1")],
           "day-1": [buildShotBlock(id: "block-1", slotId: "slot-1", shotId: "shot-1")],
         },
+        eventsByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
@@ -366,6 +377,7 @@ void main() {
         days: [day],
         slotsByDayId: const {},
         blocksByDayId: const {},
+        eventsByDayId: const {},
       );
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);

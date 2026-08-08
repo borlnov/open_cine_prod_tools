@@ -104,6 +104,7 @@ OcptShootingSlot _buildSlot({
   notes: "",
   crew: crew,
   cast: const [],
+  guests: const [],
 );
 
 /// Builds a crew assignment holding the catalogue's `director` position by default — the few

@@ -117,6 +117,13 @@ class OcptProjectVersionPayload extends Equatable {
   /// filled only from milestone M3 onward.
   final List<OcptShootingPresenceRow> shootingPresences;
 
+  /// The `shooting_slot_guests` rows of the project: who attends a slot without being crew or cast.
+  final List<OcptShootingSlotGuestRow> shootingSlotGuests;
+
+  /// The `shooting_day_events` rows of the project: what a day does not control, at an absolute
+  /// hour.
+  final List<OcptShootingDayEventRow> shootingDayEvents;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -176,6 +183,8 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingSlotCast,
     required this.shootingDayBlocks,
     required this.shootingPresences,
+    required this.shootingSlotGuests,
+    required this.shootingDayEvents,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -199,6 +208,8 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingSlotCast: ${shootingSlotCast.length}, "
       "shootingDayBlocks: ${shootingDayBlocks.length}, "
       "shootingPresences: ${shootingPresences.length}, "
+      "shootingSlotGuests: ${shootingSlotGuests.length}, "
+      "shootingDayEvents: ${shootingDayEvents.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode)";
 
@@ -231,6 +242,8 @@ class OcptProjectVersionPayload extends Equatable {
     shootingSlotCast,
     shootingDayBlocks,
     shootingPresences,
+    shootingSlotGuests,
+    shootingDayEvents,
     rowFieldVersions,
     pageSetup,
     settingsJson,

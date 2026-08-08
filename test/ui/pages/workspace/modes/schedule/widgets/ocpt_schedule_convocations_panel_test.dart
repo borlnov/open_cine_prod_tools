@@ -96,6 +96,7 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   notes: "",
   crew: const [],
   cast: const [],
+  guests: const [],
 );
 
 /// Pumps [OcptScheduleConvocationsPanel] with the given lookups, everything else defaulting to

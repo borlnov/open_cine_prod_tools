@@ -220,6 +220,13 @@ const _v15RoleElementsDdl = '''
 CREATE TABLE "role_elements" ("id" TEXT NOT NULL, "role_id" TEXT NOT NULL REFERENCES roles (id), "element_id" TEXT NOT NULL REFERENCES elements (id), "notes" TEXT NOT NULL DEFAULT '', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("id"));
 ''';
 
+// The one column version 16 added on top of the fixtures above: `people.max_daily_presence_minutes`.
+// Composed as an `ALTER TABLE`, for the reason [_v8CurrencyDdl] gives — [_v6ResourcesDdl] already
+// declares `people` without it.
+const _v16MaxDailyPresenceMinutesDdl = '''
+ALTER TABLE "people" ADD COLUMN "max_daily_presence_minutes" INTEGER NULL;
+''';
+
 void main() {
   late Directory tempDir;
 
@@ -366,10 +373,10 @@ void main() {
 
   test('a database created from scratch has the shape every upgrade path lands on', () async {
     // The reference: a file drift creates itself, through `onCreate` alone, never having been
-    // anything but version 14.
+    // anything but version 17.
     final freshDatabase = OcptProjectDatabase(File(p.join(tempDir.path, 'fresh.ocpt')));
     final freshShape = await readSchemaShape(freshDatabase);
-    expect(await readSchemaVersion(freshDatabase), 16);
+    expect(await readSchemaVersion(freshDatabase), 17);
     await freshDatabase.close();
 
     // Naming the tables rather than counting them: two empty shapes would compare equal below and
@@ -407,6 +414,8 @@ void main() {
       'shooting_slot_cast',
       'shooting_day_blocks',
       'shooting_presences',
+      'shooting_slot_guests',
+      'shooting_day_events',
     });
 
     // And every file an earlier version could have left behind, brought up by `onUpgrade`: each
@@ -466,6 +475,12 @@ void main() {
             '$_v14ScheduleDdl$_v15RoleElementsDdl',
         15,
       ),
+      (
+        'upgraded_from_v16.ocpt',
+        '$_v5Ddl$_v6ResourcesDdl$_v7LocationAvailabilitiesDdl$_v8CurrencyDdl$_v9BreakdownDdl'
+            '$_v14ScheduleDdl$_v15RoleElementsDdl$_v16MaxDailyPresenceMinutesDdl',
+        16,
+      ),
     ]) {
       final filePath = p.join(tempDir.path, fileName);
 
@@ -483,7 +498,7 @@ void main() {
             "a file coming from version $userVersion must end up on the very shape `onCreate` "
             "writes",
       );
-      expect(await readSchemaVersion(database), 16);
+      expect(await readSchemaVersion(database), 17);
 
       await database.close();
     }
@@ -571,7 +586,7 @@ void main() {
     await expectProjectVersionsAreUsable(database);
 
     // (e) the schema version stored in the file is now 9.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -680,7 +695,7 @@ void main() {
         );
     expect(await database.select(database.ocptRowFieldVersionsTable).getSingle(), isNotNull);
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -736,7 +751,7 @@ void main() {
 
     // (d) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -770,7 +785,7 @@ void main() {
 
     // (b) the version 5 shape is in place and usable, and the file now says the current schema version.
     await expectProjectVersionsAreUsable(database);
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -913,7 +928,7 @@ void main() {
     expect(await database.select(database.ocptLocalErasuresTable).get(), isEmpty);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -964,7 +979,7 @@ void main() {
     expect(availability.isDeleted, isFalse);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -998,7 +1013,7 @@ void main() {
     expect((await database.select(database.ocptProjectInfoTable).getSingle()).currencyCode, "USD");
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -1089,7 +1104,7 @@ void main() {
     );
 
     // (e) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -1143,7 +1158,7 @@ void main() {
     ]);
 
     // (c) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -1291,7 +1306,7 @@ void main() {
       expect(presence.code, OcptPresenceCode.working);
 
       // (e) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 16);
+      expect(await readSchemaVersion(database), 17);
 
       await database.close();
     },
@@ -1426,7 +1441,7 @@ void main() {
       expect(cast.roleId, "role1");
 
       // (f) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 16);
+      expect(await readSchemaVersion(database), 17);
 
       await database.close();
     },
@@ -1500,7 +1515,7 @@ void main() {
       expect(cast.roleId, "role1");
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 16);
+      expect(await readSchemaVersion(database), 17);
 
       await database.close();
     },
@@ -1561,7 +1576,7 @@ void main() {
       expect(slotsById['slotNight']!.anchorSlotId, isNull);
 
       // (c) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 16);
+      expect(await readSchemaVersion(database), 17);
 
       await database.close();
     },
@@ -1622,7 +1637,7 @@ void main() {
     expect(link.isDeleted, isFalse);
 
     // (d) the file now says the current schema version.
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });
@@ -1672,11 +1687,91 @@ void main() {
       expect(updated.maxDailyPresenceMinutes, 480);
 
       // (d) the file now says the current schema version.
-      expect(await readSchemaVersion(database), 16);
+      expect(await readSchemaVersion(database), 17);
 
       await database.close();
     },
   );
+
+  test('a v16 database migrates on, gaining guests and events', () async {
+    final filePath = p.join(tempDir.path, 'legacy_v16.ocpt');
+
+    final legacyDb = sqlite3.sqlite3.open(filePath);
+    legacyDb.execute(_v5Ddl);
+    legacyDb.execute(_v6ResourcesDdl);
+    legacyDb.execute(_v7LocationAvailabilitiesDdl);
+    legacyDb.execute(_v8CurrencyDdl);
+    legacyDb.execute(_v9BreakdownDdl);
+    legacyDb.execute(_v14ScheduleDdl);
+    legacyDb.execute(_v15RoleElementsDdl);
+    legacyDb.execute(_v16MaxDailyPresenceMinutesDdl);
+    legacyDb.execute('PRAGMA user_version = 16;');
+    seedCommonRows(legacyDb);
+
+    // A day, a slot and a person the file already held, so the two new tables can actually be
+    // written against real rows rather than merely existing.
+    legacyDb.execute(
+      "INSERT INTO shooting_days (id, screenplay_id, date) VALUES "
+      "('day1', 's1', '2026-03-10T00:00:00.000Z');",
+    );
+    legacyDb.execute(
+      "INSERT INTO shooting_slots (id, shooting_day_id, anchor_minute) VALUES "
+      "('slot1', 'day1', 480);",
+    );
+    legacyDb.execute(
+      "INSERT INTO people (id, first_name, last_name) VALUES ('person1', 'Léa', 'Petit');",
+    );
+    legacyDb.dispose();
+
+    final database = OcptProjectDatabase(File(filePath));
+
+    // (a) every row the file already held survived — the migration adds two tables and touches
+    // nothing else.
+    await expectCommonRowsSurvived(database);
+    expect((await database.select(database.ocptShootingDaysTable).getSingle()).id, "day1");
+    expect((await database.select(database.ocptShootingSlotsTable).getSingle()).id, "slot1");
+    expect((await database.select(database.ocptPeopleTable).getSingle()).firstName, "Léa");
+
+    // (b) the two new tables are there and **empty**: a project that predates them had no way to
+    // say a day had a guest or an event of its own.
+    expect(await database.select(database.ocptShootingSlotGuestsTable).get(), isEmpty);
+    expect(await database.select(database.ocptShootingDayEventsTable).get(), isEmpty);
+
+    // (c) and both are usable, foreign keys included.
+    await database
+        .into(database.ocptShootingSlotGuestsTable)
+        .insert(
+          OcptShootingSlotGuestsTableCompanion.insert(
+            id: "guest1",
+            slotId: "slot1",
+            personId: const Value("person1"),
+          ),
+        );
+    final guest = await database.select(database.ocptShootingSlotGuestsTable).getSingle();
+    expect(guest.slotId, "slot1");
+    expect(guest.personId, "person1");
+    expect(guest.isDeleted, isFalse);
+
+    await database
+        .into(database.ocptShootingDayEventsTable)
+        .insert(
+          OcptShootingDayEventsTableCompanion.insert(
+            id: "event1",
+            shootingDayId: "day1",
+            minute: 1020,
+            label: const Value("Feu d'artifice du village"),
+          ),
+        );
+    final event = await database.select(database.ocptShootingDayEventsTable).getSingle();
+    expect(event.shootingDayId, "day1");
+    expect(event.minute, 1020);
+    expect(event.isDeleted, isFalse);
+
+    // (d) the file now says the current schema version.
+    expect(await readSchemaVersion(database), 17);
+
+    await database.close();
+  });
 
   test('a project with no schedule opens unchanged at the current schema', () async {
     // A file written by the very build that adds the schedule mode: `onCreate` alone, no upgrade
@@ -1707,6 +1802,8 @@ void main() {
     expect(await database.select(database.ocptShootingSlotCastTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingDayBlocksTable).get(), isEmpty);
     expect(await database.select(database.ocptShootingPresencesTable).get(), isEmpty);
+    expect(await database.select(database.ocptShootingSlotGuestsTable).get(), isEmpty);
+    expect(await database.select(database.ocptShootingDayEventsTable).get(), isEmpty);
 
     final projectInfo = await database.select(database.ocptProjectInfoTable).getSingle();
     expect(projectInfo.name, "My Movie");
@@ -1714,7 +1811,7 @@ void main() {
     final screenplay = await database.select(database.ocptScreenplaysTable).getSingle();
     expect(screenplay.title, "Draft");
 
-    expect(await readSchemaVersion(database), 16);
+    expect(await readSchemaVersion(database), 17);
 
     await database.close();
   });

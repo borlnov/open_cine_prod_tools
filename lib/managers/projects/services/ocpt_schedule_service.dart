@@ -7,9 +7,11 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -76,24 +78,37 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Deleting a day cascades; deleting a slot moves what was scheduled inside it, or drops it with
 /// the slot when there is nowhere left to move it to.** [deleteDay] tombstones everything hanging
-/// off it — its slots, their crew and cast, and its blocks — in one transaction, the way
-/// `OcptLocationsService.deleteLocation` tombstones a location's sets. [deleteSlot] is narrower: it
-/// tombstones the slot's own crew and cast, then moves the slot's own live blocks, in their own
-/// order, to the end of the day's first *other* live slot (lowest `sortKey`) — removing a
-/// convocation window must not silently unplace whatever was scheduled inside it, so its blocks
-/// simply join a different chain. When the slot being deleted is the day's **last** live one, there
-/// is nowhere left for its blocks to go, and they are tombstoned along with it — a decision taken
-/// deliberately: a block can
-/// never be slotless (`shooting_day_blocks.slotId` is `NOT NULL` from schema v12), so a day with no
-/// slot at all can hold no timetable either.
+/// off it — its slots, their crew, cast and guests, its blocks, and its own events — in one
+/// transaction, the way `OcptLocationsService.deleteLocation` tombstones a location's sets.
+/// [deleteSlot] is narrower: it tombstones the slot's own crew, cast and guests — a guest is
+/// convoked by the slot exactly as a crew member or a role is, so removing it removes them along
+/// with it — then moves the slot's own live blocks, in their own order, to the end of the day's
+/// first *other* live slot (lowest `sortKey`) — removing a convocation window must not silently
+/// unplace whatever was scheduled inside it, so its blocks simply join a different chain. When the
+/// slot being deleted is the day's **last** live one, there is nowhere left for its blocks to go,
+/// and they are tombstoned along with it — a decision taken deliberately: a block can never be
+/// slotless (`shooting_day_blocks.slotId` is `NOT NULL` from schema v12), so a day with no slot at
+/// all can hold no timetable either.
 ///
 /// **Duplicating a day copies the shape of the crew, not the day's own work.** [duplicateDay] copies
-/// the source day's slots, their crew and their cast — but copies **neither the placed shots nor the
-/// crew note**, and (a decision this service makes on its own) starts the new day's
+/// the source day's slots, their crew, their cast and their guests — but copies **neither the placed
+/// shots nor the crew note**, and (a decision this service makes on its own) starts the new day's
 /// own `status`, `weatherNote` and `notes` at their column defaults too: a stable crew is entered
 /// once for a whole shoot and reused day after day, while what got shot, what the weather did and
 /// why a day was lost are all facts of the specific day being duplicated *away* from, not of the one
-/// being planned.
+/// being planned. A guest is entered once for the same reason a crew member is — a location owner
+/// attending every day of a shoot should not be re-typed each time. The source day's **events are
+/// not copied**: a guest attends a shoot, but an event happens on a date, and carrying the village
+/// fireworks over to a day re-planned at another date would be the app inventing a fact about it.
+///
+/// **A guest is convoked by the slot exactly as a crew member or a role is, and an event is not
+/// convoked at all.** [addSlotGuest]/[updateSlotGuest]/[deleteSlotGuest] mirror the crew and cast
+/// methods above — appended at the end of the slot's own guests, the discriminator
+/// (`personId`/`freeName`) guaranteed rather than hoped for — because a guest's arrival and
+/// departure are read off the slots they are linked to (ADR 0018) exactly as everybody else's are.
+/// [createDayEvent]/[updateDayEvent]/[deleteDayEvent] have no such reading: an event is a fact about
+/// the day at an absolute hour, ordered by that hour alone, so there is no reorder method for it —
+/// moving one is typing another [OcptShootingDayEvent.minute].
 ///
 /// **The presence grid's overrides are `shooting_presences`.** [loadSchedule] loads every live row
 /// alongside the rest of the schedule, keyed by (day, person) so `OcptSchedulePlanSnapshot` can
@@ -111,8 +126,8 @@ class OcptScheduleService {
   const OcptScheduleService();
 
   /// Loads the whole shooting schedule of [screenplayId] in [database]: every live day, in
-  /// `sortKey` order, joined with its live slots (each carrying its own live crew and cast) and its
-  /// live blocks.
+  /// `sortKey` order, joined with its live slots (each carrying its own live crew, cast and guests),
+  /// its live blocks and its live events.
   ///
   /// Runs a bounded number of queries regardless of the schedule's size — one per table, each
   /// restricted to the days (or slots) already loaded — rather than one per day, exactly as
@@ -146,6 +161,13 @@ class OcptScheduleService {
                 ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
 
+    final guestRows = slotIds.isEmpty
+        ? const <OcptShootingSlotGuestRow>[]
+        : await (database.select(database.ocptShootingSlotGuestsTable)
+                ..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not())
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+              .get();
+
     final blockRows = dayIds.isEmpty
         ? const <OcptShootingDayBlockRow>[]
         : await (database.select(database.ocptShootingDayBlocksTable)
@@ -158,6 +180,16 @@ class OcptScheduleService {
         : await (database.select(
             database.ocptShootingPresencesTable,
           )..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())).get();
+
+    final eventRows = dayIds.isEmpty
+        ? const <OcptShootingDayEventRow>[]
+        : await (database.select(database.ocptShootingDayEventsTable)
+                ..where((table) => table.shootingDayId.isIn(dayIds) & table.isDeleted.not())
+                ..orderBy([
+                  (table) => OrderingTerm.asc(table.minute),
+                  (table) => OrderingTerm.asc(table.sortKey),
+                ]))
+              .get();
 
     final crewBySlotId = <String, List<OcptShootingSlotCrewMember>>{};
     for (final row in crewRows) {
@@ -173,6 +205,11 @@ class OcptScheduleService {
           .add(OcptShootingSlotCastMember.fromRow(row));
     }
 
+    final guestsBySlotId = <String, List<OcptShootingSlotGuest>>{};
+    for (final row in guestRows) {
+      guestsBySlotId.putIfAbsent(row.slotId, () => []).add(OcptShootingSlotGuest.fromRow(row));
+    }
+
     final slotsByDayId = <String, List<OcptShootingSlot>>{};
     for (final row in slotRows) {
       slotsByDayId
@@ -182,6 +219,7 @@ class OcptScheduleService {
               row: row,
               crew: crewBySlotId[row.id] ?? const [],
               cast: castBySlotId[row.id] ?? const [],
+              guests: guestsBySlotId[row.id] ?? const [],
             ),
           );
     }
@@ -191,6 +229,13 @@ class OcptScheduleService {
       blocksByDayId
           .putIfAbsent(row.shootingDayId, () => [])
           .add(OcptShootingDayBlock.fromRow(row));
+    }
+
+    final eventsByDayId = <String, List<OcptShootingDayEvent>>{};
+    for (final row in eventRows) {
+      eventsByDayId
+          .putIfAbsent(row.shootingDayId, () => [])
+          .add(OcptShootingDayEvent.fromRow(row));
     }
 
     final days = [
@@ -207,6 +252,7 @@ class OcptScheduleService {
       days: days,
       slotsByDayId: slotsByDayId,
       blocksByDayId: blocksByDayId,
+      eventsByDayId: eventsByDayId,
       presenceOverrideByDayAndPerson: presenceOverrideByDayAndPerson,
     );
   }
@@ -353,9 +399,9 @@ class OcptScheduleService {
     );
   }
 
-  /// Tombstones day [dayId] in [database], and along with it: its slots, their crew and cast rows,
-  /// and its blocks — everything hanging off it, in one transaction, exactly as
-  /// `OcptLocationsService.deleteLocation` tombstones a location's sets and their links.
+  /// Tombstones day [dayId] in [database], and along with it: its slots, their crew, cast and guest
+  /// rows, its blocks, and its own events — everything hanging off it, in one transaction, exactly
+  /// as `OcptLocationsService.deleteLocation` tombstones a location's sets and their links.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -383,6 +429,11 @@ class OcptScheduleService {
           const OcptShootingSlotCastTableCompanion(isDeleted: Value(true)),
         );
         await (database.update(
+          database.ocptShootingSlotGuestsTable,
+        )..where((table) => table.slotId.isIn(slotIds))).write(
+          const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
+        );
+        await (database.update(
           database.ocptShootingSlotsTable,
         )..where((table) => table.shootingDayId.equals(dayId))).write(
           const OcptShootingSlotsTableCompanion(isDeleted: Value(true)),
@@ -396,6 +447,12 @@ class OcptScheduleService {
       );
 
       await (database.update(
+        database.ocptShootingDayEventsTable,
+      )..where((table) => table.shootingDayId.equals(dayId))).write(
+        const OcptShootingDayEventsTableCompanion(isDeleted: Value(true)),
+      );
+
+      await (database.update(
         database.ocptShootingDaysTable,
       )..where((table) => table.id.equals(dayId))).write(
         const OcptShootingDaysTableCompanion(isDeleted: Value(true)),
@@ -404,10 +461,11 @@ class OcptScheduleService {
   }
 
   /// Creates a new day dated [date], appended at the end of [sourceDayId]'s screenplay, carrying
-  /// copies of [sourceDayId]'s live slots, their live crew and their live cast — fresh ids, fresh
-  /// `sortKey`s, everything else copied verbatim. Returns the new day's id.
+  /// copies of [sourceDayId]'s live slots, their live crew, their live cast and their live guests —
+  /// fresh ids, fresh `sortKey`s, everything else copied verbatim. Returns the new day's id.
   ///
-  /// **Copies neither the placed shots nor the crew note** — see the class doc comment for why, and
+  /// **Copies neither the placed shots, the crew note, nor the source day's events** — see the class
+  /// doc comment for why, and
   /// for the two further fields (`weatherNote`, `notes`) this service also leaves at their defaults
   /// on the new day, a decision the plan left unsaid. If [sourceDayId] currently holds no live slot
   /// at all (every one of them since deleted), the new day is given the same default slot
@@ -531,6 +589,25 @@ class OcptScheduleService {
                   roleId: castMember.roleId,
                   sortKey: Value(castSortKeys[j]),
                   notes: Value(castMember.notes),
+                ),
+              );
+        }
+
+        final sourceGuests = await _liveGuestRowsOfSlot(database: database, slotId: sourceSlot.id);
+        final guestSortKeys = ocptFractionalKeySequence(sourceGuests.length);
+        for (var j = 0; j < sourceGuests.length; j++) {
+          final guest = sourceGuests[j];
+          await database
+              .into(database.ocptShootingSlotGuestsTable)
+              .insert(
+                OcptShootingSlotGuestsTableCompanion.insert(
+                  id: const Uuid().v4(),
+                  slotId: newSlotIds[i],
+                  sortKey: Value(guestSortKeys[j]),
+                  personId: Value(guest.personId),
+                  freeName: Value(guest.freeName),
+                  reason: Value(guest.reason),
+                  notes: Value(guest.notes),
                 ),
               );
         }
@@ -722,7 +799,8 @@ class OcptScheduleService {
     });
   }
 
-  /// Tombstones slot [slotId] in [database], and its crew and cast rows along with it.
+  /// Tombstones slot [slotId] in [database], and its crew, cast and guest rows along with it — a
+  /// guest is convoked by the slot exactly as a crew member or a role is, so it goes with them.
   ///
   /// **The slot's own live blocks are moved, in their own order, to the end of the day's first
   /// other live slot** (lowest `sortKey`) — removing a convocation window must not silently unplace
@@ -760,6 +838,11 @@ class OcptScheduleService {
         database.ocptShootingSlotCastTable,
       )..where((table) => table.slotId.equals(slotId))).write(
         const OcptShootingSlotCastTableCompanion(isDeleted: Value(true)),
+      );
+      await (database.update(
+        database.ocptShootingSlotGuestsTable,
+      )..where((table) => table.slotId.equals(slotId))).write(
+        const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
       );
 
       final otherSlots =
@@ -1036,6 +1119,207 @@ class OcptScheduleService {
       database.ocptShootingSlotCastTable,
     )..where((table) => table.id.equals(castRoleId))).write(
       const OcptShootingSlotCastTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
+  /// Adds a guest to slot [slotId], appended at the end of its current guests, and returns the
+  /// freshly generated id of the attendance — no more than the link itself: this guest's arrival
+  /// and departure are read off every slot they are linked to (ADR 0018), never seeded or typed
+  /// here.
+  ///
+  /// **Exactly one of [personId]/[freeName] must be given**: they are the two halves of one
+  /// discriminator (see `OcptShootingSlotGuestsTable`), and a call passing both, or neither, writes
+  /// nothing rather than picking one.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> addSlotGuest({
+    required OcptProjectDatabase database,
+    required String slotId,
+    String? personId,
+    String? freeName,
+    String reason = "",
+    String notes = "",
+  }) async {
+    if (database.refusesUserWrite("addSlotGuest")) {
+      return null;
+    }
+
+    final resolvedFreeName = freeName ?? "";
+    if ((personId == null) == resolvedFreeName.isEmpty) {
+      return null;
+    }
+
+    final existing = await _liveGuestRowsOfSlot(database: database, slotId: slotId);
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptShootingSlotGuestsTable)
+        .insert(
+          OcptShootingSlotGuestsTableCompanion.insert(
+            id: id,
+            slotId: slotId,
+            personId: Value(personId),
+            freeName: Value(resolvedFreeName),
+            reason: Value(reason),
+            notes: Value(notes),
+            sortKey: Value(
+              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+            ),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Updates the fields of guest attendance [guestId] in [database] that are passed as something
+  /// other than [Value.absent]. Never touches `sortKey` or `isDeleted`: the first is allocated once,
+  /// at insertion — nothing reorders a slot's guests, there being no order worth arguing about
+  /// between two people watching the same afternoon — and the second only changes through
+  /// [deleteSlotGuest].
+  ///
+  /// **May move a guest between the two halves of the discriminator**, but refuses a write that
+  /// would leave [personId]/[freeName] both set or both empty — exactly the guarantee [addSlotGuest]
+  /// gives a fresh row, kept over an edit to an existing one. A caller changing only one of the pair
+  /// must therefore also clear the other in the same call.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateSlotGuest({
+    required OcptProjectDatabase database,
+    required String guestId,
+    Value<String?> personId = const Value.absent(),
+    Value<String> freeName = const Value.absent(),
+    Value<String> reason = const Value.absent(),
+    Value<String> notes = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateSlotGuest")) {
+      return;
+    }
+
+    if (personId.present || freeName.present) {
+      final row =
+          await (database.select(database.ocptShootingSlotGuestsTable)..where(
+                (table) => table.id.equals(guestId) & table.isDeleted.not(),
+              ))
+              .getSingleOrNull();
+      if (row == null) {
+        return;
+      }
+
+      final resultingPersonId = personId.present ? personId.value : row.personId;
+      final resultingFreeName = freeName.present ? freeName.value : row.freeName;
+      if ((resultingPersonId == null) == resultingFreeName.isEmpty) {
+        return;
+      }
+    }
+
+    await (database.update(
+      database.ocptShootingSlotGuestsTable,
+    )..where((table) => table.id.equals(guestId) & table.isDeleted.not())).write(
+      OcptShootingSlotGuestsTableCompanion(
+        personId: personId,
+        freeName: freeName,
+        reason: reason,
+        notes: notes,
+      ),
+    );
+  }
+
+  /// Tombstones guest attendance [guestId].
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> deleteSlotGuest({
+    required OcptProjectDatabase database,
+    required String guestId,
+  }) async {
+    if (database.refusesUserWrite("deleteSlotGuest")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShootingSlotGuestsTable,
+    )..where((table) => table.id.equals(guestId))).write(
+      const OcptShootingSlotGuestsTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
+  /// Creates a new event on day [dayId], appended at the end of its current events, and returns its
+  /// freshly generated id.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> createDayEvent({
+    required OcptProjectDatabase database,
+    required String dayId,
+    required int minute,
+    String label = "",
+    String notes = "",
+  }) async {
+    if (database.refusesUserWrite("createDayEvent")) {
+      return null;
+    }
+
+    final existing = await _liveEventRowsOfDay(database: database, dayId: dayId);
+    final id = const Uuid().v4();
+
+    await database
+        .into(database.ocptShootingDayEventsTable)
+        .insert(
+          OcptShootingDayEventsTableCompanion.insert(
+            id: id,
+            shootingDayId: dayId,
+            minute: minute,
+            label: Value(label),
+            notes: Value(notes),
+            sortKey: Value(
+              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+            ),
+          ),
+        );
+
+    return id;
+  }
+
+  /// Updates the fields of event [eventId] in [database] that are passed as something other than
+  /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
+  /// [deleteDayEvent] — there is no reorder method, an event's order being its own [minute].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateDayEvent({
+    required OcptProjectDatabase database,
+    required String eventId,
+    Value<int> minute = const Value.absent(),
+    Value<String> label = const Value.absent(),
+    Value<String> notes = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateDayEvent")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShootingDayEventsTable,
+    )..where((table) => table.id.equals(eventId) & table.isDeleted.not())).write(
+      OcptShootingDayEventsTableCompanion(minute: minute, label: label, notes: notes),
+    );
+  }
+
+  /// Tombstones event [eventId].
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> deleteDayEvent({
+    required OcptProjectDatabase database,
+    required String eventId,
+  }) async {
+    if (database.refusesUserWrite("deleteDayEvent")) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShootingDayEventsTable,
+    )..where((table) => table.id.equals(eventId))).write(
+      const OcptShootingDayEventsTableCompanion(isDeleted: Value(true)),
     );
   }
 
@@ -1625,6 +1909,25 @@ class OcptScheduleService {
     required String slotId,
   }) => (database.select(database.ocptShootingDayBlocksTable)
         ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+      .get();
+
+  /// Every live guest row of slot [slotId], ordered by `sortKey`.
+  Future<List<OcptShootingSlotGuestRow>> _liveGuestRowsOfSlot({
+    required OcptProjectDatabase database,
+    required String slotId,
+  }) => (database.select(database.ocptShootingSlotGuestsTable)
+        ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+      .get();
+
+  /// Every live event row of day [dayId], ordered by `sortKey` — the tiebreak `loadSchedule` falls
+  /// back on once two events share a `minute`.
+  Future<List<OcptShootingDayEventRow>> _liveEventRowsOfDay({
+    required OcptProjectDatabase database,
+    required String dayId,
+  }) => (database.select(database.ocptShootingDayEventsTable)
+        ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
 }

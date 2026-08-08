@@ -57,6 +57,7 @@ OcptShootingSlot _buildSlot({required String id}) => OcptShootingSlot(
   notes: "",
   crew: const [],
   cast: const [],
+  guests: const [],
 );
 
 void main() {

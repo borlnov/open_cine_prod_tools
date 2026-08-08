@@ -38,6 +38,7 @@ OcptShootingSlot _buildSlot({List<OcptShootingSlotCastMember> cast = const []}) 
   notes: "",
   crew: const [],
   cast: cast,
+  guests: const [],
 );
 
 /// Builds a cast member linking [roleId] to the fixture's own slot.

@@ -113,6 +113,7 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   notes: "",
   crew: const [],
   cast: const [],
+  guests: const [],
 );
 
 /// Pumps [OcptScheduleAlertsPanel] with the given alerts and lookups, everything else defaulting to

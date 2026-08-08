@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -15,10 +16,12 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// Built the same way `OcptShotListSnapshot.build` is: a pure function of already-loaded, already
 /// ordered lists, with no database access of its own. [days] is in [OcptShootingDay.dayNumber]
 /// order (i.e. `sortKey` order); each day's [slotsByDayId] entry is in `sortKey` order, each slot
-/// carrying its own live crew and cast already nested (`OcptShootingSlot.crew`/`.cast`); each day's
-/// [blocksByDayId] entry is in `sortKey` order too — the timetable order
-/// `lib/utils/ocpt_shooting_day_timeline.dart` reads to chain a slot's clock, this snapshot
-/// deferring to it for every clock time rather than computing one.
+/// carrying its own live crew, cast and guests already nested
+/// (`OcptShootingSlot.crew`/`.cast`/`.guests`); each day's [blocksByDayId] entry is in `sortKey`
+/// order too — the timetable order `lib/utils/ocpt_shooting_day_timeline.dart` reads to chain a
+/// slot's clock, this snapshot deferring to it for every clock time rather than computing one; each
+/// day's [eventsByDayId] entry is ordered by [OcptShootingDayEvent.minute], ties broken by
+/// `sortKey` — an event's own hour, not a chain, being the only thing that orders it.
 class OcptScheduleSnapshot extends Equatable {
   /// The screenplay this schedule belongs to.
   final String screenplayId;
@@ -39,6 +42,11 @@ class OcptScheduleSnapshot extends Equatable {
   /// order (the chain order `ocpt_shooting_day_timeline.dart` reads). Absent for a day with no
   /// block yet, for the same reason [slotsByDayId] is.
   final Map<String, List<OcptShootingDayBlock>> blocksByDayId;
+
+  /// Every day's live events — what it does not control, at an absolute hour — keyed by
+  /// `shootingDayId`, each list ordered by [OcptShootingDayEvent.minute] then by `sortKey`. Absent
+  /// for a day with no event, for the same reason [slotsByDayId] is.
+  final Map<String, List<OcptShootingDayEvent>> eventsByDayId;
 
   /// The id of every shot that is placed somewhere in the schedule: every live block whose `kind`
   /// is [OcptShootingBlockKind.shot], across every day. `OcptScheduleService.placeShot` is the only
@@ -61,18 +69,20 @@ class OcptScheduleSnapshot extends Equatable {
     required this.daysById,
     required this.slotsByDayId,
     required this.blocksByDayId,
+    required this.eventsByDayId,
     required this.placedShotIds,
     required this.presenceOverrideByDayAndPerson,
   });
 
   /// Builds an [OcptScheduleSnapshot] for [screenplayId] from its already-ordered [days],
-  /// [slotsByDayId], [blocksByDayId] and [presenceOverrideByDayAndPerson], deriving [daysById] and
-  /// [placedShotIds] from them.
+  /// [slotsByDayId], [blocksByDayId], [eventsByDayId] and [presenceOverrideByDayAndPerson], deriving
+  /// [daysById] and [placedShotIds] from them.
   factory OcptScheduleSnapshot.build({
     required String screenplayId,
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,
     required Map<String, List<OcptShootingDayBlock>> blocksByDayId,
+    required Map<String, List<OcptShootingDayEvent>> eventsByDayId,
     Map<(String dayId, String personId), OcptPresenceCode> presenceOverrideByDayAndPerson = const {},
   }) {
     final placedShotIds = <String>{
@@ -87,6 +97,7 @@ class OcptScheduleSnapshot extends Equatable {
       daysById: Map.unmodifiable({for (final day in days) day.id: day}),
       slotsByDayId: Map.unmodifiable(slotsByDayId),
       blocksByDayId: Map.unmodifiable(blocksByDayId),
+      eventsByDayId: Map.unmodifiable(eventsByDayId),
       placedShotIds: Set.unmodifiable(placedShotIds),
       presenceOverrideByDayAndPerson: Map.unmodifiable(presenceOverrideByDayAndPerson),
     );
@@ -109,6 +120,7 @@ class OcptScheduleSnapshot extends Equatable {
     daysById,
     slotsByDayId,
     blocksByDayId,
+    eventsByDayId,
     placedShotIds,
     presenceOverrideByDayAndPerson,
   ];

@@ -850,6 +850,8 @@ void main() {
                   shootingSlotCast: payload.shootingSlotCast,
                   shootingDayBlocks: payload.shootingDayBlocks,
                   shootingPresences: payload.shootingPresences,
+                  shootingSlotGuests: payload.shootingSlotGuests,
+                  shootingDayEvents: payload.shootingDayEvents,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,
@@ -1202,6 +1204,81 @@ void main() {
         )..where((table) => table.id.equals("crew-1"))).getSingle();
         expect(restoredCrew.isDeleted, isFalse);
         expect(restoredCrew.personId, "person-1");
+      },
+    );
+
+    test(
+      "a guest and an event survive a capture and a restore, tombstones included",
+      () async {
+        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
+        await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+        final guestId = await scheduleService.addSlotGuest(
+          database: database,
+          slotId: "slot-1",
+          freeName: "Le maire",
+          reason: "Prête la place",
+        );
+        final eventId = await scheduleService.createDayEvent(
+          database: database,
+          dayId: "day-1",
+          minute: 1020,
+          label: "Feu d'artifice du village",
+        );
+
+        final version = await createVersion(name: "v1 — Guest and event planned");
+
+        // Diverge: the guest and the event are both removed in the working copy, and a second
+        // guest is added on a new slot.
+        await scheduleService.deleteSlotGuest(database: database, guestId: guestId!);
+        await scheduleService.deleteDayEvent(database: database, eventId: eventId!);
+        final secondSlotId = await scheduleService.createSlot(
+          database: database,
+          shootingDayId: "day-1",
+          anchorMinute: 600,
+        );
+        await scheduleService.addSlotGuest(
+          database: database,
+          slotId: secondSlotId!,
+          freeName: "Une journaliste",
+        );
+
+        final result = await restore(version.id);
+
+        expect(result.status, OcptProjectRestoreStatus.ok);
+
+        // The guest and the event the version held are revived — live again.
+        final restoredGuest = await (database.select(
+          database.ocptShootingSlotGuestsTable,
+        )..where((table) => table.id.equals(guestId))).getSingle();
+        expect(restoredGuest.isDeleted, isFalse);
+        expect(restoredGuest.freeName, "Le maire");
+        expect(restoredGuest.reason, "Prête la place");
+
+        final restoredEvent = await (database.select(
+          database.ocptShootingDayEventsTable,
+        )..where((table) => table.id.equals(eventId))).getSingle();
+        expect(restoredEvent.isDeleted, isFalse);
+        expect(restoredEvent.minute, 1020);
+        expect(restoredEvent.label, "Feu d'artifice du village");
+
+        // The guest the version never held is tombstoned, not deleted, exactly like a shot.
+        final droppedGuests = await database.select(database.ocptShootingSlotGuestsTable).get();
+        expect(
+          droppedGuests.where((row) => row.freeName == "Une journaliste").single.isDeleted,
+          isTrue,
+        );
+
+        // And the schedule mode reads the guest and the event back exactly the way they were
+        // written.
+        final restoredSnapshot = await scheduleService.loadSchedule(
+          database: database,
+          screenplayId: screenplayId,
+        );
+        expect(
+          restoredSnapshot.slotsByDayId["day-1"]!.first.guests.single.freeName,
+          "Le maire",
+        );
+        expect(restoredSnapshot.eventsByDayId["day-1"]!.single.label, "Feu d'artifice du village");
       },
     );
 

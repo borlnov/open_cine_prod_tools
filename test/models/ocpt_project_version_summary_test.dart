@@ -49,6 +49,8 @@ void main() {
     shootingSlotCast: const [],
     shootingDayBlocks: const [],
     shootingPresences: const [],
+    shootingSlotGuests: const [],
+    shootingDayEvents: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,

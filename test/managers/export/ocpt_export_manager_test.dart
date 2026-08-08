@@ -640,6 +640,7 @@ void main() {
           ),
         ],
         cast: [],
+        guests: [],
       );
 
       return OcptSchedulePlanSnapshot.build(
@@ -650,6 +651,7 @@ void main() {
             "day-1": [slot],
           },
           blocksByDayId: const {},
+          eventsByDayId: const {},
         ),
         shotList: null,
         locations: const [],
@@ -842,10 +844,12 @@ void main() {
                     ),
                   ],
                   cast: slot.cast,
+                  guests: slot.guests,
                 ),
               ],
             },
             blocksByDayId: const {},
+            eventsByDayId: const {},
           ),
           shotList: null,
           locations: const [],
@@ -931,6 +935,7 @@ void main() {
         notes: "",
         crew: [],
         cast: [],
+        guests: [],
       );
 
       return OcptSchedulePlanSnapshot.build(
@@ -941,6 +946,7 @@ void main() {
             "day-1": [slot],
           },
           blocksByDayId: const {},
+          eventsByDayId: const {},
         ),
         shotList: null,
         locations: const [],

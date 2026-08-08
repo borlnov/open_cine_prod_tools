@@ -75,6 +75,7 @@ OcptShootingSlot _buildSlot({required String id, String label = ""}) => OcptShoo
   notes: "",
   crew: const [],
   cast: const [],
+  guests: const [],
 );
 
 /// The [Positioned] the grid places block [label]'s own band inside — the single ancestor of that
