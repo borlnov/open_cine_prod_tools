@@ -396,6 +396,17 @@ class OcptSchedulePlanSnapshot extends Equatable {
       if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
   };
 
+  /// A map from every real scene's id to its own display scene number, built once alongside
+  /// [headingBySceneId] and the very same way — read by the one-line schedule's own `SEQ` column
+  /// for every scene a hold or a shot block names, so a printed sequence number can never disagree
+  /// with the shot list's own reading of it. A shot naming no scene at all (an orphaned one) has no
+  /// entry here to read, which is why that column falls back to the shot's own
+  /// `ocptShotSceneNumberOf` rather than this map for such a shot.
+  late final Map<String, String> sceneNumberBySceneId = {
+    for (final sequence in shotList?.sequences ?? const <OcptShotSequence>[])
+      if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.displaySceneNumber,
+  };
+
   /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
   /// [OcptShootingBlockKind.shot] block's own scene heading placed on it, one of the four categories
   /// when they agree, [OcptSceneEffectCategory.mixed] when they don't, or null when nothing placed
