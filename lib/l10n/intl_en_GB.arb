@@ -6111,10 +6111,38 @@
       }
     }
   },
-  "breakdownExportSheetsMenuAction": "Export the breakdown sheets…",
-  "@breakdownExportSheetsMenuAction": {
-    "description": "Action exporting one breakdown sheet per scene, as a PDF",
-    "context": "Displayed in the overflow menu of the breakdown mode",
+  "breakdownExportPanelTitle": "Export the breakdown",
+  "@breakdownExportPanelTitle": {
+    "description": "Title of the breakdown mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportPanelMessage": "One sheet per scene, listing what the shoot must provide.",
+  "@breakdownExportPanelMessage": {
+    "description": "Sentence under the title of the breakdown mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsTitle": "Breakdown sheets",
+  "@breakdownExportSheetsTitle": {
+    "description": "Name of the breakdown sheets document, shown as an export panel card title",
+    "context": "Displayed as a card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsDescription": "One printed sheet per scene, everything tagged in it.",
+  "@breakdownExportSheetsDescription": {
+    "description": "Sentence saying what the breakdown sheets document is, shown on its export panel card",
+    "context": "Displayed under the card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportUnavailableReason": "The screenplay holds no scene yet.",
+  "@breakdownExportUnavailableReason": {
+    "description": "Reason shown in place of the card's description while the screenplay holds no scene",
+    "context": "Displayed on the breakdown mode's export panel card while unavailable",
     "type": "text",
     "placeholders": {}
   },
