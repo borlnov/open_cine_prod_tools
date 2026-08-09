@@ -187,10 +187,16 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// .chromeButtonStyle]'s square shape, and is sized to the toolbar band rather than to
   /// [TextButton]'s own default touch target.
   ///
-  /// That last part is what [MaterialTapTargetSize.shrinkWrap] buys: the stock 48 px touch target
-  /// silently wins over the [ocptToolbarChromeButtonSize] minimum below, making this button taller
-  /// than the dock toggles it sits between — the very reason the `iconButtonTheme` already shrink-
-  /// wraps every icon button of the app.
+  /// That last part takes **two** overrides, and neither alone is enough.
+  /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins over
+  /// the [ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme` already
+  /// shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that actually
+  /// shows: a [TextButton] takes its density from the ambient theme, which on a desktop platform is
+  /// [VisualDensity.compact] and takes **8 px off** every minimum size, so this button drew 22 px
+  /// tall beside 30 px toggles — an [IconButton] never does, its own default density being standard
+  /// whatever the theme says. Beware that `flutter test` reports the Android density unless the test
+  /// overrides `debugDefaultTargetPlatform`, so this is a difference a widget test cannot see by
+  /// default.
   Widget? _buildExportAction(BuildContext context) {
     final onExportRequested = this.onExportRequested;
     if (onExportRequested == null) {
@@ -210,6 +216,7 @@ class OcptWorkspaceShell extends StatelessWidget {
           maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.standard,
         ),
       ),
     );
