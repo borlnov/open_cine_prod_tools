@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -483,6 +484,75 @@ void main() {
       expect(saveLocationService.lastExtensions, const [
         OcptShotListXlsxExportService.xlsxFileExtension,
       ]);
+    });
+  });
+
+  group('exportContactList', () {
+    final snapshot = OcptResourcesSnapshot.build(
+      people: const [],
+      roles: const [],
+      locations: const [],
+      elements: const [],
+      scenes: const [],
+    );
+    const labels = OcptContactListLabels(
+      fileNameSuffix: "contacts",
+      documentTitle: "Contact list",
+      versionLabel: "Version",
+      crewSectionTitle: "Crew",
+      castSectionTitle: "Cast",
+      nameHeader: "Name",
+      positionHeader: "Position",
+      phoneHeader: "Phone",
+      emailHeader: "Email",
+      crewDepartmentLabels: {},
+      crewPositionLabels: {},
+      unassignedDepartmentLabel: "Unassigned",
+      emptyDocumentNote: "Nothing to print.",
+    );
+
+    Future<String?> export(OcptExportManager manager) => manager.exportContactList(
+      snapshot: snapshot,
+      pageSetup: const OcptPageSetup.standard(),
+      labels: labels,
+      projectName: "My Movie",
+      fileTypeLabel: "PDF document",
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      expect(await export(manager), isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a PDF and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - contacts.pdf");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      expect(await export(manager), chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+    });
+
+    test('suggests the file name computed by OcptContactListPdfService, suffixed', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await export(manager);
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - contacts.pdf");
+      expect(saveLocationService.lastFileTypeLabel, "PDF document");
+      expect(saveLocationService.lastExtensions, const ["pdf"]);
     });
   });
 

@@ -13,6 +13,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_sheets_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_contact_list_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_day_out_of_days_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
@@ -30,6 +31,7 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
@@ -64,15 +66,16 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// shooting schedule as call sheets — the general one and the named ones, both per day —, as one
 /// whole-shoot shooting plan (a PDF and, reading the very same
 /// [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet XLSX workbook), as its
-/// cast's own *Day Out of Days*, as the compact one-line schedule and as a day's own sides booklet.
+/// cast's own *Day Out of Days*, as the compact one-line schedule, as a day's own sides booklet,
+/// and its crew and cast as a standalone, whole-production contact list.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
 /// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
-/// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService] and
-/// [sidesPdfService], and the "save as"/"choose a folder" location picking to
-/// [saveLocationService] — the fourteen services this manager owns (RFL18).
+/// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService],
+/// [sidesPdfService] and [contactListPdfService], and the "save as"/"choose a folder" location
+/// picking to [saveLocationService] — the fifteen services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -116,6 +119,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service rendering a day's own sides booklet PDF.
   final OcptSidesPdfService sidesPdfService;
 
+  /// The service rendering the whole-production contact list PDF.
+  final OcptContactListPdfService contactListPdfService;
+
   /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
   /// path.
   final OcptSaveLocationService saveLocationService;
@@ -151,6 +157,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
        oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
        sidesPdfService = OcptSidesPdfService(fontsLoader: fontsLoader),
+       contactListPdfService = OcptContactListPdfService(fontsLoader: fontsLoader),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -288,6 +295,43 @@ class OcptExportManager extends AbsWithLifeCycle {
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
     bytes: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
   );
+
+  /// Renders the contact list of [snapshot] via [contactListPdfService] and shows the native save
+  /// dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the section titles, the
+  /// department and position labels and the file name's own suffix) and [fileTypeLabel] the one the
+  /// native dialog needs — this manager has no `Tr` of its own. [exportDate] is resolved by the
+  /// caller, exactly as the schedule mode's own PDF exports resolve theirs, so a test can pin it
+  /// rather than race a midnight rollover. Returns the path of the written file, or null if the
+  /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
+  Future<String?> exportContactList({
+    required OcptResourcesSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptContactListLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    DateTime? exportDate,
+  }) async {
+    final bytes = await contactListPdfService.generate(
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      exportDate: exportDate,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: contactListPdfService.contactListFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
 
   /// Renders the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and shows the
   /// native save dialog to write them out.
