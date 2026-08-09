@@ -225,6 +225,56 @@ void main() {
   });
 
   testWidgets(
+    "the export action is rendered only when the mode wired it, sits before the dock toggles, and "
+    "clicking it fires the callback",
+    (tester) async {
+      var requestCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      expect(find.byTooltip(tr.workspaceExportTooltip), findsNothing);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onExportRequested: () => requestCount++,
+            isLeftDockOpen: true,
+            onToggleLeftDock: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final action = find.byTooltip(tr.workspaceExportTooltip);
+      expect(action, findsOneWidget);
+
+      final actionLeft = tester.getTopLeft(action).dx;
+      final toggleLeft = tester.getTopLeft(find.byTooltip(tr.workspaceToggleLeftDockTooltip)).dx;
+      expect(actionLeft, lessThan(toggleLeft));
+
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+
+      expect(requestCount, 1);
+    },
+  );
+
+  testWidgets(
     "the project settings action is rendered only when the mode wired it, and clicking it fires "
     "the callback",
     (tester) async {
@@ -284,6 +334,7 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
     expect(find.text("Production budget"), findsOneWidget);
+    expect(find.byTooltip(tr.workspaceExportTooltip), findsNothing);
     expect(find.byTooltip(tr.workspaceToggleLeftDockTooltip), findsNothing);
     expect(find.byTooltip(tr.workspaceToggleRightDockTooltip), findsNothing);
     expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);

@@ -22,8 +22,8 @@ const double _dirtyMarkerSize = 6;
 /// The workspace shell's thin, discreet toolbar: the back action leading to the projects list, the
 /// open project's title (with a dot marking unsaved changes, or the `Read only` pill while
 /// [isReadOnly]), a trailing slot for the active mode's own controls ([actions]), then the shell's
-/// own chrome — the active mode's name ([modeLabel]), the [dockToggles], the [saveAction], the
-/// [projectSettingsAction] and an overflow `⋮` menu built from [overflowEntries].
+/// own chrome — the active mode's name ([modeLabel]), the [exportAction], the [dockToggles], the
+/// [saveAction], the [projectSettingsAction] and an overflow `⋮` menu built from [overflowEntries].
 ///
 /// Everything mode-specific (format controls, tab selectors, an editing-mode toggle, export
 /// entries…) is the active mode's own job to build and hand in through [actions] /
@@ -55,8 +55,13 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// null to show no label at all.
   final String? modeLabel;
 
-  /// The dock toggles, shown after [modeLabel]. An empty list renders none of them (a mode with no
-  /// dock at all).
+  /// The `Export` control, shown after [modeLabel] and before [dockToggles], or null when the mode
+  /// prints nothing — no control is rendered at all then, rather than a disabled one (the budget
+  /// mode's whole answer here, it having neither bloc nor data).
+  final Widget? exportAction;
+
+  /// The dock toggles, shown after [exportAction]. An empty list renders none of them (a mode with
+  /// no dock at all).
   final List<Widget> dockToggles;
 
   /// The save control, shown after [dockToggles], or null when the mode has nothing to save.
@@ -90,6 +95,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     required this.onBack,
     this.actions = const [],
     this.modeLabel,
+    this.exportAction,
     this.dockToggles = const [],
     this.saveAction,
     this.projectSettingsAction,
@@ -142,6 +148,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (exportAction != null) exportAction!,
                     ...dockToggles,
                     if (saveAction != null) saveAction!,
                     if (projectSettingsAction != null) projectSettingsAction!,

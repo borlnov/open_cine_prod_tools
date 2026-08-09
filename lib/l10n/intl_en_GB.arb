@@ -5213,6 +5213,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "workspaceExportAction": "Export",
+  "@workspaceExportAction": {
+    "description": "Label of the workspace toolbar's export button",
+    "context": "Displayed on the export button of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportTooltip": "Open this mode's export panel",
+  "@workspaceExportTooltip": {
+    "description": "Tooltip of the workspace toolbar's export button",
+    "context": "Shown on hover over the export button of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsPageTitle": "Project settings",
   "@projectSettingsPageTitle": {
     "description": "Title of the project settings page",
