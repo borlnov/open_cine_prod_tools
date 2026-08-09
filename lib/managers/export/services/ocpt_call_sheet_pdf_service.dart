@@ -173,6 +173,13 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// never re-derived, never offset by anything. A minute may exceed 1440 for a night shoot's small
 /// hours, and every figure is printed through `ocptFormatDayMinute`, the one place that ever wraps
 /// one back onto a clock face.
+///
+/// **A sheet that runs long says on every page what it is**: the running head is drawn through
+/// [pw.MultiPage]'s own `header:` ([_page]) and every table here marks its header row
+/// `repeat: true`, so a second page carries the project's name and knows which column is `ARRIVÉE`
+/// rather than handing somebody five anonymous columns. `OcptShootingPlanPdfService` states the
+/// same two rules for the same reason — a printed page is read on its own, and the sheet it was
+/// stapled to is regularly not in the reader's hand.
 class OcptCallSheetPdfService {
   /// Creates an [OcptCallSheetPdfService].
   ///
@@ -545,6 +552,13 @@ class OcptCallSheetPdfService {
   /// then [children] — the same shape `OcptBreakdownSheetsPdfService._sheetPage` uses, for the same
   /// reason: a busy day's own sheet is free to run onto a second page rather than print off the
   /// bottom of the first.
+  ///
+  /// The running head is handed to [pw.MultiPage]'s own `header:` rather than laid at the top of
+  /// `build:`, and it matters exactly when a sheet does run long: a `build:` child is drawn **once**,
+  /// where a `header:` is drawn on every physical page the flow lands on. A call sheet whose cast
+  /// table and two directories push it onto a second page was handing that page over naming no
+  /// project and no document at all — the same fix `OcptShootingPlanPdfService._runningHead` carries
+  /// for the same reason, a sheet being read one page at a time whatever it was stapled to.
   pw.Page _page({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -559,16 +573,18 @@ class OcptCallSheetPdfService {
       marginRight: painter.marginRightPt,
       marginBottom: painter.marginRightPt,
     ),
-    build: (context) => [
-      pw.Text(
-        "$projectName — ${labels.documentTitle}",
-        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
-      ),
-      pw.SizedBox(height: 2),
-      pw.Divider(color: _ruleColor, thickness: 0.5, height: 6),
-      pw.SizedBox(height: 6),
-      ...children,
-    ],
+    header: (context) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          "$projectName — ${labels.documentTitle}",
+          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Divider(color: _ruleColor, thickness: 0.5, height: 6),
+      ],
+    ),
+    build: (context) => [pw.SizedBox(height: 6), ...children],
   );
 
   // ---------------------------------------------------------------------------------------------
@@ -711,6 +727,7 @@ class OcptCallSheetPdfService {
         columnWidths: _toBringColumnWidths,
         children: [
           pw.TableRow(
+            repeat: true,
             decoration: const pw.BoxDecoration(color: _bandColor),
             children: [
               for (final header in [labels.nameHeader, labels.seqHeader])
@@ -1077,6 +1094,7 @@ class OcptCallSheetPdfService {
     columnWidths: _mainColumnWidths,
     children: [
       pw.TableRow(
+        repeat: true,
         decoration: const pw.BoxDecoration(color: _bandColor),
         children: [
           for (final header in [
@@ -1167,6 +1185,7 @@ class OcptCallSheetPdfService {
           columnWidths: _castColumnWidths,
           children: [
             pw.TableRow(
+              repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 for (final header in [
@@ -1220,6 +1239,7 @@ class OcptCallSheetPdfService {
           columnWidths: _peopleColumnWidths,
           children: [
             pw.TableRow(
+              repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 for (final header in [
@@ -1267,6 +1287,7 @@ class OcptCallSheetPdfService {
         columnWidths: _guestColumnWidths,
         children: [
           pw.TableRow(
+            repeat: true,
             decoration: const pw.BoxDecoration(color: _bandColor),
             children: [
               for (final header in [labels.nameHeader, labels.guestReasonHeader, labels.hoursLinePrefix])
