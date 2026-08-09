@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xls
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
@@ -38,7 +39,9 @@ import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
@@ -59,16 +62,17 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
 /// breakdown as one printed sheet per scene and as a third, two-sheet XLSX workbook, and its
 /// shooting schedule as call sheets — the general one and the named ones, both per day —, as one
-/// whole-shoot shooting plan, as its cast's own *Day Out of Days*, as the compact one-line schedule
-/// and as a day's own sides booklet.
+/// whole-shoot shooting plan (a PDF and, reading the very same
+/// [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet XLSX workbook), as its
+/// cast's own *Day Out of Days*, as the compact one-line schedule and as a day's own sides booklet.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
 /// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
-/// [dayOutOfDaysPdfService], [oneLineSchedulePdfService] and [sidesPdfService], and the "save
-/// as"/"choose a folder" location picking to [saveLocationService] — the thirteen services this
-/// manager owns (RFL18).
+/// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService] and
+/// [sidesPdfService], and the "save as"/"choose a folder" location picking to
+/// [saveLocationService] — the fourteen services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -99,6 +103,9 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service rendering the whole-shoot shooting plan PDF.
   final OcptShootingPlanPdfService shootingPlanPdfService;
+
+  /// The service building the whole-shoot shooting plan's own five-sheet XLSX workbook.
+  final OcptShootingPlanXlsxExportService shootingPlanXlsxExportService;
 
   /// The service rendering the cast's own *Day Out of Days* PDF.
   final OcptDayOutOfDaysPdfService dayOutOfDaysPdfService;
@@ -140,6 +147,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        breakdownXlsxExportService = const OcptBreakdownXlsxExportService(),
        callSheetPdfService = OcptCallSheetPdfService(fontsLoader: fontsLoader),
        shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
+       shootingPlanXlsxExportService = const OcptShootingPlanXlsxExportService(),
        dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
        oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
        sidesPdfService = OcptSidesPdfService(fontsLoader: fontsLoader),
@@ -553,6 +561,31 @@ class OcptExportManager extends AbsWithLifeCycle {
       bytes: bytes,
     );
   }
+
+  /// Builds the whole-shoot shooting plan's own five-sheet XLSX workbook of [dayIds] via
+  /// [shootingPlanXlsxExportService] and shows the native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the five sheets themselves hold and [fileTypeLabel]
+  /// the one the native dialog needs — this manager has no `Tr` of its own. Unlike [exportShootingPlan],
+  /// this export takes no options beyond [dayIds]: there is no page geometry to ask about, and a
+  /// sheet costs nothing to hide, unlike a PDF's own page. Returns the path of the written file, or
+  /// null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
+  Future<String?> exportShootingPlanXlsx({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptShootingPlanXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: shootingPlanXlsxExportService.xlsxFileName(
+      projectName: projectName,
+      suffix: labels.fileNameSuffix,
+    ),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: shootingPlanXlsxExportService.generate(plan: plan, dayIds: dayIds, labels: labels),
+  );
 
   /// Renders the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and shows
   /// the native save dialog to write it out.
