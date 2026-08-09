@@ -117,7 +117,7 @@ class _ShotListViewState extends State<_ShotListView> {
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
         onExportRequested: () => unawaited(_requestExport(context, state)),
-        overflowEntries: _buildOverflowEntries(context, state),
+        overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isSequencePanelVisible,
         onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
           const OcptShotListSequencePanelToggledEvent(),
@@ -151,14 +151,12 @@ class _ShotListViewState extends State<_ShotListView> {
   /// exports moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
   /// this is the only entry the shot list mode has left to offer. A `⋮` holding one entry is thin,
   /// but honest: moving it somewhere else is a separate question this doesn't answer.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptShotListState state) =>
-      [
-        PopupMenuItem<void>(
-          onTap: () =>
-              context.read<OcptShotListBloc>().add(const OcptShotListDockLayoutResetEvent()),
-          child: Text(Tr.of(context).shotListResetPanelLayoutAction),
-        ),
-      ];
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
+    PopupMenuItem<void>(
+      onTap: () => context.read<OcptShotListBloc>().add(const OcptShotListDockLayoutResetEvent()),
+      child: Text(Tr.of(context).shotListResetPanelLayoutAction),
+    ),
+  ];
 
   /// Builds the two entries the toolbar's `Export` button offers: the shot list workbook and the
   /// scenario coverage PDF, both unavailable while the shot list holds no shot at all — there would

@@ -156,7 +156,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         onBack: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelBreakdown,
         onExportRequested: () => unawaited(_requestExport(context, state)),
-        overflowEntries: _buildOverflowEntries(context, state),
+        overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
             context.read<OcptBreakdownBloc>().add(const OcptBreakdownLeftPanelToggledEvent()),
@@ -189,10 +189,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// [_requestExport]), and this is the only entry the breakdown mode has left to offer. A `⋮`
   /// holding one entry is thin, but honest: moving it somewhere else is a separate question this
   /// doesn't answer.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(
-    BuildContext context,
-    OcptBreakdownState state,
-  ) => [
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
     PopupMenuItem<void>(
       onTap: () =>
           context.read<OcptBreakdownBloc>().add(const OcptBreakdownDockLayoutResetEvent()),

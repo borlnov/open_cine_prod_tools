@@ -161,7 +161,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         modeLabel: Tr.of(context).workspaceModeLabelResources,
         toolbarActions: _buildToolbarActions(context, state),
         onExportRequested: () => unawaited(_requestExport(context, state)),
-        overflowEntries: _buildOverflowEntries(context, state),
+        overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
           const OcptResourcesLeftPanelToggledEvent(),
@@ -209,10 +209,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// export moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
   /// this is the only entry the resources mode has left to offer. A `⋮` holding one entry is thin,
   /// but honest: moving it somewhere else is a separate question this doesn't answer.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(
-    BuildContext context,
-    OcptResourcesState state,
-  ) => [
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
     PopupMenuItem<void>(
       onTap: () =>
           context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
