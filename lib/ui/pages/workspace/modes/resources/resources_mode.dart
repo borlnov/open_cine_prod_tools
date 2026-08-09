@@ -13,11 +13,13 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -38,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -157,6 +160,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onBack: () => context.read<OcptResourcesBloc>().add(const OcptResourcesBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelResources,
         toolbarActions: _buildToolbarActions(context, state),
+        onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context, state),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
@@ -201,26 +205,62 @@ class _ResourcesViewState extends State<_ResourcesView> {
     ),
   ];
 
-  /// Builds the mode's `⋮` overflow menu entries: the XLSX export first, then resetting the panel
-  /// layout, mirroring `OcptShotListMode._buildOverflowEntries`.
-  ///
-  /// The export entry is disabled while the whole catalogue is empty: there would be nothing in
-  /// any of the four sheets but their header row.
+  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the XLSX
+  /// export moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
+  /// this is the only entry the resources mode has left to offer. A `⋮` holding one entry is thin,
+  /// but honest: moving it somewhere else is a separate question this doesn't answer.
   List<PopupMenuEntry<void>> _buildOverflowEntries(
     BuildContext context,
     OcptResourcesState state,
   ) => [
-    PopupMenuItem<void>(
-      enabled: state.peopleCount + state.roleCount + state.locationCount + state.elementCount > 0,
-      onTap: () => _requestXlsxExport(context, state),
-      child: Text(Tr.of(context).resourcesExportXlsxMenuAction),
-    ),
     PopupMenuItem<void>(
       onTap: () =>
           context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
       child: Text(Tr.of(context).resourcesResetPanelLayoutAction),
     ),
   ];
+
+  /// Builds the single entry the toolbar's `Export` button offers: the resources workbook,
+  /// unavailable while the whole catalogue is empty — there would be nothing in any of its four
+  /// sheets but their header row.
+  List<OcptWorkspaceExportEntry<OcptResourcesExportDocument>> _buildExportEntries(
+    BuildContext context,
+    OcptResourcesState state,
+  ) {
+    final tr = Tr.of(context);
+    final isEmpty =
+        state.peopleCount + state.roleCount + state.locationCount + state.elementCount == 0;
+
+    return [
+      OcptWorkspaceExportEntry<OcptResourcesExportDocument>(
+        value: OcptResourcesExportDocument.xlsx,
+        title: tr.resourcesExportXlsxTitle,
+        description: tr.resourcesExportXlsxDescription,
+        formatLabel: "XLSX",
+        unavailableReason: isEmpty ? tr.resourcesExportUnavailableReason : null,
+      ),
+    ];
+  }
+
+  /// Opens the export panel, then dispatches the XLSX export request if the user picked its own
+  /// card — the panel's only one, no options dialog of its own being offered for it.
+  Future<void> _requestExport(BuildContext context, OcptResourcesState state) async {
+    final tr = Tr.of(context);
+    final picked = await OcptWorkspaceExportDialog.show<OcptResourcesExportDocument>(
+      context,
+      title: tr.resourcesExportPanelTitle,
+      message: tr.resourcesExportPanelMessage,
+      entries: _buildExportEntries(context, state),
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    _requestXlsxExport(context, state);
+  }
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the four sheets and the native save dialog carry.

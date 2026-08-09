@@ -4708,10 +4708,38 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesExportXlsxMenuAction": "Export the resources…",
-  "@resourcesExportXlsxMenuAction": {
-    "description": "Action exporting the whole resources catalogue to a four-sheet Excel workbook",
-    "context": "Displayed in the overflow menu of the resources mode",
+  "resourcesExportPanelTitle": "Export the resources",
+  "@resourcesExportPanelTitle": {
+    "description": "Title of the resources mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportPanelMessage": "The whole catalogue — people, roles, locations and elements — as one workbook.",
+  "@resourcesExportPanelMessage": {
+    "description": "Sentence under the title of the resources mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxTitle": "Resources",
+  "@resourcesExportXlsxTitle": {
+    "description": "Name of the resources workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxDescription": "People, roles, locations and elements, one sheet each.",
+  "@resourcesExportXlsxDescription": {
+    "description": "Sentence saying what the resources workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportUnavailableReason": "The catalogue holds nothing yet.",
+  "@resourcesExportUnavailableReason": {
+    "description": "Reason shown in place of the card's description while the whole catalogue is empty",
+    "context": "Displayed on the resources mode's export panel card while unavailable",
     "type": "text",
     "placeholders": {}
   },
