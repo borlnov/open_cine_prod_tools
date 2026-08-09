@@ -7521,6 +7521,76 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportSidesMenuAction": "Export the day's sides…",
+  "@scheduleExportSidesMenuAction": {
+    "description": "Label of the `⋮` menu entry opening the sides export dialog",
+    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesDialogTitle": "Export the day's sides",
+  "@scheduleExportSidesDialogTitle": {
+    "description": "Title of the sides export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesFileNameSuffix": "sides",
+  "@scheduleExportSidesFileNameSuffix": {
+    "description": "Word appended to the project name to name the exported sides file, before the day tag",
+    "context": "Suggested in the native save dialog opened by the sides export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesDocumentTitle": "Sides",
+  "@scheduleExportSidesDocumentTitle": {
+    "description": "Generic name of the sides document, printed in every page's running head",
+    "context": "Printed inside the exported sides PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesDayLabel": "Day to print",
+  "@scheduleExportSidesDayLabel": {
+    "description": "Label of the sides export dialog's own day dropdown",
+    "context": "Displayed in the sides export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesPresentationLabel": "Presentation",
+  "@scheduleExportSidesPresentationLabel": {
+    "description": "Label of the sides export dialog's own presentation dropdown",
+    "context": "Displayed in the sides export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesScriptPagesOption": "Screenplay pages",
+  "@scheduleExportSidesScriptPagesOption": {
+    "description": "Presentation reproducing every screenplay page carrying one of the day's sequences, at its own row positions",
+    "context": "Offered by the sides export options dialog's presentation dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesPackedOption": "Packed extracts",
+  "@scheduleExportSidesPackedOption": {
+    "description": "Presentation chaining the day's own extracts onto fresh pages, giving the screenplay's pagination up",
+    "context": "Offered by the sides export options dialog's presentation dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesScriptPagePrefix": "p.",
+  "@scheduleExportSidesScriptPagePrefix": {
+    "description": "Word a screenplay page number is printed behind in the sides running head",
+    "context": "Printed inside the exported sides PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesEmptyDayNote": "This day plays no sequence the screenplay still holds.",
+  "@scheduleExportSidesEmptyDayNote": {
+    "description": "Note printed in place of the whole booklet when the printed day plays no scene the screenplay still holds",
+    "context": "Printed inside the exported sides PDF",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportFileSuccessMessage": "Exported to {path}",
   "@scheduleExportFileSuccessMessage": {
     "description": "Message shown when the shooting plan was successfully exported to a single PDF file",

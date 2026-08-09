@@ -207,6 +207,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleShootingPlanExportRequestedEvent>(_onShootingPlanExportRequested);
     on<OcptScheduleDayOutOfDaysExportRequestedEvent>(_onDayOutOfDaysExportRequested);
     on<OcptScheduleOneLineScheduleExportRequestedEvent>(_onOneLineScheduleExportRequested);
+    on<OcptScheduleSidesExportRequestedEvent>(_onSidesExportRequested);
     on<OcptScheduleIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
@@ -1600,6 +1601,65 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error) {
       appLogger().e(
         "A problem occurred when tried to export the one-line schedule of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports `event.options.dayId`'s own sides booklet as a single PDF, written through the native
+  /// save dialog. Mirrors [_onOneLineScheduleExportRequested] — see its own doc comment for the
+  /// flush and the cancellation contract, identical here.
+  ///
+  /// It is the one export of this mode that reads the **screenplay**, and it reads it here rather
+  /// than out of the state: nothing else the schedule mode draws needs the Fountain text, so
+  /// loading it on every load of the mode would be a seventh read serving one rarely-run export.
+  /// It is read straight from the open project's own database, which is where the shot list
+  /// snapshot's scene offsets were indexed against — a version preview swaps that database out
+  /// wholesale, so a previewed booklet reads the previewed screenplay, exactly as its scenes do.
+  Future<void> _onSidesExportRequested(
+    OcptScheduleSidesExportRequestedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final plan = state.planSnapshot;
+    final project = _projectsManager.currentProject;
+    if (plan == null || project == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final screenplayText = await _projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+      );
+
+      final path = await _exportManager.exportSides(
+        plan: plan,
+        dayId: options.dayId,
+        document: const FountainParser().parse(screenplayText),
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeSceneNumbers: options.includeSceneNumbers,
+        presentation: options.presentation,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to export the sides of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
       emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));

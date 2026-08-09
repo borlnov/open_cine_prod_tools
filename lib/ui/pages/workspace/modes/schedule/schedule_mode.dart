@@ -41,6 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_sides_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_week_grid.dart';
@@ -168,14 +169,15 @@ class _ScheduleViewState extends State<_ScheduleView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: the five PDF exports, then "reset panel layout".
+  /// Builds the mode's `⋮` overflow menu entries: the six PDF exports, then "reset panel layout".
   ///
-  /// All five exports are disabled together when the project holds no live day at all — there would
-  /// be nothing to print. The named call sheets entry needs no further check of its own: which
+  /// All six exports are disabled together when the project holds no live day at all — there would
+  /// be nothing to print, and the sides dialog additionally relies on it, its day dropdown having
+  /// to open on some day. The named call sheets entry needs no further check of its own: which
   /// recipients (and, now, which days) it prints is a question answered **inside**
   /// `OcptScheduleNamedCallSheetsExportDialog` itself, whose own `Export` button is already disabled
   /// while no day or no recipient is ticked — walking every ticked day's own convocations here too,
-  /// on every rebuild of this shell, would repeat that same read for no reason. All five stay
+  /// on every rebuild of this shell, would repeat that same read for no reason. All six stay
   /// offered under a version preview, exactly as the breakdown mode's own export entry does: an
   /// export only ever reads.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptScheduleState state) {
@@ -208,6 +210,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
         enabled: hasAnyDay,
         onTap: () => unawaited(_requestOneLineScheduleExport(context, state)),
         child: Text(Tr.of(context).scheduleExportOneLineScheduleMenuAction),
+      ),
+      PopupMenuItem<void>(
+        enabled: hasAnyDay,
+        onTap: () => unawaited(_requestSidesExport(context, state)),
+        child: Text(Tr.of(context).scheduleExportSidesMenuAction),
       ),
       PopupMenuItem<void>(
         onTap: () => context.read<OcptScheduleBloc>().add(const OcptScheduleDockLayoutResetEvent()),
@@ -359,6 +366,37 @@ class _ScheduleViewState extends State<_ScheduleView> {
       OcptScheduleOneLineScheduleExportRequestedEvent(
         options: options,
         labels: ocptOneLineScheduleLabelsOf(context, days: state.days, people: state.people),
+        fileTypeLabel: tr.scheduleExportFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the sides export options dialog, then dispatches the export request if the user applied
+  /// it — mirrors [_requestOneLineScheduleExport], but hands the dialog the mode's own selected day
+  /// to open on, a booklet being about one day rather than a range.
+  Future<void> _requestSidesExport(BuildContext context, OcptScheduleState state) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final options = await OcptScheduleSidesExportDialog.show(
+      context,
+      current: state.pageSetup,
+      days: state.days,
+      selectedDayId: state.selectedDayId,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptScheduleSidesExportRequestedEvent(
+        options: options,
+        labels: ocptSidesLabelsOf(
+          context,
+          day: state.days.where((day) => day.id == options.dayId).firstOrNull,
+        ),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),
     );

@@ -20,8 +20,11 @@ import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -168,9 +171,21 @@ const _dayOutOfDaysLabels = OcptDayOutOfDaysLabels(
   emptyTableNote: "Nothing to print.",
 );
 
-/// An export manager whose four schedule PDF entry points are stubbed and whose calls are
-/// recorded, so the bloc's three export handlers can be exercised without any real native dialog or
-/// PDF write. Mirrors `breakdown_bloc_test.dart`'s own `_FakeExportManager`.
+/// A minimal, arbitrary set of localized strings for the sides export — mirrors [_callSheetLabels]'
+/// own doc comment.
+const _sidesLabels = OcptSidesLabels(
+  fileNameSuffix: "sides",
+  documentTitle: "Sides",
+  versionLabel: "Version",
+  dayTagPrefix: "D",
+  dayTitle: "",
+  scriptPagePrefix: "p.",
+  emptyDayNote: "Nothing to print.",
+);
+
+/// An export manager whose schedule PDF entry points are stubbed and whose calls are recorded, so
+/// the bloc's export handlers can be exercised without any real native dialog or PDF write. Mirrors
+/// `breakdown_bloc_test.dart`'s own `_FakeExportManager`.
 class _FakeScheduleExportManager extends OcptExportManager {
   /// Class constructor
   _FakeScheduleExportManager({
@@ -178,10 +193,12 @@ class _FakeScheduleExportManager extends OcptExportManager {
     this.namedCallSheetsResult,
     this.shootingPlanResult,
     this.dayOutOfDaysResult,
+    this.sidesResult,
     this.generalCallSheetsFails = false,
     this.namedCallSheetsFails = false,
     this.shootingPlanFails = false,
     this.dayOutOfDaysFails = false,
+    this.sidesFails = false,
   }) : super(fileSelectorManager: const FileSelectorManager());
 
   /// The result [exportGeneralCallSheets] returns, or null to simulate a cancelled folder dialog.
@@ -208,6 +225,12 @@ class _FakeScheduleExportManager extends OcptExportManager {
   /// Whether [exportDayOutOfDays] throws, to exercise the bloc's export-failed path.
   final bool dayOutOfDaysFails;
 
+  /// The path [exportSides] returns, or null to simulate a cancelled save dialog.
+  final String? sidesResult;
+
+  /// Whether [exportSides] throws, to exercise the bloc's export-failed path.
+  final bool sidesFails;
+
   /// The plan of the last [exportGeneralCallSheets] call.
   OcptSchedulePlanSnapshot? lastGeneralPlan;
 
@@ -228,6 +251,16 @@ class _FakeScheduleExportManager extends OcptExportManager {
 
   /// The day ids of the last [exportDayOutOfDays] call.
   List<String>? lastDayOutOfDaysDayIds;
+
+  /// The day id of the last [exportSides] call.
+  String? lastSidesDayId;
+
+  /// The presentation of the last [exportSides] call.
+  OcptSidesPresentation? lastSidesPresentation;
+
+  /// The Fountain source text of the document handed to the last [exportSides] call — what proves
+  /// the handler read the screenplay out of the open project rather than handing over an empty one.
+  String? lastSidesSourceText;
 
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
@@ -306,6 +339,28 @@ class _FakeScheduleExportManager extends OcptExportManager {
       throw StateError("day out of days export intentionally failed for the test");
     }
     return dayOutOfDaysResult;
+  }
+
+  @override
+  Future<String?> exportSides({
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required OcptSidesLabels labels,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required OcptSidesPresentation presentation,
+    required String fileTypeLabel,
+  }) async {
+    lastSidesDayId = dayId;
+    lastSidesPresentation = presentation;
+    lastSidesSourceText = document.sourceText;
+
+    if (sidesFails) {
+      throw StateError("sides export intentionally failed for the test");
+    }
+    return sidesResult;
   }
 }
 
@@ -954,6 +1009,70 @@ void main() {
           fileTypeLabel: "PDF document",
         ),
       );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+
+  group("exporting the sides", () {
+    /// The sides export request `writePlacedShot`'s own day is printed by, [presentation] aside.
+    OcptScheduleSidesExportRequestedEvent requestFor(
+      String dayId, {
+      OcptSidesPresentation presentation = OcptSidesPresentation.scriptPages,
+    }) => OcptScheduleSidesExportRequestedEvent(
+      options: OcptSidesExportOptions(
+        format: OcptPageFormat.usLetter,
+        margins: const FountainPageMargins.standard(),
+        dayId: dayId,
+        includeSceneNumbers: true,
+        presentation: presentation,
+      ),
+      labels: _sidesLabels,
+      fileTypeLabel: "PDF document",
+    );
+
+    test("hands the day, the presentation and the project's own screenplay to the manager", () async {
+      final fixture = await writePlacedShot();
+      final exportManager = _FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(requestFor(fixture.dayId, presentation: OcptSidesPresentation.packed));
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(exportManager.lastSidesDayId, fixture.dayId);
+      expect(exportManager.lastSidesPresentation, OcptSidesPresentation.packed);
+      // The handler reads the Fountain text out of the open project rather than out of its own
+      // state, which holds none: what reaches the manager is the very screenplay the fixture wrote.
+      expect(exportManager.lastSidesSourceText, contains("INT. HOUSE - DAY"));
+      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/sides.pdf");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(requestFor(fixture.dayId));
+      await pumpEventQueue();
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the export-failed notice when the export throws", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc(exportManager: _FakeScheduleExportManager(sidesFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(requestFor(fixture.dayId));
       final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
       expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.exportFailed);

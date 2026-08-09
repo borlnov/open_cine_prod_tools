@@ -14,11 +14,13 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -609,6 +611,37 @@ OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
     emptyDocumentNote: tr.scheduleExportEmptyPlanNote,
   );
 }
+
+/// Builds every localized string [day]'s own exported sides booklet carries — mirrors
+/// [ocptOneLineScheduleLabelsOf] for the same reasons; see [ocptCallSheetLabelsOf]'s own doc
+/// comment.
+///
+/// Takes the one printed [day] rather than the whole list every other resolver here takes, and
+/// resolves its title through the very `DateFormat.MMMMEEEEd` they use for their own day bands: a
+/// booklet is one day's own paperwork, so there is a single title to carry rather than a map keyed
+/// by day id. A null [day] — a selection naming a day the mode no longer holds — leaves that title
+/// empty, which the running head prints as its own document title alone.
+OcptSidesLabels ocptSidesLabelsOf(BuildContext context, {required OcptShootingDay? day}) {
+  final tr = Tr.of(context);
+  final locale = Localizations.localeOf(context).toString();
+
+  return OcptSidesLabels(
+    fileNameSuffix: tr.scheduleExportSidesFileNameSuffix,
+    documentTitle: tr.scheduleExportSidesDocumentTitle,
+    versionLabel: tr.scheduleExportVersionLabel,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
+    dayTitle: day == null ? "" : DateFormat.MMMMEEEEd(locale).format(day.date),
+    scriptPagePrefix: tr.scheduleExportSidesScriptPagePrefix,
+    emptyDayNote: tr.scheduleExportSidesEmptyDayNote,
+  );
+}
+
+/// The sides export dialog's own label for [presentation] — what each of the two shapes a booklet
+/// can take is called where the user picks between them.
+String ocptSidesPresentationLabel(Tr tr, OcptSidesPresentation presentation) => switch (presentation) {
+  OcptSidesPresentation.scriptPages => tr.scheduleExportSidesScriptPagesOption,
+  OcptSidesPresentation.packed => tr.scheduleExportSidesPackedOption,
+};
 
 /// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
 /// comment for exactly what each of the eleven rules claims.

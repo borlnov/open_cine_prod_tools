@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_export_option
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
@@ -905,6 +907,31 @@ class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleEvent 
 
   /// Class constructor
   const OcptScheduleOneLineScheduleExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Requests exporting `options.dayId`'s own sides booklet as a single PDF, written through the
+/// native save dialog — dispatched once `OcptScheduleSidesExportDialog` returns its result.
+class OcptScheduleSidesExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with (the page format/margins, the one day printed, the
+  /// scene-numbers toggle and the presentation).
+  final OcptSidesExportOptions options;
+
+  /// Every localized string the exported booklet carries.
+  final OcptSidesLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptScheduleSidesExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
