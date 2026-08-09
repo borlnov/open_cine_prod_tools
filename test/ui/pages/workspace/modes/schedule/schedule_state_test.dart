@@ -106,7 +106,6 @@ void main() {
         );
         final day = OcptShootingDay(
           id: "day-1",
-          screenplayId: "screenplay-1",
           date: DateTime(2026),
           dayNumber: 1,
           status: OcptShootingDayStatus.planned,
@@ -115,7 +114,6 @@ void main() {
           notes: "",
         );
         final snapshot = OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: {
             "day-1": [slot],
@@ -164,7 +162,6 @@ void main() {
       final preparation = _buildBlock(id: "block-1", slotId: "slot-1");
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -173,7 +170,6 @@ void main() {
         notes: "",
       );
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -231,7 +227,6 @@ void main() {
       );
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -240,7 +235,6 @@ void main() {
         notes: "",
       );
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: {
           "day-1": [laterSlot, earlySlot],
@@ -273,7 +267,6 @@ void main() {
       );
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -282,7 +275,6 @@ void main() {
         notes: "",
       );
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: const {
           "day-1": [endAnchoredSlot],
@@ -306,7 +298,6 @@ void main() {
   group("placedDayNumbersByShotId", () {
     OcptShootingDay buildDay({required String id, required int dayNumber}) => OcptShootingDay(
       id: id,
-      screenplayId: "screenplay-1",
       date: DateTime(2026, 1, dayNumber),
       dayNumber: dayNumber,
       status: OcptShootingDayStatus.planned,
@@ -336,7 +327,6 @@ void main() {
     test("a shot placed twice on the same day reports that day's number once", () {
       final day = buildDay(id: "day-1", dayNumber: 3);
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: const {},
         blocksByDayId: {
@@ -357,7 +347,6 @@ void main() {
       final dayThree = buildDay(id: "day-1", dayNumber: 3);
       final dayFive = buildDay(id: "day-2", dayNumber: 5);
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [dayThree, dayFive],
         slotsByDayId: const {},
         blocksByDayId: {
@@ -375,7 +364,6 @@ void main() {
     test("a shot with no live block placing it has no entry at all", () {
       final day = buildDay(id: "day-1", dayNumber: 3);
       final snapshot = OcptScheduleSnapshot.build(
-        screenplayId: "screenplay-1",
         days: [day],
         slotsByDayId: const {},
         blocksByDayId: const {},

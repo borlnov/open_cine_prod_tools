@@ -61,6 +61,12 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `roles` rows of the project.
   final List<OcptRoleRow> roles;
 
+  /// The `role_episodes` rows of the project: which episodes each role is named in
+  /// (`docs/adr/0019-one-project-several-episodes.md`), the link `roles.screenplayId` used to be
+  /// until schema version 18 / payload format 13 turned a role into a fact about the production
+  /// rather than about any one screenplay.
+  final List<OcptRoleEpisodeRow> roleEpisodes;
+
   /// The `locations` rows of the project.
   final List<OcptLocationRow> locations;
 
@@ -173,6 +179,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.personSkills,
     required this.personUnavailabilities,
     required this.roles,
+    required this.roleEpisodes,
     required this.locations,
     required this.locationAvailabilities,
     required this.sets,
@@ -205,6 +212,7 @@ class OcptProjectVersionPayload extends Equatable {
       "shotCoverages: ${shotCoverages.length}, people: ${people.length}, "
       "personPositions: ${personPositions.length}, personSkills: ${personSkills.length}, "
       "personUnavailabilities: ${personUnavailabilities.length}, roles: ${roles.length}, "
+      "roleEpisodes: ${roleEpisodes.length}, "
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
       "roleElements: ${roleElements.length}, "
@@ -232,6 +240,7 @@ class OcptProjectVersionPayload extends Equatable {
     personSkills,
     personUnavailabilities,
     roles,
+    roleEpisodes,
     locations,
     locationAvailabilities,
     sets,

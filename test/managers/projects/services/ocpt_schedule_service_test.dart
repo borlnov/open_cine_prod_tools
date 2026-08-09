@@ -49,12 +49,7 @@ void main() {
     await database
         .into(database.ocptRolesTable)
         .insert(
-          OcptRolesTableCompanion.insert(
-            id: id,
-            screenplayId: screenplayId,
-            name: name,
-            kind: OcptRoleKind.silent,
-          ),
+          OcptRolesTableCompanion.insert(id: id, name: name, kind: OcptRoleKind.silent),
         );
     return id;
   }
@@ -148,7 +143,6 @@ void main() {
     test("createDay mints exactly one slot anchored by its start at the default minute", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
 
@@ -164,23 +158,19 @@ void main() {
       // Created out of chronological order: the 12th first, then the 10th, then the 11th.
       final laterId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 12),
       ))!;
       final earliestId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final middleId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
       ))!;
 
       var snapshot = await scheduleService.loadSchedule(
         database: database,
-        screenplayId: screenplayId,
       );
       expect(snapshot.days.map((day) => day.id), [earliestId, middleId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
@@ -193,7 +183,7 @@ void main() {
         date: Value(DateTime(2026, 8, 9)),
       );
 
-      snapshot = await scheduleService.loadSchedule(database: database, screenplayId: screenplayId);
+      snapshot = await scheduleService.loadSchedule(database: database);
       expect(snapshot.days.map((day) => day.id), [middleId, earliestId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
     });
@@ -201,7 +191,6 @@ void main() {
     test("deleteDay tombstones the day and everything hanging off it", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slots = await readLiveSlots(dayId);
@@ -236,7 +225,6 @@ void main() {
 
       final snapshot = await scheduleService.loadSchedule(
         database: database,
-        screenplayId: screenplayId,
       );
       expect(snapshot.days, isEmpty);
     });
@@ -247,7 +235,6 @@ void main() {
       () async {
         final sourceDayId = (await scheduleService.createDay(
           database: database,
-          screenplayId: screenplayId,
           date: DateTime(2026, 8, 10),
         ))!;
         final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
@@ -347,7 +334,6 @@ void main() {
     test("duplicateDay mints the default slot when the source day has no live slot left", () async {
       final sourceDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
@@ -371,7 +357,6 @@ void main() {
     test("setSlotAnchor pins an edge to a typed hour, and to another slot's opposite one", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotA = (await readLiveSlots(dayId)).single.id;
@@ -414,7 +399,6 @@ void main() {
     test("setSlotAnchor refuses everything that isn't exactly one half of the discriminator", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotA = (await readLiveSlots(dayId)).single.id;
@@ -452,12 +436,10 @@ void main() {
     test("setSlotAnchor refuses a link to itself, to another day's slot, and to a circle", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final otherDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
       ))!;
       final slotA = (await readLiveSlots(dayId)).single.id;
@@ -513,7 +495,6 @@ void main() {
     test("deleteSlot freezes the hour each of its dependents was reading", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final source = (await readLiveSlots(dayId)).single.id; // 08:00
@@ -566,7 +547,6 @@ void main() {
     test("duplicateDay remaps a link onto the copy, never back across the two days", () async {
       final sourceDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final first = (await readLiveSlots(sourceDayId)).single.id;
@@ -604,7 +584,6 @@ void main() {
       () async {
         final dayId = (await scheduleService.createDay(
           database: database,
-          screenplayId: screenplayId,
           date: DateTime(2026, 8, 10),
         ))!;
         final slotA = (await readLiveSlots(dayId)).single.id;
@@ -650,7 +629,6 @@ void main() {
     test("deleteSlot tombstones its own blocks too when it is the day's last live slot", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -677,7 +655,6 @@ void main() {
     test("deleteSlot tombstones its own guests, a guest being convoked by the slot", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -696,7 +673,6 @@ void main() {
     test("addSlotCastRole refuses convoking the same role twice in one slot", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -724,7 +700,6 @@ void main() {
     test("a person with two declared positions convoked twice lands on both, in order", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -761,7 +736,6 @@ void main() {
     test("a third convocation of the same person pre-fills nothing", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -788,7 +762,6 @@ void main() {
     test("a person with a free-label declared position pre-fills that label", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -814,7 +787,6 @@ void main() {
     test("an explicit positionId passed by the caller wins over the pre-fill", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -840,7 +812,6 @@ void main() {
     test("a person with nothing declared gets an empty position, as before", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -865,13 +836,11 @@ void main() {
         () async {
       final firstDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
       final secondDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
       ))!;
       final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
@@ -907,7 +876,6 @@ void main() {
         () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -932,7 +900,6 @@ void main() {
 
       final placements = await scheduleService.loadShotPlacements(
         database: database,
-        screenplayId: screenplayId,
       );
       expect(placements[shotId], hasLength(2));
       expect(placements[shotId]!.every((placement) => placement.dayId == dayId), isTrue);
@@ -942,13 +909,11 @@ void main() {
         () async {
       final firstDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final firstSlotId = (await readLiveSlots(firstDayId)).single.id;
       final secondDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
       ))!;
       final secondSlotId = (await readLiveSlots(secondDayId)).single.id;
@@ -961,7 +926,6 @@ void main() {
 
       final placements = await scheduleService.loadShotPlacements(
         database: database,
-        screenplayId: screenplayId,
       );
 
       expect(placements[shotId], hasLength(2));
@@ -974,12 +938,10 @@ void main() {
     test("moveBlockToSlot moves a block to another slot, and to that slot's day with it", () async {
       final sourceDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final targetDayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 11),
       ))!;
       final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
@@ -1009,7 +971,6 @@ void main() {
     test("createBlock refuses kind shot, which only placeShot may write", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1027,7 +988,6 @@ void main() {
     test("createBlock keeps a scene on a hold and drops it on any other kind", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1053,7 +1013,6 @@ void main() {
     test("updateBlock drops a hold's scene when it stops being a hold", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1078,7 +1037,6 @@ void main() {
     test("updateBlock refuses to name a scene on a block that isn't a hold", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1102,7 +1060,6 @@ void main() {
     test("updateBlock writes the crew note, independently of the private notes", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1128,7 +1085,6 @@ void main() {
     test("reorderBlock writes exactly one row within a slot's own timetable", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1157,7 +1113,6 @@ void main() {
     test("addSlotGuest mints a row naming a person, reloaded by loadSchedule", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1173,7 +1128,6 @@ void main() {
       expect(guestId, isNotNull);
       final snapshot = await scheduleService.loadSchedule(
         database: database,
-        screenplayId: screenplayId,
       );
       final guest = snapshot.slotsByDayId[dayId]!.single.guests.single;
       expect(guest.id, guestId);
@@ -1185,7 +1139,6 @@ void main() {
     test("addSlotGuest mints a row naming a free-text name", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1205,7 +1158,6 @@ void main() {
     test("addSlotGuest refuses naming both a person and a free name", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1225,7 +1177,6 @@ void main() {
     test("addSlotGuest refuses naming neither a person nor a free name", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1239,7 +1190,6 @@ void main() {
     test("updateSlotGuest may move a guest from a person to a free name, and back", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1276,7 +1226,6 @@ void main() {
       () async {
         final dayId = (await scheduleService.createDay(
           database: database,
-          screenplayId: screenplayId,
           date: DateTime(2026, 8, 10),
         ))!;
         final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1304,7 +1253,6 @@ void main() {
       () async {
         final dayId = (await scheduleService.createDay(
           database: database,
-          screenplayId: screenplayId,
           date: DateTime(2026, 8, 10),
         ))!;
         final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1328,7 +1276,6 @@ void main() {
     test("deleteSlotGuest tombstones the row", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final slotId = (await readLiveSlots(dayId)).single.id;
@@ -1346,7 +1293,6 @@ void main() {
     test("createDayEvent mints a row, reloaded by loadSchedule ordered by minute", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
 
@@ -1365,7 +1311,6 @@ void main() {
 
       final snapshot = await scheduleService.loadSchedule(
         database: database,
-        screenplayId: screenplayId,
       );
       expect(snapshot.eventsByDayId[dayId]!.map((event) => event.label), [
         "Passage du cortège",
@@ -1376,7 +1321,6 @@ void main() {
     test("updateDayEvent updates the fields passed, leaving the rest alone", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final eventId = (await scheduleService.createDayEvent(
@@ -1400,7 +1344,6 @@ void main() {
     test("deleteDayEvent tombstones the row", () async {
       final dayId = (await scheduleService.createDay(
         database: database,
-        screenplayId: screenplayId,
         date: DateTime(2026, 8, 10),
       ))!;
       final eventId = (await scheduleService.createDayEvent(
@@ -1423,7 +1366,6 @@ void main() {
       expect(
         await scheduleService.createDay(
           database: preview,
-          screenplayId: screenplayId,
           date: DateTime(2026, 8, 10),
         ),
         isNull,
@@ -1532,7 +1474,6 @@ void main() {
 
       final snapshot = await scheduleService.loadSchedule(
         database: preview,
-        screenplayId: screenplayId,
       );
       expect(snapshot.days, isEmpty);
     });

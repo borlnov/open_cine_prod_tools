@@ -53,7 +53,6 @@ const _labels = OcptSidesLabels(
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
   status: OcptShootingDayStatus.planned,
@@ -141,7 +140,6 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   OcptShotListSnapshot? shotList,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
-    screenplayId: "screenplay-1",
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,

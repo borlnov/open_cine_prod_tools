@@ -291,10 +291,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       database: project.database,
       screenplayId: project.primaryScreenplayId,
     );
-    final placements = await _scheduleService.loadShotPlacements(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final placements = await _scheduleService.loadShotPlacements(database: project.database);
 
     return snapshot.copyWithPlacements(placements);
   }

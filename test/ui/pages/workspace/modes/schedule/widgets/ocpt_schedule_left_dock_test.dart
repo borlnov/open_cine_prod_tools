@@ -35,7 +35,6 @@ OcptShootingDay _buildDay({
   OcptShootingDayStatus status = OcptShootingDayStatus.planned,
 }) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 8, 4),
   dayNumber: dayNumber,
   status: status,

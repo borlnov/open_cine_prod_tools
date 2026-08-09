@@ -153,7 +153,6 @@ OcptRole _buildRole({
   String castingNotes = "",
 }) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: personId,
   kind: kind,

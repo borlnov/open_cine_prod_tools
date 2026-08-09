@@ -61,9 +61,9 @@ class OcptRoleIndexService {
   ///    that same name — and nothing else: its casting and its notes survive, and the mode shows an
   ///    `OcptRemovedRoleAlert` banner. A row already orphaned is left alone.
   /// 3. A speaking character matching no row (new or renamed-into-existence) gets a freshly
-  ///    inserted [OcptRoleKind.speaking] row, uncast, appended after every live role of the
-  ///    screenplay (hand-added ones included, since the role numbering `OcptRole.number` derives is
-  ///    shared across every kind).
+  ///    inserted [OcptRoleKind.speaking] row, uncast, appended after every live role linked to this
+  ///    episode (hand-added ones included, since the role numbering `OcptRole.number` derives is
+  ///    shared across every kind), plus the `role_episodes` row linking it to [screenplayId].
   ///
   /// Renames are not detected: a rename reads as one disappearance (step 2) and one appearance
   /// (step 3), the same trade `OcptSceneIndexService.reconcile` makes for a heading with no scene
@@ -77,14 +77,20 @@ class OcptRoleIndexService {
     final speakingCharacters = speakingCharactersOf(document.blocks);
     final speakingSet = speakingCharacters.toSet();
 
-    final existingRows =
-        await (database.select(database.ocptRolesTable)..where(
-              (table) =>
-                  table.screenplayId.equals(screenplayId) &
-                  table.isFromScreenplay.equals(true) &
-                  table.isDeleted.not(),
-            ))
-            .get();
+    final existingRowsQuery = database.select(database.ocptRolesTable).join([
+      innerJoin(
+        database.ocptRoleEpisodesTable,
+        database.ocptRoleEpisodesTable.roleId.equalsExp(database.ocptRolesTable.id),
+      ),
+    ])..where(
+      database.ocptRolesTable.isFromScreenplay.equals(true) &
+          database.ocptRolesTable.isDeleted.not() &
+          database.ocptRoleEpisodesTable.screenplayId.equals(screenplayId) &
+          database.ocptRoleEpisodesTable.isDeleted.not(),
+    );
+    final existingRows = [
+      for (final row in await existingRowsQuery.get()) row.readTable(database.ocptRolesTable),
+    ];
 
     final rowByName = <String, OcptRoleRow>{};
     for (final row in existingRows) {
@@ -123,16 +129,25 @@ class OcptRoleIndexService {
 
       for (final name in newNames) {
         previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
+        final roleId = const Uuid().v4();
         await database
             .into(database.ocptRolesTable)
             .insert(
               OcptRolesTableCompanion.insert(
-                id: const Uuid().v4(),
-                screenplayId: screenplayId,
+                id: roleId,
                 name: name,
                 kind: OcptRoleKind.speaking,
                 isFromScreenplay: const Value(true),
                 sortKey: Value(previousSortKey),
+              ),
+            );
+        await database
+            .into(database.ocptRoleEpisodesTable)
+            .insert(
+              OcptRoleEpisodesTableCompanion.insert(
+                id: const Uuid().v4(),
+                roleId: roleId,
+                screenplayId: screenplayId,
               ),
             );
       }
@@ -153,8 +168,9 @@ class OcptRoleIndexService {
   }
 
   /// Adds a hand-added role of [kind] (never [OcptRoleKind.speaking] — that kind is only ever
-  /// created by [reconcile]) named [name] to screenplay [screenplayId], appended after every live
-  /// role, and returns its freshly generated id.
+  /// created by [reconcile]) named [name], appended after every live role of [screenplayId], links
+  /// it to that episode with a freshly generated `role_episodes` row, and returns the role's own
+  /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addRole({
@@ -170,19 +186,29 @@ class OcptRoleIndexService {
     final existing = await _liveRoleRows(database: database, screenplayId: screenplayId);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptRolesTable)
-        .insert(
-          OcptRolesTableCompanion.insert(
-            id: id,
-            screenplayId: screenplayId,
-            name: name,
-            kind: kind,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+    await database.transaction(() async {
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: id,
+              name: name,
+              kind: kind,
+              sortKey: Value(
+                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+              ),
             ),
-          ),
-        );
+          );
+      await database
+          .into(database.ocptRoleEpisodesTable)
+          .insert(
+            OcptRoleEpisodesTableCompanion.insert(
+              id: const Uuid().v4(),
+              roleId: id,
+              screenplayId: screenplayId,
+            ),
+          );
+    });
 
     return id;
   }
@@ -215,13 +241,15 @@ class OcptRoleIndexService {
     );
   }
 
-  /// Tombstones role [roleId] and the `role_elements` links naming it: the removed-role banner's
-  /// "delete" action, and the plain way to remove a hand-added role.
+  /// Tombstones role [roleId], the `role_elements` links naming it, and its `role_episodes`
+  /// links: the removed-role banner's "delete" action, and the plain way to remove a hand-added
+  /// role.
   ///
   /// The links go with it for the reason `OcptElementsService.deleteElement` takes its own along:
   /// nothing can reach a link whose role is gone any more, which makes it an orphan rather than
   /// history. The **element** it pointed at is of course untouched — a coat outlives the character
-  /// who wore it, and it is still in the catalogue.
+  /// who wore it, and it is still in the catalogue — and so is every **episode** a `role_episodes`
+  /// link named: deleting a role is not deleting the screenplays it spoke in.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -233,6 +261,12 @@ class OcptRoleIndexService {
 
     await database.transaction(() async {
       await elementsService.tombstoneRoleLinksOfRole(database: database, roleId: roleId);
+
+      await (database.update(
+        database.ocptRoleEpisodesTable,
+      )..where((table) => table.roleId.equals(roleId))).write(
+        const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+      );
 
       await (database.update(
         database.ocptRolesTable,
@@ -304,12 +338,28 @@ class OcptRoleIndexService {
     });
   }
 
-  /// Every live role row of screenplay [screenplayId], ordered by `sortKey`.
+  /// Every live role row linked to episode [screenplayId] by a live `role_episodes` row, ordered by
+  /// `sortKey`. A role with no live link to [screenplayId] — cut from this episode, or never named
+  /// in it — is not returned, whatever other episode it may still be live in.
   Future<List<OcptRoleRow>> _liveRoleRows({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => (database.select(database.ocptRolesTable)
-        ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) async {
+    final query = database.select(database.ocptRolesTable).join([
+      innerJoin(
+        database.ocptRoleEpisodesTable,
+        database.ocptRoleEpisodesTable.roleId.equalsExp(database.ocptRolesTable.id),
+      ),
+    ])
+      ..where(
+        database.ocptRolesTable.isDeleted.not() &
+            database.ocptRoleEpisodesTable.screenplayId.equals(screenplayId) &
+            database.ocptRoleEpisodesTable.isDeleted.not(),
+      )
+      ..orderBy([OrderingTerm.asc(database.ocptRolesTable.sortKey)]);
+
+    return [
+      for (final row in await query.get()) row.readTable(database.ocptRolesTable),
+    ];
+  }
 }

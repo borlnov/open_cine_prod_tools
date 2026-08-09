@@ -1157,7 +1157,6 @@ Action two three.
         .insert(
           OcptRolesTableCompanion.insert(
             id: "role-1",
-            screenplayId: screenplayId,
             name: "LÉA",
             kind: OcptRoleKind.silent,
           ),

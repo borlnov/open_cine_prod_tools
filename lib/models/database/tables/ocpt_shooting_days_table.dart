@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 
 /// Converts a [OcptShootingDayStatus] to and from the text stored in the `shooting_days.status`
@@ -23,6 +22,12 @@ class OcptShootingDayStatusConverter extends TypeConverter<OcptShootingDayStatus
 
 /// One day of the shooting schedule.
 ///
+/// A day belongs to **no episode** (`docs/adr/0019-one-project-several-episodes.md`): it regularly
+/// covers two of them at one location, which is the whole point of shooting a series out of order,
+/// and the shared schedule is what makes that possible. Filing a day under one episode would make
+/// the schedule mode lie about the plan it actually holds, so nothing here says which screenplay a
+/// day is "for" — the schedule reads across every episode of the project.
+///
 /// A day is placed in the calendar by [date], never by a free-text label: the week and month
 /// agenda views, the sun and twilight block and every crossing against a person's or a location's
 /// availability all depend on it being real and never null. The *day number* printed on a call
@@ -40,10 +45,6 @@ class OcptShootingDaysTable extends Table {
 
   /// The stable, unique id of this day (a UUID).
   TextColumn get id => text()();
-
-  /// The screenplay this day belongs to: the schedule is per screenplay, like the shot list and the
-  /// role index.
-  TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
 
   /// The calendar date of this day. **Never null**: see the class doc comment.
   DateTimeColumn get date => dateTime()();

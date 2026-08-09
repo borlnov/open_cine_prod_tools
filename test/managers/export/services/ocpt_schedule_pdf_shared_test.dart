@@ -123,11 +123,9 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptPerson> people = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
-    screenplayId: "screenplay-1",
     days: [
       OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026),
         dayNumber: 1,
         status: OcptShootingDayStatus.planned,
@@ -170,7 +168,6 @@ OcptShootingDayBlock _buildBlock({
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required int number}) => OcptRole(
   id: id,
-  screenplayId: "screenplay-1",
   name: "Role $number",
   personId: null,
   kind: OcptRoleKind.speaking,

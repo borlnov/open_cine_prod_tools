@@ -4,7 +4,6 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
 /// Converts a [OcptRoleKind] to and from the text stored in the `roles.kind` column.
@@ -23,11 +22,14 @@ class OcptRoleKindConverter extends TypeConverter<OcptRoleKind, String> {
 
 /// A character of the film and the person cast to play them, if any.
 ///
-/// A speaking role is **reconciled from the screenplay**, not typed from nothing
-/// (`OcptRoleIndexService`, on the same save path `OcptSceneIndexService` already runs), mirroring
-/// the way `shots.orphanedHeading` survives a scene's disappearance: a role's casting and notes
-/// outlive the character being renamed or cut. A role for a non-speaking part or a group of extras
-/// is added by hand instead — see [kind].
+/// A role belongs to the **production**, not to any one screenplay
+/// (`docs/adr/0019-one-project-several-episodes.md`): a character speaking in several episodes is
+/// one casting, not one per episode, and `role_episodes` (`OcptRoleEpisodesTable`) is what records
+/// which episodes name it. A speaking role is **reconciled from the screenplay**, not typed from
+/// nothing (`OcptRoleIndexService`, on the same save path `OcptSceneIndexService` already runs),
+/// mirroring the way `shots.orphanedHeading` survives a scene's disappearance: a role's casting and
+/// notes outlive the character being renamed or cut in any one episode. A role for a non-speaking
+/// part or a group of extras is added by hand instead — see [kind].
 @DataClassName('OcptRoleRow')
 class OcptRolesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptRolesTable}
@@ -36,10 +38,6 @@ class OcptRolesTable extends Table {
 
   /// The stable, unique id of this role (a UUID).
   TextColumn get id => text()();
-
-  /// The screenplay this role belongs to: roles are reconciled per screenplay, like the scene
-  /// index.
-  TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
 
   /// The character's name.
   TextColumn get name => text()();

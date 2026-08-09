@@ -75,7 +75,6 @@ OcptRole _role({
   int number = 3,
 }) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: personId,
   kind: kind,

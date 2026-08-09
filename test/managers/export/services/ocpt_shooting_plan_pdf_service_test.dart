@@ -108,7 +108,6 @@ const _labels = OcptShootingPlanLabels(
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
   status: OcptShootingDayStatus.planned,
@@ -261,7 +260,6 @@ OcptPerson _buildPerson({required String id, required String firstName, required
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) => OcptRole(
   id: id,
-  screenplayId: "screenplay-1",
   name: name,
   personId: personId,
   kind: OcptRoleKind.speaking,
@@ -405,7 +403,6 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   OcptShotListSnapshot? shotList,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
-    screenplayId: "screenplay-1",
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,

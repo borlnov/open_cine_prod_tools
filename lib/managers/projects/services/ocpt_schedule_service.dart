@@ -120,18 +120,15 @@ class OcptScheduleService {
   /// Class constructor
   const OcptScheduleService();
 
-  /// Loads the whole shooting schedule of [screenplayId] in [database]: every live day, in
-  /// `sortKey` order, joined with its live slots (each carrying its own live crew, cast and guests),
-  /// its live blocks and its live events.
+  /// Loads the whole shooting schedule of the project in [database]: every live day, in `sortKey`
+  /// order, joined with its live slots (each carrying its own live crew, cast and guests), its live
+  /// blocks and its live events.
   ///
   /// Runs a bounded number of queries regardless of the schedule's size — one per table, each
   /// restricted to the days (or slots) already loaded — rather than one per day, exactly as
   /// `OcptLocationsService.loadLocations` joins locations with their sets in memory.
-  Future<OcptScheduleSnapshot> loadSchedule({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-  }) async {
-    final dayRows = await _liveDayRows(database: database, screenplayId: screenplayId);
+  Future<OcptScheduleSnapshot> loadSchedule({required OcptProjectDatabase database}) async {
+    final dayRows = await _liveDayRows(database: database);
     final dayIds = dayRows.map((row) => row.id).toList(growable: false);
 
     final slotRows = dayIds.isEmpty
@@ -233,7 +230,6 @@ class OcptScheduleService {
     ];
 
     return OcptScheduleSnapshot.build(
-      screenplayId: screenplayId,
       days: days,
       slotsByDayId: slotsByDayId,
       blocksByDayId: blocksByDayId,
@@ -241,7 +237,7 @@ class OcptScheduleService {
     );
   }
 
-  /// For every shot of [screenplayId] placed in the schedule, every block that places it — which
+  /// For every shot of the project placed in the schedule, every block that places it — which
   /// day it sits on and that day's rank and date — keyed by shot id, each list ordered by
   /// `dayNumber` ascending, which is chronological order (days are ranked by date, then by
   /// `sortKey` between two sharing one), and, within a day, in the order the query itself returns,
@@ -253,9 +249,8 @@ class OcptScheduleService {
   /// break, or on two different days — carries two entries in its own list.
   Future<Map<String, List<OcptShotPlacement>>> loadShotPlacements({
     required OcptProjectDatabase database,
-    required String screenplayId,
   }) async {
-    final dayRows = await _liveDayRows(database: database, screenplayId: screenplayId);
+    final dayRows = await _liveDayRows(database: database);
     if (dayRows.isEmpty) {
       return const {};
     }
@@ -309,8 +304,8 @@ class OcptScheduleService {
     return placementsByShotId;
   }
 
-  /// Creates a new shooting day of screenplay [screenplayId] dated [date], appended at the end, and
-  /// returns its freshly generated id.
+  /// Creates a new shooting day of the project dated [date], appended at the end, and returns its
+  /// freshly generated id.
   ///
   /// **Mints one slot with it.** A day has at least one convocation window — see
   /// `OcptShootingSlotsTable`'s own doc comment — and a day with none could hold no crew, no cast
@@ -320,7 +315,6 @@ class OcptScheduleService {
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createDay({
     required OcptProjectDatabase database,
-    required String screenplayId,
     required DateTime date,
   }) async {
     if (database.refusesUserWrite("createDay")) {
@@ -328,7 +322,7 @@ class OcptScheduleService {
     }
 
     return database.transaction(() async {
-      final existing = await _liveDayRows(database: database, screenplayId: screenplayId);
+      final existing = await _liveDayRows(database: database);
       final dayId = const Uuid().v4();
 
       await database
@@ -336,7 +330,6 @@ class OcptScheduleService {
           .insert(
             OcptShootingDaysTableCompanion.insert(
               id: dayId,
-              screenplayId: screenplayId,
               date: date,
               sortKey: Value(
                 ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
@@ -444,9 +437,9 @@ class OcptScheduleService {
     });
   }
 
-  /// Creates a new day dated [date], appended at the end of [sourceDayId]'s screenplay, carrying
-  /// copies of [sourceDayId]'s live slots, their live crew, their live cast and their live guests —
-  /// fresh ids, fresh `sortKey`s, everything else copied verbatim. Returns the new day's id.
+  /// Creates a new day dated [date], appended at the end of the project's days, carrying copies of
+  /// [sourceDayId]'s live slots, their live crew, their live cast and their live guests — fresh
+  /// ids, fresh `sortKey`s, everything else copied verbatim. Returns the new day's id.
   ///
   /// **Copies neither the placed shots, the crew note, nor the source day's events** — see the class
   /// doc comment for why, and
@@ -467,11 +460,10 @@ class OcptScheduleService {
     }
 
     return database.transaction(() async {
-      final sourceDay = await _getDayRow(database: database, dayId: sourceDayId);
-      final existingDays = await _liveDayRows(
-        database: database,
-        screenplayId: sourceDay.screenplayId,
-      );
+      // Read back for validation alone from here on — throws if `sourceDayId` doesn't exist or has
+      // been tombstoned — since a day no longer names a screenplay for this method to carry over.
+      await _getDayRow(database: database, dayId: sourceDayId);
+      final existingDays = await _liveDayRows(database: database);
       final newDayId = const Uuid().v4();
 
       await database
@@ -479,7 +471,6 @@ class OcptScheduleService {
           .insert(
             OcptShootingDaysTableCompanion.insert(
               id: newDayId,
-              screenplayId: sourceDay.screenplayId,
               date: date,
               sortKey: Value(
                 ocptFractionalKeyBetween(
@@ -1774,19 +1765,19 @@ class OcptScheduleService {
         ..where((table) => table.id.equals(blockId) & table.isDeleted.not()))
       .getSingle();
 
-  /// Every live day row of screenplay [screenplayId], ordered by `date` ascending then `sortKey`
-  /// ascending — chronologically, `sortKey` breaking the tie between two days sharing one date (a
-  /// second unit), the order [OcptShootingDay.dayNumber] is a read-time rank over.
-  Future<List<OcptShootingDayRow>> _liveDayRows({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-  }) => (database.select(database.ocptShootingDaysTable)
-        ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
-        ..orderBy([
-          (table) => OrderingTerm.asc(table.date),
-          (table) => OrderingTerm.asc(table.sortKey),
-        ]))
-      .get();
+  /// Every live day row of the **project** — a shooting day belongs to no one episode
+  /// (`docs/adr/0019-one-project-several-episodes.md`), the schedule being shared across every
+  /// screenplay it holds — ordered by `date` ascending then `sortKey` ascending: chronologically,
+  /// `sortKey` breaking the tie between two days sharing one date (a second unit), the order
+  /// [OcptShootingDay.dayNumber] is a read-time rank over.
+  Future<List<OcptShootingDayRow>> _liveDayRows({required OcptProjectDatabase database}) =>
+      (database.select(database.ocptShootingDaysTable)
+            ..where((table) => table.isDeleted.not())
+            ..orderBy([
+              (table) => OrderingTerm.asc(table.date),
+              (table) => OrderingTerm.asc(table.sortKey),
+            ]))
+          .get();
 
   /// Every live slot row of day [dayId], ordered by `sortKey`.
   Future<List<OcptShootingSlotRow>> _liveSlotRows({

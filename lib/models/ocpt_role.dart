@@ -16,9 +16,6 @@ class OcptRole extends Equatable {
   /// The stable, unique id of this role (a UUID).
   final String id;
 
-  /// The screenplay this role belongs to.
-  final String screenplayId;
-
   /// The character's name. Owned by `OcptRoleIndexService` while [isFromScreenplay] is true.
   final String name;
 
@@ -44,7 +41,6 @@ class OcptRole extends Equatable {
   /// Class constructor
   const OcptRole({
     required this.id,
-    required this.screenplayId,
     required this.name,
     required this.personId,
     required this.kind,
@@ -57,7 +53,6 @@ class OcptRole extends Equatable {
   /// Builds an [OcptRole] from its stored [row] and its 1-based [number] in `sortKey` order.
   factory OcptRole.fromRow({required OcptRoleRow row, required int number}) => OcptRole(
     id: row.id,
-    screenplayId: row.screenplayId,
     name: row.name,
     personId: row.personId,
     kind: row.kind,
@@ -75,7 +70,6 @@ class OcptRole extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    screenplayId,
     name,
     personId,
     kind,

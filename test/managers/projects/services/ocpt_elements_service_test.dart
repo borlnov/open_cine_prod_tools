@@ -463,7 +463,6 @@ void main() {
           .insert(
             OcptRolesTableCompanion.insert(
               id: "role-1",
-              screenplayId: "screenplay-1",
               name: "CLARA",
               kind: OcptRoleKind.speaking,
               sortKey: const Value("a"),
@@ -474,7 +473,6 @@ void main() {
           .insert(
             OcptRolesTableCompanion.insert(
               id: "role-2",
-              screenplayId: "screenplay-1",
               name: "LE CLIENT",
               kind: OcptRoleKind.speaking,
               sortKey: const Value("b"),

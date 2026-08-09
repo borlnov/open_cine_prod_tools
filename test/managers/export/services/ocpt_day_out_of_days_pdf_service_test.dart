@@ -56,7 +56,6 @@ const _labels = OcptDayOutOfDaysLabels(
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
   status: OcptShootingDayStatus.planned,
@@ -91,7 +90,6 @@ OcptShootingSlot _buildSlot({
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, required int number}) => OcptRole(
   id: id,
-  screenplayId: "screenplay-1",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,
@@ -109,7 +107,6 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptRole> roles = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
-    screenplayId: "screenplay-1",
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: const {},

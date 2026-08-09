@@ -40,7 +40,6 @@ import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
 OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
   id: id,
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 1, dayNumber),
   dayNumber: dayNumber,
   status: OcptShootingDayStatus.planned,
@@ -135,7 +134,6 @@ OcptShootingSlotGuest _buildGuest({
 /// Builds a role with the few fields these tests read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, String? personId}) => OcptRole(
   id: id,
-  screenplayId: "screenplay-1",
   name: name,
   personId: personId,
   kind: OcptRoleKind.speaking,
@@ -396,7 +394,6 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   int? minimumRestMinutes,
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
-    screenplayId: "screenplay-1",
     days: days,
     slotsByDayId: slotsByDayId,
     blocksByDayId: blocksByDayId,

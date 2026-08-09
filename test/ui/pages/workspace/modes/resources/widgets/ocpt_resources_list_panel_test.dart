@@ -78,7 +78,6 @@ OcptPerson _person({required String id, required String firstName, required Stri
 /// A role carrying nothing but a name, enough for a row of the list.
 OcptRole _role({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,

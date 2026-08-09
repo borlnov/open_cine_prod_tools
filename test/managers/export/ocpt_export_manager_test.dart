@@ -693,7 +693,6 @@ void main() {
     OcptSchedulePlanSnapshot buildPlan() {
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
         status: OcptShootingDayStatus.planned,
@@ -727,7 +726,6 @@ void main() {
 
       return OcptSchedulePlanSnapshot.build(
         schedule: OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: {
             "day-1": [slot],
@@ -902,7 +900,6 @@ void main() {
         final slot = plan.schedule.slotsByDayId["day-1"]!.first;
         final collidingPlan = OcptSchedulePlanSnapshot.build(
           schedule: OcptScheduleSnapshot.build(
-            screenplayId: plan.schedule.screenplayId,
             days: plan.schedule.days,
             slotsByDayId: {
               "day-1": [
@@ -974,7 +971,6 @@ void main() {
           // only on the second day and must therefore be printed exactly once.
           final dayOne = OcptShootingDay(
             id: "day-1",
-            screenplayId: "screenplay-1",
             date: DateTime(2026, 1, 2),
             dayNumber: 2,
             status: OcptShootingDayStatus.planned,
@@ -984,7 +980,6 @@ void main() {
           );
           final dayTwo = OcptShootingDay(
             id: "day-2",
-            screenplayId: "screenplay-1",
             date: DateTime(2026, 1, 3),
             dayNumber: 3,
             status: OcptShootingDayStatus.planned,
@@ -1049,7 +1044,6 @@ void main() {
 
           final twoDayPlan = OcptSchedulePlanSnapshot.build(
             schedule: OcptScheduleSnapshot.build(
-              screenplayId: "screenplay-1",
               days: [dayOne, dayTwo],
               slotsByDayId: {
                 "day-1": [slotOne],
@@ -1140,7 +1134,6 @@ void main() {
     OcptSchedulePlanSnapshot buildPlan() {
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
         status: OcptShootingDayStatus.planned,
@@ -1165,7 +1158,6 @@ void main() {
 
       return OcptSchedulePlanSnapshot.build(
         schedule: OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: {
             "day-1": [slot],
@@ -1256,7 +1248,6 @@ void main() {
     OcptSchedulePlanSnapshot buildPlan() {
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
         status: OcptShootingDayStatus.planned,
@@ -1281,7 +1272,6 @@ void main() {
 
       return OcptSchedulePlanSnapshot.build(
         schedule: OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: const {
             "day-1": [slot],
@@ -1294,7 +1284,6 @@ void main() {
         roles: const [
           OcptRole(
             id: "role-1",
-            screenplayId: "screenplay-1",
             name: "Alice",
             personId: null,
             kind: OcptRoleKind.speaking,
@@ -1379,7 +1368,6 @@ void main() {
     OcptSchedulePlanSnapshot buildPlan() {
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
         status: OcptShootingDayStatus.planned,
@@ -1404,7 +1392,6 @@ void main() {
 
       return OcptSchedulePlanSnapshot.build(
         schedule: OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: const {
             "day-1": [slot],
@@ -1486,7 +1473,6 @@ void main() {
     OcptSchedulePlanSnapshot buildPlan() {
       final day = OcptShootingDay(
         id: "day-1",
-        screenplayId: "screenplay-1",
         date: DateTime(2026, 1, 2),
         dayNumber: 2,
         status: OcptShootingDayStatus.planned,
@@ -1511,7 +1497,6 @@ void main() {
 
       return OcptSchedulePlanSnapshot.build(
         schedule: OcptScheduleSnapshot.build(
-          screenplayId: "screenplay-1",
           days: [day],
           slotsByDayId: const {
             "day-1": [slot],

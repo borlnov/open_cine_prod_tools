@@ -373,10 +373,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
   /// Reads [project]'s whole schedule.
   Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
-      _scheduleService.loadSchedule(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      _scheduleService.loadSchedule(database: project.database);
 
   /// Leaves the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
@@ -595,11 +592,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    final dayId = await _scheduleService.createDay(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      date: event.date,
-    );
+    final dayId = await _scheduleService.createDay(database: project.database, date: event.date);
 
     await _applyScheduleSnapshot(emitter, project);
     if (dayId != null) {

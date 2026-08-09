@@ -8,8 +8,12 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 
 /// One day of the shooting schedule.
 ///
-/// [dayNumber] is the printed `J3` — a **read-time rank**, 1-based, over the screenplay's live
-/// days ordered chronologically (by `date`, `sortKey` breaking a tie between two days sharing one
+/// A day belongs to no episode — see `OcptShootingDaysTable`'s own doc comment
+/// (`docs/adr/0019-one-project-several-episodes.md`) — the schedule being the production's rather
+/// than any one screenplay's.
+///
+/// [dayNumber] is the printed `J3` — a **read-time rank**, 1-based, over the project's live days
+/// ordered chronologically (by `date`, `sortKey` breaking a tie between two days sharing one
 /// date), exactly as `OcptShot.position` is never `shots.position`. It is a **label, not an id**:
 /// moving a day's date renumbers every day around it, which is what `J1`/`J2` mean on a call
 /// sheet. It is never stored: `OcptScheduleService.loadSchedule` counts it off while ordering the
@@ -17,9 +21,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 class OcptShootingDay extends Equatable {
   /// The stable, unique id of this day (a UUID).
   final String id;
-
-  /// The screenplay this day belongs to.
-  final String screenplayId;
 
   /// The calendar date of this day. Never null — see `OcptShootingDaysTable`'s own doc comment.
   final DateTime date;
@@ -43,7 +44,6 @@ class OcptShootingDay extends Equatable {
   /// Class constructor
   const OcptShootingDay({
     required this.id,
-    required this.screenplayId,
     required this.date,
     required this.dayNumber,
     required this.status,
@@ -57,7 +57,6 @@ class OcptShootingDay extends Equatable {
   factory OcptShootingDay.fromRow({required OcptShootingDayRow row, required int dayNumber}) =>
       OcptShootingDay(
         id: row.id,
-        screenplayId: row.screenplayId,
         date: row.date,
         dayNumber: dayNumber,
         status: row.status,
@@ -74,7 +73,6 @@ class OcptShootingDay extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    screenplayId,
     date,
     dayNumber,
     status,

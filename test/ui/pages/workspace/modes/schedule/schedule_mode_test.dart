@@ -147,7 +147,6 @@ void main() {
       final project = projectsManager.currentProject!;
       final dayId = await projectsManager.scheduleService.createDay(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
         date: DateTime(2026, 8, 10),
       );
       expect(dayId, isNotNull);
@@ -183,7 +182,6 @@ void main() {
       final project = projectsManager.currentProject!;
       final dayId = await projectsManager.scheduleService.createDay(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
         date: DateTime(2026, 8, 10),
       );
       expect(dayId, isNotNull);

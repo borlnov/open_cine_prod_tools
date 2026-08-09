@@ -342,5 +342,41 @@ Back again.
         isFalse,
       );
     });
+
+    test("a role linked to no episode is not returned for that episode", () async {
+      const otherScreenplayId = "screenplay-2";
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: otherScreenplayId,
+              title: "Episode 2",
+              updatedAt: DateTime.now(),
+              number: const Value(2),
+            ),
+          );
+
+      await roleIndexService.addRole(
+        database: database,
+        screenplayId: screenplayId,
+        name: "CLARA",
+        kind: OcptRoleKind.extra,
+      );
+
+      // The role's own `role_episodes` link names [screenplayId], not [otherScreenplayId] — so
+      // loading the other episode's cast must come back empty, even though the role itself is
+      // live.
+      final rolesOfOtherEpisode = await roleIndexService.loadRoles(
+        database: database,
+        screenplayId: otherScreenplayId,
+      );
+      expect(rolesOfOtherEpisode, isEmpty);
+
+      final rolesOfOwnEpisode = await roleIndexService.loadRoles(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      expect(rolesOfOwnEpisode.map((role) => role.name), ["CLARA"]);
+    });
   });
 }

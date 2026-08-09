@@ -481,14 +481,12 @@ void main() {
 
     final dayId = await projectsManager.scheduleService.createDay(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
       date: DateTime(2026, 8, 10),
     );
     expect(dayId, isNotNull);
 
     final snapshot = await projectsManager.scheduleService.loadSchedule(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
     );
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
@@ -645,7 +643,6 @@ void main() {
       // A second day, later than the fixture's own — J2 for now.
       final laterDayId = await projectsManager.scheduleService.createDay(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
         date: DateTime(2026, 8, 20),
       );
       expect(laterDayId, isNotNull);
@@ -836,7 +833,6 @@ void main() {
 
       final snapshot = await projectsManager.scheduleService.loadSchedule(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
       );
       final slotId = snapshot.slotsByDayId[fixture.dayId]!.single.id;
       await projectsManager.scheduleService.addSlotCrewMember(

@@ -138,7 +138,6 @@ OcptElement _buildElement({
 /// Builds a role named [name].
 OcptRole _buildRole({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,

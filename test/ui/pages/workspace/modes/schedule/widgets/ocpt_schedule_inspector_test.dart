@@ -39,7 +39,6 @@ OcptShootingDay _buildDay({
   String weatherNote = "",
 }) => OcptShootingDay(
   id: "day-1",
-  screenplayId: "screenplay-1",
   date: DateTime(2026, 8, 4),
   dayNumber: 3,
   status: status,

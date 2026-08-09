@@ -117,7 +117,6 @@ OcptElement _element({
 /// A role the `Roles concerned` card resolves a link against.
 OcptRole _role({required String id, required String name}) => OcptRole(
   id: id,
-  screenplayId: "screenplay",
   name: name,
   personId: null,
   kind: OcptRoleKind.speaking,

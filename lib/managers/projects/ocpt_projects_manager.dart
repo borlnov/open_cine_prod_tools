@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
@@ -219,8 +220,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectsDirectory;
   }
 
-  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay,
-  /// registers it in the recent projects list, and makes it the [currentProject].
+  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
+  /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
+  /// defaults, so a project made today looks exactly like one that came through the schema version
+  /// 18 migration (`docs/adr/0019-one-project-several-episodes.md`) — registers it in the recent
+  /// projects list, and makes it the [currentProject].
   ///
   /// If a project is already open, it's closed first. The project's page format defaults to
   /// [OcptPageFormat.a4] when the platform's locale is French, and to [OcptPageFormat.usLetter]
@@ -267,7 +271,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       await database
           .into(database.ocptScreenplaysTable)
           .insert(
-            OcptScreenplaysTableCompanion.insert(id: screenplayId, title: name, updatedAt: now),
+            OcptScreenplaysTableCompanion.insert(
+              id: screenplayId,
+              title: name,
+              updatedAt: now,
+              number: const Value(1),
+              sortKey: Value(ocptFractionalKeyBetween()),
+            ),
           );
 
       final project = OcptOpenProjectModel(

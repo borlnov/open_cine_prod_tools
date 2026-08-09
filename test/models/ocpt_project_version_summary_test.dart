@@ -33,6 +33,7 @@ void main() {
     personSkills: const [],
     personUnavailabilities: const [],
     roles: const [],
+    roleEpisodes: const [],
     locations: const [],
     locationAvailabilities: const [],
     sets: const [],
@@ -68,6 +69,8 @@ void main() {
     fountainText: fountainText,
     updatedAt: DateTime.utc(2026, 5, 20),
     isDeleted: isDeleted,
+    number: 1,
+    sortKey: "V",
   );
 
   /// A shot row pointing at [sceneId], live unless [isDeleted]. Only the columns this summary
