@@ -19,7 +19,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_effect.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -644,16 +643,6 @@ class OcptSchedulePlanSnapshot extends Equatable {
       startMinute: timeline.startMinute,
       endMinute: timeline.endMinute,
       locationId: slot.locationId,
-      crew: [
-        for (final member in slot.crew)
-          OcptScheduleAlertCrewMember(
-            personId: member.personId,
-            position: OcptCrewPositionRef(
-              positionId: member.positionId,
-              customLabel: member.customLabel,
-            ),
-          ),
-      ],
       personIds: personIds,
       convokedRoleIds: convokedRoleIds,
     );

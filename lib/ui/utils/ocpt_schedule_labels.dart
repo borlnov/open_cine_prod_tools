@@ -710,7 +710,6 @@ String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (
   OcptScheduleAlertKind.personUnavailable => tr.scheduleAlertKindPersonUnavailable,
   OcptScheduleAlertKind.personDoubleBooked => tr.scheduleAlertKindPersonDoubleBooked,
   OcptScheduleAlertKind.locationUncovered => tr.scheduleAlertKindLocationUncovered,
-  OcptScheduleAlertKind.positionLost => tr.scheduleAlertKindPositionLost,
   OcptScheduleAlertKind.roleNotConvoked => tr.scheduleAlertKindRoleNotConvoked,
   OcptScheduleAlertKind.roleUncast => tr.scheduleAlertKindRoleUncast,
   OcptScheduleAlertKind.timelineOverrun => tr.scheduleAlertKindTimelineOverrun,
@@ -757,12 +756,6 @@ String ocptScheduleAlertSentence(
     tr.scheduleAlertLocationUncoveredSentence(
       _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
       _ocptScheduleAlertLocationNameOf(tr, locationById, locationId),
-    ),
-  OcptSchedulePositionLostAlert(:final personId, :final slotId, :final position) =>
-    tr.scheduleAlertPositionLostSentence(
-      position.positionId.isEmpty ? position.customLabel : ocptCrewPositionLabel(tr, position.positionId),
-      _ocptScheduleAlertPersonNameOf(tr, personById, personId),
-      _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
     ),
   OcptScheduleRoleNotConvokedAlert(:final roleId, :final shotId) =>
     tr.scheduleAlertRoleNotConvokedSentence(

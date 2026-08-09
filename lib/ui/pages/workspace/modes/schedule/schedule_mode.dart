@@ -685,9 +685,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
       };
 
   /// Builds the positions matrix: who holds which crew position, slot by slot, across the whole
-  /// shoot. A position lost mid-day is [OcptSchedulePositionLostAlert]'s own sentence, read in the
-  /// `Alerts` panel — this view marks no cell for it, so the two can never disagree about what
-  /// "lost" means.
+  /// shoot. A position held on one slot and by nobody on the next is read straight off two
+  /// neighbouring columns here, and raises no alert of its own — a crew that changes between two
+  /// units is what a slot is for.
   Widget _buildPositionsMatrix(BuildContext context, OcptScheduleState state) => OcptSchedulePositionsMatrix(
     days: state.days,
     slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},

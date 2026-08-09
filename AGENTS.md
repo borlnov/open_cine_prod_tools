@@ -977,10 +977,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   label and its **resolved hours, start over end** alone: a day tag repeated on every column said
   nothing about which columns belonged together, and a slot's end is what a reader of this matrix is
   after when they ask whether a position is covered until the wrap. A position **lost mid-day** is
-  marked **nowhere here**: it is `OcptSchedulePositionLostAlert`'s own sentence, read in the `Alerts`
-  panel, and a coloured cell only ever restated it in a place with no room to say why. Every cell is
-  therefore a holder or an em dash, the matrix writes nothing, and like the `Convocations` panel it
-  carries no `isReadOnly` flag at all.
+  **read here and nowhere else**: two neighbouring columns of one day say it without a word, and it
+  raises no alert anywhere in the app — a crew that changes between a morning unit and an afternoon
+  one is what a slot is *for*, so a sentence about every such change only ever cried wolf on the
+  ordinary case. Every cell is therefore a holder or an em dash, the matrix writes nothing, and like
+  the `Convocations` panel it carries no `isReadOnly` flag at all.
   The **presence grid** is the fourth: people × days, a trailing count of each person's working
   days, and cells that are **computed** — `working` when that person is convoked that day,
   `unavailable` when they are not but a `person_unavailabilities` window covers the date, and
@@ -1000,17 +1001,19 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   **`lib/utils/ocpt_schedule_alerts.dart`** (pure, no Flutter, no drift, no `Tr`) is what the mode
   says about a plan before the plan breaks: a sealed `OcptScheduleAlert` per kind, each carrying
   **ids and figures alone** — resolving a name and writing the sentence is the panel's job — and a
-  severity that is a property of the *kind* rather than of an occurrence. Eleven kinds: a person
+  severity that is a property of the *kind* rather than of an occurrence. Ten kinds: a person
   convoked on a day they are unavailable (honouring the day-part window), a person on two slots of
   one day whose bands overlap, and a slot outside every window its location declares are **hard**;
-  a position lost between two consecutive slots, a role in a placed shot convoked on no slot that
+  a role in a placed shot convoked on no slot that
   day, a role with no actor (only among the roles the schedule actually uses), a timeline over-run
   against a pinned anchor, a slot whose fixed end its own blocks over-run, a person's day past
   the maximum recorded for them, a person's rest short of the project's own minimum, and a slot
-  booked at a location whose recorded permit does not cover that date are **soft**.
+  booked at a location whose recorded permit does not cover that date are **soft**. An eleventh — a
+  position lost between two consecutive slots — was implemented and is deliberately **gone**: the
+  positions matrix is where that is read, and see above for why no sentence is owed for it.
   `OcptScheduleRestTimeAlert` compares a person's departure with their arrival on the **next day
   they are actually convoked on** — never merely the next calendar date, which is why the rule sorts
-  the days by date itself where the position-lost one reads the caller's own order — and the gap
+  the days by date itself rather than reading the caller's own order — and the gap
   crosses midnights honestly, a night ending at 1620 followed by a 07:00 call the next date reading
   as four hours. It is raised on the **second** of the two days, the one whose call is too early and
   the day a production would move. `OcptSchedulePermitNotValidAlert` is named for what it says: it
@@ -1048,7 +1051,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   .alertsByDayId` and `OcptScheduleState.alertsOfDay`. A day raising nothing draws **nothing at all**
   rather than a zero, the mark is the graver of the two severities among that day's own alerts (one
   hard alert makes the day read as blocked), and it is **read off the alerts, never a second reading
-  of the nine rules** — the rule the presence grid already follows. Its
+  of the ten rules** — the rule the presence grid already follows. Its
   tooltip names how many and of which kinds, each kind once however often it was raised. Its `onTap`
   is **nullable and wired in exactly one place**, the day view's own summary band, where it opens the
   `Alerts` dock tab: everywhere else it is left null, every one of those surfaces being clickable

@@ -4,7 +4,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
@@ -32,7 +31,6 @@ OcptScheduleAlertSlot _buildSlot({
   required int startMinute,
   int? endMinute,
   String? locationId,
-  List<OcptScheduleAlertCrewMember> crew = const [],
   Set<String> personIds = const {},
   Set<String> convokedRoleIds = const {},
 }) => OcptScheduleAlertSlot(
@@ -40,7 +38,6 @@ OcptScheduleAlertSlot _buildSlot({
   startMinute: startMinute,
   endMinute: endMinute,
   locationId: locationId,
-  crew: crew,
   personIds: personIds,
   convokedRoleIds: convokedRoleIds,
 );
@@ -334,74 +331,7 @@ void main() {
     });
   });
 
-  group("rule 4 — a position lost between two slots of one day", () {
-    const gaffer = OcptCrewPositionRef(positionId: "gaffer", customLabel: "");
-
-    test("fires when the position held on one slot is held by nobody on the next", () {
-      final slot1 = _buildSlot(
-        id: "slot-1",
-        startMinute: 480,
-        crew: [const OcptScheduleAlertCrewMember(personId: "p1", position: gaffer)],
-      );
-      final slot2 = _buildSlot(id: "slot-2", startMinute: 720);
-      final day = _buildDay(id: "day-1", slots: [slot1, slot2]);
-
-      final alerts = _computeAlerts(
-        days: [day],
-        people: const [],
-        roles: const [],
-        locationWindowsByLocationId: const {},
-      );
-
-      final alert = alerts.whereType<OcptSchedulePositionLostAlert>().single;
-      expect(alert.personId, "p1");
-      expect(alert.slotId, "slot-2");
-      expect(alert.position, gaffer);
-    });
-
-    test("does not fire when the position is still held, even by someone else", () {
-      final slot1 = _buildSlot(
-        id: "slot-1",
-        startMinute: 480,
-        crew: [const OcptScheduleAlertCrewMember(personId: "p1", position: gaffer)],
-      );
-      final slot2 = _buildSlot(
-        id: "slot-2",
-        startMinute: 720,
-        crew: [const OcptScheduleAlertCrewMember(personId: "p2", position: gaffer)],
-      );
-      final day = _buildDay(id: "day-1", slots: [slot1, slot2]);
-
-      final alerts = _computeAlerts(
-        days: [day],
-        people: const [],
-        roles: const [],
-        locationWindowsByLocationId: const {},
-      );
-
-      expect(alerts.whereType<OcptSchedulePositionLostAlert>(), isEmpty);
-    });
-
-    test("does not fire on a day with a single slot", () {
-      final slot1 = _buildSlot(
-        id: "slot-1",
-        startMinute: 480,
-        crew: [const OcptScheduleAlertCrewMember(personId: "p1", position: gaffer)],
-      );
-      final day = _buildDay(id: "day-1", slots: [slot1]);
-
-      final alerts = _computeAlerts(
-        days: [day],
-        people: const [],
-        roles: const [],
-        locationWindowsByLocationId: const {},
-      );
-
-      expect(alerts.whereType<OcptSchedulePositionLostAlert>(), isEmpty);
-    });
-  });
-
-  group("rule 5 — a role called for but convoked in no slot of the day", () {
+  group("rule 4 — a role called for but convoked in no slot of the day", () {
     test("fires when the role is convoked on no slot at all", () {
       final slot = _buildSlot(id: "slot-1", startMinute: 480);
       final day = _buildDay(
@@ -442,7 +372,7 @@ void main() {
     });
   });
 
-  group("rule 6 — a role with no actor", () {
+  group("rule 5 — a role with no actor", () {
     test("fires for an uncast role convoked on a slot", () {
       final slot = _buildSlot(id: "slot-1", startMinute: 480, convokedRoleIds: {"role-1"});
       final day = _buildDay(id: "day-1", slots: [slot]);
@@ -487,7 +417,7 @@ void main() {
     });
   });
 
-  group("rule 7 — a timeline over-run against a pinned anchor", () {
+  group("rule 6 — a timeline over-run against a pinned anchor", () {
     test("fires once per OcptTimelineOverrun of the day", () {
       final day = _buildDay(
         id: "day-1",
@@ -523,7 +453,7 @@ void main() {
     });
   });
 
-  group("rule 8 — a slot whose fixed end its own blocks over-run", () {
+  group("rule 7 — a slot whose fixed end its own blocks over-run", () {
     test("fires once per OcptTimelineFixedEndMiss of the day", () {
       final day = _buildDay(
         id: "day-1",
@@ -563,7 +493,7 @@ void main() {
     });
   });
 
-  group("rule 9 — a person's day exceeding their own recorded maximum", () {
+  group("rule 8 — a person's day exceeding their own recorded maximum", () {
     test("fires when computed presence exceeds the recorded maximum", () {
       final slot1 = _buildSlot(id: "slot-1", startMinute: 480, endMinute: 540, personIds: {"p1"});
       final slot2 = _buildSlot(id: "slot-2", startMinute: 900, endMinute: 1140, personIds: {"p1"});
@@ -734,7 +664,7 @@ void main() {
     });
   });
 
-  group("rule 10 — a person's rest between two convoked days falling short", () {
+  group("rule 9 — a person's rest between two convoked days falling short", () {
     test("silent outright when the project has recorded no minimum", () {
       final day1 = _buildDay(
         id: "day-1",
@@ -846,7 +776,7 @@ void main() {
     });
   });
 
-  group("rule 11 — a slot booked at a location whose permit doesn't cover the day", () {
+  group("rule 10 — a slot booked at a location whose permit doesn't cover the day", () {
     test("silent when the location files no permit at all", () {
       final slot = _buildSlot(id: "slot-1", startMinute: 480, locationId: "loc-1");
       final day = _buildDay(id: "day-1", date: DateTime(2026, 1, 5), slots: [slot]);

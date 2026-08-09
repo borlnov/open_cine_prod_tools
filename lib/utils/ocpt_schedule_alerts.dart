@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
@@ -25,14 +24,20 @@ enum OcptScheduleAlertSeverity {
 
 /// What went wrong, one entry per rule [ocptComputeScheduleAlerts] implements.
 ///
-/// **Eleven rules are here.** A twelfth — a key position left unfilled in a slot — is deliberately
+/// **Ten rules are here.** An eleventh — a key position left unfilled in a slot — is deliberately
 /// not implemented: nothing in this app says which position on a film is "key" (a first assistant
 /// camera matters as much as a director of photography on the day their own department is the
 /// bottleneck), and a list invented for the occasion would read as the app's own opinion rather
 /// than the production's. No alert is better than a wrong one here.
 ///
+/// A **position lost between two consecutive slots** was once the fourth of them and is deliberately
+/// gone: a crew that changes between a morning unit and an afternoon one is what slots are *for*,
+/// and reading every such change as something to look at made the panel cry wolf on the ordinary
+/// case. That a position is held on one slot and not the next is already visible, without a
+/// sentence, in the positions matrix's own column-by-column reading.
+///
 /// [OcptTimelineAnchorCycle] (`ocpt_shooting_day_timeline.dart`) is likewise **not** one of the
-/// eleven, and deliberately so: the anchor picker already refuses to offer an entry that would
+/// ten, and deliberately so: the anchor picker already refuses to offer an entry that would
 /// close a cycle (`ocptSlotAnchorWouldCycle`) and `OcptScheduleService.setSlotAnchor` refuses to
 /// write one. A cycle is defence against a hand-edited file, not a state this app's own UI can put
 /// a user in, and an alert for a state nobody can reach would only ever fire on data this app
@@ -49,9 +54,6 @@ enum OcptScheduleAlertKind {
 
   /// [OcptScheduleLocationUncoveredAlert].
   locationUncovered(OcptScheduleAlertSeverity.hard),
-
-  /// [OcptSchedulePositionLostAlert].
-  positionLost(OcptScheduleAlertSeverity.soft),
 
   /// [OcptScheduleRoleNotConvokedAlert].
   roleNotConvoked(OcptScheduleAlertSeverity.soft),
@@ -96,7 +98,7 @@ sealed class OcptScheduleAlert {
   /// casting is not a fact about any one day.
   final String? dayId;
 
-  /// Which of the eleven rules raised this alert.
+  /// Which of the ten rules raised this alert.
   OcptScheduleAlertKind get kind;
 
   /// [kind]'s own [OcptScheduleAlertKind.severity].
@@ -195,38 +197,7 @@ final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.locationUncovered;
 }
 
-/// **Soft, rule 4**: [position] was held by [personId] on the slot immediately before [slotId] (in
-/// the day's own order) and is held by nobody on [slotId] itself.
-///
-/// Compared between **consecutive** slots only: a position still missing two slots later raises
-/// nothing new at that second transition, since nothing changed there that the first alert didn't
-/// already say. [position]'s identity is the pair `(positionId, customLabel)`
-/// `lib/utils/ocpt_crew_position_prefill.dart` already models one with, reused rather than
-/// reinvented.
-final class OcptSchedulePositionLostAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptSchedulePositionLostAlert({
-    required super.dayId,
-    required this.personId,
-    required this.slotId,
-    required this.position,
-  });
-
-  /// Who held [position] on the slot immediately before [slotId].
-  final String personId;
-
-  /// The slot [position] is missing from.
-  final String slotId;
-
-  /// The position that was held and is no longer.
-  final OcptCrewPositionRef position;
-
-  /// This alert's own kind.
-  @override
-  OcptScheduleAlertKind get kind => OcptScheduleAlertKind.positionLost;
-}
-
-/// **Soft, rule 5**: [roleId] is called for by [shotId], a shot placed on [OcptScheduleAlert.dayId],
+/// **Soft, rule 4**: [roleId] is called for by [shotId], a shot placed on [OcptScheduleAlert.dayId],
 /// and [roleId] is convoked (cast or not) on none of that day's slots.
 ///
 /// One alert per (day, role): a role called for by three shots of the same day that is convoked
@@ -253,7 +224,7 @@ final class OcptScheduleRoleNotConvokedAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.roleNotConvoked;
 }
 
-/// **Soft, rule 6**: [roleId] has no actor (`roles.personId` is null), and it is a role the
+/// **Soft, rule 5**: [roleId] has no actor (`roles.personId` is null), and it is a role the
 /// schedule actually uses — cast on some slot of some day, or called for by a shot placed
 /// somewhere.
 ///
@@ -273,7 +244,7 @@ final class OcptScheduleRoleUncastAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.roleUncast;
 }
 
-/// **Soft, rule 7**: a straight pass-through of one [OcptTimelineOverrun] on
+/// **Soft, rule 6**: a straight pass-through of one [OcptTimelineOverrun] on
 /// [OcptScheduleAlert.dayId] — a pinned block the day's own chain could not reach without overlap
 /// (ADR 0015, as amended).
 final class OcptScheduleTimelineOverrunAlert extends OcptScheduleAlert {
@@ -299,7 +270,7 @@ final class OcptScheduleTimelineOverrunAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.timelineOverrun;
 }
 
-/// **Soft, rule 8**: a straight pass-through of one [OcptTimelineFixedEndMiss] on
+/// **Soft, rule 7**: a straight pass-through of one [OcptTimelineFixedEndMiss] on
 /// [OcptScheduleAlert.dayId] — an end-anchored slot whose own blocks did not land back on the fixed
 /// end that anchored them (ADR 0015, as amended twice).
 final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
@@ -325,7 +296,7 @@ final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.slotFixedEndMissed;
 }
 
-/// **Soft, rule 9**: on [OcptScheduleAlert.dayId], [personId]'s own computed presence
+/// **Soft, rule 8**: on [OcptScheduleAlert.dayId], [personId]'s own computed presence
 /// ([presenceMinutes] — the day's own convocation departure minus arrival, joined across every
 /// slot they are linked to, ADR 0018) exceeds the maximum recorded for them
 /// (`people.maxDailyPresenceMinutes`, [maxDailyPresenceMinutes]).
@@ -357,7 +328,7 @@ final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.presenceExceeded;
 }
 
-/// **Soft, rule 10**: [personId]'s own departure on [previousDayId] and their arrival on
+/// **Soft, rule 9**: [personId]'s own departure on [previousDayId] and their arrival on
 /// [OcptScheduleAlert.dayId] — the **next day they are actually convoked on**, not necessarily the
 /// next calendar date — are closer together than [minimumRestMinutes]
 /// (`project_info.minimumRestMinutes`).
@@ -400,7 +371,7 @@ final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.restTime;
 }
 
-/// **Soft, rule 11**: [slotId]'s own location ([locationId]) declares at least one dated
+/// **Soft, rule 10**: [slotId]'s own location ([locationId]) declares at least one dated
 /// [OcptSchedulePermitWindow], and none of them covers [OcptScheduleAlert.dayId]'s own calendar
 /// date.
 ///
@@ -428,21 +399,6 @@ final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.permitNotValid;
 }
 
-/// One crew row of a slot, reduced to what [OcptSchedulePositionLostAlert] compares slot to slot:
-/// who, and which position — the same identity `lib/utils/ocpt_crew_position_prefill.dart` already
-/// models a position with.
-class OcptScheduleAlertCrewMember {
-  /// Builds a crew row to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertCrewMember({required this.personId, required this.position});
-
-  /// The person holding [position] on this slot.
-  final String personId;
-
-  /// The position held. A row whose [OcptCrewPositionRef.isEmpty] is true holds no position at all
-  /// and is ignored by every rule that reads [position].
-  final OcptCrewPositionRef position;
-}
-
 /// One slot of a day, already resolved by the caller (`OcptSchedulePlanSnapshot`, never this file,
 /// which knows nothing of drift or of `shooting_slots`/`shooting_slot_crew`/`shooting_slot_cast`)
 /// into exactly what the day-level rules need: its own resolved band, its location, and who is
@@ -454,7 +410,6 @@ class OcptScheduleAlertSlot {
     required this.startMinute,
     required this.endMinute,
     required this.locationId,
-    required this.crew,
     required this.personIds,
     required this.convokedRoleIds,
   });
@@ -475,12 +430,8 @@ class OcptScheduleAlertSlot {
   /// skipped by the location-coverage rule, there being nothing to check.
   final String? locationId;
 
-  /// This slot's own crew rows — what [OcptSchedulePositionLostAlert] compares from one slot to the
-  /// next.
-  final List<OcptScheduleAlertCrewMember> crew;
-
-  /// Every person convoked on this slot as a human: [crew]'s own people, plus the actors of its
-  /// cast roles that are cast — mirroring `OcptConvocationSlot.personIds`.
+  /// Every person convoked on this slot as a human: its own crew rows' people, plus the actors of
+  /// its cast roles that are cast — mirroring `OcptConvocationSlot.personIds`.
   final Set<String> personIds;
 
   /// Every role convoked on this slot, cast or not — `OcptShootingSlotCastMember.roleId` verbatim.
@@ -630,7 +581,7 @@ class OcptSchedulePermitWindow {
   final DateTime? validUntil;
 }
 
-/// One day, joined by the caller into everything the eleven rules read about it.
+/// One day, joined by the caller into everything the ten rules read about it.
 class OcptScheduleAlertDay {
   /// Builds a day to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertDay({
@@ -649,17 +600,17 @@ class OcptScheduleAlertDay {
   /// weekday mask.
   final DateTime date;
 
-  /// This day's own live slots, in **resolved-start order**: rule 4 (a position lost between two
-  /// slots) reads this list's own adjacency, so the caller orders it, not this file.
+  /// This day's own live slots, in **resolved-start order**: rule 2 names the earlier and the later
+  /// of two overlapping slots out of this list's own order, so the caller orders it, not this file.
   final List<OcptScheduleAlertSlot> slots;
 
-  /// This day's own [OcptShootingDayTimelines.overruns], passed straight through by rule 7.
+  /// This day's own [OcptShootingDayTimelines.overruns], passed straight through by rule 6.
   final List<OcptTimelineOverrun> overruns;
 
-  /// This day's own [OcptShootingDayTimelines.fixedEndMisses], passed straight through by rule 8.
+  /// This day's own [OcptShootingDayTimelines.fixedEndMisses], passed straight through by rule 7.
   final List<OcptTimelineFixedEndMiss> fixedEndMisses;
 
-  /// Every role a shot placed on this day calls for, in the order the caller found them — rule 5
+  /// Every role a shot placed on this day calls for, in the order the caller found them — rule 4
   /// keeps the first [OcptScheduleAlertCalledRole.shotId] it meets for a given role and ignores the
   /// rest.
   final List<OcptScheduleAlertCalledRole> calledRoles;
@@ -669,7 +620,7 @@ class OcptScheduleAlertDay {
 /// 13:00, the same split the schedule mode's day-part pickers already offer.
 const int _dayPartSplitMinute = 13 * 60;
 
-/// Computes every [OcptScheduleAlert] the eleven rules raise over [days], [people], [roles],
+/// Computes every [OcptScheduleAlert] the ten rules raise over [days], [people], [roles],
 /// [locationWindowsByLocationId], [minimumRestMinutes] and [permitWindowsByLocationId] — the
 /// schedule mode's alert computation, implemented exactly once, here.
 ///
@@ -688,9 +639,9 @@ const int _dayPartSplitMinute = 13 * 60;
 /// a second, later calendar date a night slot's tail technically falls on.
 ///
 /// [minimumRestMinutes] is `project_info.minimumRestMinutes` verbatim: **null means nobody has
-/// recorded one**, and rule 10 raises nothing at all rather than assuming a legal minimum this app
+/// recorded one**, and rule 9 raises nothing at all rather than assuming a legal minimum this app
 /// never validated — the same reading a person's own `maxDailyPresenceMinutes` already has for
-/// rule 9.
+/// rule 8.
 ///
 /// The result is sorted **hard alerts before soft**, then by the day order [days] was given (an
 /// alert with no day — [OcptScheduleRoleUncastAlert] alone — sorts after every real day of the same
@@ -709,7 +660,6 @@ List<OcptScheduleAlert> ocptComputeScheduleAlerts({
   _addPersonUnavailableAlerts(alerts, days, people);
   _addPersonDoubleBookedAlerts(alerts, days);
   _addLocationUncoveredAlerts(alerts, days, locationWindowsByLocationId);
-  _addPositionLostAlerts(alerts, days);
   _addRoleNotConvokedAlerts(alerts, days);
   _addRoleUncastAlerts(alerts, days, roles);
   _addTimelineAlerts(alerts, days);
@@ -764,8 +714,8 @@ Map<String, List<OcptScheduleAlert>> ocptGroupScheduleAlertsByDay(List<OcptSched
   return grouped;
 }
 
-/// The string the final sort ties two same-day, same-kind alerts on — an exhaustive switch, so a
-/// twelfth [OcptScheduleAlert] subclass cannot be added without this file being told how to order
+/// The string the final sort ties two same-day, same-kind alerts on — an exhaustive switch, so an
+/// eleventh [OcptScheduleAlert] subclass cannot be added without this file being told how to order
 /// it.
 String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {
   OcptSchedulePersonUnavailableAlert(:final personId, :final unavailabilityId) =>
@@ -773,8 +723,6 @@ String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {
   OcptSchedulePersonDoubleBookedAlert(:final personId, :final firstSlotId, :final secondSlotId) =>
     "$personId|$firstSlotId|$secondSlotId",
   OcptScheduleLocationUncoveredAlert(:final slotId, :final locationId) => "$slotId|$locationId",
-  OcptSchedulePositionLostAlert(:final slotId, :final position, :final personId) =>
-    "$slotId|${position.positionId}|${position.customLabel}|$personId",
   OcptScheduleRoleNotConvokedAlert(:final roleId, :final shotId) => "$roleId|$shotId",
   OcptScheduleRoleUncastAlert(:final roleId) => roleId,
   OcptScheduleTimelineOverrunAlert(:final blockId) => blockId,
@@ -920,45 +868,7 @@ void _addLocationUncoveredAlerts(
   }
 }
 
-/// Rule 4: a position held on one slot and held by nobody on the very next slot of the same day, in
-/// [OcptScheduleAlertDay.slots]' own order.
-void _addPositionLostAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
-  for (final day in days) {
-    final slots = day.slots;
-    for (var i = 0; i < slots.length - 1; i++) {
-      final heldOnCurrent = <OcptCrewPositionRef, String>{};
-      for (final member in slots[i].crew) {
-        if (member.position.isEmpty) {
-          continue;
-        }
-        heldOnCurrent.putIfAbsent(member.position, () => member.personId);
-      }
-      if (heldOnCurrent.isEmpty) {
-        continue;
-      }
-
-      final heldOnNext = <OcptCrewPositionRef>{
-        for (final member in slots[i + 1].crew)
-          if (!member.position.isEmpty) member.position,
-      };
-
-      for (final entry in heldOnCurrent.entries) {
-        if (!heldOnNext.contains(entry.key)) {
-          alerts.add(
-            OcptSchedulePositionLostAlert(
-              dayId: day.id,
-              personId: entry.value,
-              slotId: slots[i + 1].id,
-              position: entry.key,
-            ),
-          );
-        }
-      }
-    }
-  }
-}
-
-/// Rule 5: a role a placed shot calls for and no slot of that same day convokes, cast or not.
+/// Rule 4: a role a placed shot calls for and no slot of that same day convokes, cast or not.
 void _addRoleNotConvokedAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
   for (final day in days) {
     final convokedRoleIds = <String>{
@@ -983,7 +893,7 @@ void _addRoleNotConvokedAlerts(List<OcptScheduleAlert> alerts, List<OcptSchedule
   }
 }
 
-/// Rule 6: a role with no actor, restricted to a role the schedule actually uses somewhere — cast
+/// Rule 5: a role with no actor, restricted to a role the schedule actually uses somewhere — cast
 /// on a slot of any day, or called for by a shot placed on any day.
 void _addRoleUncastAlerts(
   List<OcptScheduleAlert> alerts,
@@ -1007,7 +917,7 @@ void _addRoleUncastAlerts(
   }
 }
 
-/// Rules 7 and 8: a straight pass-through of every day's own [OcptTimelineOverrun]s and
+/// Rules 6 and 7: a straight pass-through of every day's own [OcptTimelineOverrun]s and
 /// [OcptTimelineFixedEndMiss]es.
 void _addTimelineAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
   for (final day in days) {
@@ -1038,7 +948,7 @@ void _addTimelineAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDa
 /// latest resolved slot end over the slots of [day] they are linked to (`slot.personIds`), keyed
 /// by person id; a person linked to no slot of [day] has no entry.
 ///
-/// Shared by rules 9 and 10, which is the whole point of pulling it out: both ask "what is this
+/// Shared by rules 8 and 9, which is the whole point of pulling it out: both ask "what is this
 /// person's day", and a second, slightly different implementation of that question is exactly how
 /// the two could come to disagree about it.
 Map<String, ({int arrival, int departure})> _personDayBandsOf(OcptScheduleAlertDay day) {
@@ -1065,7 +975,7 @@ Map<String, ({int arrival, int departure})> _personDayBandsOf(OcptScheduleAlertD
   };
 }
 
-/// Rule 9: a person whose computed presence on a day — the latest slot end they are linked to minus
+/// Rule 8: a person whose computed presence on a day — the latest slot end they are linked to minus
 /// the earliest slot start — exceeds their own recorded maximum, when one was recorded at all.
 void _addPresenceExceededAlerts(
   List<OcptScheduleAlert> alerts,
@@ -1104,14 +1014,14 @@ void _addPresenceExceededAlerts(
   }
 }
 
-/// Rule 10: a person's own departure on one day and their arrival on the **next day they are
+/// Rule 9: a person's own departure on one day and their arrival on the **next day they are
 /// actually convoked on** (never merely the next calendar date) are closer together than
 /// [minimumRestMinutes] — silent outright when nobody has recorded one (this function's own doc
 /// comment, and [OcptScheduleRestTimeAlert]'s).
 ///
-/// [days] is walked in **date order**, not in the order it arrived in: unlike rule 4, which reads
-/// adjacency out of the caller's own slot order on purpose, this rule is about calendar dates, so
-/// it sorts them itself. The sort is a **stable** one over `(date, original index)` rather than a
+/// [days] is walked in **date order**, not in the order it arrived in: this rule is about calendar
+/// dates rather than about the order the caller happened to hand its days over in, so it sorts them
+/// itself. The sort is a **stable** one over `(date, original index)` rather than a
 /// bare `List.sort` (not guaranteed stable by the language), so two days sharing one date are still
 /// compared in the caller's own order, both anchored on the same midnight, exactly as the class doc
 /// comment promises.
@@ -1179,7 +1089,7 @@ int _wholeDayDifference(DateTime start, DateTime end) {
   return endUtc.difference(startUtc).inDays;
 }
 
-/// Rule 11: a slot booked at a location that declares at least one dated permit window, none of
+/// Rule 10: a slot booked at a location that declares at least one dated permit window, none of
 /// which covers the day's own date. A location with no window at all — the empty list, or a list
 /// whose every entry carries neither date — raises nothing: the identical argument rule 3 already
 /// makes for a location declaring no availability window.

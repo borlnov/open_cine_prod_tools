@@ -142,9 +142,10 @@ class _OcptPositionsMatrixGroup {
 ///
 /// **A cell** is that position's holder on that slot — their initials in their own avatar colour,
 /// their full name in a tooltip — or a plain em dash where nobody holds it. A position **lost**
-/// between two consecutive slots is deliberately **not** marked here: it is
-/// `OcptSchedulePositionLostAlert`'s own sentence, read in the `Alerts` panel, and a marked cell
-/// only ever restated it in a place with no room to say why.
+/// between two consecutive slots is deliberately **not** marked: this matrix is where that is
+/// *read*, off two neighbouring columns of one day, and it raises no alert anywhere in the app —
+/// a crew that changes between a morning unit and an afternoon one is what a slot is for, and a
+/// sentence about every such change only ever cried wolf on the ordinary case.
 ///
 /// Entirely **read-only**, like `OcptScheduleConvocationsPanel`: every figure here is joined or
 /// computed by the caller, and the only callback this widget takes ([onDayOpenRequested]) is a
