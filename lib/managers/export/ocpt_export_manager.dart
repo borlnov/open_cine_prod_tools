@@ -11,6 +11,7 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_sheets_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_day_out_of_days_pdf_service.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xls
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
@@ -55,16 +57,18 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
 /// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
 /// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
-/// breakdown as one printed sheet per scene, and its shooting schedule as call sheets — the general
-/// one and the named ones, both per day —, as one whole-shoot shooting plan, as its cast's own
-/// *Day Out of Days*, as the compact one-line schedule and as a day's own sides booklet.
+/// breakdown as one printed sheet per scene and as a third, two-sheet XLSX workbook, and its
+/// shooting schedule as call sheets — the general one and the named ones, both per day —, as one
+/// whole-shoot shooting plan, as its cast's own *Day Out of Days*, as the compact one-line schedule
+/// and as a day's own sides booklet.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
-/// [callSheetPdfService], [shootingPlanPdfService], [dayOutOfDaysPdfService],
-/// [oneLineSchedulePdfService] and [sidesPdfService], and the "save as"/"choose a folder" location
-/// picking to [saveLocationService] — the twelve services this manager owns (RFL18).
+/// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
+/// [dayOutOfDaysPdfService], [oneLineSchedulePdfService] and [sidesPdfService], and the "save
+/// as"/"choose a folder" location picking to [saveLocationService] — the thirteen services this
+/// manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -86,6 +90,9 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service rendering the breakdown sheets PDF.
   final OcptBreakdownSheetsPdfService breakdownSheetsPdfService;
+
+  /// The service building the breakdown's two-sheet XLSX workbook.
+  final OcptBreakdownXlsxExportService breakdownXlsxExportService;
 
   /// The service rendering the general and the named call sheets PDFs.
   final OcptCallSheetPdfService callSheetPdfService;
@@ -130,6 +137,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
        scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
        breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(fontsLoader: fontsLoader),
+       breakdownXlsxExportService = const OcptBreakdownXlsxExportService(),
        callSheetPdfService = OcptCallSheetPdfService(fontsLoader: fontsLoader),
        shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
        dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
@@ -315,6 +323,39 @@ class OcptExportManager extends AbsWithLifeCycle {
       bytes: bytes,
     );
   }
+
+  /// Builds the breakdown's two-sheet XLSX workbook of [snapshot] via [breakdownXlsxExportService]
+  /// and shows the native save dialog to write it out.
+  ///
+  /// [document] is the screenplay [snapshot]'s scenes were indexed against, read for each scene's
+  /// own length alone, exactly as [exportBreakdownSheets] reads it — see
+  /// [OcptBreakdownXlsxExportService]'s own doc comment. [labels] carries every localized string
+  /// the two sheets themselves hold and [fileTypeLabel] the one the native dialog needs — this
+  /// manager has no `Tr` of its own. Unlike the breakdown sheets, this export takes no options
+  /// dialog: there is nothing to ask before writing it out. Returns the path of the written file,
+  /// or null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
+  Future<String?> exportBreakdownXlsx({
+    required FountainDocument document,
+    required OcptBreakdownSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBreakdownXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: breakdownXlsxExportService.xlsxFileName(
+      projectName: projectName,
+      suffix: labels.fileNameSuffix,
+    ),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: breakdownXlsxExportService.generate(
+      document: document,
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+    ),
+  );
 
   /// Renders one general call sheet per day of [dayIds] via [callSheetPdfService] and writes every
   /// one of them into a folder the user picks.
