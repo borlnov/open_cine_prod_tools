@@ -31,9 +31,19 @@ runs:
         path: ${{ inputs.app-directory }}/build/
         # No branch in the key: GitHub already scopes cache access per branch,
         # so identical sources share one entry instead of per-branch copies.
-        key: build-${{ runner.os }}-${{ inputs.target-platform }}-${{ hashFiles(format('{0}/lib/**', inputs.app-directory), format('{0}/pubspec.lock', inputs.app-directory)) }}
+        #
+        # The runner image is part of the key, and of the restore-keys prefix, because
+        # build/ holds CMake's own caches, and those hold absolute paths into the image:
+        # the JDK a plugin was configured against, the SDKs, the toolchain. A hosted image
+        # is refreshed weekly and those paths carry a patch version, so a cache restored
+        # across a refresh points CMake at directories that no longer exist - and CMake
+        # never re-runs a find_path whose result it already has. Scoping the entry to
+        # ImageOS/ImageVersion makes an image refresh start a fresh lineage instead;
+        # within one image, the incremental reuse is unchanged. Both variables are set by
+        # hosted runners only, so a self-hosted one simply keeps the older, looser key.
+        key: build-${{ runner.os }}-${{ inputs.target-platform }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ hashFiles(format('{0}/lib/**', inputs.app-directory), format('{0}/pubspec.lock', inputs.app-directory)) }}
         restore-keys: |
-          build-${{ runner.os }}-${{ inputs.target-platform }}-
+          build-${{ runner.os }}-${{ inputs.target-platform }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-
 
     - name: Build Flutter app
       working-directory: ${{ inputs.app-directory }}
