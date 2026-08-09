@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
@@ -31,6 +32,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart'
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
@@ -516,6 +518,65 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     nameHeader: tr.scheduleExportNameHeader,
     hoursLinePrefix: tr.scheduleExportHoursLinePrefix,
     unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
+  );
+}
+
+/// Builds every localized string the exported shooting plan **workbook** carries.
+///
+/// The sibling of [ocptShootingPlanLabelsOf] for the second export the shooting plan offers
+/// (`OcptShootingPlanXlsxExportService`, which runs in the manager layer and has no `BuildContext`
+/// of its own), reusing the very same `ocpt…Label` helpers — the day tag, the presence mark, the
+/// `Perso.`/sequence-row words, the crew position and element category labels — so a workbook cell
+/// can never name a day, a position or a category differently from the printed plan.
+/// [OcptShootingPlanXlsxLabels.blockKindLabels] is the one map with no counterpart on
+/// [OcptShootingPlanLabels]: it carries all eight [OcptShootingBlockKind] values,
+/// [OcptShootingBlockKind.shot] included, where the printed plan's own map only ever falls back to
+/// the seven milestone kinds a caption may need.
+///
+/// Unlike [ocptShootingPlanLabelsOf], this takes no `days`/`people`: nothing here needs a day's own
+/// formatted title or the project's director line, a spreadsheet naming a day through its own
+/// `dayTagPrefix` and a real date cell instead.
+OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
+  final tr = Tr.of(context);
+
+  return OcptShootingPlanXlsxLabels(
+    fileNameSuffix: tr.scheduleExportShootingPlanFileNameSuffix,
+    locationsSheetName: tr.scheduleExportShootingPlanXlsxLocationsSheetName,
+    sequencesSheetName: tr.scheduleExportShootingPlanXlsxSequencesSheetName,
+    peopleSheetName: tr.scheduleExportShootingPlanXlsxPeopleSheetName,
+    elementsSheetName: tr.scheduleExportShootingPlanXlsxElementsSheetName,
+    chronologySheetName: tr.scheduleExportShootingPlanXlsxChronologySheetName,
+    locationsRowHeader: tr.scheduleExportLocationsGridRowHeader,
+    sequencesRowHeader: tr.scheduleExportSequencesGridRowHeader,
+    peopleRowHeader: tr.scheduleExportPeopleGridRowHeader,
+    elementsRowHeader: tr.scheduleExportElementsGridRowHeader,
+    chronologyColumnHeaders: {
+      OcptShootingPlanXlsxColumn.dayTag: tr.scheduleExportDayNumberLabel,
+      OcptShootingPlanXlsxColumn.date: tr.scheduleExportShootingPlanXlsxDateColumnHeader,
+      OcptShootingPlanXlsxColumn.slot: tr.scheduleInspectorSlotLabel,
+      OcptShootingPlanXlsxColumn.start: tr.scheduleSlotStartLabel,
+      OcptShootingPlanXlsxColumn.end: tr.scheduleSlotEndLabel,
+      OcptShootingPlanXlsxColumn.kind: tr.scheduleExportShootingPlanXlsxKindColumnHeader,
+      OcptShootingPlanXlsxColumn.shot: tr.shotListColumnShot,
+      OcptShootingPlanXlsxColumn.sequence: tr.scheduleExportSeqHeader,
+      OcptShootingPlanXlsxColumn.set: tr.scheduleExportDecorsHeader,
+      OcptShootingPlanXlsxColumn.roles: tr.scheduleExportRolesHeader,
+      OcptShootingPlanXlsxColumn.durationMinutes: tr.scheduleExportShootingPlanXlsxDurationColumnHeader,
+      OcptShootingPlanXlsxColumn.crewNote: tr.scheduleInspectorBlockCrewNoteLabel,
+    },
+    dayTagPrefix: tr.scheduleDayTagPrefix,
+    presenceMark: tr.scheduleExportPresenceMark,
+    persoLabel: tr.scheduleExportPersoLabel,
+    sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
+    crewPositionLabels: {
+      for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
+    },
+    elementCategoryLabels: {
+      for (final category in OcptElementCategory.values) category: ocptElementCategoryLabel(tr, category),
+    },
+    blockKindLabels: {
+      for (final kind in OcptShootingBlockKind.values) kind: ocptShootingBlockKindLabel(tr, kind),
+    },
   );
 }
 

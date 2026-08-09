@@ -7644,6 +7644,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportPanelShootingPlanXlsxTitle": "Shooting plan workbook",
+  "@scheduleExportPanelShootingPlanXlsxTitle": {
+    "description": "Name of the shooting plan workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanXlsxDescription": "The same summary grids, plus a full chronology of the shoot, as a spreadsheet.",
+  "@scheduleExportPanelShootingPlanXlsxDescription": {
+    "description": "Sentence saying what the shooting plan workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportUnavailableReason": "No day is planned yet.",
   "@scheduleExportUnavailableReason": {
     "description": "Reason shown in place of a card's description while the project holds no live day",
@@ -7668,6 +7682,13 @@
   "scheduleExportShootingPlanDialogTitle": "Export the shooting plan",
   "@scheduleExportShootingPlanDialogTitle": {
     "description": "Title of the shooting plan export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxDialogTitle": "Export the shooting plan workbook",
+  "@scheduleExportShootingPlanXlsxDialogTitle": {
+    "description": "Title of the shooting plan workbook export options dialog",
     "context": "Displayed as the dialog's own AlertDialog title",
     "type": "text",
     "placeholders": {}
@@ -7711,6 +7732,13 @@
   "@scheduleExportFileTypeLabel": {
     "description": "Label of the native save dialog's own type filter, shown when saving the shooting plan",
     "context": "Passed to the OS save dialog opened by the shooting plan export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportXlsxFileTypeLabel": "Excel workbook",
+  "@scheduleExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the shooting plan workbook",
     "type": "text",
     "placeholders": {}
   },
@@ -8279,6 +8307,62 @@
   "@scheduleExportShootingPlanDocumentTitle": {
     "description": "Generic name of the shooting plan document, printed as its own running head and on its own title page",
     "context": "Printed small above every page of the exported shooting plan, and as its title page's own document name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxLocationsSheetName": "Locations",
+  "@scheduleExportShootingPlanXlsxLocationsSheetName": {
+    "description": "Name of the shooting plan workbook's own locations summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxSequencesSheetName": "Sequences",
+  "@scheduleExportShootingPlanXlsxSequencesSheetName": {
+    "description": "Name of the shooting plan workbook's own sequences summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxPeopleSheetName": "Crew and cast",
+  "@scheduleExportShootingPlanXlsxPeopleSheetName": {
+    "description": "Name of the shooting plan workbook's own crew and cast summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxElementsSheetName": "Elements",
+  "@scheduleExportShootingPlanXlsxElementsSheetName": {
+    "description": "Name of the shooting plan workbook's own elements summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxChronologySheetName": "Chronology",
+  "@scheduleExportShootingPlanXlsxChronologySheetName": {
+    "description": "Name of the shooting plan workbook's own chronology sheet, one row per block over the whole printed range",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxDateColumnHeader": "Date",
+  "@scheduleExportShootingPlanXlsxDateColumnHeader": {
+    "description": "Header of the chronology sheet's own date column",
+    "context": "Shown as a column header in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxKindColumnHeader": "Kind",
+  "@scheduleExportShootingPlanXlsxKindColumnHeader": {
+    "description": "Header of the chronology sheet's own block-kind column",
+    "context": "Shown as a column header in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxDurationColumnHeader": "Duration (min)",
+  "@scheduleExportShootingPlanXlsxDurationColumnHeader": {
+    "description": "Header of the chronology sheet's own resolved-duration column, in minutes",
+    "context": "Shown as a column header in the exported .xlsx workbook",
     "type": "text",
     "placeholders": {}
   },
