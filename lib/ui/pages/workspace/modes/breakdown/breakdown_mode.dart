@@ -197,14 +197,15 @@ class _BreakdownViewState extends State<_BreakdownView> {
     ),
   ];
 
-  /// Builds the single entry the toolbar's `Export` button offers: the breakdown sheets,
-  /// unavailable while the screenplay holds no scene at all — there would be nothing to print a
-  /// sheet for.
+  /// Builds the two entries the toolbar's `Export` button offers: the breakdown sheets and the
+  /// breakdown workbook, both unavailable while the screenplay holds no scene at all — there would
+  /// be nothing to print a sheet for, or a row to write into a workbook.
   List<OcptWorkspaceExportEntry<OcptBreakdownExportDocument>> _buildExportEntries(
     BuildContext context,
     OcptBreakdownState state,
   ) {
     final tr = Tr.of(context);
+    final unavailableReason = state.scenes.isEmpty ? tr.breakdownExportUnavailableReason : null;
 
     return [
       OcptWorkspaceExportEntry<OcptBreakdownExportDocument>(
@@ -212,14 +213,22 @@ class _BreakdownViewState extends State<_BreakdownView> {
         title: tr.breakdownExportSheetsTitle,
         description: tr.breakdownExportSheetsDescription,
         formatLabel: "PDF",
-        unavailableReason: state.scenes.isEmpty ? tr.breakdownExportUnavailableReason : null,
+        unavailableReason: unavailableReason,
+      ),
+      OcptWorkspaceExportEntry<OcptBreakdownExportDocument>(
+        value: OcptBreakdownExportDocument.xlsx,
+        title: tr.breakdownExportXlsxTitle,
+        description: tr.breakdownExportXlsxDescription,
+        formatLabel: "XLSX",
+        unavailableReason: unavailableReason,
       ),
     ];
   }
 
-  /// Opens the export panel, then dispatches the breakdown sheets export request if the user
-  /// picked its own card — the panel's only one — through [_requestSheetsExport], which opens the
-  /// export options dialog exactly as it always has.
+  /// Opens the export panel, then dispatches the picked document's own export request: the
+  /// breakdown sheets go through [_requestSheetsExport], which opens their own options dialog
+  /// first, while the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no
+  /// options dialog at all.
   Future<void> _requestExport(BuildContext context, OcptBreakdownState state) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptBreakdownExportDocument>(
@@ -235,7 +244,12 @@ class _BreakdownViewState extends State<_BreakdownView> {
       return;
     }
 
-    await _requestSheetsExport(context, state);
+    switch (picked) {
+      case OcptBreakdownExportDocument.sheets:
+        await _requestSheetsExport(context, state);
+      case OcptBreakdownExportDocument.xlsx:
+        _requestXlsxExport(context);
+    }
   }
 
   /// Shows the breakdown sheets export options dialog, then dispatches the export request if the
@@ -257,6 +271,20 @@ class _BreakdownViewState extends State<_BreakdownView> {
         options: options,
         labels: ocptBreakdownSheetsLabelsOf(tr, state.scenes),
         fileTypeLabel: tr.breakdownExportSheetsFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Dispatches the breakdown workbook export request straight away — resolving here every
+  /// localized string the exported document and the native save dialog carry, exactly as
+  /// [_requestSheetsExport] does, but with no options dialog first: the workbook takes none.
+  void _requestXlsxExport(BuildContext context) {
+    final bloc = context.read<OcptBreakdownBloc>();
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptBreakdownXlsxExportRequestedEvent(
+        labels: ocptBreakdownXlsxLabelsOf(tr),
+        fileTypeLabel: tr.breakdownExportXlsxFileTypeLabel,
       ),
     );
   }
@@ -808,6 +836,10 @@ class _BreakdownViewState extends State<_BreakdownView> {
         notice.path ?? "",
       ),
       OcptBreakdownIoNoticeKind.sheetsExportFailed => tr.breakdownExportSheetsError,
+      OcptBreakdownIoNoticeKind.xlsxExportSucceeded => tr.breakdownExportXlsxSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptBreakdownIoNoticeKind.xlsxExportFailed => tr.breakdownExportXlsxError,
     };
   }
 }

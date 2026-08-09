@@ -120,8 +120,11 @@ void main() {
 
       expect(find.text(tr.breakdownExportPanelTitle), findsOneWidget);
       expect(inPanel(find.text(tr.breakdownExportSheetsTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.breakdownExportUnavailableReason)), findsOneWidget);
+      expect(inPanel(find.text(tr.breakdownExportXlsxTitle)), findsOneWidget);
+      // Both cards share the same reason: neither has a scene to print or write a row for.
+      expect(inPanel(find.text(tr.breakdownExportUnavailableReason)), findsNWidgets(2));
       expect(inPanel(find.text(tr.breakdownExportSheetsDescription)), findsNothing);
+      expect(inPanel(find.text(tr.breakdownExportXlsxDescription)), findsNothing);
 
       // Unavailable: tapping it pops nothing, so the panel stays open.
       await tester.tap(inPanel(find.text(tr.breakdownExportSheetsTitle)));
@@ -156,12 +159,47 @@ void main() {
 
       expect(inPanel(find.text(tr.breakdownExportUnavailableReason)), findsNothing);
       expect(inPanel(find.text(tr.breakdownExportSheetsDescription)), findsOneWidget);
+      expect(inPanel(find.text(tr.breakdownExportXlsxDescription)), findsOneWidget);
 
       await tester.tap(inPanel(find.text(tr.breakdownExportSheetsTitle)));
       await tester.pumpAndSettle();
 
       expect(find.text(tr.breakdownExportPanelTitle), findsNothing);
       expect(find.byType(OcptBreakdownSheetsExportDialog), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "picking the workbook card dispatches the export request directly, with no options dialog "
+    "of its own",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptBreakdownMode)));
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      await tester.tap(inPanel(find.text(tr.breakdownExportXlsxTitle)));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.breakdownExportPanelTitle), findsNothing);
+      expect(find.byType(OcptBreakdownSheetsExportDialog), findsNothing);
+      expect(find.byType(OcptBreakdownMode), findsOneWidget);
     },
   );
 }

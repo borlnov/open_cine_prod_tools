@@ -165,6 +165,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownBackRequestedEvent>(_onBackRequested);
     on<OcptBreakdownProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptBreakdownSheetsExportRequestedEvent>(_onSheetsExportRequested);
+    on<OcptBreakdownXlsxExportRequestedEvent>(_onXlsxExportRequested);
     on<OcptBreakdownIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptBreakdownSceneSelectedEvent>(_onSceneSelected);
     on<OcptBreakdownSceneHeadingSelectedEvent>(_onSceneHeadingSelected);
@@ -438,6 +439,55 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           ioNotice: const OcptBreakdownIoNotice(
             kind: OcptBreakdownIoNoticeKind.sheetsExportFailed,
           ),
+        ),
+      );
+    }
+  }
+
+  /// Exports the whole breakdown as a two-sheet XLSX workbook.
+  ///
+  /// Built exactly as [_onSheetsExportRequested] is: flush whatever is still pending, then hand
+  /// what the state now carries to [OcptExportManager.exportBreakdownXlsx]. There is no options
+  /// dialog to read first — this export takes none.
+  Future<void> _onXlsxExportRequested(
+    OcptBreakdownXlsxExportRequestedEvent event,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    try {
+      final path = await _exportManager.exportBreakdownXlsx(
+        document: const FountainParser().parse(state.screenplayText),
+        snapshot: snapshot,
+        pageSetup: state.pageSetup,
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptBreakdownIoNotice(
+            kind: OcptBreakdownIoNoticeKind.xlsxExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the breakdown workbook of the project "
+          "at ${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
         ),
       );
     }

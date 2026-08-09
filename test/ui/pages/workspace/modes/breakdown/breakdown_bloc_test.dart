@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
@@ -86,9 +87,24 @@ const _exportLabels = OcptBreakdownSheetsLabels(
   emptyDocumentNote: "Nothing to print.",
 );
 
-/// An export manager whose [exportBreakdownSheets] is stubbed and whose calls are recorded, so the
-/// bloc's export path can be exercised without any real native dialog or PDF write. Mirrors
-/// `resources_bloc_test.dart`'s own `_FakeExportManager`.
+/// The localized payload every workbook export test below dispatches: what it holds is never read
+/// here, only that it reaches the manager unchanged.
+const _exportXlsxLabels = OcptBreakdownXlsxLabels(
+  fileNameSuffix: "breakdown",
+  scenesSheetName: "Scenes",
+  entriesSheetName: "Breakdown",
+  scenesColumnHeaders: {},
+  entriesColumnHeaders: {},
+  sceneStatusLabels: {},
+  elementStatusLabels: {},
+  elementCategoryLabels: {},
+  roleGroupLabel: "Characters",
+  setGroupLabel: "Set",
+);
+
+/// An export manager whose [exportBreakdownSheets] and [exportBreakdownXlsx] are stubbed and whose
+/// calls are recorded, so the bloc's export paths can be exercised without any real native dialog
+/// or file write. Mirrors `resources_bloc_test.dart`'s own `_FakeExportManager`.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
   _FakeExportManager({this.exportResult, this.fails = false})
@@ -143,6 +159,39 @@ class _FakeExportManager extends OcptExportManager {
 
     if (fails) {
       throw StateError("breakdown sheets export intentionally failed for the test");
+    }
+
+    return exportResult;
+  }
+
+  /// The snapshot of the last [exportBreakdownXlsx] call.
+  OcptBreakdownSnapshot? lastExportedXlsxSnapshot;
+
+  /// The labels of the last [exportBreakdownXlsx] call.
+  OcptBreakdownXlsxLabels? lastExportedXlsxLabels;
+
+  /// The project name of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxProjectName;
+
+  /// The file type label of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxFileTypeLabel;
+
+  @override
+  Future<String?> exportBreakdownXlsx({
+    required FountainDocument document,
+    required OcptBreakdownSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBreakdownXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) async {
+    lastExportedXlsxSnapshot = snapshot;
+    lastExportedXlsxLabels = labels;
+    lastExportedXlsxProjectName = projectName;
+    lastExportedXlsxFileTypeLabel = fileTypeLabel;
+
+    if (fails) {
+      throw StateError("breakdown workbook export intentionally failed for the test");
     }
 
     return exportResult;
@@ -1911,6 +1960,100 @@ void main() {
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
     expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.sheetsExportFailed);
+    expect(state.ioNotice?.path, isNull);
+
+    bloc.add(const OcptBreakdownIoNoticeDismissedEvent());
+    await waitForState(bloc, (state) => state.ioNotice == null);
+
+    await bloc.close();
+  });
+
+  test("exporting the workbook hands the snapshot and the labels to the manager, with no options",
+      () async {
+    await writeTaggedElement();
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - breakdown.xlsx");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+    bloc.add(
+      const OcptBreakdownXlsxExportRequestedEvent(
+        labels: _exportXlsxLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(exportManager.lastExportedXlsxSnapshot?.targets, hasLength(1));
+    expect(exportManager.lastExportedXlsxProjectName, "My Movie");
+    expect(exportManager.lastExportedXlsxLabels, _exportXlsxLabels);
+    expect(exportManager.lastExportedXlsxFileTypeLabel, "Excel workbook");
+    expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportSucceeded);
+    expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.xlsx");
+
+    await bloc.close();
+  });
+
+  test("a pending scene notes edit is flushed into the snapshot the workbook export is handed",
+      () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+    final exportManager = _FakeExportManager(exportResult: "/tmp/breakdown.xlsx");
+    final bloc = buildBloc(
+      exportManager: exportManager,
+      fieldEditDebounce: const Duration(days: 1),
+    );
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
+
+    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptBreakdownXlsxExportRequestedEvent(
+        labels: _exportXlsxLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(exportManager.lastExportedXlsxSnapshot?.scenes.single.notes, "handle with care");
+
+    await bloc.close();
+  });
+
+  test("a cancelled workbook save dialog raises no notice at all", () async {
+    await writeTaggedElement();
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+    bloc.add(
+      const OcptBreakdownXlsxExportRequestedEvent(
+        labels: _exportXlsxLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    // Nothing to wait for on the state, so the export is let run to completion instead.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test("a failed workbook export raises the export-failed notice, which dismissing clears",
+      () async {
+    await writeTaggedElement();
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+    bloc.add(
+      const OcptBreakdownXlsxExportRequestedEvent(
+        labels: _exportXlsxLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportFailed);
     expect(state.ioNotice?.path, isNull);
 
     bloc.add(const OcptBreakdownIoNoticeDismissedEvent());
