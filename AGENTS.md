@@ -1142,7 +1142,11 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   in the running head of **every** page (a day agenda torn out of it, or a grid pinned on a
   wall, has nowhere else to say which issue it is); the call sheets print it in the **title block**,
   general and named alike, a call sheet being one sheet handed over whole. Both read the same
-  `versionLabel` word out of their own labels object. **Every
+  `versionLabel` word out of their own labels object. **Both documents also say on every page what
+  they are**: the running head goes through `pw.MultiPage`'s own `header:` and every table that can
+  flow marks its header row `repeat: true` — a `build:` child is drawn once per flow rather than
+  once per page, so a call sheet or a day agenda that overflowed used to hand over a second page
+  naming no project and no columns at all. **Every
   hour on either page is the resolved one** and every convocation figure comes from
   `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented.
   Both documents print a day's guests, its events and a block's crew note now; the named call sheets
