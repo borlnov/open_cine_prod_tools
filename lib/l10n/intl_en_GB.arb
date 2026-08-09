@@ -6118,7 +6118,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "breakdownExportPanelMessage": "One sheet per scene, listing what the shoot must provide.",
+  "breakdownExportPanelMessage": "One sheet per scene, or the whole breakdown as a spreadsheet.",
   "@breakdownExportPanelMessage": {
     "description": "Sentence under the title of the breakdown mode's export panel, saying what it offers",
     "context": "Displayed under the export panel's title",
@@ -6231,6 +6231,185 @@
   "@breakdownExportSheetsError": {
     "description": "Error shown when exporting the breakdown sheets to a PDF file failed",
     "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxTitle": "Breakdown workbook",
+  "@breakdownExportXlsxTitle": {
+    "description": "Name of the breakdown workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxDescription": "Every scene and everything tagged in it, as a spreadsheet.",
+  "@breakdownExportXlsxDescription": {
+    "description": "Sentence saying what the breakdown workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxFileTypeLabel": "Excel workbook",
+  "@breakdownExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the breakdown workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxFileNameSuffix": "breakdown",
+  "@breakdownExportXlsxFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - breakdown.xlsx» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxScenesSheetName": "Scenes",
+  "@breakdownExportXlsxScenesSheetName": {
+    "description": "Name given to the workbook's scene-by-scene sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxEntriesSheetName": "Breakdown",
+  "@breakdownExportXlsxEntriesSheetName": {
+    "description": "Name given to the workbook's sheet listing one row per tagged target in a scene",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxSuccessMessage": "Exported to {path}",
+  "@breakdownExportXlsxSuccessMessage": {
+    "description": "Message shown when the breakdown was successfully exported to an Excel workbook",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownExportXlsxError": "The breakdown workbook could not be exported.",
+  "@breakdownExportXlsxError": {
+    "description": "Error shown when exporting the breakdown to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnNumber": "Scene",
+  "@breakdownXlsxScenesColumnNumber": {
+    "description": "Header of the Scenes sheet's scene number column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnHeading": "Heading",
+  "@breakdownXlsxScenesColumnHeading": {
+    "description": "Header of the Scenes sheet's scene heading column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnStatus": "Status",
+  "@breakdownXlsxScenesColumnStatus": {
+    "description": "Header of the Scenes sheet's breakdown status column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnLength": "Length",
+  "@breakdownXlsxScenesColumnLength": {
+    "description": "Header of the Scenes sheet's length-in-eighths column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnSets": "Sets",
+  "@breakdownXlsxScenesColumnSets": {
+    "description": "Header of the Scenes sheet's linked sets column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnNeededCount": "Needed",
+  "@breakdownXlsxScenesColumnNeededCount": {
+    "description": "Header of the Scenes sheet's count of distinct tagged targets column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnNotes": "Notes",
+  "@breakdownXlsxScenesColumnNotes": {
+    "description": "Header of the Scenes sheet's breakdown notes column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnSceneNumber": "Scene",
+  "@breakdownXlsxEntriesColumnSceneNumber": {
+    "description": "Header of the Breakdown sheet's scene number column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnSceneHeading": "Heading",
+  "@breakdownXlsxEntriesColumnSceneHeading": {
+    "description": "Header of the Breakdown sheet's scene heading column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnGroup": "Group",
+  "@breakdownXlsxEntriesColumnGroup": {
+    "description": "Header of the Breakdown sheet's target group column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnCode": "Code",
+  "@breakdownXlsxEntriesColumnCode": {
+    "description": "Header of the Breakdown sheet's target code column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnName": "Name",
+  "@breakdownXlsxEntriesColumnName": {
+    "description": "Header of the Breakdown sheet's target name column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnStatus": "Status",
+  "@breakdownXlsxEntriesColumnStatus": {
+    "description": "Header of the Breakdown sheet's target status column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnOwner": "Owner",
+  "@breakdownXlsxEntriesColumnOwner": {
+    "description": "Header of the Breakdown sheet's target owner column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnQuantity": "Quantity",
+  "@breakdownXlsxEntriesColumnQuantity": {
+    "description": "Header of the Breakdown sheet's scene-link quantity column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnNotes": "Notes",
+  "@breakdownXlsxEntriesColumnNotes": {
+    "description": "Header of the Breakdown sheet's scene-link notes column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnTaggedText": "Tagged text",
+  "@breakdownXlsxEntriesColumnTaggedText": {
+    "description": "Header of the Breakdown sheet's tagged passage text column",
+    "context": "Written into the exported XLSX file",
     "type": "text",
     "placeholders": {}
   },
