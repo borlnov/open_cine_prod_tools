@@ -7367,24 +7367,108 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportCallSheetsMenuAction": "Export the call sheets…",
-  "@scheduleExportCallSheetsMenuAction": {
-    "description": "Label of the `⋮` menu entry opening the general call sheets export dialog",
-    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+  "scheduleExportPanelTitle": "Export the schedule",
+  "@scheduleExportPanelTitle": {
+    "description": "Title of the schedule mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportNamedCallSheetsMenuAction": "Export the named call sheets…",
-  "@scheduleExportNamedCallSheetsMenuAction": {
-    "description": "Label of the `⋮` menu entry opening the named call sheets export dialog",
-    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+  "scheduleExportPanelMessage": "The paperwork a shoot runs on — call sheets, the shooting plan and the rest.",
+  "@scheduleExportPanelMessage": {
+    "description": "Sentence under the title of the schedule mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportShootingPlanMenuAction": "Export the shooting plan…",
-  "@scheduleExportShootingPlanMenuAction": {
-    "description": "Label of the `⋮` menu entry opening the shooting plan export dialog",
-    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+  "scheduleExportPanelCallSheetsTitle": "Call sheets",
+  "@scheduleExportPanelCallSheetsTitle": {
+    "description": "Name of the general call sheets document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelCallSheetsDescription": "One per day, the day's timetable, crew, cast and contacts.",
+  "@scheduleExportPanelCallSheetsDescription": {
+    "description": "Sentence saying what the general call sheets document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelNamedCallSheetsTitle": "Named call sheets",
+  "@scheduleExportPanelNamedCallSheetsTitle": {
+    "description": "Name of the named call sheets document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelNamedCallSheetsDescription": "One per recipient and per day, with only that person's own hours.",
+  "@scheduleExportPanelNamedCallSheetsDescription": {
+    "description": "Sentence saying what the named call sheets document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanTitle": "Shooting plan",
+  "@scheduleExportPanelShootingPlanTitle": {
+    "description": "Name of the shooting plan document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanDescription": "The whole shoot at a glance — locations, sequences, crew and the daily agendas.",
+  "@scheduleExportPanelShootingPlanDescription": {
+    "description": "Sentence saying what the shooting plan document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelDayOutOfDaysTitle": "Day Out of Days",
+  "@scheduleExportPanelDayOutOfDaysTitle": {
+    "description": "Name of the Day Out of Days document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelDayOutOfDaysDescription": "One row per role, one column per day, the cast's own schedule.",
+  "@scheduleExportPanelDayOutOfDaysDescription": {
+    "description": "Sentence saying what the Day Out of Days document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelOneLineScheduleTitle": "One-line schedule",
+  "@scheduleExportPanelOneLineScheduleTitle": {
+    "description": "Name of the one-line schedule document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelOneLineScheduleDescription": "One line per sequence, in shooting order, over the whole shoot.",
+  "@scheduleExportPanelOneLineScheduleDescription": {
+    "description": "Sentence saying what the one-line schedule document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelSidesTitle": "Sides",
+  "@scheduleExportPanelSidesTitle": {
+    "description": "Name of the sides document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelSidesDescription": "The pages of one day's own sequences, as they print in the screenplay.",
+  "@scheduleExportPanelSidesDescription": {
+    "description": "Sentence saying what the sides document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportUnavailableReason": "No day is planned yet.",
+  "@scheduleExportUnavailableReason": {
+    "description": "Reason shown in place of a card's description while the project holds no live day",
+    "context": "Displayed on every card of the schedule mode's export panel while unavailable",
     "type": "text",
     "placeholders": {}
   },
@@ -7483,13 +7567,6 @@
   "@scheduleExportShootingPlanElementsGridLabel": {
     "description": "Label of the checkbox toggling the elements summary grid in the exported shooting plan",
     "context": "Displayed inside the shooting plan export options dialog",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleExportDayOutOfDaysMenuAction": "Export the Day Out of Days…",
-  "@scheduleExportDayOutOfDaysMenuAction": {
-    "description": "Label of the `⋮` menu entry opening the Day Out of Days export dialog",
-    "context": "Displayed in the schedule mode's `⋮` overflow menu",
     "type": "text",
     "placeholders": {}
   },
@@ -7619,13 +7696,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportOneLineScheduleMenuAction": "Export the one-line schedule…",
-  "@scheduleExportOneLineScheduleMenuAction": {
-    "description": "Label of the `⋮` menu entry opening the one-line schedule export dialog",
-    "context": "Displayed in the schedule mode's `⋮` overflow menu",
-    "type": "text",
-    "placeholders": {}
-  },
   "scheduleExportOneLineScheduleDialogTitle": "Export the one-line schedule",
   "@scheduleExportOneLineScheduleDialogTitle": {
     "description": "Title of the one-line schedule export options dialog",
@@ -7651,13 +7721,6 @@
   "@scheduleExportOneLineScheduleDurationHeader": {
     "description": "Header of the one-line schedule's own table column printing a line's resolved duration",
     "context": "Printed inside the exported one-line schedule PDF",
-    "type": "text",
-    "placeholders": {}
-  },
-  "scheduleExportSidesMenuAction": "Export the day's sides…",
-  "@scheduleExportSidesMenuAction": {
-    "description": "Label of the `⋮` menu entry opening the sides export dialog",
-    "context": "Displayed in the schedule mode's `⋮` overflow menu",
     "type": "text",
     "placeholders": {}
   },

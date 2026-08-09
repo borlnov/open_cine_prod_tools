@@ -15,10 +15,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -49,6 +51,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
@@ -137,6 +140,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptScheduleBloc>().add(const OcptScheduleBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelSchedule,
+        onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context, state),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
@@ -169,58 +173,111 @@ class _ScheduleViewState extends State<_ScheduleView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: the six PDF exports, then "reset panel layout".
+  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the six PDF
+  /// exports moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
+  /// this is the only entry the schedule mode has left to offer. A `⋮` holding one entry is thin,
+  /// but honest: moving it somewhere else is a separate question this doesn't answer.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptScheduleState state) => [
+    PopupMenuItem<void>(
+      onTap: () => context.read<OcptScheduleBloc>().add(const OcptScheduleDockLayoutResetEvent()),
+      child: Text(Tr.of(context).scheduleResetPanelLayoutAction),
+    ),
+  ];
+
+  /// Builds the six entries the toolbar's `Export` button offers, disabled together when the
+  /// project holds no live day at all — there would be nothing to print, and the sides dialog
+  /// additionally relies on it, its day dropdown having to open on some day.
   ///
-  /// All six exports are disabled together when the project holds no live day at all — there would
-  /// be nothing to print, and the sides dialog additionally relies on it, its day dropdown having
-  /// to open on some day. The named call sheets entry needs no further check of its own: which
-  /// recipients (and, now, which days) it prints is a question answered **inside**
-  /// `OcptScheduleNamedCallSheetsExportDialog` itself, whose own `Export` button is already disabled
-  /// while no day or no recipient is ticked — walking every ticked day's own convocations here too,
-  /// on every rebuild of this shell, would repeat that same read for no reason. All six stay
-  /// offered under a version preview, exactly as the breakdown mode's own export entry does: an
-  /// export only ever reads.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptScheduleState state) {
-    final hasAnyDay = state.days.isNotEmpty;
+  /// The named call sheets entry needs no further check of its own: which recipients (and which
+  /// days) it prints is a question answered **inside** `OcptScheduleNamedCallSheetsExportDialog`
+  /// itself, whose own `Export` button is already disabled while no day or no recipient is ticked —
+  /// walking every ticked day's own convocations here too, on every rebuild of this shell, would
+  /// repeat that same read for no reason.
+  List<OcptWorkspaceExportEntry<OcptScheduleExportDocument>> _buildExportEntries(
+    BuildContext context,
+    OcptScheduleState state,
+  ) {
+    final tr = Tr.of(context);
+    final unavailableReason = state.days.isNotEmpty ? null : tr.scheduleExportUnavailableReason;
 
     return [
-      PopupMenuItem<void>(
-        enabled: hasAnyDay,
-        // `onTap` fires as the menu closes, so the dialog this opens is shown from the mode's own
-        // context rather than from the entry's, which is already on its way out of the tree.
-        onTap: () => unawaited(_requestCallSheetsExport(context, state)),
-        child: Text(Tr.of(context).scheduleExportCallSheetsMenuAction),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.callSheets,
+        title: tr.scheduleExportPanelCallSheetsTitle,
+        description: tr.scheduleExportPanelCallSheetsDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
       ),
-      PopupMenuItem<void>(
-        enabled: hasAnyDay,
-        onTap: () => unawaited(_requestNamedCallSheetsExport(context, state)),
-        child: Text(Tr.of(context).scheduleExportNamedCallSheetsMenuAction),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.namedCallSheets,
+        title: tr.scheduleExportPanelNamedCallSheetsTitle,
+        description: tr.scheduleExportPanelNamedCallSheetsDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
       ),
-      PopupMenuItem<void>(
-        enabled: hasAnyDay,
-        onTap: () => unawaited(_requestShootingPlanExport(context, state)),
-        child: Text(Tr.of(context).scheduleExportShootingPlanMenuAction),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.shootingPlan,
+        title: tr.scheduleExportPanelShootingPlanTitle,
+        description: tr.scheduleExportPanelShootingPlanDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
       ),
-      PopupMenuItem<void>(
-        enabled: hasAnyDay,
-        onTap: () => unawaited(_requestDayOutOfDaysExport(context, state)),
-        child: Text(Tr.of(context).scheduleExportDayOutOfDaysMenuAction),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.dayOutOfDays,
+        title: tr.scheduleExportPanelDayOutOfDaysTitle,
+        description: tr.scheduleExportPanelDayOutOfDaysDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
       ),
-      PopupMenuItem<void>(
-        enabled: hasAnyDay,
-        onTap: () => unawaited(_requestOneLineScheduleExport(context, state)),
-        child: Text(Tr.of(context).scheduleExportOneLineScheduleMenuAction),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.oneLineSchedule,
+        title: tr.scheduleExportPanelOneLineScheduleTitle,
+        description: tr.scheduleExportPanelOneLineScheduleDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
       ),
-      PopupMenuItem<void>(
-        enabled: hasAnyDay,
-        onTap: () => unawaited(_requestSidesExport(context, state)),
-        child: Text(Tr.of(context).scheduleExportSidesMenuAction),
-      ),
-      PopupMenuItem<void>(
-        onTap: () => context.read<OcptScheduleBloc>().add(const OcptScheduleDockLayoutResetEvent()),
-        child: Text(Tr.of(context).scheduleResetPanelLayoutAction),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.sides,
+        title: tr.scheduleExportPanelSidesTitle,
+        description: tr.scheduleExportPanelSidesDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
       ),
     ];
+  }
+
+  /// Opens the export panel, then dispatches the picked document's own request onto the mode's
+  /// existing `_request…Export` methods, unchanged: every one of the six opens its own options
+  /// dialog, exactly as it always has.
+  Future<void> _requestExport(BuildContext context, OcptScheduleState state) async {
+    final tr = Tr.of(context);
+    final picked = await OcptWorkspaceExportDialog.show<OcptScheduleExportDocument>(
+      context,
+      title: tr.scheduleExportPanelTitle,
+      message: tr.scheduleExportPanelMessage,
+      entries: _buildExportEntries(context, state),
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    switch (picked) {
+      case OcptScheduleExportDocument.callSheets:
+        await _requestCallSheetsExport(context, state);
+      case OcptScheduleExportDocument.namedCallSheets:
+        await _requestNamedCallSheetsExport(context, state);
+      case OcptScheduleExportDocument.shootingPlan:
+        await _requestShootingPlanExport(context, state);
+      case OcptScheduleExportDocument.dayOutOfDays:
+        await _requestDayOutOfDaysExport(context, state);
+      case OcptScheduleExportDocument.oneLineSchedule:
+        await _requestOneLineScheduleExport(context, state);
+      case OcptScheduleExportDocument.sides:
+        await _requestSidesExport(context, state);
+    }
   }
 
   /// [dayId]'s own convocations, **minus its guests** — what the named call sheets dialog reads for
