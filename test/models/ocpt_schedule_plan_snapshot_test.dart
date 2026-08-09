@@ -953,6 +953,48 @@ void main() {
     });
   });
 
+  group("sceneSpanBySceneId", () {
+    test("a scene sequence's span is read back", () {
+      final snapshot = _buildSnapshot(
+        days: const [],
+        slotsByDayId: const {},
+        shotList: OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [
+            const OcptSceneShotSequence(
+              sceneId: "scene-1",
+              heading: "INT. KITCHEN - DAY",
+              sceneNumber: null,
+              displaySceneNumber: "1",
+              charStart: 42,
+              charEnd: 108,
+              shots: [],
+            ),
+          ],
+        ),
+      );
+
+      expect(snapshot.sceneSpanBySceneId, {
+        "scene-1": (charStart: 42, charEnd: 108),
+      });
+    });
+
+    test("an orphan sequence contributes no entry", () {
+      final snapshot = _buildSnapshot(
+        days: const [],
+        slotsByDayId: const {},
+        shotList: OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [
+            OcptOrphanShotSequence(shots: [_buildShot(id: "shot-1")]),
+          ],
+        ),
+      );
+
+      expect(snapshot.sceneSpanBySceneId, isEmpty);
+    });
+  });
+
   group("convokedRoleIdsOfDay", () {
     test("the union of every live slot's own cast, deduplicated", () {
       final morning = _buildSlot(

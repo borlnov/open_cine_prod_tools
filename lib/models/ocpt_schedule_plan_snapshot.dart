@@ -407,6 +407,22 @@ class OcptSchedulePlanSnapshot extends Equatable {
       if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.displaySceneNumber,
   };
 
+  /// A map from every real scene's id to the span, `[charStart, charEnd)`, of the screenplay's own
+  /// Fountain source that scene was indexed at — copied off the `scenes` row through the shot list
+  /// snapshot, exactly as [OcptSceneShotSequence.charStart]/`.charEnd` already carry it for the
+  /// scenario coverage editor. Built once, alongside [headingBySceneId] and [sceneNumberBySceneId]
+  /// and for the same reason: a caller walking a whole shoot's worth of days must not rebuild the
+  /// join per day.
+  ///
+  /// This is what the coming sides export slices a day's own scenes out of the composed script by:
+  /// a side is the screenplay's real page, reprinted rather than re-typeset, and the span is the
+  /// address of the source text that page has to be sliced from.
+  late final Map<String, ({int charStart, int charEnd})> sceneSpanBySceneId = {
+    for (final sequence in shotList?.sequences ?? const <OcptShotSequence>[])
+      if (sequence is OcptSceneShotSequence)
+        sequence.sceneId: (charStart: sequence.charStart, charEnd: sequence.charEnd),
+  };
+
   /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
   /// [OcptShootingBlockKind.shot] block's own scene heading placed on it, one of the four categories
   /// when they agree, [OcptSceneEffectCategory.mixed] when they don't, or null when nothing placed
