@@ -22,6 +22,18 @@ runs:
   using: "composite"
   steps:
     # -- Build (cached) ----------------------------------------------------
+    # The image identity the cache key below is scoped to. It is read here, in a
+    # shell, rather than written straight into the key as '${{ env.ImageOS }}':
+    # an expression's env context only holds what the workflow itself declared,
+    # never the variables the runner sets in its own environment, so that form
+    # silently expands to nothing and the key stops being scoped at all. A
+    # self-hosted runner sets neither variable and reports 'unknown-unknown',
+    # which is one stable lineage, exactly as before this step existed.
+    - name: Identify the runner image
+      id: image
+      shell: bash
+      run: echo "id=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
     # Skipped on release tags so tagged artifacts always come from a clean
     # build, never from restored incremental state.
     - name: Cache Flutter build
@@ -31,9 +43,18 @@ runs:
         path: ${{ inputs.app-directory }}/build/
         # No branch in the key: GitHub already scopes cache access per branch,
         # so identical sources share one entry instead of per-branch copies.
-        key: build-${{ runner.os }}-${{ inputs.target-platform }}-${{ hashFiles(format('{0}/lib/**', inputs.app-directory), format('{0}/pubspec.lock', inputs.app-directory)) }}
+        #
+        # The runner image is part of the key, and of the restore-keys prefix, because
+        # build/ holds CMake's own caches, and those hold absolute paths into the image:
+        # the JDK a plugin was configured against, the SDKs, the toolchain. A hosted image
+        # is refreshed weekly and those paths carry a patch version, so a cache restored
+        # across a refresh points CMake at directories that no longer exist - and CMake
+        # never re-runs a find_path whose result it already has. Scoping the entry to the
+        # image makes a refresh start a fresh lineage instead; within one image, the
+        # incremental reuse is unchanged.
+        key: build-${{ runner.os }}-${{ inputs.target-platform }}-${{ steps.image.outputs.id }}-${{ hashFiles(format('{0}/lib/**', inputs.app-directory), format('{0}/pubspec.lock', inputs.app-directory)) }}
         restore-keys: |
-          build-${{ runner.os }}-${{ inputs.target-platform }}-
+          build-${{ runner.os }}-${{ inputs.target-platform }}-${{ steps.image.outputs.id }}-
 
     - name: Build Flutter app
       working-directory: ${{ inputs.app-directory }}
