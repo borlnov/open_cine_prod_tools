@@ -863,7 +863,7 @@
   "breakdownXlsxEntriesColumnOwner": "Propriétaire",
   "breakdownXlsxEntriesColumnQuantity": "Quantité",
   "breakdownXlsxEntriesColumnNotes": "Notes",
-  "breakdownXlsxEntriesColumnTaggedText": "Texte repéré",
+  "breakdownXlsxEntriesColumnPassages": "Passages repérés",
   "scheduleDayTagPrefix": "J",
   "scheduleAgendaEmptyHint": "Aucun jour de tournage n'a encore été créé.",
   "scheduleAgendaModeStrip": "Bande",

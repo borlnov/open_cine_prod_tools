@@ -6406,9 +6406,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "breakdownXlsxEntriesColumnTaggedText": "Tagged text",
-  "@breakdownXlsxEntriesColumnTaggedText": {
-    "description": "Header of the Breakdown sheet's tagged passage text column",
+  "breakdownXlsxEntriesColumnPassages": "Tagged passages",
+  "@breakdownXlsxEntriesColumnPassages": {
+    "description": "Header of the Breakdown sheet's tagged passages column",
     "context": "Written into the exported XLSX file",
     "type": "text",
     "placeholders": {}

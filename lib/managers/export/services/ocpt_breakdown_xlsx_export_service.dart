@@ -9,7 +9,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -19,14 +19,16 @@ import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_entries_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scenes_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// Renders a project's whole breakdown into the bytes of an XLSX workbook: a `Scenes` sheet, one
-/// row per scene, and a `Breakdown` sheet, one row per tagged target *in* a scene — the long,
-/// filterable format the mode's own recap cross-table cannot be, since a target tagged in three
-/// scenes is three rows there rather than one row with three columns lit up.
+/// row per scene, and a `Breakdown` sheet, one row per **distinct** target tagged in a scene — the
+/// long, filterable format the mode's own recap cross-table cannot be, since a target tagged in
+/// three scenes is three rows there rather than one row with three columns lit up. "Distinct"
+/// matters: a target tagged twice in the same scene is still one row, exactly as
+/// `ocptBreakdownSceneTargetsOf` counts it for the scene panel's bars and its `N elements` count,
+/// and as the `Scenes` sheet's own `neededCount` column counts it too — a per-tag row would make
+/// that figure disagree with a `COUNTIF` over this very sheet, in the same workbook.
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
@@ -109,26 +111,20 @@ class OcptBreakdownXlsxExportService {
     final entriesSheet = excel[entriesSheetName];
     _appendHeaderRow(entriesSheet, OcptBreakdownEntriesXlsxColumn.values, labels.entriesHeaderOf);
     for (final scene in snapshot.scenes) {
-      for (final tag in scene.tags) {
-        final target = targetById[(tag.targetKind, tag.targetId)];
-        if (target == null) {
-          // The tag's own catalogue row is gone (tombstoned underneath): the tag is still live on
-          // the scene, but there is no sheet left behind it to write a row for.
-          continue;
-        }
-
+      // `ocptBreakdownSceneTargetsOf` is what the `Scenes` sheet's own `neededCount` and the scene
+      // panel's bars already count by: one entry per distinct target, a tag whose catalogue row has
+      // been tombstoned underneath silently resolving to nothing (its own doc comment) rather than
+      // a guard this loop would otherwise need to repeat.
+      for (final target in ocptBreakdownSceneTargetsOf(scene, targetById)) {
         entriesSheet.appendRow([
           for (final column in OcptBreakdownEntriesXlsxColumn.values)
             _entryCellOf(
               column: column,
               scene: scene,
-              tag: tag,
-              targetName: target.name,
-              targetCategory: target.category,
-              targetStatus: target.status,
-              element: elementById[tag.targetId],
-              role: roleById[tag.targetId],
-              set: setById[tag.targetId],
+              target: target,
+              element: elementById[target.id],
+              role: roleById[target.id],
+              set: setById[target.id],
               personById: personById,
               labels: labels,
             ),
@@ -246,23 +242,18 @@ class OcptBreakdownXlsxExportService {
     return TextCellValue(whole == 0 ? "$eighths/8" : "$whole $eighths/8");
   }
 
-  /// The cell [column] holds for [tag]'s own row of the `Breakdown` sheet — one occurrence of
-  /// [scene]'s tagging of a target named [targetName], falling under [targetCategory] and
-  /// [targetStatus] (an `OcptBreakdownTarget`'s own `category`/`status`, both null unless [tag]
-  /// names an element).
+  /// The cell [column] holds for [target]'s own row of the `Breakdown` sheet, scoped to [scene] —
+  /// one row per **distinct** target, see this class' own doc comment for why.
   ///
-  /// [element]/[role]/[set] are the target's own row resolved by [tag]'s `targetId` against
-  /// whichever of the snapshot's three catalogues [OcptBreakdownTag.targetKind] names — at most one
-  /// of the three is ever non-null — and are what an element's own code, owner, quantity and notes
-  /// are read from; a role's code is its own number and a set's its own `code`, both read straight
-  /// off [role]/[set] since neither is an `OcptBreakdownTarget` field.
+  /// [element]/[role]/[set] are the target's own row resolved by [target]'s id against whichever of
+  /// the snapshot's three catalogues [target]'s own `kind` names — at most one of the three is ever
+  /// non-null — and are what an element's own code, owner, quantity and notes are read from; a
+  /// role's code is its own number and a set's its own `code`, both read straight off [role]/[set]
+  /// since neither is an [OcptBreakdownTarget] field.
   CellValue? _entryCellOf({
     required OcptBreakdownEntriesXlsxColumn column,
     required OcptBreakdownScene scene,
-    required OcptBreakdownTag tag,
-    required String targetName,
-    required OcptElementCategory? targetCategory,
-    required OcptElementStatus? targetStatus,
+    required OcptBreakdownTarget target,
     required OcptElement? element,
     required OcptRole? role,
     required OcptSet? set,
@@ -272,14 +263,14 @@ class OcptBreakdownXlsxExportService {
     OcptBreakdownEntriesXlsxColumn.sceneNumber => TextCellValue(scene.displayNumber),
     OcptBreakdownEntriesXlsxColumn.sceneHeading => _textOrNull(scene.heading),
     OcptBreakdownEntriesXlsxColumn.group => _textOrNull(
-      labels.groupLabelOf(kind: tag.targetKind, category: targetCategory),
+      labels.groupLabelOf(kind: target.kind, category: target.category),
     ),
     OcptBreakdownEntriesXlsxColumn.code => _textOrNull(
-      _codeOf(kind: tag.targetKind, element: element, role: role, set: set),
+      _codeOf(kind: target.kind, element: element, role: role, set: set),
     ),
-    OcptBreakdownEntriesXlsxColumn.name => _textOrNull(targetName),
+    OcptBreakdownEntriesXlsxColumn.name => _textOrNull(target.name),
     OcptBreakdownEntriesXlsxColumn.status => _textOrNull(
-      targetStatus == null ? null : labels.elementStatusLabelOf(targetStatus),
+      target.status == null ? null : labels.elementStatusLabelOf(target.status!),
     ),
     OcptBreakdownEntriesXlsxColumn.owner => _textOrNull(
       _ownerNameOf(element: element, personById: personById),
@@ -290,11 +281,13 @@ class OcptBreakdownXlsxExportService {
     OcptBreakdownEntriesXlsxColumn.notes => _textOrNull(
       _sceneLinkOf(element: element, sceneId: scene.id)?.notes,
     ),
-    OcptBreakdownEntriesXlsxColumn.taggedText => _textOrNull(tag.taggedText),
+    OcptBreakdownEntriesXlsxColumn.passages => _textOrNull(
+      _passagesTextOf(scene: scene, target: target),
+    ),
   };
 
   /// The target's own short code: an element's or a set's own `code`, or a role's own number —
-  /// neither being an `OcptBreakdownTarget` field, see [_entryCellOf]'s own doc comment.
+  /// neither being an [OcptBreakdownTarget] field, see [_entryCellOf]'s own doc comment.
   String? _codeOf({
     required OcptBreakdownTargetKind kind,
     required OcptElement? element,
@@ -305,6 +298,16 @@ class OcptBreakdownXlsxExportService {
     OcptBreakdownTargetKind.role => role == null ? null : "${role.number}",
     OcptBreakdownTargetKind.set => set?.code,
   };
+
+  /// Every passage of [scene] that tags [target], verbatim and joined with `"; "` — the separator
+  /// `OcptResourcesXlsxExportService._sceneLinksTextOf` already uses for a composite cell. A target
+  /// tagged more than once in the scene therefore reads as more than one passage in this one cell,
+  /// which is the whole point of writing one row per distinct target rather than one per tag.
+  String _passagesTextOf({required OcptBreakdownScene scene, required OcptBreakdownTarget target}) =>
+      scene.tags
+          .where((tag) => tag.targetKind == target.kind && tag.targetId == target.id)
+          .map((tag) => tag.taggedText)
+          .join("; ");
 
   /// The `scene_elements` link of [element] onto [sceneId], or null while [element] is null (a role
   /// or a set, neither carrying one) or holds no link for that scene.

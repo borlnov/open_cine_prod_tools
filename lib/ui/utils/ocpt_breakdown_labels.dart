@@ -184,7 +184,7 @@ String ocptBreakdownEntriesXlsxColumnLabel(Tr tr, OcptBreakdownEntriesXlsxColumn
       OcptBreakdownEntriesXlsxColumn.owner => tr.breakdownXlsxEntriesColumnOwner,
       OcptBreakdownEntriesXlsxColumn.quantity => tr.breakdownXlsxEntriesColumnQuantity,
       OcptBreakdownEntriesXlsxColumn.notes => tr.breakdownXlsxEntriesColumnNotes,
-      OcptBreakdownEntriesXlsxColumn.taggedText => tr.breakdownXlsxEntriesColumnTaggedText,
+      OcptBreakdownEntriesXlsxColumn.passages => tr.breakdownXlsxEntriesColumnPassages,
     };
 
 /// Builds every localized string the exported breakdown workbook carries.

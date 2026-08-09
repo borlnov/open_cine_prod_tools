@@ -479,7 +479,7 @@ void main() {
     });
 
     group("the Breakdown sheet", () {
-      test("writes one row per tagged target in a scene", () {
+      test("writes one row per distinct target tagged in a scene", () {
         final bytes = generate(
           buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
         );
@@ -575,7 +575,42 @@ void main() {
         );
 
         final row = _rowsOf(bytes, _entriesSheetName)[1];
-        expect(_cellAt(row, OcptBreakdownEntriesXlsxColumn.taggedText.index), "desk lamp");
+        expect(_cellAt(row, OcptBreakdownEntriesXlsxColumn.passages.index), "desk lamp");
+      });
+
+      test(
+          "a target tagged twice in one scene yields one row, its passages joined into one cell",
+          () {
+        final element = _buildElement(id: "element-1", name: "Desk lamp");
+        final snapshot = OcptBreakdownSnapshot.build(
+          screenplayId: "screenplay",
+          scenes: [_buildScene(id: "scene-1", position: 0)],
+          tags: [
+            _buildTag(id: "tag-1", sceneId: "scene-1", targetId: element.id),
+            _buildTag(
+              id: "tag-2",
+              sceneId: "scene-1",
+              targetId: element.id,
+              taggedText: "the lamp",
+            ),
+          ],
+          elements: [element],
+          roles: const [],
+          sets: const [],
+          locations: const [],
+          people: const [],
+        );
+
+        final bytes = generate(snapshot);
+
+        final rows = _rowsOf(bytes, _entriesSheetName);
+        // Header + 1 row for the one distinct target, not 2 for its two tags — matching the
+        // `Scenes` sheet's own `neededCount`, which counts the very same way.
+        expect(rows, hasLength(2));
+        expect(
+          _cellAt(rows[1], OcptBreakdownEntriesXlsxColumn.passages.index),
+          "desk lamp; the lamp",
+        );
       });
 
       test("a role's row carries its own number as its code, and no status or owner", () {

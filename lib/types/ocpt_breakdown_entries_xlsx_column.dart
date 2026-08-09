@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// One column of the exported breakdown workbook's `Breakdown` sheet, in the order the sheet lays
-/// them out — one row per tagged target in a scene, the long, filterable format
+/// them out — one row per **distinct** target tagged in a scene (`ocptBreakdownSceneTargetsOf`'s
+/// own dedup, the same the `Scenes` sheet's own `neededCount` counts), the long, filterable format
 /// `OcptBreakdownRecapTable`'s own cross-table cannot be.
 ///
 /// Mirrors `OcptShotListXlsxColumn`'s own doc comment: every column is always written, whatever the
@@ -39,7 +40,8 @@ enum OcptBreakdownEntriesXlsxColumn {
   /// role or a set.
   notes,
 
-  /// The tagged passage's own text, verbatim, as it read when the tag was last written or
-  /// re-anchored.
-  taggedText,
+  /// Every passage tagging the target in this scene, verbatim as each read when its tag was last
+  /// written or re-anchored, joined into one cell — a target tagged twice in one scene therefore
+  /// reads as two passages here rather than as two rows.
+  passages,
 }
