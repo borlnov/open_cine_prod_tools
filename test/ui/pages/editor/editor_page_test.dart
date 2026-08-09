@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
@@ -59,23 +60,40 @@ EXT. GARDEN - NIGHT
 Something moves in the dark.
 """;
 
-/// A router manager whose [pop] only records that it was called: these page tests pump the
-/// editor page directly, without a real GoRouter for it to operate on.
+/// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
+/// dialog opened through `showDialog` (the export panel, the PDF options dialog) exactly as the
+/// real `GoRouter.pop` would — both push onto the very same root `Navigator`.
+final _navigatorKey = GlobalKey<NavigatorState>();
+
+/// A router manager whose [pop] records every call and then pops [_navigatorKey]'s own navigator,
+/// so a dialog opened through `showDialog` genuinely closes: these page tests pump the editor page
+/// directly, without a real GoRouter for `pop` to delegate to.
 class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
-  /// Records the call instead of delegating to the (never initialized) GoRouter.
+  /// The value [pop] was last called with.
+  Object? poppedValue;
+
+  /// Records the call, then pops the navigator's own topmost route (the dialog it was called
+  /// from) instead of delegating to the (never initialized) GoRouter.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
+    poppedValue = result;
+    final navigator = _navigatorKey.currentState;
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop(result);
+    }
   }
 }
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
 /// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the raw-mode
-/// preview's backdrop) resolve one, just like the real app always does.
+/// preview's backdrop) resolve one, just like the real app always does, and [_navigatorKey] so
+/// [_RecordingRouterManager.pop] can close a dialog opened through `showDialog`.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
+  navigatorKey: _navigatorKey,
   theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
@@ -854,9 +872,7 @@ void main() {
     expect(routerManager.popped, isTrue);
   });
 
-  testWidgets('the ⋮ menu opens and shows the export and import-and-replace actions', (
-    tester,
-  ) async {
+  testWidgets('the ⋮ menu opens and shows the import-and-replace action', (tester) async {
     await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
     await tester.pumpAndSettle();
 
@@ -866,10 +882,73 @@ void main() {
     await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
     await tester.pumpAndSettle();
 
-    expect(find.text(tr.editorExportAction), findsOneWidget);
+    // The two exports moved to the toolbar's own `Export` button; the ⋮ menu keeps the rest.
     expect(find.text(tr.editorImportAndReplaceAction), findsOneWidget);
     expect(find.text(tr.editorTogglePageSimulationAction), findsOneWidget);
   });
+
+  testWidgets(
+    "the toolbar's Export button opens a panel listing the screenplay's two documents",
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.editorExportPanelTitle), findsOneWidget);
+      expect(find.text(tr.editorExportFountainTitle), findsOneWidget);
+      expect(find.text(tr.editorExportPdfTitle), findsOneWidget);
+      expect(find.text(".fountain"), findsOneWidget);
+      expect(find.text("PDF"), findsOneWidget);
+    },
+  );
+
+  testWidgets("picking the screenplay PDF card opens its own export options dialog", (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(tr.editorExportPdfTitle));
+    await tester.pumpAndSettle();
+
+    // The panel closed (the card's own value was popped) and the PDF options dialog it hands off
+    // to is the one now on screen.
+    expect(find.text(tr.editorExportPanelTitle), findsNothing);
+    expect(find.byType(OcptEditorExportPdfOptionsDialog), findsOneWidget);
+  });
+
+  testWidgets(
+    "picking the Fountain card dispatches the export request directly, with no options dialog "
+    "of its own",
+    (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(tr.editorExportFountainTitle));
+      await tester.pumpAndSettle();
+
+      // The panel closed, unlike the PDF card, straight onto the editor with nothing else on
+      // screen: `.fountain` opens no options dialog of its own, the export request going straight
+      // through instead.
+      expect(find.text(tr.editorExportPanelTitle), findsNothing);
+      expect(find.byType(OcptEditorExportPdfOptionsDialog), findsNothing);
+      expect(find.byType(EditorPage), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'toggling page simulation from the ⋮ menu flips it and persists the new value',
@@ -1026,12 +1105,13 @@ void main() {
       expect(find.byType(OcptWorkspaceReadOnlyBanner), findsOneWidget);
       expect(find.textContaining("Before the rewrite"), findsOneWidget);
 
-      // The ⋮ menu keeps what only reads the screenplay and drops what would rewrite it.
+      // The export button stays offered — an export only ever reads — while the ⋮ menu keeps only
+      // what reads the screenplay and drops what would rewrite it.
+      expect(find.byTooltip(tr.workspaceExportTooltip), findsOneWidget);
+
       await tester.tap(find.byType(PopupMenuButton<void>));
       await tester.pumpAndSettle();
 
-      expect(find.text(tr.editorExportAction), findsOneWidget);
-      expect(find.text(tr.editorExportPdfAction), findsOneWidget);
       expect(find.text(tr.editorImportAndReplaceAction), findsNothing);
       expect(find.text(tr.editorPageSetupAction), findsNothing);
       expect(find.text(tr.editorTitlePageAction), findsNothing);

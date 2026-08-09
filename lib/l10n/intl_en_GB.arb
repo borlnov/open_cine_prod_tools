@@ -359,17 +359,45 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorExportAction": "Export…",
-  "@editorExportAction": {
-    "description": "Label of the action that exports the screenplay to a .fountain file",
-    "context": "Displayed as an item of the editor toolbar's overflow menu",
+  "editorExportPanelTitle": "Export the screenplay",
+  "@editorExportPanelTitle": {
+    "description": "Title of the screenplay mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
     "type": "text",
     "placeholders": {}
   },
-  "editorExportPdfAction": "Export to PDF…",
-  "@editorExportPdfAction": {
-    "description": "Label of the action that exports the screenplay to a PDF file",
-    "context": "Displayed as an item of the editor toolbar's overflow menu",
+  "editorExportPanelMessage": "The screenplay, either as its own Fountain source or typeset for print.",
+  "@editorExportPanelMessage": {
+    "description": "Sentence under the title of the screenplay mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportFountainTitle": "Fountain file",
+  "@editorExportFountainTitle": {
+    "description": "Name of the screenplay's own Fountain source document, shown as an export panel card title",
+    "context": "Displayed as a card title in the screenplay mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportFountainDescription": "The screenplay's own source, exported as plain Fountain text.",
+  "@editorExportFountainDescription": {
+    "description": "Sentence saying what the Fountain source document is, shown on its export panel card",
+    "context": "Displayed under the card title in the screenplay mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfTitle": "Screenplay",
+  "@editorExportPdfTitle": {
+    "description": "Name of the typeset screenplay PDF document, shown as an export panel card title",
+    "context": "Displayed as a card title in the screenplay mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfDescription": "The screenplay typeset on paper, ready to print or share.",
+  "@editorExportPdfDescription": {
+    "description": "Sentence saying what the screenplay PDF document is, shown on its export panel card",
+    "context": "Displayed under the card title in the screenplay mode's export panel",
     "type": "text",
     "placeholders": {}
   },
