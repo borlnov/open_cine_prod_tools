@@ -347,7 +347,7 @@ class OcptOneLineSchedulePdfService {
             _textCell(painter: painter, text: _effectOf(plan, row)),
             _textCell(painter: painter, text: row.decor ?? ocptScheduleEmptyValue),
             _textCell(painter: painter, text: _rolesLabelOf(row, plan.roles)),
-            _textCell(painter: painter, text: ocptFormatMinuteDuration(row.endMinute - row.startMinute)),
+            _textCell(painter: painter, text: _durationLabelOf(row)),
           ],
         ),
     ],
@@ -584,6 +584,17 @@ String _sceneNumberOf(OcptSchedulePlanSnapshot plan, _OneLineRow row) {
   }
   return row.isHold ? ocptScheduleEmptyValue : ocptShotSceneNumberOf(row.shots.first);
 }
+
+/// [row]'s own `DURÉE` cell: the **span its resolved blocks occupy**, from the start of its first to
+/// the end of its last, written through [ocptFormatMinuteDuration].
+///
+/// It is the time the plan **reserves** for that sequence, never a shot's own
+/// `OcptShot.estimatedDurationMs`, which estimates how long the shot runs on screen rather than how
+/// long it takes to get. And it is the run's span rather than the sum of its blocks' own durations:
+/// the two differ only when a pinned anchor leaves a gap in the middle of a folded run, and a
+/// sequence a day holds its slot busy with from 09:00 to 11:00 has cost that unit two hours whatever
+/// happened in the gap — which is the figure a production reads this column for.
+String _durationLabelOf(_OneLineRow row) => ocptFormatMinuteDuration(row.endMinute - row.startMinute);
 
 /// [row]'s own `EFFET` cell: [ocptSceneEffectOf]'s reading of its scene's heading, read off
 /// [OcptSchedulePlanSnapshot.headingBySceneId] exactly as `OcptCallSheetPdfService`'s own `EFFET`
