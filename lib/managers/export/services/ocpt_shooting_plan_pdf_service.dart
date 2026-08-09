@@ -5,11 +5,9 @@
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -18,11 +16,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
@@ -126,7 +123,7 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 ///
 /// **The elements grid's own columns are one per day instead**, never per slot: an element is
 /// needed on a day or it is not, and which of that day's own units carries it is not something this
-/// app's data says. Its rows are grouped under a [OcptElementCategory] band — the reference
+/// app's data says. Its rows are grouped under an `OcptElementCategory` band — the reference
 /// `.xlsx`'s own `ANIMAUX`/`VÉHICULES`/`ÉQUIPEMENTS SPÉCIAUX` bands — in the enum's own declaration
 /// order and **never by `OcptCrewDepartment`**: that type has six entries against the element
 /// category's fourteen, and a mapping between the two would be this app's own opinion about how a
@@ -221,9 +218,17 @@ class OcptShootingPlanPdfService {
     }
 
     final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
-    final dayGroups = _dayColumnGroupsOf(plan, resolvedDayIds);
-    final columns = _flattenColumns(dayGroups);
-    final chunks = _chunkColumns(columns, _maxGridColumnsPerPage);
+    final grids = OcptShootingPlanGrids.of(
+      plan: plan,
+      dayIds: resolvedDayIds,
+      presenceMark: labels.presenceMark,
+      persoLabel: labels.persoLabel,
+      sequenceRowPrefix: labels.sequenceRowPrefix,
+      emptyValue: ocptScheduleEmptyValue,
+      crewPositionLabelById: labels.crewPositionLabels,
+      elementCategoryLabels: labels.elementCategoryLabels,
+    );
+    final chunks = _chunkColumns(grids.slotColumns, _maxGridColumnsPerPage);
 
     if (includeLocationsGrid) {
       _addGridPages(
@@ -235,7 +240,7 @@ class OcptShootingPlanPdfService {
         title: labels.locationsGridTitle,
         rowHeaderLabel: labels.locationsGridRowHeader,
         chunks: chunks,
-        rows: _locationsGridRows(plan: plan, columns: columns, labels: labels),
+        rows: grids.locationsRows,
       );
     }
     if (includeSequencesGrid) {
@@ -248,7 +253,7 @@ class OcptShootingPlanPdfService {
         title: labels.sequencesGridTitle,
         rowHeaderLabel: labels.sequencesGridRowHeader,
         chunks: chunks,
-        rows: _sequencesGridRows(plan: plan, columns: columns, labels: labels),
+        rows: grids.sequencesRows,
       );
     }
     if (includePeopleGrid) {
@@ -261,19 +266,18 @@ class OcptShootingPlanPdfService {
         title: labels.peopleGridTitle,
         rowHeaderLabel: labels.peopleGridRowHeader,
         chunks: chunks,
-        rows: _peopleGridRows(plan: plan, columns: columns, labels: labels),
+        rows: grids.peopleRows,
       );
     }
     if (includeElementsGrid) {
-      final dayColumns = _dayColumnsOf(plan, resolvedDayIds);
       _addElementsGridPages(
         pdfDocument: pdfDocument,
         painter: painter,
         labels: labels,
         projectName: projectName,
         versionLine: versionLine,
-        chunks: _chunkColumns(dayColumns, _maxGridColumnsPerPage),
-        rows: _elementsGridRows(plan: plan, columns: dayColumns, labels: labels),
+        chunks: _chunkColumns(grids.dayColumns, _maxGridColumnsPerPage),
+        rows: grids.elementsRows,
       );
     }
 
@@ -388,8 +392,8 @@ class OcptShootingPlanPdfService {
     required String versionLine,
     required String title,
     required String rowHeaderLabel,
-    required List<List<_GridColumnRef>> chunks,
-    required List<_GridRow> rows,
+    required List<List<OcptShootingPlanGridColumn>> chunks,
+    required List<OcptShootingPlanGridRow> rows,
   }) {
     if (chunks.isEmpty || rows.isEmpty) {
       pdfDocument.addPage(
@@ -414,6 +418,7 @@ class OcptShootingPlanPdfService {
           pageTitle: chunks.length > 1 ? "$title (${chunkIndex + 1}/${chunks.length})" : title,
           rowHeaderLabel: rowHeaderLabel,
           columns: chunk,
+          chunkStartIndex: chunkIndex * _maxGridColumnsPerPage,
           rows: rows,
         ),
       );
@@ -453,8 +458,9 @@ class OcptShootingPlanPdfService {
     required String versionLine,
     required String pageTitle,
     required String rowHeaderLabel,
-    required List<_GridColumnRef> columns,
-    required List<_GridRow> rows,
+    required List<OcptShootingPlanGridColumn> columns,
+    required int chunkStartIndex,
+    required List<OcptShootingPlanGridRow> rows,
   }) {
     final columnWidths = <int, pw.TableColumnWidth>{0: const pw.FlexColumnWidth(2.4)};
     for (var index = 0; index < columns.length; index++) {
@@ -485,8 +491,8 @@ class OcptShootingPlanPdfService {
                 for (final (index, column) in columns.indexed)
                   _gridHeaderCell(
                     painter: painter,
-                    text: (index == 0 || columns[index - 1].day.id != column.day.id)
-                        ? "${labels.dayTagPrefix}${column.day.dayNumber}"
+                    text: (index == 0 || columns[index - 1].dayId != column.dayId)
+                        ? "${labels.dayTagPrefix}${column.dayNumber}"
                         : "",
                   ),
               ],
@@ -499,7 +505,7 @@ class OcptShootingPlanPdfService {
                 for (final column in columns)
                   _gridHeaderCell(
                     painter: painter,
-                    text: column.slot.label.trim().isEmpty ? ocptScheduleEmptyValue : column.slot.label.trim(),
+                    text: column.slotLabel.trim().isEmpty ? ocptScheduleEmptyValue : column.slotLabel.trim(),
                   ),
               ],
             ),
@@ -512,8 +518,12 @@ class OcptShootingPlanPdfService {
                     isBold: row.isBold,
                     isIndented: row.isIndented,
                   ),
-                  for (final column in columns)
-                    _gridDataCell(painter: painter, text: row.valueOf(column), isMuted: row.isMuted),
+                  for (final (index, _) in columns.indexed)
+                    _gridDataCell(
+                      painter: painter,
+                      text: row.cells[chunkStartIndex + index],
+                      isMuted: row.isMuted,
+                    ),
                 ],
               ),
           ],
@@ -579,210 +589,12 @@ class OcptShootingPlanPdfService {
         ),
       );
 
-  /// The locations grid's own rows: two per location referenced anywhere in [columns] — its own
-  /// name (marking, in each of its own slot columns, the set shot there or [OcptShootingPlanLabels
-  /// .presenceMark] when none was chosen) and, nested under it, [OcptShootingPlanLabels.persoLabel]
-  /// naming who is present.
-  List<_GridRow> _locationsGridRows({
-    required OcptSchedulePlanSnapshot plan,
-    required List<_GridColumnRef> columns,
-    required OcptShootingPlanLabels labels,
-  }) {
-    final seenLocationIds = <String>{};
-    final locationIds = <String>[];
-    for (final column in columns) {
-      final locationId = column.slot.locationId;
-      if (locationId == null || !seenLocationIds.add(locationId)) {
-        continue;
-      }
-      locationIds.add(locationId);
-    }
-
-    final rows = <_GridRow>[];
-    for (final locationId in locationIds) {
-      final location = plan.locationById[locationId];
-      final name = location == null || location.name.trim().isEmpty ? ocptScheduleEmptyValue : location.name.trim();
-
-      rows.add(
-        _GridRow(
-          label: name,
-          isBold: true,
-          valueOf: (column) {
-            if (column.slot.locationId != locationId) {
-              return "";
-            }
-            final setId = column.slot.setId;
-            final setName = setId == null ? null : plan.setById[setId]?.name.trim();
-            return (setName != null && setName.isNotEmpty) ? setName : labels.presenceMark;
-          },
-        ),
-      );
-      rows.add(
-        _GridRow(
-          label: labels.persoLabel,
-          isIndented: true,
-          isMuted: true,
-          valueOf: (column) {
-            if (column.slot.locationId != locationId) {
-              return "";
-            }
-            return _slotPersonFirstNames(plan, column.slot).join(", ");
-          },
-        ),
-      );
-    }
-    return rows;
-  }
-
-  /// The sequences grid's own rows: one per sequence with at least one shot placed anywhere in
-  /// [columns], in screenplay order, its cell listing the shot ranks covered in that slot.
-  List<_GridRow> _sequencesGridRows({
-    required OcptSchedulePlanSnapshot plan,
-    required List<_GridColumnRef> columns,
-    required OcptShootingPlanLabels labels,
-  }) {
-    final dayIds = <String>{for (final column in columns) column.day.id};
-    final shotsBySceneIdBySlotId = <String, Map<String, List<OcptShot>>>{};
-
-    for (final dayId in dayIds) {
-      for (final ordered in ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId)) {
-        if (ordered.block.kind != OcptShootingBlockKind.shot || ordered.block.shotId == null) {
-          continue;
-        }
-        final shot = plan.shotById(ordered.block.shotId!);
-        if (shot == null || shot.sceneId == null) {
-          continue;
-        }
-        ((shotsBySceneIdBySlotId[shot.sceneId!] ??= <String, List<OcptShot>>{})[ordered.slot.id] ??= <OcptShot>[])
-            .add(shot);
-      }
-    }
-
-    final sequencesBySceneId = {
-      for (final sequence in plan.shotList?.sequences ?? const [])
-        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence,
-    };
-
-    final rows = <_GridRow>[];
-    for (final sequence in sequencesBySceneId.values) {
-      final bySlotId = shotsBySceneIdBySlotId[sequence.sceneId];
-      if (bySlotId == null || bySlotId.isEmpty) {
-        continue;
-      }
-      rows.add(
-        _GridRow(
-          label: "${labels.sequenceRowPrefix} ${sequence.displaySceneNumber}",
-          isBold: true,
-          valueOf: (column) {
-            final shots = bySlotId[column.slot.id];
-            if (shots == null || shots.isEmpty) {
-              return "";
-            }
-            final ranks = shots.map(ocptShotRankOf).toList()..sort();
-            return ranks.join(",");
-          },
-        ),
-      );
-    }
-    return rows;
-  }
-
-  /// The crew and cast grid's own rows: one per crew position actually held anywhere in [columns],
-  /// in catalogue order, then one per role convoked anywhere in [columns], in role-number order —
-  /// a position's cell names who holds it, a role's cell names its actor or, uncast,
-  /// [OcptShootingPlanLabels.presenceMark].
-  List<_GridRow> _peopleGridRows({
-    required OcptSchedulePlanSnapshot plan,
-    required List<_GridColumnRef> columns,
-    required OcptShootingPlanLabels labels,
-  }) {
-    final heldPositionIds = <String>{};
-    final castRoleIds = <String>{};
-    for (final column in columns) {
-      for (final member in column.slot.crew) {
-        if (member.positionId.isNotEmpty) {
-          heldPositionIds.add(member.positionId);
-        }
-      }
-      for (final member in column.slot.cast) {
-        castRoleIds.add(member.roleId);
-      }
-    }
-
-    final rows = <_GridRow>[];
-    for (final position in ocptCrewPositions) {
-      if (!heldPositionIds.contains(position.id)) {
-        continue;
-      }
-      rows.add(
-        _GridRow(
-          label: labels.crewPositionLabelOf(position.id),
-          isBold: true,
-          valueOf: (column) {
-            final names = <String>{};
-            for (final member in column.slot.crew) {
-              if (member.positionId != position.id) {
-                continue;
-              }
-              final first = plan.personById[member.personId]?.firstName.trim();
-              if (first != null && first.isNotEmpty) {
-                names.add(first);
-              }
-            }
-            final sorted = names.toList()..sort();
-            return sorted.join(", ");
-          },
-        ),
-      );
-    }
-
-    final orderedRoles = [for (final role in plan.roles) if (castRoleIds.contains(role.id)) role]
-      ..sort((a, b) => a.number.compareTo(b.number));
-    for (final role in orderedRoles) {
-      rows.add(
-        _GridRow(
-          label: "${role.number} · ${role.name}",
-          valueOf: (column) {
-            if (!column.slot.cast.any((member) => member.roleId == role.id)) {
-              return "";
-            }
-            final actorFirstName = role.personId == null ? null : plan.personById[role.personId]?.firstName.trim();
-            return (actorFirstName != null && actorFirstName.isNotEmpty) ? actorFirstName : labels.presenceMark;
-          },
-        ),
-      );
-    }
-    return rows;
-  }
-
-  /// Every distinct first name of a person linked to [slot], crew and cast alike (a cast role's
-  /// actor read through `roles.personId`), sorted.
-  List<String> _slotPersonFirstNames(OcptSchedulePlanSnapshot plan, OcptShootingSlot slot) {
-    final names = <String>{};
-    for (final member in slot.crew) {
-      final first = plan.personById[member.personId]?.firstName.trim();
-      if (first != null && first.isNotEmpty) {
-        names.add(first);
-      }
-    }
-    for (final member in slot.cast) {
-      final role = plan.roleById[member.roleId];
-      final personId = role?.personId;
-      final first = personId == null ? null : plan.personById[personId]?.firstName.trim();
-      if (first != null && first.isNotEmpty) {
-        names.add(first);
-      }
-    }
-    final sorted = names.toList()..sort();
-    return sorted;
-  }
-
   /// Adds one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
   /// [rows] over that chunk's own day columns — or a single note page when [chunks] or [rows] is
-  /// empty. Mirrors [_addGridPages] over [OcptShootingDay] columns rather than [_GridColumnRef]
-  /// ones: the elements grid's own columns are days, not slots, so it is its own page-building
-  /// method rather than a second call through [_gridPage], which draws a second, slot-label header
-  /// row this grid has none of.
+  /// empty. Mirrors [_addGridPages] over [OcptShootingDay] columns rather than
+  /// [OcptShootingPlanGridColumn] ones: the elements grid's own columns are days, not slots, so it
+  /// is its own page-building method rather than a second call through [_gridPage], which draws a
+  /// second, slot-label header row this grid has none of.
   void _addElementsGridPages({
     required pw.Document pdfDocument,
     required OcptScriptPagePainter painter,
@@ -790,7 +602,7 @@ class OcptShootingPlanPdfService {
     required String projectName,
     required String versionLine,
     required List<List<OcptShootingDay>> chunks,
-    required List<_ElementsGridRow> rows,
+    required List<OcptShootingPlanElementsGridRow> rows,
   }) {
     if (chunks.isEmpty || rows.isEmpty) {
       pdfDocument.addPage(
@@ -816,6 +628,7 @@ class OcptShootingPlanPdfService {
               ? "${labels.elementsGridTitle} (${chunkIndex + 1}/${chunks.length})"
               : labels.elementsGridTitle,
           columns: chunk,
+          chunkStartIndex: chunkIndex * _maxGridColumnsPerPage,
           rows: rows,
         ),
       );
@@ -825,8 +638,8 @@ class OcptShootingPlanPdfService {
   /// One landscape elements-grid page: the running head, the grid's own title, then its table — a
   /// single header row (the day tag over each column, unlike [_gridPage]'s own two: **the elements
   /// grid's own columns are days, not slots**, so there is no second, slot-label row to draw), then
-  /// [rows] — an [_ElementsGridCategoryBand] painted as its own full band row and an
-  /// [_ElementsGridElementRow] as an ordinary data row.
+  /// [rows] — an [OcptShootingPlanElementsGridCategoryBand] painted as its own full band row and an
+  /// [OcptShootingPlanElementsGridElementRow] as an ordinary data row.
   ///
   /// **Only the day header repeats across a page break, not a category band.** `pw.TableRow.repeat`
   /// redraws *every* row it marks at the top of *every* page the table spans — right for a fixed
@@ -835,9 +648,9 @@ class OcptShootingPlanPdfService {
   /// reader is actually looking at, which is a worse lie than the one being fixed. Making only the
   /// *current* band follow the break would need this table built row by row like
   /// [_dayTimetableWidgets] rather than handed whole to `pw.Table`, for a document that already names
-  /// every row's own element (`<code> · <name>`, [_ElementsGridElementRow.label]) whether or not its
-  /// category is still in view — a reader who has lost the band can still read the row, which is not
-  /// true of a column with no header at all.
+  /// every row's own element (`<code> · <name>`, [OcptShootingPlanElementsGridElementRow.label])
+  /// whether or not its category is still in view — a reader who has lost the band can still read
+  /// the row, which is not true of a column with no header at all.
   pw.MultiPage _elementsGridPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -845,7 +658,8 @@ class OcptShootingPlanPdfService {
     required String versionLine,
     required String pageTitle,
     required List<OcptShootingDay> columns,
-    required List<_ElementsGridRow> rows,
+    required int chunkStartIndex,
+    required List<OcptShootingPlanElementsGridRow> rows,
   }) {
     final columnWidths = <int, pw.TableColumnWidth>{0: const pw.FlexColumnWidth(2.4)};
     for (var index = 0; index < columns.length; index++) {
@@ -879,17 +693,18 @@ class OcptShootingPlanPdfService {
             ),
             for (final row in rows)
               switch (row) {
-                _ElementsGridCategoryBand() => pw.TableRow(
+                OcptShootingPlanElementsGridCategoryBand() => pw.TableRow(
                   decoration: const pw.BoxDecoration(color: _bandColor),
                   children: [
                     _gridRowLabelCell(painter: painter, text: row.label, isBold: true),
                     for (final _ in columns) _gridCornerCell(painter: painter),
                   ],
                 ),
-                _ElementsGridElementRow() => pw.TableRow(
+                OcptShootingPlanElementsGridElementRow() => pw.TableRow(
                   children: [
                     _gridRowLabelCell(painter: painter, text: row.label),
-                    for (final day in columns) _gridDataCell(painter: painter, text: row.valueOf(day)),
+                    for (final (index, _) in columns.indexed)
+                      _gridDataCell(painter: painter, text: row.cells[chunkStartIndex + index]),
                   ],
                 ),
               },
@@ -897,55 +712,6 @@ class OcptShootingPlanPdfService {
         ),
       ],
     );
-  }
-
-  /// The elements grid's own rows: every [OcptElement] linked to a scene at least one of [columns]
-  /// actually plays ([OcptSchedulePlanSnapshot.sceneIdsOfDay]), grouped under an
-  /// [OcptElementCategory] band in the enum's own declaration order, each band's own elements
-  /// sorted by name — the same join [OcptSchedulePlanSnapshot.elementsToBringOnDay] already reads
-  /// for one recipient's own elements of one day, widened here to every element the whole printed
-  /// range needs, by anybody. An element linked to no scene of [columns] contributes no row at all.
-  ///
-  /// See the class doc comment for why the grouping is by category and never by department, and why
-  /// a cell is a presence mark rather than a quantity summed across a day's own scenes.
-  List<_ElementsGridRow> _elementsGridRows({
-    required OcptSchedulePlanSnapshot plan,
-    required List<OcptShootingDay> columns,
-    required OcptShootingPlanLabels labels,
-  }) {
-    final sceneIdsByDayId = {for (final day in columns) day.id: plan.sceneIdsOfDay(day.id)};
-    final playedSceneIds = {for (final sceneIds in sceneIdsByDayId.values) ...sceneIds};
-
-    final elementsByCategory = <OcptElementCategory, List<OcptElement>>{};
-    for (final element in plan.elements) {
-      if (!element.sceneLinks.any((link) => playedSceneIds.contains(link.sceneId))) {
-        continue;
-      }
-      (elementsByCategory[element.category] ??= <OcptElement>[]).add(element);
-    }
-
-    final rows = <_ElementsGridRow>[];
-    for (final category in OcptElementCategory.values) {
-      final elements = elementsByCategory[category];
-      if (elements == null || elements.isEmpty) {
-        continue;
-      }
-      elements.sort((a, b) => a.name.compareTo(b.name));
-      rows.add(_ElementsGridCategoryBand(label: labels.elementCategoryLabelOf(category)));
-      for (final element in elements) {
-        rows.add(
-          _ElementsGridElementRow(
-            label: "${element.code} · ${element.name}",
-            valueOf: (day) {
-              final sceneIds = sceneIdsByDayId[day.id] ?? const {};
-              final isNeeded = element.sceneLinks.any((link) => sceneIds.contains(link.sceneId));
-              return isNeeded ? labels.presenceMark : "";
-            },
-          ),
-        );
-      }
-    }
-    return rows;
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -1788,139 +1554,18 @@ class OcptShootingPlanPdfService {
 }
 
 // ===================================================================================================
-// Pure data-preparation types and functions — no `pw.Widget` in sight, so a future test can exercise
-// them directly if it ever needs to.
+// Pure pagination helper — the columns and rows themselves are `OcptShootingPlanGrids`' own
+// (`lib/models/ocpt_shooting_plan_grids.dart`), shared with `OcptShootingPlanXlsxExportService`.
 // ===================================================================================================
-
-/// One live day contributing columns to the three summary grids: its own slots, in order — a day
-/// with no live slot at all contributes none, [_dayColumnGroupsOf] never producing an empty group.
-class _DayColumnGroup {
-  const _DayColumnGroup({required this.day, required this.slots});
-
-  /// The day these [slots] belong to.
-  final OcptShootingDay day;
-
-  /// This day's own live slots, in `sortKey` order.
-  final List<OcptShootingSlot> slots;
-}
-
-/// One column of a summary grid: a slot, and the day it belongs to (so a grid page can print the
-/// day tag once above the first column of its own group).
-class _GridColumnRef {
-  const _GridColumnRef({required this.day, required this.slot});
-
-  /// The day [slot] belongs to.
-  final OcptShootingDay day;
-
-  /// The slot this column is about.
-  final OcptShootingSlot slot;
-}
-
-/// One row of a summary grid: its own leading label and how to read its value out of one column.
-class _GridRow {
-  const _GridRow({
-    required this.label,
-    required this.valueOf,
-    this.isBold = false,
-    this.isMuted = false,
-    this.isIndented = false,
-  });
-
-  /// This row's own leading label (a location's name, a sequence's own tag, a position's or a
-  /// role's own label).
-  final String label;
-
-  /// This row's own value at [_GridColumnRef], or the empty string when nothing applies to that
-  /// slot — never [ocptScheduleEmptyValue], see [OcptShootingPlanPdfService._gridDataCell]'s own doc
-  /// comment for why.
-  final String Function(_GridColumnRef column) valueOf;
-
-  /// Whether [label] is printed bold — a location's or a sequence's own name, a crew position.
-  final bool isBold;
-
-  /// Whether this row's own cells are printed muted — the locations grid's own nested `Perso.` row.
-  final bool isMuted;
-
-  /// Whether [label] is printed indented — the locations grid's own nested `Perso.` row.
-  final bool isIndented;
-}
-
-/// One row of the elements grid — either an [OcptElementCategory] band or one element's own data
-/// row. A sealed alternative to widening [_GridRow] itself: that class's own [_GridRow.valueOf]
-/// reads a slot column, and the elements grid's own columns are days (the class doc comment), so
-/// reusing it would either force a slot-shaped column onto a grid that has none or force every slot
-/// grid's own row to accept a column type it never sees.
-sealed class _ElementsGridRow {
-  const _ElementsGridRow();
-}
-
-/// An [OcptElementCategory] band row — the reference `.xlsx`'s own `ANIMAUX`/`VÉHICULES`/
-/// `ÉQUIPEMENTS SPÉCIAUX` bands, drawn as a whole table row painted in [_bandColor] with no
-/// per-column value: `pw.Table` cannot merge a cell across columns any more than across rows (the
-/// same limit [OcptShootingPlanPdfService._tenMinuteGridPage]'s own doc comment already works
-/// around), so the band reads as one by its colour and its lone label rather than by a true merge.
-class _ElementsGridCategoryBand extends _ElementsGridRow {
-  const _ElementsGridCategoryBand({required this.label});
-
-  /// The category's own display label.
-  final String label;
-}
-
-/// One element's own row: its `<code> · <name>` label — the same shape
-/// `OcptSchedulePlanSnapshot.elementsToBringOnDay`'s own printed line already carries on a named
-/// call sheet — and [valueOf] reading, for a given day, whether it prints
-/// [OcptShootingPlanLabels.presenceMark] or nothing at all.
-class _ElementsGridElementRow extends _ElementsGridRow {
-  const _ElementsGridElementRow({required this.label, required this.valueOf});
-
-  /// This row's own leading label.
-  final String label;
-
-  /// This row's own value at a given day, or the empty string when the element is not needed that
-  /// day — never [ocptScheduleEmptyValue], for the same reason [_GridRow.valueOf] never is.
-  final String Function(OcptShootingDay day) valueOf;
-}
-
-/// Every live day of [dayIds] that carries at least one live slot, in the order given — a day with
-/// none contributes no column to a summary grid at all.
-List<_DayColumnGroup> _dayColumnGroupsOf(OcptSchedulePlanSnapshot plan, List<String> dayIds) {
-  final groups = <_DayColumnGroup>[];
-  for (final dayId in dayIds) {
-    final day = plan.schedule.daysById[dayId];
-    if (day == null) {
-      continue;
-    }
-    final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    if (slots.isEmpty) {
-      continue;
-    }
-    groups.add(_DayColumnGroup(day: day, slots: slots));
-  }
-  return groups;
-}
-
-/// [groups] flattened into one column per slot, in order — the decision taken for this app: a
-/// summary grid's own columns are one per slot, grouped under its day.
-List<_GridColumnRef> _flattenColumns(List<_DayColumnGroup> groups) => [
-  for (final group in groups)
-    for (final slot in group.slots) _GridColumnRef(day: group.day, slot: slot),
-];
-
-/// [dayIds] resolved to the live [OcptShootingDay]s they name, in order — the elements grid's own
-/// columns, one per **day** rather than one per slot (the class doc comment): an element is needed
-/// on a day or it is not, and which of that day's own slots carries it is not something this app's
-/// data says. Unlike [_dayColumnGroupsOf], a day contributes a column here even while it carries no
-/// live slot at all — an element's own need is read off [OcptSchedulePlanSnapshot.sceneIdsOfDay],
-/// never off a slot.
-List<OcptShootingDay> _dayColumnsOf(OcptSchedulePlanSnapshot plan, List<String> dayIds) => [
-  for (final dayId in dayIds)
-    if (plan.schedule.daysById[dayId] case final day?) day,
-];
 
 /// [columns] split into chunks of at most [chunkSize], in order — empty when [columns] itself is.
 /// Generic over the column's own type so every summary grid paginates by the very same rule: a
-/// slot column for the locations, sequences and crew-and-cast grids, a day column for the elements
-/// one — [_maxGridColumnsPerPage] never meaning two different things depending on which grid asks.
+/// slot column ([OcptShootingPlanGridColumn]) for the locations, sequences and crew-and-cast grids,
+/// a day column ([OcptShootingDay]) for the elements one — [_maxGridColumnsPerPage] never meaning
+/// two different things depending on which grid asks. A chunk's own start offset into [columns]
+/// (`chunkIndex * chunkSize`, contiguous by construction) is what every caller reads a row's own
+/// cells at, [OcptShootingPlanGridRow.cells]/[OcptShootingPlanElementsGridElementRow.cells] being
+/// resolved against the **whole**, unchunked column list rather than against one page's own slice.
 List<List<T>> _chunkColumns<T>(List<T> columns, int chunkSize) {
   if (columns.isEmpty) {
     return const [];
