@@ -4715,7 +4715,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesExportPanelMessage": "The whole catalogue — people, roles, locations and elements — as one workbook.",
+  "resourcesExportPanelMessage": "The whole catalogue as one workbook, or the crew and cast as a printed contact list.",
   "@resourcesExportPanelMessage": {
     "description": "Sentence under the title of the resources mode's export panel, saying what it offers",
     "context": "Displayed under the export panel's title",
@@ -4799,6 +4799,136 @@
   "resourcesExportXlsxError": "The resources catalogue could not be exported.",
   "@resourcesExportXlsxError": {
     "description": "Error shown when exporting the resources catalogue to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListTitle": "Contact list",
+  "@resourcesExportContactListTitle": {
+    "description": "Name of the contact list document, shown as an export panel card title",
+    "context": "Displayed as a card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListDescription": "The crew, by department, and the cast, with their phone and e-mail.",
+  "@resourcesExportContactListDescription": {
+    "description": "Sentence saying what the contact list document is, shown on its export panel card",
+    "context": "Displayed under the card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListUnavailableReason": "Nobody in the address book holds a position, and no role is cast yet.",
+  "@resourcesExportContactListUnavailableReason": {
+    "description": "Reason shown in place of the card's description while there is no line to print",
+    "context": "Displayed on the resources mode's export panel card while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListDialogTitle": "Export the contact list",
+  "@resourcesExportContactListDialogTitle": {
+    "description": "Title of the dialog picking the page format the contact list export runs with",
+    "context": "Displayed as a dialog over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListFileTypeLabel": "PDF document",
+  "@resourcesExportContactListFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the contact list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListFileNameSuffix": "contacts",
+  "@resourcesExportContactListFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - contacts.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListDocumentTitle": "Contact list",
+  "@resourcesExportContactListDocumentTitle": {
+    "description": "Name of the document, printed beside the project name in the running head and once more, large, at the top of the first page",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListVersionLabel": "Version",
+  "@resourcesExportContactListVersionLabel": {
+    "description": "Label the moment this document was produced is printed under, in the running head",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListCrewSectionTitle": "Crew",
+  "@resourcesExportContactListCrewSectionTitle": {
+    "description": "Heading of the contact list's crew section, grouped by department",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListCastSectionTitle": "Cast",
+  "@resourcesExportContactListCastSectionTitle": {
+    "description": "Heading of the contact list's cast section, one row per role",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListNameHeader": "Name",
+  "@resourcesExportContactListNameHeader": {
+    "description": "Header of the name column, shared by the crew and the cast tables",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListPositionHeader": "Position",
+  "@resourcesExportContactListPositionHeader": {
+    "description": "Header of the position column: a crew row's own position, or a cast row's role number and name",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListPhoneHeader": "Phone",
+  "@resourcesExportContactListPhoneHeader": {
+    "description": "Header of the phone column, shared by the crew and the cast tables",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListEmailHeader": "E-mail",
+  "@resourcesExportContactListEmailHeader": {
+    "description": "Header of the e-mail column, shared by the crew and the cast tables",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListUnassignedDepartmentLabel": "Unassigned",
+  "@resourcesExportContactListUnassignedDepartmentLabel": {
+    "description": "Heading of the trailing group a free-label position, or one naming a retired catalogue entry, lands in",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListEmptyDocumentNote": "Nobody in the address book holds a position, and no role is cast yet.",
+  "@resourcesExportContactListEmptyDocumentNote": {
+    "description": "Note printed in place of the whole document when there is no line to print",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListSuccessMessage": "Exported to {path}",
+  "@resourcesExportContactListSuccessMessage": {
+    "description": "Message shown when the contact list was successfully exported to a PDF",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesExportContactListError": "The contact list could not be exported.",
+  "@resourcesExportContactListError": {
+    "description": "Error shown when exporting the contact list to a PDF failed",
     "context": "Displayed as a SnackBar over the resources mode",
     "type": "text",
     "placeholders": {}

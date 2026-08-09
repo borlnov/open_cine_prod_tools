@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
@@ -433,6 +434,39 @@ OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
     everyDayLabel: tr.resourcesXlsxAvailabilityEveryDay,
     weekdayLabels: _weekdayLabelsOf(context),
     sceneLabels: {for (final scene in scenes) scene.id: ocptSceneRefLabel(scene)},
+  );
+}
+
+/// Builds every localized string the exported contact list carries.
+///
+/// This is the single bridge between the UI's `Tr` and `OcptContactListPdfService`, which runs in
+/// the manager layer and has no `BuildContext` to resolve anything of its own — mirroring
+/// `ocptResourcesXlsxLabelsOf`. Its department and position maps reuse the very
+/// `ocptCrewDepartmentLabel`/`ocptCrewPositionLabel` helpers this file already exposes to the
+/// person sheet's own positions card, so the printed list can never name either differently from
+/// the screen.
+OcptContactListLabels ocptContactListLabelsOf(BuildContext context) {
+  final tr = Tr.of(context);
+
+  return OcptContactListLabels(
+    fileNameSuffix: tr.resourcesExportContactListFileNameSuffix,
+    documentTitle: tr.resourcesExportContactListDocumentTitle,
+    versionLabel: tr.resourcesExportContactListVersionLabel,
+    crewSectionTitle: tr.resourcesExportContactListCrewSectionTitle,
+    castSectionTitle: tr.resourcesExportContactListCastSectionTitle,
+    nameHeader: tr.resourcesExportContactListNameHeader,
+    positionHeader: tr.resourcesExportContactListPositionHeader,
+    phoneHeader: tr.resourcesExportContactListPhoneHeader,
+    emailHeader: tr.resourcesExportContactListEmailHeader,
+    crewDepartmentLabels: {
+      for (final department in OcptCrewDepartment.values)
+        department: ocptCrewDepartmentLabel(tr, department),
+    },
+    crewPositionLabels: {
+      for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
+    },
+    unassignedDepartmentLabel: tr.resourcesExportContactListUnassignedDepartmentLabel,
+    emptyDocumentNote: tr.resourcesExportContactListEmptyDocumentNote,
   );
 }
 
