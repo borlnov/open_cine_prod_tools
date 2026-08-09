@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pd
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_day_out_of_days_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_one_line_schedule_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
@@ -27,6 +28,7 @@ import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
@@ -51,15 +53,15 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
 /// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
 /// breakdown as one printed sheet per scene, and its shooting schedule as call sheets — the general
-/// one and the named ones, both per day —, as one whole-shoot shooting plan and as its cast's own
-/// *Day Out of Days*.
+/// one and the named ones, both per day —, as one whole-shoot shooting plan, as its cast's own
+/// *Day Out of Days* and as the compact one-line schedule.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
-/// [callSheetPdfService], [shootingPlanPdfService] and [dayOutOfDaysPdfService], and the "save
-/// as"/"choose a folder" location picking to [saveLocationService] — the ten services this manager
-/// owns (RFL18).
+/// [callSheetPdfService], [shootingPlanPdfService], [dayOutOfDaysPdfService] and
+/// [oneLineSchedulePdfService], and the "save as"/"choose a folder" location picking to
+/// [saveLocationService] — the eleven services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -90,6 +92,9 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service rendering the cast's own *Day Out of Days* PDF.
   final OcptDayOutOfDaysPdfService dayOutOfDaysPdfService;
+
+  /// The service rendering the one-line schedule PDF.
+  final OcptOneLineSchedulePdfService oneLineSchedulePdfService;
 
   /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
   /// path.
@@ -122,6 +127,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        callSheetPdfService = OcptCallSheetPdfService(fontsLoader: fontsLoader),
        shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
        dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
+       oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -530,6 +536,44 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     return _writeToPickedLocation(
       suggestedFileName: dayOutOfDaysPdfService.dayOutOfDaysFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Renders the one-line schedule over [dayIds] via [oneLineSchedulePdfService] and shows the
+  /// native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the day titles, the column
+  /// headers and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
+  /// this manager has no `Tr` of its own. Like the shooting plan and the *Day Out of Days*, this is
+  /// a **single** file, through `pickSaveLocation` rather than a folder. Returns the path of the
+  /// written file, or null if the user cancelled or the save failed (failures are logged; the OS
+  /// dialog already reported a cancellation to the user).
+  Future<String?> exportOneLineSchedule({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptOneLineScheduleLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await oneLineSchedulePdfService.generate(
+      plan: plan,
+      dayIds: dayIds,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: oneLineSchedulePdfService.oneLineScheduleFileName(
         projectName: projectName,
         suffix: labels.fileNameSuffix,
       ),

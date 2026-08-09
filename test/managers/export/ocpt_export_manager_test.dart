@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
@@ -1279,6 +1280,117 @@ void main() {
       await export(manager);
 
       expect(saveLocationService.lastSuggestedFileName, "My Movie - day out of days.pdf");
+      expect(saveLocationService.lastFileTypeLabel, "PDF document");
+      expect(saveLocationService.lastExtensions, const ["pdf"]);
+    });
+  });
+
+  group('exportOneLineSchedule', () {
+    const labels = OcptOneLineScheduleLabels(
+      fileNameSuffix: "one-line schedule",
+      documentTitle: "One-line schedule",
+      directorLine: "",
+      versionLabel: "Version",
+      dayTagPrefix: "D",
+      dayTitles: {},
+      seqHeader: "SEQ",
+      effectHeader: "EFFECT",
+      decorHeader: "SET",
+      rolesHeader: "CAST",
+      durationHeader: "DURATION",
+      noLocationLabel: "No location yet",
+      emptyDayNote: "Nothing planned for this day.",
+      emptyDocumentNote: "Nothing to print.",
+    );
+
+    /// A one-day, one-slot schedule plan with no block placed — enough for one readable page.
+    OcptSchedulePlanSnapshot buildPlan() {
+      final day = OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026, 1, 2),
+        dayNumber: 2,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      const slot = OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
+        notes: "",
+        crew: [],
+        cast: [],
+        guests: [],
+      );
+
+      return OcptSchedulePlanSnapshot.build(
+        schedule: OcptScheduleSnapshot.build(
+          screenplayId: "screenplay-1",
+          days: [day],
+          slotsByDayId: const {
+            "day-1": [slot],
+          },
+          blocksByDayId: const {},
+          eventsByDayId: const {},
+        ),
+        shotList: null,
+        locations: const [],
+        roles: const [],
+        people: const [],
+        elements: const [],
+        minimumRestMinutes: null,
+      );
+    }
+
+    Future<String?> export(OcptExportManager manager) => manager.exportOneLineSchedule(
+      plan: buildPlan(),
+      dayIds: const ["day-1"],
+      pageSetup: const OcptPageSetup.standard(),
+      labels: labels,
+      projectName: "My Movie",
+      includeTitlePage: true,
+      fileTypeLabel: "PDF document",
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      expect(await export(manager), isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a single PDF and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - one-line schedule.pdf");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      expect(await export(manager), chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+    });
+
+    test('suggests the file name computed by OcptOneLineSchedulePdfService, suffixed', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await export(manager);
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - one-line schedule.pdf");
       expect(saveLocationService.lastFileTypeLabel, "PDF document");
       expect(saveLocationService.lastExtensions, const ["pdf"]);
     });
