@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -225,15 +224,6 @@ String ocptScheduleLocationAddressLine(OcptLocation location) {
 
   return parts.isEmpty ? ocptScheduleEmptyValue : parts.join(" — ");
 }
-
-/// The scene-number half of [shot]'s own `<sceneNumber>/<rank>` display code — what a call sheet's
-/// own `SEQ` column and a shooting plan's own sequence grid read a shot's scene off.
-String ocptShotSceneNumberOf(OcptShot shot) => shot.code.contains("/") ? shot.code.split("/").first : shot.code;
-
-/// The per-scene rank half of [shot]'s own `<sceneNumber>/<rank>` display code — what a call sheet's
-/// own `PLANS` column and a shooting plan's own `Plan`/sequence-grid cells read, since whichever one
-/// is naming it already says the scene.
-String ocptShotRankOf(OcptShot shot) => shot.code.contains("/") ? shot.code.split("/").last : shot.code;
 
 /// [convocation]'s own arrival – departure band, or [ocptScheduleEmptyValue] while there is no
 /// convocation at all.

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_shot_code.dart';
 
 /// One column of the locations, sequences and crew-and-cast summary grids: a slot, and the day it
 /// belongs to — [dayId]/[dayNumber] let a caller print or write a day tag once above the first
@@ -407,7 +408,7 @@ class OcptShootingPlanGrids extends Equatable {
           cells: [
             for (final column in columns)
               if (bySlotId[column.slot.id] case final shots? when shots.isNotEmpty)
-                (shots.map(_shotRankOf).toList()..sort()).join(",")
+                (shots.map(ocptShotRankOf).toList()..sort()).join(",")
               else
                 "",
           ],
@@ -416,16 +417,6 @@ class OcptShootingPlanGrids extends Equatable {
     }
     return rows;
   }
-
-  /// [shot]'s own per-scene rank half of its `<sceneNumber>/<rank>` display code.
-  ///
-  /// Duplicates `ocptShotRankOf` (`lib/managers/export/services/ocpt_schedule_pdf_shared.dart`)
-  /// rather than importing it: a `lib/models/` file must not depend on the manager layer that
-  /// consumes it (dependencies never reference their dependents), and this is a one-line string
-  /// split with no risk of the two rules ever disagreeing — the same trade
-  /// `OcptSchedulePlanSnapshot._unavailabilityCoversDate` already makes for its own tiny duplicated
-  /// check.
-  static String _shotRankOf(OcptShot shot) => shot.code.contains("/") ? shot.code.split("/").last : shot.code;
 
   /// The crew and cast grid's own rows — see [OcptShootingPlanGrids.peopleRows]'s own doc comment.
   static List<OcptShootingPlanGridRow> _peopleRowsOf({
