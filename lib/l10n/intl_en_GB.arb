@@ -7353,6 +7353,139 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportDayOutOfDaysMenuAction": "Export the Day Out of Days…",
+  "@scheduleExportDayOutOfDaysMenuAction": {
+    "description": "Label of the `⋮` menu entry opening the Day Out of Days export dialog",
+    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysDialogTitle": "Export the Day Out of Days",
+  "@scheduleExportDayOutOfDaysDialogTitle": {
+    "description": "Title of the Day Out of Days export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysFileNameSuffix": "day out of days",
+  "@scheduleExportDayOutOfDaysFileNameSuffix": {
+    "description": "Word appended to the project name to name the exported Day Out of Days file",
+    "context": "Suggested in the native save dialog opened by the Day Out of Days export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysDocumentTitle": "Day Out of Days",
+  "@scheduleExportDayOutOfDaysDocumentTitle": {
+    "description": "Generic name of the Day Out of Days document, printed on its title page and in every page's running head",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysRoleHeader": "Role",
+  "@scheduleExportDayOutOfDaysRoleHeader": {
+    "description": "Corner header of the Day Out of Days table's own row-label column",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkedDaysHeader": "Worked",
+  "@scheduleExportDayOutOfDaysWorkedDaysHeader": {
+    "description": "Header of the Day Out of Days column counting the days a role is called on",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysHeldDaysHeader": "Held",
+  "@scheduleExportDayOutOfDaysHeldDaysHeader": {
+    "description": "Header of the Day Out of Days column counting a role's own hold days",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysLegendTitle": "Legend",
+  "@scheduleExportDayOutOfDaysLegendTitle": {
+    "description": "Heading of the legend printed under the Day Out of Days table",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysEmptyNote": "No role is called on the printed days yet.",
+  "@scheduleExportDayOutOfDaysEmptyNote": {
+    "description": "Note printed in place of the Day Out of Days table when the printed range holds no day, or calls no role at all",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkCode": "SW",
+  "@scheduleExportDayOutOfDaysStartWorkCode": {
+    "description": "Code printed in a Day Out of Days cell for a role's first called day",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkCode": "W",
+  "@scheduleExportDayOutOfDaysWorkCode": {
+    "description": "Code printed in a Day Out of Days cell for a day a role is called on",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkFinishCode": "WF",
+  "@scheduleExportDayOutOfDaysWorkFinishCode": {
+    "description": "Code printed in a Day Out of Days cell for a role's last called day",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkFinishCode": "SWF",
+  "@scheduleExportDayOutOfDaysStartWorkFinishCode": {
+    "description": "Code printed in a Day Out of Days cell for a role called on one single day of the printed range",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysHoldCode": "H",
+  "@scheduleExportDayOutOfDaysHoldCode": {
+    "description": "Code printed in a Day Out of Days cell for a day between a role's first and last called days on which it is not called",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkDescription": "Start work — the first day this role is called on",
+  "@scheduleExportDayOutOfDaysStartWorkDescription": {
+    "description": "Legend line explaining the Day Out of Days start-work code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkDescription": "Work — a day this role is called on",
+  "@scheduleExportDayOutOfDaysWorkDescription": {
+    "description": "Legend line explaining the Day Out of Days work code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkFinishDescription": "Work finish — the last day this role is called on",
+  "@scheduleExportDayOutOfDaysWorkFinishDescription": {
+    "description": "Legend line explaining the Day Out of Days work-finish code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkFinishDescription": "Start work and finish — this role is called on this day alone",
+  "@scheduleExportDayOutOfDaysStartWorkFinishDescription": {
+    "description": "Legend line explaining the Day Out of Days start-work-and-finish code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysHoldDescription": "Hold — a day between the first and the last on which this role is not called",
+  "@scheduleExportDayOutOfDaysHoldDescription": {
+    "description": "Legend line explaining the Day Out of Days hold code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportFileSuccessMessage": "Exported to {path}",
   "@scheduleExportFileSuccessMessage": {
     "description": "Message shown when the shooting plan was successfully exported to a single PDF file",

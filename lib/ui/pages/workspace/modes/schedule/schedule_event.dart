@@ -5,6 +5,8 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
@@ -849,6 +851,32 @@ class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleEvent {
 
   /// Class constructor
   const OcptScheduleShootingPlanExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Requests exporting the cast's own *Day Out of Days* over [options]' own days as a single PDF,
+/// written through the native save dialog — dispatched once
+/// `OcptScheduleDayOutOfDaysExportDialog` returns its result.
+class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with (the page format/margins, which days the table
+  /// crosses, and the title page toggle).
+  final OcptDayOutOfDaysExportOptions options;
+
+  /// Every localized string the exported document carries.
+  final OcptDayOutOfDaysLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptScheduleDayOutOfDaysExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,

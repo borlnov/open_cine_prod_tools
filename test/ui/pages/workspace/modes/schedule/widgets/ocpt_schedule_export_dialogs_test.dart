@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_out_of_days_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_named_call_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
@@ -551,6 +553,63 @@ void main() {
       expect(options?.includeSequencesGrid, isTrue);
       expect(options?.includePeopleGrid, isTrue);
       expect(options?.includeTenMinuteGrid, isTrue);
+    });
+
+    testWidgets("cancelling pops without any options", (tester) async {
+      await pumpDialog(tester, days: [dayOne]);
+
+      await tester.tap(find.text(Tr.current.editorPageSetupCancelAction));
+      await tester.pumpAndSettle();
+
+      expect(routerManager.popped, isTrue);
+      expect(routerManager.poppedValue, isNull);
+    });
+  });
+  group("OcptScheduleDayOutOfDaysExportDialog", () {
+    /// Pumps the dialog directly over [days].
+    Future<void> pumpDialog(WidgetTester tester, {required List<OcptShootingDay> days}) async {
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          OcptScheduleDayOutOfDaysExportDialog(current: pageSetup, days: days),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets("ticks every day and the title page by default", (tester) async {
+      await pumpDialog(tester, days: [dayOne, dayTwo]);
+
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      final options = routerManager.poppedValue as OcptDayOutOfDaysExportOptions?;
+      expect(options?.dayIds, ["day-1", "day-2"]);
+      expect(options?.includeTitlePage, isTrue);
+    });
+
+    testWidgets("unticking a day narrows the printed range", (tester) async {
+      await pumpDialog(tester, days: [dayOne, dayTwo]);
+
+      await tester.tap(find.text(Tr.current.scheduleExportSelectNoneAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      final options = routerManager.poppedValue as OcptDayOutOfDaysExportOptions?;
+      expect(options?.dayIds, isEmpty);
+    });
+
+    testWidgets("unticking the title page carries that choice out", (tester) async {
+      await pumpDialog(tester, days: [dayOne]);
+
+      await tester.tap(find.text(Tr.current.editorExportPdfTitlePageLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
+
+      final options = routerManager.poppedValue as OcptDayOutOfDaysExportOptions?;
+      expect(options?.includeTitlePage, isFalse);
+      expect(options?.dayIds, ["day-1"]);
     });
 
     testWidgets("cancelling pops without any options", (tester) async {

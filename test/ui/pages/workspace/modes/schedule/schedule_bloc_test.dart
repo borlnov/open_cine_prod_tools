@@ -16,6 +16,8 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
@@ -147,7 +149,26 @@ const _shootingPlanLabels = OcptShootingPlanLabels(
   unnamedPersonLabel: "Unnamed",
 );
 
-/// An export manager whose three schedule PDF entry points are stubbed and whose calls are
+/// A minimal, arbitrary set of localized strings for the *Day Out of Days* export — mirrors
+/// [_callSheetLabels]' own doc comment.
+const _dayOutOfDaysLabels = OcptDayOutOfDaysLabels(
+  fileNameSuffix: "day out of days",
+  documentTitle: "Day Out of Days",
+  directorLine: "",
+  versionLabel: "Version",
+  dayTagPrefix: "D",
+  dayDateLabels: {},
+  roleHeader: "Role",
+  workedDaysHeader: "Worked",
+  heldDaysHeader: "Held",
+  codeLabels: {},
+  codeDescriptions: {},
+  legendSectionTitle: "Legend",
+  unnamedRoleLabel: "Unnamed role",
+  emptyTableNote: "Nothing to print.",
+);
+
+/// An export manager whose four schedule PDF entry points are stubbed and whose calls are
 /// recorded, so the bloc's three export handlers can be exercised without any real native dialog or
 /// PDF write. Mirrors `breakdown_bloc_test.dart`'s own `_FakeExportManager`.
 class _FakeScheduleExportManager extends OcptExportManager {
@@ -156,9 +177,11 @@ class _FakeScheduleExportManager extends OcptExportManager {
     this.generalCallSheetsResult,
     this.namedCallSheetsResult,
     this.shootingPlanResult,
+    this.dayOutOfDaysResult,
     this.generalCallSheetsFails = false,
     this.namedCallSheetsFails = false,
     this.shootingPlanFails = false,
+    this.dayOutOfDaysFails = false,
   }) : super(fileSelectorManager: const FileSelectorManager());
 
   /// The result [exportGeneralCallSheets] returns, or null to simulate a cancelled folder dialog.
@@ -170,6 +193,9 @@ class _FakeScheduleExportManager extends OcptExportManager {
   /// The path [exportShootingPlan] returns, or null to simulate a cancelled save dialog.
   final String? shootingPlanResult;
 
+  /// The path [exportDayOutOfDays] returns, or null to simulate a cancelled save dialog.
+  final String? dayOutOfDaysResult;
+
   /// Whether [exportGeneralCallSheets] throws, to exercise the bloc's export-failed path.
   final bool generalCallSheetsFails;
 
@@ -178,6 +204,9 @@ class _FakeScheduleExportManager extends OcptExportManager {
 
   /// Whether [exportShootingPlan] throws, to exercise the bloc's export-failed path.
   final bool shootingPlanFails;
+
+  /// Whether [exportDayOutOfDays] throws, to exercise the bloc's export-failed path.
+  final bool dayOutOfDaysFails;
 
   /// The plan of the last [exportGeneralCallSheets] call.
   OcptSchedulePlanSnapshot? lastGeneralPlan;
@@ -196,6 +225,9 @@ class _FakeScheduleExportManager extends OcptExportManager {
 
   /// The day ids of the last [exportShootingPlan] call.
   List<String>? lastShootingPlanDayIds;
+
+  /// The day ids of the last [exportDayOutOfDays] call.
+  List<String>? lastDayOutOfDaysDayIds;
 
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
@@ -256,6 +288,24 @@ class _FakeScheduleExportManager extends OcptExportManager {
       throw StateError("shooting plan export intentionally failed for the test");
     }
     return shootingPlanResult;
+  }
+
+  @override
+  Future<String?> exportDayOutOfDays({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptDayOutOfDaysLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    lastDayOutOfDaysDayIds = dayIds;
+
+    if (dayOutOfDaysFails) {
+      throw StateError("day out of days export intentionally failed for the test");
+    }
+    return dayOutOfDaysResult;
   }
 }
 
@@ -346,7 +396,7 @@ void main() {
   }
 
   /// Builds a bloc wired to the test project, defaulting [exportManager] to a
-  /// [_FakeScheduleExportManager] with every one of its three methods returning null (a cancelled
+  /// [_FakeScheduleExportManager] with every one of its four methods returning null (a cancelled
   /// dialog), so a test not about exporting never has to think about it.
   OcptScheduleBloc buildBloc({OcptExportManager? exportManager}) => OcptScheduleBloc(
     projectsManager: projectsManager,
@@ -825,6 +875,82 @@ void main() {
             includeElementsGrid: true,
           ),
           labels: _shootingPlanLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+  group("exporting the day out of days", () {
+    test("hands the plan and the options to the manager and raises the file-succeeded notice", () async {
+      final fixture = await writePlacedShot();
+      final exportManager = _FakeScheduleExportManager(dayOutOfDaysResult: "/tmp/dood.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptScheduleDayOutOfDaysExportRequestedEvent(
+          options: OcptDayOutOfDaysExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: const FountainPageMargins.standard(),
+            dayIds: [fixture.dayId],
+            includeTitlePage: true,
+          ),
+          labels: _dayOutOfDaysLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(exportManager.lastDayOutOfDaysDayIds, [fixture.dayId]);
+      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/dood.pdf");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptScheduleDayOutOfDaysExportRequestedEvent(
+          options: OcptDayOutOfDaysExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: const FountainPageMargins.standard(),
+            dayIds: [fixture.dayId],
+            includeTitlePage: true,
+          ),
+          labels: _dayOutOfDaysLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the failed notice when the export throws", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc(exportManager: _FakeScheduleExportManager(dayOutOfDaysFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptScheduleDayOutOfDaysExportRequestedEvent(
+          options: OcptDayOutOfDaysExportOptions(
+            format: OcptPageFormat.usLetter,
+            margins: const FountainPageMargins.standard(),
+            dayIds: [fixture.dayId],
+            includeTitlePage: true,
+          ),
+          labels: _dayOutOfDaysLabels,
           fileTypeLabel: "PDF document",
         ),
       );

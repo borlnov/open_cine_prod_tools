@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_schedule_effect_palette.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -30,6 +31,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_day_out_of_days.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
@@ -513,6 +515,66 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     unnamedPersonLabel: tr.scheduleExportUnnamedPersonLabel,
   );
 }
+
+/// Builds every localized string the exported *Day Out of Days* carries — mirrors
+/// [ocptShootingPlanLabelsOf] for the same reasons; see [ocptCallSheetLabelsOf]'s own doc comment.
+///
+/// [days] is resolved into [OcptDayOutOfDaysLabels.dayDateLabels] through `DateFormat.Md` — the
+/// shortest date this app prints anywhere, and deliberately so: it sits under a day tag in a column
+/// two or three letters wide, one of as many columns as the shoot has days. [people] is read for
+/// [ocptScheduleDirectorLineOf] alone.
+///
+/// The five code letters are carried through `Tr` like everything else rather than hard-coded, so a
+/// production working in another convention can be given its own — see
+/// [OcptDayOutOfDaysLabels.codeLabels]. They read the same in both languages the app ships in
+/// today, which is exactly why the legend beside them is fully localized.
+OcptDayOutOfDaysLabels ocptDayOutOfDaysLabelsOf(
+  BuildContext context, {
+  required List<OcptShootingDay> days,
+  required List<OcptPerson> people,
+}) {
+  final tr = Tr.of(context);
+  final locale = Localizations.localeOf(context).toString();
+
+  return OcptDayOutOfDaysLabels(
+    fileNameSuffix: tr.scheduleExportDayOutOfDaysFileNameSuffix,
+    documentTitle: tr.scheduleExportDayOutOfDaysDocumentTitle,
+    directorLine: ocptScheduleDirectorLineOf(tr, people),
+    versionLabel: tr.scheduleExportVersionLabel,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
+    dayDateLabels: {for (final day in days) day.id: DateFormat.Md(locale).format(day.date)},
+    roleHeader: tr.scheduleExportDayOutOfDaysRoleHeader,
+    workedDaysHeader: tr.scheduleExportDayOutOfDaysWorkedDaysHeader,
+    heldDaysHeader: tr.scheduleExportDayOutOfDaysHeldDaysHeader,
+    codeLabels: {
+      for (final code in OcptDayOutOfDaysCode.values) code: ocptDayOutOfDaysCodeLabel(tr, code),
+    },
+    codeDescriptions: {
+      for (final code in OcptDayOutOfDaysCode.values) code: ocptDayOutOfDaysCodeDescription(tr, code),
+    },
+    legendSectionTitle: tr.scheduleExportDayOutOfDaysLegendTitle,
+    unnamedRoleLabel: tr.resourcesRoleUnnamed,
+    emptyTableNote: tr.scheduleExportDayOutOfDaysEmptyNote,
+  );
+}
+
+/// The letter [code] is printed as in a *Day Out of Days* cell — `SW`, `W`, `WF`, `SWF` or `H`.
+String ocptDayOutOfDaysCodeLabel(Tr tr, OcptDayOutOfDaysCode code) => switch (code) {
+  OcptDayOutOfDaysCode.startWork => tr.scheduleExportDayOutOfDaysStartWorkCode,
+  OcptDayOutOfDaysCode.work => tr.scheduleExportDayOutOfDaysWorkCode,
+  OcptDayOutOfDaysCode.workFinish => tr.scheduleExportDayOutOfDaysWorkFinishCode,
+  OcptDayOutOfDaysCode.startWorkFinish => tr.scheduleExportDayOutOfDaysStartWorkFinishCode,
+  OcptDayOutOfDaysCode.hold => tr.scheduleExportDayOutOfDaysHoldCode,
+};
+
+/// What [code] means, as the *Day Out of Days*' own legend reads it out.
+String ocptDayOutOfDaysCodeDescription(Tr tr, OcptDayOutOfDaysCode code) => switch (code) {
+  OcptDayOutOfDaysCode.startWork => tr.scheduleExportDayOutOfDaysStartWorkDescription,
+  OcptDayOutOfDaysCode.work => tr.scheduleExportDayOutOfDaysWorkDescription,
+  OcptDayOutOfDaysCode.workFinish => tr.scheduleExportDayOutOfDaysWorkFinishDescription,
+  OcptDayOutOfDaysCode.startWorkFinish => tr.scheduleExportDayOutOfDaysStartWorkFinishDescription,
+  OcptDayOutOfDaysCode.hold => tr.scheduleExportDayOutOfDaysHoldDescription,
+};
 
 /// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
 /// comment for exactly what each of the eleven rules claims.
