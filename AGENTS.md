@@ -121,6 +121,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29h | Schedule review M9 — the one-line schedule: `OcptOneLineSchedulePdfService` printing one line per sequence in shooting order over the whole shoot, landscape and in one continuous flow with a day band between days, its lines folded by the call sheet's own run rule off `ocptOrderedScheduleEntriesOfDay`, a `hold` given a line of its own while every non-shooting kind gets none, five columns and deliberately no hours one, and `OcptSchedulePlanSnapshot.sceneNumberBySceneId` as `headingBySceneId`'s new neighbour | ✅ |
 | 29i | Schedule review M10 — the sides: `OcptScriptSidesLayout` (`lib/models/`, pure and tested) slicing a day's own sequences out of the composed script by the coverage layout's own bridge rule, in screenplay order, as either the screenplay's own pages with the rest blanked at their true row indices or the extracts packed onto fresh ones, `OcptSchedulePlanSnapshot.sceneSpanBySceneId` as `sceneNumberBySceneId`'s neighbour, and `OcptSidesPdfService` redrawing them through `OcptScriptPagePainter` under a running head naming the day and the screenplay page a reader can look it up by | ✅ |
 | 29j | Schedule review M11 — the export button and its panel: `OcptWorkspaceShell.onExportRequested` and the labelled `Export` control it builds between the mode label and the dock toggles, `OcptWorkspaceExportEntry<T>` (`lib/models/`, pure) and `OcptWorkspaceExportDialog<T>` (a two-column grid of cards that only asks, an unprintable document greyed and inert with its reason in place of its description), the five modes wired onto them through one export enum each (`lib/types/`), and their twelve `⋮` export entries and `…MenuAction` keys deleted | ✅ |
+| 29k | Schedule review M12 — the three documents the panel had nowhere to list: `OcptBreakdownXlsxExportService` (a `Scenes` sheet and a long, filterable `Breakdown` one, its rows one per **distinct** target so the workbook cannot contradict its own count), `OcptShootingPlanGrids` (`lib/models/`, pure and tested) extracted out of `OcptShootingPlanPdfService` so the plan's four summary grids have one implementation for two readers, `OcptShootingPlanXlsxExportService` reading them plus a fifth chronology sheet, `OcptContactListPdfService` (the whole production's crew by department then its cast, the unit a position held by somebody), and `ocptShotSceneNumberOf`/`ocptShotRankOf` moved to `lib/utils/ocpt_shot_code.dart` for the pure model that now reads them too | ✅ |
 
 ## Ways of working
 
@@ -265,7 +266,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   its description replaced by the reason**, never a hidden one: the panel is a presentation of what
   this mode knows how to print, and a card that disappeared would make it lie about what exists —
   somebody who has never planned a day would never learn the app prints sides at all. The scope is
-  the **active mode's own** documents (the twelve of the whole project would need one mode to
+  the **active mode's own** documents (the fifteen of the whole project would need one mode to
   trigger another's export, which nothing in this architecture does), and the panel stays offered
   **under a version preview**, an export only ever reading. What the `⋮` keeps is the screenplay's
   import-and-replace, its two display toggles, its page setup and its title page; the other four
@@ -477,25 +478,31 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and twelve services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and fifteen services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
   annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook),
+  `OcptContactListPdfService` (the whole production's crew and cast, below),
   `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene),
-  `OcptCallSheetPdfService`, `OcptShootingPlanPdfService`, `OcptDayOutOfDaysPdfService`,
+  `OcptBreakdownXlsxExportService` (the same pass as a two-sheet workbook, below),
+  `OcptCallSheetPdfService`, `OcptShootingPlanPdfService`, `OcptShootingPlanXlsxExportService`,
+  `OcptDayOutOfDaysPdfService`,
   `OcptOneLineSchedulePdfService` and `OcptSidesPdfService` (the schedule's own paperwork, below)
   and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
   to a default location silently; its `pickDirectory` is the same promise for the one export that
-  writes **several** files, the named call sheets). The eight PDF services share one
+  writes **several** files, the named call sheets). The nine PDF services share one
   `OcptCourierPrimeFontsLoader`
   (handed to each by the manager, so the 4 embedded TTFs are decoded once) and one
   `OcptScriptPagePainter` — the two script exports **and the sides** for the positioned line drawing
-  the three of them start from, the breakdown sheets and the four table-shaped schedule documents
-  for its metrics and fonts alone, their
+  the three of them start from, the breakdown sheets, the contact list and the four table-shaped
+  schedule documents for its metrics and fonts alone, their
   pages flowing rather than
-  typeset. An export writing into a folder reports an `OcptCallSheetExportResult` rather than a
+  typeset. **A workbook takes no painter and no font loader at all**: `excel_community` builds it in
+  memory with no page geometry of its own, which is why the four of them are `const` services where
+  every PDF one is constructed with the shared loader. An export writing into a folder reports an
+  `OcptCallSheetExportResult` rather than a
   path: some files landing and others not is a third outcome, and it must never read as success —
   somebody would go unwarned about a day they are called on. The home
   page's "Import a screenplay…" action and the editor's `⋮` export / export-to-PDF /
@@ -604,7 +611,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
   localized labels a row shows; the header count then reports what is on screen while the status
-  bar keeps counting the whole catalogue. The `⋮` menu exports the four-sheet workbook (above).
+  bar keeps counting the whole catalogue. The export panel offers **two** documents: the four-sheet
+  workbook (above) and the **contact list** — `OcptContactListPdfService`, the whole production's
+  crew and cast on one circulated sheet, where a call sheet's own two directories only ever say who
+  is on **one day**. Its unit is a **position held by somebody**, not a person: the crew is grouped
+  by `OcptCrewDepartment` in the enum's own order, a person holding two positions is printed twice,
+  once under each, and a free-label position (no `positionId`) is grouped last, having no
+  department — the shape the positions matrix already gives them. The cast follows, one row per role
+  in role-number order, an **uncast role still getting its row** with an em dash where the contact
+  details would be: a part nobody has cast is exactly the line a production reads this document for,
+  and it is what the call sheet's own cast directory already prints. Four columns and deliberately no
+  postal address: a home address is personal data, and this is the one document of the app that
+  circulates to everybody. **Somebody who holds no position and plays no role appears nowhere** —
+  that is the honest scope of "the crew and the cast", and widening it to every contact the project
+  references (a location's owner, an element's lender) is a decision nobody has made. It is stamped
+  by `ocptScheduleGeneratedAtStamp` like the schedule's own paperwork, a contact list being reissued
+  as a crew settles, and its options dialog asks the page format alone — the resources mode's first.
 - Breakdown mode (`lib/ui/pages/workspace/modes/breakdown/`): the *dépouillement* — reading the
   script once and tagging what the shoot must provide. It is the pass that fills the catalogues the
   resources mode holds, so it sits between the screenplay and the shot list in the mode switcher.
@@ -686,8 +708,17 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `Inspector` + the shared `Versions` tab, the inspector showing the selected target's sheet or —
   with nothing selected — the selected scene's own breakdown sheet. `lib/constants/
   ocpt_breakdown_palette.dart` maps a colour **per category** rather than per rank (unlike a shot's
-  coverage colour): a category must read the same in every project and every export. The `⋮` menu
-  exports the breakdown sheets PDF (above).
+  coverage colour): a category must read the same in every project and every export. The export
+  panel offers the pass in **two formats**: the breakdown sheets PDF (above, one printed sheet per
+  scene, the document a department head is handed) and `OcptBreakdownXlsxExportService`'s two-sheet
+  workbook (the document the production office reworks, which a PDF cannot be) — a `Scenes` sheet,
+  one row per scene, and a `Breakdown` sheet in the **long, filterable** form: one row per (scene ×
+  **distinct** target), its passages joined into one cell. Distinct, and not one row per tag, for the
+  reason the whole app already counts them that way (`ocptBreakdownSceneTargetsOf`: "a target tagged
+  twice in the same scene counts once here") — the `Scenes` sheet writes that very figure in its own
+  count column, and a `COUNTIF` over the other sheet disagreeing with it would be the workbook
+  contradicting itself. The workbook asks **no options at all**, exactly as the shot list's and the
+  resources' own do: picking its card goes straight to the native save dialog.
   The target inspector's `Open in Resources` is the app's one cross-mode navigation: it switches to
   the resources mode **and lands on the record's own sheet**, through the reveal request the
   workspace shell carries (above) — an element on the elements tab, a role on the roles tab, and a
@@ -1052,7 +1083,8 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   a slot starts at. The state builds one **per state instance**, not per read: a state is immutable,
   so the join cannot go stale inside one, and `timelinesOfDay` is handed to the three agendas as a
   function reference and called once per day cell.
-  The `⋮` menu prints the six documents the reference production paperwork is modelled on, each
+  The export panel offers the **seven** documents the reference production paperwork is modelled on
+  — six PDFs and one workbook —, each
   through its own options dialog and each offered **under a version preview too**, an export only
   reading. `OcptCallSheetPdfService` renders the **general** call sheet and the **named** ones from
   one composition, section for section against the reference `.docx`: recipients, the title block,
@@ -1120,7 +1152,18 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   `OcptShootingPlanPdfService` prints the whole shoot: three **landscape** summary grids (locations,
   sequences, crew and cast) whose columns are **one per slot grouped under its day** — the
   reference's day-parts being exactly what a slot is here — chunked across pages when a shoot runs
-  wide, then one portrait agenda per day with its hours, its sets and its shot tables. Its
+  wide, then one portrait agenda per day with its hours, its sets and its shot tables. **What those
+  grids hold is not the service's own**: `OcptShootingPlanGrids` (`lib/models/`, **pure Dart, no
+  `pdf` and no Flutter**, the shape `OcptShootingDayAgendaGrid` and `OcptScenarioCoverageLayout`
+  already have) computes the columns and the four grids' rows, each row's cells **resolved** rather
+  than carried as a `valueOf(column)` closure — a closure is a drawing convenience, not a model — and
+  the service keeps everything about **paper** alone: the chunking across pages, the geometry, the
+  header repetition, the drawing. It exists because those grids have **two** readers now, the PDF and
+  the workbook below, and a second implementation over there is exactly how the two would come to
+  disagree about what a production is doing on a Tuesday. It takes the handful of words it needs
+  (`Perso.`, the presence mark, the sequence row prefix, the empty value) as plain `String`
+  parameters rather than an `OcptShootingPlanLabels`, the idiom `ocptScheduleGuestRowsOfDay` already
+  follows. Its
   `Description` column is dropped for the same reason `RÉSUMÉ` is. A shot table **leads with the
   hours** its block resolves to, the one column the reference's own table has no equivalent of, and
   the day agenda prints the three facts schema v17 added exactly as the call sheets do: the day's
@@ -1156,6 +1199,14 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   which issue it is or which unit a column belongs to. An elements-grid **category band** is
   deliberately not repeated — `repeat` redraws every marked row on every page, so several bands
   would stack into a heading that lies, and an element row already names itself.
+  `OcptShootingPlanXlsxExportService` prints the **same plan as a workbook**, the reference document
+  being a spreadsheet the production office reworks and a PDF never being one: the four summary grids
+  as four sheets — read off `OcptShootingPlanGrids`, so the two documents cannot draw a different
+  grid — plus a fifth, **chronology** sheet the PDF has no equivalent of, one row per block over the
+  whole printed range in shooting order, off the same `ocptOrderedScheduleEntriesOfDay` walk every
+  other document reads. A workbook has no page, so its dialog asks the **days and nothing else**: the
+  page format, the title page and the section toggles the PDF's own dialog offers all mean something
+  about paper, and a sheet costs nothing and hides in one click.
   `ocpt_schedule_pdf_shared.dart` holds what the two timetable documents must not read differently
   (the *Day Out of Days* reads none of it but `ocptScheduleGeneratedAtStamp`, printing no hour at
   all): the walk
@@ -1169,7 +1220,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   deliberately carrying the **time** (a call sheet is regularly reissued the afternoon of the day it
   first went out, and two sheets stamped with the date alone cannot be told apart in the hand of
   somebody holding both) and deliberately **not** locale-formatted, that stamp being read as an
-  identifier rather than as a sentence. Both services take a nullable `exportDate` defaulting to
+  identifier rather than as a sentence. The one rule that used to live there and no longer does is
+  **how a shot's `<sceneNumber>/<rank>` display code splits**: `ocptShotSceneNumberOf` and
+  `ocptShotRankOf` moved to `lib/utils/ocpt_shot_code.dart` when `OcptShootingPlanGrids` needed them
+  too — a `lib/models/` file may not import the manager layer that consumes it, and the alternative
+  was each side splitting the code its own way. `lib/utils/` is where a pure rule both layers read
+  belongs. Both services take a nullable `exportDate` defaulting to
   `DateTime.now()`, resolved **once per document** — so a plan whose rendering straddles a minute
   boundary still names one issue of itself on every page — and `OcptExportManager` resolves it once
   per **run** for the two exports that write a folder of files, a batch that read the clock per file
