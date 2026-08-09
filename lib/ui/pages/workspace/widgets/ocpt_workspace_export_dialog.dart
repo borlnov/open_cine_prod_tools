@@ -21,7 +21,7 @@ const double _ocptWorkspaceExportGridMaxHeight = 420;
 
 /// The width/height ratio of one card, tuned for a document name, its description (or
 /// unavailability reason) over up to three lines, and a trailing format label.
-const double _ocptWorkspaceExportCardAspectRatio = 2.5;
+const double _ocptWorkspaceExportCardAspectRatio = 3.4;
 
 /// The opacity an unavailable card is drawn at, greying it without hiding it.
 const double _ocptWorkspaceExportUnavailableOpacity = 0.5;
