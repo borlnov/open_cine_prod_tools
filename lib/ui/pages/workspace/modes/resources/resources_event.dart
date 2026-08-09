@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -595,6 +597,26 @@ class OcptResourcesPersonSheetOpenRequestedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, personId];
 }
 
+/// Requests opening role [roleId]'s sheet, dispatched by the element sheet's `Roles concerned`
+/// chips.
+///
+/// [OcptResourcesPersonSheetOpenRequestedEvent]'s sibling and follows it exactly: it switches the
+/// left dock to [OcptResourcesTab.roles] and selects [roleId] in one state rather than dispatching
+/// `OcptResourcesTabSelectedEvent`, which clears the selection on every tab change. This is a plain
+/// tab-and-selection change **inside** the resources mode, so it carries no
+/// `OcptWorkspaceRevealRequest`: the user is already here.
+class OcptResourcesRoleSheetOpenRequestedEvent extends OcptResourcesEvent {
+  /// The id of the role whose sheet to open.
+  final String roleId;
+
+  /// Class constructor
+  const OcptResourcesRoleSheetOpenRequestedEvent({required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId];
+}
+
 /// Selects location [locationId], dispatched by a row of `OcptLocationsList`: the centre then shows
 /// that location's `OcptLocationSheet`.
 class OcptResourcesLocationSelectedEvent extends OcptResourcesEvent {
@@ -897,6 +919,151 @@ class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, locationId];
+}
+
+/// Sets the date asset [assetId]'s document — a filming permit, so far the only document this
+/// dates — becomes valid to [date] (or clears it, when null), written immediately: picking a date
+/// is a single discrete action, not typing.
+///
+/// One event per date, mirroring [OcptResourcesLocationPermitDateChangedEvent] and
+/// [OcptResourcesPersonImageRightsDateChangedEvent] rather than one event naming which of the two
+/// changed: every other date field of this mode already reads this way, and a discriminated event
+/// would be a second shape for what is, from every neighbouring event's own point of view, one
+/// more single-date field.
+class OcptResourcesAssetValidFromChangedEvent extends OcptResourcesEvent {
+  /// The id of the asset whose validity window changed.
+  final String assetId;
+
+  /// The new date, or null to clear it.
+  final DateTime? date;
+
+  /// Class constructor
+  const OcptResourcesAssetValidFromChangedEvent({required this.assetId, required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, assetId, date];
+}
+
+/// Sets the date asset [assetId]'s document stops being valid to [date] (or clears it, when null),
+/// written immediately. See [OcptResourcesAssetValidFromChangedEvent] for why this is its own
+/// event rather than a shared, discriminated one.
+class OcptResourcesAssetValidUntilChangedEvent extends OcptResourcesEvent {
+  /// The id of the asset whose validity window changed.
+  final String assetId;
+
+  /// The new date, or null to clear it.
+  final DateTime? date;
+
+  /// Class constructor
+  const OcptResourcesAssetValidUntilChangedEvent({required this.assetId, required this.date});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, assetId, date];
+}
+
+/// Requests referencing person [personId]'s photo, replacing whichever one they referenced before.
+/// See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+class OcptResourcesPersonPhotoPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the person the photo is referenced for.
+  final String personId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesPersonPhotoPickRequestedEvent({
+    required this.personId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId, fileTypeLabel];
+}
+
+/// Drops person [personId]'s reference to their photo. The file itself is never touched.
+class OcptResourcesPersonPhotoClearedEvent extends OcptResourcesEvent {
+  /// The id of the person whose photo reference is dropped.
+  final String personId;
+
+  /// Class constructor
+  const OcptResourcesPersonPhotoClearedEvent({required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId];
+}
+
+/// Requests referencing person [personId]'s signed image rights release, replacing whichever one
+/// they referenced before. See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+///
+/// Writes the reference alone: `imageRightsStatus` stays whatever the sheet's own control says, a
+/// filed document being a different claim from a signed one.
+class OcptResourcesImageRightsDocumentPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the person the document is referenced for.
+  final String personId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesImageRightsDocumentPickRequestedEvent({
+    required this.personId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId, fileTypeLabel];
+}
+
+/// Drops person [personId]'s reference to their signed image rights release. Neither the file nor
+/// `imageRightsStatus` is touched.
+class OcptResourcesImageRightsDocumentClearedEvent extends OcptResourcesEvent {
+  /// The id of the person whose image rights document reference is dropped.
+  final String personId;
+
+  /// Class constructor
+  const OcptResourcesImageRightsDocumentClearedEvent({required this.personId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, personId];
+}
+
+/// Requests referencing element [elementId]'s photo, replacing whichever one it referenced before.
+/// See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
+class OcptResourcesElementPhotoPickRequestedEvent extends OcptResourcesEvent {
+  /// The id of the element the photo is referenced for.
+  final String elementId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesElementPhotoPickRequestedEvent({
+    required this.elementId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId, fileTypeLabel];
+}
+
+/// Drops element [elementId]'s reference to its photo. The file itself is never touched.
+class OcptResourcesElementPhotoClearedEvent extends OcptResourcesEvent {
+  /// The id of the element whose photo reference is dropped.
+  final String elementId;
+
+  /// Class constructor
+  const OcptResourcesElementPhotoClearedEvent({required this.elementId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, elementId];
 }
 
 /// Drops the asset reference [assetId] — a scouting photo. The file itself is never touched.
@@ -1275,6 +1442,61 @@ class OcptResourcesSceneElementRemovedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, id];
 }
 
+/// Links role [roleId] to element [elementId], written immediately.
+///
+/// Dispatched by the role sheet's things card. The write is `OcptElementsService`'s, not
+/// `OcptRoleIndexService`'s: the row is a link onto an element, and one service owns both halves of
+/// it — see `OcptRoleElementsTable`.
+class OcptResourcesElementLinkedToRoleEvent extends OcptResourcesEvent {
+  /// The id of the role needing the element.
+  final String roleId;
+
+  /// The id of the element it needs.
+  final String elementId;
+
+  /// Class constructor
+  const OcptResourcesElementLinkedToRoleEvent({required this.roleId, required this.elementId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId, elementId];
+}
+
+/// Updates the notes of the role ↔ element link [id], written immediately.
+///
+/// Carries the whole note rather than a keystroke: the row that reports it debounces its own typing
+/// locally, exactly as the scenes card's own row does.
+class OcptResourcesRoleElementUpdatedEvent extends OcptResourcesEvent {
+  /// The id of the link being updated.
+  final String id;
+
+  /// What this role has to say about its use of the element.
+  final String notes;
+
+  /// Class constructor
+  const OcptResourcesRoleElementUpdatedEvent({required this.id, required this.notes});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, id, notes];
+}
+
+/// Removes the role ↔ element link [id], written immediately.
+///
+/// The **element itself is untouched**: it stays in the catalogue, and so does every other link
+/// onto it. This says only that this role no longer wears, carries or is made up with it.
+class OcptResourcesRoleElementRemovedEvent extends OcptResourcesEvent {
+  /// The id of the link to remove.
+  final String id;
+
+  /// Class constructor
+  const OcptResourcesRoleElementRemovedEvent({required this.id});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, id];
+}
+
 /// Toggles the visibility of the left (list) dock.
 class OcptResourcesLeftPanelToggledEvent extends OcptResourcesEvent {
   /// Class constructor
@@ -1390,6 +1612,38 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel];
+}
+
+/// Requests exporting the crew and the cast to a standalone contact list PDF, dispatched once the
+/// export panel's own options dialog has resolved.
+///
+/// [options] is what that dialog returned — the page format and margins the document is typeset
+/// with. Both localized payloads are resolved by the widget dispatching this, since the bloc has no
+/// `BuildContext` of its own: [labels] is every string the document itself carries (see
+/// `ocptContactListLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the `.pdf`
+/// type. Every pending field edit is flushed first, mirroring
+/// `OcptResourcesXlsxExportRequestedEvent`, so a phone number typed seconds before the export is on
+/// the printed list rather than only on screen.
+class OcptResourcesContactListExportRequestedEvent extends OcptResourcesEvent {
+  /// The one-off options the export runs with.
+  final OcptContactListExportOptions options;
+
+  /// Every localized string the exported document holds.
+  final OcptContactListLabels labels;
+
+  /// The localized label of the `.pdf` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesContactListExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

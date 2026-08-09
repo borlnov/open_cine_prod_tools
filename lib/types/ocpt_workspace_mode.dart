@@ -21,7 +21,7 @@ enum OcptWorkspaceMode {
   /// The address book, cast, locations and physical elements catalogue.
   resources,
 
-  /// The shooting schedule. Not implemented yet: selecting it shows an empty state.
+  /// The shooting schedule: planning the shoot day by day.
   schedule,
 
   /// The budget tracker. Not implemented yet: selecting it shows an empty state.
@@ -33,5 +33,6 @@ enum OcptWorkspaceMode {
       this == OcptWorkspaceMode.screenplay ||
       this == OcptWorkspaceMode.breakdown ||
       this == OcptWorkspaceMode.shotList ||
-      this == OcptWorkspaceMode.resources;
+      this == OcptWorkspaceMode.resources ||
+      this == OcptWorkspaceMode.schedule;
 }

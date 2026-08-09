@@ -152,7 +152,9 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: notes,
   photoAssetId: null,
+  photo: null,
   sceneLinks: const [],
+  roleLinks: const [],
 );
 
 /// Builds a person, every field left at a neutral value.
@@ -172,6 +174,7 @@ OcptPerson _buildPerson({required String id, String firstName = "Jean", String l
       colorIndex: 0,
       birthDate: null,
       minorNotes: "",
+      maxDailyPresenceMinutes: null,
       isTransportAutonomous: null,
       accommodationNotes: "",
       travelNotes: "",
@@ -188,7 +191,9 @@ OcptPerson _buildPerson({required String id, String firstName = "Jean", String l
       imageRightsStatus: OcptImageRightsStatus.notApplicable,
       imageRightsDate: null,
       imageRightsAssetId: null,
+      imageRightsDocument: null,
       photoAssetId: null,
+      photo: null,
       notes: "",
       positions: const [],
       skills: const [],

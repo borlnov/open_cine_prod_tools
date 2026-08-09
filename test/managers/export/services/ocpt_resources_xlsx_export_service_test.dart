@@ -115,6 +115,7 @@ OcptPerson _buildPerson({
   colorIndex: 0,
   birthDate: birthDate,
   minorNotes: "",
+  maxDailyPresenceMinutes: null,
   isTransportAutonomous: isTransportAutonomous,
   accommodationNotes: "",
   travelNotes: "",
@@ -131,7 +132,9 @@ OcptPerson _buildPerson({
   imageRightsStatus: imageRightsStatus,
   imageRightsDate: imageRightsDate,
   imageRightsAssetId: null,
+  imageRightsDocument: null,
   photoAssetId: null,
+  photo: null,
   notes: "",
   positions: positions,
   skills: skills,
@@ -267,7 +270,9 @@ OcptElement _buildElement({
   purposeNotes: "",
   notes: "",
   photoAssetId: null,
+  photo: null,
   sceneLinks: sceneLinks,
+  roleLinks: const [],
 );
 
 /// Decodes [bytes] and returns the rows of [sheetName], every cell unwrapped to a plain Dart value

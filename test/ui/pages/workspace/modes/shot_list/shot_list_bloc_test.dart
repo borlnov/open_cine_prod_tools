@@ -206,6 +206,7 @@ const _exportLabels = OcptShotListXlsxLabels(
   columnHeaders: {},
   statusLabels: {},
   sequenceTitles: {},
+  dayTagPrefix: "D",
 );
 
 /// The labels the scenario coverage export tests dispatch, standing in for what

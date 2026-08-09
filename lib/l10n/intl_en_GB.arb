@@ -359,17 +359,45 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorExportAction": "Export…",
-  "@editorExportAction": {
-    "description": "Label of the action that exports the screenplay to a .fountain file",
-    "context": "Displayed as an item of the editor toolbar's overflow menu",
+  "editorExportPanelTitle": "Export the screenplay",
+  "@editorExportPanelTitle": {
+    "description": "Title of the screenplay mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
     "type": "text",
     "placeholders": {}
   },
-  "editorExportPdfAction": "Export to PDF…",
-  "@editorExportPdfAction": {
-    "description": "Label of the action that exports the screenplay to a PDF file",
-    "context": "Displayed as an item of the editor toolbar's overflow menu",
+  "editorExportPanelMessage": "The screenplay, either as its own Fountain source or typeset for print.",
+  "@editorExportPanelMessage": {
+    "description": "Sentence under the title of the screenplay mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportFountainTitle": "Fountain file",
+  "@editorExportFountainTitle": {
+    "description": "Name of the screenplay's own Fountain source document, shown as an export panel card title",
+    "context": "Displayed as a card title in the screenplay mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportFountainDescription": "The screenplay's own source, exported as plain Fountain text.",
+  "@editorExportFountainDescription": {
+    "description": "Sentence saying what the Fountain source document is, shown on its export panel card",
+    "context": "Displayed under the card title in the screenplay mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfTitle": "Screenplay",
+  "@editorExportPdfTitle": {
+    "description": "Name of the typeset screenplay PDF document, shown as an export panel card title",
+    "context": "Displayed as a card title in the screenplay mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorExportPdfDescription": "The screenplay typeset on paper, ready to print or share.",
+  "@editorExportPdfDescription": {
+    "description": "Sentence saying what the screenplay PDF document is, shown on its export panel card",
+    "context": "Displayed under the card title in the screenplay mode's export panel",
     "type": "text",
     "placeholders": {}
   },
@@ -728,6 +756,34 @@
   "@settingsThemeDarkOption": {
     "description": "Label of the option that forces the dark brightness",
     "context": "Displayed as an item of the theme dropdown in the appearance section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsCalendarSectionTitle": "Calendar",
+  "@settingsCalendarSectionTitle": {
+    "description": "Title of the settings page's calendar section",
+    "context": "Displayed at the top of the calendar section card on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsFirstWeekdayLabel": "First day of the week",
+  "@settingsFirstWeekdayLabel": {
+    "description": "Label of the first day of the week dropdown",
+    "context": "Displayed in the calendar section of the settings page, beside the dropdown choosing which day the schedule mode's week and month agendas start on",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsFirstWeekdayMondayOption": "Monday",
+  "@settingsFirstWeekdayMondayOption": {
+    "description": "The first day of the week dropdown option starting weeks on Monday",
+    "context": "Displayed in the first day of the week dropdown on the settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "settingsFirstWeekdaySundayOption": "Sunday",
+  "@settingsFirstWeekdaySundayOption": {
+    "description": "The first day of the week dropdown option starting weeks on Sunday",
+    "context": "Displayed in the first day of the week dropdown on the settings page",
     "type": "text",
     "placeholders": {}
   },
@@ -1981,10 +2037,52 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListExportXlsxMenuAction": "Export the shot list…",
-  "@shotListExportXlsxMenuAction": {
-    "description": "Action exporting the whole shot list to an Excel workbook",
-    "context": "Displayed in the overflow menu of the shot list mode",
+  "shotListExportPanelTitle": "Export the shot list",
+  "@shotListExportPanelTitle": {
+    "description": "Title of the shot list mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportPanelMessage": "The shot list as a spreadsheet, or the screenplay annotated with what each shot covers.",
+  "@shotListExportPanelMessage": {
+    "description": "Sentence under the title of the shot list mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxTitle": "Shot list",
+  "@shotListExportXlsxTitle": {
+    "description": "Name of the shot list workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxDescription": "Every shot, sequence by sequence, as a spreadsheet.",
+  "@shotListExportXlsxDescription": {
+    "description": "Sentence saying what the shot list workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageTitle": "Scenario coverage",
+  "@shotListExportCoverageTitle": {
+    "description": "Name of the scenario coverage PDF document, shown as an export panel card title",
+    "context": "Displayed as a card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageDescription": "The screenplay annotated with a coloured bar for every passage a shot covers.",
+  "@shotListExportCoverageDescription": {
+    "description": "Sentence saying what the scenario coverage document is, shown on its export panel card",
+    "context": "Displayed under the card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportUnavailableReason": "The shot list holds no shot yet.",
+  "@shotListExportUnavailableReason": {
+    "description": "Reason shown in place of a card's description while the shot list holds no shot",
+    "context": "Displayed on both cards of the shot list mode's export panel while unavailable",
     "type": "text",
     "placeholders": {}
   },
@@ -2017,13 +2115,6 @@
   "@shotListExportXlsxError": {
     "description": "Error shown when exporting the shot list to an Excel workbook failed",
     "context": "Displayed as a SnackBar over the shot list mode",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListExportCoverageMenuAction": "Export the scenario coverage…",
-  "@shotListExportCoverageMenuAction": {
-    "description": "Action exporting the screenplay annotated with the shots covering it, as a PDF",
-    "context": "Displayed in the overflow menu of the shot list mode",
     "type": "text",
     "placeholders": {}
   },
@@ -3112,13 +3203,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesPositionScopePlaceholder": "defined in the schedule",
-  "@resourcesPositionScopePlaceholder": {
-    "description": "Read-only scope column of a function row, which the schedule mode will fill",
-    "context": "Displayed on the person sheet's crew positions card",
-    "type": "text",
-    "placeholders": {}
-  },
   "resourcesRemovePositionTooltip": "Remove position",
   "@resourcesRemovePositionTooltip": {
     "description": "Tooltip of a position row's remove button",
@@ -3137,6 +3221,34 @@
   "@resourcesMinorNotesHint": {
     "description": "Placeholder of the minor legal hours field while it is empty",
     "context": "Displayed on the person sheet's legal hours callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceTitle": "Maximum daily presence",
+  "@resourcesMaxDailyPresenceTitle": {
+    "description": "Title of the person sheet's card recording the longest presence this person may have on one shooting day",
+    "context": "Displayed on the person sheet, beside the legal hours callout",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceHint": "e.g. 660",
+  "@resourcesMaxDailyPresenceHint": {
+    "description": "Placeholder of the maximum daily presence field while it is empty",
+    "context": "Displayed on the person sheet's maximum daily presence card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceSuffix": "min",
+  "@resourcesMaxDailyPresenceSuffix": {
+    "description": "Unit suffix of the maximum daily presence field",
+    "context": "Displayed on the person sheet's maximum daily presence card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesMaxDailyPresenceFormatError": "Not a number of minutes: no maximum will be recorded",
+  "@resourcesMaxDailyPresenceFormatError": {
+    "description": "Error shown under the maximum daily presence field when it holds something other than a whole number of minutes",
+    "context": "Displayed on the person sheet's maximum daily presence card",
     "type": "text",
     "placeholders": {}
   },
@@ -4032,6 +4144,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesLocationPermitValidFromLabel": "Valid from",
+  "@resourcesLocationPermitValidFromLabel": {
+    "description": "Label of the date the referenced permit document becomes valid",
+    "context": "Displayed in the resources mode's location sheet, under the permit document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitValidUntilLabel": "Valid until",
+  "@resourcesLocationPermitValidUntilLabel": {
+    "description": "Label of the date the referenced permit document stops being valid",
+    "context": "Displayed in the resources mode's location sheet, under the permit document",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesLocationPermitValidityHint": "Leave both empty if the dates are unknown — that silences the schedule's permit alert, it does not claim the permit is valid forever.",
+  "@resourcesLocationPermitValidityHint": {
+    "description": "Explanation under the permit document's validity dates, read what an empty date means",
+    "context": "Displayed in the resources mode's location sheet, under the permit document",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesLocationPhotosCardTitle": "Scouting photos",
   "@resourcesLocationPhotosCardTitle": {
     "description": "Title of the card holding a location's referenced scouting photos",
@@ -4061,6 +4194,55 @@
   "@resourcesRemovePhotoTooltip": {
     "description": "Tooltip of the control dropping a referenced photo, leaving the file untouched",
     "context": "Displayed over a tile of the scouting photos grid",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReferencePhotoAction": "Reference a photo…",
+  "@resourcesReferencePhotoAction": {
+    "description": "Menu entry opening the picker referencing a record's photo by path",
+    "context": "Displayed in the photo slot's menu, on the person and element sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReplacePhotoAction": "Replace the photo…",
+  "@resourcesReplacePhotoAction": {
+    "description": "Menu entry opening the picker replacing the photo a record already references",
+    "context": "Displayed in the photo slot's menu, on the person and element sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemovePhotoAction": "Remove the photo",
+  "@resourcesRemovePhotoAction": {
+    "description": "Menu entry dropping a record's photo reference, leaving the file untouched",
+    "context": "Displayed in the photo slot's menu, on the person and element sheets",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPhotoSlotTooltip": "Photo and colour",
+  "@resourcesPhotoSlotTooltip": {
+    "description": "Tooltip of a sheet header's photo slot, opening its menu",
+    "context": "Displayed on hover over the person and element sheets' photo slot",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesPhotoSlotPhotoOnlyTooltip": "Photo",
+  "@resourcesPhotoSlotPhotoOnlyTooltip": {
+    "description": "Tooltip of a photo slot whose record has no colour of its own",
+    "context": "Displayed on hover over the element sheet's photo slot",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesImageRightsDocumentLabel": "Signed release",
+  "@resourcesImageRightsDocumentLabel": {
+    "description": "Label of the referenced image rights release document",
+    "context": "Displayed in the resources mode's person sheet, image rights card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesReferenceDocumentAction": "+ Reference a document",
+  "@resourcesReferenceDocumentAction": {
+    "description": "Action opening the picker referencing a document by path",
+    "context": "Displayed in the resources mode's person sheet, image rights card",
     "type": "text",
     "placeholders": {}
   },
@@ -4456,6 +4638,48 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesRoleElementsCardTitle": "Their things",
+  "@resourcesRoleElementsCardTitle": {
+    "description": "Title of the role sheet's card holding what the role wears, carries and is made up with",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleNoElementHint": "Nothing yet.",
+  "@resourcesRoleNoElementHint": {
+    "description": "Hint shown in the role sheet's things card while the role is linked to no element",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesAddElementToRoleAction": "+ Element",
+  "@resourcesAddElementToRoleAction": {
+    "description": "Label of the role sheet's picker adding an element the role needs",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRemoveElementFromRoleTooltip": "This role doesn't need it",
+  "@resourcesRemoveElementFromRoleTooltip": {
+    "description": "Tooltip of the control unlinking an element from a role",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleElementNotesLabel": "Note for this role",
+  "@resourcesRoleElementNotesLabel": {
+    "description": "Label of the per-role notes field of a role to element link",
+    "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesElementRolesCardTitle": "Roles concerned",
+  "@resourcesElementRolesCardTitle": {
+    "description": "Title of the element sheet's read-only card naming the roles that wear or carry it",
+    "context": "Displayed in the resources mode's element sheet",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesElementPurposeLabel": "Why it is needed",
   "@resourcesElementPurposeLabel": {
     "description": "Label of the element sheet's field saying what the element is for",
@@ -4484,10 +4708,38 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesExportXlsxMenuAction": "Export the resources…",
-  "@resourcesExportXlsxMenuAction": {
-    "description": "Action exporting the whole resources catalogue to a four-sheet Excel workbook",
-    "context": "Displayed in the overflow menu of the resources mode",
+  "resourcesExportPanelTitle": "Export the resources",
+  "@resourcesExportPanelTitle": {
+    "description": "Title of the resources mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportPanelMessage": "The whole catalogue as one workbook, or the crew and cast as a printed contact list.",
+  "@resourcesExportPanelMessage": {
+    "description": "Sentence under the title of the resources mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxTitle": "Resources",
+  "@resourcesExportXlsxTitle": {
+    "description": "Name of the resources workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportXlsxDescription": "People, roles, locations and elements, one sheet each.",
+  "@resourcesExportXlsxDescription": {
+    "description": "Sentence saying what the resources workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportUnavailableReason": "The catalogue holds nothing yet.",
+  "@resourcesExportUnavailableReason": {
+    "description": "Reason shown in place of the card's description while the whole catalogue is empty",
+    "context": "Displayed on the resources mode's export panel card while unavailable",
     "type": "text",
     "placeholders": {}
   },
@@ -4547,6 +4799,136 @@
   "resourcesExportXlsxError": "The resources catalogue could not be exported.",
   "@resourcesExportXlsxError": {
     "description": "Error shown when exporting the resources catalogue to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListTitle": "Contact list",
+  "@resourcesExportContactListTitle": {
+    "description": "Name of the contact list document, shown as an export panel card title",
+    "context": "Displayed as a card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListDescription": "The crew, by department, and the cast, with their phone and e-mail.",
+  "@resourcesExportContactListDescription": {
+    "description": "Sentence saying what the contact list document is, shown on its export panel card",
+    "context": "Displayed under the card title in the resources mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListUnavailableReason": "Nobody in the address book holds a position, and no role is cast yet.",
+  "@resourcesExportContactListUnavailableReason": {
+    "description": "Reason shown in place of the card's description while there is no line to print",
+    "context": "Displayed on the resources mode's export panel card while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListDialogTitle": "Export the contact list",
+  "@resourcesExportContactListDialogTitle": {
+    "description": "Title of the dialog picking the page format the contact list export runs with",
+    "context": "Displayed as a dialog over the resources mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListFileTypeLabel": "PDF document",
+  "@resourcesExportContactListFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the contact list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListFileNameSuffix": "contacts",
+  "@resourcesExportContactListFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - contacts.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListDocumentTitle": "Contact list",
+  "@resourcesExportContactListDocumentTitle": {
+    "description": "Name of the document, printed beside the project name in the running head and once more, large, at the top of the first page",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListVersionLabel": "Version",
+  "@resourcesExportContactListVersionLabel": {
+    "description": "Label the moment this document was produced is printed under, in the running head",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListCrewSectionTitle": "Crew",
+  "@resourcesExportContactListCrewSectionTitle": {
+    "description": "Heading of the contact list's crew section, grouped by department",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListCastSectionTitle": "Cast",
+  "@resourcesExportContactListCastSectionTitle": {
+    "description": "Heading of the contact list's cast section, one row per role",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListNameHeader": "Name",
+  "@resourcesExportContactListNameHeader": {
+    "description": "Header of the name column, shared by the crew and the cast tables",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListPositionHeader": "Position",
+  "@resourcesExportContactListPositionHeader": {
+    "description": "Header of the position column: a crew row's own position, or a cast row's role number and name",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListPhoneHeader": "Phone",
+  "@resourcesExportContactListPhoneHeader": {
+    "description": "Header of the phone column, shared by the crew and the cast tables",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListEmailHeader": "E-mail",
+  "@resourcesExportContactListEmailHeader": {
+    "description": "Header of the e-mail column, shared by the crew and the cast tables",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListUnassignedDepartmentLabel": "Unassigned",
+  "@resourcesExportContactListUnassignedDepartmentLabel": {
+    "description": "Heading of the trailing group a free-label position, or one naming a retired catalogue entry, lands in",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListEmptyDocumentNote": "Nobody in the address book holds a position, and no role is cast yet.",
+  "@resourcesExportContactListEmptyDocumentNote": {
+    "description": "Note printed in place of the whole document when there is no line to print",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesExportContactListSuccessMessage": "Exported to {path}",
+  "@resourcesExportContactListSuccessMessage": {
+    "description": "Message shown when the contact list was successfully exported to a PDF",
+    "context": "Displayed as a SnackBar over the resources mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesExportContactListError": "The contact list could not be exported.",
+  "@resourcesExportContactListError": {
+    "description": "Error shown when exporting the contact list to a PDF failed",
     "context": "Displayed as a SnackBar over the resources mode",
     "type": "text",
     "placeholders": {}
@@ -5052,6 +5434,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "workspaceExportAction": "Export",
+  "@workspaceExportAction": {
+    "description": "Label of the workspace toolbar's export button",
+    "context": "Displayed on the export button of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceExportTooltip": "Open this mode's export panel",
+  "@workspaceExportTooltip": {
+    "description": "Tooltip of the workspace toolbar's export button",
+    "context": "Shown on hover over the export button of the workspace toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsPageTitle": "Project settings",
   "@projectSettingsPageTitle": {
     "description": "Title of the project settings page",
@@ -5084,6 +5480,27 @@
   "@projectSettingsPageFormatLabel": {
     "description": "Label of the page format dropdown",
     "context": "Displayed next to the page format dropdown in the page format section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestSectionTitle": "Minimum rest between two shooting days",
+  "@projectSettingsMinimumRestSectionTitle": {
+    "description": "Title of the project settings page's minimum rest section",
+    "context": "Displayed at the top of the minimum rest section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestLabel": "Minimum rest",
+  "@projectSettingsMinimumRestLabel": {
+    "description": "Label of the minimum rest field",
+    "context": "Displayed next to the minimum rest field in the minimum rest section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMinimumRestHint": "Leave empty if no minimum has been recorded — that silences the schedule's rest-time alert, it does not mean no rest is owed. Deliberately not pre-filled with the legal eleven hours: this app ships in more than one country.",
+  "@projectSettingsMinimumRestHint": {
+    "description": "Explanation under the minimum rest field, read what an empty value means",
+    "context": "Displayed under the minimum rest field on the project settings page",
     "type": "text",
     "placeholders": {}
   },
@@ -5824,10 +6241,38 @@
       }
     }
   },
-  "breakdownExportSheetsMenuAction": "Export the breakdown sheets…",
-  "@breakdownExportSheetsMenuAction": {
-    "description": "Action exporting one breakdown sheet per scene, as a PDF",
-    "context": "Displayed in the overflow menu of the breakdown mode",
+  "breakdownExportPanelTitle": "Export the breakdown",
+  "@breakdownExportPanelTitle": {
+    "description": "Title of the breakdown mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportPanelMessage": "One sheet per scene, or the whole breakdown as a spreadsheet.",
+  "@breakdownExportPanelMessage": {
+    "description": "Sentence under the title of the breakdown mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsTitle": "Breakdown sheets",
+  "@breakdownExportSheetsTitle": {
+    "description": "Name of the breakdown sheets document, shown as an export panel card title",
+    "context": "Displayed as a card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportSheetsDescription": "One printed sheet per scene, everything tagged in it.",
+  "@breakdownExportSheetsDescription": {
+    "description": "Sentence saying what the breakdown sheets document is, shown on its export panel card",
+    "context": "Displayed under the card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportUnavailableReason": "The screenplay holds no scene yet.",
+  "@breakdownExportUnavailableReason": {
+    "description": "Reason shown in place of the card's description while the screenplay holds no scene",
+    "context": "Displayed on the breakdown mode's export panel card while unavailable",
     "type": "text",
     "placeholders": {}
   },
@@ -5918,5 +6363,2744 @@
     "context": "Displayed as a SnackBar over the breakdown mode",
     "type": "text",
     "placeholders": {}
+  },
+  "breakdownExportXlsxTitle": "Breakdown workbook",
+  "@breakdownExportXlsxTitle": {
+    "description": "Name of the breakdown workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxDescription": "Every scene and everything tagged in it, as a spreadsheet.",
+  "@breakdownExportXlsxDescription": {
+    "description": "Sentence saying what the breakdown workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the breakdown mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxFileTypeLabel": "Excel workbook",
+  "@breakdownExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the breakdown workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxFileNameSuffix": "breakdown",
+  "@breakdownExportXlsxFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - breakdown.xlsx» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxScenesSheetName": "Scenes",
+  "@breakdownExportXlsxScenesSheetName": {
+    "description": "Name given to the workbook's scene-by-scene sheet",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxEntriesSheetName": "Breakdown",
+  "@breakdownExportXlsxEntriesSheetName": {
+    "description": "Name given to the workbook's sheet listing one row per tagged target in a scene",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownExportXlsxSuccessMessage": "Exported to {path}",
+  "@breakdownExportXlsxSuccessMessage": {
+    "description": "Message shown when the breakdown was successfully exported to an Excel workbook",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownExportXlsxError": "The breakdown workbook could not be exported.",
+  "@breakdownExportXlsxError": {
+    "description": "Error shown when exporting the breakdown to an Excel workbook failed",
+    "context": "Displayed as a SnackBar over the breakdown mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnNumber": "Scene",
+  "@breakdownXlsxScenesColumnNumber": {
+    "description": "Header of the Scenes sheet's scene number column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnHeading": "Heading",
+  "@breakdownXlsxScenesColumnHeading": {
+    "description": "Header of the Scenes sheet's scene heading column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnStatus": "Status",
+  "@breakdownXlsxScenesColumnStatus": {
+    "description": "Header of the Scenes sheet's breakdown status column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnLength": "Length",
+  "@breakdownXlsxScenesColumnLength": {
+    "description": "Header of the Scenes sheet's length-in-eighths column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnSets": "Sets",
+  "@breakdownXlsxScenesColumnSets": {
+    "description": "Header of the Scenes sheet's linked sets column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnNeededCount": "Needed",
+  "@breakdownXlsxScenesColumnNeededCount": {
+    "description": "Header of the Scenes sheet's count of distinct tagged targets column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxScenesColumnNotes": "Notes",
+  "@breakdownXlsxScenesColumnNotes": {
+    "description": "Header of the Scenes sheet's breakdown notes column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnSceneNumber": "Scene",
+  "@breakdownXlsxEntriesColumnSceneNumber": {
+    "description": "Header of the Breakdown sheet's scene number column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnSceneHeading": "Heading",
+  "@breakdownXlsxEntriesColumnSceneHeading": {
+    "description": "Header of the Breakdown sheet's scene heading column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnGroup": "Group",
+  "@breakdownXlsxEntriesColumnGroup": {
+    "description": "Header of the Breakdown sheet's target group column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnCode": "Code",
+  "@breakdownXlsxEntriesColumnCode": {
+    "description": "Header of the Breakdown sheet's target code column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnName": "Name",
+  "@breakdownXlsxEntriesColumnName": {
+    "description": "Header of the Breakdown sheet's target name column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnStatus": "Status",
+  "@breakdownXlsxEntriesColumnStatus": {
+    "description": "Header of the Breakdown sheet's target status column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnOwner": "Owner",
+  "@breakdownXlsxEntriesColumnOwner": {
+    "description": "Header of the Breakdown sheet's target owner column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnQuantity": "Quantity",
+  "@breakdownXlsxEntriesColumnQuantity": {
+    "description": "Header of the Breakdown sheet's scene-link quantity column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnNotes": "Notes",
+  "@breakdownXlsxEntriesColumnNotes": {
+    "description": "Header of the Breakdown sheet's scene-link notes column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownXlsxEntriesColumnPassages": "Tagged passages",
+  "@breakdownXlsxEntriesColumnPassages": {
+    "description": "Header of the Breakdown sheet's tagged passages column",
+    "context": "Written into the exported XLSX file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayTagPrefix": "D",
+  "@scheduleDayTagPrefix": {
+    "description": "The single letter printed before a shooting day's rank (D3), read on the call sheet",
+    "context": "Displayed throughout the schedule mode and the shot list's own shooting day read-out",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaEmptyHint": "No shooting day has been created yet.",
+  "@scheduleAgendaEmptyHint": {
+    "description": "Shown in the strip agenda when the schedule has no day at all",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaModeStrip": "Strip",
+  "@scheduleAgendaModeStrip": {
+    "description": "Label of the strip agenda presentation",
+    "context": "Displayed in the schedule mode's header segmented control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaModeWeek": "Week",
+  "@scheduleAgendaModeWeek": {
+    "description": "Label of the week agenda presentation",
+    "context": "Displayed in the schedule mode's header segmented control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaModeMonth": "Month",
+  "@scheduleAgendaModeMonth": {
+    "description": "Label of the month agenda presentation",
+    "context": "Displayed in the schedule mode's header segmented control",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaWeekComingHint": "The week grid is coming in a future update.",
+  "@scheduleAgendaWeekComingHint": {
+    "description": "Placeholder shown for the week agenda presentation, not built in this milestone",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaMonthComingHint": "The month grid is coming in a future update.",
+  "@scheduleAgendaMonthComingHint": {
+    "description": "Placeholder shown for the month agenda presentation, not built in this milestone",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayViewComingHint": "The day view is coming in a future update.",
+  "@scheduleDayViewComingHint": {
+    "description": "Placeholder shown for the day view, not built in this milestone",
+    "context": "Displayed in the schedule mode's centre area",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindShot": "Shot",
+  "@scheduleBlockKindShot": {
+    "description": "Label of a shot block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindPreparation": "Preparation",
+  "@scheduleBlockKindPreparation": {
+    "description": "Label of a preparation block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindHairMakeUp": "Hair and make-up",
+  "@scheduleBlockKindHairMakeUp": {
+    "description": "Label of a hair and make-up block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindMeal": "Meal",
+  "@scheduleBlockKindMeal": {
+    "description": "Label of a meal block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindPause": "Break",
+  "@scheduleBlockKindPause": {
+    "description": "Label of a break block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindTravel": "Travel",
+  "@scheduleBlockKindTravel": {
+    "description": "Label of a travel block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindWrap": "Wrap",
+  "@scheduleBlockKindWrap": {
+    "description": "Label of a wrap block of a shooting day's timetable",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleBlockKindHold": "Hold",
+  "@scheduleBlockKindHold": {
+    "description": "Label of a hold block reserving time for a sequence not yet shot-listed",
+    "context": "Displayed in the schedule mode's inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaysPanelTitle": "Shooting days",
+  "@scheduleDaysPanelTitle": {
+    "description": "Title of the schedule mode's left dock day list",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaysEmptyHint": "No shooting day has been created yet.",
+  "@scheduleDaysEmptyHint": {
+    "description": "Shown in the left dock's day list when the schedule has no day at all",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleNewDayAction": "New day",
+  "@scheduleNewDayAction": {
+    "description": "Tooltip of the left dock's own control creating a new shooting day",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayNoLocation": "No location yet",
+  "@scheduleDayNoLocation": {
+    "description": "Shown for a shooting day whose first slot has no location chosen yet",
+    "context": "Displayed in the schedule mode's left dock, strip agenda and inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayBlockCount": "{count, plural, one{{count} block} other{{count} blocks}}",
+  "@scheduleDayBlockCount": {
+    "description": "Number of live blocks of a shooting day",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleMonthCellSlotCountTooltip": "{count, plural, one{{count} slot} other{{count} slots}}",
+  "@scheduleMonthCellSlotCountTooltip": {
+    "description": "Tooltip of the month grid cell's own badge for a day running more than one slot",
+    "context": "Displayed in the schedule mode's month agenda",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleDayStatusPlanned": "Planned",
+  "@scheduleDayStatusPlanned": {
+    "description": "Label of a shooting day still to happen",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayStatusShot": "Shot",
+  "@scheduleDayStatusShot": {
+    "description": "Label of a shooting day that was shot",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayStatusCancelled": "Cancelled",
+  "@scheduleDayStatusCancelled": {
+    "description": "Label of a shooting day that was cancelled",
+    "context": "Displayed throughout the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleChangeDayDateAction": "Change the date…",
+  "@scheduleChangeDayDateAction": {
+    "description": "Entry of a day card's own ⋮ menu, opening a date picker seeded on that day's own date",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDuplicateDayAction": "Duplicate this day…",
+  "@scheduleDuplicateDayAction": {
+    "description": "Entry of a day card's own ⋮ menu, opening a date picker",
+    "context": "Displayed in the schedule mode's left dock and strip agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayAction": "Delete this day…",
+  "@scheduleDeleteDayAction": {
+    "description": "Entry of a day card's own ⋮ menu, asking for confirmation before deleting",
+    "context": "Displayed in the schedule mode's left dock and strip agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayConfirmTitle": "Delete this day?",
+  "@scheduleDeleteDayConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a shooting day",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayConfirmMessage": "Its slots, its convocations and its timetable will be lost. This cannot be undone.",
+  "@scheduleDeleteDayConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a shooting day",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayCancelAction": "Cancel",
+  "@scheduleDeleteDayCancelAction": {
+    "description": "Label of the button dismissing the day deletion confirmation dialog",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayConfirmAction": "Delete",
+  "@scheduleDeleteDayConfirmAction": {
+    "description": "Label of the button confirming a shooting day's deletion",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleUnplacedPanelTitle": "Shots to place",
+  "@scheduleUnplacedPanelTitle": {
+    "description": "Title of the left dock's own list of shots still to place",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleUnplacedAllPlaced": "Everything is placed",
+  "@scheduleUnplacedAllPlaced": {
+    "description": "Shown when every shot of the shot list has been placed somewhere in the schedule",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleUnplacedCount": "{count, plural, one{{count} shot} other{{count} shots}}",
+  "@scheduleUnplacedCount": {
+    "description": "Number of shots still to place",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleUnplacedSequenceLabel": "SEQ {number}",
+  "@scheduleUnplacedSequenceLabel": {
+    "description": "Heading of one sequence's own group of shots still to place",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleUnplacedOrphanGroupLabel": "Orphaned shots",
+  "@scheduleUnplacedOrphanGroupLabel": {
+    "description": "Heading of the group of shots still to place whose scene was deleted",
+    "context": "Displayed in the schedule mode's left dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHeaderAgendaSegmentLabel": "Agenda",
+  "@scheduleHeaderAgendaSegmentLabel": {
+    "description": "Label of the header's own Agenda segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHeaderDaySegmentLabel": "Day",
+  "@scheduleHeaderDaySegmentLabel": {
+    "description": "Label of the header's own Day segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayArrivalToEndLabel": "Arrival → end",
+  "@scheduleDayArrivalToEndLabel": {
+    "description": "Label of a strip agenda day card's own arrival-to-end range",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayNoShotsPlaced": "No shot placed",
+  "@scheduleDayNoShotsPlaced": {
+    "description": "Shown on a strip agenda day card with no shot placed on it",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayShotsPlacedCount": "{count, plural, one{{count} shot placed} other{{count} shots placed}}",
+  "@scheduleDayShotsPlacedCount": {
+    "description": "Number of shots placed on a shooting day",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleDayNoShotsPlacedHint": "No shot placed on this day.",
+  "@scheduleDayNoShotsPlacedHint": {
+    "description": "Shown in a strip agenda day card's own chip row when it holds no shot yet",
+    "context": "Displayed on a strip agenda day card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockInspectorTabLabel": "Inspector",
+  "@scheduleRightDockInspectorTabLabel": {
+    "description": "Label of the schedule mode's right dock Inspector tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockVersionsTabLabel": "Versions",
+  "@scheduleRightDockVersionsTabLabel": {
+    "description": "Label of the schedule mode's right dock Versions tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockCloseTooltip": "Close the panel",
+  "@scheduleRightDockCloseTooltip": {
+    "description": "Tooltip of the schedule mode's right dock close button",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorEmptyHint": "Select a day to see its details.",
+  "@scheduleInspectorEmptyHint": {
+    "description": "Shown in the inspector while no day and no block is selected",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorDayTitle": "Day {dayTag}",
+  "@scheduleInspectorDayTitle": {
+    "description": "Title of the day inspector, naming the day's own printed rank",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {
+      "dayTag": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleInspectorStatusLabel": "Status",
+  "@scheduleInspectorStatusLabel": {
+    "description": "Label of the day inspector's own status section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorLocationsLabel": "Locations",
+  "@scheduleInspectorLocationsLabel": {
+    "description": "Label of the day inspector's own locations section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSetsLabel": "Sets",
+  "@scheduleInspectorSetsLabel": {
+    "description": "Label of the day inspector's own sets section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorNoSets": "No set chosen yet",
+  "@scheduleInspectorNoSets": {
+    "description": "Shown in the day inspector's sets section when no slot names one",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSlotsLabel": "Slots",
+  "@scheduleInspectorSlotsLabel": {
+    "description": "Label of the day inspector's own slots section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorNoSlots": "No slot yet",
+  "@scheduleInspectorNoSlots": {
+    "description": "Shown in the day inspector's slots section when the day has no live slot",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorUnnamedSlot": "Unnamed slot",
+  "@scheduleInspectorUnnamedSlot": {
+    "description": "Shown in the day inspector's slots section for a slot with no label",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorArrivalToEndLabel": "Arrival → estimated end",
+  "@scheduleInspectorArrivalToEndLabel": {
+    "description": "Label of the day inspector's own arrival to estimated end section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSunLabel": "Sun",
+  "@scheduleInspectorSunLabel": {
+    "description": "Label of the day inspector's own sun and twilight section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSunTimesLine": "☀ {sunrise} – {sunset} · civil twilight {civilDawn} – {civilDusk} ({utcOffset})",
+  "@scheduleInspectorSunTimesLine": {
+    "description": "The sun and civil twilight times of a shooting day, with the UTC offset they were computed with",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {
+      "sunrise": {
+        "type": "String"
+      },
+      "sunset": {
+        "type": "String"
+      },
+      "civilDawn": {
+        "type": "String"
+      },
+      "civilDusk": {
+        "type": "String"
+      },
+      "utcOffset": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleInspectorNoSunTimes": "No sun times: pin the location's coordinates first.",
+  "@scheduleInspectorNoSunTimes": {
+    "description": "Shown when the day's first slot has no location, or that location has no coordinates",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorWeatherLabel": "Weather",
+  "@scheduleInspectorWeatherLabel": {
+    "description": "Label of the day inspector's own weather note field",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorCrewNoteLabel": "Note to the crew",
+  "@scheduleInspectorCrewNoteLabel": {
+    "description": "Label of the day inspector's own crew note field",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorShotLabel": "Shot",
+  "@scheduleInspectorShotLabel": {
+    "description": "Label of a shot's own code/size section, in the block inspector or the shot inspector",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorCharactersLabel": "Characters",
+  "@scheduleInspectorCharactersLabel": {
+    "description": "Label of a shot's own characters section, in the block inspector or the shot inspector",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorShotStatusLabel": "Shooting status",
+  "@scheduleInspectorShotStatusLabel": {
+    "description": "Label of a shot's own status control, in the block inspector or the shot inspector",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSequenceLabel": "Sequence",
+  "@scheduleInspectorSequenceLabel": {
+    "description": "Label of the shot inspector's own sequence section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorEstimatedDurationLabel": "Estimated duration",
+  "@scheduleInspectorEstimatedDurationLabel": {
+    "description": "Label of the shot inspector's own estimated duration section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorPlacementLabel": "Placement",
+  "@scheduleInspectorPlacementLabel": {
+    "description": "Label of the shot inspector's own placement section: which days the shot is placed on",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorShotNotPlanned": "Not yet planned",
+  "@scheduleInspectorShotNotPlanned": {
+    "description": "Value of the shot inspector's own placement section when the shot isn't placed anywhere yet",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorLabelLabel": "Label",
+  "@scheduleInspectorLabelLabel": {
+    "description": "Label of the block inspector's own label section, for a non-shot block",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorSlotLabel": "Slot",
+  "@scheduleInspectorSlotLabel": {
+    "description": "Label of the block inspector's own slot section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorTimeLabel": "Time",
+  "@scheduleInspectorTimeLabel": {
+    "description": "Label of the block inspector's own computed time section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorDurationLabel": "Duration",
+  "@scheduleInspectorDurationLabel": {
+    "description": "Label of the block inspector's own editable duration section",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorBlockCrewNoteLabel": "Crew notes",
+  "@scheduleInspectorBlockCrewNoteLabel": {
+    "description": "Label of the block inspector's own crew note field, the one that prints, unlike its private notes",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleInspectorNotesLabel": "Private notes",
+  "@scheduleInspectorNotesLabel": {
+    "description": "Label of the block inspector's own private notes field, the one that never prints",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleStatsDays": "{count, plural, one{{count} day} other{{count} days}}",
+  "@scheduleStatsDays": {
+    "description": "Number of live shooting days",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleStatsShotsPlaced": "{count, plural, one{{count} shot placed} other{{count} shots placed}}",
+  "@scheduleStatsShotsPlaced": {
+    "description": "Number of shots placed somewhere in the schedule",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleStatsShotsLeftToPlace": "{count, plural, one{{count} left to place} other{{count} left to place}}",
+  "@scheduleStatsShotsLeftToPlace": {
+    "description": "Number of shots that still have no live block placing them",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleStatsEstimatedEnd": "Estimated end {time}",
+  "@scheduleStatsEstimatedEnd": {
+    "description": "The selected day's own computed end of timetable",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleStatsNoDaySelected": "No day selected",
+  "@scheduleStatsNoDaySelected": {
+    "description": "Shown in the status bar's own trailing slot while no day is selected",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleStatsNothingPlannedYet": "Nothing planned yet",
+  "@scheduleStatsNothingPlannedYet": {
+    "description": "Shown in the status bar's own trailing slot while the selected day holds no block at all, so its timeline has no end to report",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleResetPanelLayoutAction": "Reset panel layout",
+  "@scheduleResetPanelLayoutAction": {
+    "description": "Entry of the schedule mode's ⋮ overflow menu, restoring both dock fractions to their defaults",
+    "context": "Displayed in the schedule mode's toolbar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaPreviousAction": "Previous",
+  "@scheduleAgendaPreviousAction": {
+    "description": "Tooltip of the week/month agenda's own previous-page control",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaNextAction": "Next",
+  "@scheduleAgendaNextAction": {
+    "description": "Tooltip of the week/month agenda's own next-page control",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAgendaTodayAction": "Today",
+  "@scheduleAgendaTodayAction": {
+    "description": "Label of the week/month agenda's own control paging back to today",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteSlotAction": "Delete this slot…",
+  "@scheduleDeleteSlotAction": {
+    "description": "Entry of a slot card's own ⋮ menu, asking for confirmation before deleting",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteSlotConfirmTitle": "Delete this slot?",
+  "@scheduleDeleteSlotConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a slot",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteSlotConfirmMessage": "Its crew and cast convocations will be lost. This cannot be undone.",
+  "@scheduleDeleteSlotConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a slot",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteBlockConfirmTitle": "Delete this block?",
+  "@scheduleDeleteBlockConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a timetable block",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteBlockConfirmMessage": "This cannot be undone.",
+  "@scheduleDeleteBlockConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a timetable block",
+    "context": "Displayed in a confirmation dialog opened from the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveSlotUpTooltip": "Move this slot up",
+  "@scheduleMoveSlotUpTooltip": {
+    "description": "Tooltip of a slot card's own control moving it one place up in the day's list",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveSlotDownTooltip": "Move this slot down",
+  "@scheduleMoveSlotDownTooltip": {
+    "description": "Tooltip of a slot card's own control moving it one place down in the day's list",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotNotesHint": "Private note",
+  "@scheduleSlotNotesHint": {
+    "description": "Hint of a slot card's own private note field, below its location and set — the one that never prints",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotStartLabel": "Start",
+  "@scheduleSlotStartLabel": {
+    "description": "Label of a slot card's own start edge, on the anchor control and on the computed read-out under it",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotEndLabel": "End",
+  "@scheduleSlotEndLabel": {
+    "description": "Label of a slot card's own end edge, on the anchor control and on the computed read-out under it",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorTooltip": "Which edge of this slot is pinned",
+  "@scheduleSlotAnchorTooltip": {
+    "description": "Tooltip of the slot card's own anchor menu button",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorStartFixed": "Start at a fixed time",
+  "@scheduleSlotAnchorStartFixed": {
+    "description": "Anchor menu entry pinning a slot's start to a typed hour",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorEndFixed": "End at a fixed time",
+  "@scheduleSlotAnchorEndFixed": {
+    "description": "Anchor menu entry pinning a slot's end to a typed hour",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotAnchorStartFromSlot": "Start = end of « {slot} »",
+  "@scheduleSlotAnchorStartFromSlot": {
+    "description": "Anchor menu entry reading a slot's start off another slot's end",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleSlotAnchorEndFromSlot": "End = start of « {slot} »",
+  "@scheduleSlotAnchorEndFromSlot": {
+    "description": "Anchor menu entry reading a slot's end off another slot's start",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleSlotAnchorLinkedShort": "⛓ {slot}",
+  "@scheduleSlotAnchorLinkedShort": {
+    "description": "Short form of a linked anchor, shown on a narrow slot card with the whole sentence in its tooltip",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleSlotAnchorCycleReason": "These two slots would read each other",
+  "@scheduleSlotAnchorCycleReason": {
+    "description": "Why an anchor menu entry is shown disabled: picking it would close a circle of anchors",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotPeopleSectionTitle": "Assign people",
+  "@scheduleSlotPeopleSectionTitle": {
+    "description": "Title of the foldable slot card section holding its crew, its cast and its guests",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCrewColumnTitle": "Technical crew",
+  "@scheduleSlotCrewColumnTitle": {
+    "description": "Title of a slot card's own crew column, grouped by department",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotPeopleCount": "{count, plural, one{{count} person} other{{count} people}}",
+  "@scheduleSlotPeopleCount": {
+    "description": "How many people a slot card's own people section, or one of its three kinds, holds",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleSlotCrewEmptyHint": "No crew member convoked yet.",
+  "@scheduleSlotCrewEmptyHint": {
+    "description": "Shown in a slot card's own crew column while it convokes nobody yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCrewPositionPlaceholder": "Function…",
+  "@scheduleSlotCrewPositionPlaceholder": {
+    "description": "Shown on a crew card in place of a position, before one is picked",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotUnassignedDepartmentLabel": "Unassigned",
+  "@scheduleSlotUnassignedDepartmentLabel": {
+    "description": "Heading of a slot card's own crew group for a member with no catalogue position picked yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddCrewMemberAction": "Crew member",
+  "@scheduleAddCrewMemberAction": {
+    "description": "Label of a slot card's own footer control opening the crew member picker",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCastColumnTitle": "Cast",
+  "@scheduleSlotCastColumnTitle": {
+    "description": "Title of a slot card's own cast column",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCastEmptyHint": "No role convoked yet.",
+  "@scheduleSlotCastEmptyHint": {
+    "description": "Shown in a slot card's own cast column while it convokes no role yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddCastAction": "Cast",
+  "@scheduleAddCastAction": {
+    "description": "Label of a slot card's own footer control opening the role picker",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveCrewMemberTooltip": "Remove this crew member",
+  "@scheduleRemoveCrewMemberTooltip": {
+    "description": "Tooltip of a crew row's own remove control",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveCastTooltip": "Remove this convocation",
+  "@scheduleRemoveCastTooltip": {
+    "description": "Tooltip of a cast row's own remove control",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotCastUncastHint": "Uncast",
+  "@scheduleSlotCastUncastHint": {
+    "description": "Shown in a cast row in place of the actor's name when the role has none",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestsColumnTitle": "Guests",
+  "@scheduleSlotGuestsColumnTitle": {
+    "description": "Title of a slot card's own guest band, under its crew and cast halves",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddGuestAction": "Guest",
+  "@scheduleAddGuestAction": {
+    "description": "Label of a slot card's own guest band footer control opening the address-book picker",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveGuestTooltip": "Remove this guest",
+  "@scheduleRemoveGuestTooltip": {
+    "description": "Tooltip of a guest row's own remove control",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestReasonHint": "Why they are here",
+  "@scheduleSlotGuestReasonHint": {
+    "description": "Hint of a guest row's own reason field",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestNotesHint": "Note",
+  "@scheduleSlotGuestNotesHint": {
+    "description": "Hint of a guest row's own notes field",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleSlotGuestsEmptyHint": "No guest yet.",
+  "@scheduleSlotGuestsEmptyHint": {
+    "description": "Shown in a slot card's own guest band while it has been revealed but holds nobody yet",
+    "context": "Displayed on a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleTimetableEmptyHint": "Nothing placed on this slot yet.",
+  "@scheduleTimetableEmptyHint": {
+    "description": "Shown in the timetable while the slot holds no block at all",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddBlockAction": "Block",
+  "@scheduleAddBlockAction": {
+    "description": "Label of the timetable's own footer control opening the block-kind menu",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAnchorPinTooltip": "Pin this block to its current time",
+  "@scheduleAnchorPinTooltip": {
+    "description": "Tooltip of a timetable row's own anchor pin toggle",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveBlockTooltip": "Remove this block",
+  "@scheduleRemoveBlockTooltip": {
+    "description": "Tooltip of a timetable row's own remove control",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveBlockTooltip": "Move this block to another slot",
+  "@scheduleMoveBlockTooltip": {
+    "description": "Tooltip of a timetable row's own control moving its block to another slot",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleMoveBlockMenuTitle": "Move to…",
+  "@scheduleMoveBlockMenuTitle": {
+    "description": "Heading of the menu listing the day's other slots a block may be moved to",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHoldSequencePickerNoSequenceOption": "No sequence yet",
+  "@scheduleHoldSequencePickerNoSequenceOption": {
+    "description": "Entry of a hold row's own sequence picker clearing it back to no sequence, and the read-out shown for a hold that names none",
+    "context": "Displayed in a day view slot card's own timetable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddSlotAction": "Slot",
+  "@scheduleAddSlotAction": {
+    "description": "Label of the day view's own control adding a new slot",
+    "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleTimetableTitle": "Timetable",
+  "@scheduleTimetableTitle": {
+    "description": "Heading over a day view slot card's own chained blocks",
+    "context": "Displayed in a day view slot card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaySummaryTotalLabel": "Total",
+  "@scheduleDaySummaryTotalLabel": {
+    "description": "Label of the day view's own summary band total field",
+    "context": "Displayed in the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDaySummaryTotal": "{count, plural, one{{count} shot} other{{count} shots}} · {duration} of presence",
+  "@scheduleDaySummaryTotal": {
+    "description": "The day's own shot count and duration of presence, from the first arrival to the estimated end",
+    "context": "Displayed in the day view's own summary band",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleDayEventsSectionTitle": "Events",
+  "@scheduleDayEventsSectionTitle": {
+    "description": "Title of the day's own events section, shared by the day view's bordered band and the day inspector's own section",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAddDayEventAction": "Event",
+  "@scheduleAddDayEventAction": {
+    "description": "Label of the events section's own footer control adding a new event",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEventLabelHint": "What happens",
+  "@scheduleDayEventLabelHint": {
+    "description": "Hint of an event row's own label field",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEventNotesHint": "Note",
+  "@scheduleDayEventNotesHint": {
+    "description": "Hint of an event row's own notes field",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayEventUnnamedLabel": "Untitled event",
+  "@scheduleDayEventUnnamedLabel": {
+    "description": "Shown in place of an event's own label when it has none, in its read-only row and in the week grid's own marker tooltip",
+    "context": "Displayed in the day view, the schedule mode's right dock and the week agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRemoveDayEventTooltip": "Remove this event",
+  "@scheduleRemoveDayEventTooltip": {
+    "description": "Tooltip of an event row's own remove control",
+    "context": "Displayed in the day view and the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayEventConfirmTitle": "Delete this event?",
+  "@scheduleDeleteDayEventConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting a day event",
+    "context": "Displayed in a confirmation dialog opened from the day view or the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDeleteDayEventConfirmMessage": "This cannot be undone.",
+  "@scheduleDeleteDayEventConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting a day event",
+    "context": "Displayed in a confirmation dialog opened from the day view or the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerDialogTitle": "Place a shot",
+  "@scheduleShotPickerDialogTitle": {
+    "description": "Title of the dialog opened by a slot card's own `+ Block` menu's `Shot` entry",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerSearchHint": "Search a shot…",
+  "@scheduleShotPickerSearchHint": {
+    "description": "Hint of the shot picker dialog's own search field",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerNoResultsHint": "No shot matches the search.",
+  "@scheduleShotPickerNoResultsHint": {
+    "description": "Shown in the shot picker dialog when the search matches no shot at all",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerEmptyHint": "This shot list has no shot yet.",
+  "@scheduleShotPickerEmptyHint": {
+    "description": "Shown in the shot picker dialog when the shot list holds no shot at all",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerAlreadyPlacedTooltip": "Already placed",
+  "@scheduleShotPickerAlreadyPlacedTooltip": {
+    "description": "Tooltip of a shot picker row's own day tags, shown for a shot already placed somewhere in the schedule",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleShotPickerCancelAction": "Cancel",
+  "@scheduleShotPickerCancelAction": {
+    "description": "Label of the shot picker dialog's own cancel control",
+    "context": "Displayed in the shot picker dialog opened from the day view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockConvocationsTabLabel": "Convocations",
+  "@scheduleRightDockConvocationsTabLabel": {
+    "description": "Label of the schedule mode's right dock Convocations tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsEmptyHint": "Select a day to see its convocations.",
+  "@scheduleConvocationsEmptyHint": {
+    "description": "Shown in the convocations panel while no day is selected",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsNoConvocationHint": "Nobody is convoked on this day yet.",
+  "@scheduleConvocationsNoConvocationHint": {
+    "description": "Shown in the convocations panel when the selected day links nobody to a slot yet",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleConvocationsUncastRoleLabel": "{roleName} (not cast)",
+  "@scheduleConvocationsUncastRoleLabel": {
+    "description": "Title of a convocations panel card for a cast role convoked with nobody cast in it yet",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleConvocationsGuestsSectionTitle": "Guests",
+  "@scheduleConvocationsGuestsSectionTitle": {
+    "description": "Heading of the convocations panel's own trailing group of guest cards",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelTitle": "Export the schedule",
+  "@scheduleExportPanelTitle": {
+    "description": "Title of the schedule mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelMessage": "The paperwork a shoot runs on — call sheets, the shooting plan and the rest.",
+  "@scheduleExportPanelMessage": {
+    "description": "Sentence under the title of the schedule mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelCallSheetsTitle": "Call sheets",
+  "@scheduleExportPanelCallSheetsTitle": {
+    "description": "Name of the general call sheets document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelCallSheetsDescription": "One per day, the day's timetable, crew, cast and contacts.",
+  "@scheduleExportPanelCallSheetsDescription": {
+    "description": "Sentence saying what the general call sheets document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelNamedCallSheetsTitle": "Named call sheets",
+  "@scheduleExportPanelNamedCallSheetsTitle": {
+    "description": "Name of the named call sheets document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelNamedCallSheetsDescription": "One per recipient and per day, with only that person's own hours.",
+  "@scheduleExportPanelNamedCallSheetsDescription": {
+    "description": "Sentence saying what the named call sheets document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanTitle": "Shooting plan",
+  "@scheduleExportPanelShootingPlanTitle": {
+    "description": "Name of the shooting plan document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanDescription": "The whole shoot at a glance — locations, sequences, crew and the daily agendas.",
+  "@scheduleExportPanelShootingPlanDescription": {
+    "description": "Sentence saying what the shooting plan document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelDayOutOfDaysTitle": "Day Out of Days",
+  "@scheduleExportPanelDayOutOfDaysTitle": {
+    "description": "Name of the Day Out of Days document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelDayOutOfDaysDescription": "One row per role, one column per day, the cast's own schedule.",
+  "@scheduleExportPanelDayOutOfDaysDescription": {
+    "description": "Sentence saying what the Day Out of Days document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelOneLineScheduleTitle": "One-line schedule",
+  "@scheduleExportPanelOneLineScheduleTitle": {
+    "description": "Name of the one-line schedule document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelOneLineScheduleDescription": "One line per sequence, in shooting order, over the whole shoot.",
+  "@scheduleExportPanelOneLineScheduleDescription": {
+    "description": "Sentence saying what the one-line schedule document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelSidesTitle": "Sides",
+  "@scheduleExportPanelSidesTitle": {
+    "description": "Name of the sides document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelSidesDescription": "The pages of one day's own sequences, as they print in the screenplay.",
+  "@scheduleExportPanelSidesDescription": {
+    "description": "Sentence saying what the sides document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanXlsxTitle": "Shooting plan workbook",
+  "@scheduleExportPanelShootingPlanXlsxTitle": {
+    "description": "Name of the shooting plan workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPanelShootingPlanXlsxDescription": "The same summary grids, plus a full chronology of the shoot, as a spreadsheet.",
+  "@scheduleExportPanelShootingPlanXlsxDescription": {
+    "description": "Sentence saying what the shooting plan workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the schedule mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportUnavailableReason": "No day is planned yet.",
+  "@scheduleExportUnavailableReason": {
+    "description": "Reason shown in place of a card's description while the project holds no live day",
+    "context": "Displayed on every card of the schedule mode's export panel while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetsDialogTitle": "Export the call sheets",
+  "@scheduleExportCallSheetsDialogTitle": {
+    "description": "Title of the general call sheets export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedCallSheetsDialogTitle": "Export the named call sheets",
+  "@scheduleExportNamedCallSheetsDialogTitle": {
+    "description": "Title of the named call sheets export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanDialogTitle": "Export the shooting plan",
+  "@scheduleExportShootingPlanDialogTitle": {
+    "description": "Title of the shooting plan export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxDialogTitle": "Export the shooting plan workbook",
+  "@scheduleExportShootingPlanXlsxDialogTitle": {
+    "description": "Title of the shooting plan workbook export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSelectAllAction": "Select all",
+  "@scheduleExportSelectAllAction": {
+    "description": "Label of the control ticking every entry of an export dialog's own checkbox list",
+    "context": "Displayed above the day list or the convocation list of a schedule export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSelectNoneAction": "Select none",
+  "@scheduleExportSelectNoneAction": {
+    "description": "Label of the control unticking every entry of an export dialog's own checkbox list",
+    "context": "Displayed above the day list or the convocation list of a schedule export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDaysToPrintLabel": "Days to print",
+  "@scheduleExportDaysToPrintLabel": {
+    "description": "Caption above the scrollable day checkbox list of a schedule export dialog",
+    "context": "Displayed in the call sheets and shooting plan export dialogs",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedCallSheetsUncastRoleHint": "No one to send this to yet",
+  "@scheduleExportNamedCallSheetsUncastRoleHint": {
+    "description": "Hint under a convocation row of the named call sheets dialog naming an uncast role, saying it has no recipient",
+    "context": "Displayed in the named call sheets export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportChooseFolderAction": "Choose",
+  "@scheduleExportChooseFolderAction": {
+    "description": "Label of the native \"choose a folder\" dialog's own confirm button, shown when picking where the call sheets are written",
+    "context": "Passed to the OS folder picker opened by a call sheets export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportFileTypeLabel": "PDF document",
+  "@scheduleExportFileTypeLabel": {
+    "description": "Label of the native save dialog's own type filter, shown when saving the shooting plan",
+    "context": "Passed to the OS save dialog opened by the shooting plan export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportXlsxFileTypeLabel": "Excel workbook",
+  "@scheduleExportXlsxFileTypeLabel": {
+    "description": "Label of the .xlsx file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the shooting plan workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanLocationsGridLabel": "Include the locations summary grid",
+  "@scheduleExportShootingPlanLocationsGridLabel": {
+    "description": "Label of the checkbox toggling the locations summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanSequencesGridLabel": "Include the sequences summary grid",
+  "@scheduleExportShootingPlanSequencesGridLabel": {
+    "description": "Label of the checkbox toggling the sequences summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanPeopleGridLabel": "Include the crew and cast summary grid",
+  "@scheduleExportShootingPlanPeopleGridLabel": {
+    "description": "Label of the checkbox toggling the crew and cast summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanTenMinuteGridLabel": "Include the ten-minute grid",
+  "@scheduleExportShootingPlanTenMinuteGridLabel": {
+    "description": "Label of the checkbox toggling the ten-minute day grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanElementsGridLabel": "Include the elements summary grid",
+  "@scheduleExportShootingPlanElementsGridLabel": {
+    "description": "Label of the checkbox toggling the elements summary grid in the exported shooting plan",
+    "context": "Displayed inside the shooting plan export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysDialogTitle": "Export the Day Out of Days",
+  "@scheduleExportDayOutOfDaysDialogTitle": {
+    "description": "Title of the Day Out of Days export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysFileNameSuffix": "day out of days",
+  "@scheduleExportDayOutOfDaysFileNameSuffix": {
+    "description": "Word appended to the project name to name the exported Day Out of Days file",
+    "context": "Suggested in the native save dialog opened by the Day Out of Days export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysDocumentTitle": "Day Out of Days",
+  "@scheduleExportDayOutOfDaysDocumentTitle": {
+    "description": "Generic name of the Day Out of Days document, printed on its title page and in every page's running head",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysRoleHeader": "Role",
+  "@scheduleExportDayOutOfDaysRoleHeader": {
+    "description": "Corner header of the Day Out of Days table's own row-label column",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkedDaysHeader": "Worked",
+  "@scheduleExportDayOutOfDaysWorkedDaysHeader": {
+    "description": "Header of the Day Out of Days column counting the days a role is called on",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysHeldDaysHeader": "Held",
+  "@scheduleExportDayOutOfDaysHeldDaysHeader": {
+    "description": "Header of the Day Out of Days column counting a role's own hold days",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysLegendTitle": "Legend",
+  "@scheduleExportDayOutOfDaysLegendTitle": {
+    "description": "Heading of the legend printed under the Day Out of Days table",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysEmptyNote": "No role is called on the printed days yet.",
+  "@scheduleExportDayOutOfDaysEmptyNote": {
+    "description": "Note printed in place of the Day Out of Days table when the printed range holds no day, or calls no role at all",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkCode": "SW",
+  "@scheduleExportDayOutOfDaysStartWorkCode": {
+    "description": "Code printed in a Day Out of Days cell for a role's first called day",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkCode": "W",
+  "@scheduleExportDayOutOfDaysWorkCode": {
+    "description": "Code printed in a Day Out of Days cell for a day a role is called on",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkFinishCode": "WF",
+  "@scheduleExportDayOutOfDaysWorkFinishCode": {
+    "description": "Code printed in a Day Out of Days cell for a role's last called day",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkFinishCode": "SWF",
+  "@scheduleExportDayOutOfDaysStartWorkFinishCode": {
+    "description": "Code printed in a Day Out of Days cell for a role called on one single day of the printed range",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysHoldCode": "H",
+  "@scheduleExportDayOutOfDaysHoldCode": {
+    "description": "Code printed in a Day Out of Days cell for a day between a role's first and last called days on which it is not called",
+    "context": "Printed inside the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkDescription": "Start work — the first day this role is called on",
+  "@scheduleExportDayOutOfDaysStartWorkDescription": {
+    "description": "Legend line explaining the Day Out of Days start-work code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkDescription": "Work — a day this role is called on",
+  "@scheduleExportDayOutOfDaysWorkDescription": {
+    "description": "Legend line explaining the Day Out of Days work code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysWorkFinishDescription": "Work finish — the last day this role is called on",
+  "@scheduleExportDayOutOfDaysWorkFinishDescription": {
+    "description": "Legend line explaining the Day Out of Days work-finish code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysStartWorkFinishDescription": "Start work and finish — this role is called on this day alone",
+  "@scheduleExportDayOutOfDaysStartWorkFinishDescription": {
+    "description": "Legend line explaining the Day Out of Days start-work-and-finish code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayOutOfDaysHoldDescription": "Hold — a day between the first and the last on which this role is not called",
+  "@scheduleExportDayOutOfDaysHoldDescription": {
+    "description": "Legend line explaining the Day Out of Days hold code",
+    "context": "Printed under the table of the exported Day Out of Days PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleDialogTitle": "Export the one-line schedule",
+  "@scheduleExportOneLineScheduleDialogTitle": {
+    "description": "Title of the one-line schedule export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleFileNameSuffix": "one-line schedule",
+  "@scheduleExportOneLineScheduleFileNameSuffix": {
+    "description": "Word appended to the project name to name the exported one-line schedule file",
+    "context": "Suggested in the native save dialog opened by the one-line schedule export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleDocumentTitle": "One-line schedule",
+  "@scheduleExportOneLineScheduleDocumentTitle": {
+    "description": "Generic name of the one-line schedule document, printed on its title page and in every page's running head",
+    "context": "Printed inside the exported one-line schedule PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleDurationHeader": "DURATION",
+  "@scheduleExportOneLineScheduleDurationHeader": {
+    "description": "Header of the one-line schedule's own table column printing a line's resolved duration",
+    "context": "Printed inside the exported one-line schedule PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesDialogTitle": "Export the day's sides",
+  "@scheduleExportSidesDialogTitle": {
+    "description": "Title of the sides export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesFileNameSuffix": "sides",
+  "@scheduleExportSidesFileNameSuffix": {
+    "description": "Word appended to the project name to name the exported sides file, before the day tag",
+    "context": "Suggested in the native save dialog opened by the sides export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesDocumentTitle": "Sides",
+  "@scheduleExportSidesDocumentTitle": {
+    "description": "Generic name of the sides document, printed in every page's running head",
+    "context": "Printed inside the exported sides PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesDayLabel": "Day to print",
+  "@scheduleExportSidesDayLabel": {
+    "description": "Label of the sides export dialog's own day dropdown",
+    "context": "Displayed in the sides export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesPresentationLabel": "Presentation",
+  "@scheduleExportSidesPresentationLabel": {
+    "description": "Label of the sides export dialog's own presentation dropdown",
+    "context": "Displayed in the sides export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesScriptPagesOption": "Screenplay pages",
+  "@scheduleExportSidesScriptPagesOption": {
+    "description": "Presentation reproducing every screenplay page carrying one of the day's sequences, at its own row positions",
+    "context": "Offered by the sides export options dialog's presentation dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesPackedOption": "Packed extracts",
+  "@scheduleExportSidesPackedOption": {
+    "description": "Presentation chaining the day's own extracts onto fresh pages, giving the screenplay's pagination up",
+    "context": "Offered by the sides export options dialog's presentation dropdown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesScriptPagePrefix": "p.",
+  "@scheduleExportSidesScriptPagePrefix": {
+    "description": "Word a screenplay page number is printed behind in the sides running head",
+    "context": "Printed inside the exported sides PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSidesEmptyDayNote": "This day plays no sequence the screenplay still holds.",
+  "@scheduleExportSidesEmptyDayNote": {
+    "description": "Note printed in place of the whole booklet when the printed day plays no scene the screenplay still holds",
+    "context": "Printed inside the exported sides PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportFileSuccessMessage": "Exported to {path}",
+  "@scheduleExportFileSuccessMessage": {
+    "description": "Message shown when the shooting plan was successfully exported to a single PDF file",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportFolderSuccessMessage": "{writtenCount, plural, one{{writtenCount} file} other{{writtenCount} files}} written to {folder}",
+  "@scheduleExportFolderSuccessMessage": {
+    "description": "Message shown when a call sheets export wrote every file it set out to",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {
+      "writtenCount": {
+        "type": "int"
+      },
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportFolderPartialMessage": "{writtenCount, plural, one{{writtenCount} file} other{{writtenCount} files}} written to {folder} — {failedCount} could not be written",
+  "@scheduleExportFolderPartialMessage": {
+    "description": "Message shown when a call sheets export wrote only some of its files, never read as a plain success",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {
+      "writtenCount": {
+        "type": "int"
+      },
+      "folder": {
+        "type": "String"
+      },
+      "failedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleExportError": "The export could not be completed.",
+  "@scheduleExportError": {
+    "description": "Error shown when one of the three schedule PDF exports failed outright",
+    "context": "Displayed as a SnackBar over the schedule mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetFileNamePrefix": "CallSheet",
+  "@scheduleExportCallSheetFileNamePrefix": {
+    "description": "Short, file-name-safe prefix a call sheet's own suggested file name is built with (CallSheet-D2.pdf)",
+    "context": "Never shown on screen; only ever appears inside a suggested file name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetDocumentTitle": "Call sheet",
+  "@scheduleExportCallSheetDocumentTitle": {
+    "description": "Generic name of the call sheet document, printed as its own running head",
+    "context": "Printed small above every page of an exported call sheet, beside the project's own name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallSheetDayTitle": "Call sheet for {date}",
+  "@scheduleExportCallSheetDayTitle": {
+    "description": "A day's own big heading on its general and named call sheets, the date already formatted in the UI's own locale",
+    "context": "Printed as the call sheet's own large title, upper-cased",
+    "type": "text",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportDirectorLine": "A film by {name}",
+  "@scheduleExportDirectorLine": {
+    "description": "Line naming the director, printed under the project's own title on a call sheet and on the shooting plan's title page",
+    "context": "Shown only when someone holds the director position in the address book",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportDayNumberLabel": "DAY",
+  "@scheduleExportDayNumberLabel": {
+    "description": "Label of the day-number line on a call sheet (DAY : 2)",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportRecipientsSectionTitle": "Recipients",
+  "@scheduleExportRecipientsSectionTitle": {
+    "description": "Heading of the general call sheet's own recipients line, and caption above the named call sheets dialog's own convocation list",
+    "context": "Printed on the general call sheet, and shown in the named call sheets export dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNamedRecipientLabel": "For",
+  "@scheduleExportNamedRecipientLabel": {
+    "description": "Label a named call sheet's own header line is printed under, before the recipient's name",
+    "context": "Printed on every exported named call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMapsLinkLabel": "View on map",
+  "@scheduleExportMapsLinkLabel": {
+    "description": "Label printed before a location's Google Maps link on a call sheet, when it has coordinates to build one from",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCivilDawnLabel": "Civil dawn",
+  "@scheduleExportCivilDawnLabel": {
+    "description": "Label of the morning civil twilight figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSunriseLabel": "Sunrise",
+  "@scheduleExportSunriseLabel": {
+    "description": "Label of the sunrise figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSunsetLabel": "Sunset",
+  "@scheduleExportSunsetLabel": {
+    "description": "Label of the sunset figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCivilDuskLabel": "Civil dusk",
+  "@scheduleExportCivilDuskLabel": {
+    "description": "Label of the evening civil twilight figure on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportContactsSectionTitle": "Contacts",
+  "@scheduleExportContactsSectionTitle": {
+    "description": "Heading of the key-contacts block and of the by-department contacts table on a call sheet",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportHoursLinePrefix": "HOURS",
+  "@scheduleExportHoursLinePrefix": {
+    "description": "Prefix of a call sheet's own time-band line, and header of a people list's own schedule column",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPatLabel": "PAT",
+  "@scheduleExportPatLabel": {
+    "description": "Label of the ready-to-shoot band on a call sheet, printed as a table column header and as a band line",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportArrivalHeader": "ARRIVAL",
+  "@scheduleExportArrivalHeader": {
+    "description": "Header of a person's arrival figure on a call sheet, printed as a table column header and as a named sheet's own band line",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDepartureLabel": "DEPARTURE",
+  "@scheduleExportDepartureLabel": {
+    "description": "Label of a person's departure figure on a named call sheet's own band line",
+    "context": "Printed on every exported named call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSeqHeader": "SEQ",
+  "@scheduleExportSeqHeader": {
+    "description": "Header of a call sheet's own sequence column, shared by its main table and its cast table",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPlansHeader": "SHOTS",
+  "@scheduleExportPlansHeader": {
+    "description": "Header of a call sheet's own main table column listing the shot ranks of a scene",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEffetHeader": "INT/EXT",
+  "@scheduleExportEffetHeader": {
+    "description": "Header of a call sheet's own main table column naming a scene's interior/exterior and time of day",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDecorsHeader": "SET",
+  "@scheduleExportDecorsHeader": {
+    "description": "Header of a call sheet's own main table column naming the set a scene is shot at",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportRolesHeader": "CAST",
+  "@scheduleExportRolesHeader": {
+    "description": "Header of a call sheet's own main table column listing the roles appearing in a scene",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCastSectionTitle": "Cast",
+  "@scheduleExportCastSectionTitle": {
+    "description": "Heading of the general call sheet's own cast table",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportRoleHeader": "ROLE",
+  "@scheduleExportRoleHeader": {
+    "description": "Header of the cast table's own role column, also used as a named sheet's own label when its recipient is an uncast role",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportActorHeader": "ACTOR",
+  "@scheduleExportActorHeader": {
+    "description": "Header of the cast table's own actor column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportNameHeader": "NAME",
+  "@scheduleExportNameHeader": {
+    "description": "Header of a call sheet's own people list name column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPositionsHeader": "POSITION(S)",
+  "@scheduleExportPositionsHeader": {
+    "description": "Header of a call sheet's own people list positions column, also used as a named sheet's own label for the positions or role its recipient is convoked under",
+    "context": "Printed on every exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPhoneHeader": "PHONE",
+  "@scheduleExportPhoneHeader": {
+    "description": "Header of a call sheet's own people list phone column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEmailHeader": "EMAIL",
+  "@scheduleExportEmailHeader": {
+    "description": "Header of a call sheet's own people list email column",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCrewListSectionTitle": "Crew",
+  "@scheduleExportCrewListSectionTitle": {
+    "description": "Heading of the general call sheet's own closing crew list",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCastAndExtrasListSectionTitle": "Cast and extras",
+  "@scheduleExportCastAndExtrasListSectionTitle": {
+    "description": "Heading of the general call sheet's own closing cast-and-extras list",
+    "context": "Printed on every exported general call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEmptyDayNote": "Nothing planned for this day.",
+  "@scheduleExportEmptyDayNote": {
+    "description": "Note printed in place of a call sheet's own main table, or a shooting plan day agenda's own timetable, when the day has no slot or no block on any of them",
+    "context": "Printed on every exported call sheet and shooting plan day agenda that has nothing to show",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportUnnamedPersonLabel": "Unnamed",
+  "@scheduleExportUnnamedPersonLabel": {
+    "description": "Label a person prints under on a call sheet when they hold no usable name, and the name a named sheet's own file name falls back to as well",
+    "context": "Printed on an exported call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportGuestReasonHeader": "Reason",
+  "@scheduleExportGuestReasonHeader": {
+    "description": "Header of a call sheet's own trailing guest table reason column, joined from that guest's own shooting_slot_guests rows",
+    "context": "Printed on every exported call sheet that carries a guest",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportToBringSectionTitle": "To bring",
+  "@scheduleExportToBringSectionTitle": {
+    "description": "Heading of a named call sheet's own \"to bring\" section, listing the elements its recipient is due to bring to the scenes the day plays",
+    "context": "Printed on an exported named call sheet whose recipient is due to bring something",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanFileNameSuffix": "shooting plan",
+  "@scheduleExportShootingPlanFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported shooting plan's own file name",
+    "context": "Suggested as «My Movie - shooting plan.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanDocumentTitle": "Shooting plan",
+  "@scheduleExportShootingPlanDocumentTitle": {
+    "description": "Generic name of the shooting plan document, printed as its own running head and on its own title page",
+    "context": "Printed small above every page of the exported shooting plan, and as its title page's own document name",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxLocationsSheetName": "Locations",
+  "@scheduleExportShootingPlanXlsxLocationsSheetName": {
+    "description": "Name of the shooting plan workbook's own locations summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxSequencesSheetName": "Sequences",
+  "@scheduleExportShootingPlanXlsxSequencesSheetName": {
+    "description": "Name of the shooting plan workbook's own sequences summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxPeopleSheetName": "Crew and cast",
+  "@scheduleExportShootingPlanXlsxPeopleSheetName": {
+    "description": "Name of the shooting plan workbook's own crew and cast summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxElementsSheetName": "Elements",
+  "@scheduleExportShootingPlanXlsxElementsSheetName": {
+    "description": "Name of the shooting plan workbook's own elements summary sheet",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxChronologySheetName": "Chronology",
+  "@scheduleExportShootingPlanXlsxChronologySheetName": {
+    "description": "Name of the shooting plan workbook's own chronology sheet, one row per block over the whole printed range",
+    "context": "Shown as a sheet tab in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxDateColumnHeader": "Date",
+  "@scheduleExportShootingPlanXlsxDateColumnHeader": {
+    "description": "Header of the chronology sheet's own date column",
+    "context": "Shown as a column header in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxKindColumnHeader": "Kind",
+  "@scheduleExportShootingPlanXlsxKindColumnHeader": {
+    "description": "Header of the chronology sheet's own block-kind column",
+    "context": "Shown as a column header in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanXlsxDurationColumnHeader": "Duration (min)",
+  "@scheduleExportShootingPlanXlsxDurationColumnHeader": {
+    "description": "Header of the chronology sheet's own resolved-duration column, in minutes",
+    "context": "Shown as a column header in the exported .xlsx workbook",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShootingPlanDayTitle": "Day plan for {date}",
+  "@scheduleExportShootingPlanDayTitle": {
+    "description": "A day's own heading on its detailed agenda page of the shooting plan, the date already formatted in the UI's own locale",
+    "context": "Printed as a shooting plan day agenda's own title",
+    "type": "text",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleExportTenMinuteGridSectionTitle": "Ten-minute grid",
+  "@scheduleExportTenMinuteGridSectionTitle": {
+    "description": "Heading of a day's own ten-minute grid page in the exported shooting plan, appended after the day's own title",
+    "context": "Printed on the shooting plan's own ten-minute grid page, one per printed day",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportVersionLabel": "Version",
+  "@scheduleExportVersionLabel": {
+    "description": "Label the moment a schedule document was produced is printed under",
+    "context": "Printed on the shooting plan and on every call sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportLocationsGridTitle": "Summary - Locations",
+  "@scheduleExportLocationsGridTitle": {
+    "description": "Heading of the shooting plan's own locations summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSequencesGridTitle": "Summary - Sequences",
+  "@scheduleExportSequencesGridTitle": {
+    "description": "Heading of the shooting plan's own sequences summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPeopleGridTitle": "Summary - Crew and cast",
+  "@scheduleExportPeopleGridTitle": {
+    "description": "Heading of the shooting plan's own crew and cast summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportElementsGridTitle": "Summary - Elements",
+  "@scheduleExportElementsGridTitle": {
+    "description": "Heading of the shooting plan's own elements summary grid",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportLocationsGridRowHeader": "Location",
+  "@scheduleExportLocationsGridRowHeader": {
+    "description": "Corner header of the locations grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSequencesGridRowHeader": "Sequence",
+  "@scheduleExportSequencesGridRowHeader": {
+    "description": "Corner header of the sequences grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPeopleGridRowHeader": "Crew / cast",
+  "@scheduleExportPeopleGridRowHeader": {
+    "description": "Corner header of the crew and cast grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportElementsGridRowHeader": "Element",
+  "@scheduleExportElementsGridRowHeader": {
+    "description": "Corner header of the elements grid's own row-label column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPersoLabel": "People",
+  "@scheduleExportPersoLabel": {
+    "description": "Word reused both as a shooting plan shot table's own characters column header and as the locations grid's own nested row naming who is present",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportSequenceRowPrefix": "Seq.",
+  "@scheduleExportSequenceRowPrefix": {
+    "description": "Prefix a sequences grid's own row label is built with (Seq. 2)",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportPresenceMark": "x",
+  "@scheduleExportPresenceMark": {
+    "description": "Mark a crew and cast grid prints for an uncast role present in a slot with nobody to name",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayLocationLabel": "Location:",
+  "@scheduleExportDayLocationLabel": {
+    "description": "Label a shooting plan day agenda's own location line is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayHoursLabel": "Hours:",
+  "@scheduleExportDayHoursLabel": {
+    "description": "Label a shooting plan day agenda's own per-slot hours line is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDaySetsLabel": "Location details:",
+  "@scheduleExportDaySetsLabel": {
+    "description": "Label a shooting plan day agenda's own per-location sets line is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportDayTimetableLabel": "Detailed schedule:",
+  "@scheduleExportDayTimetableLabel": {
+    "description": "Label a shooting plan day agenda's own interleaved timetable is printed under",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCallTimeLabel": "call time",
+  "@scheduleExportCallTimeLabel": {
+    "description": "Word introducing a slot's own resolved start on a shooting plan day agenda's own hours line",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEstimatedEndLabel": "estimated end around",
+  "@scheduleExportEstimatedEndLabel": {
+    "description": "Word introducing a slot's own resolved end on a shooting plan day agenda's own hours line",
+    "context": "Printed on every shooting plan day agenda",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMilestoneFromLabel": "From",
+  "@scheduleExportMilestoneFromLabel": {
+    "description": "Word introducing a milestone line's own start on a shooting plan day agenda",
+    "context": "Printed on every shooting plan day agenda, in prose such as «From 16:45 to 17:15: …»",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMilestoneToLabel": "to",
+  "@scheduleExportMilestoneToLabel": {
+    "description": "Word joining a milestone line's own start and end on a shooting plan day agenda",
+    "context": "Printed on every shooting plan day agenda, in prose such as «From 16:45 to 17:15: …»",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportMoveHeader": "Move.",
+  "@scheduleExportMoveHeader": {
+    "description": "Header of a shooting plan shot table's own camera move column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportFramingHeader": "Framing",
+  "@scheduleExportFramingHeader": {
+    "description": "Header of a shooting plan shot table's own framing column",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportCommentHeader": "Comment",
+  "@scheduleExportCommentHeader": {
+    "description": "Header of a shooting plan shot table's own comment column, printing a shot's directing notes",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportShotHoursHeader": "Hours",
+  "@scheduleExportShotHoursHeader": {
+    "description": "Header of a shooting plan shot table's own hours column, printing the block's resolved start over its resolved end",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportEmptyPlanNote": "Nothing to print.",
+  "@scheduleExportEmptyPlanNote": {
+    "description": "Note printed in place of the whole shooting plan, or in place of a grid, when the printed range holds nothing to show",
+    "context": "Printed on the exported shooting plan",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHeaderPositionsSegmentLabel": "Positions",
+  "@scheduleHeaderPositionsSegmentLabel": {
+    "description": "Label of the header's own Positions segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixEmptyHint": "No position has been held on a slot yet.",
+  "@schedulePositionsMatrixEmptyHint": {
+    "description": "Empty state shown by the positions matrix when no crew position has been assigned to any slot of the schedule yet",
+    "context": "Displayed in the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixPositionColumnHeader": "Position",
+  "@schedulePositionsMatrixPositionColumnHeader": {
+    "description": "Header of the positions matrix's own frozen first column",
+    "context": "Displayed in the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePositionsMatrixLegend": "One column per slot, grouped by shooting day, with its computed hours. A position dropped mid-day is read in the Alerts panel.",
+  "@schedulePositionsMatrixLegend": {
+    "description": "Caption explaining how the positions matrix is read, and where a lost position is reported",
+    "context": "Displayed above the schedule mode's positions view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleHeaderPresenceSegmentLabel": "Presence",
+  "@scheduleHeaderPresenceSegmentLabel": {
+    "description": "Label of the header's own Presence segment",
+    "context": "Displayed in the schedule mode's header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridEmptyHint": "Add people to the address book to see them here.",
+  "@schedulePresenceGridEmptyHint": {
+    "description": "Empty state shown by the presence grid when the address book holds nobody yet",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridPersonColumnHeader": "Person",
+  "@schedulePresenceGridPersonColumnHeader": {
+    "description": "Header of the presence grid's own frozen first column",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridTotalColumnHeader": "Total",
+  "@schedulePresenceGridTotalColumnHeader": {
+    "description": "Header of the presence grid's own trailing column, counting a row's working days",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridLegend": "Each cell shows whether that person is working or unavailable that day, computed from the schedule and the address book; the red border marks someone convoked despite being recorded unavailable that day.",
+  "@schedulePresenceGridLegend": {
+    "description": "Caption explaining what the presence grid's own cells read and its warning cell",
+    "context": "Displayed above the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "schedulePresenceGridConflictTooltip": "convoked despite being recorded unavailable this day",
+  "@schedulePresenceGridConflictTooltip": {
+    "description": "Suffix appended to a presence grid cell's own tooltip when it conflicts with a recorded unavailability",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLabelWorking": "Working",
+  "@presenceCodeLabelWorking": {
+    "description": "Full label of the presence code meaning this person is working that day",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLabelUnavailable": "Unavailable",
+  "@presenceCodeLabelUnavailable": {
+    "description": "Full label of the presence code meaning this person is unavailable that day",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLetterWorking": "W",
+  "@presenceCodeLetterWorking": {
+    "description": "Single-letter pill label of the working presence code, printed in a narrow grid cell",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "presenceCodeLetterUnavailable": "U",
+  "@presenceCodeLetterUnavailable": {
+    "description": "Single-letter pill label of the unavailable presence code, printed in a narrow grid cell",
+    "context": "Displayed in the schedule mode's presence view",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleRightDockAlertsTabLabel": "Alerts",
+  "@scheduleRightDockAlertsTabLabel": {
+    "description": "Label of the schedule mode's right dock Alerts tab",
+    "context": "Displayed in the schedule mode's right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleStatsAlerts": "{count, plural, =0{No alerts} one{1 alert} other{{count} alerts}}",
+  "@scheduleStatsAlerts": {
+    "description": "Number of alerts the plan currently raises, read as nothing wrong at zero",
+    "context": "Displayed in the schedule mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleAlertsSummary": "{total, plural, one{1 issue} other{{total} issues}} · {hard, plural, =0{none blocking} one{1 blocking} other{{hard} blocking}}",
+  "@scheduleAlertsSummary": {
+    "description": "Heading the alerts panel's own list, naming how many issues the plan raises and how many of them are blocking",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "hard": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleAlertsEmptyHint": "The plan raises nothing to look at.",
+  "@scheduleAlertsEmptyHint": {
+    "description": "Shown in the alerts panel while the plan raises no alert at all",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleDayAlertsBadgeTooltip": "{count, plural, one{1 alert on this day} other{{count} alerts on this day}}: {kinds}",
+  "@scheduleDayAlertsBadgeTooltip": {
+    "description": "Tooltip of the mark a day wears when the plan raises alerts about it, naming how many and of which kinds",
+    "context": "Displayed on the schedule mode's day cards, agendas and day view",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "kinds": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertKindPersonUnavailable": "Unavailable",
+  "@scheduleAlertKindPersonUnavailable": {
+    "description": "Title of an alert card reporting a person convoked despite a recorded unavailability (rule 1)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPersonDoubleBooked": "Double-booked",
+  "@scheduleAlertKindPersonDoubleBooked": {
+    "description": "Title of an alert card reporting a person convoked on two overlapping slots (rule 2)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindLocationUncovered": "Location uncovered",
+  "@scheduleAlertKindLocationUncovered": {
+    "description": "Title of an alert card reporting a slot booked outside every window recorded for its location (rule 3)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindRoleNotConvoked": "Role not convoked",
+  "@scheduleAlertKindRoleNotConvoked": {
+    "description": "Title of an alert card reporting a role a placed shot calls for and no slot of that day convokes (rule 4)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindRoleUncast": "Role not cast",
+  "@scheduleAlertKindRoleUncast": {
+    "description": "Title of an alert card reporting a role the schedule uses that has no actor yet (rule 5)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindTimelineOverrun": "Timeline overrun",
+  "@scheduleAlertKindTimelineOverrun": {
+    "description": "Title of an alert card reporting a pinned block the day's own chain could not reach without overlap (rule 6)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindFixedEndMissed": "Fixed end missed",
+  "@scheduleAlertKindFixedEndMissed": {
+    "description": "Title of an alert card reporting an end-anchored slot whose own blocks didn't land back on that fixed end (rule 7)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPresenceExceeded": "Presence exceeded",
+  "@scheduleAlertKindPresenceExceeded": {
+    "description": "Title of an alert card reporting a person whose computed presence on a day exceeds their recorded maximum (rule 8)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindRestTime": "Insufficient rest",
+  "@scheduleAlertKindRestTime": {
+    "description": "Title of an alert card reporting a person's rest between two convoked days falling short of the project's own recorded minimum (rule 9)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertKindPermitNotValid": "Permit not valid",
+  "@scheduleAlertKindPermitNotValid": {
+    "description": "Title of an alert card reporting a slot booked at a location whose recorded permit windows do not cover that day's date (rule 10)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleAlertPersonUnavailableSentence": "{personName} is convoked on {slots} despite being recorded unavailable that day.",
+  "@scheduleAlertPersonUnavailableSentence": {
+    "description": "Body sentence of a person-unavailable alert card (rule 1)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPersonDoubleBookedSentence": "{personName} is convoked on both {firstSlot} and {secondSlot}, whose times overlap.",
+  "@scheduleAlertPersonDoubleBookedSentence": {
+    "description": "Body sentence of a person-double-booked alert card (rule 2)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "firstSlot": {
+        "type": "String"
+      },
+      "secondSlot": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertLocationUncoveredSentence": "{slotLabel} is booked at {locationName}, outside every window recorded for that location.",
+  "@scheduleAlertLocationUncoveredSentence": {
+    "description": "Body sentence of a location-uncovered alert card (rule 3)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "slotLabel": {
+        "type": "String"
+      },
+      "locationName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertRoleNotConvokedSentence": "{roleName} appears in shot {shotCode}, but is convoked on no slot of the day.",
+  "@scheduleAlertRoleNotConvokedSentence": {
+    "description": "Body sentence of a role-not-convoked alert card (rule 4)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      },
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertRoleUncastSentence": "{roleName} has no actor cast yet.",
+  "@scheduleAlertRoleUncastSentence": {
+    "description": "Body sentence of a role-uncast alert card (rule 5)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertTimelineOverrunSentence": "{blockLabel} is fixed at {anchorTime}, but the blocks before it don't finish until {reachedTime}.",
+  "@scheduleAlertTimelineOverrunSentence": {
+    "description": "Body sentence of a timeline-overrun alert card (rule 6)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "blockLabel": {
+        "type": "String"
+      },
+      "anchorTime": {
+        "type": "String"
+      },
+      "reachedTime": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertFixedEndMissedSentence": "{slotLabel} is fixed to end at {fixedEndTime}, but its own blocks land on {actualEndTime}.",
+  "@scheduleAlertFixedEndMissedSentence": {
+    "description": "Body sentence of a fixed-end-missed alert card (rule 7)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "slotLabel": {
+        "type": "String"
+      },
+      "fixedEndTime": {
+        "type": "String"
+      },
+      "actualEndTime": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPresenceExceededSentence": "{personName}'s presence of {presenceDuration} on this day exceeds their recorded maximum of {maxDuration}.",
+  "@scheduleAlertPresenceExceededSentence": {
+    "description": "Body sentence of a presence-exceeded alert card (rule 8)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "presenceDuration": {
+        "type": "String"
+      },
+      "maxDuration": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertRestTimeSentence": "{personName} has only {restDuration} of rest since their previous shooting day, short of the recorded minimum of {minimumDuration}.",
+  "@scheduleAlertRestTimeSentence": {
+    "description": "Body sentence of a rest-time alert card (rule 9)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "restDuration": {
+        "type": "String"
+      },
+      "minimumDuration": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAlertPermitNotValidSentence": "{slotLabel} is booked at {locationName}, but the permit recorded for it does not cover this day's date.",
+  "@scheduleAlertPermitNotValidSentence": {
+    "description": "Body sentence of a permit-not-valid alert card (rule 10)",
+    "context": "Displayed in the schedule mode's Alerts dock tab",
+    "type": "text",
+    "placeholders": {
+      "slotLabel": {
+        "type": "String"
+      },
+      "locationName": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleAgendaColorByLabel": "Colour by",
+  "@scheduleAgendaColorByLabel": {
+    "description": "Label preceding the agenda header's own Colour by segmented control",
+    "context": "Displayed in the schedule mode's agenda header"
+  },
+  "scheduleAgendaColorModeLocation": "Location",
+  "@scheduleAgendaColorModeLocation": {
+    "description": "Label of the Colour by control's Location segment",
+    "context": "Displayed in the schedule mode's agenda header"
+  },
+  "scheduleAgendaColorModeEffect": "Effect",
+  "@scheduleAgendaColorModeEffect": {
+    "description": "Label of the Colour by control's Effect segment",
+    "context": "Displayed in the schedule mode's agenda header"
+  },
+  "scheduleAgendaEffectLegendInteriorDay": "Interior · Day",
+  "@scheduleAgendaEffectLegendInteriorDay": {
+    "description": "Legend entry for a day whose placed shots all read INT/day",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendInteriorNight": "Interior · Night",
+  "@scheduleAgendaEffectLegendInteriorNight": {
+    "description": "Legend entry for a day whose placed shots all read INT/night",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendExteriorDay": "Exterior · Day",
+  "@scheduleAgendaEffectLegendExteriorDay": {
+    "description": "Legend entry for a day whose placed shots all read EXT/day",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendExteriorNight": "Exterior · Night",
+  "@scheduleAgendaEffectLegendExteriorNight": {
+    "description": "Legend entry for a day whose placed shots all read EXT/night",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "scheduleAgendaEffectLegendMixed": "Mixed",
+  "@scheduleAgendaEffectLegendMixed": {
+    "description": "Legend entry for a day whose placed shots classify into more than one effect",
+    "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
   }
+
 }

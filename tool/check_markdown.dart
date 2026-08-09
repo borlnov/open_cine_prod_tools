@@ -206,6 +206,13 @@ List<String> _checkFile(String path, {required int lineLength}) {
 /// A line over [lineLength] is only a violation when it could be wrapped — markdownlint's own
 /// default with `strict` and `stern` both off — and table rows are exempt, the configuration
 /// setting `tables: false`.
+///
+/// "Could be wrapped" is measured from the **last character allowed**, `lineLength - 1`, not from
+/// the first one over: a line whose last allowed column already holds the space is one the wrap
+/// could have happened at, and markdownlint reports it. Reading from `lineLength` instead let a
+/// line of exactly `lineLength + 1` characters ending on a space plus one word through — the real
+/// linter refused two of them in `AGENTS.md` this gate had just called clean, which is the whole
+/// failure this off-by-one produces.
 bool _isTooLong(String line, {required int lineLength}) {
   if (line.length <= lineLength) {
     return false;
@@ -215,5 +222,5 @@ bool _isTooLong(String line, {required int lineLength}) {
     return false;
   }
 
-  return line.substring(lineLength).contains(" ");
+  return line.substring(lineLength - 1).contains(" ");
 }

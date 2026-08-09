@@ -23,9 +23,6 @@ const Duration _localFieldDebounce = Duration(milliseconds: 500);
 /// since no component theme states it.
 const double _departmentColumnWidth = 132;
 
-/// The width of a position row's scope column, the read-only one the schedule mode will fill.
-const double _scopeColumnWidth = 150;
-
 /// The sentinel value the position picker menu uses for its "free label" entry, never a real
 /// `ocptCrewPositions` id.
 const String _customPositionOption = "__custom__";
@@ -34,11 +31,11 @@ const String _customPositionOption = "__custom__";
 /// `ocptCrewPositions` (grouped by [OcptCrewDepartment]) or a free label, editable in place — plus
 /// the `+ Add a function` action.
 ///
-/// A row's **scope is read-only** and stays empty until the schedule mode exists: a position is
-/// held over the time slots the planning assigns, and a person may hold two of them over one slot,
-/// neither of which a field on this row could answer (see `OcptPersonPositionsTable`'s own doc
-/// comment). The column is shown rather than hidden so the sheet says where that answer will come
-/// from instead of silently omitting the question.
+/// A row says only **that** this person holds the function — **when** is the schedule mode's own
+/// answer, on its own surfaces: the schedule's slot crew picker reads these very rows to pre-fill
+/// a convocation's position (`lib/utils/ocpt_crew_position_prefill.dart`), which is the join
+/// between the two tables (see `OcptPersonPositionsTable`'s own doc comment). A scope field here
+/// would only be a second copy of that one truth.
 ///
 /// Roles (the cast, reconciled from the screenplay) are a later milestone: this card only ever
 /// shows crew position assignments, never a role row.
@@ -119,10 +116,9 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
   }
 }
 
-/// One row of [OcptPersonSheetPositionsCard]: the department (derived, read-only), the position
-/// label (free text, with a picker menu shortcut into `ocptCrewPositions`) and the scope
-/// (read-only, the schedule mode's answer), a local label edit debounced by [_localFieldDebounce]
-/// before being reported.
+/// One row of [OcptPersonSheetPositionsCard]: the department (derived, read-only) and the position
+/// label (free text, with a picker menu shortcut into `ocptCrewPositions`), a local label edit
+/// debounced by [_localFieldDebounce] before being reported.
 class _OcptPersonPositionRow extends StatefulWidget {
   /// The position assignment this row shows.
   final OcptPersonPosition position;
@@ -289,20 +285,6 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
                     itemBuilder: (context) => _buildMenuItems(context, tr),
                   ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: _scopeColumnWidth,
-            child: Text(
-              tr.resourcesPositionScopePlaceholder,
-              textAlign: TextAlign.end,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
             ),
           ),
           if (widget.onRemoved != null)

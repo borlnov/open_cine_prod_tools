@@ -11,8 +11,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_export_document.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
@@ -32,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
@@ -113,7 +116,8 @@ class _ShotListViewState extends State<_ShotListView> {
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
-        overflowEntries: _buildOverflowEntries(context, state),
+        onExportRequested: () => unawaited(_requestExport(context, state)),
+        overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isSequencePanelVisible,
         onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
           const OcptShotListSequencePanelToggledEvent(),
@@ -143,32 +147,71 @@ class _ShotListViewState extends State<_ShotListView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: the XLSX export (the same action the table's own
-  /// `Export XLSX` button dispatches, reachable from the toolbar too), the scenario coverage
-  /// export, and resetting the panel layout.
-  ///
-  /// Both export entries are disabled while the shot list holds no shot at all: there would be
-  /// nothing in the workbook but its header row, and nothing to annotate the screenplay with.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptShotListState state) =>
-      [
-        PopupMenuItem<void>(
-          enabled: state.totalShotCount > 0,
-          onTap: () => _requestXlsxExport(context, state),
-          child: Text(Tr.of(context).shotListExportXlsxMenuAction),
-        ),
-        PopupMenuItem<void>(
-          enabled: state.totalShotCount > 0,
-          // `onTap` fires as the menu closes, so the dialog this opens is shown from the mode's own
-          // context rather than from the entry's, which is already on its way out of the tree.
-          onTap: () => unawaited(_requestScenarioCoverageExport(context, state)),
-          child: Text(Tr.of(context).shotListExportCoverageMenuAction),
-        ),
-        PopupMenuItem<void>(
-          onTap: () =>
-              context.read<OcptShotListBloc>().add(const OcptShotListDockLayoutResetEvent()),
-          child: Text(Tr.of(context).shotListResetPanelLayoutAction),
-        ),
-      ];
+  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the two
+  /// exports moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
+  /// this is the only entry the shot list mode has left to offer. A `⋮` holding one entry is thin,
+  /// but honest: moving it somewhere else is a separate question this doesn't answer.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
+    PopupMenuItem<void>(
+      onTap: () => context.read<OcptShotListBloc>().add(const OcptShotListDockLayoutResetEvent()),
+      child: Text(Tr.of(context).shotListResetPanelLayoutAction),
+    ),
+  ];
+
+  /// Builds the two entries the toolbar's `Export` button offers: the shot list workbook and the
+  /// scenario coverage PDF, both unavailable while the shot list holds no shot at all — there would
+  /// be nothing in the workbook but its header row, and nothing to annotate the screenplay with.
+  List<OcptWorkspaceExportEntry<OcptShotListExportDocument>> _buildExportEntries(
+    BuildContext context,
+    OcptShotListState state,
+  ) {
+    final tr = Tr.of(context);
+    final unavailableReason = state.totalShotCount > 0 ? null : tr.shotListExportUnavailableReason;
+
+    return [
+      OcptWorkspaceExportEntry<OcptShotListExportDocument>(
+        value: OcptShotListExportDocument.xlsx,
+        title: tr.shotListExportXlsxTitle,
+        description: tr.shotListExportXlsxDescription,
+        formatLabel: "XLSX",
+        unavailableReason: unavailableReason,
+      ),
+      OcptWorkspaceExportEntry<OcptShotListExportDocument>(
+        value: OcptShotListExportDocument.coverage,
+        title: tr.shotListExportCoverageTitle,
+        description: tr.shotListExportCoverageDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
+      ),
+    ];
+  }
+
+  /// Opens the export panel, then dispatches the picked document's own request: the XLSX export
+  /// event directly (it opens no options dialog of its own, mirroring the table's own
+  /// `Export XLSX` button), or [_requestScenarioCoverageExport], which opens the scenario coverage
+  /// export options dialog exactly as it always has.
+  Future<void> _requestExport(BuildContext context, OcptShotListState state) async {
+    final tr = Tr.of(context);
+    final picked = await OcptWorkspaceExportDialog.show<OcptShotListExportDocument>(
+      context,
+      title: tr.shotListExportPanelTitle,
+      message: tr.shotListExportPanelMessage,
+      entries: _buildExportEntries(context, state),
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    switch (picked) {
+      case OcptShotListExportDocument.xlsx:
+        _requestXlsxExport(context, state);
+      case OcptShotListExportDocument.coverage:
+        await _requestScenarioCoverageExport(context, state);
+    }
+  }
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the workbook and the native save dialog carry.
@@ -374,6 +417,7 @@ class _ShotListViewState extends State<_ShotListView> {
               },
               visibleColumns: state.visibleColumns,
               selectedShotId: state.selectedShotId,
+              placementsByShotId: state.snapshot?.placementsByShotId ?? const {},
               onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
                 OcptShotListShotSelectedEvent(shotId: shotId),
               ),
@@ -447,6 +491,9 @@ class _ShotListViewState extends State<_ShotListView> {
         shot: selectedShot,
         sequenceDisplayNumber: sequenceDisplayNumber,
         sequenceHeading: sequenceHeading,
+        placements: selectedShot == null
+            ? const []
+            : state.snapshot?.placementsByShotId[selectedShot.id] ?? const [],
       ),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) => context.read<OcptShotListBloc>().add(

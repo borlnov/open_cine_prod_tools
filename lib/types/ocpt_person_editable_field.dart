@@ -49,6 +49,14 @@ enum OcptPersonField {
   /// Maps to `updatePerson`'s `minorNotes`.
   minorNotes,
 
+  /// Maps to `updatePerson`'s `maxDailyPresenceMinutes`.
+  ///
+  /// The one field of this enum that is typed but not stored as text, mirroring
+  /// `OcptElementField.cost`: the bloc reads what was typed as a plain number of minutes
+  /// (`ocptMaxDailyPresenceMinutesOf`) and writes null for anything it cannot, so a half-typed
+  /// figure never blocks the field and never lands as a maximum either. The sheet flags it instead.
+  maxDailyPresenceMinutes,
+
   /// Maps to `updatePerson`'s `accommodationNotes`.
   accommodationNotes,
 

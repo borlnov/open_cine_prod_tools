@@ -18,10 +18,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_t
 /// and the dock-resizing mechanics shared by every mode.
 ///
 /// The controls every mode ends its toolbar with are built here rather than handed in, so their
-/// order is the shell's guarantee and no mode can break it: the [modeLabel], the dock toggles
-/// ([onToggleLeftDock]/[onToggleRightDock]), the save control ([onSave]), then the project
-/// settings action ([onProjectSettingsRequested]) — each rendered only when the mode wired it, so
-/// a mode with no dock, nothing to save, or nothing to open there simply shows fewer of them.
+/// order is the shell's guarantee and no mode can break it: the [modeLabel], the `Export` control
+/// ([onExportRequested]), the dock toggles ([onToggleLeftDock]/[onToggleRightDock]), the save
+/// control ([onSave]), then the project settings action ([onProjectSettingsRequested]) — each
+/// rendered only when the mode wired it, so a mode with nothing to print, no dock, nothing to
+/// save, or nothing to open there simply shows fewer of them.
 ///
 /// This widget knows nothing about any specific mode (the screenplay editor included) beyond the
 /// moved [OcptWorkspaceDock]/[OcptWorkspaceDockDivider]/[OcptWorkspaceDockLayoutController]
@@ -59,6 +60,10 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// The active mode's name, shown muted in the toolbar between the mode's own [toolbarActions]
   /// and the chrome the shell builds itself, or null to show no label.
   final String? modeLabel;
+
+  /// Called when the toolbar's `Export` control is clicked, or null when the mode prints nothing —
+  /// no control is rendered at all then, rather than a disabled one.
+  final VoidCallback? onExportRequested;
 
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
@@ -131,6 +136,7 @@ class OcptWorkspaceShell extends StatelessWidget {
     required this.onBack,
     this.toolbarActions = const [],
     this.modeLabel,
+    this.onExportRequested,
     this.overflowEntries = const [],
     this.isLeftDockOpen = false,
     this.onToggleLeftDock,
@@ -161,6 +167,7 @@ class OcptWorkspaceShell extends StatelessWidget {
         onBack: onBack,
         actions: toolbarActions,
         modeLabel: modeLabel,
+        exportAction: _buildExportAction(context),
         dockToggles: _buildDockToggles(context),
         saveAction: _buildSaveAction(context),
         projectSettingsAction: _buildProjectSettingsAction(context),
@@ -171,6 +178,49 @@ class OcptWorkspaceShell extends StatelessWidget {
       if (statusBar != null) statusBar!,
     ],
   );
+
+  /// Builds the toolbar's `Export` control, or null when the mode withheld it — no control is
+  /// rendered at all then, rather than a disabled one.
+  ///
+  /// Unlike the chrome's icon-only controls, this one carries its own label: an export is not the
+  /// kind of gesture a bare glyph reads as, so it does not take [OcptWorkspaceToolbar
+  /// .chromeButtonStyle]'s square shape, and is sized to the toolbar band rather than to
+  /// [TextButton]'s own default touch target.
+  ///
+  /// That last part takes **two** overrides, and neither alone is enough.
+  /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins over
+  /// the [ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme` already
+  /// shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that actually
+  /// shows: a [TextButton] takes its density from the ambient theme, which on a desktop platform is
+  /// [VisualDensity.compact] and takes **8 px off** every minimum size, so this button drew 22 px
+  /// tall beside 30 px toggles — an [IconButton] never does, its own default density being standard
+  /// whatever the theme says. Beware that `flutter test` reports the Android density unless the test
+  /// overrides `debugDefaultTargetPlatform`, so this is a difference a widget test cannot see by
+  /// default.
+  Widget? _buildExportAction(BuildContext context) {
+    final onExportRequested = this.onExportRequested;
+    if (onExportRequested == null) {
+      return null;
+    }
+
+    final tr = Tr.of(context);
+
+    return Tooltip(
+      message: tr.workspaceExportTooltip,
+      child: TextButton.icon(
+        onPressed: onExportRequested,
+        icon: const Icon(Icons.file_upload_outlined, size: 16),
+        label: Text(tr.workspaceExportAction),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, ocptToolbarChromeButtonSize),
+          maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.standard,
+        ),
+      ),
+    );
+  }
 
   /// Builds the toolbar's dock toggles, left one first, skipping whichever side the mode gave no
   /// callback for.

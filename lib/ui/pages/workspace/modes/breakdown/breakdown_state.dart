@@ -34,6 +34,12 @@ enum OcptBreakdownIoNoticeKind {
 
   /// Exporting the breakdown sheets to a PDF file failed.
   sheetsExportFailed,
+
+  /// The breakdown workbook was successfully exported to an XLSX file.
+  xlsxExportSucceeded,
+
+  /// Exporting the breakdown workbook to an XLSX file failed.
+  xlsxExportFailed,
 }
 
 /// A transient notice, produced by `OcptBreakdownBloc`, reporting the outcome of an export, shown

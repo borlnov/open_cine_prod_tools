@@ -4,6 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -80,6 +82,11 @@ class OcptElement extends Equatable {
   /// This element's photo, or null while there is none. → `OcptAssetRef`
   final String? photoAssetId;
 
+  /// This element's photo, or null while it references none — or while the row [photoAssetId]
+  /// names has been tombstoned, which reads the same way and means the same thing. See
+  /// `OcptPerson.photo`, whose doc comment argues the shape both models share.
+  final OcptAssetRef? photo;
+
   /// The scenes this element is needed in, in the screenplay's own order.
   ///
   /// The `scene_elements` links seen from the element they point at, each carrying the quantity and
@@ -87,6 +94,14 @@ class OcptElement extends Equatable {
   /// left out rather than shown (see `OcptElementsService.loadElements`), exactly as a set's own
   /// scenes are.
   final List<OcptSceneElementLink> sceneLinks;
+
+  /// The roles wearing, carrying or made up with this element, in the cast's own order.
+  ///
+  /// The `role_elements` links seen from the element they point at, each carrying whatever that
+  /// role alone has to say about it. **This is also the list the role sheet's own card reads**: it
+  /// scans the catalogue for the links naming its role rather than carrying a copy of its own, so
+  /// the two sheets cannot disagree — see `OcptRoleElementLink`.
+  final List<OcptRoleElementLink> roleLinks;
 
   /// Class constructor
   const OcptElement({
@@ -109,13 +124,18 @@ class OcptElement extends Equatable {
     required this.purposeNotes,
     required this.notes,
     required this.photoAssetId,
+    required this.photo,
     required this.sceneLinks,
+    required this.roleLinks,
   });
 
-  /// Builds an [OcptElement] from its stored [row] and the [sceneLinks] pointing at it.
+  /// Builds an [OcptElement] from its stored [row], the [sceneLinks] and [roleLinks] pointing at it
+  /// and the [photo] its `photoAssetId` resolves to.
   factory OcptElement.fromRow({
     required OcptElementRow row,
     required List<OcptSceneElementLink> sceneLinks,
+    List<OcptRoleElementLink> roleLinks = const [],
+    OcptAssetRef? photo,
   }) => OcptElement(
     id: row.id,
     category: row.category,
@@ -136,7 +156,9 @@ class OcptElement extends Equatable {
     purposeNotes: row.purposeNotes,
     notes: row.notes,
     photoAssetId: row.photoAssetId,
+    photo: photo,
     sceneLinks: sceneLinks,
+    roleLinks: roleLinks,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -165,6 +187,8 @@ class OcptElement extends Equatable {
     purposeNotes,
     notes,
     photoAssetId,
+    photo,
     sceneLinks,
+    roleLinks,
   ];
 }

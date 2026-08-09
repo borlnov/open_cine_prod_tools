@@ -54,7 +54,9 @@ enum OcptShotListXlsxColumn {
   /// the reader's own locale rather than in the one the export ran under.
   difficulty,
 
-  /// The shooting day the shot is planned for.
+  /// The shot's placement in the schedule (`J3 · 2026-08-04`), read out of
+  /// `OcptShotListSnapshot.placementsByShotId` rather than stored on the shot: the schedule's
+  /// placement is the only truth, see `shots.shootingDay`'s own doc comment.
   shootingDay,
 
   /// The shooting status.

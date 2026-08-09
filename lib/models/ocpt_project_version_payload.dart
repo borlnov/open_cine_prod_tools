@@ -79,6 +79,9 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `scene_elements` rows of the project.
   final List<OcptSceneElementRow> sceneElements;
 
+  /// The `role_elements` rows of the project: what each role wears, carries and is made up with.
+  final List<OcptRoleElementRow> roleElements;
+
   /// The `assets` rows of the project: the binary asset references, never the bytes they point at
   /// (`docs/adr/0013-binary-assets-referenced-by-path.md`). Restoring a version restores the
   /// reference, and the file it names may now be dangling — a normal state, not an error.
@@ -91,6 +94,31 @@ class OcptProjectVersionPayload extends Equatable {
   /// The `scene_breakdowns` rows of the project: how far the breakdown pass has got, scene by
   /// scene, held by hand rather than deduced.
   final List<OcptSceneBreakdownRow> sceneBreakdowns;
+
+  /// The `shooting_days` rows of the project: one row per day of shooting, dated, ordered and
+  /// tombstoned exactly like every other synchronised table.
+  final List<OcptShootingDayRow> shootingDays;
+
+  /// The `shooting_slots` rows of the project: the convocation windows (*créneaux*) inside each
+  /// day.
+  final List<OcptShootingSlotRow> shootingSlots;
+
+  /// The `shooting_slot_crew` rows of the project: who holds which position during a slot.
+  final List<OcptShootingSlotCrewRow> shootingSlotCrew;
+
+  /// The `shooting_slot_cast` rows of the project: which role is convoked during a slot.
+  final List<OcptShootingSlotCastRow> shootingSlotCast;
+
+  /// The `shooting_day_blocks` rows of the project: a day's timetable, in order — the heart of the
+  /// schedule mode.
+  final List<OcptShootingDayBlockRow> shootingDayBlocks;
+
+  /// The `shooting_slot_guests` rows of the project: who attends a slot without being crew or cast.
+  final List<OcptShootingSlotGuestRow> shootingSlotGuests;
+
+  /// The `shooting_day_events` rows of the project: what a day does not control, at an absolute
+  /// hour.
+  final List<OcptShootingDayEventRow> shootingDayEvents;
 
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
@@ -123,6 +151,16 @@ class OcptProjectVersionPayload extends Equatable {
   /// truthful "there were none").
   final String? currencyCode;
 
+  /// The `project_info.minimumRestMinutes` of the project, or null.
+  ///
+  /// **Unlike [currencyCode], a null here is a truthful "this project had none recorded"** — the
+  /// column is nullable by design, not something every payload from a certain format on always
+  /// carries a real value for, so there is no format boundary to read the null against.
+  /// `OcptProjectVersionsService.restoreVersion` writes it back onto the working copy like any
+  /// other changed column, including when it is null, rather than leaving the live value alone —
+  /// the reading `people.maxDailyPresenceMinutes` gets on restore, not the currency's.
+  final int? minimumRestMinutes;
+
   /// Class constructor
   const OcptProjectVersionPayload({
     required this.screenplays,
@@ -141,13 +179,22 @@ class OcptProjectVersionPayload extends Equatable {
     required this.sceneSets,
     required this.elements,
     required this.sceneElements,
+    required this.roleElements,
     required this.assets,
     required this.breakdownTags,
     required this.sceneBreakdowns,
+    required this.shootingDays,
+    required this.shootingSlots,
+    required this.shootingSlotCrew,
+    required this.shootingSlotCast,
+    required this.shootingDayBlocks,
+    required this.shootingSlotGuests,
+    required this.shootingDayEvents,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
     required this.currencyCode,
+    required this.minimumRestMinutes,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -160,9 +207,17 @@ class OcptProjectVersionPayload extends Equatable {
       "personUnavailabilities: ${personUnavailabilities.length}, roles: ${roles.length}, "
       "locations: ${locations.length}, sets: ${sets.length}, sceneSets: ${sceneSets.length}, "
       "elements: ${elements.length}, sceneElements: ${sceneElements.length}, "
+      "roleElements: ${roleElements.length}, "
       "assets: ${assets.length}, breakdownTags: ${breakdownTags.length}, "
-      "sceneBreakdowns: ${sceneBreakdowns.length}, rowFieldVersions: ${rowFieldVersions.length}, "
-      "pageSetup: $pageSetup, currencyCode: $currencyCode)";
+      "sceneBreakdowns: ${sceneBreakdowns.length}, shootingDays: ${shootingDays.length}, "
+      "shootingSlots: ${shootingSlots.length}, shootingSlotCrew: ${shootingSlotCrew.length}, "
+      "shootingSlotCast: ${shootingSlotCast.length}, "
+      "shootingDayBlocks: ${shootingDayBlocks.length}, "
+      "shootingSlotGuests: ${shootingSlotGuests.length}, "
+      "shootingDayEvents: ${shootingDayEvents.length}, "
+      "rowFieldVersions: ${rowFieldVersions.length}, "
+      "pageSetup: $pageSetup, currencyCode: $currencyCode, "
+      "minimumRestMinutes: $minimumRestMinutes)";
 
   /// Object properties
   @override
@@ -183,12 +238,21 @@ class OcptProjectVersionPayload extends Equatable {
     sceneSets,
     elements,
     sceneElements,
+    roleElements,
     assets,
     breakdownTags,
     sceneBreakdowns,
+    shootingDays,
+    shootingSlots,
+    shootingSlotCrew,
+    shootingSlotCast,
+    shootingDayBlocks,
+    shootingSlotGuests,
+    shootingDayEvents,
     rowFieldVersions,
     pageSetup,
     settingsJson,
     currencyCode,
+    minimumRestMinutes,
   ];
 }

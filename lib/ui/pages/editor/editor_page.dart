@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -32,6 +36,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
@@ -180,6 +185,7 @@ class _EditorViewState extends State<_EditorView> {
               ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
               modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
+              onExportRequested: () => unawaited(_requestExport(context)),
               overflowEntries: _buildOverflowEntries(context, state),
               isLeftDockOpen: state.isScenePanelVisible,
               onToggleLeftDock: () => context.read<OcptEditorBloc>().add(
@@ -307,30 +313,19 @@ class _EditorViewState extends State<_EditorView> {
     ];
   }
 
-  /// Builds the screenplay's `⋮` overflow menu entries: export, export to PDF, import and
-  /// replace, the page-simulation and scene-numbers toggles, page setup, title page, and resetting
-  /// the panel layout.
+  /// Builds the screenplay's `⋮` overflow menu entries: import and replace, the page-simulation
+  /// and scene-numbers toggles, page setup, title page, and resetting the panel layout.
   ///
-  /// While a version is being previewed, the three entries that rewrite the screenplay — import and
-  /// replace, page setup, title page — are left out. The rest stays: the two exports write a file
-  /// of what is on screen (exporting a version is exactly what one would want a preview for), and
-  /// the page-simulation, scene-numbers and panel-layout entries are app-wide display preferences
-  /// that never touch a project.
+  /// The two exports moved to the toolbar's own `Export` button and its panel (see
+  /// [_requestExport]) — this menu keeps everything else. While a version is being previewed, the
+  /// three entries that rewrite the screenplay — import and replace, page setup, title page — are
+  /// left out. The rest stays: the page-simulation, scene-numbers and panel-layout entries are
+  /// app-wide display preferences that never touch a project.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptEditorState state) {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
 
     return [
-      PopupMenuItem<void>(
-        onTap: () => context.read<OcptEditorBloc>().add(
-          OcptEditorExportRequestedEvent(fileTypeLabel: tr.editorImportFileTypeLabel),
-        ),
-        child: Text(tr.editorExportAction),
-      ),
-      PopupMenuItem<void>(
-        onTap: () => _requestExportPdf(context),
-        child: Text(tr.editorExportPdfAction),
-      ),
       if (!isReadOnly)
         PopupMenuItem<void>(
           onTap: () => _requestImportAndReplace(context),
@@ -607,6 +602,58 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     bloc.add(const OcptEditorProjectSettingsChangedEvent());
+  }
+
+  /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
+  /// source and the typeset PDF. Both are always available — see `OcptEditorExportDocument`'s own
+  /// doc comment.
+  List<OcptWorkspaceExportEntry<OcptEditorExportDocument>> _buildExportEntries(
+    BuildContext context,
+  ) {
+    final tr = Tr.of(context);
+
+    return [
+      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
+        value: OcptEditorExportDocument.fountain,
+        title: tr.editorExportFountainTitle,
+        description: tr.editorExportFountainDescription,
+        formatLabel: ".fountain",
+      ),
+      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
+        value: OcptEditorExportDocument.pdf,
+        title: tr.editorExportPdfTitle,
+        description: tr.editorExportPdfDescription,
+        formatLabel: "PDF",
+      ),
+    ];
+  }
+
+  /// Opens the export panel, then dispatches the picked document's own request: the `.fountain`
+  /// export event directly (it opens no options dialog of its own), or [_requestExportPdf], which
+  /// opens the PDF export options dialog exactly as it always has.
+  Future<void> _requestExport(BuildContext context) async {
+    final tr = Tr.of(context);
+    final picked = await OcptWorkspaceExportDialog.show<OcptEditorExportDocument>(
+      context,
+      title: tr.editorExportPanelTitle,
+      message: tr.editorExportPanelMessage,
+      entries: _buildExportEntries(context),
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    switch (picked) {
+      case OcptEditorExportDocument.fountain:
+        context.read<OcptEditorBloc>().add(
+          OcptEditorExportRequestedEvent(fileTypeLabel: tr.editorImportFileTypeLabel),
+        );
+      case OcptEditorExportDocument.pdf:
+        await _requestExportPdf(context);
+    }
   }
 
   /// Shows the PDF export options dialog, then dispatches the export request if the user applied

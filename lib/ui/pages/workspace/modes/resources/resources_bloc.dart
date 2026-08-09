@@ -10,11 +10,13 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
@@ -22,12 +24,14 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -39,6 +43,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -107,6 +112,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read the physical elements catalogue.
   final OcptElementsService _elementsService;
 
+  /// The service used to drop a file reference, whatever owns it.
+  ///
+  /// Referencing a file is the owning service's — a person's photo is `OcptPeopleService`'s, since
+  /// which asset is *the* headshot is a fact about the person — but dropping one by its id is not:
+  /// this bloc's `⨯` control answers for a scouting photo exactly as it does for anything else, and
+  /// having it pick a service by the kind of the row would be inventing a distinction the row does
+  /// not make.
+  final OcptAssetsService _assetsService;
+
   /// The manager used to show the native "open" dialog when a photo or a document is referenced,
   /// or null to resolve it through [globalGetIt] the first time one actually is.
   ///
@@ -146,6 +160,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptRoleIndexService? roleIndexService,
     OcptLocationsService? locationsService,
     OcptElementsService? elementsService,
+    OcptAssetsService? assetsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     OcptResourcesRevealRequest? revealRequest,
@@ -166,6 +181,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
+       _assetsService =
+           assetsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).assetsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptResourcesState.init()) {
@@ -222,8 +240,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
     on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
     on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
+    on<OcptResourcesPersonPhotoPickRequestedEvent>(_onPersonPhotoPickRequested);
+    on<OcptResourcesPersonPhotoClearedEvent>(_onPersonPhotoCleared);
+    on<OcptResourcesImageRightsDocumentPickRequestedEvent>(_onImageRightsDocumentPickRequested);
+    on<OcptResourcesImageRightsDocumentClearedEvent>(_onImageRightsDocumentCleared);
+    on<OcptResourcesElementPhotoPickRequestedEvent>(_onElementPhotoPickRequested);
+    on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
     on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
     on<OcptResourcesPermitDocumentClearedEvent>(_onPermitDocumentCleared);
+    on<OcptResourcesAssetValidFromChangedEvent>(_onAssetValidFromChanged);
+    on<OcptResourcesAssetValidUntilChangedEvent>(_onAssetValidUntilChanged);
     on<OcptResourcesAssetRemovedEvent>(_onAssetRemoved);
     on<OcptResourcesLocationAvailabilityAddedEvent>(_onLocationAvailabilityAdded);
     on<OcptResourcesLocationAvailabilityUpdatedEvent>(_onLocationAvailabilityUpdated);
@@ -240,6 +266,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSceneAssignedToElementEvent>(_onSceneAssignedToElement);
     on<OcptResourcesSceneElementUpdatedEvent>(_onSceneElementUpdated);
     on<OcptResourcesSceneElementRemovedEvent>(_onSceneElementRemoved);
+    on<OcptResourcesElementLinkedToRoleEvent>(_onElementLinkedToRole);
+    on<OcptResourcesRoleElementUpdatedEvent>(_onRoleElementUpdated);
+    on<OcptResourcesRoleElementRemovedEvent>(_onRoleElementRemoved);
+    on<OcptResourcesRoleSheetOpenRequestedEvent>(_onRoleSheetOpenRequested);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptResourcesSearchToggledEvent>(_onSearchToggled);
     on<OcptResourcesSearchQueryChangedEvent>(_onSearchQueryChanged);
@@ -250,6 +280,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptResourcesWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptResourcesXlsxExportRequestedEvent>(_onXlsxExportRequested);
+    on<OcptResourcesContactListExportRequestedEvent>(_onContactListExportRequested);
     on<OcptResourcesIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
@@ -311,6 +342,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final previewedVersion = project.previewedVersion;
     final snapshot = await _loadSnapshot(project);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+    final pageSetup = await _loadPageSetup(project);
 
     final revealRequest = _pendingRevealRequest;
     _pendingRevealRequest = null;
@@ -324,6 +356,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           previewedVersionId: previewedVersion?.id,
           clearPreviewedVersionId: previewedVersion == null,
           snapshot: snapshot,
+          pageSetup: pageSetup,
           clearSelectedPersonId: true,
           clearSelectedRoleId: true,
           clearSelectedLocationId: true,
@@ -381,6 +414,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
             : tabbed,
     };
   }
+
+  /// Reads the page setup the contact list export dialog is pre-filled with: the open project's own
+  /// page format, paired with the app-wide margins preference, exactly as `OcptBreakdownBloc`'s own
+  /// `_loadPageSetup` pairs them.
+  ///
+  /// A version being previewed is laid out with the setup it was written against instead, which
+  /// travels on the open project model and is never written anywhere.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
 
   /// Reads the whole resources catalogue of [project], joining the four services' own reads into
   /// one [OcptResourcesSnapshot].
@@ -873,6 +919,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           database: database,
           personId: personId,
           minorNotes: Value(rawValue),
+        );
+      case OcptPersonField.maxDailyPresenceMinutes:
+        await _peopleService.updatePerson(
+          database: database,
+          personId: personId,
+          maxDailyPresenceMinutes: Value(ocptMaxDailyPresenceMinutesOf(rawValue)),
         );
       case OcptPersonField.accommodationNotes:
         await _peopleService.updatePerson(
@@ -1924,6 +1976,124 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
+  /// Asks for person `event.personId`'s photo through the native picker and references the file
+  /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
+  Future<void> _onPersonPhotoPickRequested(
+    OcptResourcesPersonPhotoPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptImageFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the photo of person ${event.personId}",
+      action: (project) async {
+        await _peopleService.setPersonPhoto(
+          database: project.database,
+          personId: event.personId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops person `event.personId`'s reference to their photo, written immediately.
+  Future<void> _onPersonPhotoCleared(
+    OcptResourcesPersonPhotoClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the photo of person ${event.personId}",
+    action: (project) =>
+        _peopleService.clearPersonPhoto(database: project.database, personId: event.personId),
+  );
+
+  /// Asks for person `event.personId`'s signed image rights release through the native picker and
+  /// references the file picked, written immediately. A cancelled dialog leaves the document
+  /// already referenced alone, and neither outcome touches `imageRightsStatus`.
+  Future<void> _onImageRightsDocumentPickRequested(
+    OcptResourcesImageRightsDocumentPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptDocumentFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the image rights document of person ${event.personId}",
+      action: (project) async {
+        await _peopleService.setImageRightsDocument(
+          database: project.database,
+          personId: event.personId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops person `event.personId`'s reference to their signed image rights release, written
+  /// immediately.
+  Future<void> _onImageRightsDocumentCleared(
+    OcptResourcesImageRightsDocumentClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the image rights document of person ${event.personId}",
+    action: (project) => _peopleService.clearImageRightsDocument(
+      database: project.database,
+      personId: event.personId,
+    ),
+  );
+
+  /// Asks for element `event.elementId`'s photo through the native picker and references the file
+  /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
+  Future<void> _onElementPhotoPickRequested(
+    OcptResourcesElementPhotoPickRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final path = await _pickFilePath(
+      allowedExtensions: ocptImageFileExtensions,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (path == null) {
+      return;
+    }
+
+    await _writeCatalogueChange(
+      emitter: emitter,
+      logContext: "reference the photo of element ${event.elementId}",
+      action: (project) async {
+        await _elementsService.setElementPhoto(
+          database: project.database,
+          elementId: event.elementId,
+          path: path,
+        );
+      },
+    );
+  }
+
+  /// Drops element `event.elementId`'s reference to its photo, written immediately.
+  Future<void> _onElementPhotoCleared(
+    OcptResourcesElementPhotoClearedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "drop the photo of element ${event.elementId}",
+    action: (project) =>
+        _elementsService.clearElementPhoto(database: project.database, elementId: event.elementId),
+  );
+
   /// Asks for the filming permit document through the native picker and references the file picked,
   /// written immediately. A cancelled dialog leaves the document already referenced alone.
   Future<void> _onPermitDocumentPickRequested(
@@ -1964,6 +2134,34 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     ),
   );
 
+  /// Sets asset `event.assetId`'s "valid from" date, written immediately.
+  Future<void> _onAssetValidFromChanged(
+    OcptResourcesAssetValidFromChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the valid-from date of asset ${event.assetId}",
+    action: (project) => _assetsService.updateAssetValidity(
+      database: project.database,
+      assetId: event.assetId,
+      validFrom: Value(event.date),
+    ),
+  );
+
+  /// Sets asset `event.assetId`'s "valid until" date, written immediately.
+  Future<void> _onAssetValidUntilChanged(
+    OcptResourcesAssetValidUntilChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the valid-until date of asset ${event.assetId}",
+    action: (project) => _assetsService.updateAssetValidity(
+      database: project.database,
+      assetId: event.assetId,
+      validUntil: Value(event.date),
+    ),
+  );
+
   /// Drops the asset reference `event.assetId`, written immediately.
   Future<void> _onAssetRemoved(
     OcptResourcesAssetRemovedEvent event,
@@ -1972,7 +2170,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter: emitter,
     logContext: "drop the asset reference ${event.assetId}",
     action: (project) =>
-        _locationsService.removeAsset(database: project.database, assetId: event.assetId),
+        _assetsService.removeAsset(database: project.database, assetId: event.assetId),
   );
 
   /// Adds an availability window to location `event.locationId`, written immediately.
@@ -2325,6 +2523,70 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         _elementsService.removeSceneElement(database: project.database, id: event.id),
   );
 
+  /// Links role `event.roleId` to element `event.elementId`, written immediately.
+  Future<void> _onElementLinkedToRole(
+    OcptResourcesElementLinkedToRoleEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "link element ${event.elementId} to role ${event.roleId}",
+    action: (project) async {
+      await _elementsService.addRoleElement(
+        database: project.database,
+        roleId: event.roleId,
+        elementId: event.elementId,
+      );
+    },
+  );
+
+  /// Updates the notes of the role ↔ element link `event.id`, written immediately.
+  Future<void> _onRoleElementUpdated(
+    OcptResourcesRoleElementUpdatedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "update the role ↔ element link ${event.id}",
+    action: (project) => _elementsService.updateRoleElement(
+      database: project.database,
+      id: event.id,
+      notes: event.notes,
+    ),
+  );
+
+  /// Removes the role ↔ element link `event.id`, written immediately.
+  Future<void> _onRoleElementRemoved(
+    OcptResourcesRoleElementRemovedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "remove the role ↔ element link ${event.id}",
+    action: (project) =>
+        _elementsService.removeRoleElement(database: project.database, id: event.id),
+  );
+
+  /// Switches to the roles tab and selects role `event.roleId`, the element sheet's
+  /// `Roles concerned` chips being the one way in.
+  ///
+  /// [_onPersonSheetOpenRequested]'s sibling, down to the reason it emits one state rather than
+  /// dispatching a tab change: `OcptResourcesTabSelectedEvent` clears the selection, so the sheet
+  /// this was asked to open would be deselected in the very same frame.
+  Future<void> _onRoleSheetOpenRequested(
+    OcptResourcesRoleSheetOpenRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    emitter(
+      state.copyWith(
+        activeTab: OcptResourcesTab.roles,
+        selectedRoleId: event.roleId,
+        clearSelectedPersonId: true,
+        clearSelectedLocationId: true,
+        clearSelectedElementId: true,
+      ),
+    );
+  }
+
   /// Toggles the left (list) dock's visibility.
   Future<void> _onLeftPanelToggled(
     OcptResourcesLeftPanelToggledEvent event,
@@ -2501,6 +2763,59 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       emitter(
         state.copyWith(
           ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Exports the crew and the cast to a standalone contact list PDF.
+  ///
+  /// Flushes every pending field edit first, exactly as [_onXlsxExportRequested] does, then hands
+  /// what the state now carries and [event]'s own options to
+  /// [OcptExportManager.exportContactList]. A cancelled save dialog is a silent no-op; a failure
+  /// raises the transient export-failed notice.
+  Future<void> _onContactListExportRequested(
+    OcptResourcesContactListExportRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    final project = _projectsManager.currentProject;
+    if (snapshot == null || project == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportContactList(
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptResourcesIoNotice(
+            kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the contact list of the project at "
+          "${project.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptResourcesIoNotice(
+            kind: OcptResourcesIoNoticeKind.contactListExportFailed,
+          ),
         ),
       );
     }

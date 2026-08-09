@@ -29,7 +29,8 @@ enum OcptShotListColumn {
   /// The sound notes of the shot.
   sound,
 
-  /// The shooting day the shot is planned for.
+  /// The shot's placement in the schedule (`J3 · Tue 4 Aug`), a read-out rather than a field the
+  /// table lets the user type into: see `shots.shootingDay`'s own doc comment.
   shootingDay,
 
   /// The shooting status of the shot.

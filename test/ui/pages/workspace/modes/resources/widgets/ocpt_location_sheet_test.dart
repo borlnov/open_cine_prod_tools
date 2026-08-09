@@ -20,6 +20,8 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dated_window_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
@@ -38,6 +40,7 @@ OcptPerson _person({required String id, String firstName = "", String lastName =
   colorIndex: 0,
   birthDate: null,
   minorNotes: "",
+  maxDailyPresenceMinutes: null,
   isTransportAutonomous: null,
   accommodationNotes: "",
   travelNotes: "",
@@ -54,7 +57,9 @@ OcptPerson _person({required String id, String firstName = "", String lastName =
   imageRightsStatus: OcptImageRightsStatus.notApplicable,
   imageRightsDate: null,
   imageRightsAssetId: null,
+  imageRightsDocument: null,
   photoAssetId: null,
+  photo: null,
   notes: "",
   positions: const [],
   skills: const [],
@@ -107,6 +112,8 @@ OcptAssetRef _asset({
   String id = "a1",
   OcptAssetKind kind = OcptAssetKind.locationPhoto,
   String path = "/nowhere/repérage.jpg",
+  DateTime? validFrom,
+  DateTime? validUntil,
 }) => OcptAssetRef(
   id: id,
   kind: kind,
@@ -116,6 +123,8 @@ OcptAssetRef _asset({
   personId: null,
   locationId: "l1",
   elementId: null,
+  validFrom: validFrom,
+  validUntil: validUntil,
 );
 
 /// Builds a minimal [OcptSet] for these tests.
@@ -185,6 +194,8 @@ void main() {
     VoidCallback? onPhotoAddRequested,
     ValueChanged<String>? onPhotoRemoved,
     VoidCallback? onPermitDocumentPickRequested,
+    ValueChanged<DateTime?>? onPermitDocumentValidFromChanged,
+    ValueChanged<DateTime?>? onPermitDocumentValidUntilChanged,
     ValueChanged<int>? onColorChanged,
     ValueChanged<OcptPermitStatus>? onPermitStatusChanged,
     ValueChanged<String?>? onContactChanged,
@@ -235,6 +246,8 @@ void main() {
               onPhotoRemoved: onPhotoRemoved ?? (assetId) {},
               onPermitDocumentPickRequested: onPermitDocumentPickRequested ?? () {},
               onPermitDocumentCleared: () {},
+              onPermitDocumentValidFromChanged: onPermitDocumentValidFromChanged ?? (date) {},
+              onPermitDocumentValidUntilChanged: onPermitDocumentValidUntilChanged ?? (date) {},
               onAvailabilityUpdated:
                   (
                     id, {
@@ -331,6 +344,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(openedPersonId, "p1");
+  });
+
+  testWidgets("the colour bar opens the palette and reports the swatch picked", (tester) async {
+    final colorPicks = <int>[];
+
+    await pumpSheet(tester, onColorChanged: colorPicks.add);
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    await tester.tap(find.byTooltip(tr.resourcesChangeColorTooltip));
+    await tester.pumpAndSettle();
+
+    // The popover used to throw on layout before showing a single swatch.
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OcptResourcesColorSwatches),
+        matching: find.byType(InkWell),
+      ).at(2),
+    );
+    await tester.pumpAndSettle();
+
+    expect(colorPicks, [2]);
   });
 
   testWidgets("clicking Delete this location reports it", (tester) async {
@@ -635,12 +671,101 @@ void main() {
     expect(pickCount, 1);
   });
 
+  testWidgets("the document's validity dates are absent with no document referenced", (
+    tester,
+  ) async {
+    await pumpSheet(tester);
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text(tr.resourcesLocationPermitValidFromLabel.toUpperCase()), findsNothing);
+    expect(find.text(tr.resourcesLocationPermitValidUntilLabel.toUpperCase()), findsNothing);
+    expect(find.text(tr.resourcesLocationPermitValidityHint), findsNothing);
+  });
+
+  testWidgets("the document's validity dates show once one is referenced", (tester) async {
+    await pumpSheet(
+      tester,
+      location: _location(
+        permitDocument: _asset(
+          id: "d1",
+          kind: OcptAssetKind.document,
+          path: "/nowhere/autorisation.pdf",
+          validFrom: DateTime(2026, 3, 5),
+          validUntil: DateTime(2026, 9, 30),
+        ),
+      ),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text(tr.resourcesLocationPermitValidFromLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.resourcesLocationPermitValidUntilLabel.toUpperCase()), findsOneWidget);
+    expect(find.text(tr.resourcesLocationPermitValidityHint), findsOneWidget);
+  });
+
+  testWidgets("picking the document's valid-from date reports it", (tester) async {
+    DateTime? picked;
+
+    await pumpSheet(
+      tester,
+      location: _location(
+        permitDocument: _asset(id: "d1", kind: OcptAssetKind.document, path: "/nowhere/a.pdf"),
+      ),
+      onPermitDocumentValidFromChanged: (date) => picked = date,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    final validFromField = find.ancestor(
+      of: find.text(tr.resourcesLocationPermitValidFromLabel.toUpperCase()),
+      matching: find.byType(OcptPersonSheetDateField),
+    );
+    await tester.tap(
+      find.descendant(of: validFromField, matching: find.byIcon(Icons.calendar_today_outlined)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("OK"));
+    await tester.pumpAndSettle();
+
+    expect(picked, isNotNull);
+  });
+
+  testWidgets("clearing the document's valid-until date reports null", (tester) async {
+    DateTime? picked = DateTime(2099);
+
+    await pumpSheet(
+      tester,
+      location: _location(
+        permitDocument: _asset(
+          id: "d1",
+          kind: OcptAssetKind.document,
+          path: "/nowhere/a.pdf",
+          validUntil: DateTime(2026, 9, 30),
+        ),
+      ),
+      onPermitDocumentValidUntilChanged: (date) => picked = date,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    final validUntilField = find.ancestor(
+      of: find.text(tr.resourcesLocationPermitValidUntilLabel.toUpperCase()),
+      matching: find.byType(OcptPersonSheetDateField),
+    );
+    await tester.tap(find.descendant(of: validUntilField, matching: find.byIcon(Icons.clear)));
+    await tester.pump();
+
+    expect(picked, isNull);
+  });
+
   testWidgets("the referenced files offer nothing to change when read-only", (tester) async {
     await pumpSheet(
       tester,
       location: _location(
         photos: [_asset()],
-        permitDocument: _asset(id: "d1", kind: OcptAssetKind.document, path: "/nowhere/a.pdf"),
+        permitDocument: _asset(
+          id: "d1",
+          kind: OcptAssetKind.document,
+          path: "/nowhere/a.pdf",
+          validFrom: DateTime(2026, 3, 5),
+        ),
       ),
       isReadOnly: true,
     );
@@ -652,6 +777,10 @@ void main() {
     expect(find.text(tr.resourcesReplaceDocumentAction), findsNothing);
     expect(find.byTooltip(tr.resourcesRemovePhotoTooltip), findsNothing);
     expect(find.byTooltip(tr.resourcesRemoveDocumentTooltip), findsNothing);
+    // The permit's own validity dates read out with no picker at all.
+    expect(find.text(tr.resourcesLocationPermitValidFromLabel.toUpperCase()), findsOneWidget);
+    expect(find.byIcon(Icons.calendar_today_outlined), findsNothing);
+    expect(find.byIcon(Icons.clear), findsNothing);
     // What only reads stays: the reference itself is still named.
     expect(find.text("a.pdf"), findsOneWidget);
   });

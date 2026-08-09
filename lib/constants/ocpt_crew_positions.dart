@@ -9,8 +9,8 @@ class OcptCrewPosition {
   /// A stable code identifying this position (e.g. `director`, `soundEngineer`).
   ///
   /// **Never localised, and never renamed once shipped**: `person_positions.positionId` stores it
-  /// verbatim, and the schedule mode will reference it per time slot once it exists — renaming an
-  /// id would silently detach every row already pointing at it from the position it used to mean.
+  /// verbatim, and the schedule mode references it per time slot — renaming an id would silently
+  /// detach every row already pointing at it from the position it used to mean.
   /// Retiring a position removes it from this list without reusing its id for something else;
   /// adding a new one only ever appends.
   final String id;
@@ -30,6 +30,15 @@ class OcptCrewPosition {
   const OcptCrewPosition({required this.id, required this.labelKey, required this.department});
 }
 
+/// The id of the `director` position, the one entry of [ocptCrewPositions] the app looks up by name.
+///
+/// A call sheet and a shooting plan both print `A film by <name>`, and that name is not a column of
+/// the project: it is read off whoever the address book already says holds this position. Naming the
+/// id here rather than typing the string at that call site is what keeps the lookup and the
+/// catalogue entry from drifting apart silently — a renamed id would otherwise print no director at
+/// all, with nothing failing to say so.
+const String ocptDirectorPositionId = 'director';
+
 /// The crew positions the reference call sheets print, covering direction, image, sound, the art
 /// department, hair/make-up/costume and production.
 ///
@@ -39,7 +48,7 @@ class OcptCrewPosition {
 const List<OcptCrewPosition> ocptCrewPositions = [
   // Direction
   OcptCrewPosition(
-    id: 'director',
+    id: ocptDirectorPositionId,
     labelKey: 'resourcesCrewPositionDirector',
     department: OcptCrewDepartment.direction,
   ),

@@ -68,6 +68,18 @@ class OcptProjectInfoTable extends Table {
   /// Free-form project settings, stored as a JSON object, or null if there are none yet.
   TextColumn get settingsJson => text().nullable()();
 
+  /// The minimum rest, in minutes, this production says it owes between two shooting days, or
+  /// null.
+  ///
+  /// **Nullable, and deliberately not defaulted to 660** (the eleven hours French law sets): this
+  /// app ships in more than one country, and a default would be it advancing a legal figure nobody
+  /// here validated — the whole reason the column exists at all rather than a constant the rest
+  /// alert compares every gap against. Null means "nobody has recorded a minimum", never "any rest
+  /// is enough", and the alert that reads it (a coming milestone) stays silent when it is null,
+  /// exactly as `people.maxDailyPresenceMinutes` and a location declaring no availability window
+  /// already do.
+  IntColumn get minimumRestMinutes => integer().nullable()();
+
   /// The project version the working copy descends from, or null in a project which never had one.
   ///
   /// This is what tells the `Versions` panel which of its cards is the current one: it is set when

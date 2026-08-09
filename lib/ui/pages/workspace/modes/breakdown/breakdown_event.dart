@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -721,6 +722,31 @@ class OcptBreakdownSheetsExportRequestedEvent extends OcptBreakdownEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Requests exporting the whole breakdown as a two-sheet XLSX workbook, dispatched by the mode's
+/// export panel — this document takes no options dialog, so this event goes straight from the
+/// panel's own card to the bloc.
+///
+/// [labels] is every string the workbook itself carries (see `ocptBreakdownXlsxLabelsOf`),
+/// resolved by the widget dispatching this since the bloc has no `BuildContext` of its own, and
+/// [fileTypeLabel] the label the native save dialog shows for the `.xlsx` type. Any pending field
+/// edit is flushed first, exactly as [OcptBreakdownSheetsExportRequestedEvent] already does, so an
+/// element renamed or a note typed seconds before the export lands in a cell rather than only on
+/// screen.
+class OcptBreakdownXlsxExportRequestedEvent extends OcptBreakdownEvent {
+  /// Every localized string the exported workbook holds.
+  final OcptBreakdownXlsxLabels labels;
+
+  /// The localized label of the `.xlsx` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptBreakdownXlsxExportRequestedEvent({required this.labels, required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, labels, fileTypeLabel];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

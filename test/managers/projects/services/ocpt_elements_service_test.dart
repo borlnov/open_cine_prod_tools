@@ -7,9 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
@@ -177,6 +179,68 @@ void main() {
 
       final tombstoned = await readElement(firstId);
       expect(tombstoned.isDeleted, isTrue);
+    });
+  });
+
+  group("referenced photo", () {
+    test("setElementPhoto references the file and points the element at it", () async {
+      final id = (await elementsService.createElement(
+        database: database,
+        name: "Vélo rouge",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.toBuy,
+      ))!;
+
+      await elementsService.setElementPhoto(
+        database: database,
+        elementId: id,
+        path: "/photos/velo.jpg",
+      );
+
+      final elements = await elementsService.loadElements(database: database);
+      expect(elements.single.photo?.path, "/photos/velo.jpg");
+      expect(elements.single.photo?.kind, OcptAssetKind.elementPhoto);
+    });
+
+    test("clearElementPhoto tombstones the row and nulls the column", () async {
+      final id = (await elementsService.createElement(
+        database: database,
+        name: "Vélo rouge",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.toBuy,
+      ))!;
+      await elementsService.setElementPhoto(
+        database: database,
+        elementId: id,
+        path: "/photos/velo.jpg",
+      );
+
+      await elementsService.clearElementPhoto(database: database, elementId: id);
+
+      final elements = await elementsService.loadElements(database: database);
+      expect(elements.single.photo, isNull);
+    });
+
+    test("deleting an element carries its photo away with it", () async {
+      final id = (await elementsService.createElement(
+        database: database,
+        name: "Vélo rouge",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.toBuy,
+      ))!;
+      final assetId = (await elementsService.setElementPhoto(
+        database: database,
+        elementId: id,
+        path: "/photos/velo.jpg",
+      ))!;
+
+      await elementsService.deleteElement(database: database, elementId: id);
+
+      // Nothing can reach that row any more, which is what makes it an orphan rather than history.
+      final asset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(assetId))).getSingle();
+      expect(asset.isDeleted, isTrue);
     });
   });
 
@@ -380,6 +444,216 @@ void main() {
       expect(element.sceneLinks, hasLength(1));
       expect(element.sceneLinks.single.quantity, "2");
       expect(element.sceneLinks.single.notes, "Sur la table");
+    });
+  });
+
+  group("role ↔ element links", () {
+    setUp(() async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "screenplay-1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-1",
+              screenplayId: "screenplay-1",
+              name: "CLARA",
+              kind: OcptRoleKind.speaking,
+              sortKey: const Value("a"),
+            ),
+          );
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-2",
+              screenplayId: "screenplay-1",
+              name: "LE CLIENT",
+              kind: OcptRoleKind.speaking,
+              sortKey: const Value("b"),
+            ),
+          );
+    });
+
+    test("addRoleElement links a role to an element, read back off the element", () async {
+      final elementId = await createElement("Manteau rouge");
+
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+        notes: "Taché à partir de la séquence 12",
+      );
+
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks, hasLength(1));
+      expect(element.roleLinks.single.roleId, "role-1");
+      expect(element.roleLinks.single.notes, "Taché à partir de la séquence 12");
+    });
+
+    test("the links come back in the cast's own sortKey order", () async {
+      final elementId = await createElement("Manteau rouge");
+
+      // Linked in the reverse of the cast's order, so the read cannot be passing by accident.
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-2",
+        elementId: elementId,
+      );
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      );
+
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks.map((link) => link.roleId), ["role-1", "role-2"]);
+    });
+
+    test("addRoleElement returns the existing link rather than a second one", () async {
+      final elementId = await createElement("Manteau rouge");
+      final linkId = (await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+        notes: "Taché",
+      ))!;
+
+      final again = await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      );
+
+      expect(again, linkId);
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks, hasLength(1));
+      expect(element.roleLinks.single.notes, "Taché");
+    });
+
+    test("addRoleElement revives a removed link, note included", () async {
+      final elementId = await createElement("Manteau rouge");
+      final linkId = (await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+        notes: "Taché",
+      ))!;
+      await elementsService.removeRoleElement(database: database, id: linkId);
+
+      final revivedId = await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      );
+
+      expect(revivedId, linkId);
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks.single.notes, "Taché");
+    });
+
+    test("updateRoleElement writes the note, and removeRoleElement tombstones", () async {
+      final elementId = await createElement("Manteau rouge");
+      final linkId = (await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      ))!;
+
+      await elementsService.updateRoleElement(
+        database: database,
+        id: linkId,
+        notes: "Doublure changée",
+      );
+      var element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks.single.notes, "Doublure changée");
+
+      await elementsService.removeRoleElement(database: database, id: linkId);
+      element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks, isEmpty);
+
+      // Tombstoned rather than deleted: the row is still there, flagged.
+      final rows = await database.select(database.ocptRoleElementsTable).get();
+      expect(rows.single.isDeleted, isTrue);
+    });
+
+    test("a link onto a tombstoned role is left out of the read", () async {
+      final elementId = await createElement("Manteau rouge");
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      );
+
+      await (database.update(
+        database.ocptRolesTable,
+      )..where((row) => row.id.equals("role-1"))).write(
+        const OcptRolesTableCompanion(isDeleted: Value(true)),
+      );
+
+      final element = (await elementsService.loadElements(database: database)).single;
+      expect(element.roleLinks, isEmpty);
+    });
+
+    test("deleteElement carries its role links off with it", () async {
+      final elementId = await createElement("Manteau rouge");
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: elementId,
+      );
+
+      await elementsService.deleteElement(database: database, elementId: elementId);
+
+      final rows = await database.select(database.ocptRoleElementsTable).get();
+      expect(rows.single.isDeleted, isTrue);
+    });
+
+    test("tombstoneRoleLinksOfRole takes every link of one role and no other", () async {
+      final wornId = await createElement("Manteau rouge");
+      final otherId = await createElement("Valise");
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-1",
+        elementId: wornId,
+      );
+      await elementsService.addRoleElement(
+        database: database,
+        roleId: "role-2",
+        elementId: otherId,
+      );
+
+      await elementsService.tombstoneRoleLinksOfRole(database: database, roleId: "role-1");
+
+      final elements = await elementsService.loadElements(database: database);
+      final byId = {for (final element in elements) element.id: element};
+      expect(byId[wornId]!.roleLinks, isEmpty);
+      expect(byId[otherId]!.roleLinks.single.roleId, "role-2");
+
+      // And the element itself is untouched: a coat outlives the character who wore it.
+      expect(byId[wornId]!.name, "Manteau rouge");
+    });
+
+    test("addRoleElement is refused on the database of a version being previewed", () async {
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+
+      final linkId = await elementsService.addRoleElement(
+        database: preview,
+        roleId: "role-1",
+        elementId: "element-1",
+      );
+
+      expect(linkId, isNull);
+      expect(await preview.select(preview.ocptRoleElementsTable).get(), isEmpty);
+
+      await preview.close();
     });
   });
 }

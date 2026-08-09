@@ -14,6 +14,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -58,10 +60,11 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// only one such file can be open at a time, exposed through [currentProject] and
 /// [currentProjectStream]. Everything specific to reading/writing a screenplay's text, its scene
 /// index, its shot list, its named versions, its resources catalogue (the address book, the cast,
-/// locations and elements) or the breakdown pass tagging that catalogue against the screenplay is
-/// delegated to [screenplayService], [sceneIndexService], [shotListService], [shotCoverageService],
-/// [projectVersionsService], [peopleService], [roleIndexService], [locationsService],
-/// [elementsService] and [breakdownService], the ten services this manager owns and wires together
+/// locations and elements), the breakdown pass tagging that catalogue against the screenplay, or
+/// the shooting schedule is delegated to [screenplayService], [sceneIndexService],
+/// [shotListService], [shotCoverageService], [projectVersionsService], [peopleService],
+/// [roleIndexService], [locationsService], [elementsService], [breakdownService],
+/// [scheduleService] and [assetsService], the twelve services this manager owns and wires together
 /// (RFL18): this manager itself is only responsible for the lifecycle of the project file
 /// (create/open/close), for keeping the properties manager's recent-projects list in sync, and for
 /// handing those services the facts only it holds — the open project's database, the app version,
@@ -120,6 +123,18 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// track a scene's own breakdown status.
   final OcptBreakdownService breakdownService;
 
+  /// The service used for CRUD over the shooting schedule: its days, their convocation windows and
+  /// convocations, and each day's timetable.
+  final OcptScheduleService scheduleService;
+
+  /// The service used to mint and tombstone the `assets` rows referencing a file — a headshot, a
+  /// scouting photo, an element's photo, a signed release.
+  ///
+  /// Held here as well as inside the three services that compose it, because the resources mode
+  /// drops a reference without caring what owns it: the row is the same row whoever it belongs to,
+  /// so "remove this file" has one answer rather than three.
+  final OcptAssetsService assetsService;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy = false;
 
@@ -169,10 +184,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       roleIndexService = const OcptRoleIndexService(),
       locationsService = const OcptLocationsService(),
       elementsService = const OcptElementsService(),
+      assetsService = const OcptAssetsService(),
       breakdownService = const OcptBreakdownService(
         elementsService: OcptElementsService(),
         locationsService: OcptLocationsService(),
-      );
+      ),
+      scheduleService = const OcptScheduleService();
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
@@ -411,6 +428,46 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.database
         .update(project.database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(currencyCode: Value(code)));
+  }
+
+  /// Loads the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
+  /// null.
+  ///
+  /// The two reasons for a null answer are indistinguishable here, exactly as
+  /// [loadCurrentProjectCurrencyCode]'s would be if that column were nullable: no project is open,
+  /// or one is and nobody has recorded a minimum for it — the column's own truthful "nobody has
+  /// said" (`OcptProjectInfoTable.minimumRestMinutes`).
+  Future<int?> loadCurrentProjectMinimumRestMinutes() async {
+    final project = currentProject;
+    if (project == null) {
+      return null;
+    }
+
+    final info = await project.database
+        .select(project.database.ocptProjectInfoTable)
+        .getSingleOrNull();
+    return info?.minimumRestMinutes;
+  }
+
+  /// Updates the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table,
+  /// or clears it when [minutes] is null — a production that decides it no longer wants to record
+  /// one is as real a gesture as setting it. Does nothing if no project is currently open.
+  ///
+  /// Modelled on [saveCurrentProjectCurrencyCode], with one difference the column's own nullability
+  /// forces: [minutes] is written whichever it is, including null, rather than only ever holding a
+  /// value the way a page format or a currency always does.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> saveCurrentProjectMinimumRestMinutes(int? minutes) async {
+    final project = currentProject;
+    if (project == null ||
+        project.database.refusesUserWrite("saveCurrentProjectMinimumRestMinutes")) {
+      return;
+    }
+
+    await project.database
+        .update(project.database.ocptProjectInfoTable)
+        .write(OcptProjectInfoTableCompanion(minimumRestMinutes: Value(minutes)));
   }
 
   /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.

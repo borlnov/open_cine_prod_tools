@@ -6,9 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_entries_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scenes_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -156,3 +159,65 @@ String ocptBreakdownSetLabel(OcptSet set, Map<String, String> locationNameById) 
 
   return locationName == null || locationName.isEmpty ? set.name : "${set.name} · $locationName";
 }
+
+/// The header label of the exported breakdown workbook's `Scenes` sheet's column [column].
+String ocptBreakdownScenesXlsxColumnLabel(Tr tr, OcptBreakdownScenesXlsxColumn column) =>
+    switch (column) {
+      OcptBreakdownScenesXlsxColumn.number => tr.breakdownXlsxScenesColumnNumber,
+      OcptBreakdownScenesXlsxColumn.heading => tr.breakdownXlsxScenesColumnHeading,
+      OcptBreakdownScenesXlsxColumn.status => tr.breakdownXlsxScenesColumnStatus,
+      OcptBreakdownScenesXlsxColumn.length => tr.breakdownXlsxScenesColumnLength,
+      OcptBreakdownScenesXlsxColumn.sets => tr.breakdownXlsxScenesColumnSets,
+      OcptBreakdownScenesXlsxColumn.neededCount => tr.breakdownXlsxScenesColumnNeededCount,
+      OcptBreakdownScenesXlsxColumn.notes => tr.breakdownXlsxScenesColumnNotes,
+    };
+
+/// The header label of the exported breakdown workbook's `Breakdown` sheet's column [column].
+String ocptBreakdownEntriesXlsxColumnLabel(Tr tr, OcptBreakdownEntriesXlsxColumn column) =>
+    switch (column) {
+      OcptBreakdownEntriesXlsxColumn.sceneNumber => tr.breakdownXlsxEntriesColumnSceneNumber,
+      OcptBreakdownEntriesXlsxColumn.sceneHeading => tr.breakdownXlsxEntriesColumnSceneHeading,
+      OcptBreakdownEntriesXlsxColumn.group => tr.breakdownXlsxEntriesColumnGroup,
+      OcptBreakdownEntriesXlsxColumn.code => tr.breakdownXlsxEntriesColumnCode,
+      OcptBreakdownEntriesXlsxColumn.name => tr.breakdownXlsxEntriesColumnName,
+      OcptBreakdownEntriesXlsxColumn.status => tr.breakdownXlsxEntriesColumnStatus,
+      OcptBreakdownEntriesXlsxColumn.owner => tr.breakdownXlsxEntriesColumnOwner,
+      OcptBreakdownEntriesXlsxColumn.quantity => tr.breakdownXlsxEntriesColumnQuantity,
+      OcptBreakdownEntriesXlsxColumn.notes => tr.breakdownXlsxEntriesColumnNotes,
+      OcptBreakdownEntriesXlsxColumn.passages => tr.breakdownXlsxEntriesColumnPassages,
+    };
+
+/// Builds every localized string the exported breakdown workbook carries.
+///
+/// The sibling of [ocptBreakdownSheetsLabelsOf] for the second export the breakdown mode offers,
+/// and the same single bridge between the UI's `Tr` and `OcptBreakdownXlsxExportService`, which
+/// runs in the manager layer and has no `BuildContext` of its own. Every enum label map reuses the
+/// very `ocpt…Label` helpers this file already exposes to the mode's own widgets — the status and
+/// category maps are exactly [ocptBreakdownSheetsLabelsOf]'s own — so a workbook cell can never
+/// name a status or a category differently from the screen or from the breakdown sheets PDF.
+OcptBreakdownXlsxLabels ocptBreakdownXlsxLabelsOf(Tr tr) => OcptBreakdownXlsxLabels(
+  fileNameSuffix: tr.breakdownExportXlsxFileNameSuffix,
+  scenesSheetName: tr.breakdownExportXlsxScenesSheetName,
+  entriesSheetName: tr.breakdownExportXlsxEntriesSheetName,
+  scenesColumnHeaders: {
+    for (final column in OcptBreakdownScenesXlsxColumn.values)
+      column: ocptBreakdownScenesXlsxColumnLabel(tr, column),
+  },
+  entriesColumnHeaders: {
+    for (final column in OcptBreakdownEntriesXlsxColumn.values)
+      column: ocptBreakdownEntriesXlsxColumnLabel(tr, column),
+  },
+  sceneStatusLabels: {
+    for (final status in OcptBreakdownSceneStatus.values)
+      status: ocptBreakdownSceneStatusLabel(tr, status),
+  },
+  elementStatusLabels: {
+    for (final status in OcptElementStatus.values) status: ocptElementStatusLabel(tr, status),
+  },
+  elementCategoryLabels: {
+    for (final category in OcptElementCategory.values)
+      category: ocptElementCategoryLabel(tr, category),
+  },
+  roleGroupLabel: tr.breakdownTargetKindRoleLabel,
+  setGroupLabel: tr.breakdownTargetKindSetLabel,
+);

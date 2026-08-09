@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -34,8 +35,16 @@ import 'package:uuid/uuid.dart';
 /// the legacy one `shots` keeps for ADR 0007's sake: this table is new in the same schema version
 /// that stops needing it.
 class OcptRoleIndexService {
+  /// The service owning the `role_elements` links, held so [deleteRole] can carry them off with
+  /// the role it removes.
+  ///
+  /// Held rather than reached for, the way `OcptBreakdownService` holds this very service's
+  /// siblings. The edge only ever runs this way: `OcptElementsService` knows nothing of roles
+  /// beyond the ids its links carry, so nothing here can close a circle.
+  final OcptElementsService elementsService;
+
   /// Class constructor
-  const OcptRoleIndexService();
+  const OcptRoleIndexService({this.elementsService = const OcptElementsService()});
 
   /// Reconciles the `roles` table of [screenplayId] in [database] against the speaking characters
   /// of [document] (`speakingCharactersOf(document.blocks)`, already normalised, deduplicated and
@@ -206,8 +215,13 @@ class OcptRoleIndexService {
     );
   }
 
-  /// Tombstones role [roleId]: the removed-role banner's "delete" action, and the plain way to
-  /// remove a hand-added role.
+  /// Tombstones role [roleId] and the `role_elements` links naming it: the removed-role banner's
+  /// "delete" action, and the plain way to remove a hand-added role.
+  ///
+  /// The links go with it for the reason `OcptElementsService.deleteElement` takes its own along:
+  /// nothing can reach a link whose role is gone any more, which makes it an orphan rather than
+  /// history. The **element** it pointed at is of course untouched — a coat outlives the character
+  /// who wore it, and it is still in the catalogue.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -217,11 +231,15 @@ class OcptRoleIndexService {
       return;
     }
 
-    await (database.update(
-      database.ocptRolesTable,
-    )..where((table) => table.id.equals(roleId))).write(
-      const OcptRolesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      await elementsService.tombstoneRoleLinksOfRole(database: database, roleId: roleId);
+
+      await (database.update(
+        database.ocptRolesTable,
+      )..where((table) => table.id.equals(roleId))).write(
+        const OcptRolesTableCompanion(isDeleted: Value(true)),
+      );
+    });
   }
 
   /// The removed-role banner's "keep it" action: role [roleId] stops being owned by [reconcile]

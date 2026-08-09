@@ -115,8 +115,12 @@ class OcptShotsTable extends Table {
   /// The estimated duration of the shot, in milliseconds, rendered `m:ss`; null until estimated.
   IntColumn get estimatedDurationMs => integer().nullable()();
 
-  /// The shooting day this shot is planned for, free text until the schedule mode exists to
-  /// reference it properly; null until planned.
+  /// **Blank and unwritten from schema version 11 on**, kept only because
+  /// `docs/adr/0010-sync-ready-data-model-prerequisites.md` does not allow dropping a synchronised
+  /// column — exactly the way `position` is kept past the version that stopped ordering by it. A
+  /// shot's shooting day is read out of `shooting_day_blocks` now: the schedule's placement is the
+  /// only truth, and the v11 migration erases whatever free text this column held, since dates are
+  /// mandatory there and a `J3` typed by hand carries none to migrate from.
   TextColumn get shootingDay => text().nullable()();
 
   /// The number of takes planned for this shot; null until planned.

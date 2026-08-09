@@ -12,8 +12,10 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -36,6 +38,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -152,7 +155,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelBreakdown,
-        overflowEntries: _buildOverflowEntries(context, state),
+        onExportRequested: () => unawaited(_requestExport(context, state)),
+        overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
             context.read<OcptBreakdownBloc>().add(const OcptBreakdownLeftPanelToggledEvent()),
@@ -180,29 +184,73 @@ class _BreakdownViewState extends State<_BreakdownView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: the breakdown sheets export and resetting the
-  /// panel layout, mirroring `OcptShotListMode._buildOverflowEntries`.
-  ///
-  /// The export entry is disabled while the screenplay holds no scene at all — there would be
-  /// nothing to print a sheet for — and is offered whatever the mode is showing, a previewed
-  /// version included: an export only ever reads.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(
-    BuildContext context,
-    OcptBreakdownState state,
-  ) => [
-    PopupMenuItem<void>(
-      enabled: state.scenes.isNotEmpty,
-      // `onTap` fires as the menu closes, so the dialog this opens is shown from the mode's own
-      // context rather than from the entry's, which is already on its way out of the tree.
-      onTap: () => unawaited(_requestSheetsExport(context, state)),
-      child: Text(Tr.of(context).breakdownExportSheetsMenuAction),
-    ),
+  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the
+  /// breakdown sheets export moved to the toolbar's own `Export` button and its panel (see
+  /// [_requestExport]), and this is the only entry the breakdown mode has left to offer. A `⋮`
+  /// holding one entry is thin, but honest: moving it somewhere else is a separate question this
+  /// doesn't answer.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
     PopupMenuItem<void>(
       onTap: () =>
           context.read<OcptBreakdownBloc>().add(const OcptBreakdownDockLayoutResetEvent()),
       child: Text(Tr.of(context).breakdownResetPanelLayoutAction),
     ),
   ];
+
+  /// Builds the two entries the toolbar's `Export` button offers: the breakdown sheets and the
+  /// breakdown workbook, both unavailable while the screenplay holds no scene at all — there would
+  /// be nothing to print a sheet for, or a row to write into a workbook.
+  List<OcptWorkspaceExportEntry<OcptBreakdownExportDocument>> _buildExportEntries(
+    BuildContext context,
+    OcptBreakdownState state,
+  ) {
+    final tr = Tr.of(context);
+    final unavailableReason = state.scenes.isEmpty ? tr.breakdownExportUnavailableReason : null;
+
+    return [
+      OcptWorkspaceExportEntry<OcptBreakdownExportDocument>(
+        value: OcptBreakdownExportDocument.sheets,
+        title: tr.breakdownExportSheetsTitle,
+        description: tr.breakdownExportSheetsDescription,
+        formatLabel: "PDF",
+        unavailableReason: unavailableReason,
+      ),
+      OcptWorkspaceExportEntry<OcptBreakdownExportDocument>(
+        value: OcptBreakdownExportDocument.xlsx,
+        title: tr.breakdownExportXlsxTitle,
+        description: tr.breakdownExportXlsxDescription,
+        formatLabel: "XLSX",
+        unavailableReason: unavailableReason,
+      ),
+    ];
+  }
+
+  /// Opens the export panel, then dispatches the picked document's own export request: the
+  /// breakdown sheets go through [_requestSheetsExport], which opens their own options dialog
+  /// first, while the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no
+  /// options dialog at all.
+  Future<void> _requestExport(BuildContext context, OcptBreakdownState state) async {
+    final tr = Tr.of(context);
+    final picked = await OcptWorkspaceExportDialog.show<OcptBreakdownExportDocument>(
+      context,
+      title: tr.breakdownExportPanelTitle,
+      message: tr.breakdownExportPanelMessage,
+      entries: _buildExportEntries(context, state),
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    switch (picked) {
+      case OcptBreakdownExportDocument.sheets:
+        await _requestSheetsExport(context, state);
+      case OcptBreakdownExportDocument.xlsx:
+        _requestXlsxExport(context);
+    }
+  }
 
   /// Shows the breakdown sheets export options dialog, then dispatches the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized
@@ -223,6 +271,20 @@ class _BreakdownViewState extends State<_BreakdownView> {
         options: options,
         labels: ocptBreakdownSheetsLabelsOf(tr, state.scenes),
         fileTypeLabel: tr.breakdownExportSheetsFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Dispatches the breakdown workbook export request straight away — resolving here every
+  /// localized string the exported document and the native save dialog carry, exactly as
+  /// [_requestSheetsExport] does, but with no options dialog first: the workbook takes none.
+  void _requestXlsxExport(BuildContext context) {
+    final bloc = context.read<OcptBreakdownBloc>();
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptBreakdownXlsxExportRequestedEvent(
+        labels: ocptBreakdownXlsxLabelsOf(tr),
+        fileTypeLabel: tr.breakdownExportXlsxFileTypeLabel,
       ),
     );
   }
@@ -774,6 +836,10 @@ class _BreakdownViewState extends State<_BreakdownView> {
         notice.path ?? "",
       ),
       OcptBreakdownIoNoticeKind.sheetsExportFailed => tr.breakdownExportSheetsError,
+      OcptBreakdownIoNoticeKind.xlsxExportSucceeded => tr.breakdownExportXlsxSuccessMessage(
+        notice.path ?? "",
+      ),
+      OcptBreakdownIoNoticeKind.xlsxExportFailed => tr.breakdownExportXlsxError,
     };
   }
 }

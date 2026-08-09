@@ -8,6 +8,7 @@ import 'package:excel_community/excel_community.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 
@@ -58,7 +59,12 @@ class OcptShotListXlsxExportService {
     _appendHeaderRow(sheet, labels);
 
     for (final sequence in snapshot.sequences) {
-      _appendSequenceRows(sheet: sheet, sequence: sequence, labels: labels);
+      _appendSequenceRows(
+        sheet: sheet,
+        sequence: sequence,
+        labels: labels,
+        placementsByShotId: snapshot.placementsByShotId,
+      );
     }
 
     final bytes = excel.encode();
@@ -104,11 +110,13 @@ class OcptShotListXlsxExportService {
     }
   }
 
-  /// Appends [sequence]'s separator row, then one row per shot it holds.
+  /// Appends [sequence]'s separator row, then one row per shot it holds. [placementsByShotId] is
+  /// [OcptShotListSnapshot.placementsByShotId], keyed by shot id onto every block that places it.
   void _appendSequenceRows({
     required Sheet sheet,
     required OcptShotSequence sequence,
     required OcptShotListXlsxLabels labels,
+    required Map<String, List<OcptShotPlacement>> placementsByShotId,
   }) {
     final separatorRowIndex = sheet.maxRows;
     sheet.appendRow([TextCellValue(labels.titleOfSequence(sequence.id))]);
@@ -119,12 +127,20 @@ class OcptShotListXlsxExportService {
     for (final shot in sequence.shots) {
       sheet.appendRow([
         for (final column in OcptShotListXlsxColumn.values)
-          _cellOf(column: column, shot: shot, sequence: sequence, labels: labels),
+          _cellOf(
+            column: column,
+            shot: shot,
+            sequence: sequence,
+            labels: labels,
+            placements: placementsByShotId[shot.id] ?? const [],
+          ),
       ]);
     }
   }
 
-  /// The cell [column] holds for [shot], or null to leave it empty.
+  /// The cell [column] holds for [shot], or null to leave it empty. [placements] is [shot]'s own
+  /// entry of [OcptShotListSnapshot.placementsByShotId], empty while it hasn't been placed on any
+  /// day yet.
   ///
   /// A field the user hasn't filled in is written as an empty cell rather than as the em dash the
   /// table shows in its place: a spreadsheet's own way of saying "nothing here" is a blank cell,
@@ -134,6 +150,7 @@ class OcptShotListXlsxExportService {
     required OcptShot shot,
     required OcptShotSequence sequence,
     required OcptShotListXlsxLabels labels,
+    required List<OcptShotPlacement> placements,
   }) => switch (column) {
     OcptShotListXlsxColumn.shot => TextCellValue(shot.code),
     OcptShotListXlsxColumn.characters => _textOrNull(shot.characters.join(", ")),
@@ -151,7 +168,7 @@ class OcptShotListXlsxExportService {
     },
     OcptShotListXlsxColumn.sound => _textOrNull(shot.sound),
     OcptShotListXlsxColumn.difficulty => DoubleCellValue(shot.averageDifficulty),
-    OcptShotListXlsxColumn.shootingDay => _textOrNull(shot.shootingDay),
+    OcptShotListXlsxColumn.shootingDay => _placementCellOf(placements, labels: labels),
     OcptShotListXlsxColumn.status => _textOrNull(labels.labelOf(shot.status)),
     OcptShotListXlsxColumn.notes => _textOrNull(shot.notes),
     OcptShotListXlsxColumn.locationNotes => _textOrNull(shot.locationNotes),
@@ -188,4 +205,46 @@ class OcptShotListXlsxExportService {
   /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
+
+  /// The cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller with
+  /// no `BuildContext`: `D3 · 2026-08-04` (the day's printed rank then its calendar date) when every
+  /// placement lands on the same day, the day tags alone joined with `, ` (`D3, D5`) when they don't,
+  /// or null for a shot the schedule carries no placement for at all — exactly like any other field
+  /// the user hasn't filled in ([_textOrNull]). Days are deduplicated by `OcptShotPlacement.dayId`
+  /// and kept in ascending `dayNumber` order, exactly as `ocptShotPlacementLabel` does.
+  ///
+  /// The day tag's own letter is [labels]' own `dayTagPrefix`, resolved by the caller from `Tr`
+  /// since this service has none of its own — the paperwork a crew reads follows the app's
+  /// language, letter included. The date half stays locale-free: a spreadsheet cell with no `Tr` to
+  /// format a date with is exactly the situation `yyyy-MM-dd` already serves elsewhere in this
+  /// codebase (`OcptResourcesXlsxExportService._isoDate`), inlined here rather than imported since
+  /// the service layer this class sits in must not depend on the UI layer that helper lives in.
+  CellValue? _placementCellOf(List<OcptShotPlacement> placements, {required OcptShotListXlsxLabels labels}) {
+    if (placements.isEmpty) {
+      return null;
+    }
+
+    final distinctDays = <String, OcptShotPlacement>{};
+    for (final placement in placements) {
+      distinctDays[placement.dayId] = placement;
+    }
+    final orderedDays = distinctDays.values.toList()
+      ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+
+    if (orderedDays.length == 1) {
+      final placement = orderedDays.single;
+      return TextCellValue(
+        "${labels.dayTagPrefix}${placement.dayNumber} · ${_isoDate(placement.date)}",
+      );
+    }
+
+    return TextCellValue(
+      orderedDays.map((placement) => "${labels.dayTagPrefix}${placement.dayNumber}").join(", "),
+    );
+  }
+
+  /// [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
+  String _isoDate(DateTime date) =>
+      "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-"
+      "${date.day.toString().padLeft(2, '0')}";
 }

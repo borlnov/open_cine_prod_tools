@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 
@@ -97,7 +98,8 @@ class OcptLocationSheetHeader extends StatelessWidget {
 }
 
 /// The header's colour bar, doubling as the [MenuAnchor] popover picking a new colour when
-/// [onColorChanged] is not null — built exactly as `OcptPersonSheetAvatar`'s own popover is.
+/// [onColorChanged] is not null — over the shared [OcptResourcesColorSwatches] grid, which is what
+/// `OcptPersonSheetAvatar`'s own popover holds too.
 class _OcptLocationColorBar extends StatelessWidget {
   /// The palette index the location currently holds.
   final int colorIndex;
@@ -110,7 +112,6 @@ class _OcptLocationColorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tr = Tr.of(context);
     final onColorChanged = this.onColorChanged;
 
@@ -129,35 +130,7 @@ class _OcptLocationColorBar extends StatelessWidget {
 
     return MenuAnchor(
       menuChildren: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (var index = 0; index < ocptCoveragePalette.length; index++)
-                MenuItemButton(
-                  style: MenuItemButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(28, 28),
-                    shape: const CircleBorder(),
-                  ),
-                  onPressed: () => onColorChanged(index),
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: Color(ocptCoveragePalette[index]),
-                      shape: BoxShape.circle,
-                      border: index == colorIndex
-                          ? Border.all(color: theme.colorScheme.onSurface, width: 2)
-                          : null,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+        OcptResourcesColorSwatches(currentColorIndex: colorIndex, onSelected: onColorChanged),
       ],
       builder: (context, controller, child) => Tooltip(
         message: tr.resourcesChangeColorTooltip,

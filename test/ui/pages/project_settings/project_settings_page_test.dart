@@ -19,7 +19,9 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -115,6 +117,7 @@ void main() {
 
     expect(find.byType(OcptProjectSettingsCurrencySection), findsOneWidget);
     expect(find.byType(OcptProjectSettingsPageFormatSection), findsOneWidget);
+    expect(find.byType(OcptProjectSettingsMinimumRestSection), findsOneWidget);
 
     final context = tester.element(find.byType(OcptProjectSettingsView));
     final tr = Tr.of(context);
@@ -167,6 +170,60 @@ void main() {
     expect(bloc.state.pageFormat, otherFormat);
     expect(bloc.state.hasChanged, isTrue);
     expect(await projectsManager.loadCurrentProjectPageFormat(), otherFormat);
+  });
+
+  testWidgets("shows the project's currently recorded minimum rest", (tester) async {
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
+
+    await pumpView(tester);
+
+    expect(find.text(ocptFormatMinuteDuration(90)), findsOneWidget);
+  });
+
+  testWidgets("typing a minimum rest writes it to the project and marks the state changed", (
+    tester,
+  ) async {
+    final bloc = await pumpView(tester);
+
+    await tester.enterText(find.byType(TextField), "660");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.minimumRestMinutes, 660);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 660);
+    // Read back as a formatted duration, not the raw digits just typed.
+    expect(find.text(ocptFormatMinuteDuration(660)), findsOneWidget);
+  });
+
+  testWidgets("clearing the minimum rest writes null to the project", (tester) async {
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(660);
+    final bloc = await pumpView(tester);
+
+    await tester.enterText(find.byType(TextField), "");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.minimumRestMinutes, isNull);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), isNull);
+  });
+
+  testWidgets("a zero or negative minimum rest is rejected and nothing is written", (
+    tester,
+  ) async {
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
+    final bloc = await pumpView(tester);
+
+    await tester.enterText(find.byType(TextField), "-5");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(bloc.state.minimumRestMinutes, 90);
+    expect(bloc.state.hasChanged, isFalse);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 90);
+    // The field reverts to the last committed value's own formatted reading.
+    expect(find.text(ocptFormatMinuteDuration(90)), findsOneWidget);
   });
 
   testWidgets("tapping the back arrow pops with whether anything changed", (tester) async {

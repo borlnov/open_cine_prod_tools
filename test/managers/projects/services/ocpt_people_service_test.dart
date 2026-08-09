@@ -5,8 +5,10 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 
@@ -37,6 +39,13 @@ void main() {
   /// The person row [id], tombstoned or not.
   Future<OcptPersonRow> readPerson(String id) =>
       (database.select(database.ocptPeopleTable)..where((row) => row.id.equals(id))).getSingle();
+
+  /// The asset row [id], tombstoned or not.
+  Future<OcptAssetRow> readAsset(String id) =>
+      (database.select(database.ocptAssetsTable)..where((row) => row.id.equals(id))).getSingle();
+
+  /// Whether the asset row [id] has been tombstoned.
+  Future<bool> readAssetIsDeleted(String id) async => (await readAsset(id)).isDeleted;
 
   group("people CRUD and ordering", () {
     test("createPerson appends at the end and loadPeople reads it back", () async {
@@ -123,6 +132,7 @@ void main() {
         colorIndex: const Value(3),
         birthDate: Value(DateTime(2000)),
         minorNotes: const Value("n/a"),
+        maxDailyPresenceMinutes: const Value(480),
         isTransportAutonomous: const Value(true),
         accommodationNotes: const Value("Chez Camille"),
         travelNotes: const Value("Carte de fidélité 1234"),
@@ -160,6 +170,7 @@ void main() {
       expect(row.country, "");
       expect(row.birthDate, isNull);
       expect(row.minorNotes, "");
+      expect(row.maxDailyPresenceMinutes, isNull);
       expect(row.isTransportAutonomous, isNull);
       expect(row.accommodationNotes, "");
       expect(row.travelNotes, "");
@@ -242,6 +253,146 @@ void main() {
         database.ocptLocalErasuresTable,
       )..where((row) => row.personId.equals(id))).get();
       expect(erasures, hasLength(1));
+    });
+  });
+
+
+  group("referenced files", () {
+    test("setPersonPhoto references the file and points the person at it", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+
+      final assetId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/clara.jpg",
+      ))!;
+
+      expect((await readPerson(id)).photoAssetId, assetId);
+
+      final people = await peopleService.loadPeople(database: database);
+      expect(people.single.photo?.path, "/photos/clara.jpg");
+      expect(people.single.photo?.kind, OcptAssetKind.personPhoto);
+    });
+
+    test("referencing a second photo tombstones the first, an orphan being no history", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+
+      final firstId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/first.jpg",
+      ))!;
+      final secondId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/second.jpg",
+      ))!;
+
+      expect(await readAssetIsDeleted(firstId), isTrue);
+      expect(await readAssetIsDeleted(secondId), isFalse);
+
+      final people = await peopleService.loadPeople(database: database);
+      expect(people.single.photo?.path, "/photos/second.jpg");
+    });
+
+    test("clearPersonPhoto tombstones the row and nulls the column", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+      final assetId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/clara.jpg",
+      ))!;
+
+      await peopleService.clearPersonPhoto(database: database, personId: id);
+
+      expect(await readAssetIsDeleted(assetId), isTrue);
+      expect((await readPerson(id)).photoAssetId, isNull);
+      expect((await peopleService.loadPeople(database: database)).single.photo, isNull);
+    });
+
+    test("setImageRightsDocument never touches the status a release stands at", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+      await peopleService.updatePerson(
+        database: database,
+        personId: id,
+        imageRightsStatus: const Value(OcptImageRightsStatus.toGenerate),
+      );
+
+      await peopleService.setImageRightsDocument(
+        database: database,
+        personId: id,
+        path: "/documents/cession.pdf",
+      );
+
+      // Filing a draft is not the same claim as filing a signature: the badge stays the only thing
+      // that says where the release stands.
+      final row = await readPerson(id);
+      expect(row.imageRightsStatus, OcptImageRightsStatus.toGenerate);
+      expect(row.imageRightsAssetId, isNotNull);
+
+      final people = await peopleService.loadPeople(database: database);
+      expect(people.single.imageRightsDocument?.path, "/documents/cession.pdf");
+    });
+
+    test("a person's photo and release are two references, not one", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+
+      await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/clara.jpg",
+      );
+      await peopleService.setImageRightsDocument(
+        database: database,
+        personId: id,
+        path: "/documents/cession.pdf",
+      );
+
+      // Referencing one must not tombstone the other: they are different columns of one row, and
+      // the replacement rule is per column.
+      final person = (await peopleService.loadPeople(database: database)).single;
+      expect(person.photo?.path, "/photos/clara.jpg");
+      expect(person.imageRightsDocument?.path, "/documents/cession.pdf");
+    });
+
+    test("a photo whose row was tombstoned behind its column resolves to null", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+      final assetId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/clara.jpg",
+      ))!;
+
+      await const OcptAssetsService().removeAsset(database: database, assetId: assetId);
+
+      // The column still names the row; the row is gone, and "no photo" is what that means.
+      expect((await readPerson(id)).photoAssetId, assetId);
+      expect((await peopleService.loadPeople(database: database)).single.photo, isNull);
+    });
+
+    test("deletePerson blanks the path of every file the person referenced", () async {
+      final id = (await peopleService.createPerson(database: database))!;
+      final photoId = (await peopleService.setPersonPhoto(
+        database: database,
+        personId: id,
+        path: "/photos/clara-martin.jpg",
+      ))!;
+      final documentId = (await peopleService.setImageRightsDocument(
+        database: database,
+        personId: id,
+        path: "/documents/cession-clara-martin.pdf",
+      ))!;
+
+      await peopleService.deletePerson(database: database, personId: id);
+
+      // A tombstone alone would leave the person's name, and where their photograph sits, written
+      // in the file — an erasure is about what the `.ocpt` stops holding.
+      for (final assetId in [photoId, documentId]) {
+        final row = await readAsset(assetId);
+        expect(row.isDeleted, isTrue);
+        expect(row.path, isEmpty);
+        expect(row.label, isEmpty);
+      }
     });
   });
 

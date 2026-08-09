@@ -39,13 +39,22 @@ void main() {
     sceneSets: const [],
     elements: const [],
     sceneElements: const [],
+    roleElements: const [],
     assets: const [],
     breakdownTags: const [],
     sceneBreakdowns: const [],
+    shootingDays: const [],
+    shootingSlots: const [],
+    shootingSlotCrew: const [],
+    shootingSlotCast: const [],
+    shootingDayBlocks: const [],
+    shootingSlotGuests: const [],
+    shootingDayEvents: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup.standard(),
     settingsJson: null,
     currencyCode: null,
+    minimumRestMinutes: null,
   );
 
   /// A screenplay row holding [fountainText], live unless [isDeleted].

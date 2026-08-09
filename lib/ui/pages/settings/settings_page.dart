@@ -9,17 +9,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_about_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_appearance_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_calendar_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_language_section.dart';
 
 /// The maximum width of the settings page's content, keeping the section cards readable on a
 /// wide desktop window.
 const _maxContentWidth = 720.0;
 
-/// Displays the application settings: appearance (brightness), language, and an about section.
+/// Displays the application settings: appearance (brightness), language, calendar, and an about
+/// section.
 class SettingsPage extends StatelessWidget {
   /// Creates the settings page.
   const SettingsPage({super.key});
@@ -65,6 +69,12 @@ class OcptSettingsView extends StatelessWidget {
                   onLocaleChanged: (locale) => _onLocaleChanged(context, locale),
                 ),
                 const SizedBox(height: 16),
+                OcptSettingsCalendarSection(
+                  firstWeekday: state.firstWeekday,
+                  onFirstWeekdayChanged: (firstWeekday) =>
+                      _onFirstWeekdayChanged(context, firstWeekday),
+                ),
+                const SizedBox(height: 16),
                 OcptSettingsAboutSection(appVersion: state.appVersion),
               ],
             ),
@@ -82,5 +92,12 @@ class OcptSettingsView extends StatelessWidget {
   /// Dispatches the event that updates the app-wide wanted locale.
   void _onLocaleChanged(BuildContext context, Locale? locale) {
     context.read<OcptSettingsBloc>().add(NewLocaleWantedByUserEvent(wantedLocale: locale));
+  }
+
+  /// Dispatches the event that stores the app-wide day a week starts on.
+  void _onFirstWeekdayChanged(BuildContext context, OcptFirstWeekday firstWeekday) {
+    context.read<OcptSettingsBloc>().add(
+      OcptSettingsFirstWeekdayChangedEvent(firstWeekday: firstWeekday),
+    );
   }
 }

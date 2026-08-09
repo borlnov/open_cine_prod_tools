@@ -13,8 +13,10 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 /// per-day time slots exactly as the mock-up does, and it is the only place that can express what
 /// a production routinely needs — one person on sound in the morning and another in the afternoon,
 /// or one person holding two functions over the same slot (script supervisor *and* general
-/// assistant). A single free-text scope on this row could say neither, so the person sheet shows
-/// the scope as a read-only column until the schedule mode fills it.
+/// assistant). A single free-text scope on this row could say neither. The schedule mode reads
+/// these rows to pre-fill the position of a fresh crew convocation
+/// (`lib/utils/ocpt_crew_position_prefill.dart`) — a join, not a rule: nothing keeps the two
+/// tables in step afterward.
 @DataClassName('OcptPersonPositionRow')
 class OcptPersonPositionsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptPersonPositionsTable}

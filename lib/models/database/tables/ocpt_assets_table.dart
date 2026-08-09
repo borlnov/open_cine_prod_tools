@@ -84,6 +84,23 @@ class OcptAssetsTable extends Table {
   /// The element this asset belongs to, or null.
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
+  /// The date this asset's document becomes valid, or null. Meaningful for a document with a
+  /// validity window — a filming permit runs from a date to a date — and meaningless for a photo,
+  /// which carries it as null forever.
+  ///
+  /// **Nullable, and deliberately so: null means "nobody has recorded one", never "valid from the
+  /// start of time".** This is about the *document* the asset stands for, never about the
+  /// referenced file on disk — the app never opens it (`docs/adr/0013-binary-assets-referenced-by-
+  /// path.md`) and has no way to read a date off it. The permit alert that reads this pair (a
+  /// coming milestone) fires only when both a window is recorded and the day being checked falls
+  /// outside it, and stays silent otherwise: the same reading `people.maxDailyPresenceMinutes` and
+  /// a location declaring no availability window already have — absence of data is not a claim
+  /// that nothing is required.
+  DateTimeColumn get validFrom => dateTime().nullable()();
+
+  /// The date this asset's document stops being valid, or null. See [validFrom].
+  DateTimeColumn get validUntil => dateTime().nullable()();
+
   /// {@macro drift.Table.primaryKey}
   @override
   Set<Column> get primaryKey => {id};

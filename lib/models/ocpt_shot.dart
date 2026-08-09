@@ -59,7 +59,10 @@ class OcptShot extends Equatable {
   /// The estimated duration of the shot, in milliseconds, rendered `m:ss`; null until estimated.
   final int? estimatedDurationMs;
 
-  /// The shooting day this shot is planned for, free text; null until planned.
+  /// **Blank and unread from schema version 11 on** — see `shots.shootingDay`'s own doc comment
+  /// (`OcptShotsTable`). The shot's placement in the schedule is read out of
+  /// `OcptShotListSnapshot.placementsByShotId` instead; this field is kept only because the column
+  /// behind it can't be dropped.
   final String? shootingDay;
 
   /// The number of takes planned for this shot; null until planned.

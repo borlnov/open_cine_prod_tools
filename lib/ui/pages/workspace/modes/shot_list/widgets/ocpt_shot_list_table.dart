@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
@@ -131,8 +132,15 @@ enum OcptShotListTableColumn {
     };
   }
 
-  /// The text this column shows for [shot], whose sequence has the heading [sequenceHeading].
-  String valueFor(BuildContext context, OcptShot shot, String sequenceHeading) => switch (this) {
+  /// The text this column shows for [shot], whose sequence has the heading [sequenceHeading] and
+  /// whose placement(s) in the schedule are [placements] (empty while it hasn't been placed on any
+  /// day yet).
+  String valueFor(
+    BuildContext context,
+    OcptShot shot,
+    String sequenceHeading,
+    List<OcptShotPlacement> placements,
+  ) => switch (this) {
     OcptShotListTableColumn.shot => shot.code,
     OcptShotListTableColumn.characters => shot.characters.isEmpty
         ? ocptShotListEmptyValue
@@ -147,7 +155,7 @@ enum OcptShotListTableColumn {
     OcptShotListTableColumn.takes => shot.plannedTakes?.toString() ?? ocptShotListEmptyValue,
     OcptShotListTableColumn.sound => ocptShotFieldOrDash(shot.sound),
     OcptShotListTableColumn.difficulty => ocptFormatShotDifficulty(context, shot.averageDifficulty),
-    OcptShotListTableColumn.shootingDay => ocptShotFieldOrDash(shot.shootingDay),
+    OcptShotListTableColumn.shootingDay => ocptShotPlacementLabel(context, placements),
     OcptShotListTableColumn.status => ocptShotStatusLabel(Tr.of(context), shot.status),
   };
 }
@@ -179,6 +187,10 @@ class OcptShotListTable extends StatelessWidget {
   /// The id of the selected shot, or null if none is.
   final String? selectedShotId;
 
+  /// Where each of [shots] sits in the schedule, keyed by shot id onto every block that places it —
+  /// see `OcptShotListSnapshot.placementsByShotId`. A shot with no entry here reads as unplaced.
+  final Map<String, List<OcptShotPlacement>> placementsByShotId;
+
   /// Called with a shot's id when its row is clicked.
   final ValueChanged<String> onShotSelected;
 
@@ -189,6 +201,7 @@ class OcptShotListTable extends StatelessWidget {
     required this.sequenceHeading,
     required this.visibleColumns,
     required this.selectedShotId,
+    required this.placementsByShotId,
     required this.onShotSelected,
   });
 
@@ -234,6 +247,7 @@ class OcptShotListTable extends StatelessWidget {
                       columns: columns,
                       widths: widths,
                       isSelected: shots[index].id == selectedShotId,
+                      placements: placementsByShotId[shots[index].id] ?? const [],
                       onTap: () => onShotSelected(shots[index].id),
                     ),
                   ),
@@ -338,6 +352,9 @@ class OcptShotListRow extends StatelessWidget {
   /// Whether this shot is the selected one.
   final bool isSelected;
 
+  /// [shot]'s own placement(s) in the schedule, empty while it hasn't been placed on any day yet.
+  final List<OcptShotPlacement> placements;
+
   /// Called when the row is clicked.
   final VoidCallback onTap;
 
@@ -349,6 +366,7 @@ class OcptShotListRow extends StatelessWidget {
     required this.columns,
     required this.widths,
     required this.isSelected,
+    required this.placements,
     required this.onTap,
   });
 
@@ -397,7 +415,7 @@ class OcptShotListRow extends StatelessWidget {
                   child: SizedBox(
                     width: widths[index],
                     child: Text(
-                      columns[index].valueFor(context, shot, sequenceHeading),
+                      columns[index].valueFor(context, shot, sequenceHeading, placements),
                       maxLines: columns[index].wraps ? null : 1,
                       overflow: columns[index].wraps
                           ? TextOverflow.clip

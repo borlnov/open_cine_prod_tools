@@ -143,6 +143,31 @@ void main() {
     expect(find.text("Screenplay editor"), findsOneWidget);
   });
 
+  testWidgets("the export action is rendered only when one is given", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextButton), findsNothing);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          exportAction: const Text("export"),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("export"), findsOneWidget);
+  });
+
   testWidgets("the trailing controls follow the mode actions in the shell's own order", (
     tester,
   ) async {
@@ -161,6 +186,7 @@ void main() {
           onBack: () {},
           actions: const [Text("action")],
           modeLabel: "Screenplay editor",
+          exportAction: const Text("export"),
           dockToggles: const [Text("left dock"), Text("right dock")],
           saveAction: const Text("save"),
           overflowEntries: const [PopupMenuItem<void>(child: Text("Entry"))],
@@ -173,7 +199,8 @@ void main() {
     double leftOf(Finder finder) => tester.getTopLeft(finder).dx;
 
     expect(leftOf(find.text("action")), lessThan(leftOf(find.text("Screenplay editor"))));
-    expect(leftOf(find.text("Screenplay editor")), lessThan(leftOf(find.text("left dock"))));
+    expect(leftOf(find.text("Screenplay editor")), lessThan(leftOf(find.text("export"))));
+    expect(leftOf(find.text("export")), lessThan(leftOf(find.text("left dock"))));
     expect(leftOf(find.text("left dock")), lessThan(leftOf(find.text("right dock"))));
     expect(leftOf(find.text("right dock")), lessThan(leftOf(find.text("save"))));
     expect(leftOf(find.text("save")), lessThan(leftOf(find.byType(PopupMenuButton<void>))));

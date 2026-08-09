@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
@@ -14,7 +16,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_t
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve (the shell's own
 /// toolbar reads them for its tooltips), and a wide test surface so the docks row has room for
 /// both docks plus the centre floor.
-Widget _wrapInApp(Widget child) => MaterialApp(
+///
+/// [theme] is the application's own only where a test measures the chrome: the stock theme's
+/// [Divider] is 16 px tall, which alone takes the toolbar's own band down from 44 px to 28, so a
+/// height read under it is not the height the app draws.
+Widget _wrapInApp(Widget child, {ThemeData? theme}) => MaterialApp(
+  theme: theme,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -225,6 +232,95 @@ void main() {
   });
 
   testWidgets(
+    "the export action is rendered only when the mode wired it, sits before the dock toggles, and "
+    "clicking it fires the callback",
+    (tester) async {
+      var requestCount = 0;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      expect(find.byTooltip(tr.workspaceExportTooltip), findsNothing);
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onExportRequested: () => requestCount++,
+            isLeftDockOpen: true,
+            onToggleLeftDock: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final action = find.byTooltip(tr.workspaceExportTooltip);
+      expect(action, findsOneWidget);
+
+      final actionLeft = tester.getTopLeft(action).dx;
+      final toggleLeft = tester.getTopLeft(find.byTooltip(tr.workspaceToggleLeftDockTooltip)).dx;
+      expect(actionLeft, lessThan(toggleLeft));
+
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+
+      expect(requestCount, 1);
+    },
+  );
+
+  testWidgets(
+    "the export action is exactly as tall as a dock toggle on a desktop platform",
+    (tester) async {
+      // The density a [TextButton] takes from the ambient theme is the platform's own, and on a
+      // desktop one it is [VisualDensity.compact] — which takes 8 px off every minimum size. An
+      // [IconButton] never follows it, so without this override the test would report the Android
+      // density and the two controls would agree at a height neither has on Linux or Windows.
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            onExportRequested: () {},
+            isLeftDockOpen: true,
+            onToggleLeftDock: () {},
+          ),
+          theme: ocptTheme.lightThemeData,
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Put back before anything can fail: the framework's own invariant check runs before this
+      // test's tear-downs would, and a leaked foundation override fails the *next* test instead.
+      debugDefaultTargetPlatformOverride = null;
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      final exportHeight = tester.getSize(find.byTooltip(tr.workspaceExportTooltip)).height;
+      final toggleHeight = tester
+          .getSize(find.byTooltip(tr.workspaceToggleLeftDockTooltip))
+          .height;
+
+      expect(exportHeight, ocptToolbarChromeButtonSize);
+      expect(exportHeight, toggleHeight);
+    },
+  );
+
+  testWidgets(
     "the project settings action is rendered only when the mode wired it, and clicking it fires "
     "the callback",
     (tester) async {
@@ -284,6 +380,7 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
     expect(find.text("Production budget"), findsOneWidget);
+    expect(find.byTooltip(tr.workspaceExportTooltip), findsNothing);
     expect(find.byTooltip(tr.workspaceToggleLeftDockTooltip), findsNothing);
     expect(find.byTooltip(tr.workspaceToggleRightDockTooltip), findsNothing);
     expect(find.byTooltip(tr.editorSaveTooltip), findsNothing);

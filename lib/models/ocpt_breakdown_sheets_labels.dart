@@ -8,6 +8,27 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
+/// The label of the group a target of [kind] falling under [category] is printed in: the
+/// category's own label for an element, [roleGroupLabel] or [setGroupLabel] otherwise.
+///
+/// The single switch every legend-keyed label reads off (`ocptBreakdownLegendKeyLabel` makes the
+/// same one on screen) and the one every export that groups targets by category shares:
+/// [OcptBreakdownSheetsLabels.groupLabelOf] and `OcptBreakdownXlsxLabels`'s own method both
+/// delegate to it, so a target's group can never read differently between the printed sheets and
+/// the workbook. A category with no label at all prints blank rather than throwing on a document
+/// being written out.
+String ocptBreakdownGroupLabelOf({
+  required OcptBreakdownTargetKind kind,
+  OcptElementCategory? category,
+  required Map<OcptElementCategory, String> elementCategoryLabels,
+  required String roleGroupLabel,
+  required String setGroupLabel,
+}) => switch (kind) {
+  OcptBreakdownTargetKind.element => category == null ? "" : elementCategoryLabels[category] ?? "",
+  OcptBreakdownTargetKind.role => roleGroupLabel,
+  OcptBreakdownTargetKind.set => setGroupLabel,
+};
+
 /// Every localized string the exported breakdown sheets carry, resolved by the caller.
 ///
 /// `OcptBreakdownSheetsPdfService` runs in the manager layer, where there is no `BuildContext` and
@@ -118,16 +139,17 @@ class OcptBreakdownSheetsLabels extends Equatable {
   /// The label of the group a target of [kind] falling under [category] is printed in: the
   /// category's own label for an element, [roleGroupLabel] or [setGroupLabel] otherwise.
   ///
-  /// The exact switch `ocptBreakdownLegendKeyLabel` makes on screen, kept here rather than in the
-  /// service so the two never drift: a category with no label at all prints blank rather than
-  /// throwing on a document being written out.
+  /// Delegates to [ocptBreakdownGroupLabelOf], the single switch every export that groups targets
+  /// by category reads off — `OcptBreakdownXlsxLabels`'s own method delegates to it too, so a
+  /// target's group can never read differently between the two exported documents.
   String groupLabelOf({required OcptBreakdownTargetKind kind, OcptElementCategory? category}) =>
-      switch (kind) {
-        OcptBreakdownTargetKind.element =>
-          category == null ? "" : elementCategoryLabels[category] ?? "",
-        OcptBreakdownTargetKind.role => roleGroupLabel,
-        OcptBreakdownTargetKind.set => setGroupLabel,
-      };
+      ocptBreakdownGroupLabelOf(
+        kind: kind,
+        category: category,
+        elementCategoryLabels: elementCategoryLabels,
+        roleGroupLabel: roleGroupLabel,
+        setGroupLabel: setGroupLabel,
+      );
 
   /// Object string representation, useful for debugging and logging.
   @override

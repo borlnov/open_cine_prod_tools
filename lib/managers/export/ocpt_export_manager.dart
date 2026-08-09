@@ -11,22 +11,43 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_sheets_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_breakdown_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_contact_list_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_day_out_of_days_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_one_line_schedule_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
+import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:path/path.dart' as p;
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
 class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
@@ -40,14 +61,21 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
 /// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
-/// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, and its
-/// breakdown as one printed sheet per scene.
+/// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
+/// breakdown as one printed sheet per scene and as a third, two-sheet XLSX workbook, and its
+/// shooting schedule as call sheets — the general one and the named ones, both per day —, as one
+/// whole-shoot shooting plan (a PDF and, reading the very same
+/// [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet XLSX workbook), as its
+/// cast's own *Day Out of Days*, as the compact one-line schedule, as a day's own sides booklet,
+/// and its crew and cast as a standalone, whole-production contact list.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
-/// [scenarioCoveragePdfService], [resourcesXlsxExportService] and [breakdownSheetsPdfService], and
-/// the "save as" location picking to [saveLocationService] — the seven services this manager owns
-/// (RFL18).
+/// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
+/// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
+/// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService],
+/// [sidesPdfService] and [contactListPdfService], and the "save as"/"choose a folder" location
+/// picking to [saveLocationService] — the fifteen services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -70,7 +98,32 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service rendering the breakdown sheets PDF.
   final OcptBreakdownSheetsPdfService breakdownSheetsPdfService;
 
-  /// The service showing the native "save as" dialog and resolving the chosen path.
+  /// The service building the breakdown's two-sheet XLSX workbook.
+  final OcptBreakdownXlsxExportService breakdownXlsxExportService;
+
+  /// The service rendering the general and the named call sheets PDFs.
+  final OcptCallSheetPdfService callSheetPdfService;
+
+  /// The service rendering the whole-shoot shooting plan PDF.
+  final OcptShootingPlanPdfService shootingPlanPdfService;
+
+  /// The service building the whole-shoot shooting plan's own five-sheet XLSX workbook.
+  final OcptShootingPlanXlsxExportService shootingPlanXlsxExportService;
+
+  /// The service rendering the cast's own *Day Out of Days* PDF.
+  final OcptDayOutOfDaysPdfService dayOutOfDaysPdfService;
+
+  /// The service rendering the one-line schedule PDF.
+  final OcptOneLineSchedulePdfService oneLineSchedulePdfService;
+
+  /// The service rendering a day's own sides booklet PDF.
+  final OcptSidesPdfService sidesPdfService;
+
+  /// The service rendering the whole-production contact list PDF.
+  final OcptContactListPdfService contactListPdfService;
+
+  /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
+  /// path.
   final OcptSaveLocationService saveLocationService;
 
   /// Class constructor
@@ -97,6 +150,14 @@ class OcptExportManager extends AbsWithLifeCycle {
        pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
        scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
        breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(fontsLoader: fontsLoader),
+       breakdownXlsxExportService = const OcptBreakdownXlsxExportService(),
+       callSheetPdfService = OcptCallSheetPdfService(fontsLoader: fontsLoader),
+       shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
+       shootingPlanXlsxExportService = const OcptShootingPlanXlsxExportService(),
+       dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
+       oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
+       sidesPdfService = OcptSidesPdfService(fontsLoader: fontsLoader),
+       contactListPdfService = OcptContactListPdfService(fontsLoader: fontsLoader),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -235,6 +296,43 @@ class OcptExportManager extends AbsWithLifeCycle {
     bytes: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
   );
 
+  /// Renders the contact list of [snapshot] via [contactListPdfService] and shows the native save
+  /// dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the section titles, the
+  /// department and position labels and the file name's own suffix) and [fileTypeLabel] the one the
+  /// native dialog needs — this manager has no `Tr` of its own. [exportDate] is resolved by the
+  /// caller, exactly as the schedule mode's own PDF exports resolve theirs, so a test can pin it
+  /// rather than race a midnight rollover. Returns the path of the written file, or null if the
+  /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
+  Future<String?> exportContactList({
+    required OcptResourcesSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptContactListLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    DateTime? exportDate,
+  }) async {
+    final bytes = await contactListPdfService.generate(
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      exportDate: exportDate,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: contactListPdfService.contactListFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
   /// Renders the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and shows the
   /// native save dialog to write them out.
   ///
@@ -276,6 +374,426 @@ class OcptExportManager extends AbsWithLifeCycle {
       extensions: const ["pdf"],
       bytes: bytes,
     );
+  }
+
+  /// Builds the breakdown's two-sheet XLSX workbook of [snapshot] via [breakdownXlsxExportService]
+  /// and shows the native save dialog to write it out.
+  ///
+  /// [document] is the screenplay [snapshot]'s scenes were indexed against, read for each scene's
+  /// own length alone, exactly as [exportBreakdownSheets] reads it — see
+  /// [OcptBreakdownXlsxExportService]'s own doc comment. [labels] carries every localized string
+  /// the two sheets themselves hold and [fileTypeLabel] the one the native dialog needs — this
+  /// manager has no `Tr` of its own. Unlike the breakdown sheets, this export takes no options
+  /// dialog: there is nothing to ask before writing it out. Returns the path of the written file,
+  /// or null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
+  Future<String?> exportBreakdownXlsx({
+    required FountainDocument document,
+    required OcptBreakdownSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptBreakdownXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: breakdownXlsxExportService.xlsxFileName(
+      projectName: projectName,
+      suffix: labels.fileNameSuffix,
+    ),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: breakdownXlsxExportService.generate(
+      document: document,
+      snapshot: snapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+    ),
+  );
+
+  /// Renders one general call sheet per day of [dayIds] via [callSheetPdfService] and writes every
+  /// one of them into a folder the user picks.
+  ///
+  /// This is the one export of this app that writes more than one file, so it shows the native
+  /// "choose a folder" dialog ([confirmButtonText] is its own confirm button's localized label)
+  /// rather than a "save as" one. Returns null if the user cancelled that dialog — nothing was
+  /// touched on disk yet at that point — or an [OcptCallSheetExportResult] once a folder was chosen,
+  /// even when every write inside it failed: a folder was picked, so the caller needs to know
+  /// exactly what did and did not get written into it rather than being told the whole run "failed".
+  /// A write failure is logged (this manager's usual soft-failure convention) and the file's own
+  /// name lands in [OcptCallSheetExportResult.failedFileNames] instead of
+  /// [OcptCallSheetExportResult.writtenFileNames].
+  ///
+  /// The moment every sheet of the run is stamped with is resolved **once**, here, and handed to
+  /// each of them: a folder of sheets produced by one gesture is one issue of that day's paperwork,
+  /// and a batch that read the clock per file would hand two people sheets a minute apart with no
+  /// way to tell they are the same one.
+  Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptCallSheetLabels labels,
+    required String projectName,
+    required String confirmButtonText,
+  }) async {
+    final folderPath = await saveLocationService.pickDirectory(confirmButtonText: confirmButtonText);
+    if (folderPath == null) {
+      return null;
+    }
+
+    final exportDate = DateTime.now();
+    final written = <String>[];
+    final failed = <String>[];
+
+    for (final dayId in dayIds) {
+      final day = plan.schedule.daysById[dayId];
+      final fileName = callSheetPdfService.callSheetFileName(
+        labels: labels,
+        dayNumber: day?.dayNumber ?? 0,
+      );
+
+      final bytes = await callSheetPdfService.generateGeneralCallSheet(
+        plan: plan,
+        dayId: dayId,
+        pageSetup: pageSetup,
+        labels: labels,
+        projectName: projectName,
+        exportDate: exportDate,
+      );
+
+      if (await _writeBytesInFolder(folderPath: folderPath, fileName: fileName, bytes: bytes)) {
+        written.add(fileName);
+      } else {
+        failed.add(fileName);
+      }
+    }
+
+    return OcptCallSheetExportResult(folderPath: folderPath, writtenFileNames: written, failedFileNames: failed);
+  }
+
+  /// Renders one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
+  /// writes every one of them into a folder the user picks — a call sheet being a document about a
+  /// day, so a recipient convoked on two of [dayIds] gets two files, one for each.
+  ///
+  /// The loop is over each day's **own** convocations, filtered by [convocationKeys], never over the
+  /// product of the two: a key ticked in the dialog but convoked on none of a given day's slots
+  /// simply yields no file for that day rather than an empty one. [convocationKeys] selects which of
+  /// a day's own convocations are printed — a person's own id, or an uncast role's, exactly as
+  /// `OcptDayConvocation.personId`/`.roleId` discriminate one — or null to print every convocation of
+  /// every day, the common case when nobody has narrowed the selection down. See
+  /// [exportGeneralCallSheets] for the folder-picking, the once-per-run export moment (its own
+  /// argument holds for a run spanning several days exactly as it does for one: a folder of sheets
+  /// produced by one gesture is one issue of that paperwork) and the partial-failure contract,
+  /// identical here.
+  ///
+  /// **A guest is never printed here**, whatever [convocationKeys] says: `OcptDayConvocation.isGuest`
+  /// is filtered out before either the explicit selection or the "print every convocation" default
+  /// is applied — a guest is not yet a call sheet recipient, and every reader downstream of this list
+  /// assumes every entry names a person or a role.
+  ///
+  /// [_uniqueFileName] accumulates across the **whole** run rather than being reset per day, so two
+  /// recipients whose names collide on one day still each get a file of their own (`-2`, `-3`) — the
+  /// file name already carries the day's own tag, so two different days' sheets never collide with
+  /// each other in the first place.
+  Future<OcptCallSheetExportResult?> exportNamedCallSheets({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    Set<String>? convocationKeys,
+    required OcptPageSetup pageSetup,
+    required OcptCallSheetLabels labels,
+    required String projectName,
+    required String confirmButtonText,
+  }) async {
+    final folderPath = await saveLocationService.pickDirectory(confirmButtonText: confirmButtonText);
+    if (folderPath == null) {
+      return null;
+    }
+
+    final exportDate = DateTime.now();
+    final written = <String>[];
+    final failed = <String>[];
+
+    for (final dayId in dayIds) {
+      final day = plan.schedule.daysById[dayId];
+      final dayNumber = day?.dayNumber ?? 0;
+      final convocations = [
+        for (final convocation in plan.convocationsOfDay(dayId))
+          if (!convocation.isGuest &&
+              (convocationKeys == null ||
+                  convocationKeys.contains(convocation.personId ?? convocation.roleId)))
+            convocation,
+      ];
+
+      for (final convocation in convocations) {
+        final personName = convocation.personId != null
+            ? (plan.personById[convocation.personId]?.displayName ?? "")
+            : (plan.roleById[convocation.roleId]?.name ?? "");
+        final fileName = _uniqueFileName(
+          callSheetPdfService.namedCallSheetFileName(
+            labels: labels,
+            dayNumber: dayNumber,
+            personName: personName,
+          ),
+          written,
+          failed,
+        );
+
+        final bytes = await callSheetPdfService.generateNamedCallSheet(
+          plan: plan,
+          dayId: dayId,
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: projectName,
+          convocation: convocation,
+          exportDate: exportDate,
+        );
+
+        if (await _writeBytesInFolder(folderPath: folderPath, fileName: fileName, bytes: bytes)) {
+          written.add(fileName);
+        } else {
+          failed.add(fileName);
+        }
+      }
+    }
+
+    return OcptCallSheetExportResult(folderPath: folderPath, writtenFileNames: written, failedFileNames: failed);
+  }
+
+  /// Renders the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and shows the
+  /// native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the day titles, the
+  /// director line, the grid and section headings, the shot table's own headers and the file name's
+  /// own suffix) and [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of
+  /// its own. Unlike the call sheets, this is a **single** file: the whole shoot's own plan, through
+  /// `pickSaveLocation` rather than a folder. Returns the path of the written file, or null if the
+  /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
+  Future<String?> exportShootingPlan({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptShootingPlanLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required bool includeLocationsGrid,
+    required bool includeSequencesGrid,
+    required bool includePeopleGrid,
+    required bool includeTenMinuteGrid,
+    required bool includeElementsGrid,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await shootingPlanPdfService.generate(
+      plan: plan,
+      dayIds: dayIds,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+      includeLocationsGrid: includeLocationsGrid,
+      includeSequencesGrid: includeSequencesGrid,
+      includePeopleGrid: includePeopleGrid,
+      includeTenMinuteGrid: includeTenMinuteGrid,
+      includeElementsGrid: includeElementsGrid,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: shootingPlanPdfService.shootingPlanFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Builds the whole-shoot shooting plan's own five-sheet XLSX workbook of [dayIds] via
+  /// [shootingPlanXlsxExportService] and shows the native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the five sheets themselves hold and [fileTypeLabel]
+  /// the one the native dialog needs — this manager has no `Tr` of its own. Unlike [exportShootingPlan],
+  /// this export takes no options beyond [dayIds]: there is no page geometry to ask about, and a
+  /// sheet costs nothing to hide, unlike a PDF's own page. Returns the path of the written file, or
+  /// null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
+  Future<String?> exportShootingPlanXlsx({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptShootingPlanXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) => _writeToPickedLocation(
+    suggestedFileName: shootingPlanXlsxExportService.xlsxFileName(
+      projectName: projectName,
+      suffix: labels.fileNameSuffix,
+    ),
+    fileTypeLabel: fileTypeLabel,
+    extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
+    bytes: shootingPlanXlsxExportService.generate(plan: plan, dayIds: dayIds, labels: labels),
+  );
+
+  /// Renders the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and shows
+  /// the native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the column dates, the code
+  /// letters and their legend, the two count headers and the file name's own suffix) and
+  /// [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of its own. Like the
+  /// shooting plan and unlike the call sheets, this is a **single** file, through `pickSaveLocation`
+  /// rather than a folder. Returns the path of the written file, or null if the user cancelled or
+  /// the save failed (failures are logged; the OS dialog already reported a cancellation to the
+  /// user).
+  Future<String?> exportDayOutOfDays({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptDayOutOfDaysLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await dayOutOfDaysPdfService.generate(
+      plan: plan,
+      dayIds: dayIds,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: dayOutOfDaysPdfService.dayOutOfDaysFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Renders the one-line schedule over [dayIds] via [oneLineSchedulePdfService] and shows the
+  /// native save dialog to write it out.
+  ///
+  /// [labels] carries every localized string the document itself holds (the day titles, the column
+  /// headers and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
+  /// this manager has no `Tr` of its own. Like the shooting plan and the *Day Out of Days*, this is
+  /// a **single** file, through `pickSaveLocation` rather than a folder. Returns the path of the
+  /// written file, or null if the user cancelled or the save failed (failures are logged; the OS
+  /// dialog already reported a cancellation to the user).
+  Future<String?> exportOneLineSchedule({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptPageSetup pageSetup,
+    required OcptOneLineScheduleLabels labels,
+    required String projectName,
+    required bool includeTitlePage,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await oneLineSchedulePdfService.generate(
+      plan: plan,
+      dayIds: dayIds,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeTitlePage: includeTitlePage,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: oneLineSchedulePdfService.oneLineScheduleFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Renders [dayId]'s own sides booklet via [sidesPdfService] and shows the native save dialog to
+  /// write it out.
+  ///
+  /// [document] is a parameter rather than something this manager reads off the open project, for
+  /// the same reason [exportScenarioCoverage] takes one: this manager touches no database, and the
+  /// screenplay text a booklet is sliced from is the caller's to supply. [labels] carries every
+  /// localized string the document itself holds (its own title, the day tag prefix, the printed
+  /// day's own title, the script-page prefix and the file name's own suffix) and [fileTypeLabel]
+  /// the one the native dialog needs — this manager has no `Tr` of its own. Like the shooting plan,
+  /// the *Day Out of Days* and the one-line schedule, this is a **single** file, through
+  /// `pickSaveLocation` rather than a folder — one booklet is one day's own paperwork, handed to
+  /// one recipient at a time. Returns the path of the written file, or null if the user cancelled
+  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
+  /// user).
+  Future<String?> exportSides({
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required OcptSidesLabels labels,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required OcptSidesPresentation presentation,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await sidesPdfService.generate(
+      plan: plan,
+      dayId: dayId,
+      document: document,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeSceneNumbers: includeSceneNumbers,
+      presentation: presentation,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: sidesPdfService.sidesFileName(
+        plan: plan,
+        dayId: dayId,
+        projectName: projectName,
+        labels: labels,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// [fileName], suffixed with `-2`, `-3`… while [written] or [failed] already holds it.
+  ///
+  /// Two convoked people sharing one display name — or, far more likely, two whose name is still
+  /// blank and which therefore both fall back to the same label — would otherwise be handed the
+  /// same file name, and the second write would overwrite the first: one person on the call list
+  /// silently ending the export with no call sheet at all. A suffixed duplicate is a name somebody
+  /// has to read twice; a missing file is somebody who never gets told when to turn up.
+  String _uniqueFileName(String fileName, List<String> written, List<String> failed) {
+    if (!written.contains(fileName) && !failed.contains(fileName)) {
+      return fileName;
+    }
+
+    final extension = p.extension(fileName);
+    final base = p.basenameWithoutExtension(fileName);
+    for (var suffix = 2; ; suffix++) {
+      final candidate = "$base-$suffix$extension";
+      if (!written.contains(candidate) && !failed.contains(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  /// Writes [bytes] to `[folderPath]/[fileName]`, returning whether it succeeded — logged on
+  /// failure, exactly like [_writeToPickedLocation]'s own write.
+  Future<bool> _writeBytesInFolder({
+    required String folderPath,
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    final path = p.join(folderPath, fileName);
+    try {
+      await File(path).writeAsBytes(bytes, flush: true);
+      return true;
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to write the file at: $path, error: $error");
+      return false;
+    }
   }
 
   /// Shows the native save dialog and writes [bytes] to the chosen location.

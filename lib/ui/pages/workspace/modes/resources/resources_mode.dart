@@ -13,11 +13,13 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -26,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_contact_list_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
@@ -38,6 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -46,6 +50,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
@@ -156,7 +161,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onBack: () => context.read<OcptResourcesBloc>().add(const OcptResourcesBackRequestedEvent()),
         modeLabel: Tr.of(context).workspaceModeLabelResources,
         toolbarActions: _buildToolbarActions(context, state),
-        overflowEntries: _buildOverflowEntries(context, state),
+        onExportRequested: () => unawaited(_requestExport(context, state)),
+        overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
           const OcptResourcesLeftPanelToggledEvent(),
@@ -200,26 +206,75 @@ class _ResourcesViewState extends State<_ResourcesView> {
     ),
   ];
 
-  /// Builds the mode's `⋮` overflow menu entries: the XLSX export first, then resetting the panel
-  /// layout, mirroring `OcptShotListMode._buildOverflowEntries`.
-  ///
-  /// The export entry is disabled while the whole catalogue is empty: there would be nothing in
-  /// any of the four sheets but their header row.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(
-    BuildContext context,
-    OcptResourcesState state,
-  ) => [
-    PopupMenuItem<void>(
-      enabled: state.peopleCount + state.roleCount + state.locationCount + state.elementCount > 0,
-      onTap: () => _requestXlsxExport(context, state),
-      child: Text(Tr.of(context).resourcesExportXlsxMenuAction),
-    ),
+  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the XLSX
+  /// export moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
+  /// this is the only entry the resources mode has left to offer. A `⋮` holding one entry is thin,
+  /// but honest: moving it somewhere else is a separate question this doesn't answer.
+  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
     PopupMenuItem<void>(
       onTap: () =>
           context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
       child: Text(Tr.of(context).resourcesResetPanelLayoutAction),
     ),
   ];
+
+  /// Builds the two entries the toolbar's `Export` button offers: the resources workbook,
+  /// unavailable while the whole catalogue is empty — there would be nothing in any of its four
+  /// sheets but their header row — and the contact list, unavailable while nobody in the address
+  /// book holds a position and no role is cast either — there would be no line to print.
+  List<OcptWorkspaceExportEntry<OcptResourcesExportDocument>> _buildExportEntries(
+    BuildContext context,
+    OcptResourcesState state,
+  ) {
+    final tr = Tr.of(context);
+    final isCatalogueEmpty =
+        state.peopleCount + state.roleCount + state.locationCount + state.elementCount == 0;
+    final hasNoContact = state.positionCount == 0 && state.roleCount == 0;
+
+    return [
+      OcptWorkspaceExportEntry<OcptResourcesExportDocument>(
+        value: OcptResourcesExportDocument.xlsx,
+        title: tr.resourcesExportXlsxTitle,
+        description: tr.resourcesExportXlsxDescription,
+        formatLabel: "XLSX",
+        unavailableReason: isCatalogueEmpty ? tr.resourcesExportUnavailableReason : null,
+      ),
+      OcptWorkspaceExportEntry<OcptResourcesExportDocument>(
+        value: OcptResourcesExportDocument.contactList,
+        title: tr.resourcesExportContactListTitle,
+        description: tr.resourcesExportContactListDescription,
+        formatLabel: "PDF",
+        unavailableReason: hasNoContact ? tr.resourcesExportContactListUnavailableReason : null,
+      ),
+    ];
+  }
+
+  /// Opens the export panel, then dispatches the picked document's own export request: the
+  /// contact list opens its own options dialog first, through [_requestContactListExport], while
+  /// the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no options dialog
+  /// at all.
+  Future<void> _requestExport(BuildContext context, OcptResourcesState state) async {
+    final tr = Tr.of(context);
+    final picked = await OcptWorkspaceExportDialog.show<OcptResourcesExportDocument>(
+      context,
+      title: tr.resourcesExportPanelTitle,
+      message: tr.resourcesExportPanelMessage,
+      entries: _buildExportEntries(context, state),
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    switch (picked) {
+      case OcptResourcesExportDocument.xlsx:
+        _requestXlsxExport(context, state);
+      case OcptResourcesExportDocument.contactList:
+        await _requestContactListExport(context, state);
+    }
+  }
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the four sheets and the native save dialog carry.
@@ -230,6 +285,29 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptResourcesXlsxExportRequestedEvent(
         labels: ocptResourcesXlsxLabelsOf(context, state.scenes, currencyCode: state.currencyCode),
         fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the contact list export options dialog — this document's own first, offering the page
+  /// format alone — then dispatches the export request if the user applied it, resolving here every
+  /// localized string the exported document and the native save dialog carry.
+  Future<void> _requestContactListExport(BuildContext context, OcptResourcesState state) async {
+    final bloc = context.read<OcptResourcesBloc>();
+    final options = await OcptContactListExportDialog.show(context, current: state.pageSetup);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptResourcesContactListExportRequestedEvent(
+        options: options,
+        labels: ocptContactListLabelsOf(context),
+        fileTypeLabel: tr.resourcesExportContactListFileTypeLabel,
       ),
     );
   }
@@ -345,6 +423,22 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onColorChanged: (colorIndex) => bloc.add(
         OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
       ),
+      onPhotoPickRequested: () => bloc.add(
+        OcptResourcesPersonPhotoPickRequestedEvent(
+          personId: selectedPerson.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoCleared: () =>
+          bloc.add(OcptResourcesPersonPhotoClearedEvent(personId: selectedPerson.id)),
+      onImageRightsDocumentPickRequested: () => bloc.add(
+        OcptResourcesImageRightsDocumentPickRequestedEvent(
+          personId: selectedPerson.id,
+          fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
+        ),
+      ),
+      onImageRightsDocumentCleared: () =>
+          bloc.add(OcptResourcesImageRightsDocumentClearedEvent(personId: selectedPerson.id)),
       onBirthDateChanged: (date) => bloc.add(
         OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
       ),
@@ -443,6 +537,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptPersonField.region => person.region,
       OcptPersonField.country => person.country,
       OcptPersonField.minorNotes => person.minorNotes,
+      OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
+        person.maxDailyPresenceMinutes,
+      ),
       OcptPersonField.accommodationNotes => person.accommodationNotes,
       OcptPersonField.travelNotes => person.travelNotes,
       OcptPersonField.dietaryNotes => person.dietaryNotes,
@@ -514,6 +611,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       castMember: castMember,
       otherRoles: _otherRolesOf(state, selectedRole, castMember),
       people: state.people,
+      elements: state.elements,
       removedRoleAlert: state.selectedRoleAlert,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
@@ -539,6 +637,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
           bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      onElementLinked: (elementId) => bloc.add(
+        OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
+      ),
+      onRoleElementUpdated: (id, notes) =>
+          bloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
+      onRoleElementRemoved: (id) => bloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
     );
   }
 
@@ -628,6 +732,18 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onPermitDocumentCleared: () => bloc.add(
         OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
       ),
+      onPermitDocumentValidFromChanged: (date) => bloc.add(
+        OcptResourcesAssetValidFromChangedEvent(
+          assetId: selectedLocation.permitDocument!.id,
+          date: date,
+        ),
+      ),
+      onPermitDocumentValidUntilChanged: (date) => bloc.add(
+        OcptResourcesAssetValidUntilChangedEvent(
+          assetId: selectedLocation.permitDocument!.id,
+          date: date,
+        ),
+      ),
       onAvailabilityUpdated:
           (
             id, {
@@ -708,10 +824,19 @@ class _ResourcesViewState extends State<_ResourcesView> {
       owner: _personOf(state, selectedElement.ownerPersonId),
       bringer: _personOf(state, selectedElement.broughtByPersonId),
       people: state.people,
+      roles: state.roles,
       scenes: state.scenes,
       currencyCode: state.currencyCode,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _elementFieldValueOf(state, selectedElement, field),
+      onPhotoPickRequested: () => bloc.add(
+        OcptResourcesElementPhotoPickRequestedEvent(
+          elementId: selectedElement.id,
+          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+        ),
+      ),
+      onPhotoCleared: () =>
+          bloc.add(OcptResourcesElementPhotoClearedEvent(elementId: selectedElement.id)),
       onFieldChanged: (field, rawValue) => bloc.add(
         OcptResourcesElementFieldChangedEvent(
           elementId: selectedElement.id,
@@ -768,6 +893,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onPersonSheetOpenRequested: (personId) =>
           bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+      onRoleSheetOpenRequested: (roleId) =>
+          bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId)),
     );
   }
 
@@ -1091,6 +1218,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
         notice.path ?? "",
       ),
       OcptResourcesIoNoticeKind.xlsxExportFailed => tr.resourcesExportXlsxError,
+      OcptResourcesIoNoticeKind.contactListExportSucceeded =>
+        tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
+      OcptResourcesIoNoticeKind.contactListExportFailed => tr.resourcesExportContactListError,
     };
   }
 }
