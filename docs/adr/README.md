@@ -11,6 +11,16 @@ decided, why, what it costs, and what alternatives were rejected. It exists so a
 contributor - human or agent - can find the reasoning behind a choice already baked into the code,
 instead of having to reconstruct it from commit history.
 
+`docs/architecture/` is the other half of the record, and the two are not interchangeable. **A
+record here is dated and frozen** — never rewritten, only amended or superseded, so a superseded
+one deliberately keeps describing a model the code has left behind. **A file in
+`docs/architecture/` is always current** — rewritten with every change, describing the whole system
+as it stands today, including everything that never warranted a record of its own. Read an ADR to
+learn why something is the way it is and what was turned down; read `docs/architecture/` to learn
+what the code does and what must not be broken. When a record restates a rule that directory also
+states, that repetition is deliberate: an ADR that only pointed at a living document would stop
+being evidence of what was decided at the time.
+
 ## When to write one
 
 Write an ADR for a decision that is expensive to reverse, that shapes how other code is written
