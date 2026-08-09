@@ -7,6 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart'
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
@@ -877,6 +879,32 @@ class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleEvent {
 
   /// Class constructor
   const OcptScheduleDayOutOfDaysExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Requests exporting the one-line schedule over `options.dayIds` as a single PDF, written through
+/// the native save dialog — dispatched once `OcptScheduleOneLineScheduleExportDialog` returns its
+/// result.
+class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with (the page format/margins, which days to print, and
+  /// the title page toggle).
+  final OcptOneLineScheduleExportOptions options;
+
+  /// Every localized string the exported document carries.
+  final OcptOneLineScheduleLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptScheduleOneLineScheduleExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,

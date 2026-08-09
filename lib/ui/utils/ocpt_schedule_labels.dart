@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -575,6 +576,39 @@ String ocptDayOutOfDaysCodeDescription(Tr tr, OcptDayOutOfDaysCode code) => swit
   OcptDayOutOfDaysCode.startWorkFinish => tr.scheduleExportDayOutOfDaysStartWorkFinishDescription,
   OcptDayOutOfDaysCode.hold => tr.scheduleExportDayOutOfDaysHoldDescription,
 };
+
+/// Builds every localized string the exported one-line schedule carries — mirrors
+/// [ocptShootingPlanLabelsOf] for the same reasons; see [ocptCallSheetLabelsOf]'s own doc comment.
+///
+/// [days] is resolved into [OcptOneLineScheduleLabels.dayTitles] through the very
+/// `DateFormat.MMMMEEEEd` [ocptShootingPlanLabelsOf] uses for its own [OcptShootingPlanLabels
+/// .dayTitles]: a day band prints its tag on its own, so its title needs only the date, never a
+/// sentence built around it. [people] is read for [ocptScheduleDirectorLineOf] alone.
+OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
+  BuildContext context, {
+  required List<OcptShootingDay> days,
+  required List<OcptPerson> people,
+}) {
+  final tr = Tr.of(context);
+  final locale = Localizations.localeOf(context).toString();
+
+  return OcptOneLineScheduleLabels(
+    fileNameSuffix: tr.scheduleExportOneLineScheduleFileNameSuffix,
+    documentTitle: tr.scheduleExportOneLineScheduleDocumentTitle,
+    directorLine: ocptScheduleDirectorLineOf(tr, people),
+    versionLabel: tr.scheduleExportVersionLabel,
+    dayTagPrefix: tr.scheduleDayTagPrefix,
+    dayTitles: {for (final day in days) day.id: DateFormat.MMMMEEEEd(locale).format(day.date)},
+    seqHeader: tr.scheduleExportSeqHeader,
+    effectHeader: tr.scheduleExportEffetHeader,
+    decorHeader: tr.scheduleExportDecorsHeader,
+    rolesHeader: tr.scheduleExportRolesHeader,
+    durationHeader: tr.scheduleExportOneLineScheduleDurationHeader,
+    noLocationLabel: tr.scheduleDayNoLocation,
+    emptyDayNote: tr.scheduleExportEmptyDayNote,
+    emptyDocumentNote: tr.scheduleExportEmptyPlanNote,
+  );
+}
 
 /// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
 /// comment for exactly what each of the eleven rules claims.

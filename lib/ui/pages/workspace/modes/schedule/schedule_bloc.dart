@@ -206,6 +206,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleNamedCallSheetsExportRequestedEvent>(_onNamedCallSheetsExportRequested);
     on<OcptScheduleShootingPlanExportRequestedEvent>(_onShootingPlanExportRequested);
     on<OcptScheduleDayOutOfDaysExportRequestedEvent>(_onDayOutOfDaysExportRequested);
+    on<OcptScheduleOneLineScheduleExportRequestedEvent>(_onOneLineScheduleExportRequested);
     on<OcptScheduleIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
@@ -1555,6 +1556,50 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error) {
       appLogger().e(
         "A problem occurred when tried to export the day out of days of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the one-line schedule over `event.options.dayIds` as a single PDF, written through the
+  /// native save dialog. Mirrors [_onDayOutOfDaysExportRequested] — see its own doc comment for the
+  /// flush and the cancellation contract, identical here.
+  Future<void> _onOneLineScheduleExportRequested(
+    OcptScheduleOneLineScheduleExportRequestedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final plan = state.planSnapshot;
+    if (plan == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportOneLineSchedule(
+        plan: plan,
+        dayIds: options.dayIds,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        includeTitlePage: options.includeTitlePage,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to export the one-line schedule of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
       emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));

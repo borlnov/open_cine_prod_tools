@@ -7486,6 +7486,41 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleExportOneLineScheduleMenuAction": "Export the one-line schedule…",
+  "@scheduleExportOneLineScheduleMenuAction": {
+    "description": "Label of the `⋮` menu entry opening the one-line schedule export dialog",
+    "context": "Displayed in the schedule mode's `⋮` overflow menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleDialogTitle": "Export the one-line schedule",
+  "@scheduleExportOneLineScheduleDialogTitle": {
+    "description": "Title of the one-line schedule export options dialog",
+    "context": "Displayed as the dialog's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleFileNameSuffix": "one-line schedule",
+  "@scheduleExportOneLineScheduleFileNameSuffix": {
+    "description": "Word appended to the project name to name the exported one-line schedule file",
+    "context": "Suggested in the native save dialog opened by the one-line schedule export",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleDocumentTitle": "One-line schedule",
+  "@scheduleExportOneLineScheduleDocumentTitle": {
+    "description": "Generic name of the one-line schedule document, printed on its title page and in every page's running head",
+    "context": "Printed inside the exported one-line schedule PDF",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleExportOneLineScheduleDurationHeader": "DURATION",
+  "@scheduleExportOneLineScheduleDurationHeader": {
+    "description": "Header of the one-line schedule's own table column printing a line's resolved duration",
+    "context": "Printed inside the exported one-line schedule PDF",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleExportFileSuccessMessage": "Exported to {path}",
   "@scheduleExportFileSuccessMessage": {
     "description": "Message shown when the shooting plan was successfully exported to a single PDF file",

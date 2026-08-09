@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_month_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_named_call_sheets_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_one_line_schedule_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_positions_matrix.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_presence_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
@@ -167,14 +168,14 @@ class _ScheduleViewState extends State<_ScheduleView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: the four PDF exports, then "reset panel layout".
+  /// Builds the mode's `⋮` overflow menu entries: the five PDF exports, then "reset panel layout".
   ///
-  /// All four exports are disabled together when the project holds no live day at all — there would
+  /// All five exports are disabled together when the project holds no live day at all — there would
   /// be nothing to print. The named call sheets entry needs no further check of its own: which
   /// recipients (and, now, which days) it prints is a question answered **inside**
   /// `OcptScheduleNamedCallSheetsExportDialog` itself, whose own `Export` button is already disabled
   /// while no day or no recipient is ticked — walking every ticked day's own convocations here too,
-  /// on every rebuild of this shell, would repeat that same read for no reason. All four stay
+  /// on every rebuild of this shell, would repeat that same read for no reason. All five stay
   /// offered under a version preview, exactly as the breakdown mode's own export entry does: an
   /// export only ever reads.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptScheduleState state) {
@@ -202,6 +203,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
         enabled: hasAnyDay,
         onTap: () => unawaited(_requestDayOutOfDaysExport(context, state)),
         child: Text(Tr.of(context).scheduleExportDayOutOfDaysMenuAction),
+      ),
+      PopupMenuItem<void>(
+        enabled: hasAnyDay,
+        onTap: () => unawaited(_requestOneLineScheduleExport(context, state)),
+        child: Text(Tr.of(context).scheduleExportOneLineScheduleMenuAction),
       ),
       PopupMenuItem<void>(
         onTap: () => context.read<OcptScheduleBloc>().add(const OcptScheduleDockLayoutResetEvent()),
@@ -327,6 +333,32 @@ class _ScheduleViewState extends State<_ScheduleView> {
       OcptScheduleDayOutOfDaysExportRequestedEvent(
         options: options,
         labels: ocptDayOutOfDaysLabelsOf(context, days: state.days, people: state.people),
+        fileTypeLabel: tr.scheduleExportFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the one-line schedule export options dialog, then dispatches the export request if the
+  /// user applied it — mirrors [_requestDayOutOfDaysExport].
+  Future<void> _requestOneLineScheduleExport(BuildContext context, OcptScheduleState state) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final options = await OcptScheduleOneLineScheduleExportDialog.show(
+      context,
+      current: state.pageSetup,
+      days: state.days,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptScheduleOneLineScheduleExportRequestedEvent(
+        options: options,
+        labels: ocptOneLineScheduleLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),
     );
