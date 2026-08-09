@@ -10,6 +10,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -23,12 +24,14 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -277,6 +280,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptResourcesWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptResourcesXlsxExportRequestedEvent>(_onXlsxExportRequested);
+    on<OcptResourcesContactListExportRequestedEvent>(_onContactListExportRequested);
     on<OcptResourcesIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
@@ -338,6 +342,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final previewedVersion = project.previewedVersion;
     final snapshot = await _loadSnapshot(project);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+    final pageSetup = await _loadPageSetup(project);
 
     final revealRequest = _pendingRevealRequest;
     _pendingRevealRequest = null;
@@ -351,6 +356,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           previewedVersionId: previewedVersion?.id,
           clearPreviewedVersionId: previewedVersion == null,
           snapshot: snapshot,
+          pageSetup: pageSetup,
           clearSelectedPersonId: true,
           clearSelectedRoleId: true,
           clearSelectedLocationId: true,
@@ -408,6 +414,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
             : tabbed,
     };
   }
+
+  /// Reads the page setup the contact list export dialog is pre-filled with: the open project's own
+  /// page format, paired with the app-wide margins preference, exactly as `OcptBreakdownBloc`'s own
+  /// `_loadPageSetup` pairs them.
+  ///
+  /// A version being previewed is laid out with the setup it was written against instead, which
+  /// travels on the open project model and is never written anywhere.
+  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
+      project.previewedPageSetup ??
+      OcptPageSetup(
+        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
+        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+      );
 
   /// Reads the whole resources catalogue of [project], joining the four services' own reads into
   /// one [OcptResourcesSnapshot].
@@ -2744,6 +2763,59 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       emitter(
         state.copyWith(
           ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Exports the crew and the cast to a standalone contact list PDF.
+  ///
+  /// Flushes every pending field edit first, exactly as [_onXlsxExportRequested] does, then hands
+  /// what the state now carries and [event]'s own options to
+  /// [OcptExportManager.exportContactList]. A cancelled save dialog is a silent no-op; a failure
+  /// raises the transient export-failed notice.
+  Future<void> _onContactListExportRequested(
+    OcptResourcesContactListExportRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    final project = _projectsManager.currentProject;
+    if (snapshot == null || project == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final path = await _exportManager.exportContactList(
+        snapshot: snapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptResourcesIoNotice(
+            kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
+            path: path,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the contact list of the project at "
+          "${project.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptResourcesIoNotice(
+            kind: OcptResourcesIoNoticeKind.contactListExportFailed,
+          ),
         ),
       );
     }

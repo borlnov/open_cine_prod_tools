@@ -10,4 +10,8 @@ enum OcptResourcesExportDocument {
   /// The whole catalogue — people, roles, locations and elements — as one Excel workbook, one
   /// sheet per category.
   xlsx,
+
+  /// The crew, grouped by department, and the cast, one row per role, as a standalone PDF — the
+  /// whole-production directory a production circulates once at the start of a shoot.
+  contactList,
 }

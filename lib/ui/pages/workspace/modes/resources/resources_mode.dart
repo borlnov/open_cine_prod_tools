@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_contact_list_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
@@ -217,16 +218,18 @@ class _ResourcesViewState extends State<_ResourcesView> {
     ),
   ];
 
-  /// Builds the single entry the toolbar's `Export` button offers: the resources workbook,
+  /// Builds the two entries the toolbar's `Export` button offers: the resources workbook,
   /// unavailable while the whole catalogue is empty — there would be nothing in any of its four
-  /// sheets but their header row.
+  /// sheets but their header row — and the contact list, unavailable while nobody in the address
+  /// book holds a position and no role is cast either — there would be no line to print.
   List<OcptWorkspaceExportEntry<OcptResourcesExportDocument>> _buildExportEntries(
     BuildContext context,
     OcptResourcesState state,
   ) {
     final tr = Tr.of(context);
-    final isEmpty =
+    final isCatalogueEmpty =
         state.peopleCount + state.roleCount + state.locationCount + state.elementCount == 0;
+    final hasNoContact = state.positionCount == 0 && state.roleCount == 0;
 
     return [
       OcptWorkspaceExportEntry<OcptResourcesExportDocument>(
@@ -234,13 +237,22 @@ class _ResourcesViewState extends State<_ResourcesView> {
         title: tr.resourcesExportXlsxTitle,
         description: tr.resourcesExportXlsxDescription,
         formatLabel: "XLSX",
-        unavailableReason: isEmpty ? tr.resourcesExportUnavailableReason : null,
+        unavailableReason: isCatalogueEmpty ? tr.resourcesExportUnavailableReason : null,
+      ),
+      OcptWorkspaceExportEntry<OcptResourcesExportDocument>(
+        value: OcptResourcesExportDocument.contactList,
+        title: tr.resourcesExportContactListTitle,
+        description: tr.resourcesExportContactListDescription,
+        formatLabel: "PDF",
+        unavailableReason: hasNoContact ? tr.resourcesExportContactListUnavailableReason : null,
       ),
     ];
   }
 
-  /// Opens the export panel, then dispatches the XLSX export request if the user picked its own
-  /// card — the panel's only one, no options dialog of its own being offered for it.
+  /// Opens the export panel, then dispatches the picked document's own export request: the
+  /// contact list opens its own options dialog first, through [_requestContactListExport], while
+  /// the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no options dialog
+  /// at all.
   Future<void> _requestExport(BuildContext context, OcptResourcesState state) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptResourcesExportDocument>(
@@ -256,7 +268,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
       return;
     }
 
-    _requestXlsxExport(context, state);
+    switch (picked) {
+      case OcptResourcesExportDocument.xlsx:
+        _requestXlsxExport(context, state);
+      case OcptResourcesExportDocument.contactList:
+        await _requestContactListExport(context, state);
+    }
   }
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
@@ -268,6 +285,29 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptResourcesXlsxExportRequestedEvent(
         labels: ocptResourcesXlsxLabelsOf(context, state.scenes, currencyCode: state.currencyCode),
         fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the contact list export options dialog — this document's own first, offering the page
+  /// format alone — then dispatches the export request if the user applied it, resolving here every
+  /// localized string the exported document and the native save dialog carry.
+  Future<void> _requestContactListExport(BuildContext context, OcptResourcesState state) async {
+    final bloc = context.read<OcptResourcesBloc>();
+    final options = await OcptContactListExportDialog.show(context, current: state.pageSetup);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptResourcesContactListExportRequestedEvent(
+        options: options,
+        labels: ocptContactListLabelsOf(context),
+        fileTypeLabel: tr.resourcesExportContactListFileTypeLabel,
       ),
     );
   }
@@ -1178,6 +1218,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
         notice.path ?? "",
       ),
       OcptResourcesIoNoticeKind.xlsxExportFailed => tr.resourcesExportXlsxError,
+      OcptResourcesIoNoticeKind.contactListExportSucceeded =>
+        tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
+      OcptResourcesIoNoticeKind.contactListExportFailed => tr.resourcesExportContactListError,
     };
   }
 }

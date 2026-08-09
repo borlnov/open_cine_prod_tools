@@ -8,12 +8,16 @@ import 'dart:io';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
@@ -22,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -135,6 +140,43 @@ class _FakeExportManager extends OcptExportManager {
 
     return exportResult;
   }
+
+  /// The snapshot of the last [exportContactList] call.
+  OcptResourcesSnapshot? lastExportedContactListSnapshot;
+
+  /// The page setup of the last [exportContactList] call.
+  OcptPageSetup? lastExportedContactListPageSetup;
+
+  /// The labels of the last [exportContactList] call.
+  OcptContactListLabels? lastExportedContactListLabels;
+
+  /// The project name of the last [exportContactList] call.
+  String? lastExportedContactListProjectName;
+
+  /// The file type label of the last [exportContactList] call.
+  String? lastExportedContactListFileTypeLabel;
+
+  @override
+  Future<String?> exportContactList({
+    required OcptResourcesSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required OcptContactListLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    DateTime? exportDate,
+  }) async {
+    lastExportedContactListSnapshot = snapshot;
+    lastExportedContactListPageSetup = pageSetup;
+    lastExportedContactListLabels = labels;
+    lastExportedContactListProjectName = projectName;
+    lastExportedContactListFileTypeLabel = fileTypeLabel;
+
+    if (fails) {
+      throw StateError("contact list export intentionally failed for the test");
+    }
+
+    return exportResult;
+  }
 }
 
 /// The labels the export tests dispatch, standing in for what `ocptResourcesXlsxLabelsOf` builds
@@ -164,6 +206,32 @@ const _exportLabels = OcptResourcesXlsxLabels(
   everyDayLabel: "Every day",
   weekdayLabels: _weekdayLabels,
   sceneLabels: {},
+);
+
+/// The labels the contact list export tests dispatch, standing in for what
+/// `ocptContactListLabelsOf` builds from a real `Tr`: the bloc only carries them through to the
+/// manager.
+const _contactListLabels = OcptContactListLabels(
+  fileNameSuffix: "contacts",
+  documentTitle: "Contact list",
+  versionLabel: "Version",
+  crewSectionTitle: "Crew",
+  castSectionTitle: "Cast",
+  nameHeader: "Name",
+  positionHeader: "Position",
+  phoneHeader: "Phone",
+  emailHeader: "Email",
+  crewDepartmentLabels: {},
+  crewPositionLabels: {},
+  unassignedDepartmentLabel: "Unassigned",
+  emptyDocumentNote: "Nothing to print.",
+);
+
+/// The options the contact list export tests dispatch, standing in for what
+/// `OcptContactListExportDialog` returns.
+const _contactListOptions = OcptContactListExportOptions(
+  format: OcptPageFormat.usLetter,
+  margins: FountainPageMargins.standard(),
 );
 
 void main() {
@@ -1323,6 +1391,133 @@ void main() {
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
     expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.xlsxExportFailed);
+    expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  test('the page setup used to prefill the contact list dialog is loaded on entry', () async {
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.pageSetup.format, OcptPageFormat.usLetter);
+
+    await bloc.close();
+  });
+
+  test('exporting the contact list hands its snapshot and its options to the export manager',
+      () async {
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - contacts.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = state.selectedPersonId!;
+
+    bloc.add(
+      OcptResourcesPositionAddedEvent(personId: personId, positionId: "director", customLabel: ""),
+    );
+    await waitForState(bloc, (state) => state.positionCount == 1);
+
+    bloc.add(
+      const OcptResourcesContactListExportRequestedEvent(
+        options: _contactListOptions,
+        labels: _contactListLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.contactListExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - contacts.pdf");
+    expect(exportManager.lastExportedContactListProjectName, "My Movie");
+    expect(exportManager.lastExportedContactListFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedContactListLabels, _contactListLabels);
+    expect(
+      exportManager.lastExportedContactListPageSetup,
+      const OcptPageSetup(format: OcptPageFormat.usLetter, margins: FountainPageMargins.standard()),
+    );
+    expect(exportManager.lastExportedContactListSnapshot!.positionCount, 1);
+
+    bloc.add(const OcptResourcesIoNoticeDismissedEvent());
+    final dismissedState = await waitForState(bloc, (state) => state.ioNotice == null);
+    expect(dismissedState.hasWriteError, isFalse);
+
+    await bloc.close();
+  });
+
+  test('exporting the contact list flushes a pending field edit first, so it holds it', () async {
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - contacts.pdf");
+    final bloc = buildBloc(
+      exportManager: exportManager,
+      fieldEditDebounce: const Duration(days: 1),
+    );
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = state.selectedPersonId!;
+
+    bloc.add(
+      OcptResourcesPersonFieldChangedEvent(
+        personId: personId,
+        field: OcptPersonField.firstName,
+        rawValue: "Léa",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptResourcesContactListExportRequestedEvent(
+        options: _contactListOptions,
+        labels: _contactListLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    final exportedPerson = exportManager.lastExportedContactListSnapshot!.people.firstWhere(
+      (person) => person.id == personId,
+    );
+    expect(exportedPerson.firstName, "Léa");
+
+    await bloc.close();
+  });
+
+  test('a cancelled contact list save dialog leaves no export notice at all', () async {
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptResourcesContactListExportRequestedEvent(
+        options: _contactListOptions,
+        labels: _contactListLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing contact list export raises the transient export failure notice', () async {
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptResourcesContactListExportRequestedEvent(
+        options: _contactListOptions,
+        labels: _contactListLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.contactListExportFailed);
     expect(state.ioNotice!.path, isNull);
 
     await bloc.close();

@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -1610,6 +1612,38 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel];
+}
+
+/// Requests exporting the crew and the cast to a standalone contact list PDF, dispatched once the
+/// export panel's own options dialog has resolved.
+///
+/// [options] is what that dialog returned — the page format and margins the document is typeset
+/// with. Both localized payloads are resolved by the widget dispatching this, since the bloc has no
+/// `BuildContext` of its own: [labels] is every string the document itself carries (see
+/// `ocptContactListLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the `.pdf`
+/// type. Every pending field edit is flushed first, mirroring
+/// `OcptResourcesXlsxExportRequestedEvent`, so a phone number typed seconds before the export is on
+/// the printed list rather than only on screen.
+class OcptResourcesContactListExportRequestedEvent extends OcptResourcesEvent {
+  /// The one-off options the export runs with.
+  final OcptContactListExportOptions options;
+
+  /// Every localized string the exported document holds.
+  final OcptContactListLabels labels;
+
+  /// The localized label of the `.pdf` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptResourcesContactListExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

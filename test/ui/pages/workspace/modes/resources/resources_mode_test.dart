@@ -115,11 +115,18 @@ void main() {
 
       expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
       expect(inPanel(find.text(tr.resourcesExportXlsxTitle)), findsOneWidget);
+      expect(inPanel(find.text(tr.resourcesExportContactListTitle)), findsOneWidget);
       expect(inPanel(find.text(tr.resourcesExportUnavailableReason)), findsOneWidget);
+      expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsOneWidget);
       expect(inPanel(find.text(tr.resourcesExportXlsxDescription)), findsNothing);
+      expect(inPanel(find.text(tr.resourcesExportContactListDescription)), findsNothing);
 
-      // Unavailable: tapping it pops nothing, so the panel stays open.
+      // Unavailable: tapping either card pops nothing, so the panel stays open.
       await tester.tap(inPanel(find.text(tr.resourcesExportXlsxTitle)));
+      await tester.pumpAndSettle();
+      expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
+
+      await tester.tap(inPanel(find.text(tr.resourcesExportContactListTitle)));
       await tester.pumpAndSettle();
       expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
     },
@@ -146,6 +153,9 @@ void main() {
 
       expect(inPanel(find.text(tr.resourcesExportUnavailableReason)), findsNothing);
       expect(inPanel(find.text(tr.resourcesExportXlsxDescription)), findsOneWidget);
+      // A bare person with no position and no role is still not a line the contact list can
+      // print: its own card stays unavailable while the workbook's own is available.
+      expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsOneWidget);
 
       await tester.tap(inPanel(find.text(tr.resourcesExportXlsxTitle)));
       await tester.pumpAndSettle();
@@ -154,6 +164,43 @@ void main() {
       // straight through.
       expect(find.text(tr.resourcesExportPanelTitle), findsNothing);
       expect(find.byType(OcptResourcesMode), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "once a role exists, picking the contact list card opens its own options dialog",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptResourcesMode)));
+
+      // A role is enough on its own to make the contact list printable: the cast side of it
+      // needs no crew position at all. A hand-added role is only ever silent or an extra — a
+      // speaking one is reconciled from the screenplay, which this project holds none of.
+      await tester.tap(find.text(tr.resourcesTabRoles));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.resourcesAddRoleAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.resourcesAddRoleSilentOption));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsNothing);
+      expect(inPanel(find.text(tr.resourcesExportContactListDescription)), findsOneWidget);
+
+      await tester.tap(inPanel(find.text(tr.resourcesExportContactListTitle)));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.resourcesExportPanelTitle), findsNothing);
+      expect(find.text(tr.resourcesExportContactListDialogTitle), findsOneWidget);
     },
   );
 }

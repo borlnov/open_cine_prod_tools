@@ -6,6 +6,7 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
@@ -31,6 +32,12 @@ enum OcptResourcesIoNoticeKind {
 
   /// Exporting the resources catalogue to a four-sheet XLSX workbook failed.
   xlsxExportFailed,
+
+  /// The contact list was successfully exported to a PDF.
+  contactListExportSucceeded,
+
+  /// Exporting the contact list to a PDF failed.
+  contactListExportFailed,
 }
 
 /// A transient notice, produced by `OcptResourcesBloc`, reporting the outcome of an export, shown
@@ -74,6 +81,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// The whole resources catalogue as last read from the project database, or null while nothing
   /// has been loaded yet.
   final OcptResourcesSnapshot? snapshot;
+
+  /// The page setup the contact list export dialog is pre-filled with: the open project's own page
+  /// format, paired with the app-wide margins preference, or the setup a previewed version was
+  /// captured against — exactly as `OcptBreakdownState.pageSetup` is loaded.
+  final OcptPageSetup pageSetup;
 
   /// The left dock's currently active tab.
   ///
@@ -328,6 +340,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.title,
     required this.currencyCode,
     required this.snapshot,
+    required this.pageSetup,
     required this.activeTab,
     required this.isSearchVisible,
     required this.searchQuery,
@@ -361,6 +374,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       title = "",
       currencyCode = "",
       snapshot = null,
+      pageSetup = const OcptPageSetup.standard(),
       activeTab = OcptResourcesTab.people,
       isSearchVisible = false,
       searchQuery = "",
@@ -400,6 +414,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     String? title,
     String? currencyCode,
     OcptResourcesSnapshot? snapshot,
+    OcptPageSetup? pageSetup,
     OcptResourcesTab? activeTab,
     bool? isSearchVisible,
     String? searchQuery,
@@ -442,6 +457,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     title: title ?? this.title,
     currencyCode: currencyCode ?? this.currencyCode,
     snapshot: snapshot ?? this.snapshot,
+    pageSetup: pageSetup ?? this.pageSetup,
     activeTab: activeTab ?? this.activeTab,
     isSearchVisible: isSearchVisible ?? this.isSearchVisible,
     searchQuery: searchQuery ?? this.searchQuery,
@@ -523,6 +539,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     title,
     currencyCode,
     snapshot,
+    pageSetup,
     activeTab,
     isSearchVisible,
     searchQuery,
