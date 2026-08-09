@@ -2037,10 +2037,52 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListExportXlsxMenuAction": "Export the shot list…",
-  "@shotListExportXlsxMenuAction": {
-    "description": "Action exporting the whole shot list to an Excel workbook",
-    "context": "Displayed in the overflow menu of the shot list mode",
+  "shotListExportPanelTitle": "Export the shot list",
+  "@shotListExportPanelTitle": {
+    "description": "Title of the shot list mode's export panel",
+    "context": "Displayed as the export panel's own AlertDialog title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportPanelMessage": "The shot list as a spreadsheet, or the screenplay annotated with what each shot covers.",
+  "@shotListExportPanelMessage": {
+    "description": "Sentence under the title of the shot list mode's export panel, saying what it offers",
+    "context": "Displayed under the export panel's title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxTitle": "Shot list",
+  "@shotListExportXlsxTitle": {
+    "description": "Name of the shot list workbook document, shown as an export panel card title",
+    "context": "Displayed as a card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportXlsxDescription": "Every shot, sequence by sequence, as a spreadsheet.",
+  "@shotListExportXlsxDescription": {
+    "description": "Sentence saying what the shot list workbook document is, shown on its export panel card",
+    "context": "Displayed under the card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageTitle": "Scenario coverage",
+  "@shotListExportCoverageTitle": {
+    "description": "Name of the scenario coverage PDF document, shown as an export panel card title",
+    "context": "Displayed as a card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportCoverageDescription": "The screenplay annotated with a coloured bar for every passage a shot covers.",
+  "@shotListExportCoverageDescription": {
+    "description": "Sentence saying what the scenario coverage document is, shown on its export panel card",
+    "context": "Displayed under the card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportUnavailableReason": "The shot list holds no shot yet.",
+  "@shotListExportUnavailableReason": {
+    "description": "Reason shown in place of a card's description while the shot list holds no shot",
+    "context": "Displayed on both cards of the shot list mode's export panel while unavailable",
     "type": "text",
     "placeholders": {}
   },
@@ -2073,13 +2115,6 @@
   "@shotListExportXlsxError": {
     "description": "Error shown when exporting the shot list to an Excel workbook failed",
     "context": "Displayed as a SnackBar over the shot list mode",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListExportCoverageMenuAction": "Export the scenario coverage…",
-  "@shotListExportCoverageMenuAction": {
-    "description": "Action exporting the screenplay annotated with the shots covering it, as a PDF",
-    "context": "Displayed in the overflow menu of the shot list mode",
     "type": "text",
     "placeholders": {}
   },
