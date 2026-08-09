@@ -117,6 +117,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29d | Schedule review M5 — the stamp that tells two issues of one document apart: `ocptScheduleGeneratedAtStamp` in `ocpt_schedule_pdf_shared.dart` (date **and** time, deliberately not locale-formatted), an `exportDate` on both call sheet generators beside the shooting plan's own — resolved once per document, and once per run by `OcptExportManager` for the two exports that write a folder — the shooting plan's version line repeated in every page's running head, and the call sheets' own in the title block | ✅ |
 | 29e | Schedule review M6 — the call sheets: the named export picking its own days (the recipient list the **union** of the ticked days' convocations, one file per **recipient × day**, the collision suffixes and the three-outcome reporting unchanged), the day's guests as a trailing `NOM / MOTIF / HORAIRES` table and its events as their own timed section on both sheets, a block's `crewNote` printed under its own row (a shot run closing its `pw.Table` chunk so the note can span), and the named sheet's own `À apporter` table over `OcptSchedulePlanSnapshot.elementsToBringOnDay`/`sceneIdsOfDay` — the schedule mode's sixth read | ✅ |
 | 29f | Schedule review M7 — the shooting plan: an hours column leading every shot table, the day agenda printing the day's events, its guests and a block's `crewNote` (the guest-row join moved into `ocpt_schedule_pdf_shared.dart` rather than copied), `OcptShootingDayAgendaGrid` (`lib/models/`, pure and tested) drawn as an optional ten-minute page per day — its rows bounded by the blocks alone, an out-of-band event a marker at the edge it falls beyond — a fourth summary grid crossing **days** rather than slots for the elements a printed range needs, and the two things a torn-out page needs to say for itself: the running head on **every** page (`pw.MultiPage`'s own `header:`) and a table's own header repeated across them | ✅ |
+| 29g | Schedule review M8 — the *Day Out of Days*: `ocpt_day_out_of_days.dart` (`lib/utils/`, pure) computing a role's `SW`/`W`/`WF`/`H` over the printed days and the `SWF` where a span's two ends meet, `T` and `R` deliberately absent, `OcptSchedulePlanSnapshot.convokedRoleIdsOfDay` naming roles rather than actors, and `OcptDayOutOfDaysPdfService` drawing it landscape and chunked with a legend under the last page and the whole range's own worked/held counts | ✅ |
 
 ## Ways of working
 
@@ -446,21 +447,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and nine services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and ten services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
   annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook),
   `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene),
-  `OcptCallSheetPdfService` and `OcptShootingPlanPdfService` (the schedule's own paperwork, below)
+  `OcptCallSheetPdfService`, `OcptShootingPlanPdfService` and `OcptDayOutOfDaysPdfService` (the
+  schedule's own paperwork, below)
   and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
   to a default location silently; its `pickDirectory` is the same promise for the one export that
-  writes **several** files, the named call sheets). The five PDF services share one
+  writes **several** files, the named call sheets). The six PDF services share one
   `OcptCourierPrimeFontsLoader`
   (handed to each by the manager, so the 4 embedded TTFs are decoded once) and one
   `OcptScriptPagePainter` — the two script exports for the positioned line drawing they both start
-  from, the breakdown sheets and the two schedule documents for its metrics and fonts alone, their
+  from, the breakdown sheets and the three schedule documents for its metrics and fonts alone, their
   pages flowing rather than
   typeset. An export writing into a folder reports an `OcptCallSheetExportResult` rather than a
   path: some files landing and others not is a third outcome, and it must never read as success —
@@ -1019,7 +1021,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   a slot starts at. The state builds one **per state instance**, not per read: a state is immutable,
   so the join cannot go stale inside one, and `timelinesOfDay` is handed to the three agendas as a
   function reference and called once per day cell.
-  The `⋮` menu prints the three documents the reference production paperwork is modelled on, each
+  The `⋮` menu prints the four documents the reference production paperwork is modelled on, each
   through its own options dialog and each offered **under a version preview too**, an export only
   reading. `OcptCallSheetPdfService` renders the **general** call sheet and the **named** ones from
   one composition, section for section against the reference `.docx`: recipients, the title block,
@@ -1123,7 +1125,9 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   which issue it is or which unit a column belongs to. An elements-grid **category band** is
   deliberately not repeated — `repeat` redraws every marked row on every page, so several bands
   would stack into a heading that lies, and an element row already names itself.
-  `ocpt_schedule_pdf_shared.dart` holds what the two documents must not read differently: the walk
+  `ocpt_schedule_pdf_shared.dart` holds what the two timetable documents must not read differently
+  (the *Day Out of Days* reads none of it but `ocptScheduleGeneratedAtStamp`, printing no hour at
+  all): the walk
   that puts a day's parallel slot chains back into a single clock order, a block's caption, the HMC
   role numbers and the line they print as (so both documents say them identically, each handing in
   its own already-localized `RÔLES` label), a location's address line, a day's **guest rows**
@@ -1154,6 +1158,32 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   table, the dialog's own selection keys and every reader behind them assuming a convocation names a
   person or a role. A guest is somebody the sheet tells you about, not yet somebody a sheet is
   addressed to.
+  `OcptDayOutOfDaysPdfService` prints the fourth document, the **Day Out of Days** — the cast's own
+  schedule, one row per role and one column per printed day, landscape and chunked over its own
+  twelve-column budget rather than the shooting plan's six (a cell here holds two letters where one
+  there holds a set name, so tying the two together would let one document's legibility decide the
+  other's). Every code comes from **`ocptComputeDayOutOfDays`** (`lib/utils/ocpt_day_out_of_days.dart`,
+  pure, no Flutter and no `Tr`, the shape `OcptShootingDayAgendaGrid` already has): a role's `SW` on
+  its first convoked day of the range, `W` between, `WF` on its last, `H` on a day **inside** that
+  span it is not convoked on, and **nothing at all** outside it — a day before a part joins the shoot
+  is not a missing value but a day the document deliberately says nothing about, which is why that
+  cell prints truly empty rather than `ocptScheduleEmptyValue`. The one cell where a span's two ends
+  meet is `SWF`: printing a bare `SW` on a role convoked on a single day would say it starts and
+  never finishes. **`T` (travel) and `R` (rehearsal) are not printed**, no column of this app saying
+  either — the one that could have carried travel is the `shooting_presences` override schema v17
+  dropped — and if a production ever needs them they come back as a **typed** fact with a table of
+  their own, never as a code guessed on a computed grid. The service decides two things only, both
+  about paper: the rows' order (by role number, the order every other document lists a cast in) and
+  the drawing; the "which roles" question is the pure function's, and a role the printed range
+  convokes **nowhere** gets no row at all — a blank line would be indistinguishable from a hold-free
+  span, and that a cast role is scheduled nowhere is said in the app, against the day it concerns,
+  rather than by a column of blanks. Its cells read `OcptSchedulePlanSnapshot.convokedRoleIdsOfDay`,
+  which names **roles and never actors**: a *Day Out of Days* is negotiated per part, so recasting
+  must not redraw it. The five code letters travel through `Tr` like everything else (they read the
+  same in both languages today, which is exactly why the **legend** printed under the last chunk is
+  fully localized), and the two trailing counts — days worked, days held — are the **whole printed
+  range's**, never the chunk's: a contract is negotiated over the shoot, not over whichever days fell
+  on one sheet.
   Schema v17's own two tables are drawn by the mode as of M3. A **guest**
   (`shooting_slot_guests`) is somebody neither crew nor cast — a mayor lending a square, a
   journalist, an owner's cousin — convoked **by a slot** exactly as everybody else is, named by
