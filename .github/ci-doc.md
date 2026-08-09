@@ -42,8 +42,8 @@ Nobody has run the macOS application yet - there is no Mac behind this project -
 is only ever verified as far as those structural checks go.
 
 The three build jobs share the `flutter-build` action, which caches `build/` between runs. Its key
-carries **the runner image** (`ImageOS` / `ImageVersion`) beside the sources, and so does its
-restore-keys prefix, because `build/` holds CMake's own caches and those hold absolute paths into
+carries **the runner image** beside the sources, and so does its restore-keys prefix, because
+`build/` holds CMake's own caches and those hold absolute paths into
 the image - the JDK `package:jni` was configured against, the SDKs, the toolchain. A hosted image
 is refreshed weekly and those paths carry a patch version, so an entry restored across a refresh
 sends CMake to directories that no longer exist, and CMake never re-runs a lookup whose answer it
@@ -51,6 +51,13 @@ already has: that is how a green Windows build turned into `Cannot open include 
 without a line of the repository changing. Scoping the entry to the image makes a refresh start a
 fresh lineage instead; within one image, the incremental reuse is unchanged. `v*` tags skip the
 cache altogether, so a released artifact never comes from restored state.
+
+The image identity is read in a shell step (`ImageOS`, `ImageVersion`) and used through that step's
+output, **never written into the key as `${{ env.ImageOS }}`**: an expression's `env` context only
+holds what the workflow itself declared, not the variables a runner sets in its own environment, so
+that form expands to the empty string and quietly un-scopes the very key it was meant to scope. A
+self-hosted runner sets neither variable and reports `unknown-unknown` - one stable lineage, which
+is the behaviour every runner had before.
 
 ### flutter_lint.yml, markdown_lint.yml, reuse_compliance.yml
 
