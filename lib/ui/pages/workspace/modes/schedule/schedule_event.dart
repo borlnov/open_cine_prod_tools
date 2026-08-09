@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_export_option
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
@@ -855,6 +857,32 @@ class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleEvent {
 
   /// Class constructor
   const OcptScheduleShootingPlanExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+}
+
+/// Requests exporting the whole-shoot shooting plan's own **workbook** of [options]' own days as a
+/// single XLSX file, written through the native save dialog — dispatched once
+/// `OcptScheduleShootingPlanXlsxExportDialog` returns its result. The workbook sibling of
+/// [OcptScheduleShootingPlanExportRequestedEvent].
+class OcptScheduleShootingPlanXlsxExportRequestedEvent extends OcptScheduleEvent {
+  /// The one-off options the export runs with — which days to print, and nothing else.
+  final OcptShootingPlanXlsxExportOptions options;
+
+  /// Every localized string the exported workbook carries.
+  final OcptShootingPlanXlsxLabels labels;
+
+  /// The localized label passed to the native save dialog's own type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptScheduleShootingPlanXlsxExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,

@@ -23,6 +23,8 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -152,6 +154,29 @@ const _shootingPlanLabels = OcptShootingPlanLabels(
   unnamedPersonLabel: "Unnamed",
 );
 
+/// A minimal, arbitrary set of localized strings for the shooting plan workbook export — mirrors
+/// [_callSheetLabels]' own doc comment.
+const _shootingPlanXlsxLabels = OcptShootingPlanXlsxLabels(
+  fileNameSuffix: "shooting plan",
+  locationsSheetName: "Locations",
+  sequencesSheetName: "Sequences",
+  peopleSheetName: "Crew and cast",
+  elementsSheetName: "Elements",
+  chronologySheetName: "Chronology",
+  locationsRowHeader: "Location",
+  sequencesRowHeader: "Sequence",
+  peopleRowHeader: "Crew / cast",
+  elementsRowHeader: "Element",
+  chronologyColumnHeaders: {},
+  dayTagPrefix: "D",
+  presenceMark: "x",
+  persoLabel: "People",
+  sequenceRowPrefix: "Seq.",
+  crewPositionLabels: {},
+  elementCategoryLabels: {},
+  blockKindLabels: {},
+);
+
 /// A minimal, arbitrary set of localized strings for the *Day Out of Days* export — mirrors
 /// [_callSheetLabels]' own doc comment.
 const _dayOutOfDaysLabels = OcptDayOutOfDaysLabels(
@@ -192,11 +217,13 @@ class _FakeScheduleExportManager extends OcptExportManager {
     this.generalCallSheetsResult,
     this.namedCallSheetsResult,
     this.shootingPlanResult,
+    this.shootingPlanXlsxResult,
     this.dayOutOfDaysResult,
     this.sidesResult,
     this.generalCallSheetsFails = false,
     this.namedCallSheetsFails = false,
     this.shootingPlanFails = false,
+    this.shootingPlanXlsxFails = false,
     this.dayOutOfDaysFails = false,
     this.sidesFails = false,
   }) : super(fileSelectorManager: const FileSelectorManager());
@@ -210,6 +237,9 @@ class _FakeScheduleExportManager extends OcptExportManager {
   /// The path [exportShootingPlan] returns, or null to simulate a cancelled save dialog.
   final String? shootingPlanResult;
 
+  /// The path [exportShootingPlanXlsx] returns, or null to simulate a cancelled save dialog.
+  final String? shootingPlanXlsxResult;
+
   /// The path [exportDayOutOfDays] returns, or null to simulate a cancelled save dialog.
   final String? dayOutOfDaysResult;
 
@@ -221,6 +251,9 @@ class _FakeScheduleExportManager extends OcptExportManager {
 
   /// Whether [exportShootingPlan] throws, to exercise the bloc's export-failed path.
   final bool shootingPlanFails;
+
+  /// Whether [exportShootingPlanXlsx] throws, to exercise the bloc's export-failed path.
+  final bool shootingPlanXlsxFails;
 
   /// Whether [exportDayOutOfDays] throws, to exercise the bloc's export-failed path.
   final bool dayOutOfDaysFails;
@@ -248,6 +281,9 @@ class _FakeScheduleExportManager extends OcptExportManager {
 
   /// The day ids of the last [exportShootingPlan] call.
   List<String>? lastShootingPlanDayIds;
+
+  /// The day ids of the last [exportShootingPlanXlsx] call.
+  List<String>? lastShootingPlanXlsxDayIds;
 
   /// The day ids of the last [exportDayOutOfDays] call.
   List<String>? lastDayOutOfDaysDayIds;
@@ -321,6 +357,22 @@ class _FakeScheduleExportManager extends OcptExportManager {
       throw StateError("shooting plan export intentionally failed for the test");
     }
     return shootingPlanResult;
+  }
+
+  @override
+  Future<String?> exportShootingPlanXlsx({
+    required OcptSchedulePlanSnapshot plan,
+    required List<String> dayIds,
+    required OcptShootingPlanXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+  }) async {
+    lastShootingPlanXlsxDayIds = dayIds;
+
+    if (shootingPlanXlsxFails) {
+      throw StateError("shooting plan workbook export intentionally failed for the test");
+    }
+    return shootingPlanXlsxResult;
   }
 
   @override
@@ -940,6 +992,69 @@ void main() {
       await bloc.close();
     });
   });
+
+  group("exporting the shooting plan workbook", () {
+    test("hands the plan and the options to the manager and raises the file-succeeded notice", () async {
+      final fixture = await writePlacedShot();
+      final exportManager = _FakeScheduleExportManager(shootingPlanXlsxResult: "/tmp/plan.xlsx");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptScheduleShootingPlanXlsxExportRequestedEvent(
+          options: OcptShootingPlanXlsxExportOptions(dayIds: [fixture.dayId]),
+          labels: _shootingPlanXlsxLabels,
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(exportManager.lastShootingPlanXlsxDayIds, [fixture.dayId]);
+      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/plan.xlsx");
+
+      await bloc.close();
+    });
+
+    test("is a silent no-op when the save dialog is cancelled", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptScheduleShootingPlanXlsxExportRequestedEvent(
+          options: OcptShootingPlanXlsxExportOptions(dayIds: [fixture.dayId]),
+          labels: _shootingPlanXlsxLabels,
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.ioNotice, isNull);
+
+      await bloc.close();
+    });
+
+    test("raises the failed notice when the export throws", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc(exportManager: _FakeScheduleExportManager(shootingPlanXlsxFails: true));
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        OcptScheduleShootingPlanXlsxExportRequestedEvent(
+          options: OcptShootingPlanXlsxExportOptions(dayIds: [fixture.dayId]),
+          labels: _shootingPlanXlsxLabels,
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+
   group("exporting the day out of days", () {
     test("hands the plan and the options to the manager and raises the file-succeeded notice", () async {
       final fixture = await writePlacedShot();

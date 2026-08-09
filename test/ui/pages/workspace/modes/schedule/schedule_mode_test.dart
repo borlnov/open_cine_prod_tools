@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_xlsx_export_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -121,10 +122,11 @@ void main() {
       expect(inPanel(find.text(tr.scheduleExportPanelCallSheetsTitle)), findsOneWidget);
       expect(inPanel(find.text(tr.scheduleExportPanelNamedCallSheetsTitle)), findsOneWidget);
       expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)), findsOneWidget);
+      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxTitle)), findsOneWidget);
       expect(inPanel(find.text(tr.scheduleExportPanelDayOutOfDaysTitle)), findsOneWidget);
       expect(inPanel(find.text(tr.scheduleExportPanelOneLineScheduleTitle)), findsOneWidget);
       expect(inPanel(find.text(tr.scheduleExportPanelSidesTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportUnavailableReason)), findsNWidgets(6));
+      expect(inPanel(find.text(tr.scheduleExportUnavailableReason)), findsNWidgets(7));
       expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanDescription)), findsNothing);
 
       // Unavailable: tapping it pops nothing, so the panel stays open.
@@ -166,6 +168,41 @@ void main() {
 
       expect(find.text(tr.scheduleExportPanelTitle), findsNothing);
       expect(find.byType(OcptScheduleShootingPlanExportDialog), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "once a day is planned, picking the shooting plan workbook card opens its own export options "
+    "dialog",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final dayId = await projectsManager.scheduleService.createDay(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        date: DateTime(2026, 8, 10),
+      );
+      expect(dayId, isNotNull);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleMode)));
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxDescription)), findsOneWidget);
+
+      await tester.tap(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxTitle)));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.scheduleExportPanelTitle), findsNothing);
+      expect(find.byType(OcptScheduleShootingPlanXlsxExportDialog), findsOneWidget);
     },
   );
 }

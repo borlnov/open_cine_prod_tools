@@ -42,6 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_presence_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_xlsx_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_sides_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
@@ -184,7 +185,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     ),
   ];
 
-  /// Builds the six entries the toolbar's `Export` button offers, disabled together when the
+  /// Builds the seven entries the toolbar's `Export` button offers, disabled together when the
   /// project holds no live day at all — there would be nothing to print, and the sides dialog
   /// additionally relies on it, its day dropdown having to open on some day.
   ///
@@ -220,6 +221,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
         title: tr.scheduleExportPanelShootingPlanTitle,
         description: tr.scheduleExportPanelShootingPlanDescription,
         formatLabel: "PDF",
+        unavailableReason: unavailableReason,
+      ),
+      OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
+        value: OcptScheduleExportDocument.shootingPlanXlsx,
+        title: tr.scheduleExportPanelShootingPlanXlsxTitle,
+        description: tr.scheduleExportPanelShootingPlanXlsxDescription,
+        formatLabel: "XLSX",
         unavailableReason: unavailableReason,
       ),
       OcptWorkspaceExportEntry<OcptScheduleExportDocument>(
@@ -271,6 +279,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
         await _requestNamedCallSheetsExport(context, state);
       case OcptScheduleExportDocument.shootingPlan:
         await _requestShootingPlanExport(context, state);
+      case OcptScheduleExportDocument.shootingPlanXlsx:
+        await _requestShootingPlanXlsxExport(context, state);
       case OcptScheduleExportDocument.dayOutOfDays:
         await _requestDayOutOfDaysExport(context, state);
       case OcptScheduleExportDocument.oneLineSchedule:
@@ -372,6 +382,29 @@ class _ScheduleViewState extends State<_ScheduleView> {
         options: options,
         labels: ocptShootingPlanLabelsOf(context, days: state.days, people: state.people),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
+      ),
+    );
+  }
+
+  /// Shows the shooting plan **workbook**'s own export options dialog, then dispatches the export
+  /// request if the user applied it — mirrors [_requestShootingPlanExport], its dialog asking for
+  /// the days and nothing else (`OcptScheduleShootingPlanXlsxExportDialog`'s own doc comment).
+  Future<void> _requestShootingPlanXlsxExport(BuildContext context, OcptScheduleState state) async {
+    final bloc = context.read<OcptScheduleBloc>();
+    final options = await OcptScheduleShootingPlanXlsxExportDialog.show(context, days: state.days);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptScheduleShootingPlanXlsxExportRequestedEvent(
+        options: options,
+        labels: ocptShootingPlanXlsxLabelsOf(context),
+        fileTypeLabel: tr.scheduleExportXlsxFileTypeLabel,
       ),
     );
   }

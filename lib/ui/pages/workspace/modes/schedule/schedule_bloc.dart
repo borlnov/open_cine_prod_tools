@@ -205,6 +205,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleCallSheetsExportRequestedEvent>(_onCallSheetsExportRequested);
     on<OcptScheduleNamedCallSheetsExportRequestedEvent>(_onNamedCallSheetsExportRequested);
     on<OcptScheduleShootingPlanExportRequestedEvent>(_onShootingPlanExportRequested);
+    on<OcptScheduleShootingPlanXlsxExportRequestedEvent>(_onShootingPlanXlsxExportRequested);
     on<OcptScheduleDayOutOfDaysExportRequestedEvent>(_onDayOutOfDaysExportRequested);
     on<OcptScheduleOneLineScheduleExportRequestedEvent>(_onOneLineScheduleExportRequested);
     on<OcptScheduleSidesExportRequestedEvent>(_onSidesExportRequested);
@@ -1513,6 +1514,48 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error) {
       appLogger().e(
         "A problem occurred when tried to export the shooting plan of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+    }
+  }
+
+  /// Exports the whole-shoot shooting plan's own five-sheet workbook of `event.options.dayIds` as a
+  /// single XLSX file, written through the native save dialog. Mirrors
+  /// [_onShootingPlanExportRequested] — see its own doc comment for the flush and the cancellation
+  /// contract, identical here.
+  Future<void> _onShootingPlanXlsxExportRequested(
+    OcptScheduleShootingPlanXlsxExportRequestedEvent event,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final plan = state.planSnapshot;
+    if (plan == null) {
+      return;
+    }
+
+    try {
+      final path = await _exportManager.exportShootingPlanXlsx(
+        plan: plan,
+        dayIds: event.options.dayIds,
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+      );
+      if (path == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to export the shooting plan workbook of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
       emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));

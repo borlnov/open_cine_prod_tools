@@ -4,7 +4,7 @@
 
 /// A document the schedule mode's export panel offers, through `OcptWorkspaceExportDialog`.
 ///
-/// All six values share one `OcptWorkspaceExportEntry.unavailableReason`: a project holding no
+/// All seven values share one `OcptWorkspaceExportEntry.unavailableReason`: a project holding no
 /// live shooting day leaves nothing for any of them to print.
 enum OcptScheduleExportDocument {
   /// The general call sheets, one per day.
@@ -15,6 +15,10 @@ enum OcptScheduleExportDocument {
 
   /// The shooting plan: the whole shoot's summary grids and its per-day agendas.
   shootingPlan,
+
+  /// The shooting plan's own workbook: the same summary grids, one sheet each, plus a fifth
+  /// Chronology sheet, one row per block over the whole printed range.
+  shootingPlanXlsx,
 
   /// The *Day Out of Days*: one row per role, one column per day.
   dayOutOfDays,
