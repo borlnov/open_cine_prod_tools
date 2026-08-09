@@ -48,6 +48,10 @@ const PdfColor _ruleColor = PdfColor.fromInt(0xFFB0B0B0);
 /// The background colour of a table's header row and of a grid's own header band.
 const PdfColor _bandColor = PdfColor.fromInt(0xFFEDEDED);
 
+/// The colour of the ten-minute grid's own horizontal rule, one per row, lighter than [_ruleColor]
+/// so it reads as a reading aid behind the tiles rather than as a border of its own.
+const PdfColor _gridRowRuleColor = PdfColor.fromInt(0xFFDCDCDC);
+
 /// The grey the running head and every muted label is printed in.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 
@@ -1265,6 +1269,14 @@ class OcptShootingPlanPdfService {
   /// breaking one open — the grid's own bounds no longer stretch to reach it (see
   /// `OcptShootingDayAgendaGrid`'s own doc comment for why a printed page decided that differently
   /// from the schedule mode's own on-screen week grid).
+  ///
+  /// Every row additionally opens on a **light grey rule the whole width of the page**, carried by
+  /// the row's own decoration rather than by its cells: a reader following a time across three slot
+  /// columns has nothing else to line their eye up on, the hour column and the tiles being drawn
+  /// several centimetres apart. It is painted in [_gridRowRuleColor] over the tiles rather than
+  /// under them — `pw.BoxDecoration` draws a border in its foreground phase — and that is why the
+  /// colour is lighter than [_ruleColor]: it crosses a multi-row tile without ever reading as that
+  /// tile having been cut into pieces.
   pw.MultiPage _tenMinuteGridPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -1380,6 +1392,9 @@ class OcptShootingPlanPdfService {
     for (var row = 0; row < grid.rowCount; row++) {
       pendingRows.add(
         pw.TableRow(
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(top: pw.BorderSide(color: _gridRowRuleColor, width: 0.3)),
+          ),
           children: [
             _tenMinuteGridHourCell(painter: painter, minute: grid.startMinute + row * OcptShootingDayAgendaGrid.stepMinutes),
             for (final column in grid.columns)

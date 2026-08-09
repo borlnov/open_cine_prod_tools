@@ -1187,7 +1187,12 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   A day may additionally be printed as an optional **ten-minute grid** page, one per day, which
   **adds to** the detailed agenda rather than replacing it: rows every ten minutes, one column per
   slot, a block as a tile spanning the rows it touches with its **exact** times printed inside it,
-  and an event as a full-width marker. Its whole geometry is `OcptShootingDayAgendaGrid`
+  and an event as a full-width marker. Every row opens on a **light grey rule the whole width of the
+  page**, carried by the row's own decoration and painted *over* the tiles (a `pw.BoxDecoration`
+  draws its border in the foreground phase), so a reader following a time across three slot columns
+  has something to line their eye up on; it is lighter than every other rule of the document
+  precisely so that crossing a multi-row tile never reads as that tile having been cut in two. Its
+  whole geometry is `OcptShootingDayAgendaGrid`
   (`lib/models/`, **pure Dart, no `pdf` and no Flutter**, the shape `OcptScenarioCoverageLayout`
   has), so the hard cases — a 12-minute block on a ten-minute grid, two slots whose chains overlap,
   a night crossing midnight, a band resolving to a **negative** minute because an end-anchored slot
