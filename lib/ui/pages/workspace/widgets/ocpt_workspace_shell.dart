@@ -186,6 +186,11 @@ class OcptWorkspaceShell extends StatelessWidget {
   /// kind of gesture a bare glyph reads as, so it does not take [OcptWorkspaceToolbar
   /// .chromeButtonStyle]'s square shape, and is sized to the toolbar band rather than to
   /// [TextButton]'s own default touch target.
+  ///
+  /// That last part is what [MaterialTapTargetSize.shrinkWrap] buys: the stock 48 px touch target
+  /// silently wins over the [ocptToolbarChromeButtonSize] minimum below, making this button taller
+  /// than the dock toggles it sits between — the very reason the `iconButtonTheme` already shrink-
+  /// wraps every icon button of the app.
   Widget? _buildExportAction(BuildContext context) {
     final onExportRequested = this.onExportRequested;
     if (onExportRequested == null) {
@@ -202,7 +207,9 @@ class OcptWorkspaceShell extends StatelessWidget {
         label: Text(tr.workspaceExportAction),
         style: TextButton.styleFrom(
           minimumSize: const Size(0, ocptToolbarChromeButtonSize),
+          maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
           padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
     );
