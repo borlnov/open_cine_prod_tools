@@ -120,6 +120,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29g | Schedule review M8 — the *Day Out of Days*: `ocpt_day_out_of_days.dart` (`lib/utils/`, pure) computing a role's `SW`/`W`/`WF`/`H` over the printed days and the `SWF` where a span's two ends meet, `T` and `R` deliberately absent, `OcptSchedulePlanSnapshot.convokedRoleIdsOfDay` naming roles rather than actors, and `OcptDayOutOfDaysPdfService` drawing it landscape and chunked with a legend under the last page and the whole range's own worked/held counts | ✅ |
 | 29h | Schedule review M9 — the one-line schedule: `OcptOneLineSchedulePdfService` printing one line per sequence in shooting order over the whole shoot, landscape and in one continuous flow with a day band between days, its lines folded by the call sheet's own run rule off `ocptOrderedScheduleEntriesOfDay`, a `hold` given a line of its own while every non-shooting kind gets none, five columns and deliberately no hours one, and `OcptSchedulePlanSnapshot.sceneNumberBySceneId` as `headingBySceneId`'s new neighbour | ✅ |
 | 29i | Schedule review M10 — the sides: `OcptScriptSidesLayout` (`lib/models/`, pure and tested) slicing a day's own sequences out of the composed script by the coverage layout's own bridge rule, in screenplay order, as either the screenplay's own pages with the rest blanked at their true row indices or the extracts packed onto fresh ones, `OcptSchedulePlanSnapshot.sceneSpanBySceneId` as `sceneNumberBySceneId`'s neighbour, and `OcptSidesPdfService` redrawing them through `OcptScriptPagePainter` under a running head naming the day and the screenplay page a reader can look it up by | ✅ |
+| 29j | Schedule review M11 — the export button and its panel: `OcptWorkspaceShell.onExportRequested` and the labelled `Export` control it builds between the mode label and the dock toggles, `OcptWorkspaceExportEntry<T>` (`lib/models/`, pure) and `OcptWorkspaceExportDialog<T>` (a two-column grid of cards that only asks, an unprintable document greyed and inert with its reason in place of its description), the five modes wired onto them through one export enum each (`lib/types/`), and their twelve `⋮` export entries and `…MenuAction` keys deleted | ✅ |
 
 ## Ways of working
 
@@ -219,7 +220,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   stateless slot widget (title, toolbar actions, overflow entries, left panel, right panel,
   centre, status bar, dock controller) built by whichever mode is active. The end of the toolbar
   is the shell's own chrome rather than a mode's actions, so its order can't drift from one mode
-  to the next: the mode label, the two dock toggles
+  to the next: the mode label, the `Export` control (`onExportRequested`), the two dock toggles
   (`isLeftDockOpen`/`onToggleLeftDock`, same pair for the right), the save control
   (`onSave`/`isSaving`, spinner while in flight), then the `⋮` menu — each rendered only when the
   mode wired it, so a mode with no dock or nothing to save simply shows fewer of them. A mode's
@@ -242,6 +243,33 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   selects the mode (all five entries always selectable, unimplemented ones only discreetly
   marked). See `docs/adr/` for why this is a slot widget plus a mode-only bloc rather than a
   mode-aware god-bloc.
+- **Every export in the app is reached from one place**: the toolbar's own `Export` control, in
+  every mode that prints something, opening `OcptWorkspaceExportDialog<T>`
+  (`lib/ui/pages/workspace/widgets/`, generic over the mode's own export enum) — a scrolling
+  two-column grid of cards, one per document, each naming it, saying in a line what it is, and
+  wearing its format as a trailing label. A `⋮` menu is where an application parks what it has
+  nowhere better for, and the paperwork a production hands round is not that; a menu entry also has
+  no room to say what a document *is*, which is exactly what somebody choosing between
+  `Plan de travail`, `Plan de travail des comédiens` and `Plan de travail synthétique` needs told.
+  The control is built by the shell rather than handed in, so an export is the same gesture in the
+  same place in all five modes, and `onExportRequested` is nullable like every other chrome slot:
+  the budget mode, printing nothing, shows **no button at all** rather than a disabled one. The
+  panel **only asks** — it pops the picked value and nothing else, the mode then opening that
+  document's own options dialog from its own context, exactly as the `⋮` entries it replaces
+  already had to. `OcptWorkspaceExportEntry<T>` (`lib/models/`, pure) is one card's descriptor
+  (`value`, `title`, `description`, `formatLabel`, nullable `unavailableReason`) and carries no
+  `Tr`, the mode resolving every word, as `OcptShotListXlsxLabels` already does for the services;
+  `PDF`, `XLSX` and `.fountain` deliberately go through no ARB key, a format's name reading the
+  same in both languages. A card's title is the **document's name** (`Feuilles de service`), never
+  a sentence of action. A document that cannot be printed right now is a card **greyed and inert,
+  its description replaced by the reason**, never a hidden one: the panel is a presentation of what
+  this mode knows how to print, and a card that disappeared would make it lie about what exists —
+  somebody who has never planned a day would never learn the app prints sides at all. The scope is
+  the **active mode's own** documents (the twelve of the whole project would need one mode to
+  trigger another's export, which nothing in this architecture does), and the panel stays offered
+  **under a version preview**, an export only ever reading. What the `⋮` keeps is the screenplay's
+  import-and-replace, its two display toggles, its page setup and its title page; the other four
+  modes keep `Reset panel layout` alone, which is thin but honest.
 - Config: `OcptConfigManager` (yaml assets in `assets/config/`), properties persisted through
   `OcptPropertiesManager` (recent projects capped at 10, locale, theme, editor mode, page
   margins).
