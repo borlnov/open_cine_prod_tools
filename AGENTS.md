@@ -118,6 +118,7 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
 | 29e | Schedule review M6 — the call sheets: the named export picking its own days (the recipient list the **union** of the ticked days' convocations, one file per **recipient × day**, the collision suffixes and the three-outcome reporting unchanged), the day's guests as a trailing `NOM / MOTIF / HORAIRES` table and its events as their own timed section on both sheets, a block's `crewNote` printed under its own row (a shot run closing its `pw.Table` chunk so the note can span), and the named sheet's own `À apporter` table over `OcptSchedulePlanSnapshot.elementsToBringOnDay`/`sceneIdsOfDay` — the schedule mode's sixth read | ✅ |
 | 29f | Schedule review M7 — the shooting plan: an hours column leading every shot table, the day agenda printing the day's events, its guests and a block's `crewNote` (the guest-row join moved into `ocpt_schedule_pdf_shared.dart` rather than copied), `OcptShootingDayAgendaGrid` (`lib/models/`, pure and tested) drawn as an optional ten-minute page per day — its rows bounded by the blocks alone, an out-of-band event a marker at the edge it falls beyond — a fourth summary grid crossing **days** rather than slots for the elements a printed range needs, and the two things a torn-out page needs to say for itself: the running head on **every** page (`pw.MultiPage`'s own `header:`) and a table's own header repeated across them | ✅ |
 | 29g | Schedule review M8 — the *Day Out of Days*: `ocpt_day_out_of_days.dart` (`lib/utils/`, pure) computing a role's `SW`/`W`/`WF`/`H` over the printed days and the `SWF` where a span's two ends meet, `T` and `R` deliberately absent, `OcptSchedulePlanSnapshot.convokedRoleIdsOfDay` naming roles rather than actors, and `OcptDayOutOfDaysPdfService` drawing it landscape and chunked with a legend under the last page and the whole range's own worked/held counts | ✅ |
+| 29h | Schedule review M9 — the one-line schedule: `OcptOneLineSchedulePdfService` printing one line per sequence in shooting order over the whole shoot, landscape and in one continuous flow with a day band between days, its lines folded by the call sheet's own run rule off `ocptOrderedScheduleEntriesOfDay`, a `hold` given a line of its own while every non-shooting kind gets none, five columns and deliberately no hours one, and `OcptSchedulePlanSnapshot.sceneNumberBySceneId` as `headingBySceneId`'s new neighbour | ✅ |
 
 ## Ways of working
 
@@ -447,22 +448,22 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   encoding of one.
   `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and ten services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and eleven services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService` (the shot list workbook), `OcptScenarioCoveragePdfService` (the
   annotated coverage PDF), `OcptResourcesXlsxExportService` (the resources workbook),
   `OcptBreakdownSheetsPdfService` (the breakdown sheets PDF, one sheet per scene),
-  `OcptCallSheetPdfService`, `OcptShootingPlanPdfService` and `OcptDayOutOfDaysPdfService` (the
-  schedule's own paperwork, below)
+  `OcptCallSheetPdfService`, `OcptShootingPlanPdfService`, `OcptDayOutOfDaysPdfService` and
+  `OcptOneLineSchedulePdfService` (the schedule's own paperwork, below)
   and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`,
   a **direct** dependency kept in sync with the version `act_file_transfer_manager` already resolves
   transitively, for the native "save as" dialog every export goes through — no export ever writes
   to a default location silently; its `pickDirectory` is the same promise for the one export that
-  writes **several** files, the named call sheets). The six PDF services share one
+  writes **several** files, the named call sheets). The seven PDF services share one
   `OcptCourierPrimeFontsLoader`
   (handed to each by the manager, so the 4 embedded TTFs are decoded once) and one
   `OcptScriptPagePainter` — the two script exports for the positioned line drawing they both start
-  from, the breakdown sheets and the three schedule documents for its metrics and fonts alone, their
+  from, the breakdown sheets and the four schedule documents for its metrics and fonts alone, their
   pages flowing rather than
   typeset. An export writing into a folder reports an `OcptCallSheetExportResult` rather than a
   path: some files landing and others not is a third outcome, and it must never read as success —
@@ -1021,7 +1022,7 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   a slot starts at. The state builds one **per state instance**, not per read: a state is immutable,
   so the join cannot go stale inside one, and `timelinesOfDay` is handed to the three agendas as a
   function reference and called once per day cell.
-  The `⋮` menu prints the four documents the reference production paperwork is modelled on, each
+  The `⋮` menu prints the five documents the reference production paperwork is modelled on, each
   through its own options dialog and each offered **under a version preview too**, an export only
   reading. `OcptCallSheetPdfService` renders the **general** call sheet and the **named** ones from
   one composition, section for section against the reference `.docx`: recipients, the title block,
@@ -1184,6 +1185,31 @@ Built 100% on the **ACT Flutter packages** (git submodule `actlibs/`, consumed a
   fully localized), and the two trailing counts — days worked, days held — are the **whole printed
   range's**, never the chunk's: a contract is negotiated over the shoot, not over whichever days fell
   on one sheet.
+  `OcptOneLineSchedulePdfService` prints the fifth, the **one-line schedule** (`Plan de travail
+  synthétique`, deliberately named apart from the shooting plan's own `Plan de travail` and the *Day
+  Out of Days*' `Plan de travail comédiens`) — the compact strip schedule a production plans on: one
+  line per sequence, in shooting order, over the whole shoot, landscape and in **one continuous
+  flow**, a day band interrupting it between days while the running head and the column widths carry
+  on unbroken. It is the one document that reads the whole shoot start to finish rather than
+  comparing day against day, which is why it chunks nothing. Its lines come off the same
+  `ocptOrderedScheduleEntriesOfDay` walk the call sheets and the shooting plan already read, and a
+  line is folded by the very rule `OcptCallSheetPdfService._buildDayRows` states: a run of
+  consecutive `shot` blocks on **one slot** naming **one scene**. A `hold` is a line of its own and
+  never folds — a sequence blocked out ahead of the découpage is still a sequence — and **every other
+  block kind gives no line at all**: a meal, a move or a wrap is not a sequence, and the strip agenda
+  this document prints shows shot chips alone. Five columns, `SEQ / EFFET / DÉCOR / RÔLES / DURÉE`,
+  the first four read exactly as the call sheet's own table reads them (the same ARB headings, the
+  same `ocptSceneEffectOf`, the same slot set, the same `normalizeCharacterName` join) so the two
+  cannot disagree about a line they both print; `SEQ` additionally goes through
+  `OcptSchedulePlanSnapshot.sceneNumberBySceneId`, `headingBySceneId`'s new neighbour, since a hold
+  names a sequence through no shot code. **No hours column**: this document is read as an *order*,
+  and the clock a line falls at is the shooting plan's own day agenda — printing it twice would be
+  the two documents disagreeing about which one says when. A **hold prints an em dash under `RÔLES`**
+  rather than a guess: nothing in the manager layer says which roles a sequence not yet shot-listed
+  calls for (that reading is the breakdown's, which is not among this mode's six reads), and a part
+  invented on a printed page is a part somebody plans around. A day whose entries fold down to no
+  line prints its band and its own note, never a bare band, and a range naming no live day prints one
+  note page rather than an empty file.
   Schema v17's own two tables are drawn by the mode as of M3. A **guest**
   (`shooting_slot_guests`) is somebody neither crew nor cast — a mayor lending a square, a
   journalist, an owner's cousin — convoked **by a slot** exactly as everybody else is, named by
