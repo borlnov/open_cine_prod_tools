@@ -342,6 +342,22 @@ class OcptSchedulePlanSnapshot extends Equatable {
         if (shotById(block.shotId!)?.sceneId case final sceneId?) sceneId,
   };
 
+  /// Every role [dayId] convokes, across all of its live slots — the union of their own
+  /// `shooting_slot_cast` rows, which is what the *Day Out of Days* reads a cell from.
+  ///
+  /// Names **roles**, never actors, and deliberately so: a *Day Out of Days* is negotiated per part,
+  /// an uncast role is exactly as scheduled as a cast one, and recasting a part must not redraw the
+  /// document. It is the same set [_alertSlotOf] builds per slot for the position and convocation
+  /// rules, joined here across the whole day rather than per slot — a role convoked on the morning
+  /// unit and again in the evening is on that day once.
+  ///
+  /// Computed on every read rather than memoised, exactly as [sceneIdsOfDay] is and for the same
+  /// reason: it is a walk over one day's own slots, read once per printed day.
+  Set<String> convokedRoleIdsOfDay(String dayId) => {
+    for (final slot in schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[])
+      for (final member in slot.cast) member.roleId,
+  };
+
   /// The live elements [personId] is due to bring to [dayId]: every [elements] row whose
   /// [OcptElement.broughtByPersonId] is [personId] **and** at least one of whose
   /// [OcptElement.sceneLinks] names a scene [sceneIdsOfDay] says the day actually plays — the join a

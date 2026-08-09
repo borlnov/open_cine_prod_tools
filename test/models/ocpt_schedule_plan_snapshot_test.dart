@@ -953,6 +953,56 @@ void main() {
     });
   });
 
+  group("convokedRoleIdsOfDay", () {
+    test("the union of every live slot's own cast, deduplicated", () {
+      final morning = _buildSlot(
+        id: "slot-morning",
+        anchorMinute: 480,
+        cast: [
+          _buildCastMember(id: "cast-1", slotId: "slot-morning", roleId: "role-1"),
+          _buildCastMember(id: "cast-2", slotId: "slot-morning", roleId: "role-2"),
+        ],
+      );
+      final evening = _buildSlot(
+        id: "slot-evening",
+        anchorMinute: 1080,
+        // The same role, convoked twice in one day, is on that day once.
+        cast: [_buildCastMember(id: "cast-3", slotId: "slot-evening", roleId: "role-1")],
+      );
+      final snapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [morning, evening],
+        },
+      );
+
+      expect(snapshot.convokedRoleIdsOfDay("day-1"), {"role-1", "role-2"});
+    });
+
+    test("names the role even when it is cast, an actor never standing in for it", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 480,
+        cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+      );
+      final snapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        roles: [_buildRole(id: "role-1", name: "Alice", personId: "person-1")],
+      );
+
+      expect(snapshot.convokedRoleIdsOfDay("day-1"), {"role-1"});
+    });
+
+    test("empty for a day with no slot at all", () {
+      final snapshot = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 1)], slotsByDayId: const {});
+
+      expect(snapshot.convokedRoleIdsOfDay("day-1"), isEmpty);
+    });
+  });
+
   group("elementsToBringOnDay", () {
     /// A day playing `scene-1` alone, through one placed shot — the fixture every test below places
     /// its element against.
