@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_scenario_coverage_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
@@ -34,9 +35,11 @@ import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:path/path.dart' as p;
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
@@ -54,14 +57,14 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
 /// breakdown as one printed sheet per scene, and its shooting schedule as call sheets — the general
 /// one and the named ones, both per day —, as one whole-shoot shooting plan, as its cast's own
-/// *Day Out of Days* and as the compact one-line schedule.
+/// *Day Out of Days*, as the compact one-line schedule and as a day's own sides booklet.
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [pdfExportService], [shotListXlsxExportService],
 /// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
-/// [callSheetPdfService], [shootingPlanPdfService], [dayOutOfDaysPdfService] and
-/// [oneLineSchedulePdfService], and the "save as"/"choose a folder" location picking to
-/// [saveLocationService] — the eleven services this manager owns (RFL18).
+/// [callSheetPdfService], [shootingPlanPdfService], [dayOutOfDaysPdfService],
+/// [oneLineSchedulePdfService] and [sidesPdfService], and the "save as"/"choose a folder" location
+/// picking to [saveLocationService] — the twelve services this manager owns (RFL18).
 class OcptExportManager extends AbsWithLifeCycle {
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
@@ -96,6 +99,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service rendering the one-line schedule PDF.
   final OcptOneLineSchedulePdfService oneLineSchedulePdfService;
 
+  /// The service rendering a day's own sides booklet PDF.
+  final OcptSidesPdfService sidesPdfService;
+
   /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
   /// path.
   final OcptSaveLocationService saveLocationService;
@@ -128,6 +134,7 @@ class OcptExportManager extends AbsWithLifeCycle {
        shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
        dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
        oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
+       sidesPdfService = OcptSidesPdfService(fontsLoader: fontsLoader),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
@@ -576,6 +583,55 @@ class OcptExportManager extends AbsWithLifeCycle {
       suggestedFileName: oneLineSchedulePdfService.oneLineScheduleFileName(
         projectName: projectName,
         suffix: labels.fileNameSuffix,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+    );
+  }
+
+  /// Renders [dayId]'s own sides booklet via [sidesPdfService] and shows the native save dialog to
+  /// write it out.
+  ///
+  /// [document] is a parameter rather than something this manager reads off the open project, for
+  /// the same reason [exportScenarioCoverage] takes one: this manager touches no database, and the
+  /// screenplay text a booklet is sliced from is the caller's to supply. [labels] carries every
+  /// localized string the document itself holds (its own title, the day tag prefix, the printed
+  /// day's own title, the script-page prefix and the file name's own suffix) and [fileTypeLabel]
+  /// the one the native dialog needs — this manager has no `Tr` of its own. Like the shooting plan,
+  /// the *Day Out of Days* and the one-line schedule, this is a **single** file, through
+  /// `pickSaveLocation` rather than a folder — one booklet is one day's own paperwork, handed to
+  /// one recipient at a time. Returns the path of the written file, or null if the user cancelled
+  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
+  /// user).
+  Future<String?> exportSides({
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required OcptSidesLabels labels,
+    required String projectName,
+    required bool includeSceneNumbers,
+    required OcptSidesPresentation presentation,
+    required String fileTypeLabel,
+  }) async {
+    final bytes = await sidesPdfService.generate(
+      plan: plan,
+      dayId: dayId,
+      document: document,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      includeSceneNumbers: includeSceneNumbers,
+      presentation: presentation,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: sidesPdfService.sidesFileName(
+        plan: plan,
+        dayId: dayId,
+        projectName: projectName,
+        labels: labels,
       ),
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],

@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -33,6 +34,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -1391,6 +1393,115 @@ void main() {
       await export(manager);
 
       expect(saveLocationService.lastSuggestedFileName, "My Movie - one-line schedule.pdf");
+      expect(saveLocationService.lastFileTypeLabel, "PDF document");
+      expect(saveLocationService.lastExtensions, const ["pdf"]);
+    });
+  });
+
+  group('exportSides', () {
+    const labels = OcptSidesLabels(
+      fileNameSuffix: "sides",
+      documentTitle: "Sides",
+      versionLabel: "Version",
+      dayTagPrefix: "D",
+      dayTitle: "",
+      scriptPagePrefix: "p.",
+      emptyDayNote: "Nothing planned for this day.",
+    );
+
+    final document = const FountainParser().parse("INT. HOUSE - DAY\n\nJohn walks in.\n");
+
+    /// A one-day, one-slot schedule plan with no block placed — enough for one readable note page,
+    /// the same shape `exportOneLineSchedule`'s own `buildPlan` uses.
+    OcptSchedulePlanSnapshot buildPlan() {
+      final day = OcptShootingDay(
+        id: "day-1",
+        screenplayId: "screenplay-1",
+        date: DateTime(2026, 1, 2),
+        dayNumber: 2,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      const slot = OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
+        notes: "",
+        crew: [],
+        cast: [],
+        guests: [],
+      );
+
+      return OcptSchedulePlanSnapshot.build(
+        schedule: OcptScheduleSnapshot.build(
+          screenplayId: "screenplay-1",
+          days: [day],
+          slotsByDayId: const {
+            "day-1": [slot],
+          },
+          blocksByDayId: const {},
+          eventsByDayId: const {},
+        ),
+        shotList: null,
+        locations: const [],
+        roles: const [],
+        people: const [],
+        elements: const [],
+        minimumRestMinutes: null,
+      );
+    }
+
+    Future<String?> export(OcptExportManager manager) => manager.exportSides(
+      plan: buildPlan(),
+      dayId: "day-1",
+      document: document,
+      pageSetup: const OcptPageSetup.standard(),
+      labels: labels,
+      projectName: "My Movie",
+      includeSceneNumbers: false,
+      presentation: OcptSidesPresentation.scriptPages,
+      fileTypeLabel: "PDF document",
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+      );
+
+      expect(await export(manager), isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a single PDF and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - sides - D2.pdf");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(result: chosenPath),
+      );
+
+      expect(await export(manager), chosenPath);
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+    });
+
+    test('suggests the file name computed by OcptSidesPdfService, with the day tag', () async {
+      final saveLocationService = _FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await export(manager);
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - sides - D2.pdf");
       expect(saveLocationService.lastFileTypeLabel, "PDF document");
       expect(saveLocationService.lastExtensions, const ["pdf"]);
     });
