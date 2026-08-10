@@ -614,6 +614,59 @@ void main() {
     });
   });
 
+  group("coming back from the project settings page", () {
+    test("drops an episode the settings page deleted", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final project = projectsManager.currentProject!;
+
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      expect(secondEpisodeId, isNotNull);
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final secondSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        sceneId: secondSceneId,
+      );
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.episodes, hasLength(2));
+
+      // What the settings page's own Episodes card writes before it pops.
+      expect(
+        await projectsManager.screenplayService.deleteEpisode(
+          database: project.database,
+          screenplayId: secondEpisodeId,
+        ),
+        isTrue,
+      );
+
+      bloc.add(const OcptScheduleProjectSettingsChangedEvent());
+      final state = await waitForState(bloc, (state) => state.episodes.length == 1);
+
+      expect(state.episodes.single.id, project.primaryScreenplayId);
+      expect(
+        state.unplacedGroups.map((group) => group.heading),
+        isNot(contains("EXT. STREET - NIGHT")),
+        reason: "a deleted episode's shots must not stay on the board — this mode shows no episode "
+            "selector, so no keyed remount tells it the project lost one",
+      );
+
+      await bloc.close();
+    });
+  });
+
   group("selecting a shot", () {
     test("selects it and clears the selected block", () async {
       final fixture = await writePlacedShot();

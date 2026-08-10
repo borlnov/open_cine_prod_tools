@@ -1369,28 +1369,26 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Re-reads the page setup and the project's own minimum rest after the project settings page
-  /// changed something, so the three export dialogs pre-fill from the page format actually in
-  /// effect and the rest-time alert reads the figure the user just typed rather than the one it
-  /// loaded on entry — that page is exactly where either is changed.
+  /// Re-reads the project's whole schedule after the project settings page changed something.
+  ///
+  /// The page setup and the minimum rest are the obvious two — the three export dialogs pre-fill
+  /// their format dropdown from the one, and the rest-time alert reads the other, and that page is
+  /// exactly where either is changed. But that page also **manages the project's episodes**, and
+  /// this mode is the one that reads every one of them at once: deleting an episode there
+  /// tombstones its scenes, its shots and the blocks placing them, none of which the shell's own
+  /// episode reload can tell this mode about — the mode is keyed on the *selected* episode
+  /// (`WorkspacePage._buildActiveMode`) and a mode showing no selector never sees that key change.
+  /// A partial re-read would leave a deleted episode's shots on the board, so the whole read is
+  /// redone, exactly as [reloadFromProjectDatabase] redoes it.
+  ///
+  /// The cost is the one [_onLoadRequested] always carries and states: the selected day is chosen
+  /// afresh, and the selected block and shot are dropped. Coming back from a page reached through
+  /// the toolbar is a deliberate detour, and a selection kept over a database that may have lost
+  /// rows underneath it is worth less than one that is certainly true.
   Future<void> _onProjectSettingsChanged(
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
-    emitter(
-      state.copyWith(
-        pageSetup: await _loadPageSetup(project),
-        minimumRestMinutes: minimumRestMinutes,
-        clearMinimumRestMinutes: minimumRestMinutes == null,
-      ),
-    );
-  }
+  ) => _onLoadRequested(const OcptScheduleLoadRequestedEvent(), emitter);
 
   /// Exports the general call sheets of `event.options.dayIds`, one PDF per day, into a folder the
   /// user picks.
