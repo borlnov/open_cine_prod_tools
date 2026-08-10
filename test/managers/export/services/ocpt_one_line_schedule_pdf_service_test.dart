@@ -430,6 +430,105 @@ void main() {
     });
   });
 
+  group("multiple episodes", () {
+    /// Episode 1's own one-scene shot list: `scene-e1`, prefixed `1.3` — the number
+    /// `OcptShotListService.loadShotList` would already have given it.
+    OcptShotListSnapshot buildEpisodeOneShotList(OcptShot shot) =>
+        _buildShotList(shots: [shot], sceneId: "scene-e1", displaySceneNumber: "1.3");
+
+    /// Episode 2's own one-scene shot list: `scene-e2`, prefixed `2.4`.
+    OcptShotListSnapshot buildEpisodeTwoShotList(OcptShot shot) =>
+        _buildShotList(shots: [shot], sceneId: "scene-e2", heading: "EXT. STREET - NIGHT", displaySceneNumber: "2.4");
+
+    test(
+      "one line per sequence across both episodes: a shot run's own SEQ cell and a hold's own "
+      "carry each episode's own prefixed number",
+      () async {
+        final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1");
+        final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
+
+        final blocks = {
+          "day-1": [
+            _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e1"),
+            // A hold, reserving episode 2's own scene — a sequence not yet shot-listed, which is
+            // exactly the case `sceneNumberBySceneId` (not a shot's own code) has to answer for.
+            _buildBlock(
+              id: "block-2",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.hold,
+              sceneId: "scene-e2",
+            ),
+          ],
+        };
+
+        final prefixedPlan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: blocks,
+          roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
+          shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(_buildShot(id: "unused", code: "x"))],
+        );
+
+        // The same day, but episode 2's own scene reads back with no prefix at all — what a project
+        // stuck on a single episode's own reading would have printed instead.
+        final unprefixedPlan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: blocks,
+          roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
+          shotLists: [
+            buildEpisodeOneShotList(shotOne),
+            _buildShotList(
+              shots: [_buildShot(id: "unused", code: "x")],
+              sceneId: "scene-e2",
+              heading: "EXT. STREET - NIGHT",
+              displaySceneNumber: "4",
+            ),
+          ],
+        );
+
+        // Episode 1 alone: the control this test's own "both episodes print a line each" assertion
+        // is measured against.
+        final episodeOneOnlyPlan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: {
+            "day-1": [blocks["day-1"]!.first],
+          },
+          roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
+          shotLists: [buildEpisodeOneShotList(shotOne)],
+        );
+
+        Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+          plan: plan,
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+          exportDate: pinnedExportDate,
+        );
+
+        final prefixedBytes = await generateFor(prefixedPlan);
+        final unprefixedBytes = await generateFor(unprefixedPlan);
+        final episodeOneOnlyBytes = await generateFor(episodeOneOnlyPlan);
+
+        // The hold's own prefixed reading of episode 2's sequence draws differently from the
+        // unprefixed one: `sceneNumberBySceneId`'s own prefix genuinely reaches the page.
+        expect(_contentStreams(prefixedBytes), isNot(_contentStreams(unprefixedBytes)));
+        // Both episodes' own line prints more than episode 1's alone — the hold is not dropped.
+        expect(prefixedBytes.length, greaterThan(episodeOneOnlyBytes.length));
+      },
+    );
+  });
+
   group("oneLineScheduleFileName", () {
     test("joins the project name and the localized suffix", () {
       expect(

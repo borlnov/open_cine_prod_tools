@@ -1524,6 +1524,210 @@ void main() {
     });
   });
 
+  group("multiple episodes", () {
+    /// Episode 1's own one-scene shot list: `scene-e1`, prefixed `1.3` — the number
+    /// `OcptShotListService.loadShotList` would already have given it.
+    OcptShotListSnapshot buildEpisodeOneShotList(OcptShot shot) => OcptShotListSnapshot.build(
+      screenplayId: "episode-1",
+      sequences: [
+        OcptSceneShotSequence(
+          sceneId: "scene-e1",
+          heading: "INT. HOUSE - DAY",
+          sceneNumber: null,
+          displaySceneNumber: "1.3",
+          charStart: 0,
+          charEnd: 10,
+          shots: [shot],
+        ),
+      ],
+    );
+
+    /// Episode 2's own one-scene shot list: `scene-e2`, prefixed `2.4`.
+    OcptShotListSnapshot buildEpisodeTwoShotList(OcptShot shot) => OcptShotListSnapshot.build(
+      screenplayId: "episode-2",
+      sequences: [
+        OcptSceneShotSequence(
+          sceneId: "scene-e2",
+          heading: "EXT. STREET - NIGHT",
+          sceneNumber: null,
+          displaySceneNumber: "2.4",
+          charStart: 0,
+          charEnd: 10,
+          shots: [shot],
+        ),
+      ],
+    );
+
+    test(
+      "a role speaking in shots of both episodes is one cast row, not two, carrying scene "
+      "numbers from both — and the SEQ column carries both episodes' own prefixed codes",
+      () async {
+        final role = _buildRole(id: "role-1", name: "Alice");
+        final slot = _buildSlot(
+          id: "slot-1",
+          anchorMinute: 480,
+          cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+        );
+        final blocks = {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-e1",
+              durationMinutes: 60,
+            ),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-e2",
+              durationMinutes: 60,
+            ),
+          ],
+        };
+
+        // Alice speaks in both episodes' own shots: one role, cast once on the slot, its character
+        // read off two shots of two different scenes.
+        final oneRoleShotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
+        final oneRoleShotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1", characters: const ["ALICE"]);
+        final oneRolePlan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: blocks,
+          roles: [role],
+          shotLists: [buildEpisodeOneShotList(oneRoleShotOne), buildEpisodeTwoShotList(oneRoleShotTwo)],
+        );
+
+        // A second, distinct role speaks in the second episode's own shot instead — a whole second
+        // identity, where the fixture above kept it the very same Alice.
+        final secondRole = _buildRole(id: "role-2", name: "Bob", number: 2);
+        final twoRolesShotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
+        final twoRolesShotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1", characters: const ["BOB"]);
+        final twoRolesSlot = _buildSlot(
+          id: "slot-1",
+          anchorMinute: 480,
+          cast: [
+            _buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1"),
+            _buildCastMember(id: "cast-2", slotId: "slot-1", roleId: "role-2"),
+          ],
+        );
+        final twoRolesPlan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [twoRolesSlot],
+          },
+          blocksByDayId: blocks,
+          roles: [role, secondRole],
+          shotLists: [buildEpisodeOneShotList(twoRolesShotOne), buildEpisodeTwoShotList(twoRolesShotTwo)],
+        );
+
+        final oneRoleBytes = await service.generateGeneralCallSheet(
+          plan: oneRolePlan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          exportDate: _pinnedExportDate,
+        );
+        final twoRolesBytes = await service.generateGeneralCallSheet(
+          plan: twoRolesPlan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          exportDate: _pinnedExportDate,
+        );
+
+        // Both documents print the same two SEQ rows (1.3 then 2.4), so the only thing that can
+        // still tell them apart is the cast side: a second, distinct role costs a whole extra row
+        // in the cast table and a whole extra entry in the cast-and-extras list, where the very same
+        // Alice speaking a second time costs one more scene number appended to her own row. If the
+        // cast table had printed Alice twice instead of merging her two episodes into one row, the
+        // two documents would be the same size; they are not, and the two-role one is the larger of
+        // the two.
+        expect(_contentStreams(oneRoleBytes), isNot(_contentStreams(twoRolesBytes)));
+        expect(twoRolesBytes.length, greaterThan(oneRoleBytes.length));
+      },
+    );
+
+    test(
+      "a named sheet's own timetable narrows to its recipient's episode, but its cast table "
+      "stays the day's — naming a role that speaks only in the other episode's own slot",
+      () async {
+        final role = _buildRole(id: "role-1", name: "Alice");
+        final secondRole = _buildRole(id: "role-2", name: "Bob", number: 2);
+        final morning = _buildSlot(
+          id: "slot-morning",
+          anchorMinute: 480,
+          crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1")],
+        );
+        final evening = _buildSlot(id: "slot-evening", anchorMinute: 1080);
+        final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
+        final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1", characters: const ["BOB"]);
+
+        OcptSchedulePlanSnapshot buildPlan({required bool withEveningEpisode}) => _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": withEveningEpisode ? [morning, evening] : [morning],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                slotId: "slot-morning",
+                kind: OcptShootingBlockKind.shot,
+                shotId: "shot-e1",
+                durationMinutes: 60,
+              ),
+              if (withEveningEpisode)
+                _buildBlock(
+                  id: "block-2",
+                  slotId: "slot-evening",
+                  kind: OcptShootingBlockKind.shot,
+                  shotId: "shot-e2",
+                  durationMinutes: 60,
+                ),
+            ],
+          },
+          roles: withEveningEpisode ? [role, secondRole] : [role],
+          people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
+          shotLists: withEveningEpisode
+              ? [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)]
+              : [buildEpisodeOneShotList(shotOne)],
+        );
+
+        final withBothEpisodes = buildPlan(withEveningEpisode: true);
+        final morningEpisodeOnly = buildPlan(withEveningEpisode: false);
+
+        Future<Uint8List> generateNamedFor(OcptSchedulePlanSnapshot plan) async {
+          final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+          return service.generateNamedCallSheet(
+            plan: plan,
+            dayId: "day-1",
+            pageSetup: pageSetup,
+            labels: _labels,
+            projectName: "My Movie",
+            convocation: convocation,
+            exportDate: _pinnedExportDate,
+          );
+        }
+
+        final withBothEpisodesBytes = await generateNamedFor(withBothEpisodes);
+        final morningEpisodeOnlyBytes = await generateNamedFor(morningEpisodeOnly);
+
+        // The morning recipient's own main table never sees the evening slot at all, so this can
+        // only differ through the day-wide cast table (and the two closing lists it feeds): Bob, cast
+        // in the evening's own episode 2 shot alone, still has to show up on a sheet addressed to
+        // somebody who never shares a slot with him.
+        expect(_contentStreams(withBothEpisodesBytes), isNot(_contentStreams(morningEpisodeOnlyBytes)));
+        expect(withBothEpisodesBytes.length, greaterThan(morningEpisodeOnlyBytes.length));
+      },
+    );
+  });
+
   group("callSheetFileName", () {
     test("joins the file name prefix and the day tag", () {
       expect(service.callSheetFileName(labels: _labels, dayNumber: 2), "FDS-D2.pdf");

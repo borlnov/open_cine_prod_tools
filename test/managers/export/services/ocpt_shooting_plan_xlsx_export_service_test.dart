@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
@@ -440,6 +441,100 @@ void main() {
         final row = _rowsOf(bytes, _chronologySheetName)[1];
         expect(_cellAt(row, OcptShootingPlanXlsxColumn.sequence.index), "INT. HOUSE - DAY");
         expect(_cellAt(row, OcptShootingPlanXlsxColumn.shot.index), isNull);
+      });
+    });
+
+    group("multiple episodes", () {
+      /// Episode 1's own one-scene shot list: `scene-e1`, prefixed `1.3` — the number
+      /// `OcptShotListService.loadShotList` would already have given it.
+      OcptShotListSnapshot buildEpisodeOneShotList(OcptShot shot) => OcptShotListSnapshot.build(
+        screenplayId: "episode-1",
+        sequences: [
+          OcptSceneShotSequence(
+            sceneId: "scene-e1",
+            heading: "INT. HOUSE - DAY",
+            sceneNumber: null,
+            displaySceneNumber: "1.3",
+            charStart: 0,
+            charEnd: 10,
+            shots: [shot],
+          ),
+        ],
+      );
+
+      /// Episode 2's own one-scene shot list: `scene-e2`, prefixed `2.4`.
+      OcptShotListSnapshot buildEpisodeTwoShotList(OcptShot shot) => OcptShotListSnapshot.build(
+        screenplayId: "episode-2",
+        sequences: [
+          OcptSceneShotSequence(
+            sceneId: "scene-e2",
+            heading: "EXT. STREET - NIGHT",
+            sceneNumber: null,
+            displaySceneNumber: "2.4",
+            charStart: 0,
+            charEnd: 10,
+            shots: [shot],
+          ),
+        ],
+      );
+
+      /// A day with one slot playing one shot of each episode, on two different scenes.
+      OcptSchedulePlanSnapshot buildTwoEpisodeDayPlan() {
+        final day = _buildDay(id: "day-1", dayNumber: 1);
+        final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1");
+        final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1");
+        final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1");
+
+        return _buildSnapshot(
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e1"),
+              _buildBlock(id: "block-2", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e2"),
+            ],
+          },
+          shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
+        );
+      }
+
+      test(
+        "the Sequences sheet reads exactly OcptShootingPlanGrids.sequencesRows, episode 1 before "
+        "episode 2 — the same rows the PDF service draws, never a second computation of them",
+        () {
+          final plan = buildTwoEpisodeDayPlan();
+          final labels = _buildLabels();
+
+          final grids = OcptShootingPlanGrids.of(
+            plan: plan,
+            dayIds: const ["day-1"],
+            presenceMark: labels.presenceMark,
+            persoLabel: labels.persoLabel,
+            sequenceRowPrefix: labels.sequenceRowPrefix,
+            emptyValue: "—",
+            crewPositionLabelById: labels.crewPositionLabels,
+            elementCategoryLabels: labels.elementCategoryLabels,
+          );
+
+          final bytes = generate(plan: plan, dayIds: const ["day-1"]);
+          final rows = _rowsOf(bytes, _sequencesSheetName);
+          // The sheet's own two header rows (the day-tag row, the slot-label row) come first, then
+          // one row per `OcptShootingPlanGridRow` of the grid, in the very same order.
+          final sequenceLabels = [for (final row in rows.skip(2)) _cellAt(row, 0)];
+
+          expect(sequenceLabels, grids.sequencesRows.map((row) => row.label).toList());
+          expect(sequenceLabels, ["Seq. 1.3", "Seq. 2.4"]);
+        },
+      );
+
+      test("the Chronology sheet's own shot cells carry each episode's own prefixed code", () {
+        final bytes = generate(plan: buildTwoEpisodeDayPlan(), dayIds: const ["day-1"]);
+
+        final rows = _rowsOf(bytes, _chronologySheetName);
+        expect(_cellAt(rows[1], OcptShootingPlanXlsxColumn.shot.index), "1.3/1");
+        expect(_cellAt(rows[2], OcptShootingPlanXlsxColumn.shot.index), "2.4/1");
       });
     });
   });

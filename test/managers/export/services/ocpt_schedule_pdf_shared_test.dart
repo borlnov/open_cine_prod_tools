@@ -13,6 +13,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -117,10 +119,12 @@ OcptPerson _buildPerson({required String id, required String firstName, required
 );
 
 /// Builds a one-day plan snapshot over [slots], plus whichever [people] a guest test needs to
-/// resolve (or fail to resolve) an address-book name from.
+/// resolve (or fail to resolve) an address-book name from, and whichever [shotLists] a heading
+/// test needs.
 OcptSchedulePlanSnapshot _buildSnapshot({
   required List<OcptShootingSlot> slots,
   List<OcptPerson> people = const [],
+  List<OcptShotListSnapshot> shotLists = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     days: [
@@ -138,7 +142,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     blocksByDayId: const {},
     eventsByDayId: const {},
   ),
-  shotLists: const [],
+  shotLists: shotLists,
   episodes: const [],
   locations: const [],
   roles: const [],
@@ -330,6 +334,60 @@ void main() {
       );
 
       expect(caption, "Reserved for the storm");
+    });
+  });
+
+  group("ocptScheduleHeadingBySceneId", () {
+    test("resolves a scene's own heading whichever of two episodes it belongs to", () {
+      final plan = _buildSnapshot(
+        slots: const [],
+        shotLists: [
+          OcptShotListSnapshot.build(
+            screenplayId: "episode-1",
+            sequences: const [
+              OcptSceneShotSequence(
+                sceneId: "scene-e1",
+                heading: "INT. HOUSE - DAY",
+                sceneNumber: null,
+                displaySceneNumber: "1.3",
+                charStart: 0,
+                charEnd: 10,
+                shots: [],
+              ),
+            ],
+          ),
+          OcptShotListSnapshot.build(
+            screenplayId: "episode-2",
+            sequences: const [
+              OcptSceneShotSequence(
+                sceneId: "scene-e2",
+                heading: "EXT. STREET - NIGHT",
+                sceneNumber: null,
+                displaySceneNumber: "2.4",
+                charStart: 0,
+                charEnd: 10,
+                shots: [],
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
+
+      expect(headingBySceneId["scene-e1"], "INT. HOUSE - DAY");
+      expect(headingBySceneId["scene-e2"], "EXT. STREET - NIGHT");
+
+      // What this buys a hold block naming either episode's own scene: its caption resolves
+      // exactly as it would if the two episodes' shot lists had never been merged.
+      expect(
+        ocptScheduleBlockCaptionOf(
+          block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-e2"),
+          headingBySceneId: headingBySceneId,
+          blockKindLabelOf: _blockKindLabelOf,
+        ),
+        "EXT. STREET - NIGHT",
+      );
     });
   });
 
