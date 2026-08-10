@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -53,6 +54,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
           elementsService: OcptElementsService(),
           locationsService: OcptLocationsService(),
         ),
+        scheduleService: const OcptScheduleService(),
       );
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}

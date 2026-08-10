@@ -1602,6 +1602,34 @@ class OcptScheduleService {
     });
   }
 
+  /// Tombstones every live `shooting_day_blocks` row placing any of [shotIds]: `OcptScreenplayService`'s
+  /// episode-delete cascade, once its own shot list service has handed it the ids of the shots going
+  /// with the episode. **The day, its slots, its convocations and its every other block are
+  /// untouched** — the schedule is the production's, not any one episode's
+  /// (`docs/adr/0019-one-project-several-episodes.md`), and a block placing one of the episode's
+  /// shots is the one fact about it this service ever has to give up: the day it sat on was never
+  /// that episode's to begin with.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneShotBlocks({
+    required OcptProjectDatabase database,
+    required List<String> shotIds,
+  }) async {
+    if (shotIds.isEmpty) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptShootingDayBlocksTable,
+    )..where((table) => table.shotId.isIn(shotIds))).write(
+      const OcptShootingDayBlocksTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
   /// Inserts the default first slot a brand new day is never without: an empty label, anchored by
   /// its start at [_defaultStartMinute]. Shared by [createDay] and [duplicateDay]'s empty-source
   /// fallback.

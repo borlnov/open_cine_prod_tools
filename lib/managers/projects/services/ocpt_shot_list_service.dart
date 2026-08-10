@@ -651,6 +651,44 @@ class OcptShotListService {
     }
   }
 
+  /// Tombstones every live shot of [screenplayId] — across every scene and the orphan group alike —
+  /// carrying off its `shot_characters` and `shot_coverages` exactly as [deleteShot] does for one
+  /// shot, and returns the ids it tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which
+  /// needs those ids to also tombstone whatever a schedule block placed of one of them.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<List<String>> tombstoneShotsOfScreenplay({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
+    if (shotIds.isEmpty) {
+      return const [];
+    }
+
+    await (database.update(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.shotId.isIn(shotIds))).write(
+      const OcptShotCoveragesTableCompanion(isDeleted: Value(true)),
+    );
+    await (database.update(
+      database.ocptShotCharactersTable,
+    )..where((table) => table.shotId.isIn(shotIds))).write(
+      const OcptShotCharactersTableCompanion(isDeleted: Value(true)),
+    );
+    await (database.update(
+      database.ocptShotsTable,
+    )..where((table) => table.id.isIn(shotIds))).write(
+      const OcptShotsTableCompanion(isDeleted: Value(true)),
+    );
+
+    return shotIds;
+  }
+
   /// Every distinct, non-empty value of `shots.shotSize` across screenplay [screenplayId], for the
   /// field's project-wide suggestion list.
   Future<List<String>> distinctShotSizes({

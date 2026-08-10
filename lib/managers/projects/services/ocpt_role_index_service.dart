@@ -514,6 +514,32 @@ class OcptRoleIndexService {
     });
   }
 
+  /// Tombstones every `role_episodes` row naming episode [screenplayId]:
+  /// `OcptScreenplayService.deleteEpisode`'s cascade, the last of the links it takes before
+  /// tombstoning the screenplay row itself.
+  ///
+  /// **The roles themselves are untouched — a role belongs to the production, not to a script**
+  /// (`docs/adr/0019-one-project-several-episodes.md`). A role that spoke only in the deleted
+  /// episode keeps its row, its casting and its notes; it simply ends up named in no episode at
+  /// all. This is **not** the same state [reconcile] calls orphaned: `orphanedName` is what a cue
+  /// disappearing from a screenplay still being edited leaves behind, offering the removed-role
+  /// banner's choice to delete or keep the role — an episode being deleted outright asks nothing,
+  /// because there is no screenplay left to have stopped naming the role.
+  ///
+  /// **Unguarded**, exactly as [OcptElementsService.tombstoneRoleLinksOfRole] is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneEpisodeLinks({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) => (database.update(
+    database.ocptRoleEpisodesTable,
+  )..where((table) => table.screenplayId.equals(screenplayId))).write(
+    const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+  );
+
   /// Every live role row of the project, ordered by `sortKey` — the cast is one list over the
   /// project now, not one per screenplay, so no `screenplayId` filters it.
   Future<List<OcptRoleRow>> _liveRoleRows({required OcptProjectDatabase database}) async {

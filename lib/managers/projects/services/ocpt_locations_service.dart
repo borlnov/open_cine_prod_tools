@@ -849,6 +849,31 @@ class OcptLocationsService {
     await assetsService.tombstoneAsset(database: database, assetId: permitAssetId);
   }
 
+  /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this service's
+  /// table, not `OcptBreakdownService`'s, so its own cascade
+  /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
+  /// writing the table itself — the set these links point at is, of course, untouched.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
+  /// already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneSceneSetsOfScenes({
+    required OcptProjectDatabase database,
+    required List<String> sceneIds,
+  }) async {
+    if (sceneIds.isEmpty) {
+      return;
+    }
+
+    await (database.update(
+      database.ocptSceneSetsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds))).write(
+      const OcptSceneSetsTableCompanion(isDeleted: Value(true)),
+    );
+  }
+
   /// The ids of the live scenes linked to each of [setIds], keyed by set id and ordered by the
   /// screenplay's own scene order. See [loadLocations] for why a link onto a tombstoned scene is
   /// left out rather than reported.

@@ -61,6 +61,7 @@ void main() {
     shotCoverageService: OcptShotCoverageService(),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
+    scheduleService: scheduleService,
   );
   const service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
   const screenplayId = "screenplay-1";

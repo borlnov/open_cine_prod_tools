@@ -169,6 +169,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
             elementsService: OcptElementsService(),
             locationsService: OcptLocationsService(),
           ),
+          scheduleService: OcptScheduleService(),
         ),
       ),
       screenplayService = const OcptScreenplayService(
@@ -180,6 +181,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           elementsService: OcptElementsService(),
           locationsService: OcptLocationsService(),
         ),
+        scheduleService: OcptScheduleService(),
       ),
       peopleService = const OcptPeopleService(),
       roleIndexService = const OcptRoleIndexService(),
