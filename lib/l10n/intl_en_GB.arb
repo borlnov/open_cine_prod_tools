@@ -3610,6 +3610,17 @@
       }
     }
   },
+  "resourcesRolesListEpisodesLabel": "Ep. {numbers}",
+  "@resourcesRolesListEpisodesLabel": {
+    "description": "Muted line under a cast list row naming the episodes this role speaks in, the numbers already comma-joined by the widget",
+    "context": "Displayed in the resources mode's left dock, on the roles tab, only while the project holds more than one episode",
+    "type": "text",
+    "placeholders": {
+      "numbers": {
+        "type": "String"
+      }
+    }
+  },
   "resourcesAddRoleAction": "+ Add a role",
   "@resourcesAddRoleAction": {
     "description": "Action opening the menu of the two kinds a role may be hand-added as",
@@ -3660,6 +3671,13 @@
   "@resourcesRoleCastingCardTitle": {
     "description": "Title of the card holding a role's cast member and the other roles they hold",
     "context": "Displayed in the resources mode's role sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesRoleEpisodesCardTitle": "Episodes",
+  "@resourcesRoleEpisodesCardTitle": {
+    "description": "Title of the card holding the toggleable chips naming the episodes a role speaks in",
+    "context": "Displayed in the resources mode's role sheet, only while the project holds more than one episode",
     "type": "text",
     "placeholders": {}
   },

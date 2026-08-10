@@ -709,6 +709,63 @@ void main() {
     await bloc.close();
   });
 
+  test(
+    "changing a role's episodes writes through setRoleEpisodes and the reload shows it",
+    () async {
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      // Created on the primary episode, ADR 0019's "created on the selected episode".
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+      final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+      final roleId = withRole.selectedRoleId!;
+      expect(withRole.roles.single.episodeIds, [project.primaryScreenplayId]);
+
+      bloc.add(
+        OcptResourcesRoleEpisodesChangedEvent(
+          roleId: roleId,
+          episodeIds: {project.primaryScreenplayId, secondEpisodeId!},
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.roles.single.episodeIds.length == 2);
+      expect(state.roles.single.episodeIds.toSet(), {project.primaryScreenplayId, secondEpisodeId});
+
+      await bloc.close();
+    },
+  );
+
+  test("a role's episodes cannot be changed while a version is being previewed", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+    final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+    final roleId = withRole.selectedRoleId!;
+    final originalEpisodeIds = withRole.roles.single.episodeIds;
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Cast locked", note: ""));
+    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = withVersion.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+    await waitForState(bloc, (state) => state.previewedVersionId != null);
+
+    bloc.add(OcptResourcesRoleEpisodesChangedEvent(roleId: roleId, episodeIds: const {}));
+    // The write is refused by the database's own preview guard; wait long enough that a bug
+    // silently applying it anyway would have shown up.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(bloc.state.roles.single.episodeIds, originalEpisodeIds);
+    expect(bloc.state.hasWriteError, isFalse);
+
+    await bloc.close();
+  });
+
   test("a debounced role name edit is written and flushed by a selection change", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);

@@ -240,6 +240,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesRoleFieldChangedEvent>(_onRoleFieldChanged);
     on<OcptResourcesRoleCastChangedEvent>(_onRoleCastChanged);
     on<OcptResourcesRoleKindChangedEvent>(_onRoleKindChanged);
+    on<OcptResourcesRoleEpisodesChangedEvent>(_onRoleEpisodesChanged);
     on<OcptResourcesRoleDeletionRequestedEvent>(_onRoleDeletionRequested);
     on<OcptResourcesOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
     on<OcptResourcesPersonSheetOpenRequestedEvent>(_onPersonSheetOpenRequested);
@@ -1610,6 +1611,23 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       database: project.database,
       roleId: event.roleId,
       kind: Value(event.kind),
+    ),
+  );
+
+  /// Sets role `event.roleId`'s episodes to `event.episodeIds`, written immediately — the sheet's
+  /// own gesture write, `OcptRoleIndexService.setRoleEpisodes` (gating this to a hand-added role is
+  /// the sheet's job, not this handler's, exactly as `_onRoleFieldChanged` leaves a
+  /// `isFromScreenplay` role's name to `OcptRoleIndexService.reconcile` to overwrite back).
+  Future<void> _onRoleEpisodesChanged(
+    OcptResourcesRoleEpisodesChangedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "change the episodes of role ${event.roleId}",
+    action: (project) => _roleIndexService.setRoleEpisodes(
+      database: project.database,
+      roleId: event.roleId,
+      screenplayIds: event.episodeIds,
     ),
   );
 

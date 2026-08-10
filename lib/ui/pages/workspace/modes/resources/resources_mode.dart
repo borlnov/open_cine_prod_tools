@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -185,9 +186,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
             ? null
             : () => _requestProjectSettings(context),
         banner: _buildReadOnlyBanner(context, state),
-        leftPanel: _buildListPanel(context, state),
+        leftPanel: _buildListPanel(context, state, workspaceState.episodes),
         rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
+        centre: _buildCentre(context, state, workspaceState.episodes),
         statusBar: OcptResourcesStatusBar(
           peopleCount: state.peopleCount,
           roleCount: state.roleCount,
@@ -340,7 +341,15 @@ class _ResourcesViewState extends State<_ResourcesView> {
   ///
   /// Every `+ Add …` action is withheld — a null callback — while a project version is being
   /// previewed: the list is then a way of reading that version, not of changing it.
-  Widget? _buildListPanel(BuildContext context, OcptResourcesState state) {
+  ///
+  /// [episodes] comes from `OcptWorkspaceBloc.state.episodes` — the shell's own selector reads the
+  /// same list, so the roles tab's episode lines can never disagree with it — rather than a second
+  /// load of its own: only the workspace bloc owns and refreshes a project's episodes.
+  Widget? _buildListPanel(
+    BuildContext context,
+    OcptResourcesState state,
+    List<OcptEpisode> episodes,
+  ) {
     if (!state.isListPanelVisible) {
       return null;
     }
@@ -351,6 +360,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       selectedPersonId: state.selectedPersonId,
       roles: state.roles,
       selectedRoleId: state.selectedRoleId,
+      episodes: episodes,
       locations: state.locations,
       selectedLocationId: state.selectedLocationId,
       elements: state.elements,
@@ -398,9 +408,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// Builds the shell's `centre`: the selected record's sheet, whichever tab is active, each tab
   /// with its own empty state while nothing is selected there.
-  Widget _buildCentre(BuildContext context, OcptResourcesState state) {
+  ///
+  /// [episodes] is the roles tab's own, see [_buildListPanel]'s doc comment for why it is handed
+  /// down rather than reloaded.
+  Widget _buildCentre(BuildContext context, OcptResourcesState state, List<OcptEpisode> episodes) {
     if (state.activeTab == OcptResourcesTab.roles) {
-      return _buildRolesCentre(context, state);
+      return _buildRolesCentre(context, state, episodes);
     }
 
     if (state.activeTab == OcptResourcesTab.locations) {
@@ -601,7 +614,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// Builds the roles tab's centre: the selected role's sheet, or the empty state — the one
   /// explaining where roles come from while the cast itself is empty, the one asking for a
   /// selection otherwise, mirroring `resourcesNoPersonSelectedHint`'s tone.
-  Widget _buildRolesCentre(BuildContext context, OcptResourcesState state) {
+  Widget _buildRolesCentre(
+    BuildContext context,
+    OcptResourcesState state,
+    List<OcptEpisode> episodes,
+  ) {
     final tr = Tr.of(context);
     final selectedRole = state.selectedRole;
 
@@ -622,6 +639,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       otherRoles: _otherRolesOf(state, selectedRole, castMember),
       people: state.people,
       elements: state.elements,
+      episodes: episodes,
       removedRoleAlert: state.selectedRoleAlert,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
@@ -637,6 +655,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onKindChanged: (kind) =>
           bloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
+      onEpisodesChanged: (episodeIds) => bloc.add(
+        OcptResourcesRoleEpisodesChangedEvent(roleId: selectedRole.id, episodeIds: episodeIds),
+      ),
       onDeleteRequested: () => _handleDeleteRequested(
         context,
         title: tr.resourcesRoleDeleteConfirmTitle,

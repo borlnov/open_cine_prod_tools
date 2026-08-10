@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 
 /// The persistent application chrome around a production mode's own content: a toolbar, an
 /// optional full-width [banner] under it, an optional pair of resizable side docks around a centre
@@ -292,7 +293,7 @@ class OcptWorkspaceShell extends StatelessWidget {
                       : null,
                 ),
                 const SizedBox(width: 6),
-                Text(_episodeLabel(tr, episode)),
+                Text(ocptWorkspaceEpisodeLabelOf(tr, episode)),
               ],
             ),
           ),
@@ -313,7 +314,7 @@ class OcptWorkspaceShell extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  selected == null ? "" : _episodeLabel(tr, selected),
+                  selected == null ? "" : ocptWorkspaceEpisodeLabelOf(tr, selected),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
@@ -340,13 +341,6 @@ class OcptWorkspaceShell extends StatelessWidget {
 
     return null;
   }
-
-  /// [episode]'s label: its title when it has one, the localized `Episode 3` when it doesn't — see
-  /// `OcptEpisode.title`'s own doc comment for why an empty title is an ordinary state rather than
-  /// a placeholder to fill in a hurry.
-  String _episodeLabel(Tr tr, OcptEpisode episode) => episode.title.isEmpty
-      ? tr.workspaceEpisodeUntitledLabel(episode.number)
-      : tr.workspaceEpisodeTitledLabel(episode.number, episode.title);
 
   /// Builds the toolbar's dock toggles, left one first, skipping whichever side the mode gave no
   /// callback for.

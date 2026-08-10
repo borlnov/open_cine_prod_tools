@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -48,6 +49,10 @@ class OcptResourcesListPanel extends StatelessWidget {
 
   /// The id of the selected role, or null if none is.
   final String? selectedRoleId;
+
+  /// Every episode of the project, in display order — read regardless of [activeTab] for the same
+  /// reason [people] is: the roles tab's own rows read a role's episodes out of it.
+  final List<OcptEpisode> episodes;
 
   /// Every location, in display order — read regardless of [activeTab] for the same reason [people]
   /// is: the [OcptResourcesTab.locations] header count is shown whichever tab is active.
@@ -113,6 +118,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.selectedPersonId,
     required this.roles,
     required this.selectedRoleId,
+    required this.episodes,
     required this.locations,
     required this.selectedLocationId,
     required this.elements,
@@ -253,6 +259,7 @@ class OcptResourcesListPanel extends StatelessWidget {
       return OcptRolesList(
         roles: roles,
         people: people,
+        episodes: episodes,
         selectedRoleId: selectedRoleId,
         searchQuery: searchQuery,
         onRoleSelected: onRoleSelected,

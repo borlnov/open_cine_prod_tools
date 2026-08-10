@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
@@ -15,6 +16,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 /// The separator joining the names of the other roles a cast member holds, in
 /// [_OcptRoleEntry]'s own muted line.
 const _otherRolesSeparator = ", ";
+
+/// The separator joining the printed numbers of the episodes a role speaks in, in
+/// [_OcptRoleEntry]'s own muted line.
+const _episodeNumbersSeparator = ", ";
 
 /// The radius of a row's avatar.
 const double _avatarRadius = 13;
@@ -66,7 +71,15 @@ Iterable<String> _searchFieldsOf(Tr tr, OcptRole role, OcptPerson? castMember) =
 
 /// The cast: one row per [OcptRole], mock-up layout — a small [OcptRoleAvatar], the role's name on
 /// top in the accent colour, the cast member's name under it (a muted italic "Not cast" while there
-/// is none), and — when the same person holds other roles too — a small muted line listing them.
+/// is none), a small muted line naming the episodes the role speaks in while the project holds
+/// more than one, and — when the same person holds other roles too — a small muted line listing
+/// them.
+///
+/// The episodes line reads `Ep. 1, 2, 5`: numbers only, comma-separated, in the episodes' own
+/// order (see [OcptRole.episodeIds]'s own doc comment) — a single-episode project names no episode
+/// anywhere (`docs/adr/0019-one-project-several-episodes.md` §8), so the line is absent there, and
+/// absent too for a role named in none of [episodes] (a hand-added role whose episodes have not
+/// been picked yet).
 ///
 /// A role the screenplay no longer speaks carries a marker beside its name: its own sheet is where
 /// the alert and the two ways out of it live, so this list is what says which sheet to go and read.
@@ -79,6 +92,10 @@ class OcptRolesList extends StatelessWidget {
 
   /// The whole address book, used to resolve a role's cast member and their other roles.
   final List<OcptPerson> people;
+
+  /// Every episode of the project, in display order — what a row's own episodes line is read out
+  /// of, see the class doc comment.
+  final List<OcptEpisode> episodes;
 
   /// The id of the selected role, or null if none is.
   final String? selectedRoleId;
@@ -95,6 +112,7 @@ class OcptRolesList extends StatelessWidget {
     super.key,
     required this.roles,
     required this.people,
+    required this.episodes,
     required this.selectedRoleId,
     required this.searchQuery,
     required this.onRoleSelected,
@@ -129,12 +147,30 @@ class OcptRolesList extends StatelessWidget {
           role: role,
           castMember: castMember,
           otherRoleNames: otherRoleNames,
+          episodeNumbers: _episodeNumbersOf(episodes, role),
           isSelected: role.id == selectedRoleId,
           onTap: () => onRoleSelected(role.id),
         );
       },
     );
   }
+}
+
+/// The printed numbers of the episodes [role] is named in, in the episodes' own order (see
+/// [OcptRole.episodeIds]'s own doc comment), or empty while [episodes] holds one episode or none
+/// (a single-episode project names no episode anywhere) or [role] names none of [episodes] — a
+/// stale id from a snapshot rebuilt underneath is silently dropped rather than shown as a number
+/// nobody can look up.
+List<int> _episodeNumbersOf(List<OcptEpisode> episodes, OcptRole role) {
+  if (episodes.length <= 1) {
+    return const [];
+  }
+
+  final numberById = {for (final episode in episodes) episode.id: episode.number};
+  return [
+    for (final episodeId in role.episodeIds)
+      if (numberById[episodeId] case final number?) number,
+  ];
 }
 
 /// One row of [OcptRolesList].
@@ -149,6 +185,10 @@ class _OcptRoleEntry extends StatelessWidget {
   /// one.
   final List<String> otherRoleNames;
 
+  /// The printed numbers of the episodes this role speaks in, or empty while there is nothing to
+  /// show — see [_episodeNumbersOf].
+  final List<int> episodeNumbers;
+
   /// Whether this role is the selected one.
   final bool isSelected;
 
@@ -160,6 +200,7 @@ class _OcptRoleEntry extends StatelessWidget {
     required this.role,
     required this.castMember,
     required this.otherRoleNames,
+    required this.episodeNumbers,
     required this.isSelected,
     required this.onTap,
   });
@@ -230,6 +271,19 @@ class _OcptRoleEntry extends StatelessWidget {
                         fontStyle: castMember == null ? FontStyle.italic : FontStyle.normal,
                       ),
                     ),
+                    if (episodeNumbers.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        tr.resourcesRolesListEpisodesLabel(
+                          episodeNumbers.join(_episodeNumbersSeparator),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                     if (otherRoleNames.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
