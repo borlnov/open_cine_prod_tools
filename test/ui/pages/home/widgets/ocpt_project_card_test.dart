@@ -11,8 +11,10 @@ import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 
-/// Builds an [OcptProjectCard] for a project at [path], themed and localized as the app does.
-Widget _buildCard(String path) => MaterialApp(
+/// Builds an [OcptProjectCard] for a project at [path], themed and localized as the app does,
+/// holding [episodeCount] episodes (null, as [OcptRecentProjectModel.episodeCount] itself
+/// defaults to, for an entry that never recorded one).
+Widget _buildCard(String path, {int? episodeCount}) => MaterialApp(
   theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
@@ -23,7 +25,12 @@ Widget _buildCard(String path) => MaterialApp(
   supportedLocales: Tr.delegate.supportedLocales,
   home: OcptProjectCard(
     entry: OcptHomeRecentProjectEntry(
-      project: OcptRecentProjectModel(path: path, name: 'Project', lastOpenedAt: DateTime(2026)),
+      project: OcptRecentProjectModel(
+        path: path,
+        name: 'Project',
+        lastOpenedAt: DateTime(2026),
+        episodeCount: episodeCount,
+      ),
       exists: true,
     ),
     onTap: () {},
@@ -70,5 +77,33 @@ void main() {
     }
 
     expect(tints.length, greaterThan(1));
+  });
+
+  testWidgets('a project holding several episodes draws the badge with its count', (tester) async {
+    await tester.pumpWidget(
+      _buildCard('/home/user/projects/glass-paths.ocpt', episodeCount: 3),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    expect(find.text(tr.homeProjectEpisodeCount(3)), findsOneWidget);
+  });
+
+  testWidgets('a single-episode project draws no badge', (tester) async {
+    await tester.pumpWidget(
+      _buildCard('/home/user/projects/glass-paths.ocpt', episodeCount: 1),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    expect(find.text(tr.homeProjectEpisodeCount(1)), findsNothing);
+  });
+
+  testWidgets('an entry with no recorded episode count draws no badge', (tester) async {
+    // An entry parsed from JSON written by an older version of the app, which never recorded
+    // one — null means "unknown", not "one episode".
+    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
+
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    expect(find.text(tr.homeProjectEpisodeCount(1)), findsNothing);
+    expect(find.text(tr.homeProjectEpisodeCount(2)), findsNothing);
   });
 }

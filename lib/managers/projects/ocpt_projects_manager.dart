@@ -291,7 +291,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       _currentProject.value = project;
 
       await _propertiesManager.addRecentProject(
-        OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now),
+        // A fresh project holds exactly one episode — no need to read it back.
+        OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
       );
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
@@ -354,8 +355,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         screenplayId: screenplay.id,
       );
 
+      final episodeCount = (await screenplayService.loadEpisodes(database: database)).length;
+
       await _propertiesManager.addRecentProject(
-        OcptRecentProjectModel(path: filePath, name: info.name, lastOpenedAt: DateTime.now()),
+        OcptRecentProjectModel(
+          path: filePath,
+          name: info.name,
+          lastOpenedAt: DateTime.now(),
+          episodeCount: episodeCount,
+        ),
       );
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
@@ -781,12 +789,23 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// open.
   ///
   /// A project closed while a version is being previewed disposes both of its connections: the
-  /// in-memory one holding the version, then the project file itself.
+  /// in-memory one holding the version, then the project file itself. Before either goes, the
+  /// recent-projects entry for this project is updated with its live episode count, read through
+  /// [screenplayService]'s own [OcptScreenplayService.loadEpisodes] over
+  /// [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
+  /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
+  /// version is being previewed — so a session that added or deleted episodes leaves a truthful
+  /// count behind rather than the one it opened with, and previewing a version never overwrites it
+  /// with a count that isn't the project's own.
   Future<void> closeCurrentProject() async {
     final project = currentProject;
     if (project == null) {
       return;
     }
+
+    final episodeCount = (await screenplayService.loadEpisodes(
+      database: project.fileDatabase,
+    )).length;
 
     _currentProject.value = null;
 
@@ -795,6 +814,28 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
 
     await project.fileDatabase.close();
+
+    await _recordEpisodeCountOnClose(path: project.path, episodeCount: episodeCount);
+  }
+
+  /// Updates the recent-projects entry for [path], if it is still in the list, so it carries
+  /// [episodeCount] rather than whichever count was recorded when the project was opened.
+  ///
+  /// Left untouched, rather than created, when [path] isn't in the list at all — e.g. it was
+  /// removed from the recent projects list while the project stayed open.
+  Future<void> _recordEpisodeCountOnClose({
+    required String path,
+    required int episodeCount,
+  }) async {
+    final recents = await _propertiesManager.recentProjects.load() ?? const [];
+    final index = recents.indexWhere((entry) => entry.path == path);
+    if (index == -1) {
+      return;
+    }
+
+    final updated = [...recents];
+    updated[index] = updated[index].copyWith(episodeCount: episodeCount);
+    await _propertiesManager.recentProjects.store(updated);
   }
 
   /// Returns the default [OcptPageFormat] for a newly created project, based on the platform's

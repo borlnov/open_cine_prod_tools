@@ -69,6 +69,8 @@ void main() {
     final recents = await propertiesManager.recentProjects.load();
     expect(recents?.first.path, filePath);
     expect(recents?.first.name, "My Movie");
+    // A fresh project holds exactly one episode — no need to read it back.
+    expect(recents?.first.episodeCount, 1);
   });
 
   test('createProject while a project is already open closes the previous one first', () async {
@@ -98,6 +100,23 @@ void main() {
     expect(recents?.first.path, filePath);
   });
 
+  test("openProject records the project's own live episode count, not a stale one", () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
+    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.closeCurrentProject();
+
+    // Tamper with what's stored, so the assertion below can only pass if openProject reads the
+    // file's own episodes afresh rather than trusting whatever the list already says.
+    final recents = await propertiesManager.recentProjects.load();
+    await propertiesManager.recentProjects.store([recents!.first.copyWith(episodeCount: 99)]);
+
+    await manager.openProject(filePath: filePath);
+
+    final updated = await propertiesManager.recentProjects.load();
+    expect(updated?.first.episodeCount, 2);
+  });
+
   test('closeCurrentProject clears the current project and is a no-op when none is open', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
 
@@ -108,6 +127,45 @@ void main() {
     await manager.closeCurrentProject();
     expect(manager.currentProject, isNull);
   });
+
+  test(
+    'closeCurrentProject records the episode count the project ended with, not the one it '
+    'opened with',
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+      await manager.closeCurrentProject();
+
+      final recents = await propertiesManager.recentProjects.load();
+      expect(recents?.first.episodeCount, 2);
+    },
+  );
+
+  test(
+    "closeCurrentProject mid-preview records the working copy's episode count, never the "
+    "previewed version's",
+    () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+      final version = await manager.createProjectVersion(name: "v1", note: "");
+
+      // The working copy grows a second episode after the version was captured.
+      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+
+      await manager.previewVersion(version!.id);
+      expect(manager.currentProject!.isReadOnly, isTrue);
+
+      await manager.closeCurrentProject();
+
+      final recents = await propertiesManager.recentProjects.load();
+      // The previewed version only ever held one episode; the working copy — read through
+      // fileDatabase, never the in-memory database the preview reads through — held two by the
+      // time it closed.
+      expect(recents?.first.episodeCount, 2);
+    },
+  );
 
   test('currentProjectStream emits every time the current project changes', () async {
     // expectLater/emitsInOrder subscribes right away and awaits each expected event in turn,

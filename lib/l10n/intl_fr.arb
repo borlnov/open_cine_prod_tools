@@ -125,6 +125,7 @@
   "homeEmptyStateMessage": "Créez un nouveau projet de scénario ou ouvrez-en un existant pour commencer.",
   "homeRemoveFromListAction": "Retirer de la liste",
   "homeMissingFileTooltip": "Le fichier de ce projet est introuvable",
+  "homeProjectEpisodeCount": "{count, plural, one{{count} épisode} other{{count} épisodes}}",
   "homeNewProjectDialogTitle": "Nouveau projet",
   "homeNewProjectDialogNameLabel": "Nom du projet",
   "homeNewProjectDialogNameEmptyError": "Saisissez un nom de projet",

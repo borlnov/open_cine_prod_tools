@@ -910,6 +910,17 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeProjectEpisodeCount": "{count, plural, one{{count} episode} other{{count} episodes}}",
+  "@homeProjectEpisodeCount": {
+    "description": "Number of live episodes a project holds",
+    "context": "Displayed as a badge in the top-left of a project card's poster, only on a project holding more than one episode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeNewProjectDialogTitle": "New project",
   "@homeNewProjectDialogTitle": {
     "description": "Title of the dialog asking for the new project's name",
