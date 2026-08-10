@@ -119,6 +119,7 @@ OcptRole _buildRole({required String id, required int number, String name = "", 
       orphanedName: null,
       castingNotes: "",
       number: number,
+      episodeIds: const [],
     );
 
 /// Builds a snapshot of [people] and [roles] alone: neither locations nor elements are read by this

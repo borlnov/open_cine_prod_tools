@@ -129,6 +129,7 @@ OcptRole _buildRole({required String id, required String name, String? personId,
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.

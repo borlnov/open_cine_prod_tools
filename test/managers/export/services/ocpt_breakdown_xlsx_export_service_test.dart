@@ -150,6 +150,7 @@ OcptRole _buildRole({required String id, required String name, int number = 1}) 
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a set named [name], holding [sceneIds].

@@ -124,6 +124,7 @@ OcptRole _role({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// A scene the links and the picker name.

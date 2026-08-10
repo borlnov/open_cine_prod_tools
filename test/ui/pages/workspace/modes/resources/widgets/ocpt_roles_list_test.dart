@@ -73,6 +73,7 @@ OcptRole _role({
   orphanedName: orphanedName,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.

@@ -234,7 +234,7 @@ void main() {
       snapshotReason: OcptSnapshotReason.manual,
     );
 
-    final roles = await roleIndexService.loadRoles(database: database, screenplayId: screenplayId);
+    final roles = await roleIndexService.loadRoles(database: database);
     final maryRole = roles.firstWhere((role) => role.name == "MARY");
 
     await roleIndexService.updateRole(

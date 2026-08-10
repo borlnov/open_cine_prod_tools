@@ -97,6 +97,7 @@ OcptRole _buildRole({required String id, required String name, required int numb
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days and slots, plus its

@@ -175,6 +175,7 @@ OcptRole _buildRole({required String id, required int number}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 void main() {

@@ -146,6 +146,7 @@ OcptRole _buildRole({required String id, required String name, required int numb
   orphanedName: null,
   castingNotes: "",
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a one-scene shot list snapshot over [shots], all belonging to `scene-1` — the same

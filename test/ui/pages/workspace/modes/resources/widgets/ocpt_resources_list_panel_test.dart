@@ -85,6 +85,7 @@ OcptRole _role({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// A location carrying nothing but a name, enough for a row of the list.

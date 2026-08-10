@@ -160,6 +160,7 @@ OcptRole _buildRole({
   orphanedName: orphanedName,
   castingNotes: castingNotes,
   number: number,
+  episodeIds: const [],
 );
 
 /// Builds a set holding [sceneIds], every other field left at a neutral value unless overridden.

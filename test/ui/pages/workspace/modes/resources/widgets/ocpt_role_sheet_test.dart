@@ -82,6 +82,7 @@ OcptRole _role({
   orphanedName: orphanedName,
   castingNotes: castingNotes,
   number: number,
+  episodeIds: const [],
 );
 
 /// An element the things card reads and its picker offers.

@@ -119,6 +119,7 @@ OcptRole _buildRole({required String id, required String name, String? personId}
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// A convocation of [personId] (or of the uncast [roleId]), with clocks these dialogs never read.

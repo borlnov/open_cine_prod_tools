@@ -103,7 +103,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read and write the address book.
   final OcptPeopleService _peopleService;
 
-  /// The service used to read the cast reconciled against the screenplay.
+  /// The service used to read the cast, reconciled against the project's episodes.
   final OcptRoleIndexService _roleIndexService;
 
   /// The service used to read locations and their sets.
@@ -434,10 +434,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final database = project.database;
 
     final people = await _peopleService.loadPeople(database: database);
-    final roles = await _roleIndexService.loadRoles(
-      database: database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final roles = await _roleIndexService.loadRoles(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final elements = await _elementsService.loadElements(database: database);
     final scenes = await _locationsService.loadScenes(

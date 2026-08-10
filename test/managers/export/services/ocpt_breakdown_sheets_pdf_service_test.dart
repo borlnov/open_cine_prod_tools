@@ -145,6 +145,7 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// Builds a person named [firstName] [lastName], the only two fields a printed sheet ever reads.

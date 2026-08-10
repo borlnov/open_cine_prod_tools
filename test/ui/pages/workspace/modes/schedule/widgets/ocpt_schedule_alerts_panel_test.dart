@@ -84,6 +84,7 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
   orphanedName: null,
   castingNotes: "",
   number: 1,
+  episodeIds: const [],
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.

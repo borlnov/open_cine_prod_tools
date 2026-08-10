@@ -11,14 +11,17 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// Reconciles the `roles` table of a screenplay against its speaking characters, and CRUD over the
-/// cast.
+/// Reconciles the `roles` table of the project against each episode's speaking characters, and
+/// CRUD over the cast.
 ///
-/// [reconcile] mirrors `OcptSceneIndexService.reconcile`, run on the same save path: a speaking
-/// role's name and existence are owned by the screenplay, exactly as a scene's heading is, and the
-/// same trade-off applies — a rename reads as one disappearance and one appearance rather than
-/// being detected as such, and the removed-role banner (built from `OcptRemovedRoleAlert.buildAll`)
-/// is how the user repairs it. Unlike scenes, matching is by **exact name only**: there is no
+/// A role belongs to the **production**, not to any one screenplay
+/// (`docs/adr/0019-one-project-several-episodes.md`): `roles` carries no `screenplayId`, and
+/// `role_episodes` (`OcptRoleEpisodesTable`) is the link table saying which episodes name a role.
+/// [reconcile] is still handed one screenplay and that screenplay's parsed document, on the same
+/// save path `OcptSceneIndexService` already runs on, but it matches by name across **every live,
+/// `isFromScreenplay` role of the whole project** and only ever writes **that episode's own
+/// links** — a character speaking in three episodes is one row, one casting and one set of casting
+/// notes, not three. Unlike scenes, matching is by **exact name only**: there is no
 /// scene-number-style unique identifier a screenplay cue carries, and no third "relative order"
 /// pass either, since two characters swapping their relative cue order is not a rename either side
 /// of it should follow.
@@ -33,7 +36,10 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Order is `sortKey`, never `position`** — `roles` carries no `position` column at all, unlike
 /// the legacy one `shots` keeps for ADR 0007's sake: this table is new in the same schema version
-/// that stops needing it.
+/// that stops needing it. [OcptRole.number] is this role's rank among the **project's** live
+/// roles, one list over the whole cast rather than one per episode — a shooting day regularly
+/// covers two episodes, and two roles numbered 3 on the call sheet it prints would make the
+/// `RÔLES` column unreadable.
 class OcptRoleIndexService {
   /// The service owning the `role_elements` links, held so [deleteRole] can carry them off with
   /// the role it removes.
@@ -46,29 +52,44 @@ class OcptRoleIndexService {
   /// Class constructor
   const OcptRoleIndexService({this.elementsService = const OcptElementsService()});
 
-  /// Reconciles the `roles` table of [screenplayId] in [database] against the speaking characters
-  /// of [document] (`speakingCharactersOf(document.blocks)`, already normalised, deduplicated and
-  /// in first-appearance order).
+  /// Reconciles the `roles` table of the project against the speaking characters of [document]
+  /// (`speakingCharactersOf(document.blocks)`, already normalised, deduplicated and in
+  /// first-appearance order), which is [screenplayId]'s own parsed text — but **only ever writes
+  /// [screenplayId]'s own `role_episodes` links**, whatever it finds.
   ///
   /// Only rows with `isFromScreenplay` true are read or written by this method — a row the user
-  /// added by hand is never touched, whatever character names later appear or disappear, per
-  /// decision 3 of the plan this service ships under (§4.4):
+  /// added by hand is never touched, whatever character names later appear or disappear in any
+  /// episode. Three rules, matching by exact name across every live, from-screenplay role of the
+  /// **whole project**:
   ///
-  /// 1. A live, from-screenplay row is matched to a speaking character by exact name. A match
-  ///    clears `orphanedName` if the row had it set (the character reappeared, e.g. an edit was
-  ///    reverted): nothing else about the row changes.
-  /// 2. A from-screenplay row whose name matches no speaking character gets `orphanedName` set to
-  ///    that same name — and nothing else: its casting and its notes survive, and the mode shows an
-  ///    `OcptRemovedRoleAlert` banner. A row already orphaned is left alone.
-  /// 3. A speaking character matching no row (new or renamed-into-existence) gets a freshly
-  ///    inserted [OcptRoleKind.speaking] row, uncast, appended after every live role linked to this
-  ///    episode (hand-added ones included, since the role numbering `OcptRole.number` derives is
-  ///    shared across every kind), plus the `role_episodes` row linking it to [screenplayId].
+  /// 1. A speaking character matching such a role: the live link from that role to [screenplayId]
+  ///    is ensured (created, or its tombstone lifted), and `orphanedName` is cleared if it was set
+  ///    — ensuring the link is exactly what means the role now has at least one live link
+  ///    somewhere. Nothing else about the row changes.
+  /// 2. A live, from-screenplay role linked to [screenplayId] that the episode no longer names:
+  ///    that link, and only that one, is **tombstoned**. If the role has no live link left
+  ///    anywhere afterwards, and it is not already orphaned, `orphanedName` is set to its name and
+  ///    the mode shows an `OcptRemovedRoleAlert` banner. A character cut from episode 2 but still
+  ///    speaking in episode 3 therefore loses one link and keeps its casting — it is **not**
+  ///    orphaned, because losing this link is not losing its last one.
+  /// 3. A speaking character matching no live, from-screenplay role at all (new, or renamed into
+  ///    existence): a fresh, project-scoped [OcptRoleKind.speaking] row, uncast, appended after
+  ///    every live role of the project (hand-added ones included, since the role numbering
+  ///    [OcptRole.number] derives is shared across every kind), plus the `role_episodes` row
+  ///    linking it to [screenplayId].
   ///
-  /// Renames are not detected: a rename reads as one disappearance (step 2) and one appearance
-  /// (step 3), the same trade `OcptSceneIndexService.reconcile` makes for a heading with no scene
-  /// number, and for the same reason — nothing about a screenplay cue is a stable identifier a
-  /// rename could be matched through.
+  /// Two live, from-screenplay roles cannot legitimately share a name; when more than one somehow
+  /// does, the first in `sortKey` order is matched against deterministically (`putIfAbsent`).
+  ///
+  /// Renames are still not detected: a rename reads as one disappearance (rule 2) and one
+  /// appearance (rule 3), the same trade `OcptSceneIndexService.reconcile` makes for a heading with
+  /// no scene number, and for the same reason — nothing about a screenplay cue is a stable
+  /// identifier a rename could be matched through. What changes with several episodes is only the
+  /// blast radius: a rename in episode 2 reads as one disappearance and one appearance **within
+  /// episode 2's own links**, and a role still speaking elsewhere keeps its casting either way.
+  ///
+  /// This runs on every save, so it computes its plan first and **writes nothing at all when
+  /// nothing changed** — the transaction below only opens once there is at least one row to touch.
   Future<void> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -77,70 +98,103 @@ class OcptRoleIndexService {
     final speakingCharacters = speakingCharactersOf(document.blocks);
     final speakingSet = speakingCharacters.toSet();
 
-    final existingRowsQuery = database.select(database.ocptRolesTable).join([
-      innerJoin(
-        database.ocptRoleEpisodesTable,
-        database.ocptRoleEpisodesTable.roleId.equalsExp(database.ocptRolesTable.id),
-      ),
-    ])..where(
-      database.ocptRolesTable.isFromScreenplay.equals(true) &
-          database.ocptRolesTable.isDeleted.not() &
-          database.ocptRoleEpisodesTable.screenplayId.equals(screenplayId) &
-          database.ocptRoleEpisodesTable.isDeleted.not(),
-    );
-    final existingRows = [
-      for (final row in await existingRowsQuery.get()) row.readTable(database.ocptRolesTable),
-    ];
+    final projectRolesQuery = database.select(database.ocptRolesTable)
+      ..where((table) => table.isFromScreenplay.equals(true) & table.isDeleted.not())
+      ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]);
+    final projectRoles = await projectRolesQuery.get();
 
-    final rowByName = <String, OcptRoleRow>{};
-    for (final row in existingRows) {
-      rowByName.putIfAbsent(row.name, () => row);
+    final roleByName = <String, OcptRoleRow>{};
+    for (final role in projectRoles) {
+      roleByName.putIfAbsent(role.name, () => role);
+    }
+    final roleById = {for (final role in projectRoles) role.id: role};
+
+    final existingLinksQuery = database.select(
+      database.ocptRoleEpisodesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId));
+    final linkByRoleId = {
+      for (final link in await existingLinksQuery.get()) link.roleId: link,
+    };
+
+    // Rule 1 and rule 3: every speaking character either matches a live, from-screenplay role of
+    // the project (its link to this episode is ensured, its orphan mark lifted) or matches none
+    // (a fresh role is due).
+    final linkIdsToRevive = <String>[];
+    final roleIdsNeedingNewLink = <String>[];
+    final roleIdsToClearOrphan = <String>[];
+    final newRoleNames = <String>[];
+
+    for (final name in speakingCharacters) {
+      final role = roleByName[name];
+      if (role == null) {
+        newRoleNames.add(name);
+        continue;
+      }
+
+      final existingLink = linkByRoleId[role.id];
+      if (existingLink == null) {
+        roleIdsNeedingNewLink.add(role.id);
+      } else if (existingLink.isDeleted) {
+        linkIdsToRevive.add(existingLink.id);
+      }
+
+      if (role.orphanedName != null) {
+        roleIdsToClearOrphan.add(role.id);
+      }
+    }
+
+    // Rule 2: every live, from-screenplay role linked to this episode whose name this document no
+    // longer speaks loses that link.
+    final linkIdsToDrop = <String>[];
+    final droppedRoleIds = <String>[];
+    for (final role in projectRoles) {
+      final link = linkByRoleId[role.id];
+      if (link != null && !link.isDeleted && !speakingSet.contains(role.name)) {
+        linkIdsToDrop.add(link.id);
+        droppedRoleIds.add(role.id);
+      }
+    }
+
+    // Of those, only the ones left with no live link anywhere else become orphaned.
+    final roleIdsToOrphan = <String>{};
+    if (droppedRoleIds.isNotEmpty) {
+      final otherLiveLinksQuery = database.select(database.ocptRoleEpisodesTable)..where(
+        (table) =>
+            table.roleId.isIn(droppedRoleIds) &
+            table.isDeleted.not() &
+            table.screenplayId.equals(screenplayId).not(),
+      );
+      final roleIdsWithOtherLiveLinks = {
+        for (final link in await otherLiveLinksQuery.get()) link.roleId,
+      };
+      for (final roleId in droppedRoleIds) {
+        if (!roleIdsWithOtherLiveLinks.contains(roleId) && roleById[roleId]!.orphanedName == null) {
+          roleIdsToOrphan.add(roleId);
+        }
+      }
+    }
+
+    final hasWork =
+        linkIdsToRevive.isNotEmpty ||
+        roleIdsNeedingNewLink.isNotEmpty ||
+        roleIdsToClearOrphan.isNotEmpty ||
+        linkIdsToDrop.isNotEmpty ||
+        roleIdsToOrphan.isNotEmpty ||
+        newRoleNames.isNotEmpty;
+    if (!hasWork) {
+      return;
     }
 
     await database.transaction(() async {
-      for (final row in existingRows) {
-        final isPresent = speakingSet.contains(row.name);
-        if (!isPresent && row.orphanedName == null) {
-          await (database.update(
-            database.ocptRolesTable,
-          )..where((table) => table.id.equals(row.id))).write(
-            OcptRolesTableCompanion(orphanedName: Value(row.name)),
-          );
-        } else if (isPresent && row.orphanedName != null) {
-          await (database.update(
-            database.ocptRolesTable,
-          )..where((table) => table.id.equals(row.id))).write(
-            const OcptRolesTableCompanion(orphanedName: Value(null)),
-          );
-        }
+      if (linkIdsToRevive.isNotEmpty) {
+        await (database.update(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.id.isIn(linkIdsToRevive))).write(
+          const OcptRoleEpisodesTableCompanion(isDeleted: Value(false)),
+        );
       }
 
-      final newNames = [
-        for (final name in speakingCharacters)
-          if (!rowByName.containsKey(name)) name,
-      ];
-
-      if (newNames.isEmpty) {
-        return;
-      }
-
-      final liveRoles = await _liveRoleRows(database: database, screenplayId: screenplayId);
-      var previousSortKey = liveRoles.isEmpty ? null : liveRoles.last.sortKey;
-
-      for (final name in newNames) {
-        previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
-        final roleId = const Uuid().v4();
-        await database
-            .into(database.ocptRolesTable)
-            .insert(
-              OcptRolesTableCompanion.insert(
-                id: roleId,
-                name: name,
-                kind: OcptRoleKind.speaking,
-                isFromScreenplay: const Value(true),
-                sortKey: Value(previousSortKey),
-              ),
-            );
+      for (final roleId in roleIdsNeedingNewLink) {
         await database
             .into(database.ocptRoleEpisodesTable)
             .insert(
@@ -151,26 +205,84 @@ class OcptRoleIndexService {
               ),
             );
       }
+
+      if (roleIdsToClearOrphan.isNotEmpty) {
+        await (database.update(
+          database.ocptRolesTable,
+        )..where((table) => table.id.isIn(roleIdsToClearOrphan))).write(
+          const OcptRolesTableCompanion(orphanedName: Value(null)),
+        );
+      }
+
+      if (linkIdsToDrop.isNotEmpty) {
+        await (database.update(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.id.isIn(linkIdsToDrop))).write(
+          const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+        );
+      }
+
+      for (final roleId in roleIdsToOrphan) {
+        await (database.update(
+          database.ocptRolesTable,
+        )..where((table) => table.id.equals(roleId))).write(
+          OcptRolesTableCompanion(orphanedName: Value(roleById[roleId]!.name)),
+        );
+      }
+
+      if (newRoleNames.isNotEmpty) {
+        final liveRoles = await _liveRoleRows(database: database);
+        var previousSortKey = liveRoles.isEmpty ? null : liveRoles.last.sortKey;
+
+        for (final name in newRoleNames) {
+          previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
+          final roleId = const Uuid().v4();
+          await database
+              .into(database.ocptRolesTable)
+              .insert(
+                OcptRolesTableCompanion.insert(
+                  id: roleId,
+                  name: name,
+                  kind: OcptRoleKind.speaking,
+                  isFromScreenplay: const Value(true),
+                  sortKey: Value(previousSortKey),
+                ),
+              );
+          await database
+              .into(database.ocptRoleEpisodesTable)
+              .insert(
+                OcptRoleEpisodesTableCompanion.insert(
+                  id: const Uuid().v4(),
+                  roleId: roleId,
+                  screenplayId: screenplayId,
+                ),
+              );
+        }
+      }
     });
   }
 
-  /// Loads every live role of screenplay [screenplayId] in [database], in `sortKey` order, each
-  /// carrying its 1-based [OcptRole.number].
-  Future<List<OcptRole>> loadRoles({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-  }) async {
-    final rows = await _liveRoleRows(database: database, screenplayId: screenplayId);
+  /// Loads every live role of the project in [database], in `sortKey` order, each carrying its
+  /// 1-based [OcptRole.number] among that whole list and its [OcptRole.episodeIds] — the episodes
+  /// naming it, in the episodes' own `sortKey` order.
+  Future<List<OcptRole>> loadRoles({required OcptProjectDatabase database}) async {
+    final rows = await _liveRoleRows(database: database);
+    final episodeIdsByRoleId = await _liveEpisodeIdsByRoleId(database: database);
 
     return [
-      for (var i = 0; i < rows.length; i++) OcptRole.fromRow(row: rows[i], number: i + 1),
+      for (var i = 0; i < rows.length; i++)
+        OcptRole.fromRow(
+          row: rows[i],
+          number: i + 1,
+          episodeIds: episodeIdsByRoleId[rows[i].id] ?? const [],
+        ),
     ];
   }
 
   /// Adds a hand-added role of [kind] (never [OcptRoleKind.speaking] — that kind is only ever
-  /// created by [reconcile]) named [name], appended after every live role of [screenplayId], links
-  /// it to that episode with a freshly generated `role_episodes` row, and returns the role's own
-  /// freshly generated id.
+  /// created by [reconcile]) named [name], appended after every live role of the **project**, links
+  /// it to episode [screenplayId] (a hand-added role is created on the selected episode) with a
+  /// freshly generated `role_episodes` row, and returns the role's own freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addRole({
@@ -183,7 +295,7 @@ class OcptRoleIndexService {
       return null;
     }
 
-    final existing = await _liveRoleRows(database: database, screenplayId: screenplayId);
+    final existing = await _liveRoleRows(database: database);
     final id = const Uuid().v4();
 
     await database.transaction(() async {
@@ -219,7 +331,8 @@ class OcptRoleIndexService {
   ///
   /// Passing [name] is meaningful for a hand-added role only: a `isFromScreenplay` role's name is
   /// owned by [reconcile], which overwrites it right back on the next save were it changed here —
-  /// this method itself does not refuse the write, gating that is the mode's job.
+  /// this method itself does not refuse the write, gating that is the mode's job. [setRoleEpisodes]
+  /// is the same story for a hand-added role's episodes.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateRole({
@@ -241,9 +354,74 @@ class OcptRoleIndexService {
     );
   }
 
-  /// Tombstones role [roleId], the `role_elements` links naming it, and its `role_episodes`
-  /// links: the removed-role banner's "delete" action, and the plain way to remove a hand-added
-  /// role.
+  /// Sets the exact episodes role [roleId] is named in to [screenplayIds]: for a hand-added role,
+  /// the one place in the app a `role_episodes` row is written by a gesture rather than by
+  /// [reconcile] (`docs/adr/0019-one-project-several-episodes.md` §4.3) — a `silent` or `extra`
+  /// role is named by no cue, so nothing else can decide where it speaks. Gating this to a
+  /// hand-added role is the **mode's** job, exactly as [updateRole]'s doc comment says about a
+  /// from-screenplay role's name: [reconcile] owns a from-screenplay role's links and would
+  /// overwrite them right back on the next save.
+  ///
+  /// Every id in [screenplayIds] gets a live link — a tombstoned one is revived rather than
+  /// duplicated, the same way [reconcile] ensures a link — and every live link this role held that
+  /// is not in [screenplayIds] is tombstoned. An empty set is allowed and means the role is named
+  /// in no episode. Runs in one transaction.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> setRoleEpisodes({
+    required OcptProjectDatabase database,
+    required String roleId,
+    required Set<String> screenplayIds,
+  }) async {
+    if (database.refusesUserWrite("setRoleEpisodes")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final existingLinksQuery = database.select(
+        database.ocptRoleEpisodesTable,
+      )..where((table) => table.roleId.equals(roleId));
+      final existingLinks = await existingLinksQuery.get();
+      final linkByScreenplayId = {for (final link in existingLinks) link.screenplayId: link};
+
+      for (final screenplayId in screenplayIds) {
+        final existingLink = linkByScreenplayId[screenplayId];
+        if (existingLink == null) {
+          await database
+              .into(database.ocptRoleEpisodesTable)
+              .insert(
+                OcptRoleEpisodesTableCompanion.insert(
+                  id: const Uuid().v4(),
+                  roleId: roleId,
+                  screenplayId: screenplayId,
+                ),
+              );
+        } else if (existingLink.isDeleted) {
+          await (database.update(
+            database.ocptRoleEpisodesTable,
+          )..where((table) => table.id.equals(existingLink.id))).write(
+            const OcptRoleEpisodesTableCompanion(isDeleted: Value(false)),
+          );
+        }
+      }
+
+      final linkIdsToDrop = [
+        for (final link in existingLinks)
+          if (!link.isDeleted && !screenplayIds.contains(link.screenplayId)) link.id,
+      ];
+      if (linkIdsToDrop.isNotEmpty) {
+        await (database.update(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.id.isIn(linkIdsToDrop))).write(
+          const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+        );
+      }
+    });
+  }
+
+  /// Tombstones role [roleId], the `role_elements` links naming it, and every `role_episodes` link
+  /// it carries: the removed-role banner's "delete" action, and the plain way to remove a
+  /// hand-added role.
   ///
   /// The links go with it for the reason `OcptElementsService.deleteElement` takes its own along:
   /// nothing can reach a link whose role is gone any more, which makes it an orphan rather than
@@ -278,8 +456,9 @@ class OcptRoleIndexService {
 
   /// The removed-role banner's "keep it" action: role [roleId] stops being owned by [reconcile]
   /// (`isFromScreenplay` becomes false), becomes [OcptRoleKind.silent], and its `orphanedName` is
-  /// cleared — its casting and notes are untouched, and it now behaves exactly like a role the user
-  /// added by hand from the start.
+  /// cleared — its casting, its notes and its `role_episodes` links are untouched, and it now
+  /// behaves exactly like a role the user added by hand from the start, its episode pills editable
+  /// through [setRoleEpisodes].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> keepOrphanedRoleAsSilent({
@@ -301,14 +480,12 @@ class OcptRoleIndexService {
     );
   }
 
-  /// Moves role [roleId] to [newPosition] (0-based) within screenplay [screenplayId]'s whole cast,
-  /// by giving it a `sortKey` sitting between the two roles it lands between. Writes **exactly one
-  /// row**.
+  /// Moves role [roleId] to [newPosition] (0-based) within the **project's** whole cast, by giving
+  /// it a `sortKey` sitting between the two roles it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> reorderRole({
     required OcptProjectDatabase database,
-    required String screenplayId,
     required String roleId,
     required int newPosition,
   }) async {
@@ -317,9 +494,8 @@ class OcptRoleIndexService {
     }
 
     await database.transaction(() async {
-      final others =
-          (await _liveRoleRows(database: database, screenplayId: screenplayId))
-            ..removeWhere((row) => row.id == roleId);
+      final others = (await _liveRoleRows(database: database))
+        ..removeWhere((row) => row.id == roleId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -338,28 +514,41 @@ class OcptRoleIndexService {
     });
   }
 
-  /// Every live role row linked to episode [screenplayId] by a live `role_episodes` row, ordered by
-  /// `sortKey`. A role with no live link to [screenplayId] — cut from this episode, or never named
-  /// in it — is not returned, whatever other episode it may still be live in.
-  Future<List<OcptRoleRow>> _liveRoleRows({
+  /// Every live role row of the project, ordered by `sortKey` — the cast is one list over the
+  /// project now, not one per screenplay, so no `screenplayId` filters it.
+  Future<List<OcptRoleRow>> _liveRoleRows({required OcptProjectDatabase database}) async {
+    final query = database.select(database.ocptRolesTable)
+      ..where((table) => table.isDeleted.not())
+      ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]);
+
+    return query.get();
+  }
+
+  /// Every live `role_episodes` link of the project, joined onto its live `screenplays` row and
+  /// grouped by `roleId`, each group in the episodes' own `sortKey` order — the read behind
+  /// [OcptRole.episodeIds], which the table itself carries no order for (see
+  /// `OcptRoleEpisodesTable`'s doc comment).
+  Future<Map<String, List<String>>> _liveEpisodeIdsByRoleId({
     required OcptProjectDatabase database,
-    required String screenplayId,
   }) async {
-    final query = database.select(database.ocptRolesTable).join([
+    final query = database.select(database.ocptRoleEpisodesTable).join([
       innerJoin(
-        database.ocptRoleEpisodesTable,
-        database.ocptRoleEpisodesTable.roleId.equalsExp(database.ocptRolesTable.id),
+        database.ocptScreenplaysTable,
+        database.ocptScreenplaysTable.id.equalsExp(database.ocptRoleEpisodesTable.screenplayId),
       ),
     ])
       ..where(
-        database.ocptRolesTable.isDeleted.not() &
-            database.ocptRoleEpisodesTable.screenplayId.equals(screenplayId) &
-            database.ocptRoleEpisodesTable.isDeleted.not(),
+        database.ocptRoleEpisodesTable.isDeleted.not() &
+            database.ocptScreenplaysTable.isDeleted.not(),
       )
-      ..orderBy([OrderingTerm.asc(database.ocptRolesTable.sortKey)]);
+      ..orderBy([OrderingTerm.asc(database.ocptScreenplaysTable.sortKey)]);
 
-    return [
-      for (final row in await query.get()) row.readTable(database.ocptRolesTable),
-    ];
+    final episodeIdsByRoleId = <String, List<String>>{};
+    for (final row in await query.get()) {
+      final link = row.readTable(database.ocptRoleEpisodesTable);
+      episodeIdsByRoleId.putIfAbsent(link.roleId, () => []).add(link.screenplayId);
+    }
+
+    return episodeIdsByRoleId;
   }
 }

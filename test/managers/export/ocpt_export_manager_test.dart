@@ -1291,6 +1291,7 @@ void main() {
             orphanedName: null,
             castingNotes: "",
             number: 1,
+            episodeIds: [],
           ),
         ],
         people: const [],

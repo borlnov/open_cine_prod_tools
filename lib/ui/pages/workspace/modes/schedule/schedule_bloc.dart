@@ -86,7 +86,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// The service used to read locations and their sets.
   final OcptLocationsService _locationsService;
 
-  /// The service used to read the cast reconciled against the screenplay.
+  /// The service used to read the cast, reconciled against the project's episodes.
   final OcptRoleIndexService _roleIndexService;
 
   /// The service used to read the address book.
@@ -285,10 +285,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       screenplayId: project.primaryScreenplayId,
     );
     final locations = await _locationsService.loadLocations(database: project.database);
-    final roles = await _roleIndexService.loadRoles(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final roles = await _roleIndexService.loadRoles(database: project.database);
     final people = await _peopleService.loadPeople(database: project.database);
     final elements = await _elementsService.loadElements(database: project.database);
     final pageSetup = await _loadPageSetup(project);
