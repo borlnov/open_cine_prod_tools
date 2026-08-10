@@ -526,6 +526,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           ? null
           : (dayId) => unawaited(_handleDayDeletionRequested(context, dayId)),
       unplacedGroups: state.unplacedGroups,
+      episodes: state.episodes,
       selectedShotId: state.selectedShotId,
       onShotSelected: (shotId) => bloc.add(OcptScheduleShotSelectedEvent(shotId: shotId)),
     );
@@ -1000,9 +1001,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     final shotId = await OcptScheduleShotPickerDialog.show(
       context,
-      sequences: [
-        for (final shotListSnapshot in state.shotListSnapshots) ...shotListSnapshot.sequences,
-      ],
+      shotListSnapshots: state.shotListSnapshots,
+      episodes: state.episodes,
       placedDayNumbersByShotId: state.placedDayNumbersByShotId,
     );
     if (shotId == null) {

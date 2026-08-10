@@ -44,7 +44,16 @@ typedef OcptSchedulePendingFieldKey = (String targetId, OcptScheduleField field)
 /// One group of the left dock's own "shots still to place" list: every live shot of one sequence
 /// (a real scene, or the orphan group) that has no live block placing it yet, in the sequence's own
 /// shot order.
+///
+/// [screenplayId] names the episode this group's sequence belongs to. It is not cosmetic:
+/// `OcptOrphanShotSequence.sequenceId` is the constant `"orphans"`, so a project holding several
+/// episodes walks several groups sharing that one [sequenceId] — the pair ([screenplayId],
+/// [sequenceId]) is what actually identifies one group once there is more than one episode to mix
+/// them up.
 class OcptScheduleUnplacedGroup extends Equatable {
+  /// The id of the episode (screenplay) this group's sequence belongs to.
+  final String screenplayId;
+
   /// The sequence's own id (a scene id, or `OcptOrphanShotSequence.sequenceId`).
   final String sequenceId;
 
@@ -59,6 +68,7 @@ class OcptScheduleUnplacedGroup extends Equatable {
 
   /// Class constructor
   const OcptScheduleUnplacedGroup({
+    required this.screenplayId,
     required this.sequenceId,
     required this.displaySceneNumber,
     required this.heading,
@@ -67,7 +77,7 @@ class OcptScheduleUnplacedGroup extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [sequenceId, displaySceneNumber, heading, shots];
+  List<Object?> get props => [screenplayId, sequenceId, displaySceneNumber, heading, shots];
 }
 
 /// The kind of transient notice [OcptScheduleIoNotice] carries, one per schedule export outcome.
@@ -437,6 +447,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
 
         groups.add(
           OcptScheduleUnplacedGroup(
+            screenplayId: shotListSnapshot.screenplayId,
             sequenceId: sequence.id,
             displaySceneNumber: sequence is OcptSceneShotSequence ? sequence.displaySceneNumber : null,
             heading: sequence is OcptSceneShotSequence ? sequence.heading : null,

@@ -6,17 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// The schedule mode's left dock: the list of shooting days over the list of shots still to
 /// place, grouped by sequence — mirroring
-/// the mock's `bandeDays`/`unplacedGroups` (`design.html` lines 192-243).
+/// the mock's `bandeDays`/`unplacedGroups` (`design.html` lines 192-243) — and, on a project
+/// holding more than one episode, further banded by episode above its own sequence sections (see
+/// [_buildUnplacedSections]).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDateChangeRequested],
@@ -64,6 +69,12 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// The live shots still to place, grouped by sequence.
   final List<OcptScheduleUnplacedGroup> unplacedGroups;
 
+  /// The project's live episodes, in `OcptScreenplayService.loadEpisodes`' own order
+  /// (`OcptScheduleState.episodes`) — read only to band [unplacedGroups]' own sections by episode,
+  /// and only while it holds more than one: a single-episode project names no episode anywhere
+  /// (ADR 0019), so with one episode or none this list changes nothing about what is drawn.
+  final List<OcptEpisode> episodes;
+
   /// The id of the shot currently selected, or null while none is.
   final String? selectedShotId;
 
@@ -85,6 +96,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.onDayDuplicationRequested,
     required this.onDayDeletionRequested,
     required this.unplacedGroups,
+    required this.episodes,
     required this.selectedShotId,
     required this.onShotSelected,
   });
@@ -180,12 +192,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
                     ],
                   ),
                 ),
-                for (final group in unplacedGroups)
-                  _OcptScheduleUnplacedGroupSection(
-                    group: group,
-                    selectedShotId: selectedShotId,
-                    onShotSelected: onShotSelected,
-                  ),
+                ..._buildUnplacedSections(tr),
                 const SizedBox(height: 12),
               ],
             ),
@@ -198,6 +205,50 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// The total number of shots across every [unplacedGroups] entry.
   int get _totalUnplacedCount =>
       unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
+
+  /// The unplaced-shots section's own body: one [_OcptScheduleUnplacedGroupSection] per group of
+  /// [unplacedGroups], banded by episode ([OcptScheduleEpisodeBand]) while [episodes] holds more
+  /// than one. A single-episode project names no episode anywhere (ADR 0019), so with one episode
+  /// or none this reads exactly as it always has, flat, and an episode left with nothing to place
+  /// draws no band at all — a band over nothing would read as a heading that lies, the same
+  /// argument the elements grid's own category band makes (`docs/architecture/schedule.md`).
+  List<Widget> _buildUnplacedSections(Tr tr) {
+    if (episodes.length <= 1) {
+      return [
+        for (final group in unplacedGroups)
+          _OcptScheduleUnplacedGroupSection(
+            group: group,
+            selectedShotId: selectedShotId,
+            onShotSelected: onShotSelected,
+          ),
+      ];
+    }
+
+    return [
+      for (final episode in episodes)
+        if (_groupsOf(episode.id) case final episodeGroups when episodeGroups.isNotEmpty) ...[
+          // The band insets itself horizontally by nothing, so this list frames it in the very
+          // padding its own sequence sections carry — see [OcptScheduleEpisodeBand]'s doc comment.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: OcptScheduleEpisodeBand(label: ocptWorkspaceEpisodeLabelOf(tr, episode)),
+          ),
+          for (final group in episodeGroups)
+            _OcptScheduleUnplacedGroupSection(
+              group: group,
+              selectedShotId: selectedShotId,
+              onShotSelected: onShotSelected,
+            ),
+        ],
+    ];
+  }
+
+  /// [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
+  /// order.
+  List<OcptScheduleUnplacedGroup> _groupsOf(String screenplayId) => [
+    for (final group in unplacedGroups)
+      if (group.screenplayId == screenplayId) group,
+  ];
 
   /// Opens the platform date picker seeded on [initialDate] (today when omitted), reporting the
   /// pick to [onPicked]. Does nothing when the picker is dismissed with no pick — mirrors
