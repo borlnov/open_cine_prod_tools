@@ -5522,6 +5522,80 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsEpisodesSectionTitle": "Episodes",
+  "@projectSettingsEpisodesSectionTitle": {
+    "description": "Title of the project settings page's episodes section",
+    "context": "Displayed at the top of the episodes section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeTitleHint": "Untitled",
+  "@projectSettingsEpisodeTitleHint": {
+    "description": "Hint of an episode row's title field while it has none",
+    "context": "Displayed in an episode row's title field on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeMoveUpTooltip": "Move this episode up",
+  "@projectSettingsEpisodeMoveUpTooltip": {
+    "description": "Tooltip of an episode row's own control moving it one place up in the list",
+    "context": "Displayed on an episode row of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeMoveDownTooltip": "Move this episode down",
+  "@projectSettingsEpisodeMoveDownTooltip": {
+    "description": "Tooltip of an episode row's own control moving it one place down in the list",
+    "context": "Displayed on an episode row of the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeDeleteTooltip": "Delete this episode",
+  "@projectSettingsEpisodeDeleteTooltip": {
+    "description": "Tooltip of an episode row's own delete action",
+    "context": "Displayed on an episode row of the project settings page, withheld on the project's last live episode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsEpisodeAddAction": "Add",
+  "@projectSettingsEpisodeAddAction": {
+    "description": "Label of the action appending a new episode",
+    "context": "Displayed at the bottom of the episodes section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteEpisodeConfirmTitle": "Delete {episodeLabel}?",
+  "@projectSettingsDeleteEpisodeConfirmTitle": {
+    "description": "Title of the confirmation dialog before deleting an episode, naming it",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {
+      "episodeLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "projectSettingsDeleteEpisodeConfirmMessage": "This permanently deletes its screenplay, its snapshots, its scenes, its shots and their scenario coverage, and its breakdown, along with the cast links naming it. The people, the locations, the elements and the shooting days are left untouched — they were never this episode's alone. This can't be undone.",
+  "@projectSettingsDeleteEpisodeConfirmMessage": {
+    "description": "Message of the confirmation dialog before deleting an episode, stating what it takes and what it leaves",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteEpisodeConfirmCancelAction": "Cancel",
+  "@projectSettingsDeleteEpisodeConfirmCancelAction": {
+    "description": "Label of the confirmation dialog's cancel button before deleting an episode",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsDeleteEpisodeConfirmDeleteAction": "Delete",
+  "@projectSettingsDeleteEpisodeConfirmDeleteAction": {
+    "description": "Label of the confirmation dialog's confirm button before deleting an episode",
+    "context": "Displayed in a confirmation dialog opened from the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "workspaceModeBreakdown": "Breakdown",
   "@workspaceModeBreakdown": {
     "description": "Short label of the breakdown production mode",

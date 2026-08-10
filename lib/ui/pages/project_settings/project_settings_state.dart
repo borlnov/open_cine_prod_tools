@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 /// The state of `OcptProjectSettingsBloc`.
@@ -19,6 +20,10 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// The current project's minimum rest between two shooting days, in minutes
   /// (`project_info.minimumRestMinutes`), or null while nobody has recorded one.
   final int? minimumRestMinutes;
+
+  /// The project's live episodes, in `sortKey` order — what the `Episodes` card lists, re-read
+  /// after every mutation it makes so the card always shows what the database holds.
+  final List<OcptEpisode> episodes;
 
   /// Whether at least one field was changed since the page opened.
   ///
@@ -38,6 +43,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.currencyCode,
     required this.pageFormat,
     required this.minimumRestMinutes,
+    required this.episodes,
     required this.hasChanged,
   });
 
@@ -49,6 +55,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
       minimumRestMinutes = null,
+      episodes = const [],
       hasChanged = false;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -63,6 +70,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
     bool clearMinimumRestMinutes = false,
+    List<OcptEpisode>? episodes,
     bool? hasChanged,
   }) => OcptProjectSettingsState(
     isLoading: isLoading ?? this.isLoading,
@@ -71,6 +79,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     minimumRestMinutes: clearMinimumRestMinutes
         ? null
         : (minimumRestMinutes ?? this.minimumRestMinutes),
+    episodes: episodes ?? this.episodes,
     hasChanged: hasChanged ?? this.hasChanged,
   );
 
@@ -82,6 +91,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     currencyCode,
     pageFormat,
     minimumRestMinutes,
+    episodes,
     hasChanged,
   ];
 }

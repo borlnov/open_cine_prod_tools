@@ -2,18 +2,24 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The maximum width of the project settings page's content, matching the app-wide settings page.
 const _maxContentWidth = 720.0;
@@ -89,6 +95,19 @@ class OcptProjectSettingsView extends StatelessWidget {
                         onMinimumRestMinutesChanged: (minutes) =>
                             _onMinimumRestMinutesChanged(context, minutes),
                       ),
+                      const SizedBox(height: 16),
+                      OcptProjectSettingsEpisodesSection(
+                        episodes: state.episodes,
+                        onEpisodeAdded: () => _onEpisodeAdded(context),
+                        onEpisodeTitleChanged: (screenplayId, title) =>
+                            _onEpisodeTitleChanged(context, screenplayId, title),
+                        onEpisodeNumberChanged: (screenplayId, number) =>
+                            _onEpisodeNumberChanged(context, screenplayId, number),
+                        onEpisodeMoved: (screenplayId, newPosition) =>
+                            _onEpisodeMoved(context, screenplayId, newPosition),
+                        onEpisodeDeletionRequested: (episode) =>
+                            unawaited(_onEpisodeDeletionRequested(context, episode)),
+                      ),
                     ],
                   ),
                 ),
@@ -122,5 +141,59 @@ class OcptProjectSettingsView extends StatelessWidget {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMinimumRestMinutesChangedEvent(minutes: minutes),
     );
+  }
+
+  /// Dispatches the event that appends a new episode.
+  void _onEpisodeAdded(BuildContext context) {
+    context.read<OcptProjectSettingsBloc>().add(const OcptProjectSettingsEpisodeAddedEvent());
+  }
+
+  /// Dispatches the event that writes an episode's newly committed title.
+  void _onEpisodeTitleChanged(BuildContext context, String screenplayId, String title) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsEpisodeTitleChangedEvent(screenplayId: screenplayId, title: title),
+    );
+  }
+
+  /// Dispatches the event that writes an episode's newly committed printed number.
+  void _onEpisodeNumberChanged(BuildContext context, String screenplayId, int number) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsEpisodeNumberChangedEvent(screenplayId: screenplayId, number: number),
+    );
+  }
+
+  /// Dispatches the event that moves an episode to its newly picked position.
+  void _onEpisodeMoved(BuildContext context, String screenplayId, int newPosition) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsEpisodeMovedEvent(screenplayId: screenplayId, newPosition: newPosition),
+    );
+  }
+
+  /// Asks `OcptConfirmDialog` whether [episode] really is to be deleted, naming it and stating
+  /// both what the deletion takes and what it leaves
+  /// (`docs/adr/0019-one-project-several-episodes.md`), then dispatches the deletion if the user
+  /// confirmed it.
+  ///
+  /// The card's own delete action is never shown for the project's last live episode, so this is
+  /// only ever reached with at least one other episode left.
+  Future<void> _onEpisodeDeletionRequested(BuildContext context, OcptEpisode episode) async {
+    final bloc = context.read<OcptProjectSettingsBloc>();
+    final tr = Tr.of(context);
+
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.projectSettingsDeleteEpisodeConfirmTitle(ocptWorkspaceEpisodeLabelOf(tr, episode)),
+      message: tr.projectSettingsDeleteEpisodeConfirmMessage,
+      cancelLabel: tr.projectSettingsDeleteEpisodeConfirmCancelAction,
+      confirmLabel: tr.projectSettingsDeleteEpisodeConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptProjectSettingsEpisodeDeletionConfirmedEvent(screenplayId: episode.id));
   }
 }

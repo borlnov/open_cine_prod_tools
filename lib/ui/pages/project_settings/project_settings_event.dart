@@ -58,3 +58,79 @@ class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSetti
   @override
   List<Object?> get props => [...super.props, minutes];
 }
+
+/// Reports that the `Episodes` card's `+ Add` action was tapped, appending a new episode.
+class OcptProjectSettingsEpisodeAddedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsEpisodeAddedEvent();
+}
+
+/// Reports that the user committed a new title for episode [screenplayId] — the empty string is a
+/// legal title, read as "untitled" (`OcptEpisode.title`'s own doc comment), not a reversion.
+class OcptProjectSettingsEpisodeTitleChangedEvent extends OcptProjectSettingsEvent {
+  /// The id of the episode (a `screenplays` row) whose title was committed.
+  final String screenplayId;
+
+  /// The newly committed title, or the empty string.
+  final String title;
+
+  /// Class constructor
+  const OcptProjectSettingsEpisodeTitleChangedEvent({required this.screenplayId, required this.title});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, screenplayId, title];
+}
+
+/// Reports that the user committed a new printed number for episode [screenplayId]. Carries no
+/// uniqueness guarantee of its own — two episodes sharing a number is a state the user reaches by
+/// hand and repairs by hand (`docs/adr/0019-one-project-several-episodes.md`).
+class OcptProjectSettingsEpisodeNumberChangedEvent extends OcptProjectSettingsEvent {
+  /// The id of the episode (a `screenplays` row) whose number was committed.
+  final String screenplayId;
+
+  /// The newly committed number.
+  final int number;
+
+  /// Class constructor
+  const OcptProjectSettingsEpisodeNumberChangedEvent({
+    required this.screenplayId,
+    required this.number,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, screenplayId, number];
+}
+
+/// Reports that episode [screenplayId] was moved to [newPosition] (0-based, among the project's
+/// live episodes) through the card's own `▲`/`▼` controls. Only `sortKey` is affected — the
+/// printed `number` is never renumbered by a reorder.
+class OcptProjectSettingsEpisodeMovedEvent extends OcptProjectSettingsEvent {
+  /// The id of the episode (a `screenplays` row) being moved.
+  final String screenplayId;
+
+  /// The 0-based position it is moved to among the project's live episodes.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptProjectSettingsEpisodeMovedEvent({required this.screenplayId, required this.newPosition});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, screenplayId, newPosition];
+}
+
+/// Reports that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
+/// card), deleting episode [screenplayId].
+class OcptProjectSettingsEpisodeDeletionConfirmedEvent extends OcptProjectSettingsEvent {
+  /// The id of the episode (a `screenplays` row) to delete.
+  final String screenplayId;
+
+  /// Class constructor
+  const OcptProjectSettingsEpisodeDeletionConfirmedEvent({required this.screenplayId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, screenplayId];
+}
