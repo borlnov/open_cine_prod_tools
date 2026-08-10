@@ -91,6 +91,26 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
     emitter(state.copyWith(recentProjects: entries));
   }
 
+  /// Navigates to the workspace, then reloads the recent projects list once it pops back here.
+  ///
+  /// The push only completes when the user leaves the workspace, and what they did in there is
+  /// exactly what this page shows: `OcptProjectsManager.closeCurrentProject` writes back the
+  /// project's episode count on the way out, and its entry has just been moved to the top of the
+  /// list with a fresh `lastOpenedAt`. This page stays in the navigator's stack while the
+  /// workspace sits on top of it, so nothing else would ever re-read any of that.
+  ///
+  /// The emitter is checked before it is used again: an app closing while the workspace is on
+  /// screen closes this bloc too, and emitting into a closed one throws.
+  Future<void> _pushWorkspaceAndRefreshOnReturn(Emitter<OcptHomeState> emitter) async {
+    await _routerManager.push(OcptRoute.workspace);
+
+    if (emitter.isDone) {
+      return;
+    }
+
+    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+  }
+
   /// Shows the save-file dialog, creates the new project there, then navigates to the editor.
   Future<void> _onCreateProjectRequested(
     OcptHomeCreateProjectRequestedEvent event,
@@ -118,7 +138,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _routerManager.push(OcptRoute.workspace);
+    await _pushWorkspaceAndRefreshOnReturn(emitter);
   }
 
   /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
@@ -155,7 +175,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _routerManager.push(OcptRoute.workspace);
+    await _pushWorkspaceAndRefreshOnReturn(emitter);
   }
 
   /// Removes a recent project from the list and refreshes it.
@@ -238,6 +258,6 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState> {
 
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
-    await _routerManager.push(OcptRoute.workspace);
+    await _pushWorkspaceAndRefreshOnReturn(emitter);
   }
 }
