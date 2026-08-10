@@ -129,6 +129,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last export call, of either kind.
   String? lastExportedFileTypeLabel;
 
+  /// The episode tag of the last export call, of either kind.
+  String? lastExportedEpisodeTag;
+
   /// The screenplay text of the last [exportScenarioCoverage] call.
   String? lastCoverageScreenplayText;
 
@@ -150,11 +153,13 @@ class _FakeExportManager extends OcptExportManager {
     required OcptShotListXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedLabels = labels;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
 
     if (fails) {
       throw StateError("shot list export intentionally failed for the test");
@@ -176,10 +181,12 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeLegendPage,
     required bool includeSummaryPage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
     lastCoverageDocument = document;
     lastCoverageScreenplayText = screenplayText;
     lastCoveragePageSetup = pageSetup;
@@ -1514,6 +1521,7 @@ void main() {
       const OcptShotListXlsxExportRequestedEvent(
         labels: _exportLabels,
         fileTypeLabel: "Excel workbook",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1522,6 +1530,7 @@ void main() {
     expect(state.ioNotice!.path, "/tmp/My Movie.xlsx");
     expect(exportManager.lastExportedProjectName, "My Movie");
     expect(exportManager.lastExportedFileTypeLabel, "Excel workbook");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
     expect(exportManager.lastExportedLabels, _exportLabels);
     // The whole shot list travels, not only the selected sequence.
     expect(exportManager.lastExportedSnapshot!.sequences, hasLength(2));
@@ -1625,6 +1634,7 @@ void main() {
         options: _coverageOptions,
         labels: _coverageLabels,
         fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1633,6 +1643,7 @@ void main() {
     expect(state.ioNotice!.path, "/tmp/My Movie - coverage.pdf");
     expect(exportManager.lastExportedProjectName, "My Movie");
     expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
     expect(exportManager.lastCoverageLabels, _coverageLabels);
     // The document travels alongside the very text it was parsed from: a coverage range addresses
     // that text by character offset.

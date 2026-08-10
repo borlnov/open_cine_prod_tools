@@ -134,6 +134,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportBreakdownSheets] call.
   String? lastExportedFileTypeLabel;
 
+  /// The episode tag of the last [exportBreakdownSheets] call.
+  String? lastExportedEpisodeTag;
+
   @override
   Future<String?> exportBreakdownSheets({
     required FountainDocument document,
@@ -145,6 +148,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeNotes,
     required bool includeToFindList,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedPageSetup = pageSetup;
@@ -156,6 +160,7 @@ class _FakeExportManager extends OcptExportManager {
       includeToFindList: includeToFindList,
     );
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
 
     if (fails) {
       throw StateError("breakdown sheets export intentionally failed for the test");
@@ -176,6 +181,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportBreakdownXlsx] call.
   String? lastExportedXlsxFileTypeLabel;
 
+  /// The episode tag of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxEpisodeTag;
+
   @override
   Future<String?> exportBreakdownXlsx({
     required FountainDocument document,
@@ -184,11 +192,13 @@ class _FakeExportManager extends OcptExportManager {
     required OcptBreakdownXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedXlsxSnapshot = snapshot;
     lastExportedXlsxLabels = labels;
     lastExportedXlsxProjectName = projectName;
     lastExportedXlsxFileTypeLabel = fileTypeLabel;
+    lastExportedXlsxEpisodeTag = episodeTag;
 
     if (fails) {
       throw StateError("breakdown workbook export intentionally failed for the test");
@@ -1929,6 +1939,7 @@ void main() {
         options: _exportOptions,
         labels: _exportLabels,
         fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -1937,6 +1948,7 @@ void main() {
     expect(exportManager.lastExportedProjectName, "My Movie");
     expect(exportManager.lastExportedLabels, _exportLabels);
     expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
     // The dialog's own page format wins over the project's, and its margins travel with it.
     expect(exportManager.lastExportedPageSetup?.format, OcptPageFormat.a4);
     expect(exportManager.lastExportedPageSetup?.margins, const FountainPageMargins.standard());
@@ -2030,6 +2042,7 @@ void main() {
       const OcptBreakdownXlsxExportRequestedEvent(
         labels: _exportXlsxLabels,
         fileTypeLabel: "Excel workbook",
+        episodeTag: "ep. 2",
       ),
     );
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
@@ -2038,6 +2051,7 @@ void main() {
     expect(exportManager.lastExportedXlsxProjectName, "My Movie");
     expect(exportManager.lastExportedXlsxLabels, _exportXlsxLabels);
     expect(exportManager.lastExportedXlsxFileTypeLabel, "Excel workbook");
+    expect(exportManager.lastExportedXlsxEpisodeTag, "ep. 2");
     expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportSucceeded);
     expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.xlsx");
 

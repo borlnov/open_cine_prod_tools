@@ -443,6 +443,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         includeNotes: options.includeNotes,
         includeToFindList: options.includeToFindList,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -494,6 +495,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.

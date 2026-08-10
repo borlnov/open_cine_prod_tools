@@ -112,7 +112,14 @@ void main() {
 
   group('fountainFileName', () {
     test('appends the fountain extension to the project name', () {
-      expect(service.fountainFileName("My Movie"), "My Movie.fountain");
+      expect(service.fountainFileName(projectName: "My Movie"), "My Movie.fountain");
+    });
+
+    test('appends the episode tag last when there is one', () {
+      expect(
+        service.fountainFileName(projectName: "My Movie", episodeTag: "ep. 2"),
+        "My Movie - ep. 2.fountain",
+      );
     });
   });
 }

@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
@@ -53,14 +54,15 @@ class OcptBreakdownXlsxExportService {
 
   /// The `.xlsx` file name to suggest when exporting the breakdown of the project named
   /// [projectName], with [suffix] appended, mirroring `OcptResourcesXlsxExportService.xlsxFileName`.
-  String xlsxFileName({required String projectName, required String suffix}) {
-    final trimmedSuffix = suffix.trim();
-    final extension = OcptShotListXlsxExportService.xlsxFileExtension;
-
-    return trimmedSuffix.isEmpty
-        ? "$projectName.$extension"
-        : "$projectName - $trimmedSuffix.$extension";
-  }
+  /// [episodeTag] is the selected episode's own tag, present only while the open project holds more
+  /// than one episode — see `ocptExportFileNameOf`'s own doc comment.
+  String xlsxFileName({required String projectName, required String suffix, String? episodeTag}) =>
+      ocptExportFileNameOf(
+        projectName: projectName,
+        suffix: suffix,
+        episodeTag: episodeTag,
+        extension: OcptShotListXlsxExportService.xlsxFileExtension,
+      );
 
   /// Builds the workbook holding [snapshot]'s whole breakdown, titled and headed with [labels], and
   /// returns its bytes.

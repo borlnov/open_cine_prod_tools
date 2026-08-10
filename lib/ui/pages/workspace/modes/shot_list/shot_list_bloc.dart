@@ -657,6 +657,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -718,6 +719,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         includeLegendPage: options.includeLegendPage,
         includeSummaryPage: options.includeSummaryPage,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.

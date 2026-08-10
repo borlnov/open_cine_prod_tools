@@ -139,7 +139,14 @@ void main() {
 
   group('xlsxFileName', () {
     test('appends the .xlsx extension to the project name', () {
-      expect(service.xlsxFileName("My Movie"), "My Movie.xlsx");
+      expect(service.xlsxFileName(projectName: "My Movie"), "My Movie.xlsx");
+    });
+
+    test('appends the episode tag last when there is one', () {
+      expect(
+        service.xlsxFileName(projectName: "My Movie", episodeTag: "ep. 2"),
+        "My Movie - ep. 2.xlsx",
+      );
     });
   });
 

@@ -822,6 +822,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         fountainText: state.text,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.
@@ -873,6 +874,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         includeSceneNumbers: event.options.includeSceneNumbers,
         includeTitlePage: event.options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
       );
       if (path == null) {
         // The user cancelled the save dialog.

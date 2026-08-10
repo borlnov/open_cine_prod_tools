@@ -43,6 +43,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the
@@ -661,7 +662,10 @@ class _EditorViewState extends State<_EditorView> {
     switch (picked) {
       case OcptEditorExportDocument.fountain:
         context.read<OcptEditorBloc>().add(
-          OcptEditorExportRequestedEvent(fileTypeLabel: tr.editorImportFileTypeLabel),
+          OcptEditorExportRequestedEvent(
+            fileTypeLabel: tr.editorImportFileTypeLabel,
+            episodeTag: _episodeExportTag(context),
+          ),
         );
       case OcptEditorExportDocument.pdf:
         await _requestExportPdf(context);
@@ -684,7 +688,20 @@ class _EditorViewState extends State<_EditorView> {
       OcptEditorExportPdfRequestedEvent(
         options: options,
         fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
     );
   }
 

@@ -41,6 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -111,6 +112,28 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   ),
 );
 
+/// An export manager whose [exportFountain] is stubbed and records the episode tag it was handed,
+/// so a test can tell what `EditorPage` itself computed and dispatched — the page's own
+/// `_episodeExportTag`, not the bloc's own scoped episode, is under test here.
+class _RecordingExportManager extends OcptExportManager {
+  /// Class constructor
+  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
+
+  /// The episode tag of the last [exportFountain] call.
+  String? lastExportedEpisodeTag;
+
+  @override
+  Future<String?> exportFountain({
+    required String fountainText,
+    required String projectName,
+    required String fileTypeLabel,
+    String? episodeTag,
+  }) async {
+    lastExportedEpisodeTag = episodeTag;
+    return "/tmp/$projectName.fountain";
+  }
+}
+
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check
@@ -178,6 +201,28 @@ void main() {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   });
+
+  /// Swaps the registered `OcptExportManager` for [manager] for the rest of the current test,
+  /// restoring the shared real one afterward — `OcptEditorBloc` resolves its export manager from
+  /// `globalGetIt()` (it's built by `EditorPage` itself, with no test seam of its own), so this is
+  /// what lets a test observe what a real export call was handed.
+  void useExportManager(OcptExportManager manager) {
+    final managers = OcptGlobalManager.instance.managers;
+    final previous = managers.get<OcptExportManager>();
+    managers
+      // `unregister` returns `FutureOr` only because it may await a disposing function; none is
+      // registered here, so it never actually returns anything to wait for.
+      // ignore: discarded_futures
+      ..unregister<OcptExportManager>()
+      ..registerSingleton<OcptExportManager>(manager);
+    addTearDown(() {
+      managers
+        // See the identical `unregister` call above for why this is safe to leave un-awaited.
+        // ignore: discarded_futures
+        ..unregister<OcptExportManager>()
+        ..registerSingleton<OcptExportManager>(previous);
+    });
+  }
 
   testWidgets('renders the toolbar, the source text, the scene panel and the paper preview', (
     tester,
@@ -953,6 +998,61 @@ void main() {
       expect(find.text(tr.editorExportPanelTitle), findsNothing);
       expect(find.byType(OcptEditorExportPdfOptionsDialog), findsNothing);
       expect(find.byType(EditorPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "a project holding one episode dispatches a null episode tag when exporting to Fountain",
+    (tester) async {
+      final exportManager = _RecordingExportManager();
+      useExportManager(exportManager);
+
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(tr.editorExportFountainTitle));
+      await tester.pumpAndSettle();
+
+      expect(exportManager.lastExportedEpisodeTag, isNull);
+    },
+  );
+
+  testWidgets(
+    "a project holding two episodes dispatches the selected one's tag when exporting to Fountain",
+    (tester) async {
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+
+      final exportManager = _RecordingExportManager();
+      useExportManager(exportManager);
+
+      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(EditorPage));
+      final tr = Tr.of(context);
+
+      // The workspace bloc lands on the first episode by default; select the second one so the
+      // exported tag can be told apart from what a single-episode project would produce.
+      context.read<OcptWorkspaceBloc>().add(
+        OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(tr.editorExportFountainTitle));
+      await tester.pumpAndSettle();
+
+      expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
     },
   );
 

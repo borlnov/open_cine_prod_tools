@@ -338,6 +338,13 @@ void main() {
     test("falls back to a bare name when the suffix is blank", () {
       expect(service.xlsxFileName(projectName: "My Movie", suffix: "   "), "My Movie.xlsx");
     });
+
+    test("appends the episode tag last, after the suffix, when there is one", () {
+      expect(
+        service.xlsxFileName(projectName: "My Movie", suffix: "breakdown", episodeTag: "ep. 2"),
+        "My Movie - breakdown - ep. 2.xlsx",
+      );
+    });
   });
 
   group("generate", () {

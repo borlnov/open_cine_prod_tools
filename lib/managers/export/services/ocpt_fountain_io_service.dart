@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:path/path.dart' as p;
 
 /// Converts a `.fountain` file's bytes to and from the plain Fountain text stored as a
@@ -72,7 +73,13 @@ class OcptFountainIoService {
   }
 
   /// The `.fountain` file name to suggest when exporting the project named [projectName].
-  String fountainFileName(String projectName) => "$projectName.$fountainFileExtension";
+  /// [episodeTag] is the selected episode's own tag, present only while the open project holds more
+  /// than one episode — see `ocptExportFileNameOf`'s own doc comment.
+  String fountainFileName({required String projectName, String? episodeTag}) => ocptExportFileNameOf(
+    projectName: projectName,
+    episodeTag: episodeTag,
+    extension: fountainFileExtension,
+  );
 
   /// Trims [value], collapses internal whitespace, and drops characters illegal in file names.
   ///

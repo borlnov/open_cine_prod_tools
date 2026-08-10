@@ -255,12 +255,17 @@ class OcptEditorExportRequestedEvent extends OcptEditorEvent {
   /// The label of the file type shown in the native save dialog, localized by the caller.
   final String fileTypeLabel;
 
+  /// The selected episode's own tag (`ep. 2`), resolved by `EditorPage` from
+  /// `OcptWorkspaceBloc.state.episodes`/`.selectedEpisodeId` and null while the open project holds
+  /// one episode or none — see `ocptWorkspaceEpisodeExportTagOf`.
+  final String? episodeTag;
+
   /// Class constructor
-  const OcptEditorExportRequestedEvent({required this.fileTypeLabel});
+  const OcptEditorExportRequestedEvent({required this.fileTypeLabel, this.episodeTag});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, fileTypeLabel];
+  List<Object?> get props => [...super.props, fileTypeLabel, episodeTag];
 }
 
 /// Requests exporting the current screenplay to a PDF file.
@@ -275,12 +280,20 @@ class OcptEditorExportPdfRequestedEvent extends OcptEditorEvent {
   /// The label of the file type shown in the native save dialog, localized by the caller.
   final String fileTypeLabel;
 
+  /// The selected episode's own tag, exactly as [OcptEditorExportRequestedEvent.episodeTag] is —
+  /// see its own doc comment.
+  final String? episodeTag;
+
   /// Class constructor
-  const OcptEditorExportPdfRequestedEvent({required this.options, required this.fileTypeLabel});
+  const OcptEditorExportPdfRequestedEvent({
+    required this.options,
+    required this.fileTypeLabel,
+    this.episodeTag,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, fileTypeLabel, episodeTag];
 }
 
 /// Requests replacing the current screenplay text with the content of a picked `.fountain` file.

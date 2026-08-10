@@ -15,10 +15,13 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -62,6 +65,29 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
     child: Scaffold(body: child),
   ),
 );
+
+/// An export manager whose [exportShotListXlsx] is stubbed and records the episode tag it was
+/// handed, so a test can tell what `OcptShotListMode` itself computed and dispatched — the mode's
+/// own `_episodeExportTag`, not the bloc's own scoped episode, is under test here.
+class _RecordingExportManager extends OcptExportManager {
+  /// Class constructor
+  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
+
+  /// The episode tag of the last [exportShotListXlsx] call.
+  String? lastExportedEpisodeTag;
+
+  @override
+  Future<String?> exportShotListXlsx({
+    required OcptShotListSnapshot snapshot,
+    required OcptShotListXlsxLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    String? episodeTag,
+  }) async {
+    lastExportedEpisodeTag = episodeTag;
+    return "/tmp/$projectName.xlsx";
+  }
+}
 
 void main() {
   late OcptPropertiesManager propertiesManager;
@@ -114,6 +140,28 @@ void main() {
   /// same word.
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
+
+  /// Swaps the registered `OcptExportManager` for [manager] for the rest of the current test,
+  /// restoring the shared real one afterward — `OcptShotListBloc` resolves its export manager from
+  /// `globalGetIt()` (it's built by the mode itself, with no test seam of its own), so this is what
+  /// lets a test observe what a real export call was handed.
+  void useExportManager(OcptExportManager manager) {
+    final managers = OcptGlobalManager.instance.managers;
+    final previous = managers.get<OcptExportManager>();
+    managers
+      // `unregister` returns `FutureOr` only because it may await a disposing function; none is
+      // registered here, so it never actually returns anything to wait for.
+      // ignore: discarded_futures
+      ..unregister<OcptExportManager>()
+      ..registerSingleton<OcptExportManager>(manager);
+    addTearDown(() {
+      managers
+        // See the identical `unregister` call above for why this is safe to leave un-awaited.
+        // ignore: discarded_futures
+        ..unregister<OcptExportManager>()
+        ..registerSingleton<OcptExportManager>(previous);
+    });
+  }
 
   testWidgets(
     "with no shot placed, the export panel lists both documents as unavailable and says why",
@@ -204,6 +252,78 @@ void main() {
       expect(find.text(tr.shotListExportPanelTitle), findsNothing);
       expect(find.byType(OcptScenarioCoverageExportDialog), findsNothing);
       expect(find.byType(OcptShotListMode), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "a project holding one episode dispatches a null episode tag when exporting the workbook",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final exportManager = _RecordingExportManager();
+      useExportManager(exportManager);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.text(tr.shotListAddShotAction));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      await tester.tap(inPanel(find.text(tr.shotListExportXlsxTitle)));
+      await tester.pumpAndSettle();
+
+      expect(exportManager.lastExportedEpisodeTag, isNull);
+    },
+  );
+
+  testWidgets(
+    "a project holding two episodes dispatches the selected one's tag when exporting the "
+    "workbook",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+
+      final exportManager = _RecordingExportManager();
+      useExportManager(exportManager);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(OcptShotListMode));
+      final tr = Tr.of(context);
+
+      // The workspace bloc lands on the first episode by default; select the second one so the
+      // exported tag can be told apart from what a single-episode project would produce.
+      context.read<OcptWorkspaceBloc>().add(
+        OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(tr.shotListAddShotAction));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+      await tester.pumpAndSettle();
+
+      await tester.tap(inPanel(find.text(tr.shotListExportXlsxTitle)));
+      await tester.pumpAndSettle();
+
+      expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
     },
   );
 }

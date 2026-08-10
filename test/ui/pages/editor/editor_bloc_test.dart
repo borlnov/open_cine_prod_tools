@@ -134,6 +134,9 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportFountain] call.
   String? lastExportedFileTypeLabel;
 
+  /// The episode tag of the last [exportFountain] call.
+  String? lastExportedEpisodeTag;
+
   /// The file type label of the last [pickAndReadFountain] call.
   String? lastImportFileTypeLabel;
 
@@ -155,15 +158,20 @@ class _FakeExportManager extends OcptExportManager {
   /// The file type label of the last [exportPdf] call.
   String? lastExportedPdfFileTypeLabel;
 
+  /// The episode tag of the last [exportPdf] call.
+  String? lastExportedPdfEpisodeTag;
+
   @override
   Future<String?> exportFountain({
     required String fountainText,
     required String projectName,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedText = fountainText;
     lastExportedProjectName = projectName;
     lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
     return exportResult;
   }
 
@@ -175,6 +183,7 @@ class _FakeExportManager extends OcptExportManager {
     required bool includeSceneNumbers,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async {
     lastExportedPdfDocument = document;
     lastExportedPdfPageSetup = pageSetup;
@@ -182,6 +191,7 @@ class _FakeExportManager extends OcptExportManager {
     lastExportedPdfIncludeSceneNumbers = includeSceneNumbers;
     lastExportedPdfIncludeTitlePage = includeTitlePage;
     lastExportedPdfFileTypeLabel = fileTypeLabel;
+    lastExportedPdfEpisodeTag = episodeTag;
     return exportPdfResult;
   }
 
@@ -206,6 +216,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
     required bool includeSceneNumbers,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    String? episodeTag,
   }) async => throw StateError("PDF export intentionally failed for the test");
 }
 
@@ -1197,7 +1208,12 @@ void main() {
       bloc.add(const OcptEditorTextChangedEvent(text: editedText));
       await waitForState(bloc, (state) => state.isDirty);
 
-      bloc.add(const OcptEditorExportRequestedEvent(fileTypeLabel: "Fountain screenplay"));
+      bloc.add(
+        const OcptEditorExportRequestedEvent(
+          fileTypeLabel: "Fountain screenplay",
+          episodeTag: "ep. 2",
+        ),
+      );
       final state = await waitForState(
         bloc,
         (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.exportSucceeded,
@@ -1208,6 +1224,7 @@ void main() {
       expect(exportManager.lastExportedText, editedText);
       expect(exportManager.lastExportedProjectName, "My Movie");
       expect(exportManager.lastExportedFileTypeLabel, "Fountain screenplay");
+      expect(exportManager.lastExportedEpisodeTag, "ep. 2");
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.export);
@@ -1262,6 +1279,7 @@ void main() {
         const OcptEditorExportPdfRequestedEvent(
           options: options,
           fileTypeLabel: "PDF document",
+          episodeTag: "ep. 2",
         ),
       );
       final state = await waitForState(
@@ -1280,6 +1298,7 @@ void main() {
       expect(exportManager.lastExportedPdfIncludeSceneNumbers, isFalse);
       expect(exportManager.lastExportedPdfIncludeTitlePage, isFalse);
       expect(exportManager.lastExportedPdfFileTypeLabel, "PDF document");
+      expect(exportManager.lastExportedPdfEpisodeTag, "ep. 2");
 
       final snapshots = await readSnapshots();
       expect(snapshots.last.reason, OcptSnapshotReason.export);

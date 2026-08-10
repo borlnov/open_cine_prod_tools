@@ -9127,6 +9127,17 @@
     "type": "text",
     "placeholders": {}
   },
+  "workspaceEpisodeTag": "ep. {number}",
+  "@workspaceEpisodeTag": {
+    "description": "The selected episode's tag, appended to a mode's own export suggested file name",
+    "context": "Only ever appended while the open project holds more than one episode",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
   "workspaceEpisodeTitledLabel": "{number}. {title}",
   "@workspaceEpisodeTitledLabel": {
     "description": "How a titled episode reads, on the selector's trigger and in its menu",

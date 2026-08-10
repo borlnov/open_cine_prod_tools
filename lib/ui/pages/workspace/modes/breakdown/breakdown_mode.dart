@@ -45,6 +45,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
@@ -282,6 +283,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         options: options,
         labels: ocptBreakdownSheetsLabelsOf(tr, state.scenes),
         fileTypeLabel: tr.breakdownExportSheetsFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
     );
   }
@@ -296,7 +298,20 @@ class _BreakdownViewState extends State<_BreakdownView> {
       OcptBreakdownXlsxExportRequestedEvent(
         labels: ocptBreakdownXlsxLabelsOf(tr),
         fileTypeLabel: tr.breakdownExportXlsxFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
     );
   }
 

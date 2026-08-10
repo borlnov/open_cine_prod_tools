@@ -41,6 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
@@ -235,6 +236,7 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListXlsxExportRequestedEvent(
         labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
     );
   }
@@ -264,7 +266,20 @@ class _ShotListViewState extends State<_ShotListView> {
         options: options,
         labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
       ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
     );
   }
 

@@ -442,6 +442,13 @@ void main() {
         "My Movie - breakdown.pdf",
       );
     });
+
+    test("appends the episode tag last, after the suffix, when there is one", () {
+      expect(
+        service.sheetsFileName(projectName: "My Movie", suffix: "breakdown", episodeTag: "ep. 2"),
+        "My Movie - breakdown - ep. 2.pdf",
+      );
+    });
   });
 }
 

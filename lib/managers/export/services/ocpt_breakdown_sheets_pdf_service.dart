@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
@@ -95,9 +96,19 @@ class OcptBreakdownSheetsPdfService {
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - breakdown.pdf`); a blank one falls back to the project name alone rather than
   /// producing a file name ending on a dangling separator, exactly as
-  /// `OcptScenarioCoveragePdfService.coverageFileName` does.
-  String sheetsFileName({required String projectName, required String suffix}) =>
-      suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
+  /// `OcptScenarioCoveragePdfService.coverageFileName` does. [episodeTag] is the selected episode's
+  /// own tag, present only while the open project holds more than one episode — see
+  /// `ocptExportFileNameOf`'s own doc comment.
+  String sheetsFileName({
+    required String projectName,
+    required String suffix,
+    String? episodeTag,
+  }) => ocptExportFileNameOf(
+    projectName: projectName,
+    suffix: suffix,
+    episodeTag: episodeTag,
+    extension: "pdf",
+  );
 
   /// Renders the breakdown sheets of [snapshot], returning the PDF's bytes.
   ///

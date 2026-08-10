@@ -167,15 +167,21 @@ class OcptShotListXlsxExportRequestedEvent extends OcptShotListEvent {
   /// The localized label of the `.xlsx` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
+  /// The selected episode's own tag (`ep. 2`), resolved by `OcptShotListMode` from
+  /// `OcptWorkspaceBloc.state.episodes`/`.selectedEpisodeId` and null while the open project holds
+  /// one episode or none — see `ocptWorkspaceEpisodeExportTagOf`.
+  final String? episodeTag;
+
   /// Class constructor
   const OcptShotListXlsxExportRequestedEvent({
     required this.labels,
     required this.fileTypeLabel,
+    this.episodeTag,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag];
 }
 
 /// Requests exporting the screenplay annotated with the shots covering it, dispatched by the mode's
@@ -198,16 +204,21 @@ class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListEvent
   /// The localized label of the `.pdf` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
+  /// The selected episode's own tag, exactly as
+  /// [OcptShotListXlsxExportRequestedEvent.episodeTag] is — see its own doc comment.
+  final String? episodeTag;
+
   /// Class constructor
   const OcptShotListScenarioCoverageExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.episodeTag,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, episodeTag];
 }
 
 /// Dismisses the transient export notice currently shown, if any.
