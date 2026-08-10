@@ -969,6 +969,7 @@
   "scheduleInspectorDurationLabel": "Durée",
   "scheduleInspectorBlockCrewNoteLabel": "Notes à l'équipe",
   "scheduleInspectorNotesLabel": "Notes privées",
+  "scheduleStatsEpisodes": "{count, plural, one{{count} épisode} other{{count} épisodes}}",
   "scheduleStatsDays": "{count, plural, one{{count} jour} other{{count} jours}}",
   "scheduleStatsShotsPlaced": "{count, plural, one{{count} plan placé} other{{count} plans placés}}",
   "scheduleStatsShotsLeftToPlace": "{count, plural, one{{count} restant à placer} other{{count} restants à placer}}",

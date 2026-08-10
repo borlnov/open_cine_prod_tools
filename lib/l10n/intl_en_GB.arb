@@ -7204,6 +7204,17 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleStatsEpisodes": "{count, plural, one{{count} episode} other{{count} episodes}}",
+  "@scheduleStatsEpisodes": {
+    "description": "Number of live episodes in the project",
+    "context": "Displayed in the schedule mode's status bar, omitted on a single-episode project",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "scheduleStatsDays": "{count, plural, one{{count} day} other{{count} days}}",
   "@scheduleStatsDays": {
     "description": "Number of live shooting days",

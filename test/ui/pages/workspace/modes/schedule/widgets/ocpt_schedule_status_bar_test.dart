@@ -27,20 +27,24 @@ void main() {
   Future<void> pumpStatusBar(
     WidgetTester tester, {
     int alertCount = 0,
+    int? episodeCount,
     int dayCount = 1,
     required bool isDaySelected,
     required int? selectedDayEndMinute,
+    double width = 700,
   }) async {
     await tester.pumpWidget(
       _wrapInApp(
         OcptScheduleStatusBar(
           alertCount: alertCount,
+          episodeCount: episodeCount,
           dayCount: dayCount,
           placedShotCount: 0,
           shotsLeftToPlaceCount: 0,
           isDaySelected: isDaySelected,
           selectedDayEndMinute: selectedDayEndMinute,
         ),
+        width: width,
       ),
     );
     await tester.pumpAndSettle();
@@ -90,5 +94,48 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleStatusBar)));
     expect(find.textContaining(tr.scheduleStatsAlerts(3)), findsOneWidget);
+  });
+
+  testWidgets("a multi-episode project's counter sits second, right after the alerts", (
+    tester,
+  ) async {
+    await pumpStatusBar(
+      tester,
+      alertCount: 3,
+      episodeCount: 5,
+      dayCount: 24,
+      isDaySelected: false,
+      selectedDayEndMinute: null,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleStatusBar)));
+    // Read the joined summary back off the one Text widget carrying it, rather than asserting an
+    // exact full string: at a narrow width the two trailing counters (shots placed/left to place)
+    // may be dropped for want of room, but `nonDroppableCount` (3, with an episode counter
+    // present) guarantees the alerts, the episode count and the day count never are — which is
+    // the "second place" this test is actually about.
+    final summary = tester.widget<Text>(find.textContaining(tr.scheduleStatsAlerts(3))).data!;
+    expect(
+      summary,
+      startsWith(
+        "${tr.scheduleStatsAlerts(3)} · ${tr.scheduleStatsEpisodes(5)} · "
+        "${tr.scheduleStatsDays(24)}",
+      ),
+    );
+  });
+
+  testWidgets("a single-episode project shows no episode counter at all", (tester) async {
+    await pumpStatusBar(
+      tester,
+      alertCount: 3,
+      dayCount: 24,
+      isDaySelected: false,
+      selectedDayEndMinute: null,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleStatusBar)));
+    final summary = tester.widget<Text>(find.textContaining(tr.scheduleStatsAlerts(3))).data!;
+    expect(summary, isNot(contains("episode")));
+    expect(summary, startsWith("${tr.scheduleStatsAlerts(3)} · ${tr.scheduleStatsDays(24)}"));
   });
 }

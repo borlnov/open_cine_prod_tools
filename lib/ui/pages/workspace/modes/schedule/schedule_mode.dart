@@ -165,6 +165,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
         centre: _buildCentre(context, state),
         statusBar: OcptScheduleStatusBar(
           alertCount: state.planSnapshot?.alerts.length ?? 0,
+          // Null on a single-episode project, which draws no counter for it at all — see
+          // `OcptScheduleStatusBar`'s own doc comment.
+          episodeCount: state.episodes.length > 1 ? state.episodes.length : null,
           dayCount: state.dayCount,
           placedShotCount: state.placedShotCount,
           shotsLeftToPlaceCount: state.shotsLeftToPlaceCount,
