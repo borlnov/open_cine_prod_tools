@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the shot list (découpage technique) production mode.
 ///
@@ -286,12 +287,22 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Read again on every call, alongside every other write this bloc performs: the schedule is
   /// edited from its own mode, never from here, but this mode's own snapshot must still show
   /// whatever it currently says.
+  ///
+  /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
+  /// episodes through [_projectsManager]'s own `screenplayService` (never through
+  /// [_shotListService], which `OcptScreenplayService` already depends on) and resolves the primary
+  /// screenplay's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
+    final database = project.database;
+    final screenplayId = project.primaryScreenplayId;
+
+    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final snapshot = await _shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
+      database: database,
+      screenplayId: screenplayId,
+      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
-    final placements = await _scheduleService.loadShotPlacements(database: project.database);
+    final placements = await _scheduleService.loadShotPlacements(database: database);
 
     return snapshot.copyWithPlacements(placements);
   }

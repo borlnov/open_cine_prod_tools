@@ -768,6 +768,7 @@ Action two.
         final loaded = await breakdownService.loadScenes(
           database: database,
           screenplayId: screenplayId,
+          episodeNumber: null,
         );
 
         expect(loaded.map((scene) => scene.id), [houseScene.id, streetScene.id]);
@@ -811,6 +812,7 @@ Action two.
       final loaded = await breakdownService.loadScenes(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       );
 
       expect(loaded.any((scene) => scene.id == streetScene.id), isFalse);
@@ -834,10 +836,42 @@ Action two.
       final loaded = await breakdownService.loadScenes(
         database: database,
         screenplayId: screenplayId,
+        episodeNumber: null,
       );
 
       expect(loaded.single.status, OcptBreakdownSceneStatus.toDo);
       expect(loaded.single.notes, "");
+    });
+
+    test("carries the given episode number onto every scene's displayNumber", () async {
+      await screenplayService.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: '''
+INT. HOUSE - DAY
+
+Action one.
+
+EXT. STREET - NIGHT
+
+Action two.
+''',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final loadedWithoutEpisode = await breakdownService.loadScenes(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
+      expect(loadedWithoutEpisode.map((scene) => scene.displayNumber), ["1", "2"]);
+
+      final loadedWithEpisode = await breakdownService.loadScenes(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: 2,
+      );
+      expect(loadedWithEpisode.map((scene) => scene.displayNumber), ["2.1", "2.2"]);
     });
   });
 

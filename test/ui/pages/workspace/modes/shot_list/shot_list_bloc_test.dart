@@ -914,6 +914,7 @@ void main() {
     final reloaded = await projectsManager.shotListService.loadShotList(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(reloaded.shotsById[shotId]!.sound, "Wind noise");
 

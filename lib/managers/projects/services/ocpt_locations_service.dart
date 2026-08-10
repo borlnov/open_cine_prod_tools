@@ -133,9 +133,15 @@ class OcptLocationsService {
   /// the ones a set already holds. This service is where the read lives because `scene_sets` is
   /// its table; the scenes themselves are `OcptSceneIndexService`'s to write, and nothing here
   /// ever does.
+  ///
+  /// [episodeNumber] is [screenplayId]'s own episode number, or null when the project holds a
+  /// single episode; it is only carried onto each [OcptSceneRef] for `displayNumber` to read, never
+  /// resolved here — this service has no reason to depend on `OcptScreenplayService`, which already
+  /// depends on it (dependencies never reference their dependents).
   Future<List<OcptSceneRef>> loadScenes({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required int? episodeNumber,
   }) async {
     final rows =
         await (database.select(database.ocptScenesTable)
@@ -143,7 +149,9 @@ class OcptLocationsService {
               ..orderBy([(table) => OrderingTerm.asc(table.position)]))
             .get();
 
-    return rows.map(OcptSceneRef.fromRow).toList(growable: false);
+    return [
+      for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber),
+    ];
   }
 
   /// Creates a new location named [name] in [database], appended at the end, and returns its

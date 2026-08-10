@@ -44,6 +44,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -430,16 +431,25 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
   /// Reads the whole resources catalogue of [project], joining the four services' own reads into
   /// one [OcptResourcesSnapshot].
+  ///
+  /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
+  /// episodes through [_projectsManager]'s own `screenplayService` (never through
+  /// [_locationsService], which `OcptScreenplayService` already depends on) and resolves the
+  /// primary screenplay's number with `ocptEpisodePrefixNumberOf`, null on a single-episode
+  /// project.
   Future<OcptResourcesSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
+    final screenplayId = project.primaryScreenplayId;
 
     final people = await _peopleService.loadPeople(database: database);
     final roles = await _roleIndexService.loadRoles(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final elements = await _elementsService.loadElements(database: database);
+    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final scenes = await _locationsService.loadScenes(
       database: database,
-      screenplayId: project.primaryScreenplayId,
+      screenplayId: screenplayId,
+      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
 
     return OcptResourcesSnapshot.build(

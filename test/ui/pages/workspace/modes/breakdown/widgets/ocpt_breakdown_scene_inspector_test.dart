@@ -47,6 +47,7 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: "",
   tags: tags,
+  episodeNumber: null,
 );
 
 /// Builds a set of location `location-1`, shot in [sceneIds].

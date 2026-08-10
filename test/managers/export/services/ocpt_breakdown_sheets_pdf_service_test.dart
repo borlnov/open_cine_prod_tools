@@ -84,6 +84,7 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: notes,
   tags: const [],
+  episodeNumber: null,
 );
 
 /// Builds a tag pointing scene [sceneId] at ([targetKind], [targetId]); these tests only ever read

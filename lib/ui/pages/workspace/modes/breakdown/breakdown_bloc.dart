@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the breakdown production mode (dépouillement du scénario).
 ///
@@ -325,13 +326,23 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// Reads the whole breakdown of [project]'s primary screenplay, joining
   /// [_breakdownService]'s scenes and tags with [_elementsService]/[_roleIndexService]/
   /// [_locationsService]/[_peopleService]'s four catalogues into one [OcptBreakdownSnapshot].
+  ///
+  /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
+  /// episodes through [_projectsManager]'s own `screenplayService` (never through
+  /// [_breakdownService], which `OcptScreenplayService` already depends on) and resolves the
+  /// primary screenplay's number with `ocptEpisodePrefixNumberOf`, null on a single-episode
+  /// project.
   Future<OcptBreakdownSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
     final screenplayId = project.primaryScreenplayId;
 
+    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    final episodeNumber = ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId);
+
     final scenes = await _breakdownService.loadScenes(
       database: database,
       screenplayId: screenplayId,
+      episodeNumber: episodeNumber,
     );
     final tagRows = await _breakdownService.loadTags(
       database: database,

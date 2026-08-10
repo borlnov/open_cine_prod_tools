@@ -72,6 +72,7 @@ void main() {
       status: OcptBreakdownSceneStatus.toDo,
       notes: "",
       tags: [],
+      episodeNumber: null,
     );
 
     expect(ocptBreakdownSceneTargetsOf(scene, targetById), isEmpty);
@@ -92,6 +93,7 @@ void main() {
         _buildTag(targetKind: OcptBreakdownTargetKind.element, targetId: "prop-a"),
         _buildTag(targetKind: OcptBreakdownTargetKind.element, targetId: "prop-b"),
       ],
+      episodeNumber: null,
     );
 
     final targets = ocptBreakdownSceneTargetsOf(scene, targetById);
@@ -131,6 +133,7 @@ void main() {
           needsCheck: false,
         ),
       ],
+      episodeNumber: null,
     );
 
     expect(ocptBreakdownSceneTargetsOf(scene, targetById), [propA]);
@@ -152,6 +155,7 @@ void main() {
         _buildTag(targetKind: OcptBreakdownTargetKind.role, targetId: "role-a"),
         _buildTag(targetKind: OcptBreakdownTargetKind.element, targetId: "costume-a"),
       ],
+      episodeNumber: null,
     );
 
     final buckets = ocptBreakdownSceneBarBucketsOf(scene, targetById);
@@ -175,6 +179,7 @@ void main() {
       status: OcptBreakdownSceneStatus.toDo,
       notes: "",
       tags: [_buildTag(targetKind: OcptBreakdownTargetKind.element, targetId: "gone")],
+      episodeNumber: null,
     );
 
     expect(ocptBreakdownSceneTargetsOf(scene, targetById), isEmpty);

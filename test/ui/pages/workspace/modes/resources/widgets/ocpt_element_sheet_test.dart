@@ -128,8 +128,13 @@ OcptRole _role({required String id, required String name}) => OcptRole(
 );
 
 /// A scene the links and the picker name.
-OcptSceneRef _scene({required String id, required int position, required String heading}) =>
-    OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null);
+OcptSceneRef _scene({required String id, required int position, required String heading}) => OcptSceneRef(
+  id: id,
+  position: position,
+  heading: heading,
+  sceneNumber: null,
+  episodeNumber: null,
+);
 
 void main() {
   /// Pumps the sheet over [element], returning the [Tr] its own context resolves.

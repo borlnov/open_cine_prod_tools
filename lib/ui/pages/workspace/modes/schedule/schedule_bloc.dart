@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -35,6 +36,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the schedule production mode.
 ///
@@ -280,10 +282,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final previewedVersion = project.previewedVersion;
     final snapshot = await _loadScheduleSnapshot(project);
-    final shotListSnapshot = await _shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final shotListSnapshot = await _loadShotListSnapshot(project);
     final locations = await _locationsService.loadLocations(database: project.database);
     final roles = await _roleIndexService.loadRoles(database: project.database);
     final people = await _peopleService.loadPeople(database: project.database);
@@ -371,6 +370,25 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// Reads [project]'s whole schedule.
   Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
       _scheduleService.loadSchedule(database: project.database);
+
+  /// Reads [project]'s primary screenplay's whole shot list, its scene numbers prefixed with its
+  /// own episode number.
+  ///
+  /// This bloc reads the project's live episodes through [_projectsManager]'s own
+  /// `screenplayService` (never through [_shotListService], which `OcptScreenplayService` already
+  /// depends on) and resolves the primary screenplay's number with `ocptEpisodePrefixNumberOf`,
+  /// null on a single-episode project.
+  Future<OcptShotListSnapshot> _loadShotListSnapshot(OcptOpenProjectModel project) async {
+    final database = project.database;
+    final screenplayId = project.primaryScreenplayId;
+
+    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    return _shotListService.loadShotList(
+      database: database,
+      screenplayId: screenplayId,
+      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
+    );
+  }
 
   /// Leaves the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
@@ -944,10 +962,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       status: Value(event.status),
     );
 
-    final shotListSnapshot = await _shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final shotListSnapshot = await _loadShotListSnapshot(project);
     emitter(state.copyWith(shotListSnapshot: shotListSnapshot));
     _requestWorkingCopyRefreshIfVersionsOpen();
   }

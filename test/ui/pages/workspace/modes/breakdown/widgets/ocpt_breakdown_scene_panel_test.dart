@@ -46,6 +46,7 @@ OcptBreakdownScene _buildScene({
   status: status,
   notes: "",
   tags: tags,
+  episodeNumber: null,
 );
 
 /// Builds a tag pointing scene [sceneId] at target [targetId] of [targetKind], the rest at neutral

@@ -1771,6 +1771,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.status, OcptBreakdownSceneStatus.done);
 
@@ -1794,6 +1795,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.notes, "Bring the lamp");
 
@@ -1818,6 +1820,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.firstWhere((scene) => scene.id == firstSceneId).notes, "note one");
 
@@ -1839,6 +1842,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.notes, "note");
 
@@ -1860,6 +1864,7 @@ void main() {
     final scenes = await projectsManager.breakdownService.loadScenes(
       database: projectsManager.currentProject!.database,
       screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+      episodeNumber: null,
     );
     expect(scenes.single.notes, "handle with care");
 

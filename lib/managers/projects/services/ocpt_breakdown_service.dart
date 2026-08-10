@@ -133,9 +133,15 @@ class OcptBreakdownService {
   /// `OcptLocationsService.loadScenes` in reading only the scenes, and [loadTags] already exists to
   /// read the other half — reading it twice, once per caller, would be the two ways of building a
   /// snapshot silently drifting apart.
+  ///
+  /// [episodeNumber] is [screenplayId]'s own episode number, or null when the project holds a
+  /// single episode; it is only carried onto each [OcptBreakdownScene] for `displayNumber` to read,
+  /// never resolved here — this service has no reason to depend on `OcptScreenplayService`, which
+  /// already depends on it (dependencies never reference their dependents).
   Future<List<OcptBreakdownScene>> loadScenes({
     required OcptProjectDatabase database,
     required String screenplayId,
+    required int? episodeNumber,
   }) async {
     final sceneRows =
         await (database.select(database.ocptScenesTable)
@@ -152,6 +158,7 @@ class OcptBreakdownService {
       for (final sceneRow in sceneRows)
         OcptBreakdownScene.fromRows(
           sceneRow: sceneRow,
+          episodeNumber: episodeNumber,
           breakdownRow: breakdownRowsBySceneId[sceneRow.id],
         ),
     ];
