@@ -76,7 +76,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// row per person or per uncast role, ADR 0018) + the shared `Versions` tab.
 ///
 /// **There is no save control and no mode-specific toolbar action**: every write here is its own
-/// event, exactly as the breakdown mode's own shell is built.
+/// event, exactly as the breakdown mode's own shell is built. **Nor is there an episode
+/// selector**: the mode reads every episode of the project at once, so it withholds the shell's
+/// own `onEpisodeSelected` outright.
 class OcptScheduleMode extends StatelessWidget {
   /// Creates the schedule mode.
   const OcptScheduleMode({super.key});
@@ -140,6 +142,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptScheduleBloc>().add(const OcptScheduleBackRequestedEvent()),
+        // No episode selector here, left at its default null: the schedule reads every episode of
+        // the project at once, so a selector would either do nothing or lie about what the day
+        // view and the agenda show.
         modeLabel: Tr.of(context).workspaceModeLabelSchedule,
         onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context),

@@ -9101,6 +9101,45 @@
   "@scheduleAgendaEffectLegendMixed": {
     "description": "Legend entry for a day whose placed shots classify into more than one effect",
     "context": "Displayed in the schedule mode's agenda header, under Colour by effect"
+  },
+  "workspaceEpisodeSelectorTooltip": "Switch episode",
+  "@workspaceEpisodeSelectorTooltip": {
+    "description": "Tooltip of the toolbar's episode selector",
+    "context": "Displayed on hover over the episode selector, next to the project title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "workspaceEpisodeTitledLabel": "{number}. {title}",
+  "@workspaceEpisodeTitledLabel": {
+    "description": "How a titled episode reads, on the selector's trigger and in its menu",
+    "context": "Displayed by the toolbar's episode selector",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceEpisodeUntitledLabel": "Episode {number}",
+  "@workspaceEpisodeUntitledLabel": {
+    "description": "How an untitled episode reads, on the selector's trigger and in its menu",
+    "context": "Displayed by the toolbar's episode selector",
+    "type": "text",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "workspaceManageEpisodesAction": "Manage episodes…",
+  "@workspaceManageEpisodesAction": {
+    "description": "Last entry of the episode selector's menu, opening the project settings page",
+    "context": "Displayed at the bottom of the toolbar's episode selector menu",
+    "type": "text",
+    "placeholders": {}
   }
 
 }

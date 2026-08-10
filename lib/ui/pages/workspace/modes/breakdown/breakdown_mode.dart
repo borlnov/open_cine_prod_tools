@@ -149,11 +149,18 @@ class _BreakdownViewState extends State<_BreakdownView> {
         return const Center(child: CircularProgressIndicator());
       }
 
+      final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownBackRequestedEvent()),
+        episodes: workspaceState.episodes,
+        selectedEpisodeId: workspaceState.selectedEpisodeId,
+        onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+          OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+        ),
         modeLabel: Tr.of(context).workspaceModeLabelBreakdown,
         onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context),

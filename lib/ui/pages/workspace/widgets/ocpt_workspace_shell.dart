@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
@@ -23,6 +24,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_t
 /// control ([onSave]), then the project settings action ([onProjectSettingsRequested]) — each
 /// rendered only when the mode wired it, so a mode with nothing to print, no dock, nothing to
 /// save, or nothing to open there simply shows fewer of them.
+///
+/// The episode selector sits at the *other* end of the toolbar, right after the title and its
+/// dirty marker / `Read only` pill, since it qualifies *which content* is on screen — exactly what
+/// the title says too. It is built here from [episodes]/[selectedEpisodeId]/[onEpisodeSelected]
+/// rather than handed in as a widget, for the same reason the `Export` control is: so the gesture
+/// can't drift from one mode to the next. Its last entry, `Manage episodes…`, reuses
+/// [onProjectSettingsRequested] rather than a selector-specific callback — it leads to the very
+/// same destination, and reusing it means the entry is withheld automatically while a project
+/// version is being previewed, exactly like the toolbar's own settings action.
 ///
 /// This widget knows nothing about any specific mode (the screenplay editor included) beyond the
 /// moved [OcptWorkspaceDock]/[OcptWorkspaceDockDivider]/[OcptWorkspaceDockLayoutController]
@@ -53,6 +63,20 @@ class OcptWorkspaceShell extends StatelessWidget {
 
   /// The back action; the mode decides what flushing it implies.
   final VoidCallback onBack;
+
+  /// The project's episodes, in their own order, or empty for a project that hasn't loaded any yet
+  /// — a single-episode project included, [episodes] then holding that one episode too, exactly as
+  /// [onEpisodeSelected] is what actually withholds the selector for it.
+  final List<OcptEpisode> episodes;
+
+  /// The id of the episode currently selected among [episodes], or null while none is.
+  final String? selectedEpisodeId;
+
+  /// Called when the toolbar's episode selector picks a different episode, or null when the mode
+  /// withholds the selector outright — no control is rendered at all then, rather than a disabled
+  /// one, even when [episodes] holds more than one. This is the schedule mode's own case: it reads
+  /// every episode at once, so a selector would either do nothing or lie about what it shows.
+  final ValueChanged<String>? onEpisodeSelected;
 
   /// The active mode's own toolbar controls, right-aligned before the overflow menu.
   final List<Widget> toolbarActions;
@@ -134,6 +158,9 @@ class OcptWorkspaceShell extends StatelessWidget {
     required this.isDirty,
     this.isReadOnly = false,
     required this.onBack,
+    this.episodes = const [],
+    this.selectedEpisodeId,
+    this.onEpisodeSelected,
     this.toolbarActions = const [],
     this.modeLabel,
     this.onExportRequested,
@@ -165,6 +192,7 @@ class OcptWorkspaceShell extends StatelessWidget {
         isDirty: isDirty,
         isReadOnly: isReadOnly,
         onBack: onBack,
+        episodeSelector: _buildEpisodeSelector(context),
         actions: toolbarActions,
         modeLabel: modeLabel,
         exportAction: _buildExportAction(context),
@@ -221,6 +249,104 @@ class OcptWorkspaceShell extends StatelessWidget {
       ),
     );
   }
+
+  /// Builds the toolbar's episode selector, or null when [onEpisodeSelected] is null or [episodes]
+  /// holds at most one — no control is rendered at all then, rather than a disabled one, exactly
+  /// like [_buildExportAction].
+  ///
+  /// The trigger reads the selected episode's own label; the menu lists every episode with the
+  /// selected one marked, followed by `Manage episodes…` when [onProjectSettingsRequested] is
+  /// wired (see the class doc comment for why it is that callback rather than a new one). That
+  /// entry carries [_manageEpisodesOption] rather than null: a [PopupMenuButton] cannot carry a
+  /// null value for an entry that must still be selectable, since it can't tell that apart from the
+  /// menu being dismissed without a pick (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the
+  /// same workaround, for the same reason).
+  Widget? _buildEpisodeSelector(BuildContext context) {
+    final onEpisodeSelected = this.onEpisodeSelected;
+    if (onEpisodeSelected == null || episodes.length <= 1) {
+      return null;
+    }
+
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+    final onProjectSettingsRequested = this.onProjectSettingsRequested;
+    final selected = _episodeById(selectedEpisodeId);
+
+    return PopupMenuButton<String>(
+      tooltip: tr.workspaceEpisodeSelectorTooltip,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      onSelected: (value) => value == _manageEpisodesOption
+          ? onProjectSettingsRequested?.call()
+          : onEpisodeSelected(value),
+      itemBuilder: (context) => [
+        for (final episode in episodes)
+          PopupMenuItem<String>(
+            value: episode.id,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 18,
+                  child: episode.id == selectedEpisodeId
+                      ? const Icon(Icons.check, size: 16)
+                      : null,
+                ),
+                const SizedBox(width: 6),
+                Text(_episodeLabel(tr, episode)),
+              ],
+            ),
+          ),
+        if (onProjectSettingsRequested != null) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<String>(
+            value: _manageEpisodesOption,
+            child: Text(tr.workspaceManageEpisodesAction),
+          ),
+        ],
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: SizedBox(
+          height: ocptToolbarChromeButtonSize,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  selected == null ? "" : _episodeLabel(tr, selected),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The episode of [episodes] whose id is [id], or null while [id] is null or names none of
+  /// them — the moment right after the project's episodes changed under a stale selection, before
+  /// the workspace bloc has re-resolved it.
+  OcptEpisode? _episodeById(String? id) {
+    for (final episode in episodes) {
+      if (episode.id == id) {
+        return episode;
+      }
+    }
+
+    return null;
+  }
+
+  /// [episode]'s label: its title when it has one, the localized `Episode 3` when it doesn't — see
+  /// `OcptEpisode.title`'s own doc comment for why an empty title is an ordinary state rather than
+  /// a placeholder to fill in a hurry.
+  String _episodeLabel(Tr tr, OcptEpisode episode) => episode.title.isEmpty
+      ? tr.workspaceEpisodeUntitledLabel(episode.number)
+      : tr.workspaceEpisodeTitledLabel(episode.number, episode.title);
 
   /// Builds the toolbar's dock toggles, left one first, skipping whichever side the mode gave no
   /// callback for.
@@ -361,3 +487,8 @@ class OcptWorkspaceShell extends StatelessWidget {
     );
   }
 }
+
+/// The value the episode selector's `Manage episodes…` entry carries, distinct from every episode
+/// id (a UUID, never empty) — see [OcptWorkspaceShell._buildEpisodeSelector]'s own doc comment for
+/// why a [PopupMenuButton] cannot carry a null value for an entry that must still be selectable.
+const String _manageEpisodesOption = "";

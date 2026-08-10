@@ -177,4 +177,37 @@ void main() {
     // back action closes it.
     expect(routerManager.popped, isFalse);
   });
+
+  testWidgets('switching episode remounts the mode', (tester) async {
+    final project = projectsManager.currentProject!;
+    final firstEpisodeId = project.primaryScreenplayId;
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+      title: "Episode two",
+    );
+    expect(secondEpisodeId, isNotNull);
+
+    await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
+    await tester.pumpAndSettle();
+
+    // The keyed remount (`WorkspacePage._buildActiveMode`) is what this test is actually about: a
+    // fresh key means a fresh `EditorPage` element, and therefore a fresh `OcptEditorBloc` loading
+    // from scratch, rather than the very same widget instance simply being rebuilt in place.
+    expect(
+      tester.widget<EditorPage>(find.byType(EditorPage)).key,
+      ValueKey<String?>(firstEpisodeId),
+    );
+
+    final tr = Tr.of(tester.element(find.byType(WorkspacePage)));
+    await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(tr.workspaceEpisodeTitledLabel(2, "Episode two")));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<EditorPage>(find.byType(EditorPage)).key,
+      ValueKey<String?>(secondEpisodeId),
+    );
+  });
 }

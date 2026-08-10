@@ -21,9 +21,10 @@ const double _dirtyMarkerSize = 6;
 
 /// The workspace shell's thin, discreet toolbar: the back action leading to the projects list, the
 /// open project's title (with a dot marking unsaved changes, or the `Read only` pill while
-/// [isReadOnly]), a trailing slot for the active mode's own controls ([actions]), then the shell's
-/// own chrome — the active mode's name ([modeLabel]), the [exportAction], the [dockToggles], the
-/// [saveAction], the [projectSettingsAction] and an overflow `⋮` menu built from [overflowEntries].
+/// [isReadOnly]), the [episodeSelector] right after it, a trailing slot for the active mode's own
+/// controls ([actions]), then the shell's own chrome — the active mode's name ([modeLabel]), the
+/// [exportAction], the [dockToggles], the [saveAction], the [projectSettingsAction] and an
+/// overflow `⋮` menu built from [overflowEntries].
 ///
 /// Everything mode-specific (format controls, tab selectors, an editing-mode toggle, export
 /// entries…) is the active mode's own job to build and hand in through [actions] /
@@ -47,6 +48,11 @@ class OcptWorkspaceToolbar extends StatelessWidget {
 
   /// Called when the back action is clicked.
   final VoidCallback onBack;
+
+  /// The episode selector, shown right after [title] and its dirty marker / `Read only` pill, or
+  /// null for no control at all — a single-episode project or a mode that withholds it outright,
+  /// built by `OcptWorkspaceShell` itself exactly as [exportAction] is.
+  final Widget? episodeSelector;
 
   /// The active mode's own controls, right-aligned before the chrome slots.
   final List<Widget> actions;
@@ -93,6 +99,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     required this.isDirty,
     this.isReadOnly = false,
     required this.onBack,
+    this.episodeSelector,
     this.actions = const [],
     this.modeLabel,
     this.exportAction,
@@ -132,6 +139,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                       _buildReadOnlyPill(context: context, theme: theme, tr: tr)
                     else if (isDirty)
                       _buildDirtyMarker(theme: theme, tr: tr),
+                    if (episodeSelector != null) Flexible(child: episodeSelector!),
                     const Spacer(),
                     ...actions,
                     if (modeLabel != null)

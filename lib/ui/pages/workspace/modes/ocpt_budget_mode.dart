@@ -18,6 +18,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 /// The project settings action is already wired, unlike everything else here: it opens
 /// [OcptRoute.projectSettings] directly, since this mode owns no bloc to reload once the page comes
 /// back — currency is exactly the kind of project setting this mode will eventually read itself.
+///
+/// `onEpisodeSelected` is left explicitly null too: the mode is still an empty state, and nothing
+/// on its screen belongs to an episode.
 class OcptBudgetMode extends StatelessWidget {
   /// Creates the budget mode.
   const OcptBudgetMode({super.key});
@@ -31,6 +34,7 @@ class OcptBudgetMode extends StatelessWidget {
       title: projectName,
       isDirty: false,
       onBack: () => unawaited(_closeProjectAndPop()),
+      // No episode selector either, left at its default null: see the class doc comment.
       modeLabel: tr.workspaceModeLabelBudget,
       onProjectSettingsRequested: () =>
           unawaited(globalGetIt().get<OcptRouterManager>().push(OcptRoute.projectSettings)),

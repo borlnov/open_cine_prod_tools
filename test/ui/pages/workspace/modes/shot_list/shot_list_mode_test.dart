@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -42,8 +44,10 @@ class _RecordingRouterManager extends OcptRouterManager {
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
 /// [_navigatorKey] so [_RecordingRouterManager.pop] can close a dialog opened through
-/// `showDialog`, and a bare [Scaffold]: unlike `EditorPage`, a production mode expects the real
-/// `WorkspacePage` to provide one.
+/// `showDialog`, a bare [Scaffold]: unlike `EditorPage`, a production mode expects the real
+/// `WorkspacePage` to provide one, and an `OcptWorkspaceBloc` ancestor — `WorkspacePage` always
+/// provides one too, and this mode now reads it for the toolbar episode selector's
+/// episodes/selection.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: _navigatorKey,
   localizationsDelegates: const [
@@ -53,7 +57,10 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: child),
+  home: BlocProvider<OcptWorkspaceBloc>(
+    create: (context) => OcptWorkspaceBloc(),
+    child: Scaffold(body: child),
+  ),
 );
 
 void main() {

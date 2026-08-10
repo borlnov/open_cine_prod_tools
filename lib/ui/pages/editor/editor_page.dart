@@ -40,6 +40,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
@@ -175,6 +177,7 @@ class _EditorViewState extends State<_EditorView> {
 
             final isReadOnly = state.isPreviewingVersion;
             final isRawMode = state.mode == OcptEditorMode.raw;
+            final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
             return OcptWorkspaceShell(
               title: state.title,
@@ -182,6 +185,11 @@ class _EditorViewState extends State<_EditorView> {
               isReadOnly: isReadOnly,
               onBack: () => context.read<OcptEditorBloc>().add(
                 const OcptEditorBackRequestedEvent(),
+              ),
+              episodes: workspaceState.episodes,
+              selectedEpisodeId: workspaceState.selectedEpisodeId,
+              onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+                OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
               ),
               toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
               modeLabel: Tr.of(context).workspaceModeLabelScreenplay,

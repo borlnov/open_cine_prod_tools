@@ -37,6 +37,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -110,11 +112,18 @@ class _ShotListViewState extends State<_ShotListView> {
         return const Center(child: CircularProgressIndicator());
       }
 
+      final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
         onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
+        episodes: workspaceState.episodes,
+        selectedEpisodeId: workspaceState.selectedEpisodeId,
+        onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+          OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+        ),
         modeLabel: Tr.of(context).workspaceModeLabelShotList,
         onExportRequested: () => unawaited(_requestExport(context, state)),
         overflowEntries: _buildOverflowEntries(context),

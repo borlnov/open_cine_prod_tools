@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -102,7 +103,12 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: child,
+  // The real WorkspacePage always provides this ancestor: EditorPage now reads it for the
+  // episode selector's episodes/selection, exactly as it already reads OcptEditorBloc.
+  home: BlocProvider<OcptWorkspaceBloc>(
+    create: (context) => OcptWorkspaceBloc(),
+    child: child,
+  ),
 );
 
 void main() {

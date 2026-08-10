@@ -2,27 +2,47 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 
 /// This is the bloc class for the workspace page.
 ///
-/// It owns exactly one thing: which production mode is active. Each mode keeps its own bloc and
-/// state (including its own dock geometry); this bloc never reaches into them. The active mode is
-/// loaded from, and persisted to, [OcptPropertiesManager.workspaceMode], so opening a project
-/// restores the mode last used.
+/// It owns two things: which production mode is active, and which of the open project's episodes
+/// is selected. Each mode keeps its own bloc and state (including its own dock geometry); this
+/// bloc never reaches into them. The active mode is loaded from, and persisted to,
+/// [OcptPropertiesManager.workspaceMode], so opening a project restores the mode last used; the
+/// selected episode is not (see [OcptWorkspaceState.selectedEpisodeId]).
+///
+/// This bloc subscribes to [OcptProjectsManager.currentProjectStream] rather than reading
+/// [OcptProjectsManager.currentProject] once, because previewing or leaving a project version
+/// swaps the database every mode reads through, and the previewed version may hold a different set
+/// of episodes than the working copy did — the very case
+/// [OcptWorkspaceEpisodesReloadRequestedEvent] exists to re-read.
 class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// The manager used to load and persist the active workspace mode.
   final OcptPropertiesManager _propertiesManager;
 
+  /// The manager used to read the open project and its episodes, and to watch it change.
+  final OcptProjectsManager _projectsManager;
+
+  /// The subscription to [OcptProjectsManager.currentProjectStream], cancelled in
+  /// [disposeLifeCycle].
+  StreamSubscription<OcptOpenProjectModel?>? _currentProjectSubscription;
+
   /// Class constructor
-  OcptWorkspaceBloc({OcptPropertiesManager? propertiesManager})
+  OcptWorkspaceBloc({OcptPropertiesManager? propertiesManager, OcptProjectsManager? projectsManager})
     : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+      _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
       super(const OcptWorkspaceState.init()) {
     add(const OcptWorkspaceLoadRequestedEvent());
   }
@@ -34,15 +54,86 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     on<OcptWorkspaceLoadRequestedEvent>(_onLoadRequested);
     on<OcptWorkspaceModeSelectedEvent>(_onModeSelected);
     on<OcptWorkspaceRevealRequestConsumedEvent>(_onRevealRequestConsumed);
+    on<OcptWorkspaceEpisodeSelectedEvent>(_onEpisodeSelected);
+    on<OcptWorkspaceEpisodesReloadRequestedEvent>(_onEpisodesReloadRequested);
+
+    _currentProjectSubscription = _projectsManager.currentProjectStream.listen(
+      (_) => add(const OcptWorkspaceEpisodesReloadRequestedEvent()),
+    );
   }
 
-  /// Loads the persisted workspace mode, defaulting to [OcptWorkspaceMode.screenplay].
+  /// Loads the persisted workspace mode, defaulting to [OcptWorkspaceMode.screenplay], and the
+  /// open project's episodes, landing the selection on the first one (see
+  /// [OcptWorkspaceState.selectedEpisodeId]'s own doc comment for why it is never restored from
+  /// anywhere instead).
   Future<void> _onLoadRequested(
     OcptWorkspaceLoadRequestedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
     final mode = await _propertiesManager.workspaceMode.load() ?? OcptWorkspaceMode.screenplay;
-    emitter(state.copyWith(isLoading: false, mode: mode));
+    final episodes = await _loadEpisodes();
+    emitter(
+      state.copyWith(
+        isLoading: false,
+        mode: mode,
+        episodes: episodes,
+        selectedEpisodeId: episodes.isEmpty ? null : episodes.first.id,
+        clearSelectedEpisodeId: episodes.isEmpty,
+      ),
+    );
+  }
+
+  /// Re-reads the open project's episodes after [OcptProjectsManager.currentProjectStream] emits
+  /// (entering or leaving a project version preview swaps the database every mode reads through).
+  ///
+  /// The current selection is kept when it still names one of the freshly read episodes, and falls
+  /// back to the first one otherwise — the keyed remount (`WorkspacePage._buildActiveMode`) then
+  /// takes care of the mode itself, which is exactly right for a database that just changed under
+  /// it. A read failing here is swallowed rather than left to escape as an unhandled error, most
+  /// likely because the project closed while this was still queued.
+  Future<void> _onEpisodesReloadRequested(
+    OcptWorkspaceEpisodesReloadRequestedEvent event,
+    Emitter<OcptWorkspaceState> emitter,
+  ) async {
+    try {
+      final episodes = await _loadEpisodes();
+      final currentSelection = state.selectedEpisodeId;
+      final stillLive = episodes.any((episode) => episode.id == currentSelection);
+      final selectedEpisodeId = stillLive
+          ? currentSelection
+          : (episodes.isEmpty ? null : episodes.first.id);
+
+      emitter(
+        state.copyWith(
+          episodes: episodes,
+          selectedEpisodeId: selectedEpisodeId,
+          clearSelectedEpisodeId: selectedEpisodeId == null,
+        ),
+      );
+    } catch (error) {
+      appLogger().w("A problem occurred when tried to reload the project's episodes, most likely "
+          "because the project already closed: $error");
+    }
+  }
+
+  /// Applies the episode picked from the toolbar's episode selector. Nothing else about the state
+  /// changes, and nothing is persisted — see [OcptWorkspaceState.selectedEpisodeId]'s own doc
+  /// comment.
+  Future<void> _onEpisodeSelected(
+    OcptWorkspaceEpisodeSelectedEvent event,
+    Emitter<OcptWorkspaceState> emitter,
+  ) async {
+    emitter(state.copyWith(selectedEpisodeId: event.episodeId));
+  }
+
+  /// The open project's live episodes, in `sortKey` order, or empty while no project is open.
+  Future<List<OcptEpisode>> _loadEpisodes() async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return const [];
+    }
+
+    return _projectsManager.screenplayService.loadEpisodes(database: project.database);
   }
 
   /// Applies and persists the mode selected from the bottom mode switcher, or by another mode
@@ -75,4 +166,12 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     OcptWorkspaceRevealRequestConsumedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async => emitter(state.copyWith(clearRevealRequest: true));
+
+  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _currentProjectSubscription?.cancel();
+
+    return super.disposeLifeCycle();
+  }
 }
