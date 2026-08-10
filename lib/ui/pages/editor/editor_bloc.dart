@@ -112,6 +112,17 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
   late final void Function() _unregisterUnsavedChangesReporter;
 
+  /// The episode this bloc reads and writes, handed down by `EditorPage` from
+  /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once
+  /// rather than watch, since `WorkspacePage` remounts this whole bloc on every episode switch (see
+  /// `WorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
+  ///
+  /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
+  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
+  /// routine path.
+  final String? _selectedEpisodeId;
+
   /// Class constructor
   ///
   /// [parseDebounce], [autosaveDebounce] and [statisticsDebounce] are only meant to be overridden
@@ -125,7 +136,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
     Duration statisticsDebounce = defaultStatisticsDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+    String? selectedEpisodeId,
+  }) : _selectedEpisodeId = selectedEpisodeId,
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _screenplayService =
@@ -181,6 +194,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
+  /// selected (see [_selectedEpisodeId]'s own doc comment).
+  String _screenplayIdOf(OcptOpenProjectModel project) =>
+      _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Saves the screenplay if it holds unsaved changes, so a preview about to swap the database
   /// can't send the text sitting in the autosave debounce into the previewed version instead.
@@ -267,7 +286,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     final text = await _screenplayService.loadScreenplayText(
       database: project.database,
-      screenplayId: project.primaryScreenplayId,
+      screenplayId: _screenplayIdOf(project),
     );
     final document = _fountainParser.parse(text);
     final pageSetup = await _loadPageSetup(project);
@@ -519,7 +538,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     try {
       await _screenplayService.saveScreenplayText(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
+        screenplayId: _screenplayIdOf(project),
         fountainText: textToSave,
         snapshotReason: reason,
       );
@@ -906,7 +925,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
       await _screenplayService.saveScreenplayText(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
+        screenplayId: _screenplayIdOf(project),
         fountainText: imported.fountainText,
         snapshotReason: OcptSnapshotReason.import,
       );
@@ -1041,7 +1060,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       try {
         await _screenplayService.saveScreenplayText(
           database: project.database,
-          screenplayId: project.primaryScreenplayId,
+          screenplayId: _screenplayIdOf(project),
           fountainText: state.text,
           snapshotReason: OcptSnapshotReason.timer,
         );

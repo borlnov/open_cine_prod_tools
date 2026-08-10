@@ -93,8 +93,12 @@ class OcptBreakdownMode extends StatelessWidget {
   const OcptBreakdownMode({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptBreakdownBloc(), child: const _BreakdownView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptBreakdownBloc(
+      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+    ),
+    child: const _BreakdownView(),
+  );
 }
 
 /// The content of [OcptBreakdownMode], separated from it so [OcptBreakdownMode] only wires the

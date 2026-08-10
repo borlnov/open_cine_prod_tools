@@ -56,8 +56,12 @@ class OcptShotListMode extends StatelessWidget {
   const OcptShotListMode({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptShotListBloc(), child: const _ShotListView());
+  Widget build(BuildContext context) => BlocProvider(
+    create: (context) => OcptShotListBloc(
+      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+    ),
+    child: const _ShotListView(),
+  );
 }
 
 /// The content of [OcptShotListMode], separated from it so [OcptShotListMode] only wires the

@@ -258,6 +258,7 @@ void main() {
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
     OcptProjectsManager? overrideProjectsManager,
+    String? selectedEpisodeId,
   }) => OcptEditorBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
@@ -267,6 +268,7 @@ void main() {
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
     statisticsDebounce: const Duration(milliseconds: 30),
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -300,6 +302,50 @@ void main() {
     expect(state.scenes, isEmpty);
     expect(state.isDirty, isFalse);
     expect(state.statistics, FountainScriptStatistics.empty);
+
+    await bloc.close();
+  });
+
+  test('constructed with a second episode selected, reads and writes that episode rather than '
+      'the primary screenplay', () async {
+    final project = projectsManager.currentProject!;
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+    );
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: secondEpisodeId!,
+      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+
+    final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+
+    expect(state.text, contains("SECOND EPISODE"));
+    expect(state.text, isNot(contains("PRIMARY")));
+
+    bloc.add(const OcptEditorTextChangedEvent(text: "INT. REWRITTEN - DAY\n\nAction.\n"));
+    await waitForState(bloc, (state) => state.isDirty);
+    bloc.add(const OcptEditorSaveRequestedEvent(isManual: true));
+    await waitForState(bloc, (state) => !state.isDirty && !state.isSaving);
+
+    final primaryText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    final secondEpisodeText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: secondEpisodeId,
+    );
+    expect(primaryText, contains("PRIMARY"));
+    expect(secondEpisodeText, contains("REWRITTEN"));
 
     await bloc.close();
   });

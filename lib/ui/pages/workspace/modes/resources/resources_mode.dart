@@ -81,7 +81,10 @@ class OcptResourcesMode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-    create: (context) => OcptResourcesBloc(revealRequest: revealRequest),
+    create: (context) => OcptResourcesBloc(
+      revealRequest: revealRequest,
+      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+    ),
     child: _ResourcesView(hasRevealRequest: revealRequest != null),
   );
 }

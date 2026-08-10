@@ -147,6 +147,21 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// yank the user back to a record they may well have navigated away from.
   OcptResourcesRevealRequest? _pendingRevealRequest;
 
+  /// The episode this bloc reads and writes, handed down by `OcptResourcesMode` from
+  /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once
+  /// rather than watch, since `WorkspacePage` remounts this whole bloc on every episode switch (see
+  /// `WorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
+  ///
+  /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
+  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
+  /// routine path.
+  ///
+  /// Only [_loadSnapshot]'s own scene numbering and a hand-added role's own episode link
+  /// ([_onRoleCreationRequested]) read it: every other read here — the people, the locations, the
+  /// elements — is already the production's, not one screenplay's.
+  final String? _selectedEpisodeId;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -165,7 +180,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     OcptResourcesRevealRequest? revealRequest,
+    String? selectedEpisodeId,
   }) : _pendingRevealRequest = revealRequest,
+       _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
@@ -289,6 +306,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
+  /// selected (see [_selectedEpisodeId]'s own doc comment).
+  String _screenplayIdOf(OcptOpenProjectModel project) =>
+      _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
   /// swap the database can't send it into the previewed version instead.
@@ -435,11 +458,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
   /// episodes through [_projectsManager]'s own `screenplayService` (never through
   /// [_locationsService], which `OcptScreenplayService` already depends on) and resolves the
-  /// primary screenplay's number with `ocptEpisodePrefixNumberOf`, null on a single-episode
-  /// project.
+  /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   Future<OcptResourcesSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
-    final screenplayId = project.primaryScreenplayId;
+    final screenplayId = _screenplayIdOf(project);
 
     final people = await _peopleService.loadPeople(database: database);
     final roles = await _roleIndexService.loadRoles(database: database);
@@ -1543,7 +1565,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     try {
       final roleId = await _roleIndexService.addRole(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
+        screenplayId: _screenplayIdOf(project),
         name: "",
         kind: event.kind,
       );

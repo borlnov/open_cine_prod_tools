@@ -282,12 +282,14 @@ void main() {
     OcptExportManager? exportManager,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    String? selectedEpisodeId,
   }) => OcptBreakdownBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
     exportManager: exportManager ?? _FakeExportManager(),
     fieldEditDebounce: fieldEditDebounce,
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -336,6 +338,50 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    "constructed with a second episode selected, reads and writes that episode rather than the "
+    "primary screenplay",
+    () async {
+      await writeScreenplay("INT. PRIMARY - DAY\n\nAction one.\n");
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+      final state = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+      expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
+      expect(state.screenplayText, contains("SECOND EPISODE"));
+
+      final sceneId = state.scenes.single.id;
+      bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "note"));
+      await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+      await bloc.flushPendingFieldEdits();
+
+      final primaryScenes = await projectsManager.breakdownService.loadScenes(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      final secondEpisodeScenes = await projectsManager.breakdownService.loadScenes(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        episodeNumber: null,
+      );
+      expect(primaryScenes.single.notes, isEmpty);
+      expect(secondEpisodeScenes.single.notes, "note");
+
+      await bloc.close();
+    },
+  );
 
   test("a tagged element is resolved into the snapshot's targets and counters", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");

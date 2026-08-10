@@ -321,6 +321,7 @@ void main() {
     OcptShotCoverageService? shotCoverageService,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    String? selectedEpisodeId,
   }) => OcptShotListBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
@@ -329,6 +330,7 @@ void main() {
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
     fieldEditDebounce: fieldEditDebounce,
+    selectedEpisodeId: selectedEpisodeId,
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -388,6 +390,48 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    'constructed with a second episode selected, reads and writes that episode rather than the '
+    'primary screenplay',
+    () async {
+      await writeScreenplay(twoSceneText);
+      final project = projectsManager.currentProject!;
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.sequences, hasLength(1));
+      expect((state.sequences.single as OcptSceneShotSequence).heading, "INT. SECOND EPISODE - NIGHT");
+
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+      final primarySnapshot = await projectsManager.shotListService.loadShotList(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      final secondEpisodeSnapshot = await projectsManager.shotListService.loadShotList(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        episodeNumber: null,
+      );
+      expect(primarySnapshot.shotsById, isEmpty);
+      expect(secondEpisodeSnapshot.shotsById, hasLength(1));
+
+      await bloc.close();
+    },
+  );
 
   test('a screenplay with no scene leaves every selection empty', () async {
     final bloc = buildBloc();

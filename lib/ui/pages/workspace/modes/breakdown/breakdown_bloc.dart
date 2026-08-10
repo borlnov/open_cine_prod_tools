@@ -118,6 +118,17 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// The running field-edit debounce timer, if any.
   Timer? _fieldEditTimer;
 
+  /// The episode this bloc reads and writes, handed down by `OcptBreakdownMode` from
+  /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once
+  /// rather than watch, since `WorkspacePage` remounts this whole bloc on every episode switch (see
+  /// `WorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
+  ///
+  /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
+  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
+  /// routine path.
+  final String? _selectedEpisodeId;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -134,7 +145,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptLocationsService? locationsService,
     OcptPeopleService? peopleService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+    String? selectedEpisodeId,
+  }) : _selectedEpisodeId = selectedEpisodeId,
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
@@ -211,6 +224,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   @protected
   @override
   OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
+  /// selected (see [_selectedEpisodeId]'s own doc comment).
+  String _screenplayIdOf(OcptOpenProjectModel project) =>
+      _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Writes whatever target field edit or scene notes edit is still sitting in the field-edit
   /// debounce, so a preview about to swap the database can't send it into the previewed version
@@ -302,12 +321,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Reads [project]'s current Fountain source text, kept in `OcptBreakdownState.screenplayText` for
-  /// the script view to slice scene by scene.
+  /// Reads the selected episode's current Fountain source text, kept in
+  /// `OcptBreakdownState.screenplayText` for the script view to slice scene by scene.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) =>
       _projectsManager.screenplayService.loadScreenplayText(
         database: project.database,
-        screenplayId: project.primaryScreenplayId,
+        screenplayId: _screenplayIdOf(project),
       );
 
   /// Reads the page setup the script view is typeset with: the open project's own page format,
@@ -323,18 +342,17 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// Reads the whole breakdown of [project]'s primary screenplay, joining
+  /// Reads the whole breakdown of the selected episode's screenplay, joining
   /// [_breakdownService]'s scenes and tags with [_elementsService]/[_roleIndexService]/
   /// [_locationsService]/[_peopleService]'s four catalogues into one [OcptBreakdownSnapshot].
   ///
   /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
   /// episodes through [_projectsManager]'s own `screenplayService` (never through
   /// [_breakdownService], which `OcptScreenplayService` already depends on) and resolves the
-  /// primary screenplay's number with `ocptEpisodePrefixNumberOf`, null on a single-episode
-  /// project.
+  /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   Future<OcptBreakdownSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
-    final screenplayId = project.primaryScreenplayId;
+    final screenplayId = _screenplayIdOf(project);
 
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final episodeNumber = ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId);
