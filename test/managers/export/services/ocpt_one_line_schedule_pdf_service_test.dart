@@ -178,7 +178,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   Map<String, List<OcptShootingDayBlock>> blocksByDayId = const {},
   List<OcptRole> roles = const [],
-  OcptShotListSnapshot? shotList,
+  List<OcptShotListSnapshot> shotLists = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     days: days,
@@ -186,7 +186,8 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     blocksByDayId: blocksByDayId,
     eventsByDayId: const {},
   ),
-  shotList: shotList,
+  shotLists: shotLists,
+  episodes: const [],
   locations: const [],
   roles: roles,
   people: const [],
@@ -215,7 +216,7 @@ void main() {
         "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-1")],
       },
       roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
-      shotList: _buildShotList(shots: [shot]),
+      shotLists: [_buildShotList(shots: [shot])],
     );
   }
 
@@ -272,7 +273,7 @@ void main() {
             ],
           },
           roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
-          shotList: shotList,
+          shotLists: [shotList],
         );
 
         final twoLinePlan = _buildSnapshot(
@@ -290,7 +291,7 @@ void main() {
             ],
           },
           roles: [_buildRole(id: "role-1", name: "Alice", number: 1)],
-          shotList: shotList,
+          shotLists: [shotList],
         );
 
         Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(

@@ -189,7 +189,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   Map<String, List<OcptShootingDayBlock>> blocksByDayId = const {},
   List<OcptRole> roles = const [],
-  OcptShotListSnapshot? shotList,
+  List<OcptShotListSnapshot> shotLists = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     days: days,
@@ -197,7 +197,8 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     blocksByDayId: blocksByDayId,
     eventsByDayId: const {},
   ),
-  shotList: shotList,
+  shotLists: shotLists,
+  episodes: const [],
   locations: const [],
   roles: roles,
   people: const [],
@@ -335,7 +336,7 @@ void main() {
               "day-1": [blockA],
               "day-2": [blockB],
             },
-            shotList: _buildShotList(shots: [shotA, shotB]),
+            shotLists: [_buildShotList(shots: [shotA, shotB])],
           ),
           dayIds: const ["day-1", "day-2"],
         );
@@ -399,7 +400,7 @@ void main() {
               "day-1": [block],
             },
             roles: [role],
-            shotList: _buildShotList(shots: [shot]),
+            shotLists: [_buildShotList(shots: [shot])],
           ),
           dayIds: const ["day-1"],
         );
@@ -431,7 +432,7 @@ void main() {
             blocksByDayId: {
               "day-1": [block],
             },
-            shotList: _buildShotList(shots: const []),
+            shotLists: [_buildShotList(shots: const [])],
           ),
           dayIds: const ["day-1"],
         );

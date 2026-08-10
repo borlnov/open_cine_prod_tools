@@ -419,7 +419,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
   List<OcptElement> elements = const [],
-  OcptShotListSnapshot? shotList,
+  List<OcptShotListSnapshot> shotLists = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     days: days,
@@ -427,7 +427,8 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     blocksByDayId: blocksByDayId,
     eventsByDayId: eventsByDayId,
   ),
-  shotList: shotList,
+  shotLists: shotLists,
+  episodes: const [],
   locations: locations,
   roles: roles,
   people: people,
@@ -506,7 +507,7 @@ void main() {
         _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard", phone: "0601020304"),
         _buildPerson(id: "person-2", firstName: "Marc", lastName: "Petit", phone: "0605060708"),
       ],
-      shotList: _buildShotList(shots: [shot1, shot2]),
+      shotLists: [_buildShotList(shots: [shot1, shot2])],
     );
   }
 
@@ -566,7 +567,7 @@ void main() {
         locations: [locationA],
         roles: [_buildRole(id: "role-1", name: "Alice")],
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotList: _buildShotList(shots: [shot1]),
+        shotLists: [_buildShotList(shots: [shot1])],
       );
 
       final single = await service.generateGeneralCallSheet(
@@ -611,9 +612,11 @@ void main() {
         },
         blocksByDayId: blocks,
         roles: roles,
-        shotList: _buildShotList(
-          shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE", "BOB"])],
-        ),
+        shotLists: [
+          _buildShotList(
+            shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE", "BOB"])],
+          ),
+        ],
       );
       final oneOnly = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
@@ -622,9 +625,11 @@ void main() {
         },
         blocksByDayId: blocks,
         roles: roles,
-        shotList: _buildShotList(
-          shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"])],
-        ),
+        shotLists: [
+          _buildShotList(
+            shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"])],
+          ),
+        ],
       );
 
       final bothBytes = await service.generateGeneralCallSheet(
@@ -942,7 +947,7 @@ void main() {
           ],
         },
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       // Drop the wrap block: departure now collapses onto the PAT end (09:30), so the four-figure
@@ -965,7 +970,7 @@ void main() {
           ],
         },
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       // Drop the preparation block too: arrival now collapses onto PAT start (08:30) as well.
@@ -986,7 +991,7 @@ void main() {
           ],
         },
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) async {
@@ -1195,7 +1200,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       final withoutNote = await service.generateGeneralCallSheet(
@@ -1294,7 +1299,7 @@ void main() {
           _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard"),
           _buildPerson(id: "person-2", firstName: "Marc", lastName: "Petit"),
         ],
-        shotList: _buildShotList(shots: [shot1, shot2]),
+        shotLists: [_buildShotList(shots: [shot1, shot2])],
       );
 
       final withoutEveningNote = buildPlan(eveningCrewNote: "");
@@ -1388,7 +1393,7 @@ void main() {
         },
         roles: [_buildRole(id: "role-1", name: "Alice")], // personId null: an uncast role.
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
         elements: elements,
       );
     }
@@ -1560,7 +1565,8 @@ void main() {
 OcptSchedulePlanSnapshot _addPerson(OcptSchedulePlanSnapshot plan, OcptPerson person) =>
     OcptSchedulePlanSnapshot.build(
       schedule: plan.schedule,
-      shotList: plan.shotList,
+      shotLists: plan.shotLists,
+      episodes: const [],
       locations: plan.locations,
       roles: plan.roles,
       people: [...plan.people, person],

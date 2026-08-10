@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
@@ -41,11 +42,13 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// This is the bloc class for the schedule production mode.
 ///
 /// It loads the current project's title and the mode's own whole read on entry: the schedule
-/// itself ([_scheduleService]), the shot list ([_shotListService] — every placed or unplaced
-/// shot's own code, size, duration and characters), and the four resources catalogues the slot
-/// cards and the call sheet exports read from ([_locationsService], [_roleIndexService],
-/// [_peopleService], [_elementsService] — the last of them read for a named call sheet's own "to
-/// bring" section alone, nothing here shows an element on screen).
+/// itself ([_scheduleService]), every live episode's own shot list ([_shotListService], through
+/// [_loadShotLists] — every placed or unplaced shot's own code, size, duration and characters,
+/// across the whole project rather than one screenplay, a shooting day belonging to no episode),
+/// and the four resources catalogues the slot cards and the call sheet exports read from
+/// ([_locationsService], [_roleIndexService], [_peopleService], [_elementsService] — the last of
+/// them read for a named call sheet's own "to bring" section alone, nothing here shows an element
+/// on screen).
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
 /// [_flushPendingFieldEdits] and [_onLoadRequested].
 ///
@@ -282,7 +285,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final previewedVersion = project.previewedVersion;
     final snapshot = await _loadScheduleSnapshot(project);
-    final shotListSnapshot = await _loadShotListSnapshot(project);
+    final shotLists = await _loadShotLists(project);
     final locations = await _locationsService.loadLocations(database: project.database);
     final roles = await _roleIndexService.loadRoles(database: project.database);
     final people = await _peopleService.loadPeople(database: project.database);
@@ -299,7 +302,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         previewedVersionId: previewedVersion?.id,
         clearPreviewedVersionId: previewedVersion == null,
         snapshot: snapshot,
-        shotListSnapshot: shotListSnapshot,
+        shotListSnapshots: shotLists.shotLists,
+        episodes: shotLists.episodes,
         locations: locations,
         roles: roles,
         people: people,
@@ -371,23 +375,39 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
       _scheduleService.loadSchedule(database: project.database);
 
-  /// Reads [project]'s primary screenplay's whole shot list, its scene numbers prefixed with its
-  /// own episode number.
+  /// Reads every live episode's own whole shot list, in the same order — the schedule reading
+  /// across the whole project rather than one screenplay (`docs/adr/0019`): a shooting day belongs
+  /// to no episode, and regularly places shots of more than one.
   ///
   /// This bloc reads the project's live episodes through [_projectsManager]'s own
   /// `screenplayService` (never through [_shotListService], which `OcptScreenplayService` already
-  /// depends on) and resolves the primary screenplay's number with `ocptEpisodePrefixNumberOf`,
-  /// null on a single-episode project.
-  Future<OcptShotListSnapshot> _loadShotListSnapshot(OcptOpenProjectModel project) async {
+  /// depends on) and resolves each episode's own number with `ocptEpisodePrefixNumberOf`, null on a
+  /// single-episode project, so every shot list's own scene numbers are prefixed exactly as
+  /// `OcptShotListBloc`'s own single-episode read prefixes its one.
+  ///
+  /// Returns the episodes alongside their shot lists rather than the shot lists alone: every caller
+  /// (the initial load and [_onShotStatusChanged]) puts both into
+  /// [OcptScheduleState.episodes]/[OcptScheduleState.shotListSnapshots] in one write, and a second
+  /// read of [_projectsManager]'s own `screenplayService` right after this one returned would risk
+  /// disagreeing with it if an episode was renamed or reordered in between.
+  Future<({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})> _loadShotLists(
+    OcptOpenProjectModel project,
+  ) async {
     final database = project.database;
-    final screenplayId = project.primaryScreenplayId;
-
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
-    return _shotListService.loadShotList(
-      database: database,
-      screenplayId: screenplayId,
-      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
-    );
+
+    final shotLists = <OcptShotListSnapshot>[];
+    for (final episode in episodes) {
+      shotLists.add(
+        await _shotListService.loadShotList(
+          database: database,
+          screenplayId: episode.id,
+          episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: episode.id),
+        ),
+      );
+    }
+
+    return (episodes: episodes, shotLists: shotLists);
   }
 
   /// Leaves the workspace: closes the current project and navigates back to the home page.
@@ -945,8 +965,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   }
 
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
-  /// edits — then reloads the shot list read so every shot code, block chip and inspector line
-  /// that shows it follows.
+  /// edits — then reloads every episode's own shot list so every shot code, block chip and
+  /// inspector line that shows it follows.
   Future<void> _onShotStatusChanged(
     OcptScheduleShotStatusChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -962,8 +982,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       status: Value(event.status),
     );
 
-    final shotListSnapshot = await _loadShotListSnapshot(project);
-    emitter(state.copyWith(shotListSnapshot: shotListSnapshot));
+    final shotLists = await _loadShotLists(project);
+    emitter(
+      state.copyWith(shotListSnapshots: shotLists.shotLists, episodes: shotLists.episodes),
+    );
     _requestWorkingCopyRefreshIfVersionsOpen();
   }
 

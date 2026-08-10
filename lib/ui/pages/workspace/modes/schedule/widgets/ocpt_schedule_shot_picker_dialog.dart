@@ -32,8 +32,8 @@ const double _ocptScheduleShotPickerMaxListHeight = 420;
 /// (`OcptRouterManager`, never `Navigator`) is what actually pops it, both on a row click and on
 /// `Cancel`.
 class OcptScheduleShotPickerDialog extends StatefulWidget {
-  /// The shot list's own sequences (real scenes, then the orphan group), each with its shots in
-  /// their own order — `OcptScheduleState.shotListSnapshot`'s own, unfiltered by placement.
+  /// Every episode's own sequences (real scenes, then the orphan group), each with its shots in
+  /// their own order — `OcptScheduleState.shotListSnapshots`' own, unfiltered by placement.
   final List<OcptShotSequence> sequences;
 
   /// For every shot already placed somewhere in the schedule, the day numbers it is placed on,

@@ -51,10 +51,12 @@ void main() {
       const orphanSequence = OcptOrphanShotSequence(shots: []);
 
       final state = OcptScheduleState.init().copyWith(
-        shotListSnapshot: OcptShotListSnapshot.build(
-          screenplayId: "screenplay-1",
-          sequences: const [sceneSequence, orphanSequence],
-        ),
+        shotListSnapshots: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: const [sceneSequence, orphanSequence],
+          ),
+        ],
       );
 
       expect(state.sceneSequences, [sceneSequence]);

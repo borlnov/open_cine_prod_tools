@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -379,7 +380,31 @@ OcptShotListSnapshot _buildTwoSceneShotList({
   ],
 );
 
-/// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
+/// Builds a one-scene, one-shot shot list for one episode, its scene's own display number already
+/// carrying the `<episode>.<scene>` prefix `OcptShotListService.loadShotList` would have given it —
+/// what the "multiple episodes" tests below merge across [OcptSchedulePlanSnapshot.shotLists].
+OcptShotListSnapshot _buildEpisodeShotList({
+  required String screenplayId,
+  required String sceneId,
+  required String heading,
+  required String displaySceneNumber,
+  required OcptShot shot,
+}) => OcptShotListSnapshot.build(
+  screenplayId: screenplayId,
+  sequences: [
+    OcptSceneShotSequence(
+      sceneId: sceneId,
+      heading: heading,
+      sceneNumber: null,
+      displaySceneNumber: displaySceneNumber,
+      charStart: 0,
+      charEnd: 0,
+      shots: [shot],
+    ),
+  ],
+);
+
+/// Builds an [OcptSchedulePlanSnapshot] over one project's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs — everything else defaulting to empty, exactly as
 /// `OcptScheduleState.init()` does.
 OcptSchedulePlanSnapshot _buildSnapshot({
@@ -387,7 +412,8 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   Map<String, List<OcptShootingDayBlock>> blocksByDayId = const {},
   Map<String, List<OcptShootingDayEvent>> eventsByDayId = const {},
-  OcptShotListSnapshot? shotList,
+  List<OcptShotListSnapshot> shotLists = const [],
+  List<OcptEpisode> episodes = const [],
   List<OcptLocation> locations = const [],
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
@@ -400,7 +426,8 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     blocksByDayId: blocksByDayId,
     eventsByDayId: eventsByDayId,
   ),
-  shotList: shotList,
+  shotLists: shotLists,
+  episodes: episodes,
   locations: locations,
   roles: roles,
   people: people,
@@ -657,7 +684,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       expect(snapshot.effectCategoryOfDay("day-1"), OcptSceneEffectCategory.interiorDay);
@@ -689,7 +716,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildTwoSceneShotList(sceneOneShots: [sceneOneShot], sceneTwoShots: [sceneTwoShot]),
+        shotLists: [_buildTwoSceneShotList(sceneOneShots: [sceneOneShot], sceneTwoShots: [sceneTwoShot])],
       );
 
       expect(snapshot.effectCategoryOfDay("day-1"), OcptSceneEffectCategory.mixed);
@@ -719,7 +746,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: const []),
+        shotLists: [_buildShotList(shots: const [])],
       );
 
       expect(snapshot.effectCategoryOfDay("day-1"), isNull);
@@ -779,7 +806,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
         roles: [role],
       );
 
@@ -937,7 +964,7 @@ void main() {
             _buildBlock(id: "block-4", slotId: "slot-1", kind: OcptShootingBlockKind.meal),
           ],
         },
-        shotList: _buildShotList(shots: [shotOne, shotTwo, shotThree]),
+        shotLists: [_buildShotList(shots: [shotOne, shotTwo, shotThree])],
       );
 
       expect(snapshot.sceneIdsOfDay("day-1"), {"scene-1", "scene-2"});
@@ -956,20 +983,22 @@ void main() {
       final snapshot = _buildSnapshot(
         days: const [],
         slotsByDayId: const {},
-        shotList: OcptShotListSnapshot.build(
-          screenplayId: "screenplay-1",
-          sequences: [
-            const OcptSceneShotSequence(
-              sceneId: "scene-1",
-              heading: "INT. KITCHEN - DAY",
-              sceneNumber: null,
-              displaySceneNumber: "1",
-              charStart: 42,
-              charEnd: 108,
-              shots: [],
-            ),
-          ],
-        ),
+        shotLists: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              const OcptSceneShotSequence(
+                sceneId: "scene-1",
+                heading: "INT. KITCHEN - DAY",
+                sceneNumber: null,
+                displaySceneNumber: "1",
+                charStart: 42,
+                charEnd: 108,
+                shots: [],
+              ),
+            ],
+          ),
+        ],
       );
 
       expect(snapshot.sceneSpanBySceneId, {
@@ -981,12 +1010,14 @@ void main() {
       final snapshot = _buildSnapshot(
         days: const [],
         slotsByDayId: const {},
-        shotList: OcptShotListSnapshot.build(
-          screenplayId: "screenplay-1",
-          sequences: [
-            OcptOrphanShotSequence(shots: [_buildShot(id: "shot-1")]),
-          ],
-        ),
+        shotLists: [
+          OcptShotListSnapshot.build(
+            screenplayId: "screenplay-1",
+            sequences: [
+              OcptOrphanShotSequence(shots: [_buildShot(id: "shot-1")]),
+            ],
+          ),
+        ],
       );
 
       expect(snapshot.sceneSpanBySceneId, isEmpty);
@@ -1058,7 +1089,7 @@ void main() {
         blocksByDayId: {
           "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1")],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
         elements: elements,
       );
     }
@@ -1151,6 +1182,124 @@ void main() {
       // declaration order, and within `prop` the two elements sort by name ("Cane" before
       // "Umbrella").
       expect(toBring, [propA, propB, costume]);
+    });
+  });
+
+  group("multiple episodes", () {
+    const episodeOne = OcptEpisode(id: "episode-1", number: 1, title: "");
+    const episodeTwo = OcptEpisode(id: "episode-2", number: 2, title: "");
+
+    /// Episode 1's own one-scene shot list: `scene-e1`, prefixed `1.3` — the number
+    /// `OcptShotListService.loadShotList` would already have given it.
+    OcptShotListSnapshot buildEpisodeOneShotList(OcptShot shot) => _buildEpisodeShotList(
+      screenplayId: episodeOne.id,
+      sceneId: "scene-e1",
+      heading: "INT. HOUSE - DAY",
+      displaySceneNumber: "1.3",
+      shot: shot,
+    );
+
+    /// Episode 2's own one-scene shot list: `scene-e2`, prefixed `2.4`.
+    OcptShotListSnapshot buildEpisodeTwoShotList(OcptShot shot) => _buildEpisodeShotList(
+      screenplayId: episodeTwo.id,
+      sceneId: "scene-e2",
+      heading: "EXT. STREET - NIGHT",
+      displaySceneNumber: "2.4",
+      shot: shot,
+    );
+
+    test("resolves shotById for a shot of either episode, and merges the heading and span maps "
+        "across both", () {
+      final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1");
+      final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2");
+      final snapshot = _buildSnapshot(
+        days: const [],
+        slotsByDayId: const {},
+        shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
+        episodes: const [episodeOne, episodeTwo],
+      );
+
+      expect(snapshot.shotById("shot-e1"), shotOne);
+      expect(snapshot.shotById("shot-e2"), shotTwo);
+      expect(snapshot.headingBySceneId, {
+        "scene-e1": "INT. HOUSE - DAY",
+        "scene-e2": "EXT. STREET - NIGHT",
+      });
+      expect(snapshot.sceneSpanBySceneId.keys, {"scene-e1", "scene-e2"});
+    });
+
+    test("sceneNumberBySceneId returns each episode's own prefixed number, unchanged by the "
+        "merge", () {
+      final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1");
+      final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2");
+      final snapshot = _buildSnapshot(
+        days: const [],
+        slotsByDayId: const {},
+        shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
+        episodes: const [episodeOne, episodeTwo],
+      );
+
+      expect(snapshot.sceneNumberBySceneId["scene-e1"], "1.3");
+      expect(snapshot.sceneNumberBySceneId["scene-e2"], "2.4");
+    });
+
+    test("screenplayIdBySceneId names the right episode for a scene of each", () {
+      final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1");
+      final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2");
+      final snapshot = _buildSnapshot(
+        days: const [],
+        slotsByDayId: const {},
+        shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
+        episodes: const [episodeOne, episodeTwo],
+      );
+
+      expect(snapshot.screenplayIdBySceneId["scene-e1"], episodeOne.id);
+      expect(snapshot.screenplayIdBySceneId["scene-e2"], episodeTwo.id);
+    });
+
+    test("a day placing shots from both episodes reports both scenes through sceneIdsOfDay", () {
+      final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1");
+      final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2");
+      final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-e1",
+            ),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-e2",
+            ),
+          ],
+        },
+        shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
+        episodes: const [episodeOne, episodeTwo],
+      );
+
+      expect(snapshot.sceneIdsOfDay("day-1"), {"scene-e1", "scene-e2"});
+    });
+
+    test("a single-episode plan behaves exactly as before — no prefix anywhere", () {
+      final shot = _buildShot(id: "shot-1");
+      final snapshot = _buildSnapshot(
+        days: const [],
+        slotsByDayId: const {},
+        shotLists: [_buildShotList(shots: [shot])],
+        episodes: const [OcptEpisode(id: "screenplay-1", number: 1, title: "")],
+      );
+
+      expect(snapshot.sceneNumberBySceneId["scene-1"], "1");
     });
   });
 }

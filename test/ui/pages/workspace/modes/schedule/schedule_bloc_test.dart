@@ -549,6 +549,59 @@ void main() {
 
       await bloc.close();
     });
+
+    test("a project holding two episodes reads and orders both episodes' shot lists", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final project = projectsManager.currentProject!;
+
+      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+        database: project.database,
+      );
+      expect(secondEpisodeId, isNotNull);
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: secondEpisodeId!,
+        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final firstSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(project.primaryScreenplayId))).get()).single.id;
+      final secondSceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
+
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        sceneId: firstSceneId,
+      );
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: secondEpisodeId,
+        sceneId: secondSceneId,
+      );
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.episodes.map((episode) => episode.id), [project.primaryScreenplayId, secondEpisodeId]);
+      expect(state.shotListSnapshots, hasLength(2));
+      expect(
+        state.shotListSnapshots.map((shotList) => shotList.screenplayId),
+        [project.primaryScreenplayId, secondEpisodeId],
+        reason: "episode 1's own shot list before episode 2's, the episodes' own order",
+      );
+
+      expect(
+        state.unplacedGroups.map((group) => group.heading),
+        ["INT. HOUSE - DAY", "EXT. STREET - NIGHT"],
+        reason: "the unplaced-shots grouping lists episode 1's sequences before episode 2's",
+      );
+
+      await bloc.close();
+    });
   });
 
   group("selecting a shot", () {

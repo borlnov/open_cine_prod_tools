@@ -401,7 +401,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   List<OcptRole> roles = const [],
   List<OcptPerson> people = const [],
   List<OcptElement> elements = const [],
-  OcptShotListSnapshot? shotList,
+  List<OcptShotListSnapshot> shotLists = const [],
 }) => OcptSchedulePlanSnapshot.build(
   schedule: OcptScheduleSnapshot.build(
     days: days,
@@ -409,7 +409,8 @@ OcptSchedulePlanSnapshot _buildSnapshot({
     blocksByDayId: blocksByDayId,
     eventsByDayId: eventsByDayId,
   ),
-  shotList: shotList,
+  shotLists: shotLists,
+  episodes: const [],
   locations: locations,
   roles: roles,
   people: people,
@@ -561,7 +562,7 @@ void main() {
         locations: [location],
         roles: [role],
         people: [person],
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       Future<Uint8List> generateFor({required bool includeGrids}) => service.generate(
@@ -651,7 +652,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       final daySlot = _buildSlot(id: "slot-day", shootingDayId: "day-1", anchorMinute: 480);
@@ -672,7 +673,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
@@ -998,7 +999,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
@@ -1044,7 +1045,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       Future<Uint8List> generateFor({required bool includeTenMinuteGrid}) => service.generate(
@@ -1094,7 +1095,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
       );
 
       final bytes = await service.generate(
@@ -1191,7 +1192,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
         elements: [element],
       );
 
@@ -1255,7 +1256,7 @@ void main() {
             ),
           ],
         },
-        shotList: _buildShotList(shots: [shot]),
+        shotLists: [_buildShotList(shots: [shot])],
         elements: elements,
       );
 
@@ -1314,7 +1315,7 @@ void main() {
         days: days,
         slotsByDayId: slotsByDayId,
         blocksByDayId: blocksByDayId,
-        shotList: _buildShotList(shots: shots),
+        shotLists: [_buildShotList(shots: shots)],
         elements: [element],
       );
 

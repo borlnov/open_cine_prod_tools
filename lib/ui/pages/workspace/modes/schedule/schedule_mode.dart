@@ -1000,7 +1000,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     final shotId = await OcptScheduleShotPickerDialog.show(
       context,
-      sequences: state.shotListSnapshot?.sequences ?? const [],
+      sequences: [
+        for (final shotListSnapshot in state.shotListSnapshots) ...shotListSnapshot.sequences,
+      ],
       placedDayNumbersByShotId: state.placedDayNumbersByShotId,
     );
     if (shotId == null) {
@@ -1312,23 +1314,25 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of
   /// the unplaced-shots list (`Tr.scheduleUnplacedSequenceLabel`/`Tr.scheduleUnplacedOrphanGroupLabel`
-  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshot], rather than by
+  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshots], rather than by
   /// the inspector itself, so a widget never has to search the snapshot on its own. Null while
-  /// [shot]'s own sequence isn't found there (the shot list hasn't loaded yet).
+  /// [shot]'s own sequence isn't found there (its episode's shot list hasn't loaded yet).
   String? _sequenceLabelOfShot(BuildContext context, OcptScheduleState state, OcptShot shot) {
     final tr = Tr.of(context);
 
-    for (final sequence in state.shotListSnapshot?.sequences ?? const <OcptShotSequence>[]) {
-      if (!sequence.shots.any((candidate) => candidate.id == shot.id)) {
-        continue;
-      }
+    for (final shotListSnapshot in state.shotListSnapshots) {
+      for (final sequence in shotListSnapshot.sequences) {
+        if (!sequence.shots.any((candidate) => candidate.id == shot.id)) {
+          continue;
+        }
 
-      if (sequence is OcptSceneShotSequence) {
-        final tag = tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber);
-        return sequence.heading.isEmpty ? tag : "$tag  ${sequence.heading}";
-      }
+        if (sequence is OcptSceneShotSequence) {
+          final tag = tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber);
+          return sequence.heading.isEmpty ? tag : "$tag  ${sequence.heading}";
+        }
 
-      return tr.scheduleUnplacedOrphanGroupLabel;
+        return tr.scheduleUnplacedOrphanGroupLabel;
+      }
     }
 
     return null;
