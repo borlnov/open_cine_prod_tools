@@ -10,12 +10,14 @@ import 'package:equatable/equatable.dart';
 /// no `Tr`: the same reason `OcptOneLineScheduleLabels` and its own siblings already exist for
 /// every export before it.
 ///
-/// [dayTitle] is the one entry resolved by the caller rather than formatted here, exactly the trade
-/// `OcptOneLineScheduleLabels.dayTitles` already makes — a day band's own title needs `intl` in the
-/// UI's own locale, which a manager-layer service has no `Localizations` to reach. It is a single
-/// string rather than a map keyed by day id: unlike the one-line schedule, which prints a whole
-/// shoot's worth of days in one flow, a sides booklet is produced **for one day**, so there is only
-/// ever one title to carry.
+/// [dayTitle] and [episodeLabels] are the two entries resolved by the caller rather than formatted
+/// here, exactly the trade `OcptOneLineScheduleLabels.dayTitles` already makes — a day band's own
+/// title needs `intl` in the UI's own locale, which a manager-layer service has no `Localizations`
+/// to reach. [dayTitle] is a single string rather than a map keyed by day id: unlike the one-line
+/// schedule, which prints a whole shoot's worth of days in one flow, a sides booklet is produced
+/// **for one day**, so there is only ever one title to carry. [episodeLabels] is a map for the
+/// opposite reason: a day's own booklet regularly chains **more than one** episode's pages, each
+/// under its own running head.
 class OcptSidesLabels extends Equatable {
   /// The localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - sides - D3.pdf`), read by `OcptSidesPdfService.sidesFileName`. A blank one drops
@@ -39,6 +41,14 @@ class OcptSidesLabels extends Equatable {
   /// doc comment for why it is a single string, resolved by the caller.
   final String dayTitle;
 
+  /// Every live episode's own label (`ocptWorkspaceEpisodeLabelOf`), keyed by screenplay id,
+  /// printed in the running head after the day — see the class doc comment for why this is a map
+  /// rather than [dayTitle]'s single string. Empty on a single-episode project (ADR 0019: a
+  /// single-episode project names no episode anywhere), and a screenplay id it holds nothing for —
+  /// which is what an empty map means for **every** id — prints no episode segment at all, exactly
+  /// the fallback `OcptOneLineScheduleLabels.dayTitles`' own accessor already uses.
+  final Map<String, String> episodeLabels;
+
   /// The word a screenplay page number is printed behind in the running head (`p.`), for a
   /// `OcptSidesPresentation.scriptPages` page — the screenplay's own pagination, which is the whole
   /// point of a side, so it is named rather than merely shown as a bare figure.
@@ -55,9 +65,14 @@ class OcptSidesLabels extends Equatable {
     required this.versionLabel,
     required this.dayTagPrefix,
     required this.dayTitle,
+    required this.episodeLabels,
     required this.scriptPagePrefix,
     required this.emptyDayNote,
   });
+
+  /// [screenplayId]'s own label, or an empty string if [episodeLabels] holds none for it — the
+  /// same fallback `OcptOneLineScheduleLabels.titleOfDay` already uses.
+  String episodeLabelOf(String screenplayId) => episodeLabels[screenplayId] ?? "";
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -71,6 +86,7 @@ class OcptSidesLabels extends Equatable {
     versionLabel,
     dayTagPrefix,
     dayTitle,
+    episodeLabels,
     scriptPagePrefix,
     emptyDayNote,
   ];

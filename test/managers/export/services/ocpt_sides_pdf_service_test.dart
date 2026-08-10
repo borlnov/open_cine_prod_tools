@@ -24,10 +24,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
-/// A two-scene screenplay short enough to fit on a single composed page — the same shape
-/// `ocpt_scenario_coverage_pdf_service_test.dart` parses, since this service reads a scene's own
-/// span off the very same `FountainDocument.scenes`.
-const _screenplay =
+/// Episode A's own screenplay: a two-scene document short enough to fit each scene on a single
+/// composed page — the same shape `ocpt_scenario_coverage_pdf_service_test.dart` parses, since
+/// this service reads a scene's own span off the very same `FountainDocument.scenes`.
+const _screenplayA =
     "INT. KITCHEN - DAY\n"
     "\n"
     "John walks in and looks around the room.\n"
@@ -36,18 +36,44 @@ const _screenplay =
     "\n"
     "Rain falls on the empty pavement.\n";
 
+/// Episode B's own screenplay: a single scene, deliberately of no episode A ever wrote, so a
+/// booklet chaining both can never be mistaken for one screenplay's own two scenes.
+const _screenplayB =
+    "INT. OFFICE - DAY\n"
+    "\n"
+    "Sarah reads a memo at her desk.\n";
+
 /// Every localized string of the document, filled with recognisable placeholders: nothing here
 /// asserts on the printed text (Courier Prime is embedded as an Identity-H composite font, so a
 /// content stream holds glyph indices rather than readable characters), only on what changes when
 /// the schedule does — the same convention `ocpt_one_line_schedule_pdf_service_test.dart` follows.
+///
+/// [OcptSidesLabels.episodeLabels] is empty here, exactly what a single-episode project's own
+/// resolver hands this service (`ocptSidesLabelsOf`) — the multi-episode tests below build their
+/// own labels through [_labelsWithEpisodes] instead.
 const _labels = OcptSidesLabels(
   fileNameSuffix: "sides",
   documentTitle: "Sides",
   versionLabel: "Version",
   dayTagPrefix: "D",
   dayTitle: "Thursday, 1 January 2026",
+  episodeLabels: {},
   scriptPagePrefix: "p.",
   emptyDayNote: "Nothing planned for this day.",
+);
+
+/// [_labels], carrying [episodeLabels] in place of its own empty one — every other field copied
+/// verbatim, exactly as `OcptOneLineScheduleLabels.dayTitles` callers build a variant labels object
+/// per scenario rather than this file inventing a second full constant per test.
+OcptSidesLabels _labelsWithEpisodes(Map<String, String> episodeLabels) => OcptSidesLabels(
+  fileNameSuffix: _labels.fileNameSuffix,
+  documentTitle: _labels.documentTitle,
+  versionLabel: _labels.versionLabel,
+  dayTagPrefix: _labels.dayTagPrefix,
+  dayTitle: _labels.dayTitle,
+  episodeLabels: episodeLabels,
+  scriptPagePrefix: _labels.scriptPagePrefix,
+  emptyDayNote: _labels.emptyDayNote,
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -164,27 +190,53 @@ void main() {
   const pageSetup = OcptPageSetup.standard();
   final pinnedExportDate = DateTime(2026, 1, 15);
 
-  final document = parser.parse(_screenplay);
-  final scenes = document.scenes;
+  final documentA = parser.parse(_screenplayA);
+  final scenesA = documentA.scenes;
+  final documentB = parser.parse(_screenplayB);
+  final scenesB = documentB.scenes;
 
-  /// A one-scene shot list snapshot whose scene carries the very source span
-  /// `OcptSchedulePlanSnapshot.sceneSpanBySceneId` would read out of the parsed screenplay's own
-  /// first scene — the join this service slices its pages by. [shots] belongs to that one scene,
-  /// which is what lets [OcptSchedulePlanSnapshot.shotById] resolve a block's own `shotId` back
-  /// onto its `sceneId`.
-  OcptShotListSnapshot buildShotList({required List<OcptShot> shots}) => OcptShotListSnapshot.build(
-    screenplayId: "screenplay-1",
+  /// A one-scene shot list snapshot for [screenplayId] whose scene carries the very source span
+  /// `OcptSchedulePlanSnapshot.sceneSpanBySceneId` would read out of [scene] — the join this
+  /// service slices its pages by. [shots] belongs to that one scene, which is what lets
+  /// [OcptSchedulePlanSnapshot.shotById] resolve a block's own `shotId` back onto its `sceneId`.
+  OcptShotListSnapshot buildShotList({
+    required String screenplayId,
+    required String sceneId,
+    required FountainSceneHeading scene,
+    required int charEnd,
+    required List<OcptShot> shots,
+  }) => OcptShotListSnapshot.build(
+    screenplayId: screenplayId,
     sequences: [
       OcptSceneShotSequence(
-        sceneId: "scene-1",
-        heading: scenes[0].headingText,
+        sceneId: sceneId,
+        heading: scene.headingText,
         sceneNumber: null,
         displaySceneNumber: "1",
-        charStart: scenes[0].sourceRange.startOffset,
-        charEnd: scenes[1].sourceRange.startOffset,
+        charStart: scene.sourceRange.startOffset,
+        charEnd: charEnd,
         shots: shots,
       ),
     ],
+  );
+
+  /// Episode A's own shot list: `scene-1`, spanning from its heading to episode A's second scene.
+  OcptShotListSnapshot buildShotListA({required List<OcptShot> shots}) => buildShotList(
+    screenplayId: "screenplay-1",
+    sceneId: "scene-1",
+    scene: scenesA[0],
+    charEnd: scenesA[1].sourceRange.startOffset,
+    shots: shots,
+  );
+
+  /// Episode B's own shot list: `scene-b1`, spanning from its heading to the end of episode B's own
+  /// (one-scene) text.
+  OcptShotListSnapshot buildShotListB({required List<OcptShot> shots}) => buildShotList(
+    screenplayId: "screenplay-2",
+    sceneId: "scene-b1",
+    scene: scenesB[0],
+    charEnd: documentB.sourceText.length,
+    shots: shots,
   );
 
   /// A one-day plan with one slot, one shot block placing a shot of `scene-1`.
@@ -198,7 +250,39 @@ void main() {
       blocksByDayId: {
         "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-1")],
       },
-      shotLists: [buildShotList(shots: [shot])],
+      shotLists: [buildShotListA(shots: [shot])],
+    );
+  }
+
+  /// A one-day plan with two slots, each placing a shot of episode A's `scene-1` and episode B's
+  /// `scene-b1` respectively — the fixture the multi-episode tests below share.
+  ({OcptSchedulePlanSnapshot plan, List<({String screenplayId, FountainDocument document})> documents})
+  buildTwoEpisodePlan() {
+    final shotA = _buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1");
+    final shotB = _buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1");
+    final plan = _buildSnapshot(
+      days: [_buildDay(id: "day-1", dayNumber: 3)],
+      slotsByDayId: {
+        "day-1": [
+          _buildSlot(id: "slot-a", shootingDayId: "day-1"),
+          _buildSlot(id: "slot-b", shootingDayId: "day-1"),
+        ],
+      },
+      blocksByDayId: {
+        "day-1": [
+          _buildBlock(id: "block-a", shootingDayId: "day-1", slotId: "slot-a", shotId: "shot-a1"),
+          _buildBlock(id: "block-b", shootingDayId: "day-1", slotId: "slot-b", shotId: "shot-b1"),
+        ],
+      },
+      shotLists: [buildShotListA(shots: [shotA]), buildShotListB(shots: [shotB])],
+    );
+
+    return (
+      plan: plan,
+      documents: [
+        (screenplayId: "screenplay-1", document: documentA),
+        (screenplayId: "screenplay-2", document: documentB),
+      ],
     );
   }
 
@@ -207,7 +291,7 @@ void main() {
       final bytes = await service.generate(
         plan: buildOneScenePlan(),
         dayId: "day-1",
-        document: document,
+        documents: [(screenplayId: "screenplay-1", document: documentA)],
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
@@ -227,7 +311,7 @@ void main() {
       Future<Uint8List> generateFor(OcptSidesPresentation presentation) => service.generate(
         plan: plan,
         dayId: "day-1",
-        document: document,
+        documents: [(screenplayId: "screenplay-1", document: documentA)],
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
@@ -258,7 +342,7 @@ void main() {
       final bytes = await service.generate(
         plan: plan,
         dayId: "day-1",
-        document: document,
+        documents: [(screenplayId: "screenplay-1", document: documentA)],
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
@@ -276,7 +360,7 @@ void main() {
       final bytes = await service.generate(
         plan: buildOneScenePlan(),
         dayId: "nope",
-        document: document,
+        documents: [(screenplayId: "screenplay-1", document: documentA)],
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
@@ -295,7 +379,7 @@ void main() {
       Future<Uint8List> generateFor(DateTime exportDate) => service.generate(
         plan: plan,
         dayId: "day-1",
-        document: document,
+        documents: [(screenplayId: "screenplay-1", document: documentA)],
         pageSetup: pageSetup,
         labels: _labels,
         projectName: "My Movie",
@@ -314,6 +398,242 @@ void main() {
       // content streams rather than whole files.
       expect(_contentStreams(first), _contentStreams(second));
       expect(_contentStreams(first), isNot(_contentStreams(differentMoment)));
+    });
+
+    group("more than one episode", () {
+      test("a day playing sequences from two episodes composes one page per episode, chained in order", () async {
+        final fixture = buildTwoEpisodePlan();
+
+        final bytes = await service.generate(
+          plan: fixture.plan,
+          dayId: "day-1",
+          documents: fixture.documents,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+
+        expect(_pageCount(bytes), 2);
+      });
+
+      test("the runs chain in the order the documents are given, not a fixed one", () async {
+        final fixture = buildTwoEpisodePlan();
+
+        Future<Uint8List> generateInOrder(
+          List<({String screenplayId, FountainDocument document})> documents,
+        ) => service.generate(
+          plan: fixture.plan,
+          dayId: "day-1",
+          documents: documents,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+
+        final aThenB = await generateInOrder(fixture.documents);
+        final bThenA = await generateInOrder(fixture.documents.reversed.toList());
+
+        // Reversing the input list must reverse the booklet's own pages: the first PDF's whole
+        // content differs from the reversed one's whole content, which the [_contentStreams]
+        // equality check every other test in this file already relies on is exactly built to
+        // detect.
+        expect(_contentStreams(aThenB), isNot(_contentStreams(bThenA)));
+      });
+
+      test("each printed page carries its own screenplay's raw, unprefixed scene number", () {
+        // A side's margin numbers come straight off `FountainScriptComposer`'s own reading of the
+        // screenplay it composed — never off the shot list's own prefixed `displaySceneNumber`
+        // (`1.1`/`2.1`) another export prints elsewhere. Composing each episode's document alone,
+        // exactly as `generate` does, is what keeps the two numbering systems apart: this mirrors
+        // that composer/layout call directly (pure Dart, no PDF bytes to decode) to prove neither
+        // one silently prefixes the other's numbers.
+        const numberedA = "INT. KITCHEN - DAY #1#\n\nJohn walks in.\n";
+        const numberedB = "INT. OFFICE - DAY #1#\n\nSarah reads a memo.\n";
+        final docA = parser.parse(numberedA);
+        final docB = parser.parse(numberedB);
+        final metrics = pageSetup.toMetrics();
+
+        String sceneNumberOf(FountainDocument doc) {
+          final composed = const FountainScriptComposer().compose(document: doc, metrics: metrics);
+          final scene = doc.scenes.single;
+          final layout = OcptScriptSidesLayout.of(
+            script: composed,
+            sceneSpans: [(charStart: scene.sourceRange.startOffset, charEnd: doc.sourceText.length)],
+            metrics: metrics,
+            presentation: OcptSidesPresentation.scriptPages,
+          );
+
+          return layout.pages.first.lines
+              .firstWhere((line) => line.sceneNumber != null)
+              .sceneNumber!;
+        }
+
+        // Both episodes explicitly number their own (and only) scene "1": composing them apart
+        // keeps that collision harmless, each printing its own raw "1" rather than either one
+        // being renumbered or prefixed by the other's presence in the same booklet.
+        expect(sceneNumberOf(docA), "1");
+        expect(sceneNumberOf(docB), "1");
+      });
+
+      test("an episode the day plays nothing of contributes no page", () async {
+        final fixture = buildTwoEpisodePlan();
+        final plan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 3)],
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-a", shootingDayId: "day-1")],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(id: "block-a", shootingDayId: "day-1", slotId: "slot-a", shotId: "shot-a1"),
+            ],
+          },
+          // Episode B's own shot list is still read (as it would be for any episode the day's
+          // scenes might name), it simply places no shot of it on this day.
+          shotLists: [
+            buildShotListA(shots: [_buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1")]),
+            buildShotListB(shots: [_buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1")]),
+          ],
+        );
+
+        final bytes = await service.generate(
+          plan: plan,
+          dayId: "day-1",
+          documents: fixture.documents,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+
+        expect(_pageCount(bytes), 1, reason: "episode A's own single page only, episode B named nothing to print");
+      });
+
+      test("the empty-day note page still prints when no episode contributes anything", () async {
+        final fixture = buildTwoEpisodePlan();
+        final plan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 3)],
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-1", shootingDayId: "day-1")],
+          },
+          shotLists: [
+            buildShotListA(shots: [_buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1")]),
+            buildShotListB(shots: [_buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1")]),
+          ],
+        );
+
+        final bytes = await service.generate(
+          plan: plan,
+          dayId: "day-1",
+          documents: fixture.documents,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+
+        expect(_pageCount(bytes), 1);
+      });
+
+      test("a packed booklet spanning two episodes counts pages over the whole booklet, not one run", () async {
+        final fixture = buildTwoEpisodePlan();
+
+        final singleEpisodeBytes = await service.generate(
+          plan: fixture.plan,
+          dayId: "day-1",
+          documents: [fixture.documents.first],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.packed,
+          exportDate: pinnedExportDate,
+        );
+        final twoEpisodeBytes = await service.generate(
+          plan: fixture.plan,
+          dayId: "day-1",
+          documents: fixture.documents,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.packed,
+          exportDate: pinnedExportDate,
+        );
+
+        expect(_pageCount(singleEpisodeBytes), 1);
+        expect(_pageCount(twoEpisodeBytes), 2, reason: "one packed page per episode, chained into the same booklet");
+        // Episode A's own page identity reads "1 / 1" alone but "1 / 2" once episode B joins the
+        // booklet: the denominator is the only thing that changed, so the two runs cannot print an
+        // identical document.
+        expect(_contentStreams(singleEpisodeBytes), isNot(_contentStreams(twoEpisodeBytes)));
+      });
+
+      test("a matching episode label changes the running head", () async {
+        final withoutLabel = await service.generate(
+          plan: buildOneScenePlan(),
+          dayId: "day-1",
+          documents: [(screenplayId: "screenplay-1", document: documentA)],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+        final withLabel = await service.generate(
+          plan: buildOneScenePlan(),
+          dayId: "day-1",
+          documents: [(screenplayId: "screenplay-1", document: documentA)],
+          pageSetup: pageSetup,
+          labels: _labelsWithEpisodes({"screenplay-1": "Episode 2"}),
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+
+        expect(_contentStreams(withoutLabel), isNot(_contentStreams(withLabel)));
+      });
+
+      test("a screenplay id absent from episodeLabels leaves the head unchanged", () async {
+        // What a single-episode project's own resolver hands this service (`ocptSidesLabelsOf`
+        // builds an empty map on such a project, ADR 0019): an unrelated key changes nothing,
+        // proving the head only ever reacts to a label matching the page's own screenplay.
+        final withEmptyMap = await service.generate(
+          plan: buildOneScenePlan(),
+          dayId: "day-1",
+          documents: [(screenplayId: "screenplay-1", document: documentA)],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+        final withUnrelatedKey = await service.generate(
+          plan: buildOneScenePlan(),
+          dayId: "day-1",
+          documents: [(screenplayId: "screenplay-1", document: documentA)],
+          pageSetup: pageSetup,
+          labels: _labelsWithEpisodes({"screenplay-9": "Episode 9"}),
+          projectName: "My Movie",
+          includeSceneNumbers: false,
+          presentation: OcptSidesPresentation.scriptPages,
+          exportDate: pinnedExportDate,
+        );
+
+        expect(_contentStreams(withEmptyMap), _contentStreams(withUnrelatedKey));
+      });
     });
   });
 
@@ -335,6 +655,7 @@ void main() {
         versionLabel: "Version",
         dayTagPrefix: "D",
         dayTitle: "",
+        episodeLabels: {},
         scriptPagePrefix: "p.",
         emptyDayNote: "Nothing planned for this day.",
       );
@@ -351,6 +672,20 @@ void main() {
       expect(
         service.sidesFileName(plan: plan, dayId: "nope", projectName: "My Movie", labels: _labels),
         "My Movie - sides.pdf",
+      );
+    });
+
+    test("carries no episode segment (a booklet is a day's paperwork, not one episode's)", () {
+      final plan = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 3)], slotsByDayId: const {});
+
+      expect(
+        service.sidesFileName(
+          plan: plan,
+          dayId: "day-1",
+          projectName: "My Movie",
+          labels: _labelsWithEpisodes({"screenplay-1": "Episode 1", "screenplay-2": "Episode 2"}),
+        ),
+        "My Movie - sides - D3.pdf",
       );
     });
   });

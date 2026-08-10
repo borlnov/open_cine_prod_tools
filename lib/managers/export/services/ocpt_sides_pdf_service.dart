@@ -108,17 +108,25 @@ class OcptSidesPdfService {
 
   /// Renders [dayId]'s own sides booklet, returning the PDF's bytes.
   ///
-  /// [document] is composed with [pageSetup] into the very screenplay layout
-  /// [OcptSchedulePlanSnapshot.sceneSpanBySceneId]'s offsets address — a booklet built from any
-  /// other text or any other page setup would slice the wrong rows. The day's own scenes come from
-  /// [OcptSchedulePlanSnapshot.sceneIdsOfDay], each resolved through
-  /// [OcptSchedulePlanSnapshot.sceneSpanBySceneId]; a scene id that map holds nothing for is
+  /// [documents] is one composed run per episode, **in the order the booklet chains them in**: a
+  /// screenplay may only ever be composed against its own text, so there is one
+  /// `FountainScriptComposer.compose` call, one [OcptScriptSidesLayout] and one running head per
+  /// pair rather than one over every episode's text concatenated — a page number, a `(MORE)` and a
+  /// `(CONT'D)` are facts about *one* screenplay's own pagination, and composing two episodes as
+  /// one document would invent a pagination neither of them has. Each pair is composed with
+  /// [pageSetup] into the very screenplay layout [OcptSchedulePlanSnapshot.sceneSpanBySceneId]'s
+  /// offsets address — a booklet built from any other text or any other page setup would slice the
+  /// wrong rows. The day's own scenes come from [OcptSchedulePlanSnapshot.sceneIdsOfDay], narrowed
+  /// per pair through [OcptSchedulePlanSnapshot.screenplayIdBySceneId] and resolved through
+  /// [OcptSchedulePlanSnapshot.sceneSpanBySceneId]; a scene id either map holds nothing for is
   /// skipped rather than crashing the export — nothing this app writes reaches that case (a shot's
-  /// own scene is always one the shot list still indexes), but a hand-edited file might name one
-  /// that no longer is. **The resulting spans are handed to [OcptScriptSidesLayout.of] exactly as
-  /// [OcptSchedulePlanSnapshot.sceneIdsOfDay] yields them, unsorted**: that factory sorts them
-  /// itself, and sorting twice would only risk disagreeing with its own reading of "screenplay
-  /// order".
+  /// own scene is always one the shot list still indexes and one live episode), but a hand-edited
+  /// file might name one that no longer is. **The resulting spans are handed to
+  /// [OcptScriptSidesLayout.of] exactly as [OcptSchedulePlanSnapshot.sceneIdsOfDay] yields them,
+  /// unsorted**: that factory sorts them itself, and sorting twice would only risk disagreeing with
+  /// its own reading of "screenplay order". An episode the day plays no scene of contributes no
+  /// page and no running head — it is simply absent from the booklet rather than printing an empty
+  /// run.
   ///
   /// [exportDate] is resolved **once** per document, into the running foot's own version line
   /// (through [ocptScheduleGeneratedAtStamp], the stamp every schedule document of this app
@@ -126,14 +134,14 @@ class OcptSidesPdfService {
   /// rather than racing a midnight rollover — the rule every schedule document of this app already
   /// follows.
   ///
-  /// A day whose scenes fold down to no page at all (nothing the screenplay still prints, or
-  /// [dayId] naming no live day of [plan]) prints **one** portrait note page carrying the running
-  /// head, the day band and [OcptSidesLabels.emptyDayNote] — a readable document a crew can still
-  /// open, rather than an empty file nobody can.
+  /// A day whose scenes fold down to no page at all across **every** pair of [documents] (nothing
+  /// any episode's screenplay still prints, or [dayId] naming no live day of [plan]) prints **one**
+  /// portrait note page carrying the running head, the day band and [OcptSidesLabels.emptyDayNote]
+  /// — a readable document a crew can still open, rather than an empty file nobody can.
   Future<Uint8List> generate({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
-    required FountainDocument document,
+    required List<({String screenplayId, FountainDocument document})> documents,
     required OcptPageSetup pageSetup,
     required OcptSidesLabels labels,
     required String projectName,
@@ -143,56 +151,85 @@ class OcptSidesPdfService {
   }) async {
     final metrics = pageSetup.toMetrics();
     final painter = OcptScriptPagePainter(metrics: metrics, fonts: await fontsLoader.load());
-    final script = _composer.compose(document: document, metrics: metrics);
+    final daySceneIds = plan.sceneIdsOfDay(dayId);
 
-    final sceneSpans = [
-      for (final sceneId in plan.sceneIdsOfDay(dayId))
-        if (plan.sceneSpanBySceneId[sceneId] case final span?) span,
-    ];
+    // Every episode's own layout, composed against its own text alone (see the doc comment above
+    // for why) and kept only while it actually contributes a page — an episode the day plays
+    // nothing of drops out here rather than reaching the render loop below as an empty run.
+    final runs = <({String screenplayId, OcptScriptSidesLayout layout})>[];
+    for (final pair in documents) {
+      final sceneIds = [
+        for (final sceneId in daySceneIds)
+          if (plan.screenplayIdBySceneId[sceneId] == pair.screenplayId) sceneId,
+      ];
+      if (sceneIds.isEmpty) {
+        continue;
+      }
 
-    final layout = OcptScriptSidesLayout.of(
-      script: script,
-      sceneSpans: sceneSpans,
-      metrics: metrics,
-      presentation: presentation,
-    );
+      final sceneSpans = [
+        for (final sceneId in sceneIds)
+          if (plan.sceneSpanBySceneId[sceneId] case final span?) span,
+      ];
+      final script = _composer.compose(document: pair.document, metrics: metrics);
+      final layout = OcptScriptSidesLayout.of(
+        script: script,
+        sceneSpans: sceneSpans,
+        metrics: metrics,
+        presentation: presentation,
+      );
+      if (layout.pages.isEmpty) {
+        continue;
+      }
+
+      runs.add((screenplayId: pair.screenplayId, layout: layout));
+    }
 
     final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final pdfDocument = pw.Document();
 
-    if (layout.pages.isEmpty) {
+    if (runs.isEmpty) {
       pdfDocument.addPage(
         _notePage(painter: painter, labels: labels, plan: plan, dayId: dayId, projectName: projectName, versionLine: versionLine),
       );
       return pdfDocument.save();
     }
 
-    for (final (index, sidesPage) in layout.pages.indexed) {
-      pdfDocument.addPage(
-        // `pageNumber: 0` deliberately silences `OcptScriptPagePainter`'s own page-number
-        // annotation (only ever drawn from its 2nd script page onward): that number counts script
-        // pages of the document *it* is building, which a booklet's own pages are not — a packed
-        // page in particular reproduces no single one at all. This service prints the page's own
-        // identity itself, in its own running head, so a reader of either presentation has exactly
-        // one place to look for it rather than the painter's own count in one and a made-up one in
-        // the other.
-        painter.buildScriptPage(
-          page: FountainScriptPage(lines: sidesPage.lines),
-          pageNumber: 0,
-          includeSceneNumbers: includeSceneNumbers,
-          overlays: _overlaysFor(
-            painter: painter,
-            labels: labels,
-            plan: plan,
-            dayId: dayId,
-            projectName: projectName,
-            versionLine: versionLine,
-            sidesPage: sidesPage,
-            pageIndex: index,
-            pageCount: layout.pages.length,
+    // `pageCount` is the whole booklet's own, across every run: a `packed` page's `n / m` is a
+    // statement about the booklet a reader is holding, not about the one episode this particular
+    // page happens to come from — see [_pageIdentityOf].
+    final pageCount = runs.fold(0, (sum, run) => sum + run.layout.pages.length);
+    var pageIndex = 0;
+
+    for (final run in runs) {
+      for (final sidesPage in run.layout.pages) {
+        pdfDocument.addPage(
+          // `pageNumber: 0` deliberately silences `OcptScriptPagePainter`'s own page-number
+          // annotation (only ever drawn from its 2nd script page onward): that number counts script
+          // pages of the document *it* is building, which a booklet's own pages are not — a packed
+          // page in particular reproduces no single one at all. This service prints the page's own
+          // identity itself, in its own running head, so a reader of either presentation has exactly
+          // one place to look for it rather than the painter's own count in one and a made-up one in
+          // the other.
+          painter.buildScriptPage(
+            page: FountainScriptPage(lines: sidesPage.lines),
+            pageNumber: 0,
+            includeSceneNumbers: includeSceneNumbers,
+            overlays: _overlaysFor(
+              painter: painter,
+              labels: labels,
+              plan: plan,
+              dayId: dayId,
+              screenplayId: run.screenplayId,
+              projectName: projectName,
+              versionLine: versionLine,
+              sidesPage: sidesPage,
+              pageIndex: pageIndex,
+              pageCount: pageCount,
+            ),
           ),
-        ),
-      );
+        );
+        pageIndex++;
+      }
     }
 
     return pdfDocument.save();
@@ -207,6 +244,7 @@ class OcptSidesPdfService {
     required OcptSidesLabels labels,
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
+    required String screenplayId,
     required String projectName,
     required String versionLine,
     required OcptScriptSidesPage sidesPage,
@@ -216,7 +254,7 @@ class OcptSidesPdfService {
     _leftAlignedRunningText(
       painter: painter,
       topPt: _runningHeadTopInches * ocptPdfPointsPerInch,
-      text: _dayHeadingOf(labels: labels, plan: plan, dayId: dayId),
+      text: _dayHeadingOf(labels: labels, plan: plan, dayId: dayId, screenplayId: screenplayId),
       reservedRightInches: _pageIdentityWidthInches,
     ),
     _rightAlignedRunningText(
@@ -271,22 +309,33 @@ class OcptSidesPdfService {
   );
 
   /// The running head's own left-hand line: the document's own title, then the printed day's tag
-  /// and — while [OcptSidesLabels.dayTitle] is non-empty — its own title, `" — "`-joined. A day
-  /// [plan] does not hold (nothing this app writes reaches that, a stale selection might) prints
-  /// the document title alone, never a dangling tag.
+  /// and — while [OcptSidesLabels.dayTitle] is non-empty — its own title, `" — "`-joined, and
+  /// finally — while [screenplayId] resolves a non-empty label through
+  /// [OcptSidesLabels.episodeLabelOf] — that episode's own name, `" · "`-joined onto whatever came
+  /// before it (`Sides · D3 — Tuesday 4 August · Episode 2`). A day [plan] does not hold (nothing
+  /// this app writes reaches that, a stale selection might) prints the document title alone, never
+  /// a dangling tag. A null [screenplayId] (the note page, which names no episode because none
+  /// contributed one) and an empty [OcptSidesLabels.episodeLabels] (a single-episode project, ADR
+  /// 0019) both leave the episode segment off entirely — which is also what keeps this line
+  /// **byte-for-byte** what it always printed before a project could hold more than one episode.
   String _dayHeadingOf({
     required OcptSidesLabels labels,
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
+    required String? screenplayId,
   }) {
     final day = plan.schedule.daysById[dayId];
+    final String base;
     if (day == null) {
-      return labels.documentTitle;
+      base = labels.documentTitle;
+    } else {
+      final tag = "${labels.dayTagPrefix}${day.dayNumber}";
+      final title = labels.dayTitle.trim();
+      base = title.isEmpty ? "${labels.documentTitle} · $tag" : "${labels.documentTitle} · $tag — $title";
     }
 
-    final tag = "${labels.dayTagPrefix}${day.dayNumber}";
-    final title = labels.dayTitle.trim();
-    return title.isEmpty ? "${labels.documentTitle} · $tag" : "${labels.documentTitle} · $tag — $title";
+    final episodeLabel = screenplayId == null ? "" : labels.episodeLabelOf(screenplayId).trim();
+    return episodeLabel.isEmpty ? base : "$base · $episodeLabel";
   }
 
   /// The running head's own right-hand line: [sidesPage]'s identity. A
@@ -336,7 +385,7 @@ class OcptSidesPdfService {
         _leftAlignedRunningText(
           painter: painter,
           topPt: _runningHeadTopInches * ocptPdfPointsPerInch,
-          text: _dayHeadingOf(labels: labels, plan: plan, dayId: dayId),
+          text: _dayHeadingOf(labels: labels, plan: plan, dayId: dayId, screenplayId: null),
         ),
         _leftAlignedRunningText(
           painter: painter,

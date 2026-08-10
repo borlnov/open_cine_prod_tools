@@ -744,21 +744,23 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// Renders [dayId]'s own sides booklet via [sidesPdfService] and shows the native save dialog to
   /// write it out.
   ///
-  /// [document] is a parameter rather than something this manager reads off the open project, for
+  /// [documents] is a parameter rather than something this manager reads off the open project, for
   /// the same reason [exportScenarioCoverage] takes one: this manager touches no database, and the
-  /// screenplay text a booklet is sliced from is the caller's to supply. [labels] carries every
-  /// localized string the document itself holds (its own title, the day tag prefix, the printed
-  /// day's own title, the script-page prefix and the file name's own suffix) and [fileTypeLabel]
-  /// the one the native dialog needs — this manager has no `Tr` of its own. Like the shooting plan,
-  /// the *Day Out of Days* and the one-line schedule, this is a **single** file, through
-  /// `pickSaveLocation` rather than a folder — one booklet is one day's own paperwork, handed to
-  /// one recipient at a time. Returns the path of the written file, or null if the user cancelled
-  /// or the save failed (failures are logged; the OS dialog already reported a cancellation to the
-  /// user).
+  /// screenplay text a booklet is sliced from is the caller's to supply — one composed run per
+  /// episode the day plays, in the order the booklet chains them in (see
+  /// [OcptSidesPdfService.generate]'s own doc comment for why a screenplay is never composed
+  /// alongside another's). [labels] carries every localized string the document itself holds (its
+  /// own title, the day tag prefix, the printed day's own title, each episode's own label, the
+  /// script-page prefix and the file name's own suffix) and [fileTypeLabel] the one the native
+  /// dialog needs — this manager has no `Tr` of its own. Like the shooting plan, the *Day Out of
+  /// Days* and the one-line schedule, this is a **single** file, through `pickSaveLocation` rather
+  /// than a folder — one booklet is one day's own paperwork, handed to one recipient at a time.
+  /// Returns the path of the written file, or null if the user cancelled or the save failed
+  /// (failures are logged; the OS dialog already reported a cancellation to the user).
   Future<String?> exportSides({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
-    required FountainDocument document,
+    required List<({String screenplayId, FountainDocument document})> documents,
     required OcptPageSetup pageSetup,
     required OcptSidesLabels labels,
     required String projectName,
@@ -769,7 +771,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     final bytes = await sidesPdfService.generate(
       plan: plan,
       dayId: dayId,
-      document: document,
+      documents: documents,
       pageSetup: pageSetup,
       labels: labels,
       projectName: projectName,

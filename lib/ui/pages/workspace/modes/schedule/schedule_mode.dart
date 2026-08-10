@@ -491,6 +491,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
         labels: ocptSidesLabelsOf(
           context,
           day: state.days.where((day) => day.id == options.dayId).firstOrNull,
+          episodes: state.episodes,
         ),
         fileTypeLabel: tr.scheduleExportFileTypeLabel,
       ),

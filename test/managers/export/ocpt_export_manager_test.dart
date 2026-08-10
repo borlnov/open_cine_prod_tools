@@ -1469,6 +1469,7 @@ void main() {
       versionLabel: "Version",
       dayTagPrefix: "D",
       dayTitle: "",
+      episodeLabels: {},
       scriptPagePrefix: "p.",
       emptyDayNote: "Nothing planned for this day.",
     );
@@ -1524,7 +1525,7 @@ void main() {
     Future<String?> export(OcptExportManager manager) => manager.exportSides(
       plan: buildPlan(),
       dayId: "day-1",
-      document: document,
+      documents: [(screenplayId: "screenplay-1", document: document)],
       pageSetup: const OcptPageSetup.standard(),
       labels: labels,
       projectName: "My Movie",

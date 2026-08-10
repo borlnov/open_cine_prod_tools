@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -23,6 +24,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -1687,6 +1689,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// It is read straight from the open project's own database, which is where the shot list
   /// snapshot's scene offsets were indexed against — a version preview swaps that database out
   /// wholesale, so a previewed booklet reads the previewed screenplay, exactly as its scenes do.
+  ///
+  /// A day now regularly plays more than one episode, so this reads **every** episode [options
+  /// .dayId] plays rather than [OcptOpenProjectModel.primaryScreenplayId] alone: [_documentsOfDay]
+  /// resolves which ones through [OcptSchedulePlanSnapshot.screenplayIdBySceneId], narrowed to
+  /// [OcptScheduleState.episodes] and kept in that list's own order — the order
+  /// [OcptSidesPdfService.generate] then chains the booklet's runs in.
   Future<void> _onSidesExportRequested(
     OcptScheduleSidesExportRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -1701,15 +1709,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     try {
       final options = event.options;
-      final screenplayText = await _projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      final documents = await _documentsOfDay(project: project, plan: plan, dayId: options.dayId);
 
       final path = await _exportManager.exportSides(
         plan: plan,
         dayId: options.dayId,
-        document: const FountainParser().parse(screenplayText),
+        documents: documents,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
@@ -1734,6 +1739,42 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       );
       emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
     }
+  }
+
+  /// Every live episode [dayId] plays, in [OcptScheduleState.episodes]' own order, each paired with
+  /// its own freshly-parsed screenplay text — what [_onSidesExportRequested] hands
+  /// [OcptExportManager.exportSides].
+  ///
+  /// [OcptSchedulePlanSnapshot.sceneIdsOfDay] gives the day's own scenes, and
+  /// [OcptSchedulePlanSnapshot.screenplayIdBySceneId] the episode each belongs to; the resulting id
+  /// set is walked against [OcptScheduleState.episodes] rather than the other way round, so an
+  /// episode the day does not play is silently absent and the ones it does play come out in the
+  /// project's own episode order regardless of which scene happened to name them first.
+  Future<List<({String screenplayId, FountainDocument document})>> _documentsOfDay({
+    required OcptOpenProjectModel project,
+    required OcptSchedulePlanSnapshot plan,
+    required String dayId,
+  }) async {
+    final dayEpisodeIds = {
+      for (final sceneId in plan.sceneIdsOfDay(dayId))
+        if (plan.screenplayIdBySceneId[sceneId] case final screenplayId?) screenplayId,
+    };
+
+    const parser = FountainParser();
+    final documents = <({String screenplayId, FountainDocument document})>[];
+    for (final episode in state.episodes) {
+      if (!dayEpisodeIds.contains(episode.id)) {
+        continue;
+      }
+
+      final screenplayText = await _projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: episode.id,
+      );
+      documents.add((screenplayId: episode.id, document: parser.parse(screenplayText)));
+    }
+
+    return documents;
   }
 
   /// Clears the transient export notice currently shown, if any.
