@@ -55,6 +55,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
@@ -559,8 +561,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Opens the project settings page, then re-reads the page setup if the user changed something —
   /// mirrors `OcptBreakdownMode._requestProjectSettings`/`OcptShotListMode`'s own handler: the page
   /// format is what the three export dialogs pre-fill their format dropdown from.
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire. This mode
+  /// shows no episode selector of its own (it reads every episode at once, `docs/adr/0019`), but
+  /// `OcptWorkspaceBloc`'s own list must still be current the moment the user switches to a mode
+  /// that does show one.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptScheduleBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
     );
@@ -569,6 +579,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     bloc.add(const OcptScheduleProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the shell's `centre`: the header band, then whichever of the agenda or the day view

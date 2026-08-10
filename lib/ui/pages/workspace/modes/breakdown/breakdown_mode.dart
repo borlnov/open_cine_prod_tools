@@ -344,8 +344,13 @@ class _BreakdownViewState extends State<_BreakdownView> {
 
   /// Opens the project settings page, then reloads the mode's own read if the user changed
   /// anything there.
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptBreakdownBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
     );
@@ -354,6 +359,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     }
 
     bloc.add(const OcptBreakdownProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.

@@ -605,8 +605,13 @@ class _EditorViewState extends State<_EditorView> {
 
   /// Opens the project settings page, then reloads the page format (and repaginates) if the user
   /// changed anything there.
+  ///
+  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
+  /// card can add or delete one, which the workspace bloc otherwise only learns about from
+  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptEditorBloc>();
+    final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
     );
@@ -615,6 +620,7 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     bloc.add(const OcptEditorProjectSettingsChangedEvent());
+    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
   /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
