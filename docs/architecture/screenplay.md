@@ -12,6 +12,15 @@ editor's document model, the title page, the docks and the syntax guide.
 - `packages/fountain_kit`: pure-Dart Fountain parser/serializer with round-trip guarantee and
   `FountainLayoutMetrics` (US Letter/A4 Courier columns). Keep it free of Flutter imports.
 
+- One screenplay at a time, and it is **the episode the workspace has selected** (ADR 0019): the
+  mode reads and writes that screenplay where it reached for `primaryScreenplayId` before, and
+  switching episode remounts it wholesale (see `foundations.md`). Nothing else about the mode
+  changes, an episode being one screenplay — and **the script is never prefixed**: the computed
+  scene numbers, the raw preview and the screenplay PDF all print the author's own `#N#`, where the
+  shot list, the breakdown and the schedule read `<episode>.<scene>`. The mode's two exports name
+  the episode in their **suggested file name** instead, so two episodes saved into one folder cannot
+  overwrite each other.
+
 - Source provenance (ADR 0012): every printed line `FountainScriptComposer` emits carries a nullable
   `FountainScriptLine.sourceRange` — the union of its runs' own `FountainStyledRun.sourceRange`s,
   anchored into `FountainDocument.sourceText` — plus `isSynthetic` for the `(MORE)` token and the

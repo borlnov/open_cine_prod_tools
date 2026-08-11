@@ -12,6 +12,10 @@ progress per scene, and the two documents it prints.
 - Breakdown mode (`lib/ui/pages/workspace/modes/breakdown/`): the *dépouillement* — reading the
   script once and tagging what the shoot must provide. It is the pass that fills the catalogues the
   resources mode holds, so it sits between the screenplay and the shot list in the mode switcher.
+  It reads **the episode the workspace has selected** (ADR 0019) — its scenes, its tags and its
+  breakdown sheets — while the catalogues it fills stay the production's; `OcptBreakdownScene`'s
+  own `displayNumber` is `ocptSceneDisplayNumberOf`'s answer, so a sequence reads `2.12` in every
+  surface of the mode and in both its documents as soon as the project holds more than one episode.
   A **tag** (`breakdown_tags`, ADR 0014) is the anchor between a passage of the screenplay and the
   catalogue row it calls for: a discriminator (`OcptBreakdownTargetKind { element, role, set }`)
   plus three nullable foreign keys, exactly one non-null. A character is never an `elements` row —

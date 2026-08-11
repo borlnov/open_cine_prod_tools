@@ -30,7 +30,9 @@ call sheets, budget, script supervisor reports, storyboard, and a casting tracke
   there is none available to this project, so nothing about it can be verified here beyond what
   the CI checks structurally. Say so rather than implying it works.
 - Storage: **local only** for now — one SQLite file per project (`.ocpt`, via drift), with the
-  Fountain text as the source of truth plus a stable-UUID scene index. Sharing and collaboration
+  Fountain text as the source of truth plus a stable-UUID scene index. **One project holds one or
+  several episodes** (a series is one file, ADR 0019): a screenplay row *is* an episode, the modes
+  read the one the workspace selects, and the schedule reads them all. Sharing and collaboration
   come next, through an offline-first replica synced by a self-hostable, domain-blind relay
   server — see `docs/adr/0009`, `docs/adr/0010` and `docs/plans/collaboration-and-sync.md`. Google
   Drive was evaluated and rejected as a transport.
