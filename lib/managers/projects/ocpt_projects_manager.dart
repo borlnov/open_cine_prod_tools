@@ -652,6 +652,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     _currentProject.value = project.workingCopy;
 
+    // A restored version may hold a different number of episodes than the working copy did.
+    await recordCurrentProjectEpisodeCount();
+
     return result.status;
   }
 
@@ -815,7 +818,32 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     await project.fileDatabase.close();
 
-    await _recordEpisodeCountOnClose(path: project.path, episodeCount: episodeCount);
+    await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
+  }
+
+  /// Updates the recent-projects entry for the [currentProject] so it carries the episode count
+  /// the project holds right now. Does nothing when no project is open.
+  ///
+  /// [closeCurrentProject] records that count on the way out too, but only a session that *leaves*
+  /// the project ever reaches it: an app closed while the project is still open never runs it, and
+  /// the home card would then go on showing the count the project was opened with until the next
+  /// time it is opened. Whoever adds or removes an episode calls this the moment it happens, so
+  /// that count survives a window closed on the spot.
+  ///
+  /// The live count is read over [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
+  /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
+  /// version is being previewed.
+  Future<void> recordCurrentProjectEpisodeCount() async {
+    final project = currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final episodeCount = (await screenplayService.loadEpisodes(
+      database: project.fileDatabase,
+    )).length;
+
+    await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
   }
 
   /// Updates the recent-projects entry for [path], if it is still in the list, so it carries
@@ -823,7 +851,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   ///
   /// Left untouched, rather than created, when [path] isn't in the list at all — e.g. it was
   /// removed from the recent projects list while the project stayed open.
-  Future<void> _recordEpisodeCountOnClose({
+  Future<void> _recordEpisodeCount({
     required String path,
     required int episodeCount,
   }) async {

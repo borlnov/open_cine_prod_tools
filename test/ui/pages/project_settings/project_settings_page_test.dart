@@ -361,6 +361,11 @@ void main() {
       database: projectsManager.currentProject!.database,
     );
     expect(episodesInDatabase.length, 2);
+
+    // The home card's badge learns about it without waiting for the project to be closed: an app
+    // quit from here would never reach that close.
+    final recents = await propertiesManager.recentProjects.load();
+    expect(recents?.first.episodeCount, 2);
   });
 
   testWidgets("renaming and renumbering an episode writes it to the project", (tester) async {
@@ -445,6 +450,9 @@ void main() {
 
   testWidgets("deleting an episode asks for confirmation, then removes it", (tester) async {
     final secondId = await addEpisode(title: "Les falaises");
+    // The fixture stands for an episode the user added, so the recent-projects entry counts it
+    // too — which is what makes the assertion on that count below say something.
+    await projectsManager.recordCurrentProjectEpisodeCount();
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
     final firstEpisode = bloc.state.episodes.first;
@@ -469,6 +477,11 @@ void main() {
       database: projectsManager.currentProject!.database,
     );
     expect(episodesInDatabase.single.id, secondId);
+
+    // The home card's badge is brought back down to one episode straight away, exactly as adding
+    // one raises it.
+    final recents = await propertiesManager.recentProjects.load();
+    expect(recents?.first.episodeCount, 1);
   });
 
   testWidgets("cancelling the delete confirmation leaves the episode in place", (tester) async {

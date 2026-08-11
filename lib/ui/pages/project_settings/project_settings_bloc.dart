@@ -119,12 +119,18 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
 
   /// Appends a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
   /// then re-reads the project's episodes so the card shows what the database now holds.
+  ///
+  /// The home card's episode badge is told about it right away
+  /// ([OcptProjectsManager.recordCurrentProjectEpisodeCount]) rather than left to the project's
+  /// close: an app quit from here would never reach that close, and the badge would go on saying
+  /// what the project held when it was opened.
   Future<void> _onEpisodeAdded(
     OcptProjectSettingsEpisodeAddedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     final id = await _projectsManager.screenplayService.createEpisode(database: _database);
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    await _projectsManager.recordCurrentProjectEpisodeCount();
     emitter(state.copyWith(episodes: episodes, hasChanged: id != null ? true : null));
   }
 
@@ -180,6 +186,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// delete affordance on a project's last live episode, but `OcptScreenplayService.deleteEpisode`
   /// itself refuses that write too, and there is nothing to reload for a mode were this to somehow
   /// be reached anyway.
+  ///
+  /// The home card's episode badge is told about it right away, exactly as [_onEpisodeAdded] does.
   Future<void> _onEpisodeDeletionConfirmed(
     OcptProjectSettingsEpisodeDeletionConfirmedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -189,6 +197,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       screenplayId: event.screenplayId,
     );
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    await _projectsManager.recordCurrentProjectEpisodeCount();
     emitter(state.copyWith(episodes: episodes, hasChanged: deleted ? true : null));
   }
 }
